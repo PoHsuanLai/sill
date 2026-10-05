@@ -6,6 +6,7 @@ mod intents;
 mod memory;
 mod probe;
 mod run;
+mod tell;
 mod text;
 
 pub(crate) use run::{Reach, run};

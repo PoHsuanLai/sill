@@ -18,6 +18,9 @@ pub enum Pane {
     Showing(TaskId),
     /// The selected answer needs a few details: its form is the pane.
     Form(TaskId),
+    /// The selected answer waits for the person's confirmation on the shell's own sheet: its
+    /// card stays as it is, and the person answers on the sheet.
+    Confirming(TaskId),
 }
 
 /// What the selected row is, as the keys machine reads it.
@@ -47,7 +50,8 @@ pub fn pane_of(selected: &Selected, companion: &Companion) -> Pane {
     match &answer.wire.phase {
         AnswerPhase::Thinking | AnswerPhase::Streaming => Pane::Thinking(task.clone()),
         AnswerPhase::NeedsYou(NeedsYou::Form(_)) => Pane::Form(task.clone()),
-        AnswerPhase::NeedsYou(NeedsYou::Confirm(_) | NeedsYou::Question { .. })
+        AnswerPhase::NeedsYou(NeedsYou::Confirm(_)) => Pane::Confirming(task.clone()),
+        AnswerPhase::NeedsYou(NeedsYou::Question { .. })
         | AnswerPhase::Done
         | AnswerPhase::Failed
         | AnswerPhase::Cancelled => Pane::Showing(task.clone()),

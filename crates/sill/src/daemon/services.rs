@@ -33,9 +33,9 @@ use tokio::runtime::Handle as Runtime;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::policy::{
-    calendar::CalendarBridge, clipboard::ClipboardBridge, displays::DisplaysBridge, follow,
-    idle::IdleBridge, keyboard::KeyboardBridge, notifications::NotificationsBridge,
-    screenshots::ScreenshotsBridge, search::SearchBridge,
+    calendar::CalendarBridge, clipboard::ClipboardBridge, companion::CompanionBridge,
+    displays::DisplaysBridge, follow, idle::IdleBridge, keyboard::KeyboardBridge,
+    notifications::NotificationsBridge, screenshots::ScreenshotsBridge, search::SearchBridge,
 };
 
 /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
@@ -210,6 +210,13 @@ pub(crate) fn follow_settings(
         settings(),
         DisplaysBridge,
         services.displays.control.clone(),
+    );
+    // The companion's double tap and summon follow `companion.*`.
+    follow(
+        rt,
+        settings(),
+        CompanionBridge,
+        services.companion.control.clone(),
     );
     // keycap's per-app profiles follow `keyboard.overrides`.
     follow(

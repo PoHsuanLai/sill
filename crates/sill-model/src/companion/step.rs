@@ -1,13 +1,16 @@
 //! The companion service's one transition: the machines that decide where a summon goes, and the
 //! bookkeeping of answers, runs, the journal and the two lookups.
 
+use std::collections::BTreeMap;
+
 use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, FooterWire};
 use docket_core::{ContextKeep, Hit, Keep};
 use ds_core::machine::{Elapsed, Machine};
 use ds_core::time::stamp::Stamp;
-use prov::TaskId;
+use prov::{SessionId, TaskId};
 use sill_launcher::Generation;
 
+use super::card::{card_call, settled};
 use super::command::{CompanionEffect, CompanionEvent, CompanionParams};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
 use super::summon::{SummonCx, SummonIn, SummonOut};
@@ -97,7 +100,11 @@ fn summoned(
 /// The events that only change what is published.
 fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
     match event {
-        CompanionEvent::Asked { task, prompt } => asked(state, task, prompt),
+        CompanionEvent::Asked {
+            task,
+            prompt,
+            session,
+        } => asked(state, task, prompt, session),
         CompanionEvent::Answer(wire) => answered(state, *wire),
         CompanionEvent::AnswerGone(task) => {
             let mut answers = state.answers;
@@ -110,14 +117,24 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
             }
         }
         CompanionEvent::CardPressed { task, action } => {
+            with_answer(state, &task, |answer| match card_call(&answer, &action) {
+                Some(step) => AnswerFacts {
+                    busy: Busy::Acting { card: action, step },
+                    ..answer
+                },
+                None => answer,
+            })
+        }
+        CompanionEvent::CardRefused { task, action } => {
             with_answer(state, &task, |answer| AnswerFacts {
-                busy: Busy::Acting(action),
+                busy: Busy::Refused(action),
                 ..answer
             })
         }
-        CompanionEvent::CardEnded(task) => with_answer(state, &task, |answer| AnswerFacts {
-            busy: Busy::Idle,
-            ..answer
+        CompanionEvent::Shown { task, handle, text } => with_answer(state, &task, |answer| {
+            let mut shown = answer.shown;
+            shown.insert(handle, text);
+            AnswerFacts { shown, ..answer }
         }),
         CompanionEvent::Run(run) => {
             let mut runs = state.runs;
@@ -130,6 +147,7 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
             Companion { runs, ..state }
         }
         CompanionEvent::Journal(journal) => Companion { journal, ..state },
+        CompanionEvent::Openers(openers) => Companion { openers, ..state },
         CompanionEvent::ThingsAsked(generation) => Companion {
             things: state.things.asked(generation),
             ..state
@@ -174,17 +192,20 @@ fn same_thing(a: &Hit, b: &Hit) -> bool {
 }
 
 /// An ask began: the answer exists, thinking, until the companion writes the first view.
-fn asked(state: Companion, task: TaskId, prompt: String) -> Companion {
+fn asked(state: Companion, task: TaskId, prompt: String, session: SessionId) -> Companion {
     let mut answers = state.answers;
-    let wire = answers
-        .remove(&task)
-        .map_or_else(|| thinking(&task), |known| known.wire);
+    let (wire, shown) = answers.remove(&task).map_or_else(
+        || (thinking(&task), BTreeMap::new()),
+        |known| (known.wire, known.shown),
+    );
     answers.insert(
         task.clone(),
         AnswerFacts {
             prompt,
             wire,
             busy: Busy::Idle,
+            session: Some(session),
+            shown,
         },
     );
     Companion {
@@ -199,10 +220,21 @@ fn answered(state: Companion, wire: AnswerWire) -> Companion {
     let mut answers = state.answers;
     let task = wire.task.clone();
     let known = answers.remove(&task);
-    let (prompt, busy) = known.map_or((String::new(), Busy::Idle), |known| {
-        (known.prompt, known.busy)
-    });
-    answers.insert(task.clone(), AnswerFacts { prompt, wire, busy });
+    let facts = match known {
+        Some(known) => AnswerFacts {
+            busy: settled(known.busy, &wire),
+            wire,
+            ..known
+        },
+        None => AnswerFacts {
+            prompt: String::new(),
+            wire,
+            busy: Busy::Idle,
+            session: None,
+            shown: BTreeMap::new(),
+        },
+    };
+    answers.insert(task.clone(), facts);
     Companion {
         answers,
         front: state.front.or(Some(task)),

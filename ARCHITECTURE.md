@@ -74,7 +74,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | Crate | Modules (layer order) |
 | --- | --- |
 | `sill-model` | `units`, `ids`, `attempt`, `vocab` (enums shared with settings), then one dir per service (`battery`, `clock`, ... 30 services, `companion` and `intents` among them: its `sheet/`, `terminal/` and `shell/` sub-dirs are the confirmation queue, the terminal's grants and the shell's own actions; `results` holds search state; `focus` holds the focus mode, which is not a service; `keyboard` holds the pure keyboard-profile choice, which is not a service either, and `keycap` the keycap service's state and its pure decisions: the focus to send, the notice to post, how to read the unit, how long to wait to reconnect). Each service dir: `mod.rs`, `model.rs` (State), `command.rs` (Command, Event, Effect), `step.rs`, `tests.rs`; a sub-concept gets a sub-dir with the same roles. Service dirs never import each other |
-| `sill-settings` | `section` (trait), one file per domain (`bar`, `dock`, ..., 21 domains), `file` (`ShellFile`, `SettingsDoc` impl), `schema`, `keys` (typed enums and unit newtypes that no service shares) |
+| `sill-settings` | `section` (trait), one file per domain (`bar`, `dock`, ..., 22 domains), `file` (`ShellFile`, `SettingsDoc` impl), `schema`, `keys` (typed enums and unit newtypes that no service shares) |
 | `sill-ipc` | `line` (encode, decode, cap), `error`, `request`, `response`, `show`, `status`, `act`, `debug` (one word file per request group) |
 | `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `file_touch` (a debounced watch on one file), then one dir per service (28, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview` (a clipboard image), `providers/<kind>/` (`files/`: `actions` (the shared file actions as a row's), `viewed` (the viewer's history as rows and uses)), `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
@@ -245,6 +245,8 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Notices about keycap (failed, conflict, paused) | `sill_model::keycap::{attention, notice_for, notice_text}`; posted by `sill_services::keycap::backend::notice` (no action: `sill keycap retry` and `resume` are the way out) |
 | Where the double tap and a summon go: the two machines, the Ask, the answers, the runs, the journal, the lookups | `sill_model::companion::{Tap, Summon, step}` (quire's `Machine`, stepped by `sill_services::companion`, which publishes `Companion`); the daemon's half (what is focused, the launcher's open, switch and close, the four `sill companion` verbs) is `sill::companion` |
 | The companion's presence (the orb and the glow) | `sill_model::companion::presence_of`, the only derivation (`ds_core::vocab::CompanionPresence`) |
+| What a card press is doing (which action a button calls, when its press ended, which kinds of thing open in their apps, which handles still wait for their text) | `sill_model::companion::{card_call, cards_of, promote_card, openers_of, unresolved_handles}` and `Busy`; the service carries out `Answer.Act`, `Session.Display` and the registry read (`sill_services::companion::backend`) |
+| What the settings say about the double tap and the summon | `sill_settings::companion_params` (`companion.*`, design/22 section 3.30) as `CompanionParams`, sent by `sill::policy::companion::CompanionBridge`; every duration is `sill_model::units::Ms` |
 | A run's state and the controls it offers; which runs a stop-all pauses | `sill_model::companion::{run_state_of, run_controls, going_runs}` (cuad's phase and outcome in, `RunState` out) |
 | What a companion row says (an answer, a journal row, a memory row) | `sill_model::companion::{answer_line, activity_line, memory_line}`: fixed words and the person's own, never a model's formatting |
 | The companion's wire as quire's view types (an answer card, its footer, a plan, a form, a run's state) | `sill_ui_kit::companion`, one total function per pair, each with a `*_total` test |
@@ -362,7 +364,7 @@ pub trait Policy: Send + 'static {
 pub fn follow<P: Policy>(rt: &Handle, settings: watch::Receiver<ShellFile>, policy: P, control: Control<P::Command>);
 ```
 
-Implementors: `calendar`, `displays`, `idle`, `keyboard`, `notifications` (`changed` waits on the focus
+Implementors: `calendar`, `companion`, `displays`, `idle`, `keyboard`, `notifications` (`changed` waits on the focus
 mode), `screenshots`, `search`, `clipboard`. One per service that is passive until told. A
 policy builds typed `sill-model` values; a service never sees a settings string.
 

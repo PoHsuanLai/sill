@@ -57,14 +57,19 @@ pub enum CompanionOut {
 pub fn companion_step(key: CompanionKey, pane: &Pane, selected: &Selected) -> Vec<CompanionOut> {
     match (key, pane) {
         (CompanionKey::Escape, Pane::Composing) => vec![CompanionOut::Dismiss],
-        (CompanionKey::Escape, Pane::Thinking(_) | Pane::Showing(_) | Pane::Form(_)) => {
+        (
+            CompanionKey::Escape,
+            Pane::Thinking(_) | Pane::Showing(_) | Pane::Form(_) | Pane::Confirming(_),
+        ) => {
             vec![CompanionOut::Back]
         }
         (CompanionKey::CommandEnter, Pane::Showing(task) | Pane::Form(task)) => {
             vec![CompanionOut::Promote(task.clone())]
         }
-        (CompanionKey::CommandEnter, Pane::Composing | Pane::Thinking(_)) => Vec::new(),
-        (CompanionKey::CommandPeriod, Pane::Thinking(task)) => {
+        (CompanionKey::CommandEnter, Pane::Composing | Pane::Thinking(_) | Pane::Confirming(_)) => {
+            Vec::new()
+        }
+        (CompanionKey::CommandPeriod, Pane::Thinking(task) | Pane::Confirming(task)) => {
             vec![CompanionOut::Cancel(task.clone())]
         }
         (CompanionKey::CommandPeriod, Pane::Composing) => match selected {

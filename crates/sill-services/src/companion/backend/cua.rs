@@ -1,6 +1,8 @@
 //! The computer-use runs cuad has, as `RunFacts`: the manager's list and its `RunAdded` and
-//! `RunRemoved`, and one follower per run over its properties and signals. Controls are the run
-//! object's own methods.
+//! `RunRemoved`, and one follower per run over its properties and signals. A run is named by its
+//! `Id` property, read once when its object appears; the path is only where to find it, so each
+//! path is remembered with its id for `RunRemoved`, which comes after the object is gone.
+//! Controls are the run object's own methods.
 
 use std::collections::HashMap;
 
@@ -18,17 +20,6 @@ use zbus::zvariant::OwnedObjectPath;
 use super::text::{from_json, text};
 use crate::owner;
 use crate::stream::next;
-
-/// The run an object path names: cuad mints `r-<n>` and an object path cannot hold the dash,
-/// so `r_<n>` is `r-<n>`; any other segment is the id as written.
-pub(super) fn run_id_of(path: &str) -> Option<RunId> {
-    let segment = path.rsplit('/').next()?;
-    let id = match segment.strip_prefix("r_") {
-        Some(number) if number.chars().all(|c| c.is_ascii_digit()) => format!("r-{number}"),
-        _ => segment.to_owned(),
-    };
-    RunId::parse(&id).ok()
-}
 
 /// Follow cuad while it is on the bus: every run it has, as it adds and removes them.
 pub(super) async fn follow(connection: Connection, events: UnboundedSender<CompanionEvent>) {
@@ -52,27 +43,25 @@ async fn manage(connection: &Connection, events: &UnboundedSender<CompanionEvent
     ) else {
         return std::future::pending().await;
     };
-    let mut followers: HashMap<String, JoinHandle<()>> = HashMap::new();
+    let mut followers: HashMap<String, Follower> = HashMap::new();
     for path in manager.runs().await.unwrap_or_default() {
-        watch(connection, &mut followers, path, events);
+        watch(connection, &mut followers, path, events).await;
     }
     loop {
         tokio::select! {
             Some(signal) = next(&mut added) => {
                 if let Ok(args) = signal.args() {
-                    watch(connection, &mut followers, args.run().clone(), events);
+                    watch(connection, &mut followers, args.run().clone(), events).await;
                 }
             }
             Some(signal) = next(&mut removed) => {
                 if let Ok(args) = signal.args() {
                     let path = args.run().to_string();
-                    if let Some(follower) = followers.remove(&path) {
-                        follower.abort();
-                    }
-                    if let Some(run) = run_id_of(&path)
-                        && events.send(CompanionEvent::RunGone(run)).is_err()
-                    {
-                        return;
+                    if let Some(Follower { run, task }) = followers.remove(&path) {
+                        task.abort();
+                        if events.send(CompanionEvent::RunGone(run)).is_err() {
+                            return;
+                        }
                     }
                 }
             }
@@ -81,10 +70,17 @@ async fn manage(connection: &Connection, events: &UnboundedSender<CompanionEvent
     }
 }
 
-/// Start following `path` unless it already is.
-fn watch(
+/// A run being followed: the id its object named itself by, and the task following it.
+struct Follower {
+    run: RunId,
+    task: JoinHandle<()>,
+}
+
+/// Start following `path` unless it already is: read its `Id`, then follow its facts. A run
+/// that names no id cannot be shown, and says why.
+async fn watch(
     connection: &Connection,
-    followers: &mut HashMap<String, JoinHandle<()>>,
+    followers: &mut HashMap<String, Follower>,
     path: OwnedObjectPath,
     events: &UnboundedSender<CompanionEvent>,
 ) {
@@ -92,28 +88,46 @@ fn watch(
     if followers.contains_key(&key) {
         return;
     }
-    let (connection, events) = (connection.clone(), events.clone());
-    let handle = tokio::spawn(async move {
-        if let Err(why) = follow_run(connection, path, events).await {
+    let proxy = match run_proxy(connection, path).await {
+        Ok(proxy) => proxy,
+        Err(why) => return eprintln!("sill: companion: following a run: {why}"),
+    };
+    let run = match proxy
+        .id()
+        .await
+        .map_err(text)
+        .and_then(|id| RunId::parse(&id).map_err(text))
+    {
+        Ok(run) => run,
+        Err(why) => return eprintln!("sill: companion: a run's id: {why}"),
+    };
+    let (events, named) = (events.clone(), run.clone());
+    let task = tokio::spawn(async move {
+        if let Err(why) = follow_run(named, proxy, events).await {
             eprintln!("sill: companion: following a run: {why}");
         }
     });
-    followers.insert(key, handle);
+    followers.insert(key, Follower { run, task });
 }
 
-/// One run: its facts now, then again after each thing it says.
-async fn follow_run(
-    connection: Connection,
+async fn run_proxy(
+    connection: &Connection,
     path: OwnedObjectPath,
-    events: UnboundedSender<CompanionEvent>,
-) -> Result<(), String> {
-    let run = run_id_of(path.as_str()).ok_or_else(|| format!("{path} names no run"))?;
-    let proxy = RunProxy::builder(&connection)
+) -> Result<RunProxy<'static>, String> {
+    RunProxy::builder(connection)
         .path(path)
         .map_err(text)?
         .build()
         .await
-        .map_err(text)?;
+        .map_err(text)
+}
+
+/// One run: its facts now, then again after each thing it says.
+async fn follow_run(
+    run: RunId,
+    proxy: RunProxy<'static>,
+    events: UnboundedSender<CompanionEvent>,
+) -> Result<(), String> {
     let mut phases = proxy.receive_phase_changed().await.map_err(text)?;
     let mut steps = proxy.receive_step_started().await.map_err(text)?;
     let mut thoughts = proxy.receive_thought_delta().await.map_err(text)?;

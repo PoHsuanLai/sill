@@ -1,16 +1,17 @@
 //! Asking the companion and following what it answers: `Companion1.Open` for a session,
 //! `Intents1.Session.Turn` for the person's turn (the router records it, as role launcher),
 //! `Companion1.Ask` with the turn and what the person kept, then the answer object's `View` and
-//! `Updated`. A card button is `Answer.Act`, whose request ends with a `Response`.
+//! `Updated`. A card button is `Answer.Act`, which answers at once: what the call comes to is the
+//! answer's own plan, which `Updated` carries.
 
 use companion_wire::{AnswerWire, AskWire};
-use docket_client::{DbusTransport, Intents, requested};
+use docket_client::{DbusTransport, Intents};
 use docket_core::{
     CardActionId, Origin, SessionOpen, SessionOpened, TurnIn, TurnSource, TurnVia, UserTurn,
     WindowKey,
 };
-use docket_dbus::{COMPANION_BUS, CompanionAnswerProxy, CompanionProxy, Details, answer_path};
-use prov::{AgentRef, SpaceId, TaskId, UnixSeconds};
+use docket_dbus::{CompanionAnswerProxy, CompanionProxy, Details, answer_path};
+use prov::{AgentRef, TaskId, UnixSeconds};
 use sill_launcher::WindowKey as ShellWindow;
 use sill_model::companion::{AskInput, CompanionEvent};
 use tokio::sync::mpsc::UnboundedSender;
@@ -36,7 +37,7 @@ pub(super) async fn ask(
 ) -> Result<OwnedObjectPath, String> {
     let companion = CompanionProxy::new(connection).await.map_err(text)?;
     let open = SessionOpen {
-        space: SpaceId::desktop(),
+        space: input.space,
         agent: AgentRef::Companion,
         parent: None,
     };
@@ -59,8 +60,9 @@ pub(super) async fn ask(
         from: TurnSource::Launcher,
         via: TurnVia::Typed,
     };
+    let session = opened.session;
     let wire = AskWire {
-        session: opened.session,
+        session: session.clone(),
         turn: recorded,
         keep: input.keep,
         parent_window: window_key(input.window)?,
@@ -73,6 +75,7 @@ pub(super) async fn ask(
     let _ = events.send(CompanionEvent::Asked {
         task: opened.task,
         prompt: input.prompt,
+        session,
     });
     Ok(path)
 }
@@ -112,22 +115,18 @@ pub(super) async fn follow(
     }
 }
 
-/// Press `action` on `task`'s card: the button is busy until its request has its `Response`.
+/// Press `action` on `task`'s card. The call answers at once; the press is over when the
+/// answer's plan says its step is, so nothing waits here. A press the companion refuses is told.
 pub(super) async fn card(
     connection: Connection,
     task: TaskId,
     action: CardActionId,
     events: UnboundedSender<CompanionEvent>,
 ) {
-    let _ = events.send(CompanionEvent::CardPressed {
-        task: task.clone(),
-        action: action.clone(),
-    });
-    let ended = press(&connection, &task, &action).await;
-    if let Err(why) = ended {
+    if let Err(why) = press(&connection, &task, &action).await {
         eprintln!("sill: companion: a card button: {why}");
+        let _ = events.send(CompanionEvent::CardRefused { task, action });
     }
-    let _ = events.send(CompanionEvent::CardEnded(task));
 }
 
 async fn press(
@@ -142,11 +141,7 @@ async fn press(
         .build()
         .await
         .map_err(text)?;
-    let body = to_json(action)?;
-    let waited = requested(connection, COMPANION_BUS, proxy.act(&body))
-        .await
-        .map_err(text)?;
-    waited.map(|_| ()).map_err(text)
+    proxy.act(&to_json(action)?).await.map(|_| ()).map_err(text)
 }
 
 /// Stop `task`.

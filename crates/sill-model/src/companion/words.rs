@@ -2,11 +2,11 @@
 //! model's formatting. Each returns a title and a faint second line.
 
 use almanac_core::{EntryBody, TimelineEntry};
-use companion_wire::{AnswerBody, AnswerPhase, NeedsYou, RefusalWire};
+use companion_wire::{AnswerBody, AnswerPhase, NeedsYou, RefusalWire, StepWireState};
 use docket_core::{Reveal, UndoEntry, UndoState};
 use prov::Actor;
 
-use super::model::AnswerFacts;
+use super::model::{AnswerFacts, Busy};
 
 /// The answer's row: what was asked, and where the answer stands.
 pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
@@ -14,29 +14,56 @@ pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
         "" => "Companion".to_owned(),
         asked => asked.to_owned(),
     };
-    let standing = match &answer.wire.phase {
+    (title, standing(answer))
+}
+
+/// Where the answer stands: what it waits for, how it failed, or its first line. A pressed
+/// button's step that is still going, or that failed, is said even when the task itself is
+/// done.
+fn standing(answer: &AnswerFacts) -> String {
+    match &answer.wire.phase {
         AnswerPhase::Thinking => "Thinking".to_owned(),
-        AnswerPhase::Streaming => {
-            first_line(&answer.wire.body).unwrap_or_else(|| "Writing".to_owned())
-        }
+        AnswerPhase::Streaming => first_line(answer).unwrap_or_else(|| "Writing".to_owned()),
         AnswerPhase::NeedsYou(needs) => match needs {
             NeedsYou::Confirm(_) => "Needs your confirmation".to_owned(),
             NeedsYou::Form(_) => "Needs a few details".to_owned(),
             NeedsYou::Question { text, .. } => text.clone(),
         },
-        AnswerPhase::Done => first_line(&answer.wire.body).unwrap_or_else(|| "Done".to_owned()),
+        AnswerPhase::Done => done_words(answer),
         AnswerPhase::Failed => refusal_words(&answer.wire.body),
         AnswerPhase::Cancelled => "Stopped".to_owned(),
-    };
-    (title, standing)
+    }
 }
 
-/// The first plain line of a text answer.
-fn first_line(body: &AnswerBody) -> Option<String> {
-    match body {
-        AnswerBody::Text { lines } => lines.iter().find_map(|line| match line {
-            Reveal::Plain(text) if !text.trim().is_empty() => Some(text.trim().to_owned()),
-            Reveal::Plain(_) | Reveal::Handle(_) => None,
+/// A finished task's line: its plan's trouble first, then a press still going, then the text.
+fn done_words(answer: &AnswerFacts) -> String {
+    let steps = match &answer.wire.body {
+        AnswerBody::Plan(plan) => plan.steps.as_slice(),
+        _ => &[],
+    };
+    let failed = steps
+        .iter()
+        .any(|step| matches!(step.state, StepWireState::Failed(_)));
+    let going = steps
+        .iter()
+        .any(|step| matches!(step.state, StepWireState::Pending | StepWireState::Running));
+    match (&answer.busy, failed, going) {
+        (_, true, _) => "A step failed".to_owned(),
+        (Busy::Refused(_), false, _) => "Could not do that".to_owned(),
+        (Busy::Acting { .. }, false, _) | (Busy::Idle, false, true) => "Working on it".to_owned(),
+        (Busy::Idle, false, false) => first_line(answer).unwrap_or_else(|| "Done".to_owned()),
+    }
+}
+
+/// The first plain line of a text answer; a handle's line is the text the router showed for it.
+fn first_line(answer: &AnswerFacts) -> Option<String> {
+    match &answer.wire.body {
+        AnswerBody::Text { lines } => lines.iter().find_map(|line| {
+            let text = match line {
+                Reveal::Plain(text) => Some(text.as_str()),
+                Reveal::Handle(handle) => answer.shown.get(handle).map(String::as_str),
+            }?;
+            (!text.trim().is_empty()).then(|| text.trim().to_owned())
         }),
         _ => None,
     }

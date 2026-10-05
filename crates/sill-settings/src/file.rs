@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::bar::BarSettings;
 use crate::calendar::CalendarSettings;
+use crate::companion::CompanionSettings;
 use crate::control_center::ControlCenterSettings;
 use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
@@ -59,6 +60,8 @@ pub struct ShellFile {
     pub idle: IdleSettings,
     /// How the keyboard is treated per app (keycap profiles).
     pub keyboard: KeyboardSettings,
+    /// The companion's summon and confirmation.
+    pub companion: CompanionSettings,
 }
 
 impl SettingsDoc for ShellFile {

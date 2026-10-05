@@ -143,7 +143,7 @@ fn answer_card(task: &prov::TaskId, companion: &Companion) -> PaneContent {
         );
     };
     let zone = jiff::tz::TimeZone::system();
-    let display = |_: docket_core::Handle| None;
+    let display = |handle: docket_core::Handle| answer.shown.get(&handle).cloned();
     let cx = ViewCx {
         zone: &zone,
         display: &display,

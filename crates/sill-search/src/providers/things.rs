@@ -3,16 +3,17 @@
 //! command to it and its answer a state it publishes: `query` sends the ask under the query's
 //! generation and waits for the answer to that generation, or for a newer ask to replace it.
 //!
-//! A row is the thing as its app named it; Enter performs the app's `<kind>.open` action on it.
-//! Hits an app answers late arrive as more rows of the same generation while the query waits.
+//! A row is the thing as its app named it; Enter performs the app's `<kind>.open` action on it as
+//! the launcher, with no session, when the app's manifest declares that action. A thing whose app
+//! declares none has no Enter action. Hits an app answers late arrive as more rows of the same
+//! generation while the query waits.
 
-use docket_core::{ActionRef, CallRequest, Hit, Origin, TargetValue};
-use prov::ActionName;
+use docket_core::{ActionRef, CallRequest, Hit, Origin, TargetValue, open_name};
 use sill_launcher::{
     Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink,
     Score, Subject,
 };
-use sill_model::companion::{Companion, CompanionCommand, CompanionLink, LookupPhase};
+use sill_model::companion::{Companion, CompanionCommand, CompanionLink, LookupPhase, Opener};
 use sill_services::control::Control;
 use tokio::sync::watch;
 
@@ -56,10 +57,18 @@ impl Provider for ThingsProvider {
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
         match (&item.subject, choice) {
-            (Subject::Entity(entity), Choice::Primary) => open_call(&entity.id)
-                .map_or(Activation::Nothing, |call| {
+            (Subject::Entity(entity), Choice::Primary) => {
+                let opener = Opener {
+                    app: entity.id.app.clone(),
+                    kind: entity.id.kind.clone(),
+                };
+                if !self.companion.borrow().openers.contains(&opener) {
+                    return Activation::Nothing;
+                }
+                open_call(&entity.id).map_or(Activation::Nothing, |call| {
                     Activation::Intent(Box::new(call))
-                }),
+                })
+            }
             _ => Activation::Nothing,
         }
     }
@@ -125,7 +134,7 @@ fn row(hit: &Hit, at: usize) -> Item {
 
 /// The call that opens `thing` in its app: the kind's `open` action on the thing itself.
 fn open_call(thing: &prov::EntityId) -> Option<CallRequest> {
-    let name = ActionName::parse(&format!("{}.open", thing.kind.as_str())).ok()?;
+    let name = open_name(&thing.kind)?;
     Some(CallRequest {
         action: ActionRef {
             app: thing.app.clone(),
@@ -161,11 +170,22 @@ mod tests {
         }
     }
 
+    /// The one kind the stand-in app opens: its threads.
+    fn mail_opens_threads() -> std::collections::BTreeSet<Opener> {
+        let thread = &hit("a", "x").entity.id;
+        std::iter::once(Opener {
+            app: thread.app.clone(),
+            kind: thread.kind.clone(),
+        })
+        .collect()
+    }
+
     /// The companion service as the provider sees it: told a lookup, it answers with `found`
     /// for the generation it was asked.
     fn service(found: Vec<Hit>) -> ThingsProvider {
         let (state_tx, state_rx) = watch::channel(Companion {
             link: CompanionLink::Ready,
+            openers: mail_opens_threads(),
             ..Companion::default()
         });
         let (control, mut commands) = Control::channel();
@@ -250,6 +270,24 @@ mod tests {
             }
             other => panic!("{other:?}"),
         }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_thing_whose_app_declares_no_open_action_has_no_enter_action() {
+        let (_state_tx, state_rx) = watch::channel(Companion {
+            link: CompanionLink::Ready,
+            ..Companion::default()
+        });
+        let (control, _commands) = Control::channel();
+        let provider = ThingsProvider {
+            companion: state_rx,
+            control,
+        };
+        let row = row(&hit("a", "Lisbon receipts"), 0);
+        assert_eq!(
+            provider.activate(&row, &Choice::Primary),
+            Activation::Nothing
+        );
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

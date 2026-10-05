@@ -1,13 +1,21 @@
 use std::collections::BTreeMap;
 
-use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, FooterWire, NeedsYou};
+use companion_wire::{
+    AnswerBody, AnswerPhase, AnswerWire, CardWire, FooterWire, NeedsYou, PlanStepWire, PlanWire,
+    StepWireState,
+};
 use cua_bus::{CuaOutcome, RunStateSlug};
 use docket_core::{
-    ConfirmId, ContextKeep, EntityRef, Hit, Keep, Reveal, RunMode, SummonAnswer, SummonSerial,
+    ActionRef, Args, CallRefusal, CallRequest, CardActionId, ConfirmEnd, ConfirmId, ContextKeep,
+    EntityRef, Handle, Hit, Keep, LabelText, Origin, Reveal, RunMode, StepId, SummonAnswer,
+    SummonSerial, TargetValue,
 };
 use ds_core::time::stamp::Stamp;
 use ds_core::vocab::CompanionPresence;
-use prov::{AppName, EntityId, EntityKey, EntityKind, Label, Labelled, RunId, TaskId};
+use prov::{
+    ActionName, AppName, Effect, EntityId, EntityKey, EntityKind, Label, Labelled, RunId,
+    SessionId, TaskId,
+};
 use sill_launcher::{Generation, LauncherMode, WindowKey};
 
 use super::*;
@@ -45,6 +53,8 @@ fn facts(id: &str, phase: AnswerPhase) -> AnswerFacts {
         prompt: "forward the receipts".to_owned(),
         wire: wire(id, phase),
         busy: Busy::Idle,
+        session: None,
+        shown: BTreeMap::new(),
     }
 }
 
@@ -361,43 +371,306 @@ fn a_lookup_keeps_only_the_newest_ask_and_late_hits_extend_it() {
     assert_eq!(state.things.phase, LookupPhase::Failed);
 }
 
-#[test]
-fn an_answer_keeps_its_prompt_and_its_button_state_through_updates() {
-    let at = Stamp(0);
-    let run = |state: Companion, event| step(state, event, at, &params()).0;
-    let state = run(
+fn session() -> SessionId {
+    SessionId::parse("s-1").unwrap_or_else(|e| panic!("{e}"))
+}
+
+fn send_card() -> CardWire {
+    CardWire {
+        id: CardActionId::parse("send").unwrap_or_else(|e| panic!("{e}")),
+        label: LabelText::parse("Send").unwrap_or_else(|e| panic!("{e}")),
+        effect: Effect::Outbound,
+        call: CallRequest {
+            action: send_action(),
+            target: TargetValue::Nothing,
+            args: Args::new(),
+            origin: Origin::Companion,
+        },
+    }
+}
+
+fn send_action() -> ActionRef {
+    ActionRef {
+        app: mail(),
+        name: ActionName::parse("mail.message.send").unwrap_or_else(|e| panic!("{e}")),
+    }
+}
+
+/// An answer that offers the send button.
+fn draft(phase: AnswerPhase) -> AnswerWire {
+    AnswerWire {
+        body: AnswerBody::DraftReply {
+            to: Vec::new(),
+            subject: Reveal::Plain("Re: lunch".to_owned()),
+            body: Reveal::Plain("Yes.".to_owned()),
+            actions: vec![send_card()],
+        },
+        ..wire("t-1", phase)
+    }
+}
+
+/// The plan the companion writes once the send button is pressed, with its step in `state`.
+fn sent_plan(phase: AnswerPhase, state: StepWireState) -> AnswerWire {
+    AnswerWire {
+        body: AnswerBody::Plan(PlanWire {
+            steps: vec![PlanStepWire {
+                id: StepId(1),
+                action: send_action(),
+                label: LabelText::parse("Send").unwrap_or_else(|e| panic!("{e}")),
+                effect: Effect::Outbound,
+                state,
+                call: None,
+            }],
+        }),
+        ..wire("t-1", phase)
+    }
+}
+
+fn step_of(state: Companion, event: CompanionEvent) -> Companion {
+    step(state, event, Stamp(0), &params()).0
+}
+
+fn asked_state() -> Companion {
+    let state = step_of(
         Companion::default(),
         CompanionEvent::Asked {
             task: task("t-1"),
             prompt: "forward the receipts".to_owned(),
+            session: session(),
         },
     );
-    assert_eq!(state.front, Some(task("t-1")));
-    assert_eq!(
-        state.answers[&task("t-1")].wire.phase,
-        AnswerPhase::Thinking,
-        "asked, nothing written yet"
-    );
-    let action = docket_core::CardActionId::parse("send").unwrap_or_else(|e| panic!("{e}"));
-    let state = run(
+    step_of(
         state,
-        CompanionEvent::CardPressed {
-            task: task("t-1"),
-            action: action.clone(),
-        },
-    );
-    let state = run(
+        CompanionEvent::Answer(Box::new(draft(AnswerPhase::Done))),
+    )
+}
+
+#[test]
+fn an_answer_keeps_its_prompt_and_its_session_through_updates() {
+    let state = asked_state();
+    assert_eq!(state.front, Some(task("t-1")));
+    let answer = &state.answers[&task("t-1")];
+    assert_eq!(answer.prompt, "forward the receipts");
+    assert_eq!(answer.session, Some(session()));
+    let state = step_of(
         state,
         CompanionEvent::Answer(Box::new(wire("t-1", AnswerPhase::Streaming))),
     );
     let answer = &state.answers[&task("t-1")];
-    assert_eq!(answer.prompt, "forward the receipts");
-    assert_eq!(answer.busy, Busy::Acting(action));
-    assert_eq!(answer.wire.phase, AnswerPhase::Streaming);
-    let state = run(state, CompanionEvent::CardEnded(task("t-1")));
-    assert_eq!(state.answers[&task("t-1")].busy, Busy::Idle);
-    let state = run(state, CompanionEvent::AnswerGone(task("t-1")));
+    assert_eq!(
+        (&answer.prompt, &answer.session, &answer.wire.phase),
+        (
+            &"forward the receipts".to_owned(),
+            &Some(session()),
+            &AnswerPhase::Streaming
+        )
+    );
+    let state = step_of(state, CompanionEvent::AnswerGone(task("t-1")));
     assert_eq!((state.answers.len(), state.front), (0, None));
+}
+
+#[test]
+fn a_card_press_is_busy_until_its_step_ends() {
+    let send = CardActionId::parse("send").unwrap_or_else(|e| panic!("{e}"));
+    let pressed = step_of(
+        asked_state(),
+        CompanionEvent::CardPressed {
+            task: task("t-1"),
+            action: send.clone(),
+        },
+    );
+    let acting = Busy::Acting {
+        card: send,
+        step: send_action(),
+    };
+    assert_eq!(pressed.answers[&task("t-1")].busy, acting);
+    type Case = (&'static str, AnswerPhase, StepWireState, bool);
+    let cases: Vec<Case> = vec![
+        (
+            "pending",
+            AnswerPhase::Streaming,
+            StepWireState::Pending,
+            true,
+        ),
+        (
+            "running",
+            AnswerPhase::Streaming,
+            StepWireState::Running,
+            true,
+        ),
+        (
+            "done",
+            AnswerPhase::Done,
+            StepWireState::Done { undo: None },
+            false,
+        ),
+        (
+            "failed, with the task fine",
+            AnswerPhase::Done,
+            StepWireState::Failed(CallRefusal::Unconfirmed(ConfirmEnd::Refused)),
+            false,
+        ),
+        ("skipped", AnswerPhase::Done, StepWireState::Skipped, false),
+    ];
+    for (name, phase, state, still_busy) in cases {
+        let next = step_of(
+            pressed.clone(),
+            CompanionEvent::Answer(Box::new(sent_plan(phase, state))),
+        );
+        let want = if still_busy {
+            acting.clone()
+        } else {
+            Busy::Idle
+        };
+        assert_eq!(next.answers[&task("t-1")].busy, want, "{name}");
+    }
+    let before_the_plan = step_of(
+        pressed.clone(),
+        CompanionEvent::Answer(Box::new(draft(AnswerPhase::Streaming))),
+    );
+    assert_eq!(
+        before_the_plan.answers[&task("t-1")].busy,
+        acting,
+        "an answer that has no plan yet leaves the press going"
+    );
+    let stopped = step_of(
+        pressed,
+        CompanionEvent::Answer(Box::new(wire("t-1", AnswerPhase::Cancelled))),
+    );
+    assert_eq!(
+        stopped.answers[&task("t-1")].busy,
+        Busy::Idle,
+        "a stopped task has nothing left to wait on"
+    );
+}
+
+#[test]
+fn a_button_the_answer_does_not_offer_is_not_pressed_and_a_refusal_is_kept() {
+    let ghost = CardActionId::parse("ghost").unwrap_or_else(|e| panic!("{e}"));
+    let state = step_of(
+        asked_state(),
+        CompanionEvent::CardPressed {
+            task: task("t-1"),
+            action: ghost.clone(),
+        },
+    );
+    assert_eq!(state.answers[&task("t-1")].busy, Busy::Idle);
+    let state = step_of(
+        state,
+        CompanionEvent::CardRefused {
+            task: task("t-1"),
+            action: ghost.clone(),
+        },
+    );
+    assert_eq!(state.answers[&task("t-1")].busy, Busy::Refused(ghost));
+}
+
+#[test]
+fn the_answers_phase_follows_needs_you_and_back() {
+    let confirm = AnswerPhase::NeedsYou(NeedsYou::Confirm(
+        ConfirmId::parse("c-7").unwrap_or_else(|e| panic!("{e}")),
+    ));
+    let waiting = step_of(
+        asked_state(),
+        CompanionEvent::Answer(Box::new(sent_plan(confirm, StepWireState::Running))),
+    );
+    assert_eq!(
+        waiting.answers[&task("t-1")].wire.phase,
+        AnswerPhase::NeedsYou(NeedsYou::Confirm(
+            ConfirmId::parse("c-7").unwrap_or_else(|e| panic!("{e}"))
+        ))
+    );
+    assert_eq!(presence_of(&waiting), CompanionPresence::Waiting);
+    assert_eq!(
+        answer_line(&waiting.answers[&task("t-1")]).1,
+        "Needs your confirmation"
+    );
+    let done = step_of(
+        waiting,
+        CompanionEvent::Answer(Box::new(sent_plan(
+            AnswerPhase::Done,
+            StepWireState::Done { undo: None },
+        ))),
+    );
+    assert_eq!(presence_of(&done), CompanionPresence::Idle);
+}
+
+#[test]
+fn a_finished_task_whose_step_failed_says_so() {
+    let facts = |phase, state, busy| AnswerFacts {
+        busy,
+        wire: sent_plan(phase, state),
+        ..facts("t-1", AnswerPhase::Done)
+    };
+    let send = CardActionId::parse("send").unwrap_or_else(|e| panic!("{e}"));
+    type Case = (&'static str, AnswerFacts, &'static str);
+    let cases: Vec<Case> = vec![
+        (
+            "a failed step is not a done task",
+            facts(
+                AnswerPhase::Done,
+                StepWireState::Failed(CallRefusal::Unconfirmed(ConfirmEnd::Refused)),
+                Busy::Idle,
+            ),
+            "A step failed",
+        ),
+        (
+            "a running step",
+            facts(AnswerPhase::Done, StepWireState::Running, Busy::Idle),
+            "Working on it",
+        ),
+        (
+            "a press the companion refused",
+            facts(
+                AnswerPhase::Done,
+                StepWireState::Done { undo: None },
+                Busy::Refused(send),
+            ),
+            "Could not do that",
+        ),
+        (
+            "a step that is done",
+            facts(
+                AnswerPhase::Done,
+                StepWireState::Done { undo: None },
+                Busy::Idle,
+            ),
+            "Done",
+        ),
+    ];
+    for (name, answer, want) in cases {
+        assert_eq!(answer_line(&answer).1, want, "{name}");
+    }
+}
+
+#[test]
+fn a_handle_waits_for_its_text_and_the_text_is_for_the_screen() {
+    let handle = Handle(7);
+    let answer = AnswerFacts {
+        wire: AnswerWire {
+            body: AnswerBody::Text {
+                lines: vec![Reveal::Plain("Found".to_owned()), Reveal::Handle(handle)],
+            },
+            ..wire("t-1", AnswerPhase::Done)
+        },
+        ..facts("t-1", AnswerPhase::Done)
+    };
+    assert_eq!(unresolved_handles(&answer), vec![handle]);
+    let state = state_with(&[answer], &[], Summon::Rest);
+    let shown = step_of(
+        state,
+        CompanionEvent::Shown {
+            task: task("t-1"),
+            handle,
+            text: "the receipts".to_owned(),
+        },
+    );
+    let answer = &shown.answers[&task("t-1")];
+    assert_eq!(
+        answer.shown.get(&handle).map(String::as_str),
+        Some("the receipts")
+    );
+    assert_eq!(unresolved_handles(answer), Vec::<Handle>::new());
 }
 
 #[test]

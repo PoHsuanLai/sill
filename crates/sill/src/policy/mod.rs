@@ -4,6 +4,7 @@
 
 pub mod calendar;
 pub mod clipboard;
+pub mod companion;
 pub mod displays;
 mod follow;
 pub mod idle;

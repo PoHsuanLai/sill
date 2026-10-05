@@ -1,15 +1,18 @@
 //! What the shell asks intentd as the launcher: the things apps index, the undo journal, undoing,
 //! and performing an action the person picked.
 
+use std::collections::BTreeSet;
+
 use docket_client::{DbusTransport, Intents};
 use docket_core::{
-    CallRequest, Generation as SearchGeneration, Hit, JournalFilter, SearchAsk, SearchScope,
-    UndoEntry, UndoScope,
+    CallRequest, Generation as SearchGeneration, Handle, Hit, JournalFilter, SearchAsk,
+    SearchScope, UndoEntry, UndoScope,
 };
-use docket_dbus::SearchProxy;
+use docket_dbus::{RegistryProxy, SearchProxy};
 use porter_core::Count;
+use prov::SessionId;
 use sill_launcher::Generation;
-use sill_model::companion::CompanionEvent;
+use sill_model::companion::{CompanionEvent, Opener, openers_of};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
@@ -47,6 +50,15 @@ pub(super) async fn search(
     let _ = events.send(event);
 }
 
+/// The kinds of thing the installed apps open in their own windows.
+async fn openers(connection: &Connection) -> Result<BTreeSet<Opener>, String> {
+    intents(connection)
+        .manifests()
+        .await
+        .map(|all| openers_of(&all))
+        .map_err(text)
+}
+
 /// Read the undo journal, newest first.
 pub(super) async fn journal(connection: &Connection) -> Result<Vec<UndoEntry>, String> {
     let filter = JournalFilter {
@@ -82,22 +94,30 @@ pub(super) async fn perform(connection: &Connection, call: CallRequest) -> Resul
         .map_err(|refusal| format!("{refusal:?}"))
 }
 
-/// What intentd says on its own while it is on the bus: the hits an app answered late, and the
-/// journal's changes. Both streams are subscribed before the journal is first read, so the first
-/// journal the service publishes says they are up. Ends when the bus or the receiver goes.
+/// What intentd says on its own while it is on the bus: the hits an app answered late, the
+/// journal's changes and the apps' manifests. The streams are subscribed before the journal and
+/// the manifests are first read, so the first journal the service publishes says they are up.
+/// Ends when the bus or the receiver goes.
 pub(super) async fn follow(connection: Connection, events: UnboundedSender<CompanionEvent>) {
-    let (Ok(search), Ok(control)) = (
+    let (Ok(search), Ok(control), Ok(registry)) = (
         SearchProxy::new(&connection).await,
         docket_dbus::ControlProxy::new(&connection).await,
+        RegistryProxy::new(&connection).await,
     ) else {
         return std::future::pending().await;
     };
-    let (Ok(mut hits), Ok(mut changes)) = (
+    let (Ok(mut hits), Ok(mut changes), Ok(mut manifests)) = (
         search.receive_hits().await,
         control.receive_journal_changed().await,
+        registry.receive_manifest_changed().await,
     ) else {
         return std::future::pending().await;
     };
+    if let Ok(found) = openers(&connection).await
+        && events.send(CompanionEvent::Openers(found)).is_err()
+    {
+        return;
+    }
     if let Ok(rows) = journal(&connection).await
         && events.send(CompanionEvent::Journal(rows)).is_err()
     {
@@ -114,10 +134,27 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
                 Ok(rows) => events.send(CompanionEvent::Journal(rows)),
                 Err(_) => continue,
             },
+            Some(_) = next(&mut manifests) => match openers(&connection).await {
+                Ok(found) => events.send(CompanionEvent::Openers(found)),
+                Err(_) => continue,
+            },
             else => return,
         };
         if sent.is_err() {
             return;
         }
     }
+}
+
+/// The text the router shows for `handle` of `session`, for the screen alone: it goes into the
+/// answer's card and nowhere else, never back to a model.
+pub(super) async fn display(
+    connection: &Connection,
+    session: SessionId,
+    handle: Handle,
+) -> Result<String, String> {
+    intents(connection)
+        .session_display(session, handle)
+        .await
+        .map_err(text)
 }

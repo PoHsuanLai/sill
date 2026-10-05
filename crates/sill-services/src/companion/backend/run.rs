@@ -7,18 +7,19 @@
 //! companion's answers, cuad's runs and intentd's journal and late hits; while it is not, the
 //! machines still run and every lookup answers `Failed`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
-use docket_core::UndoScope;
+use docket_core::{CardActionId, Handle, UndoScope};
 use docket_dbus::{COMPANION_BUS, CompanionProxy, INTENTS_BUS, answer_path};
 use ds_core::time::stamp::Stamp;
-use prov::UnixSeconds;
+use prov::{TaskId, UnixSeconds};
 use sill_launcher::{Generation, RunControl};
 use sill_model::companion::{
-    AnswerFacts, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionLink,
-    CompanionParams, SummonOut, going_runs, step, wake,
+    Busy, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionLink,
+    CompanionParams, SummonOut, card_call, going_runs, promote_card, step, unresolved_handles,
+    wake,
 };
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
@@ -28,7 +29,7 @@ use zbus::zvariant::OwnedObjectPath;
 
 use super::probe::{self, Arrival};
 use super::text::text;
-use super::{answer, cua, intents, memory};
+use super::{answer, cua, intents, memory, tell};
 use crate::companion::{CompanionLinks, CompanionService};
 use crate::env::{Env, WallClock};
 use crate::owner;
@@ -81,6 +82,7 @@ pub(crate) async fn run(reach: Reach, links: CompanionLinks, io: ServiceIo<Compa
         arrivals: arrivals_tx,
         followed: HashMap::new(),
         watchers: Vec::new(),
+        displayed: HashSet::new(),
     };
     live.seated(seat.as_ref().and_then(SeatView::current));
     loop {
@@ -131,6 +133,9 @@ struct Live {
     arrivals: mpsc::UnboundedSender<Arrival>,
     followed: HashMap<String, JoinHandle<()>>,
     watchers: Vec<JoinHandle<()>>,
+    /// The handles the router was already asked to show, so a failed one is not asked again on
+    /// every update of its answer.
+    displayed: HashSet<(TaskId, Handle)>,
 }
 
 impl Live {
@@ -144,6 +149,14 @@ impl Live {
 
     /// Step the state by `event` now, publish it when it changed, and carry out what it asks.
     fn feed(&mut self, event: CompanionEvent) {
+        let answered = match &event {
+            CompanionEvent::Answer(wire) => Some(wire.task.clone()),
+            CompanionEvent::Asked { task, .. } => Some(task.clone()),
+            _ => None,
+        };
+        if let CompanionEvent::AnswerGone(task) = &event {
+            self.displayed.retain(|(shown, _)| shown != task);
+        }
         let (next, effects) = step(self.state.clone(), event, self.now(), &self.params);
         if next != self.state {
             self.tx.send_replace(next.clone());
@@ -151,6 +164,40 @@ impl Live {
         self.state = next;
         for effect in effects {
             self.carry_out(effect);
+        }
+        if let Some(task) = answered {
+            self.show_handles(&task);
+        }
+    }
+
+    /// Ask the router to show the text behind each handle of `task`'s answer that has not been
+    /// asked for: the card draws it, and nothing else reads it.
+    fn show_handles(&mut self, task: &TaskId) {
+        let Some(answer) = self.state.answers.get(task) else {
+            return;
+        };
+        let (Some(session), Some(connection)) = (answer.session.clone(), self.connection.clone())
+        else {
+            return;
+        };
+        for handle in unresolved_handles(answer) {
+            if !self.displayed.insert((task.clone(), handle)) {
+                continue;
+            }
+            let (session, connection, events, task) = (
+                session.clone(),
+                connection.clone(),
+                self.events.clone(),
+                task.clone(),
+            );
+            tokio::spawn(async move {
+                match intents::display(&connection, session, handle).await {
+                    Ok(text) => {
+                        let _ = events.send(CompanionEvent::Shown { task, handle, text });
+                    }
+                    Err(why) => eprintln!("sill: companion: showing a handle: {why}"),
+                }
+            });
         }
     }
 
@@ -277,13 +324,19 @@ impl Live {
             CompanionCommand::Ask(input) => self.ask(input),
             CompanionCommand::Card { task, action } => self.card(task, action),
             CompanionCommand::Promote(task) => {
-                if let Some(action) = self.state.answers.get(&task).and_then(promote_action) {
+                if let Some(action) = self.state.answers.get(&task).and_then(promote_card) {
                     self.card(task, action);
                 }
             }
             CompanionCommand::Cancel(task) => {
                 self.on_bus("stopping an answer", move |connection| async move {
                     answer::cancel(&connection, &task).await
+                });
+            }
+            CompanionCommand::Tell { agent, space, text } => {
+                let at = self.unix();
+                self.on_bus("telling an agent", move |connection| async move {
+                    tell::tell(&connection, agent, space, text, at).await
                 });
             }
             CompanionCommand::Run { run, control } => self.steer(run, control),
@@ -315,10 +368,23 @@ impl Live {
         });
     }
 
-    fn card(&mut self, task: prov::TaskId, action: docket_core::CardActionId) {
+    /// Press `action` on `task`'s card when the answer offers that button and no press of it
+    /// is going: the answer is busy at once, and the call answers on its own task.
+    fn card(&mut self, task: TaskId, action: CardActionId) {
         let Some(connection) = self.connection.clone() else {
             return;
         };
+        let offered = self.state.answers.get(&task).is_some_and(|answer| {
+            matches!(answer.busy, Busy::Idle | Busy::Refused(_))
+                && card_call(answer, &action).is_some()
+        });
+        if !offered {
+            return;
+        }
+        self.feed(CompanionEvent::CardPressed {
+            task: task.clone(),
+            action: action.clone(),
+        });
         tokio::spawn(answer::card(connection, task, action, self.events.clone()));
     }
 
@@ -385,21 +451,6 @@ impl Live {
             events.send(CompanionEvent::Journal(rows)).map_err(text)
         });
     }
-}
-
-/// The card action a person means by "open it in its app": the first button that only reads.
-fn promote_action(answer: &AnswerFacts) -> Option<docket_core::CardActionId> {
-    use companion_wire::{AnswerBody, CardWire};
-    let cards: &[CardWire] = match &answer.wire.body {
-        AnswerBody::DraftReply { actions, .. } | AnswerBody::ProposedEvent { actions, .. } => {
-            actions
-        }
-        _ => &[],
-    };
-    cards
-        .iter()
-        .find(|card| card.effect == prov::Effect::Read)
-        .map(|card| card.id.clone())
 }
 
 /// Follow the companion's answer objects while it is on the bus.

@@ -4,13 +4,16 @@
 use almanac_core::{MemoryItem, TimelineEntry};
 use companion_wire::AnswerWire;
 use docket_core::{
-    CallRequest, CardActionId, ContextKeep, Hit, SummonAnswer, SummonSerial, UndoEntry, UndoScope,
+    CallRequest, CardActionId, ContextKeep, Handle, Hit, SummonAnswer, SummonSerial, UndoEntry,
+    UndoScope,
 };
 use ds_core::vocab::MemoryVerb;
-use prov::{AppName, RunId, TaskId};
+use prov::{AgentRef, AppName, RunId, SessionId, SpaceId, TaskId};
 use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
 
-use super::model::{CompanionLink, RunFacts};
+use std::collections::BTreeSet;
+
+use super::model::{CompanionLink, Opener, RunFacts};
 use super::summon::{FocusFacts, LauncherFacts, SummonOut, SummonParams};
 use super::tap::TapParams;
 
@@ -47,6 +50,8 @@ pub struct AskInput {
     pub window: Option<WindowKey>,
     /// The app they summoned the companion from; none for the launcher alone.
     pub app: Option<AppName>,
+    /// The Space the ask is made in: the focused workspace's, or `desktop` outside any.
+    pub space: SpaceId,
 }
 
 /// What the daemon and the surfaces tell the service.
@@ -75,6 +80,15 @@ pub enum CompanionCommand {
     },
     /// Stop an answer's task.
     Cancel(TaskId),
+    /// Say something to a subagent: the router delivers it, then the companion is told.
+    Tell {
+        /// Who to say it to.
+        agent: AgentRef,
+        /// The Space it works in.
+        space: SpaceId,
+        /// The person's words.
+        text: String,
+    },
     /// Open an answer's object in its app: its card's open button, when it has one.
     Promote(TaskId),
     /// Steer a run.
@@ -134,26 +148,44 @@ pub enum CompanionEvent {
         task: TaskId,
         /// What was typed.
         prompt: String,
+        /// The router session the ask was made in.
+        session: SessionId,
     },
     /// An answer appeared or changed.
     Answer(Box<AnswerWire>),
     /// An answer's object went away.
     AnswerGone(TaskId),
-    /// A card button was pressed: its call is running.
+    /// A card button was pressed: its call starts.
     CardPressed {
         /// The answer.
         task: TaskId,
         /// Which button.
         action: CardActionId,
     },
-    /// A card button's call ended.
-    CardEnded(TaskId),
+    /// The companion would not take a card button's press.
+    CardRefused {
+        /// The answer.
+        task: TaskId,
+        /// Which button.
+        action: CardActionId,
+    },
+    /// The router showed the text behind a handle of an answer.
+    Shown {
+        /// The answer.
+        task: TaskId,
+        /// The handle.
+        handle: Handle,
+        /// What it stands for, for the screen alone.
+        text: String,
+    },
     /// A run appeared or changed.
     Run(Box<RunFacts>),
     /// A run's object went away.
     RunGone(RunId),
     /// The undo journal, newest first.
     Journal(Vec<UndoEntry>),
+    /// The installed manifests changed: these kinds of thing open in their apps.
+    Openers(BTreeSet<Opener>),
     /// A search of the apps' indexes was sent.
     ThingsAsked(Generation),
     /// The indexed hits of a search.

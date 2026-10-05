@@ -382,9 +382,29 @@ A settled item is deleted, not marked closed.
   publishes the answer under the query's generation; the provider's `query` blocks on that
   generation (or a newer one replacing it) and never sleeps. Late hits (`Intents1.Search.Hits`)
   extend the same generation's list.
-- **`companiond` does not take `Answer.Act` yet** (it answers "this answer has no cards"), so a
-  card button's busy state ends with the error; the service ends it on the request's `Response`
-  from companiond's own request object once it does.
+- **A card press is `Answer.Act`, and what it comes to is the answer's plan.** `Act` answers at
+  once with the request's path; the answer then follows with `Updated`: the body becomes a plan with
+  one step per pressed card, the phase `NeedsYou(Confirm(id))` while the shell's own sheet is up
+  (the pane is `Pane::Confirming`, the row says "Needs your confirmation", the orb waits), then
+  `Done`, also when the step failed (the row says "A step failed"; the plan shows the refusal).
+  The card is busy (`Busy::Acting { card, step }`: no button on the row) from the press until its
+  step is neither pending nor running, or the task fails or stops; a press `Act` refuses
+  (`Busy::Refused`) is said and offers the button again. The button's `ActionRef` names its step.
+- **A handle in an answer is shown through `Intents1.Session.Display`.** The service asks once per
+  handle of an answer it asked for (it knows the session), keeps the text in `AnswerFacts::shown`
+  and the card and the row draw it; it is state for the screen only and nothing sends it to a
+  model. An answer the shell did not ask for has no session here, so its handles read as an
+  ellipsis; a task that has ended has closed its router session, and a handle asked for after
+  that stays an ellipsis too.
+- **A thing's Enter needs its app's `<kind>.open`.** The service reads `Intents1.Registry` (and
+  again on `ManifestChanged`) into `Companion::openers` (`openers_of`: each declared entity kind
+  whose app declares `docket_core::open_name`); the things provider performs the open call as the
+  launcher with no session and no window, and a thing whose app declares none has no Enter action.
+- **A run is named by cuad's `Id` property**, read when its object is added; each path is kept with
+  its id so `RunRemoved`, which comes after the object is gone, finds it.
+- **`companion.*` is a settings domain** (`sill_settings::CompanionSettings`, design/22 section
+  3.30): `double_tap_ms` and `app_wait_ms` (`Ms`, held to 150..=600 and 40..=500) and `in_field`
+  reach the service as `CompanionParams` (`CompanionBridge`), whose times are `sill_model::units::Ms`.
 
 ## Decisions in force (departures from the design docs)
 
@@ -610,21 +630,19 @@ A settled item is deleted, not marked closed.
   under load; a paused tokio clock would pin it.
 - `dev/accept/bar.sh --real-input`'s `step_center_then_menu` failed once on a
   center/menu focus race; not yet looked at.
-- **No `companion.*` settings rows yet.** The double tap's window (350 ms), the app's wait for a
-  summon (80 ms) and where a summon in a field goes are `CompanionParams::default()`; the daemon
-  sends no `Params`. Ends when quire's design/22 has `companion.double_tap_ms`,
-  `companion.app_wait_ms` and `companion.in_field` and a `companion` domain reads them
-  (Q: the rows; the toggles `companion.summon`, `companion.notify` and `agent.undo.keep_h` go with them).
+- **Three `companion.*` keys have no reader.** `companion.summon` (off must stop the tap and the
+  summon), `companion.notify` (a notification when a task needs the person) and
+  `companion.confirm_arm_ms` (the confirmation sheet's arm time) are in the domain and the schema;
+  nothing reads them. Ends when the tap machine, the notifications service and the confirmation
+  sheet each take theirs. `agent.undo.keep_h` is docket's file, not sill's.
 - **quire's companion components are placeholders.** `AnswerCard`, `ContextChips`, `RunRow`,
   `ActivityStrip`, `MemoryTimeline` draw an empty root, and `CommandPalette` has no `mode` or
   `chips` prop, so the prompt keeps the search text as state (`Session::kept`) and shows no chip.
   Ends with quire's W1 to W3 fills; then the pane's slot draws the real card and the chip shows.
-- **A handle in an answer reads as an ellipsis.** The conversions take a `display` function
-  (`sill_ui_kit::companion::ViewCx`); nothing yet asks `Session.Display` for the text a handle
-  stands for. Ends when the service resolves the handles of the answers it follows.
-- **A thing opens with `<kind>.open`.** The things provider performs the indexed kind's `open`
-  action (`mail.thread.open`); docket has no convention that says an app declares one. Ends with a
-  docket ask (an `open` action per indexed kind, or `Follow::Open` on a hit).
+- **A thing whose app declares no `<kind>.open` has no Enter action and no dimmed look.** A launcher
+  `Item` has no way to say "not openable", so the row is shown as any other and Enter does nothing
+  (mailo declares `mail.thread.open` only once it adds it, docket FINDINGS f4-docket-3 section 2).
+  Ends when `Item` carries a dimmed state, or the row offers another action.
 - **Memory rows have no verbs.** `CompanionCommand::Memory` is accepted and does nothing: Forget
   needs the preview alert (design/32 section 4.9), Keep a `ConfirmReceipt` only the shell's own UI
   can make, Export a file handle. The timeline lists events; facts and the pending list are not on
@@ -632,10 +650,16 @@ A settled item is deleted, not marked closed.
 - **Runs sit under their own Tab.** Design/32 section 4.4 lists active runs in the companion
   mode's own rows; here they are the Runs filter (Tab). "Watch" is the compositor's and the service
   does nothing for it.
-- **Every ask is in the `desktop` Space.** Sill mints no Space ids yet (P6); `Companion1.Open` is
-  given `SpaceId::desktop()`.
-- **`Companion1.Told` (a direct turn to a subagent) is not sent**, and a plan card has no Stop or
-  Undo All button: the plan's own step machine is quire's (`plan_step`, unfilled).
+- **Every ask is in the `desktop` Space.** `AskInput::space` carries the Space an ask is made in and
+  the launcher passes `SpaceId::desktop()`, because sill has no Space store: nothing mints a
+  `SpaceId` (SPEC P6), names or persists one, or maps a workspace to one. Ends when a store gives
+  `focused_space(workspace)` and the panel passes its answer. The memory timeline read and the
+  memory rows also say `desktop`.
+- **Nothing in the launcher says something to a subagent.** `CompanionCommand::Tell` (open a session,
+  record the person's turn, `Message.Send` as a request, `Companion1.Told`, close) is done and
+  tested; no surface issues it, because the launcher has no roster of subagents to pick one from.
+  A plan card has no Stop or Undo All button: the plan's own step machine is quire's (`plan_step`,
+  unfilled).
 - **The summon's origin is always the double tap**; a voice summon waits for voice.
 - **No Toshy snippet ships for route B.** `dist/cosmic` binds `Ctrl+Alt+Shift+Super F19` to `sill companion tap`
   (and `F20` to `summon`, route A); the remap of a lone Cmd tap to that chord is written in the keyboard

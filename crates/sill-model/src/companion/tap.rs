@@ -8,6 +8,8 @@
 use ds_core::machine::{Elapsed, Machine};
 use ds_core::time::stamp::Stamp;
 
+use crate::units::Ms;
+
 /// Where the double tap stands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Tap {
@@ -43,16 +45,16 @@ pub enum TapOut {
     Summon,
 }
 
-/// How long a second tap may follow the first, in milliseconds (`companion.double_tap_ms`).
+/// How long a second tap may follow the first (`companion.double_tap_ms`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TapParams {
     /// The window.
-    pub window: u64,
+    pub window: Ms,
 }
 
 impl Default for TapParams {
     fn default() -> TapParams {
-        TapParams { window: 350 }
+        TapParams { window: Ms(350) }
     }
 }
 
@@ -66,7 +68,7 @@ impl Machine for Tap {
         match (self, input) {
             (Tap::Rest, TapIn::Tap) => (
                 Tap::Armed {
-                    until: at.after(params.window),
+                    until: at.after(params.window.millis()),
                 },
                 Vec::new(),
             ),
@@ -74,7 +76,7 @@ impl Machine for Tap {
             // A tap after the window is the first of a new pair.
             (Tap::Armed { .. }, TapIn::Tap) => (
                 Tap::Armed {
-                    until: at.after(params.window),
+                    until: at.after(params.window.millis()),
                 },
                 Vec::new(),
             ),

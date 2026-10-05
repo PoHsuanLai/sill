@@ -51,6 +51,8 @@ pub fn answer(id: &str, prompt: &str, phase: AnswerPhase, body: AnswerBody) -> A
             },
         },
         busy: Busy::Idle,
+        session: None,
+        shown: std::collections::BTreeMap::new(),
     }
 }
 

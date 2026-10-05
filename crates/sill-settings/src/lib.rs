@@ -1,7 +1,7 @@
 //! `$XDG_CONFIG_HOME/sill/settings.toml`: the shell's settings domains (design/22-SETTINGS.md
 //! §3.4-3.8 and §3.11-3.14: bar, dock, launcher, scroll, scrollbar, menus, switcher, sound,
 //! notifications, control center, spaces; `display`, `osd`, `power_menu` and `session`; and
-//! `widgets`, `calendar`, `screenshot` and `hot_corners`; §3.24-3.25: `idle` and `keyboard`), their schema (§9,
+//! `widgets`, `calendar`, `screenshot` and `hot_corners`; §3.24-3.25: `idle` and `keyboard`; §3.30: `companion`), their schema (§9,
 //! `#[derive(SettingsSchema)]` with `file = "sill/settings.toml"`), and [`Section`], each
 //! domain as a reader finds it in a [`ShellFile`].
 //!
@@ -10,6 +10,7 @@
 
 pub mod bar;
 pub mod calendar;
+pub mod companion;
 pub mod control_center;
 pub mod display;
 pub mod dock;
@@ -38,6 +39,9 @@ pub mod window;
 
 pub use bar::{BarGlyphSize, BarSettings};
 pub use calendar::{CalendarSettings, FirstWeekday, WeekNumbers};
+pub use companion::{
+    CompanionSettings, InField, NotifyWhen, SummonKey, params as companion_params,
+};
 pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
 pub use display::{
     BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,

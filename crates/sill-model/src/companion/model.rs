@@ -2,13 +2,13 @@
 //! decide where a summon goes, the answers the companion has made, the computer-use runs, the
 //! undo journal, and the answers to the launcher's two lookups.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use almanac_core::TimelineEntry;
 use companion_wire::AnswerWire;
 use cua_bus::{BudgetBody, CuaOutcome, RunStateSlug};
-use docket_core::{CardActionId, Hit, RunMode, UndoEntry};
-use prov::{RunId, TaskId};
+use docket_core::{ActionRef, CardActionId, Handle, Hit, RunMode, UndoEntry};
+use prov::{AppName, EntityKind, RunId, SessionId, TaskId};
 use sill_launcher::Generation;
 
 use super::summon::Summon;
@@ -33,16 +33,30 @@ pub struct AnswerFacts {
     pub wire: AnswerWire,
     /// What the person is waiting on from a card button.
     pub busy: Busy,
+    /// The router session the answer was asked in, when sill asked it: a handle resolves only
+    /// in the session that holds it.
+    pub session: Option<SessionId>,
+    /// The text behind each handle of the answer, as the router showed it to the screen. It
+    /// is for drawing only: nothing here is ever sent back to a model.
+    pub shown: BTreeMap<Handle, String>,
 }
 
 /// Whether a card's button is waiting for its call to end.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Busy {
-    /// No button was pressed, or its call ended.
+    /// No button was pressed, or its step ended.
     #[default]
     Idle,
-    /// This button's call is running.
-    Acting(CardActionId),
+    /// This button was pressed and its step has not ended: the companion's plan for the answer
+    /// shows `step` pending or running (or does not show it yet).
+    Acting {
+        /// The button.
+        card: CardActionId,
+        /// The action the button calls, which names its step in the answer's plan.
+        step: ActionRef,
+    },
+    /// The companion would not take this button's press.
+    Refused(CardActionId),
 }
 
 /// One computer-use run, as cuad publishes it.
@@ -66,6 +80,16 @@ pub struct RunFacts {
     pub thought: Option<String>,
     /// Its limits and what it has used.
     pub budget: Option<BudgetBody>,
+}
+
+/// A kind of thing an app opens in its own window when a search row of it is picked: the app
+/// declares the kind's `<kind>.open` action.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Opener {
+    /// The app.
+    pub app: AppName,
+    /// The kind of thing.
+    pub kind: EntityKind,
 }
 
 /// How far a lookup has got.
@@ -122,6 +146,8 @@ pub struct Companion {
     pub runs: BTreeMap<RunId, RunFacts>,
     /// The undo journal, newest first.
     pub journal: Vec<UndoEntry>,
+    /// The kinds of thing the installed apps open in their own windows.
+    pub openers: BTreeSet<Opener>,
     /// What the things provider asked for.
     pub things: Lookup<Hit>,
     /// What the memory provider asked for.

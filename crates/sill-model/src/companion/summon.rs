@@ -5,8 +5,12 @@
 use docket_core::{SummonAnswer, SummonSerial};
 use ds_core::machine::{Elapsed, Machine};
 use ds_core::time::stamp::Stamp;
+use ds_core::word::Word;
 use prov::AppName;
+use serde::{Deserialize, Serialize};
 use sill_launcher::{LauncherMode, WindowKey};
+
+use crate::units::Ms;
 
 /// What the panel is doing when the summon arrives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -142,7 +146,9 @@ pub enum SummonOut {
 }
 
 /// Whether a summon goes to the field of the focused app or to the launcher.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
+#[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum InField {
     /// The field becomes the prompt.
     #[default]
@@ -155,8 +161,8 @@ pub enum InField {
 /// (`companion.in_field`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SummonParams {
-    /// Milliseconds the app has to answer.
-    pub app_wait: u64,
+    /// How long the app has to answer.
+    pub app_wait: Ms,
     /// Where a summon in a field goes.
     pub in_field: InField,
 }
@@ -164,7 +170,7 @@ pub struct SummonParams {
 impl Default for SummonParams {
     fn default() -> SummonParams {
         SummonParams {
-            app_wait: 80,
+            app_wait: Ms(80),
             in_field: InField::Prompt,
         }
     }
@@ -305,7 +311,7 @@ fn ask(
             app: app.clone(),
             window,
             serial: cx.next,
-            until: at.after(params.app_wait),
+            until: at.after(params.app_wait.millis()),
             fallback,
         },
         vec![SummonOut::AskApp {

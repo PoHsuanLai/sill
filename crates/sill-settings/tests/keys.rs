@@ -1,5 +1,5 @@
 //! design/22-SETTINGS.md §6 test 5 and §9.6 `every_key_in_catalogue_has_a_spec`, for sill's
-//! domains: every key §3.4-3.8 and §3.11-3.14 name (plus the three §3.1 rows sill owns) has a
+//! domains: every key §3.4-3.8 and §3.11-3.14 name (plus the §3.1 rows sill owns) has a
 //! `KeySpec`, and every `KeySpec` has a row, path for path.
 
 mod common;
@@ -19,6 +19,7 @@ const SECTIONS: &[(&str, &str)] = &[
     ("### 3.12 `notifications`", "### 3.13 `control_center`"),
     ("### 3.13 `control_center`", "### 3.14 `spaces`"),
     ("### 3.14 `spaces`", "### 3.26 `ai`"),
+    ("### 3.30 `companion`", "### 3.31 `viewer`"),
 ];
 
 /// §3.1 rows that are sill's, not `AppearanceSettings`': the mirror image of ds-settings'

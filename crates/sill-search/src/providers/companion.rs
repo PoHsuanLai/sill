@@ -5,13 +5,14 @@
 //! The Ask row is in every search; answers and activity show only when the filter is the
 //! companion's own (`Scope::Only`), which is what the panel's companion mode asks.
 
-use companion_wire::AnswerBody;
 use docket_core::{CardActionId, UndoState};
 use sill_launcher::{
     Action, ActionId, Activation, Batch, Choice, CompanionAct, IconRef, Item, ItemId, LauncherMode,
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
-use sill_model::companion::{AnswerFacts, Companion, CompanionLink, activity_line, answer_line};
+use sill_model::companion::{
+    AnswerFacts, Busy, Companion, CompanionLink, activity_line, answer_line, cards_of,
+};
 use tokio::sync::watch;
 
 /// The id prefix of the Ask row: the prompt follows it.
@@ -152,27 +153,25 @@ fn answer_row(answer: &AnswerFacts, at: usize) -> Item {
         subtitle,
         icon: IconRef::Glyph("sparkles".to_owned()),
         score: Score(u32::try_from(900usize.saturating_sub(at)).unwrap_or(0)),
-        actions: card_actions(&answer.wire.body),
+        actions: card_actions(answer),
         subject: Subject::Answer(answer.wire.task.clone()),
     }
 }
 
-/// An answer's card buttons as the row's actions.
-fn card_actions(body: &AnswerBody) -> Vec<Action> {
-    let cards = match body {
-        AnswerBody::DraftReply { actions, .. } | AnswerBody::ProposedEvent { actions, .. } => {
-            actions.as_slice()
-        }
-        _ => &[],
-    };
-    cards
-        .iter()
-        .map(|card| Action {
-            id: ActionId(card.id.as_str().to_owned()),
-            label: card.label.as_str().to_owned(),
-            keys: sill_launcher::ActionKeys::default(),
-        })
-        .collect()
+/// An answer's card buttons as the row's actions. While a press is going there are none, so a
+/// second Enter cannot press it again; a press the companion refused offers its buttons again.
+fn card_actions(answer: &AnswerFacts) -> Vec<Action> {
+    match answer.busy {
+        Busy::Acting { .. } => Vec::new(),
+        Busy::Idle | Busy::Refused(_) => cards_of(&answer.wire.body)
+            .iter()
+            .map(|card| Action {
+                id: ActionId(card.id.as_str().to_owned()),
+                label: card.label.as_str().to_owned(),
+                keys: sill_launcher::ActionKeys::default(),
+            })
+            .collect(),
+    }
 }
 
 fn activity_row(entry: &docket_core::UndoEntry, at: usize) -> Item {
@@ -251,6 +250,8 @@ mod tests {
                 },
             },
             busy: Busy::Idle,
+            session: None,
+            shown: std::collections::BTreeMap::new(),
         }
     }
 
@@ -357,6 +358,36 @@ mod tests {
         let mut sorted = found.clone();
         sorted.sort_by_key(|item| std::cmp::Reverse(item.score));
         assert_eq!(sorted, found, "the rows are already in rank order");
+    }
+
+    #[test]
+    fn an_answer_with_a_press_going_offers_no_button_and_a_refused_press_offers_them_again() {
+        let step = ActionRef {
+            app: AppName::parse("org.quire.Mail").unwrap_or_else(|e| panic!("{e}")),
+            name: ActionName::parse("mail.message.send").unwrap_or_else(|e| panic!("{e}")),
+        };
+        let with_busy = |busy: Busy| {
+            let mut companion = state();
+            if let Some(answer) = companion.answers.get_mut(&task("t-1")) {
+                answer.busy = busy;
+            }
+            let found = rows(companion, "hi", Scope::Only(ProviderKind::Companion));
+            found
+                .into_iter()
+                .find(|item| item.title == "reply to Sam")
+                .map(|item| item.actions.len())
+        };
+        let send = CardActionId::parse("send").unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(with_busy(Busy::Idle), Some(1));
+        assert_eq!(
+            with_busy(Busy::Acting {
+                card: send.clone(),
+                step
+            }),
+            Some(0),
+            "a second Enter cannot press the button again"
+        );
+        assert_eq!(with_busy(Busy::Refused(send)), Some(1));
     }
 
     #[test]

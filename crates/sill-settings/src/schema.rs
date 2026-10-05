@@ -5,6 +5,7 @@ use ds_settings::schema::{AppId, FilePath, KeyPath, Page, Schema, SettingsSchema
 
 use crate::bar::BarSettings;
 use crate::calendar::CalendarSettings;
+use crate::companion::CompanionSettings;
 use crate::control_center::ControlCenterSettings;
 use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
@@ -69,6 +70,7 @@ pub fn schemas() -> Vec<Schema> {
         HotCornerSettings::schema(),
         IdleSettings::schema(),
         KeyboardSettings::schema(),
+        CompanionSettings::schema(),
     ]
 }
 

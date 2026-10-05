@@ -8,6 +8,7 @@
 //!
 //! [`Machine`]: ds_core::machine::Machine
 
+mod card;
 mod command;
 mod model;
 mod presence;
@@ -19,10 +20,13 @@ mod tap;
 mod tests;
 mod words;
 
+pub use card::{card_call, cards_of, openers_of, promote_card, unresolved_handles};
 pub use command::{
     AskInput, CompanionCommand, CompanionEffect, CompanionEvent, CompanionParams, FocusInput,
 };
-pub use model::{AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, RunFacts};
+pub use model::{
+    AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,
+};
 pub use presence::presence_of;
 pub use run_state::{RunState, going_runs, run_controls, run_state_of};
 pub use step::{step, wake};

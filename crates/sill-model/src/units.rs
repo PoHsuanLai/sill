@@ -44,6 +44,20 @@ impl Cpx {
 #[serde(transparent)]
 pub struct Seconds(pub u64);
 
+/// Whole milliseconds: how long a window or a wait lasts.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,
+)]
+#[serde(transparent)]
+pub struct Ms(pub u16);
+
+impl Ms {
+    /// The length as the machines' clock counts it.
+    pub fn millis(self) -> u64 {
+        u64::from(self.0)
+    }
+}
+
 /// Whole minutes, for display.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,
