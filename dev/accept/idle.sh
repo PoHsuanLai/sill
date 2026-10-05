@@ -57,15 +57,15 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-idle"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-idle"
+SHOTS="$SILL_SHOTS"
 DIM_SURFACE=
 mkdir -p "$OUT_DIR" "$SHOTS"
 LOCKER="$SILL_OUT/examples/session_locker"
 LOGIND_BIN="$SILL_OUT/examples/logind_standin"
 CLIENT_BIN="$SILL_OUT/examples/screensaver_client"
 
-use_nested_socket || exit 1
+start_compositor || exit 1
 case "$(basename "$WL")" in
   wayland-0) echo "the nested socket is wayland-0 (the real session): refusing" >&2; exit 1 ;;
 esac
@@ -78,7 +78,9 @@ DAEMON_LOG="$OUT_DIR/daemon.log"
 COSMIC_ENV=(XDG_CURRENT_DESKTOP=COSMIC)
 IN_ENV_EXTRA=("${COSMIC_ENV[@]}")
 
-nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
+# Bounded: the stand-in creates no lock surface, and casement answers `locked` only once a locker's
+# first surface has content, so there it would wait for ever (exit 124).
+nested_locker() { WAYLAND_DISPLAY="$WL" timeout --kill-after=2 "${LOCKER_BOUND:-15}" "$LOCKER" "$@"; }
 # A wake: `sill debug idle-wake` stands in for the compositor's `resumed` (the nested
 # cosmic-comp 1.8 counts no virtual-keyboard input as activity, and a key typed into the host's
 # window of it would be real input on the person's own session).
@@ -209,7 +211,7 @@ step_dim_off_lock() {
   capture_dim "$OUT_DIR/dim-early.png" && early=$(scrim_of "$OUT_DIR/dim-early.png")
   late=$(capture_dim_at_level "$OUT_DIR/dim-late.png" 4000)
   local late_at=$(( $(now_ms) - start ))
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/idle-dim-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/idle-dim-cosmic.png" >>"$log" 2>&1 \
     || echo "nested screenshot failed (non-fatal)" >&2
   cp "$OUT_DIR/dim-late.png" "$SHOTS/idle-dim.png" 2>/dev/null
   off=$(until_match "$start" idle_state ' displays_off ' 25000)
@@ -432,7 +434,9 @@ recover() {
     open_lock >/dev/null 2>&1
     stop_daemon
   fi
-  if nested_locker 0 >"$OUT_DIR/recovery.log" 2>&1; then
+  if [ "$COMPOSITOR" = casement ]; then
+    echo "recovery: casement is private to this jail (it goes with it), no stand-in locker needed" >&2
+  elif nested_locker 0 >"$OUT_DIR/recovery.log" 2>&1; then
     echo "recovery: the stand-in locked and unlocked the nested session (it is unlocked)" >&2
   else
     echo "recovery: the stand-in exited $? (see $OUT_DIR/recovery.log)" >&2
@@ -440,6 +444,7 @@ recover() {
   exec 3>&- 2>/dev/null
   [ -n "$LOGIND" ] && kill "$LOGIND" 2>/dev/null
   stop_private_bus
+  stop_compositor
   scratch_drop
 }
 

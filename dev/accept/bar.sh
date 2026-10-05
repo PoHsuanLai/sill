@@ -83,8 +83,8 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-bar"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-bar"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 # The bar's height: `bar.height_px`, 24 unless the settings say otherwise.
 BAR_H="${BAR_H:-24}"
@@ -187,9 +187,9 @@ step_ipc_latency() {
 #    configure as JSON.
 step_exclusive_zone() {
   local out_h height dock_reserve=0
-  out_h=$(nested_output_size | awk '{print $2}')
+  out_h=$(output_size | awk '{print $2}')
   [ -n "$out_h" ] || { echo "no output height from wayland-info" >&2; return 1; }
-  height=$(maximised_height) || return 1
+  height=$(maximised_height) || return $?
   # The dock reserves its base + margin too when the daemon runs one on this output: gut 8
   # + tile 48 + 2 x the 6 px padding.
   if sill debug stats 2>/dev/null | grep -q '"sill-dock-'; then dock_reserve=68; fi
@@ -210,7 +210,7 @@ step_idle() {
   sleep 5
   after=$(bar_counters) || return 1
   printf 'before:\n%s\nafter:\n%s\n' "$before" "$after" | tee "$OUT_DIR/idle.log" >&2
-  "$SHELL_HOST_DEV/shot.sh" "$SILL_REPO/dev/out/bar-cosmic.png" >&2 || true
+  shot "$SILL_SHOTS/bar-$COMPOSITOR.png" >&2 || true
   [ "$before" = "$after" ]
 }
 
@@ -232,7 +232,7 @@ step_menus() {
   : >"$log"
   bar=$(bar_counters | awk 'NR==1 {print $1}')
   [ -n "$bar" ] || { echo "no bar surface in 'sill debug stats'" >&2; return 1; }
-  width=$(nested_output_size | awk '{print $1}')
+  width=$(output_size | awk '{print $1}')
   [ -n "$width" ] || { echo "no output width from wayland-info" >&2; return 1; }
   y=$(( BAR_H / 2 ))
   popup="$bar/popup"
@@ -244,15 +244,15 @@ step_menus() {
   mapfile -t items < <(bar_status_items "$bar")
   [ "${#items[@]}" -ge 2 ] || { echo "found ${#items[@]} status items" | tee -a "$log" >&2; return 1; }
   echo "click the control center's item at ${items[1]},$y on $bar" >>"$log"
-  sill debug click "$bar" "${items[1]}" "$y" >>"$log" 2>&1 || return 1
+  surface_click "$bar" "${items[1]}" "$y" >>"$log" 2>&1 || return 1
   for _ in $(seq 40); do
     popup_up && { opened=yes; break; }
     sleep 0.05
   done
   sleep 0.5
-  "$SHELL_HOST_DEV/shot.sh" "$SILL_REPO/dev/out/bar-cosmic-menu.png" >&2 || true
+  shot "$SILL_SHOTS/bar-$COMPOSITOR-menu.png" >&2 || true
   echo "click the bar's middle at $(( width / 2 )),$y" >>"$log"
-  sill debug click "$bar" $(( width / 2 )) "$y" >>"$log" 2>&1 || return 1
+  surface_click "$bar" $(( width / 2 )) "$y" >>"$log" 2>&1 || return 1
   for _ in $(seq 40); do
     popup_up || { closed=yes; break; }
     sleep 0.05
@@ -276,14 +276,14 @@ step_clock_center() {
   mapfile -t items < <(bar_status_items "$bar")
   [ "${#items[@]}" -ge 1 ] || { echo "no clock found on the bar" | tee -a "$log" >&2; return 1; }
   echo "click the clock at ${items[0]},$y on $bar" >>"$log"
-  sill debug click "$bar" "${items[0]}" "$y" >>"$log" 2>&1 || return 1
+  surface_click "$bar" "${items[0]}" "$y" >>"$log" 2>&1 || return 1
   for _ in $(seq 40); do
     center_up && { opened=yes; break; }
     sleep 0.05
   done
   sill debug capture "$bar/popup" "$OUT_DIR/popup.png" >>"$log" 2>&1 && menu=yes
   sleep 0.5
-  sill debug click "$bar" "${items[0]}" "$y" >>"$log" 2>&1 || return 1
+  surface_click "$bar" "${items[0]}" "$y" >>"$log" 2>&1 || return 1
   for _ in $(seq 40); do
     center_up || { closed=yes; break; }
     sleep 0.05
@@ -308,18 +308,17 @@ step_quit() {
 
 # The daemon steps, on the nested cosmic-comp. Sets STATUS.
 run_daemon_steps() {
-  nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; return 1; }
-  use_nested_socket || return 1
+  start_compositor --default cosmic || return 1
+  nested wayland-info >/dev/null 2>&1 || { echo "no compositor to run on (dev/nested.sh first)" >&2; stop_compositor; return 1; }
   await_no_process || return 1
   scratch_new
-  start_private_bus || { scratch_drop; return 1; }
-  start_bar_daemon || { stop_daemon; stop_private_bus; scratch_drop; return 1; }
+  start_bar_daemon || { stop_daemon; stop_compositor; scratch_drop; return 1; }
   backdrop_up "$CONFIG" || echo "backdrop: none (the shots show the bare compositor)" >&2
   run_steps step_ping step_single_instance step_reload step_ipc_latency step_exclusive_zone \
     step_idle step_menus step_clock_center step_quit
   backdrop_down
   stop_daemon || STATUS=1
-  stop_private_bus
+  stop_compositor
   scratch_drop
 }
 
@@ -327,11 +326,13 @@ run_daemon_steps() {
 # tree): $1 is `kwin` or `cosmic` (which compositor takes the screenshot and which steps run), $2
 # the screenshot's path. Exit 0 only when every check passed.
 run_bar_demo() {
-  in_env env ACCEPT_OUT="$OUT_DIR" ACCEPT_PNG="$2" ACCEPT_MODE="$1" BAR_DEMO="$BAR_DEMO" \
-    PROBE="$PROBE" python3 - <<'PY'
+  in_env env CASEMENTCTL="$CASEMENT_TOOLS/bin/casementctl" ACCEPT_OUT="$OUT_DIR" ACCEPT_PNG="$2" ACCEPT_MODE="$1" BAR_DEMO="$BAR_DEMO" \
+    PROBE="$PROBE" ACCEPT_COMPOSITOR="$COMPOSITOR" python3 - <<'PY'
 import json, os, queue, re, subprocess, sys, threading, time
 
 OUT, PNG, MODE = os.environ["ACCEPT_OUT"], os.environ["ACCEPT_PNG"], os.environ["ACCEPT_MODE"]
+CASEMENT = os.environ.get("ACCEPT_COMPOSITOR") == "casement"
+SKIPS = {}
 LOG = open(f"{OUT}/accept-{MODE}.log", "w")
 PROCS = []
 
@@ -426,8 +427,27 @@ def status_items(path):
             if gap > 7: runs.append(run); run = None
     return [(left + right) // 2 for left, right in runs]
 
+def bar_click(x, y):
+    """A click on the bar at its local (x, y): the demo's own `click` command, or, on casement,
+    a real pointer press through casementctl (a popup's grab needs a real serial there)."""
+    if CASEMENT:
+        r = subprocess.run([os.environ["CASEMENTCTL"], "debug", "inject", f"move {x} {y}", "sleep 60",
+                            "press left", "sleep 40", "release left", "sleep 200"],
+                           capture_output=True, text=True, timeout=30)
+        log(f"casementctl click {x},{y}: exit {r.returncode} {r.stdout.strip()!r} {r.stderr.strip()!r}")
+    else:
+        bar.send(f"{name} click {x} {y}")
+
 def screenshot(path):
     if os.path.exists(path): os.remove(path)
+    if CASEMENT:
+        # casementctl's `shot` needs ext-image-copy-capture (P1-C1): an expected skip, not a failure
+        # (the checks do not depend on the screenshot).
+        r = subprocess.run([os.environ["CASEMENTCTL"], "shot", path], capture_output=True, text=True)
+        if r.returncode != 0:
+            log("expected skip: screenshot:", r.stderr.strip() or "casementctl shot failed")
+            SKIPS["screenshot"] = "casementctl shot is not built yet (P1-C1)"
+        return
     if MODE == "cosmic":
         with open(path, "wb") as f:
             subprocess.run(["grim", "-"], check=True, timeout=20, stdout=f)
@@ -442,17 +462,24 @@ result = {}
 try:
     if MODE == "kwin":
         info = output_info()
-        base, v0 = probe_maximized(); time.sleep(0.3); base.quit()
+        if CASEMENT:
+            # A maximised toplevel to measure needs casement's window management (P1/P2): P0
+            # windows are floating and casement-probe toplevel has no --maximised.
+            SKIPS["exclusive_zone"] = "casement P0 windows are floating: no maximised configure until P1/P2 (casement-probe toplevel --maximised)"
+            log("expected skip: exclusive_zone:", SKIPS["exclusive_zone"])
+        else:
+            base, v0 = probe_maximized(); time.sleep(0.3); base.quit()
     bar = Proc(os.environ["BAR_DEMO"])
     name, rows = bar_ready(bar)
     height = rows[name]["logical"]["height"]
     width = rows[name]["logical"]["width"]
     time.sleep(0.5)
     if MODE == "kwin":
-        probe, v1 = probe_maximized(); time.sleep(1.0); probe.quit(); time.sleep(0.5)
-        result["exclusive_zone"] = dict(output=info, baseline=v0["height"], with_bar=v1["height"],
-                                        bar_height=height,
-                                        pass_=v0["height"] - v1["height"] == height and v1["height"] == info["logical"][1] - height)
+        if not CASEMENT:
+            probe, v1 = probe_maximized(); time.sleep(1.0); probe.quit(); time.sleep(0.5)
+            result["exclusive_zone"] = dict(output=info, baseline=v0["height"], with_bar=v1["height"],
+                                            bar_height=height,
+                                            pass_=v0["height"] - v1["height"] == height and v1["height"] == info["logical"][1] - height)
         # 2. Idle: let the probe's exit and the rect probes settle, then five quiet seconds.
         time.sleep(1.5)
         a = bar.stats()[name]["counters"]; time.sleep(5.0); b = bar.stats()[name]["counters"]
@@ -467,7 +494,7 @@ try:
     items = status_items(cap)
     log(f"status items right to left: {items}")
     if len(items) < 2: raise RuntimeError(f"found {len(items)} status items")
-    bar.send(f"{name} click {items[1]} {height // 2}")
+    bar_click(items[1], height // 2)
     opened = False
     for _ in range(40):
         time.sleep(0.05)
@@ -482,7 +509,7 @@ try:
         corners = corner_alphas(f"{OUT}/popup-surface.png")
     # An outside click: the empty middle of the bar (a compositor-level outside press cannot be
     # synthesized; the bar treats a press on itself outside the titles the same).
-    bar.send(f"{name} click {width // 2} {height // 2}")
+    bar_click(width // 2, height // 2)
     closed = False
     for _ in range(40):
         time.sleep(0.05)
@@ -500,17 +527,26 @@ finally:
 json.dump(result, open(f"{OUT}/result-{MODE}.json", "w"), indent=1)
 print(json.dumps(result, indent=1))
 checks = [v for v in result.values() if isinstance(v, dict)]
-want = 4 if MODE == "kwin" else 2
-sys.exit(0 if len(checks) >= want and all(v.get("pass_") for v in checks) else 1)
+want = (4 if MODE == "kwin" else 2) - len([k for k in SKIPS if k != "screenshot"])
+for what, why in SKIPS.items():
+    print(f"expected skip: {what}: {why}", file=sys.stderr)
+ok = len(checks) >= want and all(v.get("pass_") for v in checks)
+# 0 passed, 2 passed but for what could not run yet (a SKIP), 1 failed.
+sys.exit(1 if not ok else 2 if SKIPS else 0)
 PY
 }
 
 step_demo_kwin() { run_bar_demo kwin "$SHOTS/bar.png"; }
 step_demo_nested() { run_bar_demo cosmic "$SHOTS/bar-cosmic-menu.png"; }
 
-# The demo and shell-host's probe, built (a no-op when up to date).
+# The demo and shell-host's probe, built (a no-op when up to date). Under dev/accept.sh
+# (SILL_PREBUILT) they were built outside the jail: only checked here.
 build_demo() {
   build || return 1
+  if [ -n "${SILL_PREBUILT:-}" ]; then
+    [ -x "$BAR_DEMO" ] || { echo "$BAR_DEMO is missing: run dev/accept.sh --build" >&2; return 1; }
+    return 0
+  fi
   # Always the release demo (BAR_DEMO), whatever SILL_PROFILE the daemon steps run on.
   (cd "$SILL_REPO" && cargo build --release -p sill-bar --example bar_demo) >>"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
@@ -522,20 +558,19 @@ build_demo() {
 # The bar demo on the headless KWin. Sets STATUS.
 run_demo_kwin() {
   scratch_new
-  start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; scratch_drop; return 1; }
+  start_compositor --default kwin || { echo "the compositor did not start (see $OUT_DIR/kwin.log, casement-up.log)" >&2; scratch_drop; return 1; }
   run_steps step_demo_kwin
-  stop_kwin
+  stop_compositor
   scratch_drop
 }
 
 # The bar demo on the nested cosmic-comp. Sets STATUS.
 run_demo_nested() {
-  nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; return 1; }
-  use_nested_socket || return 1
+  start_compositor --default cosmic || return 1
+  nested wayland-info >/dev/null 2>&1 || { echo "no compositor to run on (dev/nested.sh first)" >&2; stop_compositor; return 1; }
   scratch_new
-  start_private_bus || { scratch_drop; return 1; }
   run_steps step_demo_nested
-  stop_private_bus
+  stop_compositor
   scratch_drop
 }
 
@@ -930,7 +965,7 @@ real_cleanup() {
   stop_input
   stop_sink
   stop_daemon
-  stop_kwin
+  stop_compositor
   rm -rf "$RUNTIME"
   scratch_drop
 }
@@ -961,8 +996,8 @@ run_real_input() {
   mkdir -p "$SCRATCH/kwin-seed"
   printf '[Keyboard]\nKeyRepeat=nothing\nRepeatDelay=5000\n' >"$SCRATCH/kwin-seed/kcminputrc"
   export KWIN_VIRTUAL_CONFIG_SEED="$SCRATCH/kwin-seed"
-  start_kwin || {
-    echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2
+  start_compositor --default kwin || {
+    echo "the compositor did not start (see $OUT_DIR/kwin.log, casement-up.log)" >&2
     rm -rf "$RUNTIME"; scratch_drop; return 1; }
   trap real_cleanup EXIT
   : >"$OUT_DIR/capture.log"

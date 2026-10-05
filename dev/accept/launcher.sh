@@ -150,8 +150,8 @@ while [ $# -gt 0 ]; do
 done
 [ "$MODE" != real ] || [ "${#ONLY[@]}" = 0 ] || usage
 
-OUT_ROOT="$SILL_TARGET/accept-launcher"
-SHOTS="$SILL_REPO/dev/out"
+OUT_ROOT="$SILL_OUT_ROOT/accept-launcher"
+SHOTS="$SILL_SHOTS"
 OUT_DIR="$OUT_ROOT"
 
 # ---------------------------------------------------------------- shared helpers
@@ -1058,6 +1058,10 @@ files_tracker() {
     pending 5 "no localsearch here: Tracker's sandbox test was not run"
     return
   fi
+  if [ -n "${SILL_PREBUILT:-}" ]; then
+    pending 5 "expected skip: cargo does not run in the jail (A7); the Tracker sandbox test is not run under dev/accept.sh"
+    return
+  fi
   (cd "$SILL_REPO" && cargo test -p sill-search --test files_tracker_live -- --ignored \
     --nocapture) >"$OUT_DIR/step5-tracker.txt" 2>&1
   if grep -q 'test result: ok. 1 passed' "$OUT_DIR/step5-tracker.txt"; then
@@ -1424,7 +1428,7 @@ cleanup_real() {
   close_launcher 2>/dev/null
   [ -z "$WL" ] || kwin_wl wl-copy --clear
   stop_daemon
-  stop_kwin
+  stop_compositor
   scratch_drop
 }
 
@@ -1436,8 +1440,8 @@ main_real() {
   scratch_new
   build "-p sill-testkit --example file_manager_stub" || { scratch_drop; exit 1; }
   seed_documents "$HOME_DIR" 300 list
-  start_kwin || {
-    echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2
+  start_compositor --default kwin || {
+    echo "the compositor did not start (see $OUT_DIR/kwin.log, casement-up.log)" >&2
     scratch_drop
     exit 1
   }
@@ -1445,7 +1449,7 @@ main_real() {
   : >"$OUT_DIR/wl.log"
   : >"$OUT_DIR/capture.log"
   : >"$OUT_DIR/keys.log"
-  echo "headless KWin at $WL; data-control: $(env WAYLAND_DISPLAY="$WL" wayland-info 2>/dev/null \
+  echo "$COMPOSITOR at $WL; data-control: $(env WAYLAND_DISPLAY="$WL" wayland-info 2>/dev/null \
     | grep -o "'[a-z_]*data_control_manager_v1'" | tr '\n' ' ')" >&2
   mkdir -p "$CONFIG/sill"
   printf '[launcher]\nfiles_backend = "fd"\nweb_search = "on"\nclipboard_history = "memory"\n' \
@@ -1476,7 +1480,7 @@ cleanup_keys() {
   stop_fm
   stop_daemon
   stop_private_bus
-  stop_kwin
+  stop_compositor
   scratch_drop
 }
 
@@ -1484,9 +1488,9 @@ main_keys() {
   local total=0 group
   OUT_DIR="$OUT_ROOT"
   mkdir -p "$OUT_ROOT" "$SHOTS"
-  start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; exit 1; }
+  start_compositor --default kwin || { echo "the compositor did not start (see $OUT_DIR/kwin.log, casement-up.log)" >&2; exit 1; }
   trap cleanup_keys EXIT
-  echo "headless KWin at $WL" >&2
+  echo "$COMPOSITOR at $WL" >&2
   for group in toggle ui palette files; do
     [ "${#ONLY[@]}" = 0 ] || [[ " ${ONLY[*]} " == *" $group "* ]] || continue
     "group_$group"

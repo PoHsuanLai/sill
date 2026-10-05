@@ -24,7 +24,7 @@ set -uo pipefail
 export SILL_PROFILE="${SILL_PROFILE:-release}"
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-idle-cpu"
+OUT_DIR="$SILL_OUT_ROOT/accept-idle-cpu"
 mkdir -p "$OUT_DIR"
 DURATION="${DURATION:-60}"
 WARMUP="${WARMUP:-20}"
@@ -76,12 +76,13 @@ cleanup() {
   local result=0
   stop_daemon || result=1
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
+start_compositor || exit 1
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
-use_nested_socket || exit 1
 await_no_process || exit 1
 build || exit 1
 IN_ENV_EXTRA+=(LP_NUM_THREADS=2)

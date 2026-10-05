@@ -2,7 +2,7 @@
 # Power menu acceptance (design/20 §1.8), on a private headless KWin (shell-host
 # scripts/dev/kwin-virtual.sh). Starts `sill run` from this checkout's debug build (`--features
 # debug`) with its own XDG_RUNTIME_DIR and scratch HOME and XDG dirs, on KWin's private bus (the
-# daemon's session AND system bus; start_kwin refuses to go on if it would be the real one), and
+# daemon's session AND system bus; start_compositor refuses to go on if it would be the real one), and
 # quits it at the end.
 #
 # SAFETY. A confirmed action would really log out, restart, shut down or suspend the machine if it
@@ -48,8 +48,8 @@ case "${1:-}" in
   "") MODE=keys ;;
   *) echo "usage: dev/accept/power-menu.sh [--real-input]" >&2; exit 2 ;;
 esac
-OUT_DIR="$SILL_TARGET/accept-power-menu"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-power-menu"
+SHOTS="$SILL_SHOTS"
 RECORD="$OUT_DIR/dry-run.record"
 mkdir -p "$OUT_DIR" "$SHOTS"
 scratch_new
@@ -252,13 +252,13 @@ cleanup() {
   local result=0
   stop_input
   stop_daemon || result=1
-  stop_kwin
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
 build || exit 1
-start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; scratch_drop; exit 1; }
+start_compositor --default kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; scratch_drop; exit 1; }
 start_menu_daemon || { cleanup; exit 1; }
 prove_dry_run power_menu || echo "the dry run could not be proven from the daemon's log" >&2
 if [ "$MODE" = real ]; then

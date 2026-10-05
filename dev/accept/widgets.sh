@@ -60,7 +60,7 @@
 # scripts/dev/fake-input.sh: every click and key is a real Wayland event with a real serial and
 # keyboard focus. Nothing reaches the user's session (wayland-0), the nested compositor
 # (wayland-1) or the real session or system bus: the headless KWin's private bus stands in for
-# BOTH the daemon's session and system bus (start_kwin refuses to go on if it would be the real
+# BOTH the daemon's session and system bus (start_compositor refuses to go on if it would be the real
 # one). ONE fake-input client serves the whole run. UPower and BlueZ are simply absent on the
 # private bus, so the Batteries widget always reads "No batteries" here: every step below only
 # checks the widget's structure (card count and size), never a real device's name or level.
@@ -120,8 +120,8 @@ case "${1:-}" in
   "") MODE=nested ;;
   *) echo "usage: dev/accept/widgets.sh [--real-input|--outputs]" >&2; exit 2 ;;
 esac
-OUT_DIR="$SILL_TARGET/accept-widgets"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-widgets"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 PLAYER="$SILL_OUT/examples/mpris_player"
 PLAYER_PID=
@@ -138,13 +138,6 @@ scratch_new
 trap scratch_drop EXIT
 
 # --- nested compositor ---
-
-# A screenshot of the nested output only: shot.sh falls back to the host's session when no
-# nested compositor answers, so it is never called without one.
-shot() {
-  "$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 || { echo "no nested compositor" >&2; return 1; }
-  "$SHELL_HOST_DEV/shot.sh" "$1" >/dev/null 2>&1
-}
 
 has_surface() { [ -n "$(frames_of "$1")" ]; }
 
@@ -351,6 +344,13 @@ step_toggle_on() {
   desktop_frames "$OUT_DIR/desktop.png" >"$OUT_DIR/desktop-frames.txt"
   frames=$(wc -l <"$OUT_DIR/desktop-frames.txt")
   saved=$(tr -d '\n ' <"$STATE/sill/desktop-widgets.json" 2>/dev/null)
+  if [ "$COMPOSITOR" = casement ]; then
+    # What follows covers the layer with a terminal and a maximised window and reads output
+    # screenshots: window management (P1/P2) and `casementctl shot` (P1-C1) on casement.
+    [ "$frames" = 2 ] && [[ "$saved" == *calendar* ]] && [[ "$saved" == *battery* ]] || return 1
+    expected_skip "windows over the desktop widgets, read off output screenshots: needs casement's window management (P1/P2) and casementctl shot (P1-C1)"
+    return 2
+  fi
   # A COSMIC Terminal in the nested session (its own scratch config and private bus), over part
   # of the layer.
   in_env dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- cosmic-term \
@@ -733,12 +733,13 @@ cleanup_nested() {
   pkill -f "$PLAYER sillaccept" 2>/dev/null
   backdrop_down
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
 run_nested() {
-  use_nested_socket || exit 1
+  start_compositor || exit 1
   nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
   build_nested || exit 1
   await_no_process || exit 1
@@ -877,7 +878,7 @@ EOF
 # 1.
 step_real_scale() {
   local scale shot
-  scale=$(kwin_scale)
+  scale=$(output_scale)
   capture_patient "$BAR" "$OUT_DIR/bar.png" || { echo "no bar capture" >&2; return 1; }
   shot=$(python3 -c 'import sys; from PIL import Image; print(*Image.open(sys.argv[1]).size)' "$OUT_DIR/bar.png")
   TOP=$(bar_height)
@@ -1142,7 +1143,7 @@ step_real_idle() {
 cleanup_real() {
   stop_input
   stop_daemon
-  stop_kwin
+  stop_compositor
   scratch_drop
 }
 
@@ -1161,8 +1162,8 @@ start_real_daemon() {
 
 run_real() {
   build || exit 1
-  start_kwin || { stop_kwin; exit 1; }
-  require_kwin_scale "$SCALE" || { stop_kwin; scratch_drop; exit 1; }
+  start_compositor --default kwin || { stop_compositor; exit 1; }
+  require_scale "$SCALE" || { stop_compositor; scratch_drop; exit 1; }
   grep -q "${WL##*/}" "$KWIN_ENV" 2>/dev/null || {
     echo "$KWIN_ENV no longer names our KWin" >&2; cleanup_real; exit 1; }
   start_input || { cleanup_real; exit 1; }
@@ -1306,13 +1307,13 @@ step_outputs_remove_on_the_first() {
 
 cleanup_outputs() {
   stop_daemon
-  stop_kwin
+  stop_compositor
   scratch_drop
 }
 
 run_outputs() {
   build || exit 1
-  KWIN_VIRTUAL_OUTPUTS=2 start_kwin || { stop_kwin; scratch_drop; exit 1; }
+  KWIN_VIRTUAL_OUTPUTS=2 start_compositor --default kwin || { stop_compositor; scratch_drop; exit 1; }
   mkdir -p "$CONFIG/sill"
   printf '[widgets]\ndesktop = "on"\n[notifications]\nserver = "passive"\n' >"$CONFIG/sill/settings.toml"
   launch_daemon || { cleanup_outputs; exit 1; }

@@ -28,6 +28,9 @@ sill() { in_env "$SILL_BIN" "$@"; }
 # $OUT_DIR/build.log.
 build() {
   local extra
+  # Under dev/accept.sh (SILL_PREBUILT=1, inside a jail where nothing calls cargo or the network,
+  # A7) everything was built outside first: only check that it is there.
+  if [ -n "${SILL_PREBUILT:-}" ]; then prebuilt "$@"; return; fi
   {
     (cd "$SILL_REPO" && cargo build "${SILL_CARGO_PROFILE[@]}" -p sill --features debug) || return 1
     for extra in "$@"; do
@@ -35,6 +38,25 @@ build() {
       (cd "$SILL_REPO" && cargo build "${SILL_CARGO_PROFILE[@]}" $extra) || return 1
     done
   } >"$OUT_DIR/build.log" 2>&1 || { echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
+}
+
+# What `build "$@"` would have built, checked as present: the daemon and each `--example NAME`
+# of the cargo arguments in "$@".
+prebuilt() {
+  local extra word missing=0 prev
+  [ -x "$SILL_BIN" ] || { echo "$SILL_BIN is missing: run dev/accept.sh --build outside the jail" >&2; return 1; }
+  for extra in "$@"; do
+    prev=
+    # shellcheck disable=SC2086 # one word per cargo argument
+    for word in $extra; do
+      if [ "$prev" = --example ] && [ ! -x "$SILL_OUT/examples/$word" ]; then
+        echo "$SILL_OUT/examples/$word is missing: run dev/accept.sh --build outside the jail" >&2
+        missing=1
+      fi
+      prev=$word
+    done
+  done
+  return "$missing"
 }
 
 # Starts `sill run` in the background on the private buses with the fake DDC, its log in

@@ -42,14 +42,23 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-switcher"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-switcher"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
-HOST_TARGET="$SILL_TARGET/shell-host-examples"
+HOST_TARGET="$SILL_OUT_ROOT/shell-host-examples"
 DEMO="$HOST_TARGET/debug/examples/demo_window"
 SHOW_DELAY_MS=400
 
-use_nested_socket || exit 1
+start_compositor || exit 1
+if [ "$COMPOSITOR" = casement ]; then
+  # The switcher lists real toplevels (cosmic-term, shell-host's demo_window, kcalc) through the
+  # compositor's toplevel protocols and a held Alt; casement's window management (activation, the
+  # toplevel list, a focused app's modifiers) is P1/P2 work, and the apps themselves are not in
+  # the jail's tools. Nothing here can be proven before that.
+  expected_skip "the app switcher needs real windows and casement's window management (P1/P2), and cosmic-term/kcalc are not jail tools"
+  stop_compositor
+  exit 2
+fi
 scratch_new
 mkdir -p "$CONFIG/sill"
 PIDS=()
@@ -271,7 +280,7 @@ step_show_move_cancel() {
   panel_to "$OUT_DIR/early.png" && early=panel
   shown=$(wait_panel 2000) || { echo "the panel never showed" >&2; wait "$HOLD"; return 1; }
   sleep 0.3
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/switcher-cosmic.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
+  shot "$SHOTS/switcher-cosmic.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
   panel_to "$OUT_DIR/a.png"
   sill switcher next >>"$log" 2>&1; sleep 0.4; panel_to "$OUT_DIR/b.png"
   sill switcher prev >>"$log" 2>&1; sleep 0.4; panel_to "$OUT_DIR/c.png"
@@ -364,6 +373,7 @@ cleanup() {
   stop_windows
   stop_daemon
   stop_private_bus
+  stop_compositor
   scratch_drop
 }
 trap cleanup EXIT

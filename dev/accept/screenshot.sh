@@ -44,11 +44,11 @@ set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 case "${1:-}" in
-  --real-input) MODE=real; OUT_DIR="$SILL_TARGET/accept-screenshot-drag" ;;
-  "") MODE=nested; OUT_DIR="$SILL_TARGET/accept-screenshot" ;;
+  --real-input) MODE=real; OUT_DIR="$SILL_OUT_ROOT/accept-screenshot-drag" ;;
+  "") MODE=nested; OUT_DIR="$SILL_OUT_ROOT/accept-screenshot" ;;
   *) echo "usage: dev/accept/screenshot.sh [--real-input]" >&2; exit 2 ;;
 esac
-SHOTS="$SILL_REPO/dev/out"
+SHOTS="$SILL_SHOTS"
 FIXTURE="$SILL_REPO/crates/sill-services/tests/fixtures/shots/Screenshot_fixture.png"
 SIZE=1920x1080
 WIDTH=${SIZE%x*}
@@ -304,15 +304,16 @@ cleanup() {
   local result=0
   stop_input
   stop_daemon || result=1
-  if [ "$KWIN_UP" = yes ]; then stop_kwin; KWIN_UP=no; fi
+  if [ "$KWIN_UP" = yes ]; then stop_compositor; KWIN_UP=no; fi
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
 # The daemon on the nested compositor, on its own private bus, the stand-ins in place.
 setup_nested() {
-  use_nested_socket || return 1
+  start_compositor || return 1
   command -v grim >/dev/null 2>&1 || { echo "grim is needed for the nested screenshot" >&2; return 1; }
   build || return 1
   await_no_process || echo "going on with it still running" >&2
@@ -324,7 +325,7 @@ setup_nested() {
 # The headless KWin, ONE fake-input client and the daemon; the pointer rests on the desktop.
 setup_real() {
   build || return 1
-  if ! start_kwin; then
+  if ! start_compositor --default kwin; then
     echo "KWin did not start (see $OUT_DIR/kwin.log)" >&2
     return 1
   fi

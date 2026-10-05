@@ -39,20 +39,23 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-lock"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-lock"
+SHOTS="$SILL_SHOTS"
 LOCKER="$SILL_OUT/examples/session_locker"
 NODEBUG_BIN="$OUT_DIR/sill-nodebug"
 mkdir -p "$OUT_DIR" "$SHOTS"
 
-use_nested_socket || exit 1
+start_compositor || exit 1
 case "$(basename "$WL")" in
   wayland-0) echo "the nested socket is wayland-0 (the real session): refusing" >&2; exit 1 ;;
 esac
 scratch_new
 MARKER="$RUNTIME/sill/locked"
 
-nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
+# The stand-in locker creates no lock surface, and casement answers `locked` once a locker's first
+# surface has content (casement-wayland session_lock.rs), so on casement it waits for ever: a bound
+# turns that into exit 124, which the steps below name as an expected skip.
+nested_locker() { WAYLAND_DISPLAY="$WL" timeout --kill-after=2 "${LOCKER_BOUND:-15}" "$LOCKER" "$@"; }
 
 output_names() {
   sill debug stats | python3 -c '
@@ -118,6 +121,13 @@ EOF
 # comes first: the debug build replaces target/debug/sill), then the debug daemon and the stand-in
 # locker.
 build_all() {
+  if [ -n "${SILL_PREBUILT:-}" ]; then
+    # dev/accept.sh built the daemon, the stand-in locker and the no-debug daemon outside the jail.
+    NODEBUG_BIN="$SILL_OUT/sill-nodebug"
+    [ -x "$NODEBUG_BIN" ] || { echo "$NODEBUG_BIN is missing: run dev/accept.sh --build" >&2; return 1; }
+    build "-p sill-testkit --example session_locker"
+    return
+  fi
   (cd "$SILL_REPO" && cargo build "${SILL_CARGO_PROFILE[@]}" -p sill) >"$OUT_DIR/build.log" 2>&1 \
     && cp "$SILL_OUT/sill" "$NODEBUG_BIN" \
     && build "-p sill-testkit --example session_locker" || return 1
@@ -297,7 +307,12 @@ step_accept() {
   echo "unlocked ${took} ms after 'sill debug auth accept' (limit 250 + 454 + 500: the check, the accepted beat, slack); lock surface gone: $gone; marker: $(test -e "$MARKER" && echo present || echo removed); a stand-in locker then locked and unlocked: exit $free" \
     | tee -a "$log" >&2
   [ "$took" -ge 0 ] && budget_check "unlocked ${took} ms after accept against 1204 ms" "$(( took <= 1204 ))" \
-    && [ "$gone" = yes ] && [ ! -e "$MARKER" ] && [ "$free" = 0 ]
+    && [ "$gone" = yes ] && [ ! -e "$MARKER" ] || return 1
+  [ "$free" = 124 ] && [ "$COMPOSITOR" = casement ] && {
+    expected_skip "the stand-in locker (sill-testkit session_locker) creates no lock surface and casement never answers it \`locked\`: whether the session is free again is not proven here"
+    return 2
+  }
+  [ "$free" = 0 ]
 }
 
 # 7.
@@ -356,19 +371,20 @@ recover() {
     esac
     stop_daemon
   fi
-  if nested_locker 0 >"$OUT_DIR/recovery.log" 2>&1; then
+  if [ "$COMPOSITOR" = casement ]; then
+    echo "recovery: casement is private to this jail (it goes with it), no stand-in locker needed" >&2
+  elif nested_locker 0 >"$OUT_DIR/recovery.log" 2>&1; then
     echo "recovery: the stand-in locked and unlocked the nested session (it is unlocked)" >&2
   else
     echo "recovery: the stand-in exited $? (see $OUT_DIR/recovery.log)" >&2
   fi
-  stop_private_bus
+  stop_compositor
 }
 
 WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 || {
   echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
 build_all || exit 1
 await_no_process || exit 1
-start_private_bus || exit 1
 trap recover EXIT
 status=0
 if start_lock_daemon daemon.log; then

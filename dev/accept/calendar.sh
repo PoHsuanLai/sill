@@ -39,21 +39,14 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-calendar"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-calendar"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 
 scratch_new
 trap scratch_drop EXIT
 CAL="$SCRATCH/calendars"
 mkdir -p "$CAL"
-
-# A screenshot of the nested output only (shot.sh falls back to the host's session when no
-# nested compositor answers, so it is never called without one).
-shot() {
-  "$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 || { echo "no nested compositor" >&2; return 1; }
-  "$SHELL_HOST_DEV/shot.sh" "$1" >/dev/null 2>&1
-}
 
 # The calendar files: one event each, in local (floating) time, from now.
 write_fixture() {
@@ -192,6 +185,7 @@ cleanup() {
   backdrop_down
   stop_daemon || result=1
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
@@ -273,7 +267,7 @@ step_idle() {
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
-use_nested_socket || exit 1
+start_compositor || exit 1
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 build || exit 1
 await_no_process || exit 1

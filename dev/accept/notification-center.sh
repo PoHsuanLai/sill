@@ -33,8 +33,8 @@ set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 [ "$#" = 0 ] || { echo "usage: dev/accept/notification-center.sh" >&2; exit 2; }
-OUT_DIR="$SILL_TARGET/accept-notification-center"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-notification-center"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 scratch_new
 
@@ -174,6 +174,7 @@ cleanup() {
   stop_daemon || result=1
   backdrop_down
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
@@ -196,7 +197,7 @@ step_toggle_open_close() {
   sleep 0.6
   sill debug capture "$CENTER" "$OUT_DIR/toggled.png" >>"$log" 2>&1 || return 1
   box=$(column_box "$OUT_DIR/toggled.png") || { echo "toggle: no column drawn" >&2; return 1; }
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/notification-center-empty-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/notification-center-empty-cosmic.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   size=$(python3 -c 'import sys; from PIL import Image; print(*Image.open(sys.argv[1]).size)' \
     "$OUT_DIR/toggled.png")
@@ -246,7 +247,7 @@ step_groups() {
   wait_surface "$CENTER" 20 up || return 1
   sleep 0.8
   sill debug capture "$CENTER" "$OUT_DIR/groups.png" >>"$log" 2>&1 || return 1
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/notification-center-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/notification-center-cosmic.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   ink_rows "$OUT_DIR/groups.png" >"$OUT_DIR/rows-collapsed.txt"
   read -r -a buttons < <(header_buttons "$OUT_DIR/groups.png") \
@@ -258,7 +259,7 @@ step_groups() {
   sill debug leave "$CENTER" >>"$log" 2>&1
   sleep 0.5
   sill debug capture "$CENTER" "$OUT_DIR/open.png" >>"$log" 2>&1 || return 1
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/notification-center-open-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/notification-center-open-cosmic.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   ink_rows "$OUT_DIR/open.png" >"$OUT_DIR/rows-open.txt"
   grep -q 'act=Toggle(AppKey("Mail"))' "$OUT_DIR/daemon.log" \
@@ -312,7 +313,7 @@ step_idle() {
 main() {
   local status
   trap cleanup EXIT
-  use_nested_socket || exit 1
+  start_compositor || exit 1
   build || exit 1
   await_no_process || echo "going on with it still running" >&2
   start_private_bus || exit 1

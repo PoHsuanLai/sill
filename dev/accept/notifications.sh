@@ -119,11 +119,11 @@ case "${1:-}" in
   *) echo "$USAGE" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  banners) OUT_DIR="$SILL_TARGET/accept-notifications" ;;
-  bus) OUT_DIR="$SILL_TARGET/accept-notifications-bus" ;;
-  real) OUT_DIR="$SILL_TARGET/accept-notifications-real-input" ;;
+  banners) OUT_DIR="$SILL_OUT_ROOT/accept-notifications" ;;
+  bus) OUT_DIR="$SILL_OUT_ROOT/accept-notifications-bus" ;;
+  real) OUT_DIR="$SILL_OUT_ROOT/accept-notifications-real-input" ;;
 esac
-SHOTS="$SILL_REPO/dev/out"
+SHOTS="$SILL_SHOTS"
 SIZE=1920x1080
 WIDTH=${SIZE%x*}
 HEIGHT=${SIZE#*x}
@@ -275,7 +275,7 @@ step_shows_holds_hides() {
     sleep 0.01
   done
   sleep 0.6
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/banners-cosmic.png" >>"$OUT_DIR/shot.log" 2>&1 \
+  shot "$SHOTS/banners-cosmic.png" >>"$OUT_DIR/shot.log" 2>&1 \
     || echo "screenshot failed" >&2
   while [ "$(since "$start")" -lt $((HOLD_MS - 300)) ]; do sleep 0.05; done
   t=$(await_hidden 3000)
@@ -336,7 +336,7 @@ step_grouping() {
   notify "Lunch on Thursday?" --app mail --body "Are you free at noon on Thursday?" \
     --action default=Open --action reply=Reply || return 1
   sleep 0.8
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/banners-stack-cosmic.png" >>"$OUT_DIR/shot.log" 2>&1 \
+  shot "$SHOTS/banners-stack-cosmic.png" >>"$OUT_DIR/shot.log" 2>&1 \
     || echo "stack screenshot failed" >&2
   clear_banners
 }
@@ -1221,15 +1221,16 @@ cleanup() {
   stop_monitor
   stop_daemon || result=1
   [ -z "$HOLDER" ] || { kill "$HOLDER" 2>/dev/null; HOLDER=; }
-  if [ "$KWIN_UP" = yes ]; then stop_kwin; KWIN_UP=no; fi
+  if [ "$KWIN_UP" = yes ]; then stop_compositor; KWIN_UP=no; fi
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
 # The banners' daemon on the nested compositor, its wallpaper the backdrop.
 setup_banners() {
-  use_nested_socket || return 1
+  start_compositor || return 1
   build || return 1
   await_no_process || return 1
   start_private_bus || return 1
@@ -1244,7 +1245,7 @@ setup_banners() {
 
 # The server's daemon on the nested compositor, holding the bus name in mode own.
 setup_bus() {
-  use_nested_socket || return 1
+  start_compositor || return 1
   build "-p sill-testkit --example notifications_holder" || return 1
   start_private_bus || return 1
   echo "private bus $BUS (pid $BUS_PID)" >&2
@@ -1258,12 +1259,12 @@ setup_real() {
   build || return 1
   : >"$OUT_DIR/notify.log"
   : >"$OUT_DIR/cards.log"
-  if ! start_kwin "$(( WIDTH * SCALE ))x$(( HEIGHT * SCALE ))"; then
+  if ! start_compositor --default kwin "$(( WIDTH * SCALE ))x$(( HEIGHT * SCALE ))"; then
     echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2
     return 1
   fi
   KWIN_UP=yes
-  [ "$SCALE" = 1 ] || set_kwin_scale "$SCALE" || return 1
+  [ "$SCALE" = 1 ] || set_scale "$SCALE" || return 1
   printf '[notifications]\nserver = "own"\n[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
     >"$CONFIG/sill/settings.toml"
   seed_checks || { echo "no checks wallpaper" >&2; return 1; }

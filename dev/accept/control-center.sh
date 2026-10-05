@@ -91,8 +91,8 @@ case "${1:-}" in
   "") MODE=nested ;;
   *) usage ;;
 esac
-OUT_DIR="$SILL_TARGET/accept-control-center"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-control-center"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 # The panel's popup: the card (control_center.width_px, 320 by default) plus the transparent
 # shadow room on each side (`SIDE` in crates/sill-bar/src/bar/popup.rs, read from the source so
@@ -186,7 +186,7 @@ popup_height() { size_of "$POPUP" | cut -d' ' -f2; }
 popup_up() { mapped "$POPUP"; }
 
 click_bar() { # x y
-  sill debug click "$BAR" "$1" "$2" >/dev/null 2>&1
+  surface_click "$BAR" "$1" "$2" >/dev/null 2>&1
 }
 
 close_popup() {
@@ -224,7 +224,8 @@ step_item_click() {
   # A screenshot taken before the compositor shows the popup has no card in it (gap = the whole
   # width): take it again, up to four times.
   for _ in 1 2 3 4; do
-    "$SHELL_HOST_DEV/shot.sh" "$SHOTS/control-center-cosmic.png" >>"$log" 2>&1 \
+    [ "$COMPOSITOR" != casement ] || break # no output screenshot there yet (below)
+    shot "$SHOTS/control-center-cosmic.png" >>"$log" 2>&1 \
       || echo "screenshot failed" >&2
     gap=$(card_right_gap "$SHOTS/control-center-cosmic.png")
     [ "$gap" -lt 100 ] && break
@@ -233,6 +234,12 @@ step_item_click() {
   # shellcheck disable=SC2086
   click_bar $CC_ITEM
   wait_surface "$POPUP" 20 down || { echo "a second click left it open" | tee -a "$log" >&2; return 1; }
+  if [ "$COMPOSITOR" = casement ]; then
+    echo "item click: popup ${width} wide (want $PANEL_POPUP_MIN to $PANEL_POPUP_MAX); a second click closed it" | tee -a "$log" >&2
+    panel_width_ok "$width" || return 1
+    expected_skip "the card's distance from the output's right edge is read off an output screenshot (casementctl shot, P1-C1)"
+    return 2
+  fi
   echo "item click: popup ${width} wide (want $PANEL_POPUP_MIN to $PANEL_POPUP_MAX), card ${gap} px from the output's right edge (want about 8); a second click closed it" \
     | tee -a "$log" >&2
   panel_width_ok "$width" && [ "$gap" -ge 4 ] && [ "$gap" -le 12 ]
@@ -275,7 +282,7 @@ step_wifi_pane() {
   sill debug click "$POPUP" 171 47 >>"$log" 2>&1
   sleep 0.8
   after=$(popup_height)
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/control-center-wifi-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/control-center-wifi-cosmic.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   close_popup
   PANE_H=$after
@@ -369,12 +376,13 @@ cleanup_nested() {
   stop_daemon || result=1
   stop_nm
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
 run_nested() {
-  use_nested_socket || exit 1
+  start_compositor || exit 1
   nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
   build || exit 1
   start_private_bus || exit 1
@@ -905,21 +913,21 @@ cleanup_real() {
   stop_input
   stop_daemon
   stop_bluez
-  stop_kwin
+  stop_compositor
   scratch_drop
 }
 
 run_real() {
   command -v wayland-info >/dev/null || { echo "wayland-info is missing; not installed by this script" >&2; exit 1; }
   build || exit 1
-  start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; scratch_drop; exit 1; }
+  start_compositor --default kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; scratch_drop; exit 1; }
   trap cleanup_real EXIT
   : >"$OUT_DIR/capture.log"
   NAME=$(headless_output)
   [ -n "$NAME" ] || { echo "no output name from wayland-info on $WL" >&2; exit 1; }
   echo "headless KWin at $WL, output $NAME" >&2
   if [ "$SCALE" != 1 ]; then
-    require_kwin_scale "$SCALE" || { echo "the headless output is not at scale $SCALE (see $OUT_DIR/kwin.log)" >&2; exit 1; }
+    require_scale "$SCALE" || { echo "the headless output is not at scale $SCALE (see $OUT_DIR/kwin.log)" >&2; exit 1; }
   fi
   standins
   start_bluez || exit 1

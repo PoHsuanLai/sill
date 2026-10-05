@@ -629,9 +629,19 @@ Each ends with its tests. Name the concept once and use it in every file name be
 2. It sources `dev/lib/{bus,daemon,compositor,input,pixels,assert}.sh` and defines none of
    their functions; a missing helper is added there.
 3. It starts the daemon with a private bus on both addresses, a fake DDC, scratch `HOME` and
-   `XDG_*`, its own `XDG_RUNTIME_DIR`, on the nested compositor or shell-host's headless KWin.
-4. Output PNGs go to `dev/out/` (untracked). What needs a person goes to
-   `docs/manual-checks.md`.
+   `XDG_*`, its own `XDG_RUNTIME_DIR`, on the compositor `start_compositor` brings up:
+   `SILL_COMPOSITOR=casement|cosmic|kwin` (the nested cosmic-comp, shell-host's headless KWin, or
+   a headless casement started in the jail through the casement checkout's `dev/up.sh`); a
+   script without that variable keeps its own `--default`. Compositor-specific work goes
+   through the lib's helpers (`set_scale`, `output_size`, `shot`, `maximised_height`,
+   `surface_click`, `input`), never a compositor's own tool; a step the compositor cannot prove
+   yet returns `expected_skip WHY` (exit 2).
+4. Logs and captures go under `$SILL_OUT_ROOT` and `$SILL_SHOTS` (`target/` and `dev/out/`,
+   untracked, or the jail's scratch dir under `dev/accept.sh --compositor casement`, where
+   nothing calls cargo: `build` only checks what `dev/accept.sh --build` built outside). What
+   needs a person goes to `docs/manual-checks.md`.
+5. `dev/accept.sh [--compositor casement|cosmic|kwin] [--jobs N] [NAME...]` runs scripts and
+   prints one PASS, SKIP (and why) or FAIL line each; on casement each in its own jail.
 
 ---
 

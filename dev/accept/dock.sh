@@ -48,11 +48,11 @@ set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 case "${1:-}" in
-  --icons) MODE=icons; OUT_DIR="$SILL_TARGET/accept-icons" ;;
-  "") MODE=dock; OUT_DIR="$SILL_TARGET/accept-dock" ;;
+  --icons) MODE=icons; OUT_DIR="$SILL_OUT_ROOT/accept-icons" ;;
+  "") MODE=dock; OUT_DIR="$SILL_OUT_ROOT/accept-dock" ;;
   *) echo "usage: dev/accept/dock.sh [--icons]" >&2; exit 2 ;;
 esac
-SHOTS="$SILL_REPO/dev/out"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 EMITTER="$SILL_OUT/examples/badge_emitter"
 BAR_H="${BAR_H:-24}"
@@ -104,9 +104,9 @@ start_dock_daemon() {
 # 1.
 step_exclusive_zone() {
   local height
-  height=$(maximised_height) || return 1
+  height=$(maximised_height) || return $?
   echo "output ${OUT_H}, maximised window ${height}, bar ${BAR_H}, dock ${RESERVE}" | tee "$OUT_DIR/exclusive-zone.log" >&2
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/dock-cosmic.png" >/dev/null 2>&1 || true
+  shot "$SHOTS/dock-cosmic.png" >/dev/null 2>&1 || true
   [ "$height" = "$(( OUT_H - BAR_H - RESERVE ))" ]
 }
 
@@ -130,7 +130,7 @@ EOF
   sleep 0.05
   sill debug pointer "$DOCK" $(( OUT_W / 2 )) "$PILL_Y" >/dev/null
   sleep 0.3
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/dock-cosmic-magnified.png" >/dev/null 2>&1 || true
+  shot "$SHOTS/dock-cosmic-magnified.png" >/dev/null 2>&1 || true
   read -r f1 c1 < <(counters_of "$DOCK")
   frames=$(( f1 - f0 )); callbacks=$(( c1 - c0 ))
   echo "sweep: frames $frames callbacks $callbacks" | tee -a "$log" >&2
@@ -169,7 +169,7 @@ step_launch() {
   echo "dot pixel after ${took} ms: $after (dot: $found)" | tee -a "$log" >&2
   # Let the launch bounce land before the badge step looks at the tile.
   sleep 1
-  "$SHELL_HOST_DEV/shot.sh" "$OUT_DIR/launched.png" >/dev/null 2>&1 || true
+  shot "$OUT_DIR/launched.png" >/dev/null 2>&1 || true
   [ "$found" = yes ] && budget_check "the launched app's dot after ${took} ms (less the capture's own $(capture_cost_ms) ms) against 3000 ms" "$(( $(captured_ms "$took") <= 3000 ))"
 }
 
@@ -213,7 +213,7 @@ step_menu() {
     sleep 0.05
   done
   sleep 0.5
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/dock-cosmic-menu.png" >/dev/null 2>&1 || true
+  shot "$SHOTS/dock-cosmic-menu.png" >/dev/null 2>&1 || true
   echo "popup $DOCK/popup opened: $opened" | tee -a "$log" >&2
   [ "$opened" = yes ]
 }
@@ -349,17 +349,18 @@ cleanup() {
   kill_nested_terms
   backdrop_down
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
+start_compositor || exit 1
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
-use_nested_socket || exit 1
 if [ "$MODE" = icons ]; then
   build || exit 1
 else
   build "-p sill-testkit --example badge_emitter" || exit 1
-  read -r OUT_W OUT_H < <(nested_output_size)
+  read -r OUT_W OUT_H < <(output_size)
   [ -n "${OUT_W:-}" ] || { echo "no nested output (dev/nested.sh first)" >&2; exit 1; }
 fi
 await_no_process || exit 1

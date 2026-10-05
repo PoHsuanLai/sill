@@ -3,7 +3,7 @@
 # kwin-virtual.sh), started and stopped by the script.
 #
 # Nothing here reaches polkitd, the system bus, PAM or a real password. Every bus is KWin's
-# private one (start_kwin refuses to go on if it would be the real one): the daemon's session and
+# private one (start_compositor refuses to go on if it would be the real one): the daemon's session and
 # system bus addresses both name it, and its polkit agent is pointed at it by `sill run
 # --polkit-bus` (a debug build's flag,
 # crates/sill/src/run_args.rs, with --polkit-helper and --polkit-session). There,
@@ -31,8 +31,8 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-polkit"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-polkit"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 AUTHORITY_BIN="$SILL_OUT/examples/polkit_authority"
 HELPER_BIN="$SILL_OUT/examples/polkit_helper"
@@ -89,7 +89,7 @@ cleanup() {
   stop_daemon
   exec 3>&- 2>/dev/null
   [ -n "$AUTHORITY" ] && kill "$AUTHORITY" 2>/dev/null
-  stop_kwin
+  stop_compositor
   scratch_drop
 }
 trap cleanup EXIT
@@ -268,7 +268,7 @@ step_idle() {
 }
 
 build "-p sill-testkit --example polkit_authority --example polkit_helper" || exit 1
-start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; exit 1; }
+start_compositor --default kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; exit 1; }
 echo "headless KWin at $WL, private bus $BUS" >&2
 start_authority || exit 1
 start_polkit_daemon || exit 1

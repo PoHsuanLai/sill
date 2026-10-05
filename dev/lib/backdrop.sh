@@ -5,7 +5,7 @@
 # wallpaper itself (m2-wallpaper) and `cosmic-bg` reads otherwise. `backdrop_up DIR` starts
 # `cosmic-bg` in the nested session on that config unless the running daemon already has a
 # wallpaper surface; `backdrop_down` stops it.
-BACKDROP_PNG="$SILL_TARGET/backdrop/bands.png"
+BACKDROP_PNG="$SILL_OUT_ROOT/backdrop/bands.png"
 BACKDROP_PID=
 
 backdrop_seed() {
@@ -45,7 +45,7 @@ backdrop_up() {
     echo "backdrop: sill draws the wallpaper" >&2
     return 0
   fi
-  XDG_CONFIG_HOME="$1" "$SHELL_HOST_DEV/run.sh" cosmic-bg >/dev/null 2>&1 &
+  XDG_CONFIG_HOME="$1" nested cosmic-bg >/dev/null 2>&1 &
   BACKDROP_PID=$!
   echo "backdrop: cosmic-bg (pid $BACKDROP_PID) draws the wallpaper" >&2
   sleep 1.5

@@ -37,7 +37,7 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-hot-corners"
+OUT_DIR="$SILL_OUT_ROOT/accept-hot-corners"
 mkdir -p "$OUT_DIR"
 
 # Whether SURFACE $1 is listed in `sill debug stats` (popups and corners alike).
@@ -185,12 +185,13 @@ cleanup() {
   stop_daemon || result=1
   backdrop_down
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
+start_compositor || exit 1
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
-use_nested_socket || exit 1
 build || exit 1
 await_no_process || exit 1
 scratch_new

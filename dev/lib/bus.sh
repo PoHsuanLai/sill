@@ -42,6 +42,7 @@ SH
 # bus config (default dev/private-bus.conf). Call stop_private_bus when done.
 start_private_bus() {
   local out conf="${1:-$SILL_REPO/dev/private-bus.conf}"
+  stop_private_bus # a script that starts one per group must not leak the last
   out=$(dbus-daemon --config-file="$conf" --fork --print-address=1 --print-pid=1) || return 1
   BUS=$(sed -n 1p <<<"$out")
   BUS_PID=$(sed -n 2p <<<"$out")

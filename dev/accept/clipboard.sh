@@ -26,10 +26,10 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-clipboard"
+OUT_DIR="$SILL_OUT_ROOT/accept-clipboard"
 mkdir -p "$OUT_DIR"
 
-use_nested_socket || exit 1
+start_compositor || exit 1
 case "$WL" in
   */wayland-0) echo "refusing wayland-0, the session's own compositor" >&2; exit 1 ;;
 esac
@@ -87,6 +87,7 @@ cleanup() {
   local result=0
   stop_daemon || result=1
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }

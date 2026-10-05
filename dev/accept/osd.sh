@@ -26,8 +26,8 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-osd"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-osd"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 HOLD_MS=1500
 
@@ -71,7 +71,7 @@ step_shows_then_hides() {
     sleep 0.02
   done
   sleep 0.3
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/osd-cosmic.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
+  shot "$SHOTS/osd-cosmic.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
   cp "$OUT_DIR/osd.png" "$OUT_DIR/osd-shown.png" 2>/dev/null
   while [ $(( $(now_ms) - start )) -lt 4000 ]; do
     t=$(( $(now_ms) - start ))
@@ -127,7 +127,7 @@ step_muted_shot() {
     sleep 0.02
   done
   sleep 0.3
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/osd-cosmic-muted.png" >>"$log" 2>&1 || { echo "muted screenshot failed" >&2; return 1; }
+  shot "$SHOTS/osd-cosmic-muted.png" >>"$log" 2>&1 || { echo "muted screenshot failed" >&2; return 1; }
 }
 
 cleanup() {
@@ -135,12 +135,13 @@ cleanup() {
   backdrop_down
   stop_daemon || result=1
   stop_private_bus
+  stop_compositor
   scratch_drop
   return "$result"
 }
 
+start_compositor || exit 1
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
-use_nested_socket || exit 1
 build || exit 1
 await_no_process || exit 1
 scratch_new

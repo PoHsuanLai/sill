@@ -8,7 +8,7 @@
 #                                    ->  org.quire.Shell IntentProvider1 (sill does the action)
 #
 # Nothing here reaches the person's session bus, logind, polkit, ~/.config or a real keyboard.
-# One private bus is the daemon's session AND system bus (start_kwin refuses anything else);
+# One private bus is the daemon's session AND system bus (start_compositor refuses anything else);
 # intentd, quire-do and sill all run in a scratch HOME and scratch XDG directories, with an
 # XDG_DATA_DIRS that names nothing, so the only manifests are the two the script copies in
 # (`dist/intents/org.quire.Shell.toml`, and docket's `org.quire.Memory.toml` for a hidden action).
@@ -45,8 +45,8 @@ rm -f "$PRIVATE_DEV/dev/.kwin-env" "$PRIVATE_DEV/dev/.nested-env"
 export SHELL_HOST_DEV="$PRIVATE_DEV/dev"
 # shellcheck source=dev/lib/all.sh
 source "$SELF/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-confirm"
-SHOTS="$SILL_REPO/dev/out"
+OUT_DIR="$SILL_OUT_ROOT/accept-confirm"
+SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 DOCKET_DIR="${DOCKET_DIR:-$SILL_REPO/../docket}"
 DOCKET_TARGET="${DOCKET_TARGET:-$OUT_DIR/docket-target}"
@@ -325,13 +325,18 @@ cleanup() {
   [ -n "$ASKER" ] && kill "$ASKER" 2>/dev/null
   stop_daemon
   [ -n "$INTENTD_PID" ] && kill "$INTENTD_PID" 2>/dev/null
-  stop_kwin
+  stop_compositor
   scratch_drop
   rm -rf "$PRIVATE_DEV"
 }
 trap cleanup EXIT
 
 build_docket() {
+  if [ -n "${SILL_PREBUILT:-}" ]; then
+    # dev/accept.sh built docket outside the jail (DOCKET_TARGET); only check it is there.
+    [ -x "$INTENTD" ] && [ -x "$QUIRE_DO" ] || { echo "$INTENTD or $QUIRE_DO is missing: run dev/accept.sh --build" >&2; return 1; }
+    return 0
+  fi
   {
     (cd "$DOCKET_DIR" && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p intentd -p docket-cli --bins)
   } >"$OUT_DIR/docket-build.log" 2>&1 || { echo "docket build failed (see $OUT_DIR/docket-build.log)" >&2; return 1; }
@@ -339,7 +344,7 @@ build_docket() {
 
 build || exit 1
 build_docket || exit 1
-start_kwin || exit 1
+start_compositor --default kwin || exit 1
 IN_ENV_EXTRA=(XDG_DATA_DIRS="$DATA/none" XDG_CONFIG_DIRS="$CONFIG/none")
 cp "$SILL_REPO/dist/intents/org.quire.Shell.toml" "$DATA/quire/intents/"
 cp "$DOCKET_DIR/manifests/org.quire.Memory.toml" "$DATA/quire/intents/"

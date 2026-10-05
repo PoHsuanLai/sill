@@ -22,7 +22,7 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_TARGET/accept-user-style"
+OUT_DIR="$SILL_OUT_ROOT/accept-user-style"
 mkdir -p "$OUT_DIR"
 NAME=
 SURFACES=()
@@ -119,7 +119,7 @@ step_deleted() {
 cleanup() {
   local result=0
   stop_daemon || result=1
-  stop_kwin
+  stop_compositor
   rm -rf "$RUNTIME"
   scratch_drop
   return "$result"
@@ -133,7 +133,7 @@ RUNTIME=$(mktemp -d /tmp/sill-rt.XXXXXX)
 chmod 700 "$RUNTIME"
 : >"$OUT_DIR/capture.log"
 : >"$OUT_DIR/steps.log"
-start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; rm -rf "$RUNTIME"; scratch_drop; exit 1; }
+start_compositor --default kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; rm -rf "$RUNTIME"; scratch_drop; exit 1; }
 trap cleanup EXIT
 backdrop_seed "$CONFIG" || exit 1
 start_daemon || { cleanup; trap - EXIT; exit 1; }
