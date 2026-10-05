@@ -1,9 +1,9 @@
 //! The bar's menu tracker: quire's `MenuTrack` (design/13 §13.4), keyed by [`MenuId`], with the
 //! bar's `Stamp` time and integer points converted at this boundary.
 
-use std::sync::OnceLock;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
+use ds::base::machine::Machine;
 use ds::base::time::stamp::Stamp;
 use ds::prelude::*;
 use ds::stack::menu_track::types::{
@@ -40,13 +40,7 @@ pub fn point(at: shell_host::Point) -> Point {
     }
 }
 
-/// `track` after `event` at `now`, and what the bar must do.
-pub fn step(track: Track, event: Event, now: Stamp) -> (Track, Vec<Effect>) {
-    track.step(event, instant(now))
-}
-
-/// `stamp` on the tracker's clock: milliseconds after a fixed epoch.
-fn instant(stamp: Stamp) -> Instant {
-    static EPOCH: OnceLock<Instant> = OnceLock::new();
-    *EPOCH.get_or_init(Instant::now) + Duration::from_millis(stamp.0)
+/// `track` after `event` at `now` with the bar's `timing`, and what the bar must do.
+pub fn step(track: Track, event: Event, now: Stamp, timing: &MenuTiming) -> (Track, Vec<Effect>) {
+    track.step(event, now, timing, &())
 }

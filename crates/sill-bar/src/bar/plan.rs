@@ -111,7 +111,7 @@ pub(crate) fn effects(outs: Vec<Effect>, picked: Option<BarPick>) -> Vec<BarEffe
             Effect::Close(_) => Some(BarEffect::Hide),
             Effect::Pick(_) => picked.take().map(BarEffect::Run),
             Effect::Highlight(_)
-            | Effect::RequestTick(_)
+            | Effect::Prepare(_)
             | Effect::OpenSub(_)
             | Effect::CloseSub
             | Effect::Adjacent(_) => None,
@@ -138,13 +138,13 @@ mod tests {
     fn run(inputs: Vec<Input>) -> (Track, Vec<BarEffect>) {
         let timing = timing(&sill_settings::MenusSettings::default());
         inputs.into_iter().enumerate().fold(
-            (Track::new(timing), Vec::new()),
+            (Track::closed(), Vec::new()),
             |(track, mut all), (ms, input)| {
                 let (input, picked) = match input {
                     Input::Bar(input) => (input, None),
                     Input::Popup(report) => popup_input(report),
                 };
-                let (track, outs) = step(track, input, Stamp(ms as u64 * 16));
+                let (track, outs) = step(track, input, Stamp(ms as u64 * 16), &timing);
                 all.extend(effects(outs, picked));
                 (track, all)
             },

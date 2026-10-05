@@ -158,7 +158,7 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
         (tx, CopyValue::new(Some(rx)))
     });
     let slots = Slots {
-        track: use_signal(|| Track::new(deps.timing)),
+        track: use_signal(Track::closed),
         open: use_signal(|| None),
         rects: use_signal(HashMap::new),
         link: use_hook(|| {
@@ -222,7 +222,7 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
         }
     };
     let mut track = slots.track;
-    let (next, outs) = step(track.peek().clone(), input, clock.now());
+    let (next, outs) = step(track.peek().clone(), input, clock.now(), &deps.timing);
     if *track.peek() != next {
         track.set(next);
     }
