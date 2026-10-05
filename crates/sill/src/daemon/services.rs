@@ -14,6 +14,8 @@ use sill_services::battery::BatteryService;
 use sill_services::clipboard::ClipboardService;
 use sill_services::companion::{CompanionLinks, CompanionService};
 use sill_services::cosmic_wl::CosmicWlService;
+use sill_services::{AppMenuDeps, AppMenuService, MenuLinks};
+use sill_ui_kit::app_menu::menu_name_of;
 use sill_services::env::Env;
 use sill_services::idle::{IdleLinks, IdleService};
 use sill_services::intents::{IntentsLinks, IntentsService, ShellCall};
@@ -111,6 +113,13 @@ pub(crate) fn start(
         now_playing: spawn(rt, env, ()),
         badges: spawn(rt, env, ()),
         tray: spawn(rt, env, ()),
+        app_menu: spawn::<AppMenuService>(
+            rt,
+            env,
+            AppMenuDeps {
+                name_of: menu_name_of,
+            },
+        ),
         pins: spawn(rt, env, ()),
         wallpaper: spawn(rt, env, ()),
         session: spawn(rt, env, locker.control.clone()),
@@ -123,6 +132,11 @@ pub(crate) fn start(
             env,
             IntentsLinks {
                 calls: shell_calls,
+                menus: MenuLinks {
+                    toplevels: cosmic_wl.state.clone(),
+                    wl: cosmic_wl.control.clone(),
+                    name_of: menu_name_of,
+                },
                 seat: seat_publisher,
             },
         ),

@@ -1,6 +1,7 @@
 //! The service's effects: the session bus.
 
 mod control;
+mod menus;
 mod objects;
 mod provider;
 mod run;

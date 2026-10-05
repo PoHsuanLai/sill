@@ -14,10 +14,10 @@ use sill_ui_kit::links::FocusLink;
 use sill_ui_kit::settings::SettingsFeed;
 use tokio::sync::{mpsc, watch};
 
-use super::content::{BarState, body, front_app};
+use super::content::{AppMenuState, BarState, FrontApp, body, front_app};
 use super::layer::layer;
 use super::menu_popup::{BarPopup, PopupLink, SUBMENU_ROOM};
-use super::menus::BarMenu;
+use super::menus::{AppTitle, BarMenu};
 use super::model::{BarInput, Handoff, PopupView, SessionDeps, status_box};
 use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
@@ -27,10 +27,11 @@ use super::track::{Event, Target, Track, step};
 use super::tray_input::{chroma_limit, row_image};
 use crate::control_center::{PanelCap, height_cap};
 use ds::base::time::stamp::FrameClock;
+use sill_model::app_menu::{AppMenuCommand, Follower, MenuApp};
 use sill_model::tray::TrayCommand;
-use sill_services::{AppsService, CosmicWlService, TrayService};
+use sill_services::{AppMenuService, AppsService, CosmicWlService, TrayService};
 use sill_ui_kit::hooks::{
-    use_appearance, use_service, use_service_part, use_services, use_settings,
+    use_appearance, use_control, use_service, use_service_part, use_services, use_settings,
 };
 use sill_ui_kit::links::{CenterLink, CenterShown, ControlCenterLink, PowerMenuLink, Preselect};
 use sill_ui_kit::menu::PopupLook;
@@ -100,15 +101,18 @@ struct Slots {
 pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
     let file = use_settings()();
     let on = output.name.clone().map(OutputName);
+    let app = front_app(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
+        &use_service::<AppsService>()(),
+        on.as_ref(),
+    );
     let state = BarState {
-        app: front_app(
-            &use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
-            &use_service::<AppsService>()(),
-            on.as_ref(),
-        ),
+        menus: AppMenuState::of(app.as_ref(), &use_service::<AppMenuService>()()),
+        app,
         control_center: file.control_center.clone(),
         tray: use_service::<TrayService>()(),
     };
+    use_menu_follow(output, state.app.as_ref());
     let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
     let bar = use_menu_session(SessionDeps {
         state,
@@ -131,6 +135,26 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
     use_context_provider(|| bar);
     use_control_center_asks(bar, output.id);
     bar
+}
+
+/// Tell the app-menu service which app this bar's focus is on, so it follows that app's menu
+/// while some bar names it and lets go when none does.
+fn use_menu_follow(output: &OutputInfo, app: Option<&FrontApp>) {
+    let control = use_control::<AppMenuService>();
+    let by = Follower(output.id.0.to_string());
+    let app = app.map(|app| MenuApp(app.app_id.clone()));
+    let leaving = (control.clone(), by.clone());
+    use_effect(use_reactive!(|app| {
+        // The service may have stopped; then there is no menu to follow.
+        let _gone_is_dropped = control.send(AppMenuCommand::Follow {
+            by: by.clone(),
+            app,
+        });
+    }));
+    use_drop(move || {
+        let (control, by) = leaving;
+        let _gone_is_dropped = control.send(AppMenuCommand::Follow { by, app: None });
+    });
 }
 
 /// Follow `sill control-center toggle` (the daemon's `ControlCenterLink`, absent in a demo or a
@@ -181,6 +205,10 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
     let vanished = matches!(
         *slots.open.peek(),
         Some(BarMenu::Tray(slot)) if deps.state.tray.items.get(usize::from(slot.0)).is_none()
+    ) || matches!(
+        *slots.open.peek(),
+        Some(BarMenu::AppMenu(AppTitle(index)))
+            if deps.state.menus.as_ref().and_then(|m| m.titles.menus.get(usize::from(index))).is_none()
     );
     let feed = use_callback(move |input: BarInput| handle(slots, &deps, clock, input));
     let mut own = slots.feed;
@@ -340,14 +368,44 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
 /// Tell a tray item its menu is about to show (dbusmenu `AboutToShow`), so the app can refresh
 /// it; the other menus have nobody to tell.
 fn announce(deps: &SessionDeps, menu: BarMenu) {
-    if let BarMenu::Tray(slot) = menu
-        && let Some(item) = deps.state.tray.items.get(usize::from(slot.0))
-    {
-        // The service may have stopped; then nothing is left to refresh.
-        let _gone_is_dropped = deps.services.tray.control.send(TrayCommand::MenuOpening {
-            item: item.id.clone(),
-        });
+    // The services may have stopped; then nothing is left to refresh.
+    match menu {
+        BarMenu::Tray(slot) => {
+            if let Some(item) = deps.state.tray.items.get(usize::from(slot.0)) {
+                let _gone_is_dropped = deps.services.tray.control.send(TrayCommand::MenuOpening {
+                    item: item.id.clone(),
+                });
+            }
+        }
+        BarMenu::App | BarMenu::AppMenu(_) => {
+            if let Some((app, id)) = app_menu_id(deps, menu) {
+                let _gone_is_dropped = deps
+                    .services
+                    .app_menu
+                    .control
+                    .send(AppMenuCommand::Opening { app, id });
+            }
+        }
+        BarMenu::NowPlaying
+        | BarMenu::Display
+        | BarMenu::Volume
+        | BarMenu::Bluetooth
+        | BarMenu::Network
+        | BarMenu::Battery
+        | BarMenu::ControlCenter => {}
     }
+}
+
+/// The app serving `menu` and the dbusmenu id of that menu, for the app-name menu (the app's
+/// first menu) and the app's own titles.
+fn app_menu_id(deps: &SessionDeps, menu: BarMenu) -> Option<(MenuApp, i32)> {
+    let menus = deps.state.menus.as_ref()?;
+    let id = match menu {
+        BarMenu::App => menus.titles.app.as_ref()?.0,
+        BarMenu::AppMenu(AppTitle(index)) => menus.titles.menus.get(usize::from(index))?.id,
+        _ => return None,
+    };
+    Some((menus.app.clone(), id))
 }
 
 /// `menu`'s view now, placed under its title; `None` before the title has been measured. The
@@ -362,6 +420,16 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
     };
     if let BarMenu::Tray(slot) = menu
         && deps.state.tray.items.get(usize::from(slot.0)).is_none()
+    {
+        return None;
+    }
+    if let BarMenu::AppMenu(AppTitle(index)) = menu
+        && deps
+            .state
+            .menus
+            .as_ref()
+            .and_then(|menus| menus.titles.menus.get(usize::from(index)))
+            .is_none()
     {
         return None;
     }
@@ -403,11 +471,13 @@ fn refresh(slots: Slots, deps: &SessionDeps) {
 /// there is nobody left to tell.
 fn run(pick: &BarPick, deps: &SessionDeps) {
     let services = &deps.services;
-    for command in commands(pick) {
+    let toplevels = services.cosmic_wl.state.borrow().toplevels.clone();
+    for command in commands(pick, &toplevels) {
         let _gone_is_dropped = match command {
             Command::Wl(c) => services.cosmic_wl.control.send(c),
             Command::Launch(c) => services.launch.control.send(c),
             Command::Tray(c) => services.tray.control.send(c),
+            Command::AppMenu(c) => services.app_menu.control.send(c),
             Command::PowerMenu => {
                 if let Some(link) = &deps.power_menu {
                     link.open(deps.output, Preselect::Default);

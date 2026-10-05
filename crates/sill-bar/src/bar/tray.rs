@@ -6,7 +6,7 @@
 //! `tray_input::icon_source` decides with quire's `ds::style::icon::classify::classify_with`. The button carries the
 //! `tray-<n>` id and hands its pointer to the session (`BarMenu::Tray`), so an item with a
 //! dbusmenu opens it on the press, switches to it on hover from another menu and shows it open
-//! as every bar item does; `tray_menu` turns the rows into entries, submenus included, and the
+//! as every bar item does; `dbusmenu` turns the rows into entries, submenus included, and the
 //! bar's one popup draws them. An item without one takes the click as SNI `Activate` and the
 //! secondary press as `ContextMenu`; the middle button is `SecondaryActivate` on either, each
 //! with the press's screen point. The wheel over an item is SNI `Scroll`.
@@ -35,7 +35,7 @@ use super::title::{shown_of, use_title_pointer};
 use super::tray_input::{
     ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, scroll_delta,
 };
-use super::tray_menu::has_rows;
+use super::dbusmenu::has_rows;
 use sill_ui_kit::hooks::{use_appearance, use_control, use_service, use_settings};
 
 /// The element id of the button at `index` (`tray-<n>`, as the module doc says).

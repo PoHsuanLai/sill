@@ -1,5 +1,6 @@
 //! Taking the bus: one connection, the names in the order that keeps intentd's trust check true.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 
@@ -11,6 +12,7 @@ use zbus::fdo::RequestNameFlags;
 
 use super::objects::{Call, ConfirmObject};
 use super::provider::{NoSummon, ShellContext, ShellProvider, manifest};
+use crate::app_menu::{MenuAgent, MenuLinks};
 use crate::env::Bus;
 use crate::intents::ShellCall;
 
@@ -26,6 +28,8 @@ pub(super) async fn take(
     bus: &Bus,
     calls: UnboundedSender<Call>,
     shell: UnboundedSender<ShellCall>,
+    menus: MenuLinks,
+    proc_root: PathBuf,
 ) -> Result<Seat, LinkTrouble> {
     let connection = match bus.connect().await {
         Ok(Some(connection)) => connection,
@@ -37,6 +41,7 @@ pub(super) async fn take(
     let provider = ShellProvider {
         manifest,
         calls: shell,
+        menus: MenuAgent::over(connection.clone(), menus, proc_root),
     };
     docket_client::serve_on(&connection, provider, ShellContext { app }, NoSummon)
         .await

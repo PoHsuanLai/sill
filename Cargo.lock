@@ -7077,6 +7077,7 @@ dependencies = [
  "notify",
  "percent-encoding",
  "porter-core",
+ "porter-dbus",
  "prov",
  "rustix",
  "serde",

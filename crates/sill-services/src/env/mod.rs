@@ -65,6 +65,10 @@ pub struct Env {
     /// How long keycap's socket may be down before systemd is asked about the unit, and how often
     /// after that; the process's own is the model's, a test's is short.
     pub keycap_unit_wait: UnitWait,
+    /// The `/proc` tree a process's cgroup is read from, which names the app that launched it
+    /// (porter's caller identity): `/proc`, or a fixture tree in a test, or a folder with
+    /// nothing in it, where no process is proven to be any app.
+    pub proc_root: PathBuf,
 }
 
 /// When the keycap service asks systemd about its unit.
@@ -115,6 +119,7 @@ impl Env {
             children: Arc::new(RealChildren),
             keycap_socket: Some(PathBuf::from(keycap_protocol::SOCKET_PATH)),
             keycap_unit_wait: UnitWait::default(),
+            proc_root: PathBuf::from("/proc"),
         }
     }
 
@@ -148,6 +153,7 @@ impl Env {
             children: RecordedChildren::shared(),
             keycap_socket: None,
             keycap_unit_wait: UnitWait::default(),
+            proc_root: scratch.join("no-proc"),
         }
     }
 }

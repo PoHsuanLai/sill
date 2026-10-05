@@ -1,6 +1,8 @@
 //! dbusmenu rows as the tray's menu entries.
 
-use sill_model::tray::{Check, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind, plain_label};
+use sill_model::tray::{
+    Check, Chord, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind, plain_label,
+};
 use sill_model::units::{Availability, Visibility};
 use system_tray::client::Client;
 use system_tray::menu::{MenuItem, MenuType, ToggleState, ToggleType};
@@ -45,6 +47,12 @@ pub(super) fn to_menu_entry(item: &MenuItem) -> TrayMenuEntry {
             check: to_check(item),
             icon: to_menu_icon(item),
             children: item.submenu.iter().map(to_menu_entry).collect(),
+            shortcut: item
+                .shortcut
+                .as_ref()
+                .and_then(|chords| chords.first())
+                .map(|keys| Chord(keys.clone())),
+            command: None,
         },
     };
     TrayMenuEntry { id: item.id, kind }

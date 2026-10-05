@@ -23,7 +23,7 @@ use crate::bar::menus::{BarMenu, TraySlot};
 use crate::bar::model::PopupView;
 use crate::bar::pick::BarPick;
 use crate::bar::plan::PopupReport;
-use crate::bar::tray_menu::menu_items;
+use crate::bar::dbusmenu::menu_items;
 
 thread_local! {
     static REPORTS: RefCell<Option<mpsc::UnboundedReceiver<PopupReport>>> =
@@ -40,6 +40,14 @@ const VIEW: Viewport = Viewport {
 const SUBMENU: &str = ".ds-menu[*|data-depth]";
 const PARENT: &str = ".ds-menu-item[*|aria-haspopup=true]";
 
+/// What a row of the test item picks.
+fn tray_pick(entry: i32) -> BarPick {
+    BarPick::Tray {
+        item: item_id(),
+        entry,
+    }
+}
+
 fn item_id() -> TrayItemId {
     TrayItemId(":1.9/StatusNotifierItem".to_owned())
 }
@@ -54,6 +62,8 @@ fn row(id: i32, label: &str, children: Vec<TrayMenuEntry>) -> TrayMenuEntry {
             check: Check::None,
             icon: TrayMenuIcon::None,
             children,
+            shortcut: None,
+            command: None,
         },
     }
 }
@@ -101,7 +111,7 @@ fn document(rows: Vec<TrayMenuEntry>) -> Element {
     });
     let current = PopupView {
         menu: BarMenu::Tray(TraySlot(0)),
-        body: PopupBody::Menu(menu_items(&item_id(), &rows, &|_| None)),
+        body: PopupBody::Menu(menu_items(&tray_pick, &rows, &|_| None)),
         placement: PopupPlacement {
             anchor_rect: HostRect {
                 x: 0,
@@ -211,7 +221,7 @@ fn a_click_on_a_submenu_row_picks_it_by_its_dbusmenu_id() {
 
 #[test]
 fn a_menu_keeps_a_column_of_room_for_each_level_of_submenu() {
-    let entries = |rows: &[TrayMenuEntry]| menu_items(&item_id(), rows, &|_| None);
+    let entries = |rows: &[TrayMenuEntry]| menu_items(&tray_pick, rows, &|_| None);
     let deep = vec![row(
         1,
         "A",

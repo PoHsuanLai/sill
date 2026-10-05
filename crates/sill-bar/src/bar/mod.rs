@@ -4,6 +4,7 @@
 //! center's item and the clock; every menu an `xdg_popup`, tracked by [`track`].
 
 mod app_name;
+mod app_titles;
 mod clock;
 mod content;
 mod control_center_item;
@@ -23,7 +24,7 @@ mod title;
 pub mod track;
 mod tray;
 mod tray_input;
-mod tray_menu;
+mod dbusmenu;
 mod view;
 mod workspaces;
 

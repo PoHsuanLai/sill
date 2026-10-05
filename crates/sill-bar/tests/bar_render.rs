@@ -130,6 +130,8 @@ fn each_tray_item_is_a_status_item_and_none_has_a_menu_open() {
             check: Check::None,
             icon: TrayMenuIcon::None,
             children: Vec::new(),
+            shortcut: None,
+            command: None,
         },
     }];
     let before = bar.harness.html();
@@ -150,4 +152,80 @@ fn each_tray_item_is_a_status_item_and_none_has_a_menu_open() {
             "{name}"
         );
     }
+}
+
+/// A menu of the app's bar with one row.
+fn app_menu(id: i32, title: &str, row: &str) -> TrayMenuEntry {
+    let leaf = |id, label: &str| TrayMenuEntry {
+        id,
+        kind: TrayMenuKind::Item {
+            label: label.to_owned(),
+            enabled: Availability::Enabled,
+            visibility: Visibility::Shown,
+            check: Check::None,
+            icon: TrayMenuIcon::None,
+            children: Vec::new(),
+            shortcut: None,
+            command: None,
+        },
+    };
+    let mut menu = leaf(id, title);
+    if let TrayMenuKind::Item { children, .. } = &mut menu.kind {
+        children.push(leaf(id + 1, row));
+    }
+    menu
+}
+
+#[test]
+fn the_focused_apps_served_menus_are_titles_after_its_name_and_an_app_without_one_has_none() {
+    use sill_model::app_menu::{AppMenuCommand, AppMenus, MenuApp, MenuName, ServedMenu};
+    let mut bar = start();
+    let foot = MenuApp("foot".to_owned());
+
+    // The bar tells the service whose menu it wants, and nothing is served yet.
+    let told: Vec<AppMenuCommand> =
+        std::iter::from_fn(|| bar.feeds.app_menu_commands.try_recv().ok()).collect();
+    assert!(
+        told.iter().any(
+            |command| matches!(command, AppMenuCommand::Follow { app: Some(app), .. } if *app == foot)
+        ),
+        "{told:?}"
+    );
+    let before = bar.harness.html();
+
+    bar.feeds.app_menu.send_replace(AppMenus {
+        served: [(
+            foot,
+            ServedMenu {
+                name: MenuName("org.quire.AppMenu.foot".to_owned()),
+                menus: vec![
+                    app_menu(11, "Foot", "About Foot"),
+                    app_menu(20, "Edit", "Undo"),
+                    app_menu(40, "View", "Sidebar"),
+                ],
+            },
+        )]
+        .into(),
+    });
+    bar.harness.advance(Duration::from_millis(40));
+    let after = bar.harness.html();
+    for (name, needle, was, now) in [
+        ("the Edit title", ">Edit<", 0, 1),
+        ("the View title", ">View<", 0, 1),
+        // The app's first menu is the app name's own, not a title.
+        ("no title for the first menu", ">Foot<", 0, 0),
+        ("the app name stays", ">foot<", 1, 1),
+        ("no menu open", "aria-expanded=\"true\"", 0, 0),
+    ] {
+        assert_eq!(
+            (count(&before, needle), count(&after, needle)),
+            (was, now),
+            "{name}: {needle}\n{after}"
+        );
+    }
+
+    // The service lets the app go (it quit): the titles go with it.
+    bar.feeds.app_menu.send_replace(AppMenus::default());
+    bar.harness.advance(Duration::from_millis(40));
+    assert_eq!(count(&bar.harness.html(), ">Edit<"), 0);
 }

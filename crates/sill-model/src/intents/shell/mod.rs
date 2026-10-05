@@ -4,8 +4,10 @@
 
 mod action;
 mod invocation;
+mod menu;
 #[cfg(test)]
 mod tests;
 
 pub use action::{ShellAction, ShellFault, WorkspaceStep};
 pub use invocation::{action_of, outcome_of, undo_of};
+pub use menu::{MenuAsk, menu_ask_of};

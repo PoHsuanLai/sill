@@ -7,6 +7,7 @@ use ds::style::appearance::blur::BlurState;
 use shell_host::OutputInfo;
 
 use super::app_name::AppName;
+use super::app_titles::AppMenuTitles;
 use super::clock::ClockItem;
 use super::control_center_item::ControlCenterItem;
 use super::io::use_bar;
@@ -74,6 +75,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
                 onpointerup: move |_| outside(Event::Release(Target::Outside)),
                 div { class: "sill-bar-group",
                     AppName { output: output.clone() }
+                    AppMenuTitles { output: output.clone() }
                     WorkspaceIndicator { output: output.clone() }
                 }
                 div { class: "sill-bar-group", style: status,

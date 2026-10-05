@@ -140,3 +140,58 @@ ty = { kind = "choice", v = [
 ] }
 need = { kind = "defaulted", v = { kind = "choice", v = "screen" } }
 sink = "inert"
+
+# The focused window's menus. The list only reads, but its words are the app's: the answer carries
+# an untrusted label naming that app (the floor here names the shell, the reader). An activation's
+# real effect comes from `sill_model::app_menu::effect_of` (the shell's own Hide, Hide Others,
+# Show All, Minimise and raise are reads; a verified app's own command is that action, run through
+# intentd; every other item, and Quit, is destructive). The router gates on the effect declared
+# here, so the declaration is the worst case and every activation asks.
+[[actions]]
+name = "shell.menu.list"
+label = "List the menus of a window"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["screen"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "value", v = { ty = { kind = "text", v = { max = 12000, lines = "many" } }, trust = { kind = "third_party", v = { kind = "screen", v = { app = "org.quire.Shell" } } } } }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "window"
+label = "Which window (the focused one when left out)"
+ty = { kind = "text", v = { max = 200, lines = "one" } }
+need = { kind = "optional" }
+sink = "inert"
+
+[[actions]]
+name = "shell.menu.activate"
+label = "Choose a menu item of a window"
+on = { kind = "nothing" }
+effect = "destructive"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "window"
+label = "Which window (the focused one when left out)"
+ty = { kind = "text", v = { max = 200, lines = "one" } }
+need = { kind = "optional" }
+sink = "inert"
+
+[[actions.params]]
+name = "item"
+label = "The item's id from the menu listing"
+ty = { kind = "text", v = { max = 40, lines = "one" } }
+need = { kind = "required" }
+sink = "inert"

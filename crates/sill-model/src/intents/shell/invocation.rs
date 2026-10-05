@@ -83,12 +83,12 @@ pub fn undo_of(token: &UndoToken) -> Result<ShellAction, UndoFault> {
 const PIN: &str = "dock.pin:";
 const UNPIN: &str = "dock.unpin:";
 
-fn param(name: &str) -> Result<ParamName, AppRefusal> {
+pub(super) fn param(name: &str) -> Result<ParamName, AppRefusal> {
     ParamName::parse(name).map_err(|_| AppRefusal::Unsupported)
 }
 
 /// The text argument `name`, when given.
-fn text(invocation: &Invocation, name: &str) -> Result<Option<String>, AppRefusal> {
+pub(super) fn text(invocation: &Invocation, name: &str) -> Result<Option<String>, AppRefusal> {
     let name = param(name)?;
     match invocation.args.get(&name).map(|arg| &arg.value) {
         None => Ok(None),

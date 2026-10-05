@@ -9,7 +9,7 @@ use docket_core::{
     AppRefusal, CallId, ChoiceId, Invocation, Origin, ParamDecl, ParamNeed, ParamType, Value,
 };
 use prov::{ActionName, Actor, Label, Labelled, SpaceId};
-use sill_model::intents::shell::action_of;
+use sill_model::intents::shell::{action_of, menu_ask_of};
 use sill_services::intents::manifest;
 
 /// An invocation of `action` with the arguments `args`.
@@ -45,12 +45,20 @@ fn value_for(param: &ParamDecl) -> Value {
     }
 }
 
+/// An invocation read as the shell reads it: a menu ask, or one of its other actions.
+fn reads(invocation: &Invocation) -> Result<(), AppRefusal> {
+    match menu_ask_of(invocation)? {
+        Some(_) => Ok(()),
+        None => action_of(invocation).map(drop),
+    }
+}
+
 #[test]
 fn the_shipped_manifest_is_valid_and_is_the_shells() {
     let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));
     let manifest = manifest.manifest();
     assert_eq!(manifest.app.as_str(), "org.quire.Shell");
-    assert_eq!(manifest.actions.len(), 6);
+    assert_eq!(manifest.actions.len(), 8);
 }
 
 #[test]
@@ -63,10 +71,10 @@ fn every_declared_action_reads_and_every_option_is_one_the_model_knows() {
             .iter()
             .map(|p| (p.name.clone(), value_for(p)))
             .collect();
-        let read = action_of(&invocation(&action.name, given));
+        let read = reads(&invocation(&action.name, given));
         assert!(read.is_ok(), "{}: {read:?}", action.name);
         // With none given: a defaulted or optional parameter is fine, a required one is asked for.
-        let bare = action_of(&invocation(&action.name, BTreeMap::new()));
+        let bare = reads(&invocation(&action.name, BTreeMap::new()));
         let needs = action
             .params
             .iter()
@@ -85,7 +93,7 @@ fn every_declared_action_reads_and_every_option_is_one_the_model_knows() {
                             ChoiceId::parse(option.id.as_str()).unwrap_or_else(|e| panic!("{e}")),
                         ),
                     )]);
-                    let read = action_of(&invocation(&action.name, given));
+                    let read = reads(&invocation(&action.name, given));
                     assert!(read.is_ok(), "{} {}: {read:?}", action.name, option.id);
                 }
             }

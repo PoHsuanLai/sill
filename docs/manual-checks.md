@@ -345,6 +345,14 @@ sill layer `dist/keycap/keycap.toml` to `~/.config/keycap/keycap.toml` when miss
 - [ ] Log out and in again: the login screen already has the layout, and after login the terminal
   and the browser behave as in the second item.
 
+## The focused app's menus in the bar (a sill login, a quire app that exports its menu)
+
+- [ ] **detent's Edit menu shows in the bar**: focus detent (built with the menu export on); the bar
+  reads detent's name in bold, then File, Edit, View, Window and Help. Press Edit: Undo and Redo list
+  with their Cmd keys; hover across File, a tray item and Sound switches the one popup with no gap;
+  pick a row and detent runs it. A window that is not a quire app shows only its name's menu (Hide,
+  Quit, its windows).
+
 ## The confirmation sheet and `quire-do` on a real COSMIC login
 
 Needs docket's `intentd` running (`systemctl --user start intentd` from docket's `dist/`) and

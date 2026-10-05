@@ -111,6 +111,34 @@ A settled item is deleted, not marked closed.
   `menu/submenu.css` lays quire's later overlays over the first, the box a submenu is placed against
   (it names quire's `.ds-overlay`, which Strict forbids: the lint test excuses those two selectors).
   `AboutToShow` is sent for the root only: a lazily filled submenu is not asked first.
+- **The focused app's menus are bar menus** (`sill_services::AppMenuService`, state `AppMenus`).
+  A quire app serves `com.canonical.dbusmenu` at `org.quire.AppMenu.<app_id>` (name from quire's
+  `AppMenuAddress::for_app_id`, which `sill_ui_kit::app_menu::menu_name_of` hands the services; the
+  services crate links no design system). Each bar tells the service its focused toplevel's `app_id`
+  (`AppMenuCommand::Follow`, one follower per output); the service follows the union of those apps
+  while the name has an owner (`owner::appeared`/`changed`): `GetLayout(0, -1, [])`, again after
+  `LayoutUpdated` or `ItemsPropertiesUpdated`, nothing when it loses its owner (design/27 §5.2 rule c:
+  the bar keeps today's App menu). The first menu of the app is the app-name menu's own rows (About,
+  Settings, Quit) above the shell's rows (windows, Minimise, Hide, Hide Others, Show All; Quit only when
+  the app has no menu of its own); the others are titles after the name (`BarMenu::AppMenu(i)`) of the
+  same machine, so hover switching crosses them, the tray and the status items. A pick is `Event
+  "clicked"`, an open is `AboutToShow` for that menu's id. `bar/dbusmenu.rs` is the one rows-to-entries
+  conversion for the tray and for apps (it also draws the row's `shortcut`). One menu per app, not per
+  window (the Mac's model).
+- **`shell.menu.list` and `shell.menu.activate`** (`dist/intents/org.quire.Shell.toml`, served by
+  `sill_services::app_menu::MenuAgent`) read the menu fresh from the focused (or named) window's app.
+  The listing is one line per row, its id first, labelled `Untrusted(App(<app>))`. Everything an app
+  sends (labels, titles, `x-quire-command-id`) is a claim, so the effect table is
+  `sill_model::app_menu::{route_of, effect_of}`: the shell's own rows (raise or minimise a window, Hide,
+  Hide Others, Show All) are `Read`; Quit is `Destructive`; a command id counts only when the app is
+  `Identity::Verified` (porter's caller identity of the name's owner, from its cgroup scope through
+  `porter_dbus::ProcCallers::caller_of_pid` over `Env::proc_root`, is an app whose own menu name is the
+  one served) and its manifest declares that action: then the item is that action, performed through
+  Intents1 as the shell with the call's own origin, and takes the action's declared effect. Every other
+  item, whatever its title ("View", "Window") or id, is a `Destructive` dbusmenu click. A person's own
+  click in the bar is unaffected. Tests: `crates/sill-model/src/app_menu/tests.rs` (the tables),
+  `crates/sill-services/tests/app_menu_bus.rs` (private bus, `sill-testkit`'s `app_menu_app`, a
+  recording intentd).
 - **`com.canonical.Unity.LauncherEntry`** is a broadcast with no well-known name: a raw
   `MatchRule` through `MessageStream::for_match_rule`. Values are decoded per key; a wrong-typed
   key is dropped, not the message. A clear is a `NameOwnerChanged` with an empty new owner for a
@@ -536,6 +564,24 @@ A settled item is deleted, not marked closed.
   by its place in the tray, so one registered before it going away while its menu is open swaps the
   open menu to the next item's; `ItemIsMenu` is not read (an item with a dbusmenu always opens it
   on the primary press); a dbusmenu row's disposition (informative, warning, alert) is not drawn.
+- **G370** App menus: the foreign Qt and GTK menus are not shown, because cosmic-comp has no
+  appmenu protocol (`org_kde_kwin_appmenu`) to hand a toplevel's address over; casement P3-MN
+  (`menu_source`) adds the server side, then sill reads the address it gives per toplevel instead of
+  deriving it from the `app_id`, which also makes the menu per window. Until then only apps that serve
+  `org.quire.AppMenu.<app_id>` (quire apps) have menus in the bar.
+- **G371** App menus: `shell.menu.activate`'s Zoom and full-screen items are not provided: the shell
+  has no `WlCommand` for maximise or fullscreen, so the Read set is Minimise, Hide, Hide Others, Show
+  All and raising a window. Ends when `cosmic_wl` gains those commands (then two `OwnItem`s).
+- **G372** App menus: the router gates on an action's declared effect, so `shell.menu.activate` is
+  declared `destructive` and every call asks, including the Read rows of the table. Ends when
+  intentd takes a per-call effect from the provider (interface ask: docket); `effect_of` is the table
+  it would call. The call goes out on the shell's connection with the caller's own `Origin`; intentd
+  must not treat it as the person's launcher act.
+- **G373** App menus: the verified path needs the app launched in a systemd scope
+  (`app-<id>-<n>.scope`, which COSMIC's launcher and `sill`'s own start); an app started from a
+  terminal has no scope, so its command ids are claims and its items are clicks. The app's
+  `AboutToShow` is sent for each menu's own id, not for lazily filled submenus.
+
 - **G331** The desktop grid is measured when the layer mounts; a live output resize re-places
   only on the next spawn.
 - **G351** `sill idle status` counts `ScreenSaver` inhibits but does not name the apps.

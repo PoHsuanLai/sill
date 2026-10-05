@@ -32,6 +32,9 @@ pub struct Feeds {
     pub network: watch::Sender<Network>,
     pub volume: watch::Sender<Volume>,
     pub tray: watch::Sender<Tray>,
+    /// The focused apps' menus (none until a test feeds some), and what the bar tells the service.
+    pub app_menu: watch::Sender<sill_model::app_menu::AppMenus>,
+    pub app_menu_commands: mpsc::UnboundedReceiver<sill_model::app_menu::AppMenuCommand>,
     pub cosmic_wl: watch::Sender<CosmicWl>,
     pub wifi: watch::Sender<Wifi>,
     pub bluetooth: watch::Sender<Bluetooth>,
@@ -101,6 +104,7 @@ pub fn services() -> (Services, Feeds) {
     let (network, network_io) = Handle::channel(network());
     let (volume, volume_io) = Handle::channel(volume());
     let (tray, tray_io) = Handle::channel(Tray::default());
+    let (app_menu, app_menu_io) = Handle::channel(sill_model::app_menu::AppMenus::default());
     let (cosmic_wl, cosmic_wl_io) = Handle::channel(CosmicWl {
         workspaces: workspaces(),
         toplevels: toplevels(),
@@ -142,6 +146,7 @@ pub fn services() -> (Services, Feeds) {
         network,
         volume,
         tray,
+        app_menu,
         cosmic_wl,
         apps,
         badges,
@@ -182,6 +187,8 @@ pub fn services() -> (Services, Feeds) {
         network: network_io.state,
         volume: volume_io.state,
         tray: tray_io.state,
+        app_menu: app_menu_io.state,
+        app_menu_commands: app_menu_io.commands,
         cosmic_wl: cosmic_wl_io.state,
         wifi: wifi_io.state,
         bluetooth: bluetooth_io.state,

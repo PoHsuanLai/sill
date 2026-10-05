@@ -8,6 +8,9 @@
 
 use ds::prelude::*;
 use sill_launcher::WindowKey;
+use sill_model::app_menu::{
+    AppMenus, MenuApp, OwnGroup, QuitRow, Titles, own_groups, titles,
+};
 use sill_model::apps::{AppIndex, match_app};
 use sill_model::cosmic_wl::Toplevels;
 use sill_model::ids::OutputName;
@@ -15,15 +18,44 @@ use sill_model::tray::Tray;
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
-use super::menus::BarMenu;
+use super::menus::{AppTitle, BarMenu};
 use super::pick::BarPick;
-use super::tray_menu::{RowIcon, menu_items};
+use super::dbusmenu::{RowIcon, menu_items};
 
 /// The frontmost app on an output: its name and every one of its windows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FrontApp {
+    /// The Wayland `app_id`, which names the menu the app serves.
+    pub app_id: String,
     pub name: String,
     pub windows: Vec<(WindowKey, String)>,
+}
+
+/// The focused app's exported menus: whose they are and the titles they make.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct AppMenuState {
+    pub app: MenuApp,
+    pub titles: Titles,
+}
+
+impl AppMenuState {
+    /// The menus `app` serves in `menus`, none when it serves none (design/27 §5.2 rule c).
+    pub(crate) fn of(app: Option<&FrontApp>, menus: &AppMenus) -> Option<AppMenuState> {
+        let app = MenuApp(app?.app_id.clone());
+        let served = menus.served.get(&app)?;
+        Some(AppMenuState {
+            titles: titles(served),
+            app,
+        })
+    }
+
+    /// The pick of the row with dbusmenu id `id`.
+    fn pick(&self, id: i32) -> BarPick {
+        BarPick::AppMenu {
+            app: self.app.clone(),
+            id,
+        }
+    }
 }
 
 /// What a bar popup draws.
@@ -46,6 +78,8 @@ pub(crate) struct BarState {
     pub control_center: ControlCenterSettings,
     /// The tray's items and their dbusmenus.
     pub tray: Tray,
+    /// The focused app's own menus, when it serves any.
+    pub menus: Option<AppMenuState>,
 }
 
 /// `menu`'s contents in `state`, a tray row's icon drawn as `icon` says.
@@ -56,10 +90,27 @@ pub(crate) fn body(menu: BarMenu, state: &BarState, icon: RowIcon) -> PopupBody 
                 .tray
                 .items
                 .get(usize::from(slot.0))
-                .map(|item| menu_items(&item.id, &item.menu, icon))
+                .map(|item| menu_items(
+                    &|entry| BarPick::Tray {
+                        item: item.id.clone(),
+                        entry,
+                    },
+                    &item.menu,
+                    icon,
+                ))
                 .unwrap_or_default(),
         ),
-        BarMenu::App => PopupBody::Menu(app_menu(state.app.as_ref())),
+        BarMenu::App => PopupBody::Menu(app_menu(state.app.as_ref(), state.menus.as_ref(), icon)),
+        BarMenu::AppMenu(AppTitle(index)) => PopupBody::Menu(
+            state
+                .menus
+                .as_ref()
+                .and_then(|menus| {
+                    let rows = &menus.titles.menus.get(usize::from(index))?.rows;
+                    Some(menu_items(&|id| menus.pick(id), rows, icon))
+                })
+                .unwrap_or_default(),
+        ),
         BarMenu::ControlCenter => PopupBody::ControlCenter(state.control_center.clone()),
         BarMenu::NowPlaying
         | BarMenu::Display
@@ -92,12 +143,21 @@ pub(crate) fn front_app(
         .filter(|w| w.app_id == front.app_id)
         .map(|w| (w.key, w.title.clone()))
         .collect();
-    Some(FrontApp { name, windows })
+    Some(FrontApp {
+        app_id: front.app_id.clone(),
+        name,
+        windows,
+    })
 }
 
-/// The app menu: a header, one item per window, Quit; then "Shut Down…", which opens the power
-/// menu (design/20 §1.8; the bar has no system menu of its own).
-fn app_menu(app: Option<&FrontApp>) -> Vec<MenuItem<BarPick>> {
+/// The app menu: a header, the app's own first menu when it serves one (About, Settings), then
+/// the rows the shell makes from the compositor (windows, Minimise, Hide, Quit); then "Shut
+/// Down…", which opens the power menu (design/20 §1.8; the bar has no system menu of its own).
+fn app_menu(
+    app: Option<&FrontApp>,
+    menus: Option<&AppMenuState>,
+    icon: RowIcon,
+) -> Vec<MenuItem<BarPick>> {
     let power = [
         MenuItem::Separator,
         item("Shut Down…".to_owned(), BarPick::PowerMenu, None),
@@ -108,19 +168,38 @@ fn app_menu(app: Option<&FrontApp>) -> Vec<MenuItem<BarPick>> {
             .chain(power)
             .collect();
     };
-    let windows = app
-        .windows
-        .iter()
-        .map(|(key, title)| item(title.clone(), BarPick::Activate(*key), None));
-    let quit = item(
-        format!("Quit {}", app.name),
-        BarPick::Quit(app.windows.iter().map(|(key, _)| *key).collect()),
-        None,
-    );
-    std::iter::once(MenuItem::Header(app.name.clone()))
-        .chain(windows)
-        .chain([MenuItem::Separator, quit])
-        .chain(power)
+    let own = menus
+        .and_then(|menus| {
+            let (_, rows) = menus.titles.app.as_ref()?;
+            Some(menu_items(&|id| menus.pick(id), rows, icon))
+        })
+        .unwrap_or_default();
+    let quit = QuitRow::of_titles(menus.map(|menus| &menus.titles));
+    let groups = own_groups(&app.name, &app.windows, quit);
+    let shell = groups.into_iter().map(|group| own_rows(app, group));
+    let sections = std::iter::once(own).chain(shell).filter(|rows| !rows.is_empty());
+    let mut entries = vec![MenuItem::Header(app.name.clone())];
+    for (at, rows) in sections.enumerate() {
+        if at > 0 {
+            entries.push(MenuItem::Separator);
+        }
+        entries.extend(rows);
+    }
+    entries.extend(power);
+    entries
+}
+
+/// `group`'s rows as menu items.
+fn own_rows(app: &FrontApp, group: OwnGroup) -> Vec<MenuItem<BarPick>> {
+    group
+        .into_iter()
+        .map(|row| {
+            let pick = BarPick::Own {
+                app_id: app.app_id.clone(),
+                item: row.item,
+            };
+            item(row.label, pick, None)
+        })
         .collect()
 }
 
@@ -155,17 +234,19 @@ fn item(title: String, value: BarPick, check: Option<Check>) -> MenuItem<BarPick
 
 #[cfg(test)]
 mod tests {
-    use super::{BarState, FrontApp, PopupBody, body, front_app};
+    use super::{AppMenuState, BarState, FrontApp, PopupBody, body, front_app};
+    use crate::bar::menus::AppTitle;
     use crate::bar::menus::BarMenu;
     use crate::bar::menus::TraySlot;
     use crate::bar::pick::BarPick;
     use ds::prelude::*;
     use sill_launcher::WindowKey;
+    use sill_model::app_menu::{AppMenus, MenuApp, MenuName, OwnItem, ServedMenu};
     use sill_model::apps::AppIndex;
     use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
     use sill_model::ids::OutputName;
     use sill_model::tray::{
-        Check, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
+        Check, Chord, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
         TrayStatus,
     };
     use sill_model::units::{Availability as Enabled, Visibility};
@@ -211,6 +292,7 @@ mod tests {
         assert_eq!(
             app,
             Some(FrontApp {
+                app_id: "files".to_owned(),
                 name: "files".to_owned(),
                 windows: vec![(WindowKey(2), "files 2".to_owned())],
             })
@@ -227,11 +309,13 @@ mod tests {
     fn each_menu_lists_its_own_lines() {
         let state = BarState {
             app: Some(FrontApp {
+                app_id: "foot".to_owned(),
                 name: "Foot".to_owned(),
                 windows: vec![(WindowKey(4), "~".to_owned())],
             }),
             control_center: sill_settings::ControlCenterSettings::default(),
             tray: Tray::default(),
+            menus: None,
         };
         let menu = |m| match body(m, &state, &|_| None) {
             PopupBody::Menu(entries) => titles(&entries),
@@ -240,7 +324,19 @@ mod tests {
         };
         assert_eq!(
             menu(BarMenu::App),
-            ["# Foot", "~", "--", "Quit Foot", "--", "Shut Down…"]
+            [
+                "# Foot",
+                "~",
+                "--",
+                "Minimise",
+                "Hide Foot",
+                "Hide Others",
+                "Show All",
+                "--",
+                "Quit Foot",
+                "--",
+                "Shut Down…"
+            ]
         );
         assert_eq!(menu(BarMenu::ControlCenter), ["control center"]);
         assert_eq!(menu(BarMenu::Bluetooth), ["Bluetooth"]);
@@ -268,9 +364,20 @@ mod tests {
                 .collect(),
             _ => Vec::new(),
         };
+        let own = |item| BarPick::Own {
+            app_id: "foot".to_owned(),
+            item,
+        };
         assert_eq!(
             picks[1..],
-            [BarPick::Quit(vec![WindowKey(4)]), BarPick::PowerMenu]
+            [
+                own(OwnItem::Minimise(WindowKey(4))),
+                own(OwnItem::Hide),
+                own(OwnItem::HideOthers),
+                own(OwnItem::ShowAll),
+                own(OwnItem::Quit),
+                BarPick::PowerMenu,
+            ]
         );
     }
 
@@ -284,6 +391,8 @@ mod tests {
                 check: Check::None,
                 icon: TrayMenuIcon::None,
                 children: Vec::new(),
+                shortcut: None,
+                command: None,
             },
         });
         TrayItem {
@@ -299,6 +408,7 @@ mod tests {
     fn a_tray_slot_lists_its_own_items_dbusmenu() {
         let state = BarState {
             app: None,
+            menus: None,
             control_center: sill_settings::ControlCenterSettings::default(),
             tray: Tray {
                 items: vec![
@@ -314,5 +424,129 @@ mod tests {
         assert_eq!(menu(0), ["Open", "Quit"]);
         assert_eq!(menu(1), ["Mozc"]);
         assert!(menu(2).is_empty(), "an item that has gone has no rows");
+    }
+
+    fn row(id: i32, label: &str, shortcut: Option<Chord>) -> TrayMenuEntry {
+        TrayMenuEntry {
+            id,
+            kind: TrayMenuKind::Item {
+                label: label.to_owned(),
+                enabled: Enabled::Enabled,
+                visibility: Visibility::Shown,
+                check: Check::None,
+                icon: TrayMenuIcon::None,
+                children: Vec::new(),
+                shortcut,
+                command: None,
+            },
+        }
+    }
+
+    fn menu(id: i32, label: &str, rows: Vec<TrayMenuEntry>) -> TrayMenuEntry {
+        let mut menu = row(id, label, None);
+        if let TrayMenuKind::Item { children, .. } = &mut menu.kind {
+            *children = rows;
+        }
+        menu
+    }
+
+    /// The focused app `foot` serving: its own menu (About, Quit), Edit (Undo with Cmd+Z), View.
+    fn served_state() -> BarState {
+        let cmd_z = Chord(vec!["Super".to_owned(), "Z".to_owned()]);
+        let served = ServedMenu {
+            name: MenuName("org.quire.AppMenu.foot".to_owned()),
+            menus: vec![
+                menu(11, "Foot", vec![row(12, "About Foot", None), row(13, "Quit Foot", None)]),
+                menu(20, "Edit", vec![row(21, "Undo", Some(cmd_z))]),
+                menu(40, "View", vec![row(41, "Sidebar", None)]),
+            ],
+        };
+        let app = FrontApp {
+            app_id: "foot".to_owned(),
+            name: "Foot".to_owned(),
+            windows: vec![(WindowKey(4), "~".to_owned())],
+        };
+        let menus = AppMenus {
+            served: [(MenuApp("foot".to_owned()), served)].into(),
+        };
+        BarState {
+            menus: AppMenuState::of(Some(&app), &menus),
+            app: Some(app),
+            control_center: sill_settings::ControlCenterSettings::default(),
+            tray: Tray::default(),
+        }
+    }
+
+    fn entries(menu: BarMenu, state: &BarState) -> Vec<MenuItem<BarPick>> {
+        match body(menu, state, &|_| None) {
+            PopupBody::Menu(entries) => entries,
+            other => panic!("not a menu: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_served_apps_first_menu_joins_the_app_name_and_the_rest_are_titles() {
+        let state = served_state();
+        // The app's own rows come before the shell's, and the shell offers no Quit of its own.
+        assert_eq!(
+            titles(&entries(BarMenu::App, &state)),
+            [
+                "# Foot",
+                "About Foot",
+                "Quit Foot",
+                "--",
+                "~",
+                "--",
+                "Minimise",
+                "Hide Foot",
+                "Hide Others",
+                "Show All",
+                "--",
+                "Shut Down…"
+            ]
+        );
+        let picks = |menu| -> Vec<BarPick> {
+            entries(menu, &state)
+                .into_iter()
+                .filter_map(|entry| match entry {
+                    MenuItem::Item { value, .. } => Some(value),
+                    _ => None,
+                })
+                .collect()
+        };
+        let app = MenuApp("foot".to_owned());
+        assert_eq!(
+            picks(BarMenu::App)[..2],
+            [
+                BarPick::AppMenu { app: app.clone(), id: 12 },
+                BarPick::AppMenu { app: app.clone(), id: 13 },
+            ]
+        );
+        assert_eq!(titles(&entries(BarMenu::AppMenu(AppTitle(0)), &state)), ["Undo"]);
+        assert_eq!(
+            picks(BarMenu::AppMenu(AppTitle(1))),
+            [BarPick::AppMenu { app: app.clone(), id: 41 }]
+        );
+        assert!(entries(BarMenu::AppMenu(AppTitle(2)), &state).is_empty());
+        let undo = entries(BarMenu::AppMenu(AppTitle(0)), &state);
+        let key = match &undo[0] {
+            MenuItem::Item { key, .. } => key.clone().map(|key| key.keys()),
+            other => panic!("{other:?}"),
+        };
+        assert_eq!(
+            key,
+            Some(vec![ShortcutKey::Super, ShortcutKey::Char('z')]),
+            "Cmd+Z is the row's key equivalent"
+        );
+    }
+
+    #[test]
+    fn an_app_that_serves_nothing_keeps_the_app_menu_alone() {
+        let mut state = served_state();
+        state.menus = None;
+        assert!(entries(BarMenu::AppMenu(AppTitle(0)), &state).is_empty());
+        let app_menu = titles(&entries(BarMenu::App, &state));
+        assert_eq!(app_menu.first().map(String::as_str), Some("# Foot"));
+        assert!(app_menu.contains(&"Quit Foot".to_owned()), "{app_menu:?}");
     }
 }

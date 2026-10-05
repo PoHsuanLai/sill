@@ -1,15 +1,21 @@
-//! A tray item's dbusmenu rows as the bar's menu entries, so the item's menu is one more bar
+//! A dbusmenu's rows (a tray item's, or the focused app's) as the bar's menu entries, so each is one more bar
 //! menu: the same popup, open delay, safe triangle and hover switching as the others (the
 //! submenus open inside the popup's `Menu`, which times them). Pure: a row's icon is resolved by
 //! the caller's function, since a theme lookup is an effect.
 
+use ds::components::menus::export::Chord as ExportChord;
 use ds::components::menus::item::item::MenuImage;
 use ds::prelude::Check as DsCheck;
 use ds::prelude::*;
-use sill_model::tray::{Check as TrayCheck, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind};
+use sill_model::tray::{
+    Check as TrayCheck, Chord, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
+};
 use sill_model::units::{Availability as TrayAvailability, Visibility};
 
 use super::pick::BarPick;
+
+/// What picking the row with this dbusmenu id does.
+pub(crate) type RowPick<'a> = &'a dyn Fn(i32) -> BarPick;
 
 /// How a row's icon becomes the image at its start; `None` draws none.
 pub(crate) type RowIcon<'a> = &'a dyn Fn(&TrayMenuIcon) -> Option<MenuImage>;
@@ -23,21 +29,22 @@ pub(crate) fn has_rows(rows: &[TrayMenuEntry]) -> bool {
     })
 }
 
-/// `rows` of `item`'s dbusmenu as menu entries: hidden rows dropped, a row with shown children a
-/// submenu (whatever its own check), and rules only between rows.
+/// `rows` of a dbusmenu as menu entries: hidden rows dropped, a row with shown children a
+/// submenu (whatever its own check), and rules only between rows. A row picks what `pick` says
+/// of its id.
 pub(crate) fn menu_items(
-    item: &TrayItemId,
+    pick: RowPick,
     rows: &[TrayMenuEntry],
     icon: RowIcon,
 ) -> Vec<MenuItem<BarPick>> {
     let entries = rows
         .iter()
-        .filter_map(|row| entry(item, row, icon))
+        .filter_map(|row| entry(pick, row, icon))
         .collect();
     between_rules(entries)
 }
 
-fn entry(item: &TrayItemId, row: &TrayMenuEntry, icon: RowIcon) -> Option<MenuItem<BarPick>> {
+fn entry(pick: RowPick, row: &TrayMenuEntry, icon: RowIcon) -> Option<MenuItem<BarPick>> {
     let TrayMenuKind::Item {
         label,
         enabled,
@@ -45,6 +52,8 @@ fn entry(item: &TrayItemId, row: &TrayMenuEntry, icon: RowIcon) -> Option<MenuIt
         check,
         icon: row_icon,
         children,
+        shortcut,
+        command: _,
     } = &row.kind
     else {
         return Some(MenuItem::Separator);
@@ -57,7 +66,7 @@ fn entry(item: &TrayItemId, row: &TrayMenuEntry, icon: RowIcon) -> Option<MenuIt
         TrayAvailability::Disabled => Availability::Disabled,
     };
     let image = icon(row_icon);
-    let children = menu_items(item, children, icon);
+    let children = menu_items(pick, children, icon);
     if !children.is_empty() {
         return Some(MenuItem::Submenu {
             title: label.clone(),
@@ -67,18 +76,20 @@ fn entry(item: &TrayItemId, row: &TrayMenuEntry, icon: RowIcon) -> Option<MenuIt
         });
     }
     Some(MenuItem::Item {
-        value: BarPick::Tray {
-            item: item.clone(),
-            entry: row.id,
-        },
+        value: pick(row.id),
         title: label.clone(),
         image,
-        key: None,
+        key: shortcut.as_ref().and_then(key_of),
         hint: None,
         check: to_ds_check(*check),
         availability,
         after: AfterPick::Close,
     })
+}
+
+/// The key equivalent the app's row names, when quire reads its key names.
+fn key_of(chord: &Chord) -> Option<Shortcut> {
+    ExportChord(chord.0.clone()).shortcut().ok()
 }
 
 fn to_ds_check(check: TrayCheck) -> Option<DsCheck> {
@@ -108,5 +119,5 @@ fn between_rules(entries: Vec<MenuItem<BarPick>>) -> Vec<MenuItem<BarPick>> {
 }
 
 #[cfg(test)]
-#[path = "tray_menu_tests.rs"]
+#[path = "dbusmenu_tests.rs"]
 mod tests;

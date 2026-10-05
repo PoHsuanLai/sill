@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use docket_client::{ContextSource, IntentProvider, SummonTarget};
+use docket_client::{ContextSource, DbusTransport, IntentProvider, SummonTarget};
 use docket_core::{
     AppRefusal, ContextScope, ContextSnapshot, EntityRef, FailText, Here, Hit, Invocation,
     Manifest, Outcome, Preview, Selection, SuggestAsk, SummonAnswer, SummonOrigin, SummonSerial,
@@ -13,9 +13,12 @@ use docket_core::{
 };
 use porter_core::Count;
 use prov::{Actor, EntityId, Label, Labelled};
-use sill_model::intents::shell::{ShellAction, ShellFault, action_of, outcome_of, undo_of};
+use sill_model::intents::shell::{
+    ShellAction, ShellFault, action_of, menu_ask_of, outcome_of, undo_of,
+};
 use tokio::sync::{mpsc, oneshot};
 
+use crate::app_menu::MenuAgent;
 use crate::intents::ShellCall;
 
 /// What the shell declares, as shipped: the installed file, held to the model by a test.
@@ -34,6 +37,8 @@ pub fn manifest() -> Result<ValidManifest, String> {
 pub(super) struct ShellProvider {
     pub manifest: ValidManifest,
     pub calls: mpsc::UnboundedSender<ShellCall>,
+    /// The focused window's menus, for `shell.menu.list` and `shell.menu.activate`.
+    pub menus: MenuAgent<DbusTransport>,
 }
 
 impl ShellProvider {
@@ -64,12 +69,18 @@ impl IntentProvider for ShellProvider {
     }
 
     async fn perform(&self, inv: Invocation) -> Result<Outcome, AppRefusal> {
+        if let Some(ask) = menu_ask_of(&inv)? {
+            return super::menus::perform(&self.menus, ask, &inv).await;
+        }
         let action = action_of(&inv)?;
         self.done(action.clone()).await.map_err(refusal)?;
         Ok(outcome_of(&action))
     }
 
     async fn dry_run(&self, inv: Invocation) -> Result<Preview, AppRefusal> {
+        if menu_ask_of(&inv)?.is_some() {
+            return Ok(Preview::None);
+        }
         action_of(&inv).map(|_| Preview::None)
     }
 

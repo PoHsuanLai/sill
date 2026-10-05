@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use sill_search::results::ResultsService;
+use sill_services::app_menu::AppMenuService;
 use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
 use sill_services::badges::BadgesService;
@@ -54,6 +55,9 @@ pub struct Services {
     pub now_playing: Handle<NowPlayingService>,
     pub badges: Handle<BadgesService>,
     pub tray: Handle<TrayService>,
+    /// The menus the focused apps serve (`com.canonical.dbusmenu`): empty until a bar names an app
+    /// that has one.
+    pub app_menu: Handle<AppMenuService>,
     pub pins: Handle<PinsService>,
     pub apps: Handle<AppsService>,
     pub cosmic_wl: Handle<CosmicWlService>,
@@ -125,6 +129,7 @@ members! {
     now_playing: NowPlayingService,
     badges: BadgesService,
     tray: TrayService,
+    app_menu: AppMenuService,
     pins: PinsService,
     apps: AppsService,
     cosmic_wl: CosmicWlService,

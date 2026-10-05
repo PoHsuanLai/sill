@@ -83,8 +83,24 @@ pub enum TrayMenuKind {
         icon: TrayMenuIcon,
         /// The submenu's rows; empty for a plain row.
         children: Vec<TrayMenuEntry>,
+        /// `shortcut`, the key equivalent drawn at the row's end (an app's menu names one).
+        shortcut: Option<Chord>,
+        /// `x-quire-command-id`: the command a quire app says the row runs. A claim by the app,
+        /// never a fact about it (`app_menu::route_of` decides what it counts for).
+        command: Option<MenuCommand>,
     },
 }
+
+/// The key names of one chord, modifiers first (`["Super", "Z"]`), as dbusmenu's `shortcut`
+/// writes them.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Chord(pub Vec<String>);
+
+/// The command id a quire app's menu row names (`x-quire-command-id`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct MenuCommand(pub String);
 
 /// The image at a dbusmenu row's start.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

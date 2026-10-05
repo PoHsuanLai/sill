@@ -13,6 +13,7 @@
 //! This crate never reaches `dioxus` (`scripts/check-boundary.sh`): the hooks that read these
 //! channels live in `sill-ui-kit::hooks`.
 
+pub mod app_menu;
 pub mod apps;
 pub mod auth;
 pub mod badges;
@@ -51,6 +52,7 @@ pub mod volume;
 pub mod wallpaper;
 pub mod wifi;
 
+pub use app_menu::{AppMenuDeps, AppMenuService, MenuLinks, MenuNameOf};
 pub use apps::AppsService;
 pub use auth::AuthService;
 pub use badges::BadgesService;

@@ -34,6 +34,8 @@ fn quit_menu() -> Vec<TrayMenuEntry> {
             check: Check::None,
             icon: TrayMenuIcon::None,
             children: Vec::new(),
+            shortcut: None,
+            command: None,
         },
     }]
 }
@@ -180,6 +182,8 @@ fn a_menu_with_a_submenu_and_icons_round_trips() {
                     check: Check::Checked,
                     icon: TrayMenuIcon::Png(vec![137, 80]),
                     children: Vec::new(),
+                    shortcut: None,
+                    command: None,
                 },
             }],
         },

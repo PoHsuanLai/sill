@@ -9,6 +9,7 @@
 //! carried out here: the `Response` signal to the asker alone, the sleeps, the reads.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -39,6 +40,7 @@ const GRANT_SETTLE: Duration = Duration::from_millis(400);
 pub(crate) struct Reach {
     session: Bus,
     clock: Arc<dyn WallClock>,
+    proc_root: PathBuf,
 }
 
 impl Reach {
@@ -46,6 +48,7 @@ impl Reach {
         Reach {
             session: env.buses.session.clone(),
             clock: Arc::clone(&env.clock),
+            proc_root: env.proc_root.clone(),
         }
     }
 }
@@ -75,7 +78,7 @@ pub(crate) async fn run(reach: Reach, links: IntentsLinks, io: ServiceIo<Intents
     }
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
     let (inner_tx, mut inner) = mpsc::unbounded_channel();
-    let seat = match serve::take(&reach.session, calls_tx, links.calls).await {
+    let seat = match serve::take(&reach.session, calls_tx, links.calls, links.menus, reach.proc_root).await {
         Ok(seat) => seat,
         Err(trouble) => {
             tx.send_modify(|state| state.link = IntentsLink::Unavailable(trouble));

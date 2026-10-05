@@ -10,7 +10,7 @@ mod tests;
 pub use command::{ScrollAxis, ScrollDelta, TrayCommand, TrayEvent};
 pub use label::plain_label;
 pub use model::{
-    Check, Pixmap, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
-    TrayStatus,
+    Check, Chord, MenuCommand, Pixmap, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry,
+    TrayMenuIcon, TrayMenuKind, TrayStatus,
 };
 pub use step::step;

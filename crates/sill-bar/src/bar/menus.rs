@@ -15,6 +15,14 @@ pub(crate) struct TraySlot(pub u16);
 /// The machine's id for the first tray item; the bar's own menus are numbered below it.
 const TRAY_ID_BASE: u32 = 1000;
 
+/// Which of the focused app's own menus (File, Edit, ...) a title is: its place after the app
+/// name, the app's first menu being the app name's own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct AppTitle(pub u16);
+
+/// The machine's id for the first of the app's titles; the tray's ids are below it.
+const APP_TITLE_ID_BASE: u32 = 200_000;
+
 /// A bar title or status item that opens a menu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum BarMenu {
@@ -34,6 +42,8 @@ pub(crate) enum BarMenu {
     Battery,
     /// The control center (design/20 §1.5): the last status item, left of the clock.
     ControlCenter,
+    /// One of the focused app's menus after its name: File, Edit, View, Window, Help.
+    AppMenu(AppTitle),
     /// A tray item's dbusmenu (the tray sits left of the modules, so it is not in [`BarMenu::ALL`]).
     Tray(TraySlot),
 }
@@ -64,22 +74,31 @@ impl BarMenu {
             BarMenu::Display => 7,
             BarMenu::Bluetooth => 8,
             BarMenu::Tray(TraySlot(slot)) => TRAY_ID_BASE + u32::from(slot),
+            BarMenu::AppMenu(AppTitle(index)) => APP_TITLE_ID_BASE + u32::from(index),
         })
     }
 
     /// The menu the machine names `id`, if it is one of the bar's.
     pub(crate) fn of(id: MenuId) -> Option<BarMenu> {
-        let tray =
-            id.0.checked_sub(TRAY_ID_BASE)
-                .and_then(|slot| u16::try_from(slot).ok())
-                .map(|slot| BarMenu::Tray(TraySlot(slot)));
-        tray.or_else(|| BarMenu::ALL.into_iter().find(|menu| menu.id() == id))
+        let title = id
+            .0
+            .checked_sub(APP_TITLE_ID_BASE)
+            .and_then(|index| u16::try_from(index).ok())
+            .map(|index| BarMenu::AppMenu(AppTitle(index)));
+        let tray = id
+            .0
+            .checked_sub(TRAY_ID_BASE)
+            .and_then(|slot| u16::try_from(slot).ok())
+            .map(|slot| BarMenu::Tray(TraySlot(slot)));
+        title
+            .or(tray)
+            .or_else(|| BarMenu::ALL.into_iter().find(|menu| menu.id() == id))
     }
 
     /// Which side of its title the menu hangs from (design/13 §13.3.2).
     pub(crate) fn side(self) -> MenuSide {
         match self {
-            BarMenu::App => MenuSide::Title,
+            BarMenu::App | BarMenu::AppMenu(_) => MenuSide::Title,
             BarMenu::ControlCenter => MenuSide::OutputEdge,
             BarMenu::NowPlaying
             | BarMenu::Display
@@ -95,6 +114,7 @@ impl BarMenu {
     pub(crate) fn label(self) -> &'static str {
         match self {
             BarMenu::App => "Application",
+            BarMenu::AppMenu(_) => "Application menu",
             BarMenu::Volume => "Volume",
             BarMenu::Network => "Network",
             BarMenu::Battery => "Battery",
@@ -119,7 +139,7 @@ impl BarMenu {
 
 #[cfg(test)]
 mod tests {
-    use super::{BarMenu, TraySlot};
+    use super::{AppTitle, BarMenu, TraySlot};
     use crate::bar::popup::MenuSide;
 
     #[test]
@@ -134,6 +154,12 @@ mod tests {
             assert_eq!(menu.side(), side, "{menu:?}");
         }
         assert_eq!(BarMenu::of(crate::bar::track::MenuId(99)), None);
+        for index in [0, 1, 9, u16::MAX] {
+            let menu = BarMenu::AppMenu(AppTitle(index));
+            assert_eq!(BarMenu::of(menu.id()), Some(menu), "title {index}");
+            assert_eq!(menu.side(), MenuSide::Title, "title {index}");
+            assert_eq!(menu.module(), None, "title {index}");
+        }
         for slot in [0, 1, 7, u16::MAX] {
             let menu = BarMenu::Tray(TraySlot(slot));
             assert_eq!(BarMenu::of(menu.id()), Some(menu), "tray {slot}");

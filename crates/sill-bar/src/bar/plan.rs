@@ -472,7 +472,10 @@ mod tests {
             },
             entry(BarPick::Settings, Availability::Enabled),
             MenuItem::Separator,
-            entry(BarPick::Quit(Vec::new()), Availability::Disabled),
+            entry(BarPick::Own {
+                    app_id: String::new(),
+                    item: sill_model::app_menu::OwnItem::Quit,
+                }, Availability::Disabled),
             MenuItem::Submenu {
                 title: "More".to_owned(),
                 image: None,

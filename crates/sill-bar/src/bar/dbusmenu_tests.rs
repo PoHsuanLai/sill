@@ -13,6 +13,14 @@ use sill_model::units::{Availability as Enabled, Visibility};
 use super::{has_rows, menu_items};
 use crate::bar::pick::BarPick;
 
+/// What a row of the test item picks.
+fn tray_pick(entry: i32) -> BarPick {
+    BarPick::Tray {
+        item: item_id(),
+        entry,
+    }
+}
+
 fn item_id() -> TrayItemId {
     TrayItemId(":1.9/StatusNotifierItem".to_owned())
 }
@@ -51,6 +59,8 @@ impl Row {
                 check: self.check,
                 icon: self.icon,
                 children: self.children,
+                shortcut: None,
+                command: None,
             },
         }
     }
@@ -253,7 +263,7 @@ fn layouts_become_entries() {
         ),
     ];
     for (name, rows, want) in cases {
-        let got = describe(&menu_items(&item_id(), &rows, &fake_icon));
+        let got = describe(&menu_items(&tray_pick, &rows, &fake_icon));
         assert_eq!(got, want, "{name}");
     }
 }
@@ -295,7 +305,7 @@ fn tray_with(menu: Vec<TrayMenuEntry>) -> Tray {
 }
 
 fn shown(tray: &Tray) -> String {
-    describe(&menu_items(&item_id(), &tray.items[0].menu, &fake_icon))
+    describe(&menu_items(&tray_pick, &tray.items[0].menu, &fake_icon))
 }
 
 #[test]
