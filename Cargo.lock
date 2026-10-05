@@ -352,7 +352,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-archive"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "bzip2",
@@ -369,7 +369,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-book"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-archive",
  "anyview-core",
@@ -380,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-core"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "ds-core",
  "infer",
@@ -390,7 +390,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-font"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "miniz_oxide 0.8.9",
@@ -400,7 +400,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-image"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "ds-core",
@@ -417,7 +417,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-peek"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-archive",
  "anyview-book",
@@ -436,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-platform"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "anyview-plugin",
@@ -458,7 +458,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-plugin"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "anyview-plugin-protocol",
@@ -469,7 +469,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-plugin-protocol"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -478,7 +478,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-store"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "serde",
@@ -488,7 +488,7 @@ dependencies = [
 
 [[package]]
 name = "anyview-text"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "calamine",

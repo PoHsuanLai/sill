@@ -224,6 +224,22 @@ missing_debug_implementations = "warn"
 # Local development: one blitz-kit checkout (a sibling of this repo) for every workspace that
 # builds it, including quire and shell-host pulled in by path. A dependency's [patch] is ignored by
 # its consumers, so outside consumers of quire get the git rev above.
+# anyview pins quire by git rev; its ds crates resolve to the ../quire checkout here, so sill
+# builds one copy of ds (the manifest pins the rev both use).
+[patch."https://github.com/PoHsuanLai/quire.git"]
+ds = { path = "../quire/crates/ds" }
+ds-behaviour = { path = "../quire/crates/ds-behaviour" }
+ds-blitz = { path = "../quire/crates/ds-blitz" }
+ds-core = { path = "../quire/crates/ds-core" }
+ds-core-derive = { path = "../quire/crates/ds-core-derive" }
+ds-harness = { path = "../quire/crates/ds-harness" }
+ds-intents = { path = "../quire/crates/ds-intents" }
+ds-lint = { path = "../quire/crates/ds-lint" }
+ds-motion = { path = "../quire/crates/ds-motion" }
+ds-settings = { path = "../quire/crates/ds-settings" }
+ds-settings-derive = { path = "../quire/crates/ds-settings-derive" }
+ds-style = { path = "../quire/crates/ds-style" }
+
 [patch."https://github.com/PoHsuanLai/blitz-kit"]
 blitz-kit = { path = "../blitz-kit/crates/blitz-kit" }
 
