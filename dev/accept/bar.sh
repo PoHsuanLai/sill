@@ -1045,7 +1045,13 @@ case "$MODE" in
   all)
     build_demo || exit 1
     run_daemon_steps && status=$STATUS || status=1
-    run_demo_kwin && [ "$STATUS" = 0 ] || status=1
+    run_demo_kwin || STATUS=1
+    # The worse of the two: a failure beats an expected skip (2), which beats a pass.
+    case "$STATUS" in
+      0) ;;
+      2) [ "$status" = 1 ] || status=2 ;;
+      *) status=1 ;;
+    esac
     echo "logs in $OUT_DIR"
     ;;
 esac
