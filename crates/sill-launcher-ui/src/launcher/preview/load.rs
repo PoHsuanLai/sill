@@ -7,10 +7,17 @@
 //! keys ask for a new file on every press; holding Down through fifty files peeks at the few the
 //! worker reaches, never fifty at once (a PDF's first page is the slow one). The answer lands in
 //! a signal keyed by the path it answers, so a late answer for a row the selection has left is
-//! never shown. A clipboard image comes from the clipboard service's history, already in memory.
+//! never shown. Each peek runs on a thread of its own, started by the worker, with a stack large
+//! enough for the decoders: a panic there is a failed preview and no more, and a peek that runs
+//! far past its time is abandoned (its thread finishes or hangs on its own) while the worker goes
+//! on to the next file, so one hostile file costs one preview and never the ones after it. A
+//! clipboard image comes from the clipboard service's history, already in memory.
 
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::mpsc;
 use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::time::Duration;
 
@@ -34,6 +41,18 @@ pub const PANE_BUDGET: PeekBudget = PeekBudget {
     pixels: PixelArea(1_000_000),
     time: Duration::from_millis(500),
 };
+
+/// How long a peek may run before the worker gives up on it: well past [`PANE_BUDGET`]'s time,
+/// which the peeks keep to by themselves, so only a decoder that does not return reaches it.
+const OVERRUN: Duration = Duration::from_secs(4);
+
+/// The stack of the thread a peek runs on. The decoders recurse (nested markup, deep documents),
+/// and a thread's default 2 MiB is less than the viewer's own main thread has.
+const PEEK_STACK: usize = 8 * 1024 * 1024;
+
+/// How many abandoned peeks may still be running before the worker stops starting new ones: a
+/// decoder that spins costs a core until it ends, and a folder of such files must not cost them all.
+const MOST_ABANDONED: usize = 4;
 
 /// Why a file could not be previewed. Carries no path or content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -155,11 +174,16 @@ impl Worker {
     /// every request waits unanswered and the pane stays in its reading state rather than the
     /// launcher failing.
     fn start(look: Arc<dyn Look>) -> Worker {
+        Worker::start_within(look, OVERRUN)
+    }
+
+    /// [`Worker::start`], giving up on a peek after `overrun`.
+    fn start_within(look: Arc<dyn Look>, overrun: Duration) -> Worker {
         let slot = Arc::new(Slot::default());
         let mine = Arc::clone(&slot);
         let _ = std::thread::Builder::new()
             .name("launcher-peek".to_owned())
-            .spawn(move || work(&mine, look.as_ref()));
+            .spawn(move || work(&mine, &look, overrun));
         Worker(slot)
     }
 
@@ -189,7 +213,8 @@ impl Drop for Worker {
 }
 
 /// Take the waiting request, peek, answer; until the pane is gone.
-fn work(slot: &Slot, look: &dyn Look) {
+fn work(slot: &Slot, look: &Arc<dyn Look>, overrun: Duration) {
+    let abandoned = Arc::new(AtomicUsize::new(0));
     loop {
         let request = {
             let mut waiting = slot.waiting.lock().unwrap_or_else(PoisonError::into_inner);
@@ -208,8 +233,54 @@ fn work(slot: &Slot, look: &dyn Look) {
                 }
             }
         };
+        let answer = guarded_look(look, request.path, overrun, &abandoned);
         // An asker that moved on dropped its receiver; the answer then goes nowhere.
-        let _ = request.reply.send(look.at(&request.path));
+        let _ = request.reply.send(answer);
+    }
+}
+
+/// The peek of `path` on a thread of its own: a panic is a failed preview, and a peek still
+/// running after `overrun` is abandoned, counted in `abandoned` until its thread ends. Once
+/// [`MOST_ABANDONED`] are running, files are refused without being looked at.
+fn guarded_look(
+    look: &Arc<dyn Look>,
+    path: PathBuf,
+    overrun: Duration,
+    abandoned: &Arc<AtomicUsize>,
+) -> Result<Arc<AnyPeeked>, PreviewFault> {
+    if abandoned.load(Ordering::Acquire) >= MOST_ABANDONED {
+        return Err(PreviewFault::Unreadable);
+    }
+    let (sender, receiver) = mpsc::channel();
+    // Whichever of the two (the thread ending, the worker giving up) comes second settles the
+    // count: the thread leaves it alone when it finished in time.
+    let settled = Arc::new(AtomicBool::new(false));
+    let (thread_look, thread_settled, thread_abandoned) = (
+        Arc::clone(look),
+        Arc::clone(&settled),
+        Arc::clone(abandoned),
+    );
+    let started = std::thread::Builder::new()
+        .name("launcher-peek-file".to_owned())
+        .stack_size(PEEK_STACK)
+        .spawn(move || {
+            let looked = catch_unwind(AssertUnwindSafe(|| thread_look.at(&path)));
+            let _ = sender.send(looked.unwrap_or(Err(PreviewFault::Unreadable)));
+            if thread_settled.swap(true, Ordering::AcqRel) {
+                thread_abandoned.fetch_sub(1, Ordering::AcqRel);
+            }
+        });
+    if started.is_err() {
+        return Err(PreviewFault::Unreadable);
+    }
+    match receiver.recv_timeout(overrun) {
+        Ok(answer) => answer,
+        Err(_) => {
+            if !settled.swap(true, Ordering::AcqRel) {
+                abandoned.fetch_add(1, Ordering::AcqRel);
+            }
+            Err(PreviewFault::Unreadable)
+        }
     }
 }
 
@@ -296,6 +367,82 @@ mod tests {
             Err(PreviewFault::Missing)
         );
         std::fs::remove_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));
+    }
+
+    /// A look that panics, hangs or answers, by the file's name.
+    struct Scripted {
+        hang: Mutex<mpsc::Receiver<()>>,
+    }
+
+    impl Look for Scripted {
+        fn at(&self, path: &Path) -> Result<Arc<AnyPeeked>, PreviewFault> {
+            match path.to_str() {
+                Some("/panics") => panic!("a decoder fell over"),
+                Some("/hangs") => {
+                    let _ = self
+                        .hang
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .recv();
+                    Err(PreviewFault::Missing)
+                }
+                _ => Err(PreviewFault::Missing),
+            }
+        }
+    }
+
+    fn worker_over_scripted(overrun: Duration) -> (Worker, mpsc::Sender<()>) {
+        let (release, hang) = mpsc::channel();
+        let look: Arc<dyn Look> = Arc::new(Scripted {
+            hang: Mutex::new(hang),
+        });
+        (Worker::start_within(look, overrun), release)
+    }
+
+    fn answered(worker: &Worker, path: &str) -> Result<Arc<AnyPeeked>, PreviewFault> {
+        worker
+            .ask(PathBuf::from(path))
+            .blocking_recv()
+            .unwrap_or_else(|e| panic!("no answer: {e}"))
+    }
+
+    #[test]
+    fn a_panicking_peek_is_a_fault_and_the_worker_answers_the_next_file() {
+        let (worker, _release) = worker_over_scripted(Duration::from_secs(30));
+        assert_eq!(answered(&worker, "/panics"), Err(PreviewFault::Unreadable));
+        assert_eq!(answered(&worker, "/next"), Err(PreviewFault::Missing));
+    }
+
+    #[test]
+    fn a_peek_that_overruns_is_abandoned_and_later_files_still_preview() {
+        let (worker, release) = worker_over_scripted(Duration::from_millis(100));
+        assert_eq!(answered(&worker, "/hangs"), Err(PreviewFault::Unreadable));
+        assert_eq!(answered(&worker, "/next"), Err(PreviewFault::Missing));
+        // Letting the stuck peek go ends its thread and takes it off the count.
+        drop(release);
+    }
+
+    #[test]
+    fn abandoned_peeks_are_capped_and_each_ending_gives_its_slot_back() {
+        let abandoned = Arc::new(AtomicUsize::new(MOST_ABANDONED));
+        let look: Arc<dyn Look> = Arc::new(Scripted {
+            hang: Mutex::new(mpsc::channel().1),
+        });
+        let refused = guarded_look(
+            &look,
+            PathBuf::from("/next"),
+            Duration::from_secs(30),
+            &abandoned,
+        );
+        assert_eq!(refused, Err(PreviewFault::Unreadable), "at the cap");
+        abandoned.store(MOST_ABANDONED - 1, Ordering::Release);
+        let looked = guarded_look(
+            &look,
+            PathBuf::from("/next"),
+            Duration::from_secs(30),
+            &abandoned,
+        );
+        assert_eq!(looked, Err(PreviewFault::Missing), "under the cap it looks");
     }
 
     fn scratch_dir() -> PathBuf {
