@@ -82,26 +82,24 @@ pub(super) fn run_within(
         })?;
     let chunks = read_on_a_thread(&mut child)?;
     let deadline = Instant::now() + budget;
-    let mut bytes = Vec::new();
-    loop {
-        if query.is_cancelled() {
+    let bytes = match read_until(
+        &chunks,
+        || deadline.saturating_duration_since(Instant::now()),
+        || query.is_cancelled(),
+    ) {
+        Drained::Cancelled => {
             stop(&mut child);
             return Err(IndexFault::Cancelled);
         }
-        let left = deadline.saturating_duration_since(Instant::now());
-        if left.is_zero() {
+        Drained::OutOfTime(bytes) => {
             stop(&mut child);
             return Ok(Ran {
                 text: complete_lines(&bytes),
                 ended: Ended::OutOfTime,
             });
         }
-        match chunks.recv_timeout(left.min(TICK)) {
-            Ok(chunk) => bytes.extend(chunk),
-            Err(RecvTimeoutError::Timeout) => {}
-            Err(RecvTimeoutError::Disconnected) => break,
-        }
-    }
+        Drained::Closed(bytes) => bytes,
+    };
     let ended = wait_until(&mut child, deadline);
     Ok(Ran {
         text: match ended {
@@ -110,6 +108,41 @@ pub(super) fn run_within(
         },
         ended,
     })
+}
+
+/// How reading a program's output ended.
+#[derive(Debug, PartialEq, Eq)]
+enum Drained {
+    /// A newer keystroke overtook the query.
+    Cancelled,
+    /// The program closed its output: everything it printed.
+    Closed(Vec<u8>),
+    /// No time `left`: what arrived so far.
+    OutOfTime(Vec<u8>),
+}
+
+/// Collect `chunks` until they end, `left` reports no time or `cancelled` says so. The clock
+/// and the cancellation are arguments so a test decides when they fire.
+fn read_until(
+    chunks: &Receiver<Vec<u8>>,
+    left: impl Fn() -> Duration,
+    cancelled: impl Fn() -> bool,
+) -> Drained {
+    let mut bytes = Vec::new();
+    loop {
+        if cancelled() {
+            return Drained::Cancelled;
+        }
+        let left = left();
+        if left.is_zero() {
+            return Drained::OutOfTime(bytes);
+        }
+        match chunks.recv_timeout(left.min(TICK)) {
+            Ok(chunk) => bytes.extend(chunk),
+            Err(RecvTimeoutError::Timeout) => {}
+            Err(RecvTimeoutError::Disconnected) => return Drained::Closed(bytes),
+        }
+    }
 }
 
 /// The child's standard output, chunk by chunk, until it closes.
@@ -166,7 +199,10 @@ mod tests {
 
     use sill_launcher::{Cancel, Query};
 
-    use super::{Ended, FD_NAMES, complete_lines, first_on_path, on_path_any, run_within};
+    use super::{
+        Drained, Ended, FD_NAMES, complete_lines, first_on_path, on_path_any, read_until,
+        run_within,
+    };
     use crate::providers::files::index::IndexFault;
     use sill_model::units::Presence::{self, Absent, Present};
 
@@ -231,17 +267,49 @@ mod tests {
     }
 
     #[test]
-    fn a_slow_program_is_killed_at_the_budget_with_what_it_printed() {
-        let query = Query::begin("x", &Cancel::new());
-        let script = "printf '/early\\n/cut'; sleep 5";
-        let ran = run_within(
-            "sh",
-            &args(&["-c", script]),
-            Duration::from_millis(300),
-            &query,
+    fn what_arrived_before_the_budget_ran_out_is_kept_up_to_its_last_line() {
+        // The chunk is queued before the first look, and the clock has time for one look only:
+        // the read takes the chunk, then finds the budget spent. Nothing here races the machine.
+        let (tx, rx) = std::sync::mpsc::channel();
+        tx.send(b"/early\n/cut".to_vec())
+            .unwrap_or_else(|e| panic!("{e}"));
+        let looks = std::cell::Cell::new(0);
+        let left = || {
+            looks.set(looks.get() + 1);
+            match looks.get() {
+                1 => Duration::from_secs(5),
+                _ => Duration::ZERO,
+            }
+        };
+        let read = read_until(&rx, left, || false);
+        let Drained::OutOfTime(bytes) = read else {
+            panic!("{read:?}");
+        };
+        assert_eq!(complete_lines(&bytes), "/early\n");
+        drop(tx);
+    }
+
+    #[test]
+    fn a_closed_pipe_or_a_cancel_ends_the_read_before_the_budget() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        tx.send(b"/a\n".to_vec()).unwrap_or_else(|e| panic!("{e}"));
+        drop(tx);
+        let hour = || Duration::from_secs(3600);
+        assert_eq!(
+            read_until(&rx, hour, || false),
+            Drained::Closed(b"/a\n".to_vec())
         );
+        let (_tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
+        assert_eq!(read_until(&rx, hour, || true), Drained::Cancelled);
+    }
+
+    #[test]
+    fn a_program_with_no_budget_is_killed_and_ends_out_of_time() {
+        // A zero budget is spent before the first look, whatever the machine's speed.
+        let query = Query::begin("x", &Cancel::new());
+        let ran = run_within("sleep", &args(&["5"]), Duration::ZERO, &query);
         let ran = ran.unwrap_or_else(|e| panic!("{e:?}"));
-        assert_eq!(ran.text, "/early\n");
+        assert_eq!(ran.text, "");
         assert_eq!(ran.ended, Ended::OutOfTime);
     }
 

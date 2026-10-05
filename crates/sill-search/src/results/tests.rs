@@ -20,8 +20,9 @@ use super::history::History;
 use super::{ResultsService, load_frecency, runner};
 use sill_services::control::Control;
 
-/// How long a test waits for a published value before it fails.
-const PATIENCE: Duration = Duration::from_secs(5);
+/// How long a test waits for an event before it fails. A hang guard for a broken runner, not
+/// something a passing test waits on: every wait below is for an event, never for the clock.
+const PATIENCE: Duration = Duration::from_secs(30);
 
 fn titles(results: &Results) -> Vec<&str> {
     results.items.iter().map(|i| i.title.as_str()).collect()
@@ -74,7 +75,7 @@ async fn the_first_batch_shows_before_the_second_and_both_merge_in_groups() {
     let dir = TempDir::new("runner-order");
     let apps = Fake::new(ProviderKind::Apps)
         .first(&[("Firefox", 700), ("Files", 400)])
-        .then(Duration::from_millis(150), &[("Fire Starter", 900)]);
+        .then(&[("Fire Starter", 900)]);
     let system = Fake::new(ProviderKind::System).first(&[("Restart", 500)]);
     let (mut rx, control, _) = search(vec![apps.provider(), system.provider()], &dir);
 
@@ -85,6 +86,7 @@ async fn the_first_batch_shows_before_the_second_and_both_merge_in_groups() {
         ["Firefox", "Files", "Restart"],
         "top hit, apps, system"
     );
+    apps.release();
     let late = until(&mut rx, |r| r.items.len() == 4).await;
     assert_eq!(
         titles(&late),
@@ -99,30 +101,31 @@ async fn a_newer_keystroke_cancels_the_older_query_and_its_late_rows_never_show(
     let dir = TempDir::new("runner-cancel");
     let obeys = Fake::new(ProviderKind::Apps)
         .first(&[("Firefox", 700)])
-        .then(Duration::from_millis(150), &[("Late", 999)]);
+        .then(&[("Late", 999)]);
     // A provider that ignores cancellation and pushes its late rows anyway.
     let deaf = Fake::new(ProviderKind::Settings)
         .obeys(Obeys::Never)
         .first(&[("Quiet", 100)])
-        .then(Duration::from_millis(150), &[("Deaf", 998)]);
+        .then(&[("Deaf", 998)]);
     let (mut rx, control, _) = search(vec![obeys.provider(), deaf.provider()], &dir);
 
     send(&control, SearchCommand::Query("f".to_owned()));
     // Both providers are running the first generation (a task not yet started when the next
-    // keystroke lands is skipped outright, which is not what this test is about).
+    // keystroke lands is skipped outright, which is not what this test is about), and their
+    // second batches are held at the gate.
     let first = until(&mut rx, |r| r.items.len() == 2).await;
     obeys.clear_first();
     deaf.clear_first();
     send(&control, SearchCommand::Query("fo".to_owned()));
+    // The newer query has reached both providers, so the older one is cancelled for good.
+    obeys.wait(|log| log.asked.len() == 2).await;
+    deaf.wait(|log| log.asked.len() == 2).await;
+    obeys.release();
+    deaf.release();
     let second = until(&mut rx, |r| r.generation > first.generation).await;
     // Both halves of both generations have run (the first's while the second is current).
-    tokio::time::timeout(PATIENCE, async {
-        while obeys.heard().len() < 2 || deaf.heard().len() < 2 {
-            tokio::time::sleep(Duration::from_millis(10)).await;
-        }
-    })
-    .await
-    .unwrap_or_else(|_| panic!("heard {:?} and {:?}", obeys.heard(), deaf.heard()));
+    obeys.wait(|log| log.heard.len() == 2).await;
+    deaf.wait(|log| log.heard.len() == 2).await;
     // Let the last batch cross the channel and the runner.
     until(&mut rx, |r| r.items.len() == 2).await;
 
@@ -135,10 +138,19 @@ async fn a_newer_keystroke_cancels_the_older_query_and_its_late_rows_never_show(
     );
     assert_eq!(
         obeys.heard(),
-        [Heard::Cancelled, Heard::Finished],
+        [
+            ("f".to_owned(), Heard::Cancelled),
+            ("fo".to_owned(), Heard::Finished)
+        ],
         "the overtaken query stopped early; the newer one ran to the end"
     );
-    assert_eq!(deaf.heard(), [Heard::Finished, Heard::Finished]);
+    assert_eq!(
+        deaf.heard(),
+        [
+            ("f".to_owned(), Heard::Finished),
+            ("fo".to_owned(), Heard::Finished)
+        ]
+    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -146,7 +158,7 @@ async fn closing_cancels_the_running_query_and_empties_the_list() {
     let dir = TempDir::new("runner-close");
     let slow = Fake::new(ProviderKind::Apps)
         .first(&[("Firefox", 700)])
-        .then(Duration::from_millis(150), &[("Late", 999)]);
+        .then(&[("Late", 999)]);
     let (mut rx, control, _) = search(vec![slow.provider()], &dir);
 
     send(&control, SearchCommand::Query("f".to_owned()));
@@ -154,9 +166,12 @@ async fn closing_cancels_the_running_query_and_empties_the_list() {
     send(&control, SearchCommand::Cancel);
     let closed = until(&mut rx, |r| r.generation > first.generation).await;
     assert!(closed.items.is_empty());
-    tokio::time::sleep(Duration::from_millis(300)).await;
+    // The query was cancelled before `closed` was published; let its second batch go and see
+    // it end without pushing.
+    slow.release();
+    slow.wait(|log| log.heard.len() == 1).await;
     assert_eq!(*rx.borrow(), closed, "the late batch never lands");
-    assert_eq!(slow.heard(), [Heard::Cancelled]);
+    assert_eq!(slow.heard(), [("f".to_owned(), Heard::Cancelled)]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
