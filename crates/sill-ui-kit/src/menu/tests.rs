@@ -10,6 +10,7 @@ use ds::prelude::*;
 use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shell_type::ShellMetrics;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_lint::{Exception, LintConfig, Profile, Rule, assert_clean};
 use ds_settings::UserStyle;
 use sill_settings::ShellFile;
 
@@ -158,4 +159,29 @@ fn a_popup_names_its_surface_and_draws_the_person_style_its_opener_handed_over()
     );
     assert_eq!(styled.html().matches("data-ds-user").count(), 1);
     assert!(styled.html().contains(STYLE), "{}", styled.html());
+}
+
+/// What the submenu sheet may name that Strict forbids, each with its reason.
+const OVERLAY_EXCEPTIONS: &[Exception] = &[
+    Exception {
+        rule: Rule::DsInternals,
+        selector: ".sill-popup-frame .ds-overlay",
+        reason: "quire's overlay is the box a submenu is placed against; the room is its padding",
+    },
+    Exception {
+        rule: Rule::DsInternals,
+        selector: ".sill-popup-frame .ds-overlay ~ .ds-overlay",
+        reason: "a submenu's overlay covers the menu's, so its box is the menu's and the room",
+    },
+];
+
+#[test]
+fn the_submenu_sheet_names_quires_overlay_and_nothing_else_strict_forbids() {
+    let config = LintConfig {
+        profile: Profile::Strict,
+        own_vars: vec!["--popup-submenu-room".to_owned()],
+        exceptions: OVERLAY_EXCEPTIONS,
+        ..LintConfig::new(&ds_shell::kits())
+    };
+    assert_clean(super::frame::POPUP_SUBMENU_CSS, &config);
 }

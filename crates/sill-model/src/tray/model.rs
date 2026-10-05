@@ -79,8 +79,23 @@ pub enum TrayMenuKind {
         visibility: Visibility,
         /// `toggle-type` + `toggle-state`.
         check: Check,
+        /// `icon-name` or `icon-data`.
+        icon: TrayMenuIcon,
+        /// The submenu's rows; empty for a plain row.
         children: Vec<TrayMenuEntry>,
     },
+}
+
+/// The image at a dbusmenu row's start.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum TrayMenuIcon {
+    #[default]
+    None,
+    /// `icon-name`, looked up in the icon theme.
+    Named(String),
+    /// `icon-data`, PNG bytes.
+    Png(Vec<u8>),
 }
 
 /// A row's check mark.
@@ -91,4 +106,6 @@ pub enum Check {
     None,
     Unchecked,
     Checked,
+    /// `toggle-state` indeterminate: some of what the row covers is on.
+    Mixed,
 }

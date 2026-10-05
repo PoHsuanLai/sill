@@ -96,8 +96,21 @@ A settled item is deleted, not marked closed.
   so the Now Playing module re-reads `Position` when it mounts.
 - **StatusNotifierItem through `system-tray` 0.8.9**: items are addressed by bus destination
   alone and `Client::activate` always targets `/StatusNotifierItem`, so every `TrayItemId` is
-  `<destination>/StatusNotifierItem`. The crate has no scroll call and keeps its connection
-  private, so the host opens a second session connection to send `Scroll`.
+  `<destination>/StatusNotifierItem`. The crate has no scroll or context-menu call and keeps its
+  connection private, so the host opens a second session connection to send `Scroll` and
+  `ContextMenu`. It reads the process's own session bus, so `crates/sill-services/tests/tray_bus.rs` runs the service as
+  a child (`sill-testkit`'s `tray_host`) whose environment alone names the private bus, beside the
+  fake item `tray_item`. A dbusmenu `LayoutUpdated` for a parent other than the root replaces the
+  item's whole cached menu with that subtree (the crate's own handling); apps send the root.
+- **A tray item's menu is a bar menu** (`BarMenu::Tray(slot)`, the slot being the item's place in
+  the tray): one popup, hover switching with the other titles, `AboutToShow` of the root sent when
+  it opens, a pick sent as dbusmenu `Event "clicked"`. Its submenus are the popup `Menu`'s own, timed
+  by `menus.submenu_*`; the bar's machine sees every row as a leaf. A submenu needs room beside its
+  parent in the popup's document, so `PopupFrame { submenu_room }` pads the card's left by a column
+  per level of nesting (the status popups hang from their right edge, so the card does not move) and
+  `menu/submenu.css` lays quire's later overlays over the first, the box a submenu is placed against
+  (it names quire's `.ds-overlay`, which Strict forbids: the lint test excuses those two selectors).
+  `AboutToShow` is sent for the root only: a lazily filled submenu is not asked first.
 - **`com.canonical.Unity.LauncherEntry`** is a broadcast with no well-known name: a raw
   `MatchRule` through `MessageStream::for_match_rule`. Values are decoded per key; a wrong-typed
   key is dropped, not the message. A clear is a `NameOwnerChanged` with an empty new owner for a
@@ -502,11 +515,12 @@ A settled item is deleted, not marked closed.
 - **G361** One widget of a kind per surface: the drag, regions and state file are keyed by kind.
 - **G364** World Clock builds its entry from the clock at each minute tick; it does not send
   dated timeline entries, so a city's date flips on the first tick after its midnight.
-- **G365** A submenu in a `FitContent` popup opens below its parent, not beside it: the popup's
-  document is as wide as the menu, so `ds`'s submenu finds no room to the right (Q21's cause).
-  The desktop menu's Show View Options opens below, and the dock's `Options` has the same cause.
-  The fix is room in the popup (shell-host reserving the submenu's width) or `ds` placing a submenu into the
-  popup's `max`.
+- **G365** A submenu in a `FitContent` popup opens below its parent, not beside it: quire draws a
+  submenu in an overlay of its own, which a popup root lays in flow as an empty strip under the card,
+  and places the submenu against that strip. The bar's popup is fixed (`PopupFrame { submenu_room }`
+  and `menu/submenu.css`, see the tray fact); the dock's `Options` and the desktop menu's Show View
+  Options still open below. Ends when their popups pass a room, or when quire places a popup's
+  submenu against the card's overlay.
 - **G366** Change Wallpaper... opens COSMIC Settings (its Wallpaper page when the machine has
   that desktop entry): sill has no wallpaper picker of its own, and the choice of app is not a
   setting (`PICKERS` in `sill-widgets-ui/src/desktop/menu/model.rs`; design/22 has no row for
@@ -517,6 +531,11 @@ A settled item is deleted, not marked closed.
   a protocol error that ends the connection. A secondary press that the compositor does not
   treat as ending the grab (KWin sends no `popup_done` for a press on the popup's own client)
   does nothing until the menu is dismissed.
+- **G369** Tray menus: a radio row is drawn with the check mark a toggle has (the menu has no radio
+  mark); a lazily filled submenu is not sent `AboutToShow` before it opens; an item's menu is named
+  by its place in the tray, so one registered before it going away while its menu is open swaps the
+  open menu to the next item's; `ItemIsMenu` is not read (an item with a dbusmenu always opens it
+  on the primary press); a dbusmenu row's disposition (informative, warning, alert) is not drawn.
 - **G331** The desktop grid is measured when the layer mounts; a live output resize re-places
   only on the next spawn.
 - **G351** `sill idle status` counts `ScreenSaver` inhibits but does not name the apps.
@@ -579,9 +598,6 @@ A settled item is deleted, not marked closed.
 ### quire
 
 - **Q3** No per-workspace look store; `use_space_look` computes the preset for the position.
-- **Q20** The tray's dbusmenu popup is not part of the bar's menu session.
-- **Q21** A dbusmenu submenu is dropped (no room beside the popup for it).
-- **Q22** SNI `ContextMenu(x, y)` has no `TrayCommand`.
 - **Q62** Ctrl+K while the launcher's actions menu is open does not close it.
 - **Q63** Mounting the palette at every opening costs 15-20 ms against the 100 ms warm-open
   budget; keeping it mounted is a design decision.

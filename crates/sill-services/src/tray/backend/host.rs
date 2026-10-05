@@ -52,8 +52,9 @@ pub(crate) async fn run(
             return;
         }
     };
-    // `Client` keeps its connection private and has no scroll call, so `Scroll` goes over a
-    // second session connection of our own; without one, scrolls are dropped.
+    // `Client` keeps its connection private and has no scroll or context-menu call, so `Scroll`
+    // and `ContextMenu` go over a second session connection of our own; without one, both are
+    // dropped.
     let bus = bus.connect().await.ok().flatten();
     let mut events = client.subscribe();
     let mut state = seed(&client);
@@ -122,7 +123,7 @@ fn map_event(client: &Client, event: Event) -> Option<TrayEvent> {
 /// menu closed) — nothing a shell surface can act on, so they are logged, not propagated: a
 /// tray click that lands a beat late is not worth failing the surface over.
 ///
-/// `Scroll` is sent on `bus`, not through `client` (see [`run`]).
+/// `Scroll` and `ContextMenu` are sent on `bus`, not through `client` (see [`run`]).
 async fn handle_command(client: &Client, bus: Option<&zbus::Connection>, command: TrayCommand) {
     let result = match command {
         TrayCommand::Activate { item, x, y } => {
@@ -143,6 +144,10 @@ async fn handle_command(client: &Client, bus: Option<&zbus::Connection>, command
                 })
                 .await
         }
+        TrayCommand::ContextMenu { item, x, y } => match bus {
+            Some(bus) => context_menu(bus, &item, x, y).await,
+            None => return,
+        },
         TrayCommand::MenuPick { item, entry } => match menu_path_of(client, &item) {
             Some(menu_path) => {
                 client
@@ -170,6 +175,26 @@ async fn handle_command(client: &Client, bus: Option<&zbus::Connection>, command
     if let Err(error) = result {
         eprintln!("sill-services: tray: command failed: {error}");
     }
+}
+
+/// `org.kde.StatusNotifierItem.ContextMenu(x, y)` on `item`: the item pops up its own menu
+/// (the SNI spec's answer to a secondary click on an item with no dbusmenu).
+async fn context_menu(
+    bus: &zbus::Connection,
+    item: &TrayItemId,
+    x: i32,
+    y: i32,
+) -> Result<(), system_tray::error::Error> {
+    bus.call_method(
+        Some(destination_of(item)),
+        ITEM_PATH,
+        Some(ITEM_INTERFACE),
+        "ContextMenu",
+        &(x, y),
+    )
+    .await
+    .map(|_reply| ())
+    .map_err(system_tray::error::Error::from)
 }
 
 /// `org.kde.StatusNotifierItem.Scroll(delta, orientation)` on `item`.
@@ -201,10 +226,11 @@ fn scroll_args(delta: ScrollDelta) -> (i32, &'static str) {
 
 #[cfg(test)]
 mod tests {
-    use super::super::menu::{to_check, to_menu_entry};
+    use super::super::menu::{to_check, to_menu_entry, to_menu_icon};
     use super::{destination_of, item_id, scroll_args, to_tray_icon, to_tray_status};
     use sill_model::tray::{
-        Check, ScrollAxis, ScrollDelta, TrayIcon, TrayItemId, TrayMenuKind, TrayStatus,
+        Check, ScrollAxis, ScrollDelta, TrayIcon, TrayItemId, TrayMenuIcon, TrayMenuKind,
+        TrayStatus,
     };
     use sill_model::units::{Availability, Visibility};
     use system_tray::item::{IconPixmap as SniPixmap, Status as SniStatus};
@@ -332,10 +358,13 @@ mod tests {
             (ToggleType::CannotBeToggled, ToggleState::On, Check::None),
             (ToggleType::Checkmark, ToggleState::On, Check::Checked),
             (ToggleType::Checkmark, ToggleState::Off, Check::Unchecked),
+            (ToggleType::Radio, ToggleState::On, Check::Checked),
+            (ToggleType::Radio, ToggleState::Off, Check::Unchecked),
+            (ToggleType::Radio, ToggleState::Indeterminate, Check::Mixed),
             (
-                ToggleType::Radio,
+                ToggleType::Checkmark,
                 ToggleState::Indeterminate,
-                Check::Unchecked,
+                Check::Mixed,
             ),
         ];
         for (toggle_type, toggle_state, want) in cases {
@@ -360,6 +389,29 @@ mod tests {
                 assert_eq!(children.len(), 1);
                 assert_eq!(children[0].id, 9);
             }
+            other => panic!("expected an Item, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_row_keeps_its_icon_and_loses_its_access_key() {
+        let cases = [
+            (None, None, TrayMenuIcon::None),
+            (Some(""), Some(vec![]), TrayMenuIcon::None),
+            (Some("mail"), None, TrayMenuIcon::Named("mail".to_owned())),
+            (None, Some(vec![1, 2]), TrayMenuIcon::Png(vec![1, 2])),
+            (Some("mail"), Some(vec![1]), TrayMenuIcon::Png(vec![1])),
+        ];
+        for (name, data, want) in cases {
+            let mut item = menu_item(MenuType::Standard);
+            item.icon_name = name.map(str::to_owned);
+            item.icon_data = data.clone();
+            assert_eq!(to_menu_icon(&item), want, "{name:?} {data:?}");
+        }
+        let mut item = menu_item(MenuType::Standard);
+        item.label = Some("_Quit".to_owned());
+        match to_menu_entry(&item).kind {
+            TrayMenuKind::Item { label, .. } => assert_eq!(label, "Quit"),
             other => panic!("expected an Item, got {other:?}"),
         }
     }

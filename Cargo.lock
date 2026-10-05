@@ -7096,6 +7096,7 @@ dependencies = [
  "cosmic-client-toolkit",
  "rustix",
  "serde",
+ "serde_json",
  "sill-launcher",
  "sill-model",
  "sill-search",

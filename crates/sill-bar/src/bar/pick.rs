@@ -4,6 +4,7 @@
 use sill_launcher::{AppId, DesktopAction, WindowKey};
 use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
+use sill_model::tray::{TrayCommand, TrayItemId};
 
 /// One bar menu action.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,6 +17,8 @@ pub(crate) enum BarPick {
     Settings,
     /// Open the power menu on this bar's output (the app menu's "Shut Down…").
     PowerMenu,
+    /// A row of a tray item's dbusmenu, by its dbusmenu id.
+    Tray { item: TrayItemId, entry: i32 },
 }
 
 /// The app COSMIC's settings run as.
@@ -28,6 +31,8 @@ pub(crate) enum Command {
     Launch(LaunchCommand),
     /// Open the power menu (`PowerMenuLink::open` with its default button).
     PowerMenu,
+    /// Click a dbusmenu row of a tray item.
+    Tray(TrayCommand),
 }
 
 /// The commands `pick` sends, in order.
@@ -46,6 +51,10 @@ pub(crate) fn commands(pick: &BarPick) -> Vec<Command> {
             token: None,
         }))],
         BarPick::PowerMenu => vec![Command::PowerMenu],
+        BarPick::Tray { item, entry } => vec![Command::Tray(TrayCommand::MenuPick {
+            item: item.clone(),
+            entry: *entry,
+        })],
     }
 }
 
@@ -55,6 +64,7 @@ mod tests {
     use sill_launcher::WindowKey;
     use sill_model::cosmic_wl::WlCommand;
     use sill_model::launch::LaunchCommand;
+    use sill_model::tray::{TrayCommand, TrayItemId};
 
     #[test]
     fn each_pick_becomes_its_commands() {
@@ -71,6 +81,16 @@ mod tests {
                 ],
             ),
             (BarPick::PowerMenu, vec![Command::PowerMenu]),
+            (
+                BarPick::Tray {
+                    item: TrayItemId(":1.7/StatusNotifierItem".to_owned()),
+                    entry: 12,
+                },
+                vec![Command::Tray(TrayCommand::MenuPick {
+                    item: TrayItemId(":1.7/StatusNotifierItem".to_owned()),
+                    entry: 12,
+                })],
+            ),
         ];
         for (pick, want) in cases {
             assert_eq!(commands(&pick), want, "{pick:?}");

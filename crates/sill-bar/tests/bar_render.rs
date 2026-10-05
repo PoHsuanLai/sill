@@ -8,7 +8,11 @@ use sill_bar::Bar;
 use sill_model::battery::Battery;
 use sill_model::clock::ClockText;
 use sill_model::cosmic_wl::Toplevels;
-use sill_model::units::Presence;
+use sill_model::tray::{
+    Check, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
+    TrayStatus,
+};
+use sill_model::units::{Availability, Presence, Visibility};
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::ControlCenterLink;
 
@@ -96,6 +100,50 @@ fn fed_values_replace_the_defaults() {
         ("no window: the desktop", ">Desktop<", 0, 1),
     ];
     for (name, needle, was, now) in cases {
+        assert_eq!(
+            (count(&before, needle), count(&after, needle)),
+            (was, now),
+            "{name}"
+        );
+    }
+}
+
+fn tray_item(name: &str, menu: Vec<TrayMenuEntry>) -> TrayItem {
+    TrayItem {
+        id: TrayItemId(format!(":1.{name}/StatusNotifierItem")),
+        title: name.to_owned(),
+        icon: TrayIcon::None,
+        status: TrayStatus::Active,
+        menu,
+    }
+}
+
+#[test]
+fn each_tray_item_is_a_status_item_and_none_has_a_menu_open() {
+    let mut bar = start();
+    let open = vec![TrayMenuEntry {
+        id: 1,
+        kind: TrayMenuKind::Item {
+            label: "Open".to_owned(),
+            enabled: Availability::Enabled,
+            visibility: Visibility::Shown,
+            check: Check::None,
+            icon: TrayMenuIcon::None,
+            children: Vec::new(),
+        },
+    }];
+    let before = bar.harness.html();
+    bar.feeds.tray.send_replace(Tray {
+        items: vec![tray_item("telegram", open), tray_item("fcitx", Vec::new())],
+    });
+    bar.harness.advance(Duration::from_millis(40));
+    let after = bar.harness.html();
+    for (name, needle, was, now) in [
+        ("the first item", "id=\"tray-0\"", 0, 1),
+        ("the second item", "id=\"tray-1\"", 0, 1),
+        ("a status item each", "data-image=\"only\"", 4, 6),
+        ("no menu open", "aria-expanded=\"true\"", 0, 0),
+    ] {
         assert_eq!(
             (count(&before, needle), count(&after, needle)),
             (was, now),

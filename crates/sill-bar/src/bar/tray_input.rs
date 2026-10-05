@@ -4,13 +4,14 @@
 
 use dioxus::html::geometry::WheelDelta;
 use ds::base::press::{PointerButton, Press};
+use ds::components::menus::item::item::MenuImage;
 use ds::prelude::*;
 use ds::style::icon::classify::ChromaLimit;
 use ds::style::icon::classify::IconKind;
 use ds::style::icon::classify::classify_with;
 use ds::style::icon::url::IconUrl;
-use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
-use sill_services::tray::IconArt;
+use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayIcon, TrayItemId, TrayMenuIcon};
+use sill_services::tray::{IconArt, icon_art};
 
 /// The top-left corner of the bar's surface in the compositor's logical space: its output's
 /// origin (the bar is anchored to the output's top-left).
@@ -32,11 +33,9 @@ pub(crate) enum ItemMenu {
 pub(crate) enum TrayAction {
     /// Send this to the item.
     Send(TrayCommand),
-    /// Tell the item its menu is about to show, then open it.
+    /// Open the item's dbusmenu: the bar's menu session does it on the press itself (and tells
+    /// the item its menu is about to show), so the click has nothing left to do.
     OpenMenu,
-    /// Nothing the frozen vocabulary can say: a secondary press on an item without a dbusmenu
-    /// would be SNI `ContextMenu(x, y)`, which `TrayCommand` does not have.
-    Nothing,
 }
 
 /// `icons.symbolic_chroma_max` (thousandths of OKLCH chroma, quire's appearance file) as the
@@ -49,34 +48,48 @@ pub(crate) fn chroma_limit(thousandths: u16) -> ChromaLimit {
 /// `limit`), a theme file by its name, and the window glyph when there is none or its URL is
 /// refused. A PNG the test cannot decode is shown as it is.
 pub(crate) fn icon_source(art: Option<IconArt>, limit: ChromaLimit) -> IconSource {
-    let external = |url| ExternalIcon {
-        url,
-        size: IconSize::Bar,
-    };
+    art.and_then(|art| art_source(art, limit, IconSize::Bar))
+        .unwrap_or(IconSource::Glyph(Icon::Window))
+}
+
+/// The image at the start of a dbusmenu row: its icon as [`icon_source`] draws a status item's,
+/// at the menu's size; none when the row has none or the theme has no such name.
+pub(crate) fn row_image(icon: &TrayMenuIcon, limit: ChromaLimit) -> Option<MenuImage> {
+    let art = match icon {
+        TrayMenuIcon::None => None,
+        TrayMenuIcon::Named(name) => icon_art(&TrayIcon::Named(name.clone()), ROW_ICON_PX),
+        TrayMenuIcon::Png(png) => Some(IconArt::Png(png.clone())),
+    }?;
+    art_source(art, limit, IconSize::Base).map(MenuImage::Source)
+}
+
+/// The size a row's theme icon is looked up at: `IconSize::Base`.
+const ROW_ICON_PX: u16 = 16;
+
+/// `art` drawn at `size`, `None` when its file's URL is refused.
+fn art_source(art: IconArt, limit: ChromaLimit, size: IconSize) -> Option<IconSource> {
+    let external = |url| ExternalIcon { url, size };
     match art {
-        None => IconSource::Glyph(Icon::Window),
-        Some(IconArt::Png(png)) => {
+        IconArt::Png(png) => {
             let url = external(IconUrl::png(&png));
-            match classify_with(&png, limit) {
+            Some(match classify_with(&png, limit) {
                 Ok(IconKind::Symbolic) => IconSource::Symbolic(url),
                 Ok(IconKind::Image) | Err(_) => IconSource::Image(url),
-            }
+            })
         }
-        Some(IconArt::SymbolicFile(path)) => IconUrl::file(&path)
-            .map_or(IconSource::Glyph(Icon::Window), |url| {
-                IconSource::Symbolic(external(url))
-            }),
-        Some(IconArt::ImageFile(path)) => IconUrl::file(&path)
-            .map_or(IconSource::Glyph(Icon::Window), |url| {
-                IconSource::Image(external(url))
-            }),
+        IconArt::SymbolicFile(path) => IconUrl::file(&path)
+            .map(|url| IconSource::Symbolic(external(url)))
+            .ok(),
+        IconArt::ImageFile(path) => IconUrl::file(&path)
+            .map(|url| IconSource::Image(external(url)))
+            .ok(),
     }
 }
 
 /// `press` on `item`: the primary button opens the menu when there is one and activates the
-/// item otherwise; the secondary button opens the menu; the middle button is SNI's secondary
-/// activation. Both activations carry the press's screen point (SNI's "where to show eventual
-/// windows").
+/// item otherwise; the secondary button opens the menu, or asks the item for its own
+/// (SNI `ContextMenu`) when it has none; the middle button is SNI's secondary activation. Each
+/// carries the press's screen point (SNI's "where to show eventual windows").
 pub(crate) fn press_action(
     press: Press,
     item: &TrayItemId,
@@ -95,7 +108,9 @@ pub(crate) fn press_action(
         (PointerButton::Middle, _) => {
             TrayAction::Send(TrayCommand::SecondaryActivate { item, x, y })
         }
-        (PointerButton::Secondary, ItemMenu::Absent) => TrayAction::Nothing,
+        (PointerButton::Secondary, ItemMenu::Absent) => {
+            TrayAction::Send(TrayCommand::ContextMenu { item, x, y })
+        }
     }
 }
 
@@ -127,14 +142,15 @@ pub(crate) fn scroll_delta(delta: WheelDelta) -> Option<ScrollDelta> {
 #[cfg(test)]
 mod tests {
     use super::{
-        ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, screen_point,
-        scroll_delta,
+        ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, row_image,
+        screen_point, scroll_delta,
     };
     use dioxus::html::geometry::WheelDelta;
     use dioxus::prelude::Modifiers;
     use ds::base::press::{PointerButton, Press};
+    use ds::components::menus::item::item::MenuImage;
     use ds::prelude::*;
-    use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
+    use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId, TrayMenuIcon};
     use sill_services::tray::IconArt;
     use std::path::PathBuf;
 
@@ -192,6 +208,31 @@ mod tests {
         assert_eq!(kind(&icon_source(tinted(), chroma_limit(10))), "image");
     }
 
+    #[test]
+    fn a_rows_icon_is_drawn_at_the_menus_size_by_the_chroma_test() {
+        use ds::style::icon::render::IconSize;
+        let limit = ds::style::icon::classify::ChromaLimit::default();
+        let size = |image: Option<MenuImage>| match image {
+            Some(MenuImage::Source(IconSource::Symbolic(icon) | IconSource::Image(icon))) => {
+                Some(icon.size)
+            }
+            _ => None,
+        };
+        let symbolic = row_image(&TrayMenuIcon::Png(png([40, 40, 40, 255])), limit);
+        assert!(matches!(
+            symbolic,
+            Some(MenuImage::Source(IconSource::Symbolic(_)))
+        ));
+        assert_eq!(size(symbolic), Some(IconSize::Base));
+        let image = row_image(&TrayMenuIcon::Png(png([220, 30, 30, 255])), limit);
+        assert!(matches!(
+            image,
+            Some(MenuImage::Source(IconSource::Image(_)))
+        ));
+        assert_eq!(size(image), Some(IconSize::Base));
+        assert_eq!(row_image(&TrayMenuIcon::None, limit), None);
+    }
+
     fn press(button: PointerButton, x: f32, y: f32) -> Press {
         Press {
             button,
@@ -208,6 +249,7 @@ mod tests {
         let activate = |(item, x, y)| TrayAction::Send(TrayCommand::Activate { item, x, y });
         let secondary =
             |(item, x, y)| TrayAction::Send(TrayCommand::SecondaryActivate { item, x, y });
+        let context = |(item, x, y)| TrayAction::Send(TrayCommand::ContextMenu { item, x, y });
         let cases = [
             (
                 PointerButton::Primary,
@@ -237,7 +279,7 @@ mod tests {
             (
                 PointerButton::Secondary,
                 ItemMenu::Absent,
-                TrayAction::Nothing,
+                context(at(2031, 16)),
             ),
         ];
         for (button, menu, want) in cases {

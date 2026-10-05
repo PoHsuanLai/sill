@@ -1,58 +1,49 @@
-//! The tray: one `Button{Status}` per status notifier item, its dbusmenu as a quire `Menu`.
+//! The tray: one `Button{Status}` per status notifier item, its dbusmenu one more menu of the
+//! bar's session.
 //!
 //! Each item draws its own icon: a pixmap or a theme icon through `sill_services::icon_art`,
 //! symbolic (drawn in the frame's ink, like a glyph) or an image by design/08-ICONS.md §1.5, as
 //! `tray_input::icon_source` decides with quire's `ds::style::icon::classify::classify_with`. The button carries the
-//! `tray-<n>` id the popup anchors to, and hands over the pointer button and point: the primary
-//! button opens the dbusmenu (or activates an item without one), the secondary opens the
-//! dbusmenu, the middle one is SNI's secondary activation, each with the press's screen point.
-//! The wheel over an item is SNI `Scroll`. A dbusmenu item's submenu is still dropped (the popup
-//! is not sized for one beside the menu); a disabled row is drawn disabled.
+//! `tray-<n>` id and hands its pointer to the session (`BarMenu::Tray`), so an item with a
+//! dbusmenu opens it on the press, switches to it on hover from another menu and shows it open
+//! as every bar item does; `tray_menu` turns the rows into entries, submenus included, and the
+//! bar's one popup draws them. An item without one takes the click as SNI `Activate` and the
+//! secondary press as `ContextMenu`; the middle button is `SecondaryActivate` on either, each
+//! with the press's screen point. The wheel over an item is SNI `Scroll`.
 //!
 //! `TrayButtonView` carries no hook: it is the part `tests` renders directly. `TrayButton`
-//! wraps it with the hooks a live surface needs (`use_surface`, the tray `Control`), neither
-//! of which a plain unit test can construct (`SurfaceHandle`'s constructor is
-//! `pub(crate)` to shell-host, and `Control` has no `PartialEq`, so it cannot be a `#[component]`
-//! prop at all: `TrayButton` reads it itself instead of receiving it).
+//! wraps it with the hooks a live surface needs (the session's pointer, the tray `Control`),
+//! which a plain unit test cannot construct (`Control` has no `PartialEq`, so it cannot be a
+//! `#[component]` prop at all: `TrayButton` reads it itself instead of receiving it).
 
 use dioxus::prelude::*;
 use ds::base::press::Press;
 use ds::components::controls::button_model::ImagePosition;
-use ds::prelude::Check as DsCheck;
+use ds::host::measure::use_rect;
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::style::icon::classify::ChromaLimit;
+use ds_shell::bar::pointer::BarPointer;
 use ds_shell::prelude::*;
-use shell_host::{HostRoot, OutputInfo, PopupPlacement, Rect, Size, SurfaceHandle, use_surface};
-use sill_model::tray::{
-    Check as TrayCheck, TrayCommand, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
-    TrayStatus,
-};
-use sill_model::units::{Availability as TrayAvailability, Visibility};
+use shell_host::OutputInfo;
+use sill_model::tray::{TrayCommand, TrayIcon, TrayItem, TrayStatus};
+use sill_services::TrayService;
 use sill_services::tray::icon_art;
-use sill_services::{Control, TrayService};
 
-use super::popup::{MenuSide, menu_popup};
+use super::menus::{BarMenu, TraySlot};
+use super::title::{shown_of, use_title_pointer};
 use super::tray_input::{
     ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, scroll_delta,
 };
-use super::tray_menu::TrayMenuDocument;
+use super::tray_menu::has_rows;
 use sill_ui_kit::hooks::{use_appearance, use_control, use_service, use_settings};
-use sill_ui_kit::settings::SettingsFeed;
 
-/// The tallest the popup is made, a guard of ours rather than a design value (no design doc
-/// caps a menu's height): a longer dbusmenu is clipped at its foot. Also `menu_popup`'s
-/// `max_px`, and the size the popup starts at, before its document is measured.
-const POPUP_MAX: i32 = 640;
-
-/// The element id a popup anchors to for the button at `index` (`tray-<n>`, as the module doc
-/// says).
+/// The element id of the button at `index` (`tray-<n>`, as the module doc says).
 fn popup_element_id(index: usize) -> String {
     format!("tray-{index}")
 }
 
-/// The tray: one `Button{Status}` per status notifier item, its dbusmenu as a quire
-/// `Menu{Dropdown}`. The items are global, not per-output, and each output's bar is its own
+/// The tray: one `Button{Status}` per status notifier item. The items are global, not per-output, and each output's bar is its own
 /// document, so `tray-<n>` needs no output qualifier; `output` places the presses on screen.
 #[component]
 pub fn Tray(output: OutputInfo) -> Element {
@@ -84,50 +75,49 @@ fn use_icon_source(icon: &TrayIcon, size_px: u16, limit: ChromaLimit) -> IconSou
     source
 }
 
-/// One status item, wired to the live surface: a press does what `press_action` says, a picked
-/// menu entry sends `MenuPick`, and the wheel sends `Scroll`.
+/// One status item, wired to the live bar: its pointer is the session's when it has a dbusmenu,
+/// a press does what `press_action` says, and the wheel sends `Scroll`.
 #[component]
 fn TrayButton(index: usize, item: TrayItem, origin: ScreenOrigin) -> Element {
-    let surface = use_surface();
-    let feed = use_context::<SettingsFeed>();
     let control = use_control::<TrayService>();
     let size_px = use_settings()().bar.status_icon_box_px.0;
     let limit = chroma_limit(use_appearance()().settings.icons.symbolic_chroma_max.0);
     let icon = use_icon_source(&item.icon, size_px, limit);
-    let popup_id = popup_element_id(index);
-    let menu = item.menu.clone();
+    let probe = use_rect();
+    let menu = BarMenu::Tray(TraySlot(u16::try_from(index).unwrap_or(u16::MAX)));
+    let session = use_title_pointer(menu, probe);
+    let shown = shown_of(menu);
     let item_id = item.id.clone();
-    let has_menu = if menu.is_empty() {
-        ItemMenu::Absent
+    let (has_menu, pointer, shown) = if has_rows(&item.menu) {
+        (ItemMenu::Present, session, shown)
     } else {
-        ItemMenu::Present
+        (ItemMenu::Absent, BarPointer::default(), Shown::Hidden)
     };
     let onclick = {
         let control = control.clone();
         let item_id = item_id.clone();
         move |press: Press| match press_action(press, &item_id, has_menu, origin) {
             TrayAction::Send(command) => {
-                let _ = control.send(command);
+                // The service may have stopped; then nobody is left to tell.
+                let _gone_is_dropped = control.send(command);
             }
-            TrayAction::OpenMenu => {
-                let _ = control.send(TrayCommand::MenuOpening {
-                    item: item_id.clone(),
-                });
-                open_menu(&surface, &feed, &popup_id, &item_id, &menu, &control);
-            }
-            TrayAction::Nothing => {}
+            TrayAction::OpenMenu => {}
         }
     };
     let onwheel = move |event: WheelEvent| {
         if let Some(delta) = scroll_delta(event.delta()) {
-            let _ = control.send(TrayCommand::Scroll {
+            let _gone_is_dropped = control.send(TrayCommand::Scroll {
                 item: item_id.clone(),
                 delta,
             });
         }
     };
+    let common = Common {
+        mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))),
+        ..Common::default()
+    };
     rsx! {
-        TrayButtonView { index, item, icon, onclick, onwheel }
+        TrayButtonView { index, item, icon, shown, pointer, common, onclick, onwheel }
     }
 }
 
@@ -138,6 +128,9 @@ fn TrayButtonView(
     index: usize,
     item: TrayItem,
     icon: IconSource,
+    shown: Shown,
+    pointer: BarPointer,
+    common: Common,
     onclick: EventHandler<Press>,
     onwheel: EventHandler<WheelEvent>,
 ) -> Element {
@@ -152,125 +145,16 @@ fn TrayButtonView(
         // the item (TrayCommand::Scroll).
         span { "data-wheel": "capture", onwheel: move |event| onwheel.call(event),
             MenuBarItem {
-                common: Common { id: Some(popup_element_id(index)), ..Common::default() },
+                common: Common { id: Some(popup_element_id(index)), ..common },
                 image: ImagePosition::Only,
                 icon,
                 label: title,
                 title: Some(tooltip),
+                shown,
+                pointer,
                 onclick,
             }
         }
-    }
-}
-
-/// Open `item`'s dbusmenu as a `Menu{Dropdown}` popup anchored to the `popup_id` element.
-fn open_menu(
-    surface: &SurfaceHandle,
-    feed: &SettingsFeed,
-    popup_id: &str,
-    item: &TrayItemId,
-    menu: &[TrayMenuEntry],
-    control: &Control<TrayCommand>,
-) {
-    let entries = to_ds_entries(menu);
-    let config = menu_popup(popup_id, MenuSide::Status, POPUP_MAX);
-    let placement = PopupPlacement {
-        // Ignored for `PopupAnchor::Element` (shell-host's own doc on `PopupPlacement`).
-        anchor_rect: Rect {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-        },
-        size: Size {
-            width: POPUP_MAX,
-            height: POPUP_MAX,
-        },
-    };
-    let root = HostRoot::with_props(
-        tray_menu_popup,
-        TrayMenuProps {
-            entries,
-            item: item.clone(),
-            control: control.clone(),
-        },
-    )
-    .context(feed.clone());
-    surface.open_popup(config, placement, root);
-}
-
-/// Props for [`tray_menu_popup`], the dbusmenu popup's own root — a plain `fn(P) -> Element`
-/// (not `#[component]`), the shape `Root::with_props` needs (`shell-host/examples/demo_dock.rs`
-/// is the precedent: `Root::with_props(dock, mode)`). Plain, not `#[component]`, because
-/// `Control` has no `PartialEq` (module doc) and `#[component]` would demand one.
-#[derive(Clone)]
-struct TrayMenuProps {
-    entries: Vec<MenuItem<i32>>,
-    item: TrayItemId,
-    control: Control<TrayCommand>,
-}
-
-/// The dbusmenu popup's root: [`TrayMenuDocument`], a pick sent to the item's dbusmenu, a
-/// close closing the popup. A popup inherits nothing from the bar, so it provides quire's
-/// document host itself.
-fn tray_menu_popup(props: TrayMenuProps) -> Element {
-    ds_blitz::provide_host();
-    let surface = use_surface();
-    let control = props.control.clone();
-    let item = props.item.clone();
-    let onpick = move |entry: i32| {
-        let _ = control.send(TrayCommand::MenuPick {
-            item: item.clone(),
-            entry,
-        });
-    };
-    let onclose = move |()| surface.close();
-    rsx! {
-        TrayMenuDocument { entries: props.entries.clone(), onpick, onclose }
-    }
-}
-
-/// `menu`'s shown items at the top level (a row's children are dropped, module doc), hidden
-/// dbusmenu rows (`visibility: Hidden`) dropped.
-fn to_ds_entries(menu: &[TrayMenuEntry]) -> Vec<MenuItem<i32>> {
-    menu.iter()
-        .filter(|entry| match &entry.kind {
-            TrayMenuKind::Separator => true,
-            TrayMenuKind::Item { visibility, .. } => *visibility == Visibility::Shown,
-        })
-        .map(to_ds_entry)
-        .collect()
-}
-
-fn to_ds_entry(entry: &TrayMenuEntry) -> MenuItem<i32> {
-    match &entry.kind {
-        TrayMenuKind::Separator => MenuItem::Separator,
-        TrayMenuKind::Item {
-            label,
-            check,
-            enabled,
-            ..
-        } => MenuItem::Item {
-            value: entry.id,
-            title: label.clone(),
-            image: None,
-            key: None,
-            check: to_ds_check(*check),
-            availability: match enabled {
-                TrayAvailability::Enabled => Availability::Enabled,
-                TrayAvailability::Disabled => Availability::Disabled,
-            },
-            hint: None,
-            after: AfterPick::Close,
-        },
-    }
-}
-
-fn to_ds_check(check: TrayCheck) -> Option<DsCheck> {
-    match check {
-        TrayCheck::None => None,
-        TrayCheck::Unchecked => Some(DsCheck::Off),
-        TrayCheck::Checked => Some(DsCheck::On),
     }
 }
 
@@ -280,7 +164,9 @@ mod tests {
     use dioxus::core::VirtualDom;
     use dioxus::prelude::*;
     use ds::prelude::*;
+    use ds::root::common::Common;
     use ds_lint::{LintConfig, Profile, Rule, markup};
+    use ds_shell::bar::pointer::BarPointer;
     use sill_model::tray::{TrayIcon, TrayItem, TrayItemId, TrayStatus};
 
     fn fake_item(name: &str) -> TrayItem {
@@ -297,8 +183,8 @@ mod tests {
     fn two_fake_entries((a, b): (TrayItem, TrayItem)) -> Element {
         let icon = IconSource::Glyph(Icon::Window);
         rsx! {
-            TrayButtonView { index: 0usize, item: a, icon: icon.clone(), onclick: move |_| {}, onwheel: move |_| {} }
-            TrayButtonView { index: 1usize, item: b, icon, onclick: move |_| {}, onwheel: move |_| {} }
+            TrayButtonView { index: 0usize, item: a, icon: icon.clone(), shown: Shown::Hidden, pointer: BarPointer::default(), common: Common::default(), onclick: move |_| {}, onwheel: move |_| {} }
+            TrayButtonView { index: 1usize, item: b, icon, shown: Shown::Visible, pointer: BarPointer::default(), common: Common::default(), onclick: move |_| {}, onwheel: move |_| {} }
         }
     }
 

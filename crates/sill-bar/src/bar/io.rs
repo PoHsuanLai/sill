@@ -16,7 +16,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::content::{BarState, body, front_app};
 use super::layer::layer;
-use super::menu_popup::{BarPopup, PopupLink};
+use super::menu_popup::{BarPopup, PopupLink, SUBMENU_ROOM};
 use super::menus::BarMenu;
 use super::model::{BarInput, Handoff, PopupView, SessionDeps, status_box};
 use super::pick::{BarPick, Command, commands};
@@ -24,10 +24,14 @@ use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
 use super::popup::{BOTTOM, MAX_PX, TOP, placement};
 use super::track::{Event, Target, Track, step};
+use super::tray_input::{chroma_limit, row_image};
 use crate::control_center::{PanelCap, height_cap};
 use ds::base::time::stamp::FrameClock;
-use sill_services::{AppsService, CosmicWlService};
-use sill_ui_kit::hooks::{use_service, use_service_part, use_services, use_settings};
+use sill_model::tray::TrayCommand;
+use sill_services::{AppsService, CosmicWlService, TrayService};
+use sill_ui_kit::hooks::{
+    use_appearance, use_service, use_service_part, use_services, use_settings,
+};
 use sill_ui_kit::links::{CenterLink, CenterShown, ControlCenterLink, PowerMenuLink, Preselect};
 use sill_ui_kit::menu::PopupLook;
 
@@ -103,6 +107,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
             on.as_ref(),
         ),
         control_center: file.control_center.clone(),
+        tray: use_service::<TrayService>()(),
     };
     let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
     let bar = use_menu_session(SessionDeps {
@@ -110,6 +115,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         services: use_services(),
         surface: try_use_context::<SurfaceHandle>(),
         timing: super::track::timing(&file.menus),
+        chroma: chroma_limit(use_appearance()().settings.icons.symbolic_chroma_max.0),
         look,
         namespace: layer(output, &file).namespace,
         output: output.id,
@@ -171,11 +177,24 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
         feed: use_hook(|| CopyValue::new(None)),
     };
     refresh(slots, &deps);
+    // The open tray item is gone (its app quit): its menu has nothing left to show.
+    let vanished = matches!(
+        *slots.open.peek(),
+        Some(BarMenu::Tray(slot)) if deps.state.tray.items.get(usize::from(slot.0)).is_none()
+    );
     let feed = use_callback(move |input: BarInput| handle(slots, &deps, clock, input));
     let mut own = slots.feed;
     if own.peek().is_none() {
         own.set(Some(feed));
     }
+    use_effect(use_reactive!(|vanished| {
+        if vanished {
+            feed.call(BarInput::Bar {
+                input: Event::OutsidePress,
+                title: None,
+            });
+        }
+    }));
     use_hook(move || {
         let mut rx = reports_rx;
         if let Some(mut reports) = rx.write().take() {
@@ -204,7 +223,7 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
             }
             (input, None)
         }
-        BarInput::Popup(report) => popup_input(report),
+        BarInput::Popup(report) => popup_input(report, slots.track.peek().open_menu().copied()),
         BarInput::CenterGone => {
             let mut handoff = slots.handoff;
             let waiting = handoff.replace(Handoff::Idle);
@@ -254,6 +273,7 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
         BarEffect::Swap(menu) => {
             if let (Some(view), Some(tx)) = (view(slots, deps, menu), &link.peek().view) {
                 tx.send_replace(Some(view));
+                announce(deps, menu);
             }
             open.set(Some(menu));
         }
@@ -304,6 +324,7 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
             .context(PopupLink {
                 view: rx,
                 reports,
+                timing: deps.timing,
                 output: deps.output_name.clone(),
             })
             .context(deps.services.clone())
@@ -313,6 +334,20 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
     );
     link.write().view = Some(tx);
     open.set(Some(menu));
+    announce(deps, menu);
+}
+
+/// Tell a tray item its menu is about to show (dbusmenu `AboutToShow`), so the app can refresh
+/// it; the other menus have nobody to tell.
+fn announce(deps: &SessionDeps, menu: BarMenu) {
+    if let BarMenu::Tray(slot) = menu
+        && let Some(item) = deps.state.tray.items.get(usize::from(slot.0))
+    {
+        // The service may have stopped; then nothing is left to refresh.
+        let _gone_is_dropped = deps.services.tray.control.send(TrayCommand::MenuOpening {
+            item: item.id.clone(),
+        });
+    }
 }
 
 /// `menu`'s view now, placed under its title; `None` before the title has been measured. The
@@ -325,7 +360,12 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
         (None, BarMenu::ControlCenter) => deps.status_box,
         (None, _) => return None,
     };
-    let body = body(menu, &deps.state);
+    if let BarMenu::Tray(slot) = menu
+        && deps.state.tray.items.get(usize::from(slot.0)).is_none()
+    {
+        return None;
+    }
+    let body = body(menu, &deps.state, &|icon| row_image(icon, deps.chroma));
     Some(PopupView {
         menu,
         placement: placement(rect, menu.side(), deps.bar_width),
@@ -335,9 +375,9 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
 }
 
 /// The most the popup grows in either direction: the panel's cap and the room around it, and
-/// never less than a text menu's maximum.
+/// never less than a text menu's maximum with a level of submenu beside it.
 fn popup_cap(panel: i32) -> i32 {
-    (panel + TOP + BOTTOM).max(MAX_PX)
+    (panel + TOP + BOTTOM).max(MAX_PX + SUBMENU_ROOM)
 }
 
 /// Keep an open popup's contents current as the services change under it.
@@ -367,6 +407,7 @@ fn run(pick: &BarPick, deps: &SessionDeps) {
         let _gone_is_dropped = match command {
             Command::Wl(c) => services.cosmic_wl.control.send(c),
             Command::Launch(c) => services.launch.control.send(c),
+            Command::Tray(c) => services.tray.control.send(c),
             Command::PowerMenu => {
                 if let Some(link) = &deps.power_menu {
                     link.open(deps.output, Preselect::Default);

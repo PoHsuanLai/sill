@@ -8,6 +8,13 @@ use crate::control_center::modules::{KINDS, module};
 use super::popup::MenuSide;
 use super::track::MenuId;
 
+/// Which of the tray's items a menu belongs to: its place in the tray's registration order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct TraySlot(pub u16);
+
+/// The machine's id for the first tray item; the bar's own menus are numbered below it.
+const TRAY_ID_BASE: u32 = 1000;
+
 /// A bar title or status item that opens a menu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum BarMenu {
@@ -27,10 +34,13 @@ pub(crate) enum BarMenu {
     Battery,
     /// The control center (design/20 §1.5): the last status item, left of the clock.
     ControlCenter,
+    /// A tray item's dbusmenu (the tray sits left of the modules, so it is not in [`BarMenu::ALL`]).
+    Tray(TraySlot),
 }
 
 impl BarMenu {
-    /// Every menu, left to right along the bar.
+    /// Every menu the bar always has, left to right along it. A tray item's menu comes and goes
+    /// with the item.
     pub(crate) const ALL: [BarMenu; 8] = [
         BarMenu::App,
         BarMenu::NowPlaying,
@@ -53,12 +63,17 @@ impl BarMenu {
             BarMenu::NowPlaying => 6,
             BarMenu::Display => 7,
             BarMenu::Bluetooth => 8,
+            BarMenu::Tray(TraySlot(slot)) => TRAY_ID_BASE + u32::from(slot),
         })
     }
 
     /// The menu the machine names `id`, if it is one of the bar's.
     pub(crate) fn of(id: MenuId) -> Option<BarMenu> {
-        BarMenu::ALL.into_iter().find(|menu| menu.id() == id)
+        let tray =
+            id.0.checked_sub(TRAY_ID_BASE)
+                .and_then(|slot| u16::try_from(slot).ok())
+                .map(|slot| BarMenu::Tray(TraySlot(slot)));
+        tray.or_else(|| BarMenu::ALL.into_iter().find(|menu| menu.id() == id))
     }
 
     /// Which side of its title the menu hangs from (design/13 §13.3.2).
@@ -71,7 +86,8 @@ impl BarMenu {
             | BarMenu::Volume
             | BarMenu::Bluetooth
             | BarMenu::Network
-            | BarMenu::Battery => MenuSide::Status,
+            | BarMenu::Battery
+            | BarMenu::Tray(_) => MenuSide::Status,
         }
     }
 
@@ -86,6 +102,7 @@ impl BarMenu {
             BarMenu::NowPlaying => "Now Playing",
             BarMenu::Display => "Display",
             BarMenu::Bluetooth => "Bluetooth",
+            BarMenu::Tray(_) => "Status item",
         }
     }
 
@@ -102,7 +119,7 @@ impl BarMenu {
 
 #[cfg(test)]
 mod tests {
-    use super::BarMenu;
+    use super::{BarMenu, TraySlot};
     use crate::bar::popup::MenuSide;
 
     #[test]
@@ -117,6 +134,12 @@ mod tests {
             assert_eq!(menu.side(), side, "{menu:?}");
         }
         assert_eq!(BarMenu::of(crate::bar::track::MenuId(99)), None);
+        for slot in [0, 1, 7, u16::MAX] {
+            let menu = BarMenu::Tray(TraySlot(slot));
+            assert_eq!(BarMenu::of(menu.id()), Some(menu), "tray {slot}");
+            assert_eq!(menu.side(), MenuSide::Status, "tray {slot}");
+            assert_eq!(menu.module(), None, "tray {slot}");
+        }
         let modules: Vec<_> = BarMenu::ALL
             .into_iter()
             .filter_map(BarMenu::module)

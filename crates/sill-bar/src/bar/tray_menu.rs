@@ -1,60 +1,110 @@
-//! The dbusmenu popup's document: one transparent `Ds` root over one `Menu{Dropdown}` that opens
-//! at once (a bar menu), in the popup frame ([`PopupFrame`]): shell-host fits the popup to it
-//! (`PopupSize::FitContent`), and the frame lays the card in flow, so the popup is the card and
-//! its 8 px inset, and a press reaches the menu.
+//! A tray item's dbusmenu rows as the bar's menu entries, so the item's menu is one more bar
+//! menu: the same popup, open delay, safe triangle and hover switching as the others (the
+//! submenus open inside the popup's `Menu`, which times them). Pure: a row's icon is resolved by
+//! the caller's function, since a theme lookup is an effect.
 
-use dioxus::prelude::*;
-use ds::host::measure::Anchor;
+use ds::components::menus::item::item::MenuImage;
+use ds::prelude::Check as DsCheck;
 use ds::prelude::*;
+use sill_model::tray::{Check as TrayCheck, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind};
+use sill_model::units::{Availability as TrayAvailability, Visibility};
 
-use sill_ui_kit::hooks::{use_appearance, use_user_style};
-use sill_ui_kit::menu::{PopupFrame, PopupRoom};
-use sill_ui_kit::root::RootStyle;
+use super::pick::BarPick;
 
-use super::menu_popup::BAR_MENU;
+/// How a row's icon becomes the image at its start; `None` draws none.
+pub(crate) type RowIcon<'a> = &'a dyn Fn(&TrayMenuIcon) -> Option<MenuImage>;
 
-/// The widest the popup is, card and inset together (design/04-COMPONENTS.md section 20,
-/// Dropdown: "min 186, auto"; a longer label wraps).
-pub(crate) const POPUP_WIDTH: i32 = 220;
+/// Whether `rows` has a row to show: an item with nothing but hidden rows and separators has no
+/// menu to open.
+pub(crate) fn has_rows(rows: &[TrayMenuEntry]) -> bool {
+    rows.iter().any(|row| match &row.kind {
+        TrayMenuKind::Separator => false,
+        TrayMenuKind::Item { visibility, .. } => *visibility == Visibility::Shown,
+    })
+}
 
-/// The transparent inset around the card: the menu's 8 px from the popup's edge.
-pub(crate) const INSET: PopupRoom = PopupRoom {
-    side: 8,
-    top: 8,
-    bottom: 8,
-};
+/// `rows` of `item`'s dbusmenu as menu entries: hidden rows dropped, a row with shown children a
+/// submenu (whatever its own check), and rules only between rows.
+pub(crate) fn menu_items(
+    item: &TrayItemId,
+    rows: &[TrayMenuEntry],
+    icon: RowIcon,
+) -> Vec<MenuItem<BarPick>> {
+    let entries = rows
+        .iter()
+        .filter_map(|row| entry(item, row, icon))
+        .collect();
+    between_rules(entries)
+}
 
-/// `entries` as a `Menu{Dropdown}` in the frame; `onpick` hears an entry's id, `onclose` the menu
-/// closing.
-#[component]
-pub(crate) fn TrayMenuDocument(
-    entries: Vec<MenuItem<i32>>,
-    onpick: EventHandler<i32>,
-    onclose: EventHandler<()>,
-) -> Element {
-    let environment = use_appearance()();
-    let root = RootStyle::popup(BAR_MENU, use_user_style());
-    rsx! {
-        PopupFrame { room: INSET, widest: Some(POPUP_WIDTH),
-            Ds {
-                sheet: Some(ds_shell::stylesheet()),
-                extent: RootExtent::Popup,
-                appearance: environment.settings.appearance.appearance(),
-                system: environment.system,
-                material: Material::Popover,
-                surface: root.surface,
-                user_style: root.user_style,
-                Menu {
-                    placement: MenuPlacement::Bar,
-                    // The frame lays the card in flow: the anchor places nothing.
-                    anchor: Anchor::Point(Point::default()),
-                    items: entries,
-                    onpick,
-                    onclose,
-                }
-            }
+fn entry(item: &TrayItemId, row: &TrayMenuEntry, icon: RowIcon) -> Option<MenuItem<BarPick>> {
+    let TrayMenuKind::Item {
+        label,
+        enabled,
+        visibility,
+        check,
+        icon: row_icon,
+        children,
+    } = &row.kind
+    else {
+        return Some(MenuItem::Separator);
+    };
+    if *visibility == Visibility::Hidden {
+        return None;
+    }
+    let availability = match enabled {
+        TrayAvailability::Enabled => Availability::Enabled,
+        TrayAvailability::Disabled => Availability::Disabled,
+    };
+    let image = icon(row_icon);
+    let children = menu_items(item, children, icon);
+    if !children.is_empty() {
+        return Some(MenuItem::Submenu {
+            title: label.clone(),
+            image,
+            availability,
+            children,
+        });
+    }
+    Some(MenuItem::Item {
+        value: BarPick::Tray {
+            item: item.clone(),
+            entry: row.id,
+        },
+        title: label.clone(),
+        image,
+        key: None,
+        hint: None,
+        check: to_ds_check(*check),
+        availability,
+        after: AfterPick::Close,
+    })
+}
+
+fn to_ds_check(check: TrayCheck) -> Option<DsCheck> {
+    match check {
+        TrayCheck::None => None,
+        TrayCheck::Unchecked => Some(DsCheck::Off),
+        TrayCheck::Checked => Some(DsCheck::On),
+        TrayCheck::Mixed => Some(DsCheck::Mixed),
+    }
+}
+
+/// `entries` without a rule at either end or two rules in a row (what dropping the hidden rows
+/// between them leaves).
+fn between_rules(entries: Vec<MenuItem<BarPick>>) -> Vec<MenuItem<BarPick>> {
+    let mut kept: Vec<MenuItem<BarPick>> = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let rule = matches!(entry, MenuItem::Separator);
+        let after_rule = matches!(kept.last(), Some(MenuItem::Separator) | None);
+        if !(rule && after_rule) {
+            kept.push(entry);
         }
     }
+    if matches!(kept.last(), Some(MenuItem::Separator)) {
+        kept.pop();
+    }
+    kept
 }
 
 #[cfg(test)]

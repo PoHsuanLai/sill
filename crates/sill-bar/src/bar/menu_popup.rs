@@ -6,13 +6,15 @@
 //! the frame (`PopupSize::FitContent`), so the popup is the card and its room. The root is
 //! `Material::Popover`, which paints nothing on its own box (quire's transparent popup root);
 //! the menu card paints the material. The menu opens with no entrance (design/13 §13.3.2) and
-//! reports the pointer's hover and release to the bar's tracking machine.
+//! reports the pointer's hover and release to the bar's tracking machine. A menu's submenus
+//! (a tray item's dbusmenu has them) are the `Menu`'s own, timed by `menus.submenu_*`.
 
 use dioxus::prelude::*;
 use ds::base::geometry::placement::{Align, Side};
 use ds::base::press::Press;
 use ds::host::measure::Anchor;
 use ds::prelude::*;
+use ds::stack::menu_track::types::MenuTiming;
 use ds::style::appearance::blur::BlurState;
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
 use sill_model::ids::OutputName;
@@ -22,7 +24,7 @@ use tokio::sync::{mpsc, watch};
 use super::content::PopupBody;
 use super::model::PopupView;
 use super::pick::BarPick;
-use super::plan::{PopupReport, choice};
+use super::plan::{Landing, PopupReport, landing};
 use super::popup::{MAX_PX, room};
 use crate::control_center::{ControlCenter, ModuleDropdown};
 use sill_ui_kit::hooks::use_user_style;
@@ -40,6 +42,8 @@ pub(crate) const CONTROL_CENTER: &str = "control-center";
 pub(crate) struct PopupLink {
     pub view: watch::Receiver<Option<PopupView>>,
     pub reports: mpsc::UnboundedSender<PopupReport>,
+    /// `menus.submenu_delay_ms` and `menus.submenu_triangle_timeout_ms`, for a menu's submenus.
+    pub timing: MenuTiming,
     /// The bar's output (the Display module's brightness target).
     pub output: Option<OutputName>,
 }
@@ -64,7 +68,6 @@ pub(crate) fn BarPopup() -> Element {
     ds_blitz::provide_host();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
-    let user_style = use_user_style();
     let view = use_watch(link.view.clone());
     let mut placed = use_hook(|| CopyValue::new(None::<PopupPlacement>));
     let reports = link.reports.clone();
@@ -84,22 +87,37 @@ pub(crate) fn BarPopup() -> Element {
     let Some(current) = view() else {
         return rsx! {};
     };
+    rsx! {
+        PopupDocument { current }
+    }
+}
+
+/// `current`'s menu or panel on the popup frame: what the popup shows, apart from the surface
+/// it is on.
+#[component]
+pub(crate) fn PopupDocument(current: PopupView) -> Element {
+    let user_style = use_user_style();
     let look = current.look;
     let which = current.menu;
     // A text menu wraps at design/13 §13.3.3's maximum; a panel is as wide as its settings say.
-    let (content, widest, name) = match current.body {
-        PopupBody::Menu(entries) => (
-            rsx! {
-                BarMenuList { key: "{which:?}", entries }
-            },
-            Some(MAX_PX),
-            BAR_MENU,
-        ),
+    let (content, widest, submenu_room, name) = match current.body {
+        PopupBody::Menu(entries) => {
+            let room = submenu_room(&entries);
+            (
+                rsx! {
+                    BarMenuList { key: "{which:?}", entries }
+                },
+                Some(MAX_PX + room),
+                room,
+                BAR_MENU,
+            )
+        }
         PopupBody::ControlCenter(_) => (
             rsx! {
                 PanelPopover { module: None }
             },
             None,
+            0,
             CONTROL_CENTER,
         ),
         PopupBody::Module(module) => (
@@ -107,13 +125,14 @@ pub(crate) fn BarPopup() -> Element {
                 PanelPopover { module: Some(module) }
             },
             None,
+            0,
             CONTROL_CENTER,
         ),
     };
     let root = RootStyle::popup(name, user_style);
     rsx! {
         AppStyle { css: CONTROL_CENTER_CSS }
-        PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
+        PopupFrame { room: room(), widest, submenu_room, style: look.metrics.style_attr(),
             Ds {
                 sheet: Some(ds_shell::stylesheet()),
                 extent: RootExtent::Popup,
@@ -129,6 +148,26 @@ pub(crate) fn BarPopup() -> Element {
             }
         }
     }
+}
+
+/// How much wider than a card each level of submenu makes the popup: its card (a text menu's
+/// minimum 186 and what a longer label adds) and the gap and margin quire keeps around it.
+pub(crate) const SUBMENU_ROOM: i32 = 260;
+
+/// The room `entries`' submenus need beside the card, a level of [`SUBMENU_ROOM`] for each they
+/// nest, so each lands in its own column and none covers its parent.
+pub(crate) fn submenu_room<T>(entries: &[MenuItem<T>]) -> i32 {
+    fn levels<T>(entries: &[MenuItem<T>]) -> i32 {
+        entries
+            .iter()
+            .map(|entry| match entry {
+                MenuItem::Submenu { children, .. } => 1 + levels(children),
+                _ => 0,
+            })
+            .max()
+            .unwrap_or(0)
+    }
+    levels(entries) * SUBMENU_ROOM
 }
 
 /// A ds `Menu{Dropdown}`, at once (no entrance: a bar menu, and every hover switch); the root
@@ -173,7 +212,7 @@ fn BarMenuList(entries: Vec<MenuItem<BarPick>>) -> Element {
     let on_release = {
         let entries = entries.clone();
         move |_: Press| {
-            let over = hovered().and_then(|index| choice(&entries, index));
+            let over = hovered().map_or(Landing::Nowhere, |index| landing(&entries, index));
             send(PopupReport::Released(over));
         }
     };
@@ -182,6 +221,7 @@ fn BarMenuList(entries: Vec<MenuItem<BarPick>>) -> Element {
             placement: MenuPlacement::Bar,
             anchor: corner(),
             items: entries,
+            timing: link.timing,
             onpick: on_pick,
             onclose: on_close,
             on_hover,
@@ -220,3 +260,7 @@ fn PanelPopover(module: Option<ControlCenterModule>) -> Element {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "menu_popup_tests.rs"]
+mod tests;

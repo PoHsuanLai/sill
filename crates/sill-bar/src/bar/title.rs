@@ -3,6 +3,7 @@
 //! click mode on release over the title, hover switch on entry) and draws the hover and open pill
 //! itself.
 
+use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use ds::host::measure::RectProbe;
 use ds::prelude::*;
@@ -32,6 +33,12 @@ pub(crate) fn shown_of(menu: BarMenu) -> Shown {
     }
 }
 
+/// Whether `event` is a middle-button press or release, which is no part of a menu's tracking
+/// (a tray item takes it as SNI's secondary activation).
+fn is_middle(event: &PointerEvent) -> bool {
+    event.trigger_button() == Some(MouseButton::Auxiliary)
+}
+
 /// What a title's ds button hands to the menu session: its presses, releases and pointer entries.
 /// `probe` measures that button (its `mounted`), and its rect travels with every event so the
 /// popup can be placed under it.
@@ -46,10 +53,16 @@ pub(crate) fn use_title_pointer(menu: BarMenu, probe: RectProbe) -> BarPointer {
     };
     BarPointer {
         down: Some(EventHandler::new(move |event: PointerEvent| {
+            if is_middle(&event) {
+                return;
+            }
             event.stop_propagation();
             send(Event::PressTitle(menu.id()));
         })),
         up: Some(EventHandler::new(move |event: PointerEvent| {
+            if is_middle(&event) {
+                return;
+            }
             event.stop_propagation();
             send(Event::Release(Target::Title(menu.id())));
         })),

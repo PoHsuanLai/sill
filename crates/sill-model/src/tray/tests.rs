@@ -1,6 +1,6 @@
 use super::{
-    Check, Tray, TrayEvent, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
-    TrayStatus, step,
+    Check, Tray, TrayEvent, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon,
+    TrayMenuKind, TrayStatus, step,
 };
 use crate::units::{Availability, Visibility};
 
@@ -32,6 +32,7 @@ fn quit_menu() -> Vec<TrayMenuEntry> {
             enabled: Availability::Enabled,
             visibility: Visibility::Shown,
             check: Check::None,
+            icon: TrayMenuIcon::None,
             children: Vec::new(),
         },
     }]
@@ -143,4 +144,47 @@ fn a_scroll_has_a_pinned_wire_line() {
     assert_eq!(serde_json::to_string(&command).ok().as_deref(), Some(line));
     let back: TrayCommand = serde_json::from_str(line).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(back, command);
+}
+
+#[test]
+fn a_context_menu_ask_has_a_pinned_wire_line() {
+    use super::TrayCommand;
+    let command = TrayCommand::ContextMenu {
+        item: id("fcitx"),
+        x: 1900,
+        y: 12,
+    };
+    let line =
+        r#"{"kind":"context_menu","v":{"item":":1.fcitx/StatusNotifierItem","x":1900,"y":12}}"#;
+    assert_eq!(serde_json::to_string(&command).ok().as_deref(), Some(line));
+    let back: TrayCommand = serde_json::from_str(line).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(back, command);
+}
+
+#[test]
+fn a_menu_with_a_submenu_and_icons_round_trips() {
+    let menu = vec![TrayMenuEntry {
+        id: 1,
+        kind: TrayMenuKind::Item {
+            label: "Devices".to_owned(),
+            enabled: Availability::Enabled,
+            visibility: Visibility::Shown,
+            check: Check::Mixed,
+            icon: TrayMenuIcon::Named("phone".to_owned()),
+            children: vec![TrayMenuEntry {
+                id: 2,
+                kind: TrayMenuKind::Item {
+                    label: "Ping".to_owned(),
+                    enabled: Availability::Disabled,
+                    visibility: Visibility::Hidden,
+                    check: Check::Checked,
+                    icon: TrayMenuIcon::Png(vec![137, 80]),
+                    children: Vec::new(),
+                },
+            }],
+        },
+    }];
+    let json = serde_json::to_string(&menu).unwrap_or_else(|e| panic!("{e}"));
+    let back: Vec<TrayMenuEntry> = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(back, menu);
 }

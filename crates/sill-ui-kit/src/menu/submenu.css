@@ -1,0 +1,10 @@
+/* Room for submenus. quire draws each floating layer in an overlay of its own and places a submenu
+   against its overlay's box. A popup root lays the menu's overlay in flow (the card's size) and a
+   submenu's overlay after it, an empty strip below the card, so a submenu would find no room beside
+   its parent and open under the menu. Every later overlay covers the first one instead, and the
+   first takes the room as padding on the card's left: a submenu that cannot go right lands there.
+   `PopupFrame` writes `--popup-submenu-room` and adds this sheet only when there is room. It names
+   quire's overlay, which the frame's own sheet may not (`style.css` is clean under Strict): the
+   lint test beside it excuses exactly these two selectors. */
+.sill-popup-frame .ds-overlay{ padding-left:var(--popup-submenu-room); }
+.sill-popup-frame .ds-overlay ~ .ds-overlay{ position:absolute; inset:0; }

@@ -22,6 +22,7 @@ sill-services = { workspace = true }
 cosmic-client-toolkit = { workspace = true }
 rustix = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 
 # Stand-ins the tests and dev scripts start as child processes, each under its own bus name or
 # socket; none touches the person's session.
@@ -45,6 +46,10 @@ name = "file_manager_stub"
 name = "logind_standin"
 [[example]]
 name = "screensaver_client"
+[[example]]
+name = "tray_item"
+[[example]]
+name = "tray_host"
 
 [lints]
 workspace = true

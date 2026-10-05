@@ -11,11 +11,13 @@ use sill_launcher::WindowKey;
 use sill_model::apps::{AppIndex, match_app};
 use sill_model::cosmic_wl::Toplevels;
 use sill_model::ids::OutputName;
+use sill_model::tray::Tray;
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
 use super::menus::BarMenu;
 use super::pick::BarPick;
+use super::tray_menu::{RowIcon, menu_items};
 
 /// The frontmost app on an output: its name and every one of its windows.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,11 +44,21 @@ pub(crate) struct BarState {
     pub app: Option<FrontApp>,
     /// `control_center.*`, which sizes its popup.
     pub control_center: ControlCenterSettings,
+    /// The tray's items and their dbusmenus.
+    pub tray: Tray,
 }
 
-/// `menu`'s contents in `state`.
-pub(crate) fn body(menu: BarMenu, state: &BarState) -> PopupBody {
+/// `menu`'s contents in `state`, a tray row's icon drawn as `icon` says.
+pub(crate) fn body(menu: BarMenu, state: &BarState, icon: RowIcon) -> PopupBody {
     match menu {
+        BarMenu::Tray(slot) => PopupBody::Menu(
+            state
+                .tray
+                .items
+                .get(usize::from(slot.0))
+                .map(|item| menu_items(&item.id, &item.menu, icon))
+                .unwrap_or_default(),
+        ),
         BarMenu::App => PopupBody::Menu(app_menu(state.app.as_ref())),
         BarMenu::ControlCenter => PopupBody::ControlCenter(state.control_center.clone()),
         BarMenu::NowPlaying
@@ -145,12 +157,18 @@ fn item(title: String, value: BarPick, check: Option<Check>) -> MenuItem<BarPick
 mod tests {
     use super::{BarState, FrontApp, PopupBody, body, front_app};
     use crate::bar::menus::BarMenu;
+    use crate::bar::menus::TraySlot;
     use crate::bar::pick::BarPick;
     use ds::prelude::*;
     use sill_launcher::WindowKey;
     use sill_model::apps::AppIndex;
     use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
     use sill_model::ids::OutputName;
+    use sill_model::tray::{
+        Check, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
+        TrayStatus,
+    };
+    use sill_model::units::{Availability as Enabled, Visibility};
     use sill_settings::ControlCenterModule;
 
     fn window(key: u64, app: &str, output: &str) -> Toplevel {
@@ -213,8 +231,9 @@ mod tests {
                 windows: vec![(WindowKey(4), "~".to_owned())],
             }),
             control_center: sill_settings::ControlCenterSettings::default(),
+            tray: Tray::default(),
         };
-        let menu = |m| match body(m, &state) {
+        let menu = |m| match body(m, &state, &|_| None) {
             PopupBody::Menu(entries) => titles(&entries),
             PopupBody::ControlCenter(_) => vec!["control center".to_owned()],
             PopupBody::Module(module) => vec![format!("{module:?}")],
@@ -233,9 +252,13 @@ mod tests {
             (BarMenu::Display, ControlCenterModule::Display),
             (BarMenu::NowPlaying, ControlCenterModule::NowPlaying),
         ] {
-            assert_eq!(body(item, &state), PopupBody::Module(module), "{item:?}");
+            assert_eq!(
+                body(item, &state, &|_| None),
+                PopupBody::Module(module),
+                "{item:?}"
+            );
         }
-        let picks: Vec<BarPick> = match body(BarMenu::App, &state) {
+        let picks: Vec<BarPick> = match body(BarMenu::App, &state, &|_| None) {
             PopupBody::Menu(entries) => entries
                 .into_iter()
                 .filter_map(|entry| match entry {
@@ -249,5 +272,47 @@ mod tests {
             picks[1..],
             [BarPick::Quit(vec![WindowKey(4)]), BarPick::PowerMenu]
         );
+    }
+
+    fn tray_item(name: &str, labels: &[&str]) -> TrayItem {
+        let rows = labels.iter().zip(1..).map(|(label, id)| TrayMenuEntry {
+            id,
+            kind: TrayMenuKind::Item {
+                label: (*label).to_owned(),
+                enabled: Enabled::Enabled,
+                visibility: Visibility::Shown,
+                check: Check::None,
+                icon: TrayMenuIcon::None,
+                children: Vec::new(),
+            },
+        });
+        TrayItem {
+            id: TrayItemId(format!(":1.{name}/StatusNotifierItem")),
+            title: name.to_owned(),
+            icon: TrayIcon::None,
+            status: TrayStatus::Active,
+            menu: rows.collect(),
+        }
+    }
+
+    #[test]
+    fn a_tray_slot_lists_its_own_items_dbusmenu() {
+        let state = BarState {
+            app: None,
+            control_center: sill_settings::ControlCenterSettings::default(),
+            tray: Tray {
+                items: vec![
+                    tray_item("telegram", &["Open", "Quit"]),
+                    tray_item("fcitx", &["Mozc"]),
+                ],
+            },
+        };
+        let menu = |slot| match body(BarMenu::Tray(TraySlot(slot)), &state, &|_| None) {
+            PopupBody::Menu(entries) => titles(&entries),
+            other => panic!("not a menu: {other:?}"),
+        };
+        assert_eq!(menu(0), ["Open", "Quit"]);
+        assert_eq!(menu(1), ["Mozc"]);
+        assert!(menu(2).is_empty(), "an item that has gone has no rows");
     }
 }

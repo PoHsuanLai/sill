@@ -12,6 +12,9 @@ pub enum TrayCommand {
     Activate { item: TrayItemId, x: i32, y: i32 },
     /// Middle click (`SecondaryActivate`).
     SecondaryActivate { item: TrayItemId, x: i32, y: i32 },
+    /// Secondary click on an item with no dbusmenu (SNI `ContextMenu(x, y)`): the item shows its
+    /// own menu at the screen point.
+    ContextMenu { item: TrayItemId, x: i32, y: i32 },
     /// A menu row was picked (dbusmenu `Event(id, "clicked")`).
     MenuPick { item: TrayItemId, entry: i32 },
     /// The menu is about to show (dbusmenu `AboutToShow`), so the app can refresh it.
