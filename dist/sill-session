@@ -53,9 +53,10 @@ nested="${SILL_SESSION_NESTED:-}"
 
 # Copy each file under $data/cosmic that is missing from COSMIC's config dir. Never overwrites:
 # what COSMIC Settings (or the person) wrote stays. The compositor reads these at start, so this
-# runs before it. Seeds the shortcuts (dist/cosmic) and a macOS-like key repeat (400 ms, 10 per
-# second: com.system76.CosmicComp v1 xkb_config, which the compositor reads; the layout is left
-# empty, i.e. the system's).
+# runs before it. Seeds the shortcuts, a macOS-like key repeat (400 ms, 10 per second: xkb_config;
+# the layout is left empty, i.e. the system's) and natural scrolling for every pointer
+# (input_default). Per-device settings are the person's own hardware: `sill session import-input
+# --from-plasma` copies them from Plasma.
 seed_cosmic_config() {
     [ -d "$data/cosmic" ] || return 0
     dest="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic"

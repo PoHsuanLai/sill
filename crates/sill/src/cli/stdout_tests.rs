@@ -20,7 +20,10 @@ impl Write for Failing {
 #[test]
 fn text_reaches_the_writer() {
     let mut out = Vec::new();
-    assert!(matches!(emit(&mut out, "pci-0000:10:00.0\n"), Emitted::Done));
+    assert!(matches!(
+        emit(&mut out, "pci-0000:10:00.0\n"),
+        Emitted::Done
+    ));
     assert_eq!(out, b"pci-0000:10:00.0\n");
 }
 

@@ -12,6 +12,7 @@ mod command;
 mod debug;
 mod desktop;
 mod display;
+pub mod import_input;
 mod intents;
 mod keycap;
 mod launcher;

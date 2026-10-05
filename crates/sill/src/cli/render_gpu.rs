@@ -15,7 +15,7 @@ use std::process::ExitCode;
 
 use clap::Subcommand;
 
-use super::stdout;
+use super::{import_input, stdout};
 
 /// `sill session ...`: helpers for the login script (`dist/sill-session`).
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
@@ -27,6 +27,13 @@ pub enum SessionAction {
         #[arg(long, default_value = "/sys")]
         sysfs: PathBuf,
     },
+    /// Copy the per-device mouse and touchpad settings from Plasma's `kcminputrc` into COSMIC's
+    /// `input_devices` (`~/.config/cosmic/com.system76.CosmicComp/v1/input_devices`), keyed by
+    /// device name. Writes only when that file does not exist; otherwise it prints what a merge
+    /// would add and exits 2. Natural scroll, scroll factor and pointer acceleration are carried.
+    /// Note: cosmic-comp does not apply `scroll_factor` yet, so a scroll factor is saved but has
+    /// no effect until it does.
+    ImportInput(import_input::Args),
 }
 
 /// The value cosmic-comp's `COSMIC_RENDER_DEVICE` takes.
@@ -171,6 +178,7 @@ fn is_pci_address(name: &str) -> bool {
 /// starts either way.
 pub fn main(action: &SessionAction) -> ExitCode {
     match action {
+        SessionAction::ImportInput(args) => import_input::main(args),
         SessionAction::DetectGpu { sysfs } => {
             let verdict = decide(&scan(sysfs));
             eprintln!("sill: {}", verdict.reason());

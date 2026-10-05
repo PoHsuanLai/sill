@@ -133,6 +133,8 @@ thiserror = "2"
 jiff = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# cosmic-config's file format: `sill session import-input` writes it, and a test parses the seeds in dist/cosmic.
+ron = "0.12"
 futures-timer = "3"
 cssparser = "0.37"
 notify = "8.2"
