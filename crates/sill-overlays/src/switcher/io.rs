@@ -1,29 +1,30 @@
-//! The effects end of one switcher surface: follow the [`SwitcherLink`] for this output, step the
-//! pure [`step`] machine (`ds_behaviour::switcher`, the one the compositor runs too), and carry out what it says. A chord maps the surface (keyboard
-//! `Exclusive`, so it sees the release) and snapshots the apps; the show delay is quire's one timer
-//! (`ds::base::time::clock::sleep`); `Activate`, `Quit` and `HideApp` go to `Services.cosmic_wl`; a quit tile folds
-//! and is dropped at `settle(Anim::Fold)`; the machine back at `Hidden` unmaps at once. Hidden, no
+//! The effects end of one switcher surface: follow the [`SwitcherLink`] for this output, run the
+//! [`Opening`] machine (quire's switcher, the one the compositor runs too) on quire's
+//! `use_machine`, and carry out what it says. A chord maps the surface (keyboard `Exclusive`, so
+//! it sees the release) and snapshots the apps; the machine reads the apps and the modifiers'
+//! state as its context at every step, and the show delay is its own deadline, so there is no
+//! timer here; `Activate`, `Quit` and `HideApp` go to `Services.cosmic_wl`; a quit tile folds and
+//! is dropped at `settle(Anim::Fold)`; the machine back at `Hidden` unmaps at once. Hidden, no
 //! task runs and nothing asks for a frame.
 
 use ds::base::time::clock::sleep;
-use std::time::Duration;
 
 use super::apps::{SwitcherApp, switcher_apps};
-use dioxus::core::Task;
+use super::opening::{Facts, Opening};
 use dioxus::prelude::*;
+use ds::machine::{MachineRef, MachineState, use_machine_in, use_machine_state};
 use ds::prelude::*;
 use ds_shell::switcher::app_switcher::AppKey;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_launcher::AppId;
 use sill_ui_kit::services::Services;
 
-use super::hold::{Hold, Watch, chord_input, tick_input};
+use super::hold::{Hold, Watch, chord_input};
 use super::keys::{Chord, chord_after_keyup, sw_key};
-use super::model::{AppOut, after, heading};
+use super::model::{AppOut, heading};
 use super::session::Session;
 use super::tiles::index_of;
-use ds::base::time::stamp::FrameClock;
-use ds_behaviour::switcher::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
+use ds_behaviour::switcher::{Phase, SwIn, SwKey, SwOut, SwitcherParams};
 use sill_ui_kit::links::Dir;
 use sill_ui_kit::links::{AskSerial, SwitcherAsk, SwitcherLink};
 
@@ -31,16 +32,21 @@ use sill_ui_kit::links::{AskSerial, SwitcherAsk, SwitcherLink};
 /// handler and task holds it.
 #[derive(Clone, Copy, PartialEq)]
 pub(super) struct SwitcherCtx {
-    pub state: Signal<Switcher>,
+    pub state: Signal<Opening>,
     pub session: Signal<Option<Session>>,
-    params: CopyValue<SwitcherParams>,
-    level: CopyValue<MotionLevel>,
-    clock: CopyValue<FrameClock>,
-    ticking: CopyValue<Option<Task>>,
+    machine: MachineRef<Opening>,
     surface: CopyValue<Option<SurfaceHandle>>,
     services: CopyValue<Services>,
     /// What the modifiers have told this opening (`hold.rs`).
     hold: CopyValue<Hold>,
+}
+
+/// What carrying out the machine's outputs reads: the opening, the services and the motion level.
+#[derive(Clone, Copy)]
+struct Effects {
+    session: Signal<Option<Session>>,
+    services: CopyValue<Services>,
+    level: CopyValue<MotionLevel>,
 }
 
 /// Run `output`'s switcher from `link` with `params` (read at each input) and `level` (for the
@@ -56,18 +62,40 @@ pub(super) fn use_switcher(
     let mut seen = use_hook(|| CopyValue::new(link.latest().map(|asked| asked.serial)));
     let services = sill_ui_kit::hooks::use_services();
     let surface = try_use_context::<SurfaceHandle>();
-    let ctx = use_hook(|| SwitcherCtx {
-        state: Signal::new(Switcher::Hidden),
-        session: Signal::new(None),
-        params: CopyValue::new(params),
-        level: CopyValue::new(level),
-        clock: CopyValue::new(FrameClock::started()),
-        ticking: CopyValue::new(None),
-        surface: CopyValue::new(surface),
-        services: CopyValue::new(services),
-        hold: CopyValue::new(Hold::default()),
-    });
-    ctx.keep(params, level);
+    let session = use_signal(|| None::<Session>);
+    let hold = use_hook(|| CopyValue::new(Hold::default()));
+    let services = use_hook(|| CopyValue::new(services));
+    let mut kept = use_hook(|| CopyValue::new(level));
+    if *kept.peek() != level {
+        kept.set(level);
+    }
+    let held: MachineState<Opening> = use_machine_state(|_| Opening::default());
+    let effects = Effects {
+        session,
+        services,
+        level: kept,
+    };
+    let machine = use_machine_in(
+        held,
+        params,
+        move || Facts {
+            apps: session
+                .peek()
+                .as_ref()
+                .map(Session::ids)
+                .unwrap_or_default(),
+            hold: *hold.peek(),
+        },
+        move |out, machine| effects.carry(out, machine),
+    );
+    let ctx = SwitcherCtx {
+        state: held.state,
+        session,
+        machine,
+        surface: use_hook(|| CopyValue::new(surface)),
+        services,
+        hold,
+    };
     use_effect(move || {
         let Some(asked) = latest.read().clone() else {
             return;
@@ -80,145 +108,38 @@ pub(super) fn use_switcher(
             ctx.ask(asked.serial, asked.ask);
         }
     });
+    // The show delay's wake can end the opening with no input from here (a tap that was never
+    // read held): back at `Hidden`, close it.
+    use_effect(move || {
+        if ctx.state.read().phase() == Phase::Hidden {
+            ctx.close();
+        }
+    });
     ctx
 }
 
-impl SwitcherCtx {
-    /// A settings change applies from the next input.
-    fn keep(self, params: SwitcherParams, level: MotionLevel) {
-        let (mut kept, mut kept_level) = (self.params, self.level);
-        if *kept.peek() != params {
-            kept.set(params);
-        }
-        if *kept_level.peek() != level {
-            kept_level.set(level);
-        }
-    }
-
-    /// One ask from the daemon.
-    pub fn ask(self, serial: AskSerial, ask: SwitcherAsk) {
-        match ask {
-            SwitcherAsk::Chord(dir) => {
-                if *self.state.peek() == Switcher::Hidden {
-                    let apps = self.live();
-                    if apps.is_empty() {
-                        return;
-                    }
-                    self.open(Session::live(serial, apps));
-                }
-                let (state, hold) = (*self.state.peek(), *self.hold.peek());
-                self.input(chord_input(state, hold.chord, dir));
-            }
-            SwitcherAsk::Cancel => self.input(SwIn::Key(SwKey::Escape)),
-            SwitcherAsk::Commit => self.input(SwIn::ModifierReleased),
-            SwitcherAsk::Fake(ids) => self.fake(Session::made_up(serial, ids)),
-        }
-    }
-
-    /// Open on made-up apps, shown at once: the chord and the show delay's tick in one go.
-    fn fake(self, session: Session) {
-        self.close();
-        let ids = session.ids();
-        self.open(session);
-        let (now, params) = (self.clock.peek().now(), *self.params.peek());
-        let (armed, first) = step(
-            Switcher::Hidden,
-            SwIn::Chord(heading(Dir::Next)),
-            now,
-            &ids,
-            &params,
-        );
-        let later = after(now, params.show_delay);
-        let (shown, then) = step(armed, SwIn::Tick, later, &ids, &params);
-        let outs = first.into_iter().chain(then);
-        self.apply(
-            shown,
-            outs.filter(|out| !matches!(out, SwOut::RequestTick(_)))
-                .collect(),
-        );
-    }
-
-    /// Start an opening: its apps, and the surface mapped so it takes the keyboard.
-    fn open(self, session: Session) {
-        let mut hold = self.hold;
-        hold.set(Hold::default());
-        let mut stored = self.session;
-        stored.set(Some(session));
-        self.visibility(Visibility::Shown);
-    }
-
-    /// One input through the machine.
-    pub fn input(self, input: SwIn) {
-        let ids = self
-            .session
-            .peek()
-            .as_ref()
-            .map(Session::ids)
-            .unwrap_or_default();
-        let now = self.clock.peek().now();
-        let (next, outs) = step(*self.state.peek(), input, now, &ids, &self.params.peek());
-        self.apply(next, outs);
-    }
-
-    fn apply(self, next: Switcher, outs: Vec<AppOut>) {
+impl Effects {
+    /// Carry out one output of the machine.
+    fn carry(self, out: AppOut, machine: MachineRef<Opening>) {
         let session = self.session.peek().clone();
         if let Some(session) = &session {
-            let live = self.live();
+            let live = live(self.services);
             let wl = self.services.peek().cosmic_wl.control.clone();
-            for command in outs.iter().flat_map(|out| session.commands(out, &live)) {
+            for command in session.commands(&out, &live) {
                 let _ = wl.send(command);
             }
         }
-        let mut state = self.state;
-        state.set(next);
-        for out in outs {
-            match out {
-                SwOut::RequestTick(at) => self.tick_at(at.since(self.clock.peek().now())),
-                SwOut::Quit(app) => self.fold(app),
-                SwOut::Show | SwOut::Hide | SwOut::Select(_) => {}
-                SwOut::Activate(_) | SwOut::HideApp(_) => {}
-                // `sw_key` maps no Up or Down, so the machine never asks for App Exposé.
-                SwOut::Expose(_) => {}
-            }
+        match out {
+            SwOut::Quit(app) => self.fold(app, machine),
+            SwOut::Show | SwOut::Hide | SwOut::Select(_) => {}
+            SwOut::Activate(_) | SwOut::HideApp(_) => {}
+            // `sw_key` maps no Up or Down, so the machine never asks for App Exposé.
+            SwOut::Expose(_) => {}
         }
-        if next == Switcher::Hidden {
-            self.close();
-        }
-    }
-
-    /// Back to nothing: no timer, no opening, the surface unmapped.
-    fn close(self) {
-        let mut ticking = self.ticking;
-        if let Some(task) = ticking.take() {
-            task.cancel();
-        }
-        let (mut state, mut session) = (self.state, self.session);
-        if session.peek().is_some() {
-            session.set(None);
-            self.visibility(Visibility::Hidden);
-        }
-        if *state.peek() != Switcher::Hidden {
-            state.set(Switcher::Hidden);
-        }
-    }
-
-    /// The machine's `Tick` in `ms`.
-    fn tick_at(self, ms: u64) {
-        let mut ticking = self.ticking;
-        if let Some(task) = ticking.take() {
-            task.cancel();
-        }
-        ticking.set(Some(spawn(async move {
-            sleep(Duration::from_millis(ms)).await;
-            let mut ticking = self.ticking;
-            ticking.set(None);
-            let (state, hold) = (*self.state.peek(), *self.hold.peek());
-            self.input(tick_input(state, hold));
-        })));
     }
 
     /// Q: `app`'s tile fades out, then goes; the panel stays (closing when none is left).
-    fn fold(self, app: AppId) {
+    fn fold(self, app: AppId, machine: MachineRef<Opening>) {
         let mut session = self.session;
         let Some(serial) = session.peek().as_ref().map(|s| s.serial) else {
             return;
@@ -232,8 +153,79 @@ impl SwitcherCtx {
                 return;
             }
             session.with_mut(|s| *s = s.take().map(|s| s.gone(&app)));
-            self.input(SwIn::Tick);
+            machine.send(SwIn::Elapsed);
         });
+    }
+}
+
+/// The compositor's apps now.
+fn live(services: CopyValue<Services>) -> Vec<SwitcherApp> {
+    let services = services.peek();
+    let toplevels = services.cosmic_wl.state.borrow().toplevels.clone();
+    let index = services.apps.state.borrow().clone();
+    switcher_apps(&toplevels, &index)
+}
+
+impl SwitcherCtx {
+    /// One ask from the daemon.
+    pub fn ask(self, serial: AskSerial, ask: SwitcherAsk) {
+        match ask {
+            SwitcherAsk::Chord(dir) => {
+                if self.state.peek().phase() == Phase::Hidden {
+                    let apps = self.live();
+                    if apps.is_empty() {
+                        return;
+                    }
+                    self.open(Session::live(serial, apps));
+                }
+                let (phase, hold) = (self.state.peek().phase(), *self.hold.peek());
+                self.input(chord_input(phase, hold.chord, dir));
+            }
+            SwitcherAsk::Cancel => self.input(SwIn::Key(SwKey::Escape)),
+            SwitcherAsk::Commit => self.input(SwIn::ModifierReleased),
+            SwitcherAsk::Fake(ids) => self.fake(Session::made_up(serial, ids)),
+        }
+    }
+
+    /// Open on made-up apps, shown at once: the chord, and the panel up without the show delay.
+    fn fake(self, session: Session) {
+        self.close();
+        self.open(session);
+        self.machine.send(SwIn::Chord(heading(Dir::Next)));
+        let mut state = self.state;
+        let armed = state.peek().phase();
+        if let Phase::Armed { sel, .. } = armed {
+            state.set(Opening::in_phase(Phase::Shown { sel }));
+        }
+    }
+
+    /// Start an opening: its apps, and the surface mapped so it takes the keyboard.
+    fn open(self, session: Session) {
+        let mut hold = self.hold;
+        hold.set(Hold::default());
+        let mut stored = self.session;
+        stored.set(Some(session));
+        self.visibility(Visibility::Shown);
+    }
+
+    /// One input through the machine; back at `Hidden`, the opening closes at once.
+    pub fn input(self, input: SwIn) {
+        self.machine.send(input);
+        if self.state.peek().phase() == Phase::Hidden {
+            self.close();
+        }
+    }
+
+    /// Back to nothing: no opening, the surface unmapped. The machine's timer follows its state.
+    fn close(self) {
+        let (mut state, mut session) = (self.state, self.session);
+        if session.peek().is_some() {
+            session.set(None);
+            self.visibility(Visibility::Hidden);
+        }
+        if state.peek().phase() != Phase::Hidden {
+            state.set(Opening::default());
+        }
     }
 
     fn visibility(self, visibility: Visibility) {
@@ -244,10 +236,7 @@ impl SwitcherCtx {
 
     /// The compositor's apps now.
     fn live(self) -> Vec<SwitcherApp> {
-        let services = self.services.peek();
-        let toplevels = services.cosmic_wl.state.borrow().toplevels.clone();
-        let index = services.apps.state.borrow().clone();
-        switcher_apps(&toplevels, &index)
+        live(self.services)
     }
 
     /// A key-down on the surface: the switcher's keys go to the machine and never to Blitz

@@ -40,12 +40,10 @@ impl Default for GateParams {
     }
 }
 
-/// Where the person's answer stands.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Where the person's answer stands. A gate starts [`AnswerGate::arming`]: the sheet's first
+/// draw is its first state, so it has no state for a sheet not yet on screen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnswerGate {
-    /// Not on screen yet.
-    #[default]
-    Unshown,
     /// On screen, not taking answers until `until`.
     Arming { until: Stamp },
     /// Taking answers.
@@ -61,8 +59,6 @@ pub enum AnswerGate {
 pub enum GateIn {
     /// The clock: the time the gate asked to be woken at has come.
     Elapsed,
-    /// The sheet appeared.
-    Shown,
     /// A button was pressed.
     Press(SheetChoice),
     /// The Allow button of a destructive action went down.
@@ -87,6 +83,13 @@ pub enum GateOut {
 }
 
 impl AnswerGate {
+    /// The gate for a sheet that appears at `at`: arming for the arming delay.
+    pub fn arming(at: Stamp, params: &GateParams) -> AnswerGate {
+        AnswerGate::Arming {
+            until: at.after(params.arm_ms),
+        }
+    }
+
     /// Whether the buttons take input.
     pub fn takes_input(&self) -> bool {
         matches!(self, AnswerGate::Armed | AnswerGate::Holding { .. })
@@ -97,18 +100,19 @@ impl Machine for AnswerGate {
     type In = GateIn;
     type Out = GateOut;
     type Params = GateParams;
+    type Ctx = ();
 
-    fn step(self, input: GateIn, at: Stamp, params: &GateParams) -> (AnswerGate, Vec<GateOut>) {
+    fn step(
+        self,
+        input: GateIn,
+        at: Stamp,
+        params: &GateParams,
+        _: &(),
+    ) -> (AnswerGate, Vec<GateOut>) {
         let answer = |choice| (AnswerGate::Answered, vec![GateOut::Answer(choice)]);
         match (self, input) {
             (AnswerGate::Answered, _) => (self, Vec::new()),
             (_, GateIn::Escape) => answer(SheetChoice::Deny),
-            (AnswerGate::Unshown, GateIn::Shown) => (
-                AnswerGate::Arming {
-                    until: at.after(params.arm_ms),
-                },
-                Vec::new(),
-            ),
             (AnswerGate::Arming { until }, GateIn::Elapsed) if at >= until => {
                 (AnswerGate::Armed, Vec::new())
             }
@@ -132,7 +136,7 @@ impl Machine for AnswerGate {
     fn wake(&self) -> Option<Stamp> {
         match self {
             AnswerGate::Arming { until } | AnswerGate::Holding { until, .. } => Some(*until),
-            AnswerGate::Unshown | AnswerGate::Armed | AnswerGate::Answered => None,
+            AnswerGate::Armed | AnswerGate::Answered => None,
         }
     }
 }

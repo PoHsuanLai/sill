@@ -400,6 +400,8 @@ name = "anyview-platform"
 version = "0.1.0"
 dependencies = [
  "anyview-core",
+ "anyview-plugin",
+ "anyview-plugin-protocol",
  "dirs 6.0.0",
  "ds-core",
  "freedesktop-desktop-entry",
@@ -408,10 +410,31 @@ dependencies = [
  "memfd",
  "percent-encoding",
  "png",
+ "rustix",
  "serde_json",
  "thiserror 2.0.21",
  "tokio",
  "zbus",
+]
+
+[[package]]
+name = "anyview-plugin"
+version = "0.1.0"
+dependencies = [
+ "anyview-core",
+ "anyview-plugin-protocol",
+ "serde",
+ "thiserror 2.0.21",
+ "toml",
+]
+
+[[package]]
+name = "anyview-plugin-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

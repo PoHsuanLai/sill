@@ -30,8 +30,8 @@ type Case = (
 
 #[test]
 fn the_gate_arms_then_answers_by_press_or_hold_and_escape_always_denies() {
-    use AnswerGate::{Answered, Armed, Arming, Holding, Unshown};
-    use GateIn::{Elapsed, Escape, HoldBegan, HoldEnded, Press, Shown};
+    use AnswerGate::{Answered, Armed, Arming, Holding};
+    use GateIn::{Elapsed, Escape, HoldBegan, HoldEnded, Press};
     let arming = Arming { until: Stamp(600) };
     let holding = Holding {
         since: Stamp(1_000),
@@ -39,7 +39,6 @@ fn the_gate_arms_then_answers_by_press_or_hold_and_escape_always_denies() {
     };
     #[rustfmt::skip]
     let cases: &[Case] = &[
-        ("shown starts the arming",        Unshown, Shown,                              100,   arming, NONE,      Some(Stamp(600))),
         ("a press while arming is lost",   arming,  Press(SheetChoice::AllowOnce),      300,   arming, NONE,      Some(Stamp(600))),
         ("a hold while arming is lost",    arming,  HoldBegan,                          300,   arming, NONE,      Some(Stamp(600))),
         ("an early wake changes nothing",  arming,  Elapsed,                            599,   arming, NONE,      Some(Stamp(600))),
@@ -56,10 +55,9 @@ fn the_gate_arms_then_answers_by_press_or_hold_and_escape_always_denies() {
         ("escape stops a hold with a no",  holding, Escape,                             1_500, Answered, DENY, None),
         ("an answered gate is done",       Answered, Press(SheetChoice::AllowOnce),     3_000, Answered, NONE,    None),
         ("an answered gate stays done",    Answered, Escape,                            3_000, Answered, NONE,    None),
-        ("shown twice does not re-arm",    Armed,   Shown,                              900,   Armed,  NONE,      None),
     ];
     for (name, from, input, at, state, outs, wake) in cases {
-        let (next, out) = from.step(*input, Stamp(*at), &PARAMS);
+        let (next, out) = from.step(*input, Stamp(*at), &PARAMS, &());
         assert_eq!(next, *state, "{name}: state");
         assert_eq!(out.as_slice(), *outs, "{name}: outputs");
         assert_eq!(next.wake(), *wake, "{name}: wake");
@@ -67,9 +65,15 @@ fn the_gate_arms_then_answers_by_press_or_hold_and_escape_always_denies() {
 }
 
 #[test]
+fn a_sheet_that_appears_arms_for_the_arming_delay() {
+    let gate = AnswerGate::arming(Stamp(100), &PARAMS);
+    assert_eq!(gate, AnswerGate::Arming { until: Stamp(600) });
+    assert_eq!(gate.wake(), Some(Stamp(600)));
+}
+
+#[test]
 fn only_an_armed_or_holding_gate_takes_input() {
     for (gate, takes) in [
-        (AnswerGate::Unshown, false),
         (AnswerGate::Arming { until: Stamp(1) }, false),
         (AnswerGate::Armed, true),
         (

@@ -97,11 +97,7 @@ impl Session {
             AppOut::Quit(id) => (id, quit),
             AppOut::HideApp(id) => (id, hide),
             // `sw_key` maps no Up or Down, so the machine never asks for App Exposé.
-            AppOut::Show
-            | AppOut::Hide
-            | AppOut::Select(_)
-            | AppOut::Expose(_)
-            | AppOut::RequestTick(_) => {
+            AppOut::Show | AppOut::Hide | AppOut::Select(_) | AppOut::Expose(_) => {
                 return Vec::new();
             }
         };

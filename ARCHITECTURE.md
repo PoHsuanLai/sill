@@ -401,17 +401,21 @@ size that changed is re-applied, by `daemon/spawn.rs`.
 
 ### `Machine` (quire: `ds::base::machine`, hook `ds::machine`)
 
-The trait, `Elapsed`, `use_machine` and `MachineRef` are quire's, with the same signatures
-(`step(self, In, at: Stamp, &Params) -> (Self, Vec<Out>)`, `wake(&self) -> Option<Stamp>`; see
-quire ARCHITECTURE.md section 5), and so are `Stamp` (whole milliseconds from an origin) and the
+The trait, `Elapsed`, `use_machine`, `use_machine_in` and `MachineRef` are quire's, with the same
+signatures (`step(self, In, at: Stamp, &Params, &Ctx) -> (Self, Vec<Out>)`, `wake(&self) ->
+Option<Stamp>`, no `Default`: the surface seeds the first state; `Ctx` is what a step reads from
+outside the machine, read by a closure at every step; see quire ARCHITECTURE.md section 5), and so are `Stamp` (whole milliseconds from an origin) and the
 `FrameClock` that makes one from the thread's clock, which a harness's virtual clock drives. sill
 keeps neither a trait nor a stamp of its own.
 
 Intended implementors: dock hover/press/reveal/label/bounce, switcher, osd, banners deck, hot
 corners, screenshot thumb, power menu, polkit stage, notification-center keys, launcher keys. One
 per state that changes over time or by input. A state that only maps values is a free `step`.
-Today these surfaces keep a pure `step` taking a `Stamp` and run their own timers in `io.rs`;
-none implements the trait yet, and each moves to `use_machine` when it is next touched.
+Implemented so far: the confirm sheet's `AnswerGate` (seeded arming), the hot corner (quire's
+`ds_behaviour::hot_corner::Corner`, run by `use_machine`), and the switcher (`switcher/opening.rs`
+wraps quire's `Switcher` to add the modifiers' state to its context). The other surfaces keep a
+pure `step` taking a `Stamp` and run their own timers in `io.rs`; each moves to `use_machine`
+when it is next touched.
 
 ### `CcModule` (`sill_bar::control_center::modules`)
 

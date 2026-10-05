@@ -15,7 +15,7 @@ use shell_host::{Modifier, Modifiers};
 
 use super::keys::Chord;
 use super::model::heading;
-use ds_behaviour::switcher::{SwIn, SwKey, Switcher};
+use ds_behaviour::switcher::{Phase, SwIn, SwKey};
 use sill_ui_kit::links::Dir;
 
 /// Whether an opening follows the modifiers: on a host surface, for the compositor's apps
@@ -37,10 +37,10 @@ pub struct Hold {
 
 /// The machine's input when the show delay's timer fires in `state`: followed and never read
 /// held, the opening was a tap (the release); otherwise the tick.
-pub fn tick_input(state: Switcher, hold: Hold) -> SwIn {
+pub fn tick_input(state: Phase, hold: Hold) -> SwIn {
     match (state, hold.watch, hold.chord) {
-        (Switcher::Armed { .. }, Watch::On, None | Some(Chord::Released)) => SwIn::ModifierReleased,
-        _ => SwIn::Tick,
+        (Phase::Armed { .. }, Watch::On, None | Some(Chord::Released)) => SwIn::ModifierReleased,
+        _ => SwIn::Elapsed,
     }
 }
 
@@ -56,10 +56,10 @@ pub fn chord_of(modifiers: &Modifiers) -> Chord {
 /// The machine's input for a chord toward `dir` in `state`, `hold` being what the modifiers
 /// said since the opening (`None`: nothing yet). Armed with the chord known held, it is a step
 /// (the armed machine steps on a key); otherwise the chord itself.
-pub fn chord_input(state: Switcher, hold: Option<Chord>, dir: Dir) -> SwIn {
+pub fn chord_input(state: Phase, hold: Option<Chord>, dir: Dir) -> SwIn {
     match (state, hold, dir) {
-        (Switcher::Armed { .. }, Some(Chord::Held), Dir::Next) => SwIn::Key(SwKey::Tab),
-        (Switcher::Armed { .. }, Some(Chord::Held), Dir::Prev) => SwIn::Key(SwKey::ShiftTab),
+        (Phase::Armed { .. }, Some(Chord::Held), Dir::Next) => SwIn::Key(SwKey::Tab),
+        (Phase::Armed { .. }, Some(Chord::Held), Dir::Prev) => SwIn::Key(SwKey::ShiftTab),
         _ => SwIn::Chord(heading(dir)),
     }
 }
@@ -72,7 +72,7 @@ mod tests {
     use super::{Hold, Watch, chord_input, chord_of, tick_input};
     use crate::switcher::keys::Chord;
     use crate::switcher::model::heading;
-    use ds_behaviour::switcher::{SwIn, SwKey, Switcher};
+    use ds_behaviour::switcher::{Phase, SwIn, SwKey};
     use sill_ui_kit::links::Dir;
 
     #[test]
@@ -98,8 +98,8 @@ mod tests {
 
     #[test]
     fn the_delay_ends_a_tap_that_never_read_held() {
-        let armed = Switcher::Armed {
-            since: Stamp(0),
+        let armed = Phase::Armed {
+            until: Stamp(150),
             sel: 1,
         };
         let hold = |watch, chord| Hold { watch, chord };
@@ -110,12 +110,12 @@ mod tests {
                 hold(Watch::On, Some(Chord::Released)),
                 SwIn::ModifierReleased,
             ),
-            (armed, hold(Watch::On, Some(Chord::Held)), SwIn::Tick),
-            (armed, hold(Watch::Off, None), SwIn::Tick),
+            (armed, hold(Watch::On, Some(Chord::Held)), SwIn::Elapsed),
+            (armed, hold(Watch::Off, None), SwIn::Elapsed),
             (
-                Switcher::Shown { sel: 1 },
+                Phase::Shown { sel: 1 },
                 hold(Watch::On, None),
-                SwIn::Tick,
+                SwIn::Elapsed,
             ),
         ];
         for (state, hold, want) in cases {
@@ -125,8 +125,8 @@ mod tests {
 
     #[test]
     fn a_chord_known_held_steps_while_armed() {
-        let armed = Switcher::Armed {
-            since: Stamp(0),
+        let armed = Phase::Armed {
+            until: Stamp(150),
             sel: 1,
         };
         let cases = [
@@ -145,13 +145,13 @@ mod tests {
                 SwIn::Chord(heading(Dir::Next)),
             ),
             (
-                Switcher::Hidden,
+                Phase::Hidden,
                 Some(Chord::Held),
                 Dir::Next,
                 SwIn::Chord(heading(Dir::Next)),
             ),
             (
-                Switcher::Shown { sel: 1 },
+                Phase::Shown { sel: 1 },
                 Some(Chord::Held),
                 Dir::Prev,
                 SwIn::Chord(heading(Dir::Prev)),

@@ -23,7 +23,7 @@ use super::layer::PANEL_ID;
 use super::session::{Session, Windows};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
-use ds_behaviour::switcher::Switcher;
+use ds_behaviour::switcher::Phase;
 use sill_services::AppsService;
 use sill_ui_kit::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
 use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
@@ -57,10 +57,10 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
     };
     let link = use_context::<SwitcherLink>();
     let ctx = use_switcher(&link, output.id, file.switcher.params(), level);
-    let state = (ctx.state)();
+    let state = (ctx.state)().phase();
     let session = (ctx.session)();
     let row = match (state, &session) {
-        (Switcher::Shown { sel }, Some(session)) => Some(row(session, sel, &icons)),
+        (Phase::Shown { sel }, Some(session)) => Some(row(session, sel, &icons)),
         _ => None,
     };
     let host = try_use_context::<SurfaceHandle>();
