@@ -12,6 +12,8 @@ use ds_lint::{UserStyleNote, user_stylesheet};
 use ds_settings::{ConfigRoot, Store, UserStyle};
 use sill_settings::APP;
 
+use super::stdout::{self, Emitted};
+
 /// `sill style ...`.
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
 pub enum StyleAction {
@@ -96,11 +98,15 @@ pub fn main(action: &StyleAction) -> ExitCode {
         Ok(bytes) => match String::from_utf8(bytes) {
             Ok(css) => {
                 let report = check(&css);
-                report
+                let text: String = report
                     .lines(&name)
                     .iter()
-                    .for_each(|line| println!("{line}"));
-                report.exit_code()
+                    .map(|line| format!("{line}\n"))
+                    .collect();
+                match stdout::print(&text) {
+                    Emitted::Failed(_) => ExitCode::FAILURE,
+                    Emitted::Done | Emitted::ReaderGone => report.exit_code(),
+                }
             }
             Err(error) => {
                 eprintln!("sill: {name}: not UTF-8, the daemon keeps the last good text: {error}");
@@ -108,8 +114,7 @@ pub fn main(action: &StyleAction) -> ExitCode {
             }
         },
         Err(error) if error.kind() == ErrorKind::NotFound && matches!(source, Source::Own(_)) => {
-            println!("{name}: no file, an empty style");
-            ExitCode::SUCCESS
+            stdout::print(&format!("{name}: no file, an empty style\n")).exit_code()
         }
         Err(error) => {
             eprintln!("sill: {name}: {error}");

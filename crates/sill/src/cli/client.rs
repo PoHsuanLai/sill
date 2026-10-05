@@ -5,6 +5,7 @@ use std::io::BufReader;
 use std::process::ExitCode;
 use std::time::Duration;
 
+use super::stdout;
 use sill_ipc::error::IpcError;
 use sill_ipc::line::{encode, read_message, write_message};
 use sill_ipc::request::Request;
@@ -21,10 +22,7 @@ pub fn main(request: &Request) -> ExitCode {
             ExitCode::FAILURE
         }
         Ok(response) => match encode(&response) {
-            Ok(line) => {
-                print!("{line}");
-                ExitCode::SUCCESS
-            }
+            Ok(line) => stdout::print(&line).exit_code(),
             Err(error) => {
                 eprintln!("sill: encoding the reply: {error}");
                 ExitCode::FAILURE

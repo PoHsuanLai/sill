@@ -20,6 +20,7 @@ mod notifications;
 pub mod render_gpu;
 mod request;
 mod session;
+pub mod stdout;
 pub mod style;
 #[cfg(test)]
 mod tests;

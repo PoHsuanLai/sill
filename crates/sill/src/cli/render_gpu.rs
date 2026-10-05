@@ -15,6 +15,8 @@ use std::process::ExitCode;
 
 use clap::Subcommand;
 
+use super::stdout;
+
 /// `sill session ...`: helpers for the login script (`dist/sill-session`).
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
 pub enum SessionAction {
@@ -165,16 +167,17 @@ fn is_pci_address(name: &str) -> bool {
 }
 
 /// Run `action`: the device on stdout (nothing when there is no clear choice), the reason on
-/// stderr. Always exits 0: the session starts either way.
+/// stderr. Exits 0 whatever the verdict, and when the reader of stdout is gone: the session
+/// starts either way.
 pub fn main(action: &SessionAction) -> ExitCode {
     match action {
         SessionAction::DetectGpu { sysfs } => {
             let verdict = decide(&scan(sysfs));
             eprintln!("sill: {}", verdict.reason());
-            if let Some(device) = verdict.device() {
-                println!("{}", device.0);
+            match verdict.device() {
+                Some(device) => stdout::print(&format!("{}\n", device.0)).exit_code(),
+                None => ExitCode::SUCCESS,
             }
-            ExitCode::SUCCESS
         }
     }
 }

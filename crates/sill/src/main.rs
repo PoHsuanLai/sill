@@ -13,10 +13,7 @@ fn main() -> ExitCode {
     let cli = cli::Cli::parse();
     if let Some(dir) = &cli.write_schema {
         return match sill_settings::schema().write_to(dir) {
-            Ok(path) => {
-                println!("{}", path.display());
-                ExitCode::SUCCESS
-            }
+            Ok(path) => sill::cli::stdout::print(&format!("{}\n", path.display())).exit_code(),
             Err(error) => {
                 eprintln!("sill: writing the schema to {}: {error}", dir.display());
                 ExitCode::FAILURE
