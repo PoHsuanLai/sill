@@ -16,7 +16,7 @@ pub const HOT_CORNERS_CSS: &str = include_str!("style.css");
 /// `corner` of `output`.
 pub(super) fn hot_corner(output: OutputInfo, corner: Corner) -> Element {
     let entering = use_hot_corner(output.id, corner);
-    let leaving = entering.clone();
+    let leaving = entering;
     let surface = use_root_style().surface;
     rsx! {
         AppStyle { css: HOT_CORNERS_CSS }
