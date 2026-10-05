@@ -200,6 +200,15 @@ docket-dbus = { path = "../docket/crates/docket-dbus" }
 docket-client = { path = "../docket/crates/docket-client", features = ["dbus"] }
 prov = { path = "../porter/crates/prov" }
 porter-core = { path = "../porter/crates/porter-core" }
+# The companion's wire (the bodies of `org.quire.Companion1`: asks, answers, cards, plans, forms),
+# cuad's bus bodies and D-Bus proxies (run states, outcomes, `Cua1.Manager`/`Run`) and memoryd's
+# vocabulary and proxies (`MemoryItem`, the timeline): serde data and zbus declarations only, the
+# same sibling checkouts as `docket-core`; MIT OR Apache-2.0.
+companion-wire = { path = "../docket/crates/companion-wire" }
+cua-bus = { path = "../cua/crates/cua-bus" }
+cua-dbus = { path = "../cua/crates/cua-dbus" }
+almanac-core = { path = "../almanac/crates/almanac-core" }
+almanac-dbus = { path = "../almanac/crates/almanac-dbus" }
 
 
 [workspace.lints.rust]

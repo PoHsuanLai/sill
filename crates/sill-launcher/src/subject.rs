@@ -8,6 +8,9 @@
 use std::fmt;
 use std::path::PathBuf;
 
+use almanac_core::MemoryItem;
+use docket_core::{EntityRef, UndoId};
+use prov::{RunId, TaskId};
 use serde::{Deserialize, Serialize};
 
 use crate::ids::{AppId, ClipKey};
@@ -30,6 +33,16 @@ pub enum Subject {
     Emoji(EmojiFacts),
     /// A web search (the web fallback).
     Web(WebFacts),
+    /// A thing an app indexed (the things provider).
+    Entity(EntityRef),
+    /// The companion's answer to a prompt, by its task (the companion provider).
+    Answer(TaskId),
+    /// A computer-use run (the runs provider).
+    Run(RunId),
+    /// A row of the undo journal (the companion provider's recent activity).
+    Activity(UndoId),
+    /// A fact or an event the companion remembers (the memory provider).
+    Memory(MemoryItem),
 }
 
 /// A file as a file index reports it.

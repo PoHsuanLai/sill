@@ -48,6 +48,10 @@ fn key_prefix(provider: ProviderKind) -> &'static str {
         ProviderKind::Clipboard => "clipboard",
         ProviderKind::Emoji => "emoji",
         ProviderKind::Web => "web",
+        ProviderKind::Things => "things",
+        ProviderKind::Companion => "companion",
+        ProviderKind::Runs => "runs",
+        ProviderKind::Memory => "memory",
     }
 }
 
@@ -122,7 +126,12 @@ pub enum Counting {
 /// the query, which is not a row's identity).
 pub fn counting(provider: ProviderKind) -> Counting {
     match provider {
-        ProviderKind::Clipboard => Counting::NotCounted,
+        // An answer, a run and a memory row name something that ends or is forgotten; choosing
+        // one is not a habit to rank by.
+        ProviderKind::Clipboard
+        | ProviderKind::Companion
+        | ProviderKind::Runs
+        | ProviderKind::Memory => Counting::NotCounted,
         ProviderKind::Apps
         | ProviderKind::Windows
         | ProviderKind::Calculator
@@ -130,6 +139,7 @@ pub fn counting(provider: ProviderKind) -> Counting {
         | ProviderKind::System
         | ProviderKind::Files
         | ProviderKind::Emoji
+        | ProviderKind::Things
         | ProviderKind::Web => Counting::Counted,
     }
 }

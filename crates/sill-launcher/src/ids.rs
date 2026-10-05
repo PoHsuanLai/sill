@@ -25,13 +25,21 @@ pub enum ProviderKind {
     Emoji,
     /// "Search the web for …": the fallback row.
     Web,
+    /// Things apps index (mail, contacts, events), found through intentd's shadow index.
+    Things,
+    /// The companion: the Ask row, the live answer and recent activity.
+    Companion,
+    /// The computer-use runs now and just ended.
+    Runs,
+    /// What the companion remembers: the memory timeline.
+    Memory,
 }
 
 impl ProviderKind {
     /// Every provider, in Tab order. Files, Clipboard, Emoji and Web follow the first five, so a
     /// tie between rows of equal score still goes to the older kinds first
-    /// (`sill_model::results::step`).
-    pub const ALL: [ProviderKind; 9] = [
+    /// (`sill_model::results::step`); Things, Companion, Runs and Memory come last.
+    pub const ALL: [ProviderKind; 13] = [
         ProviderKind::Apps,
         ProviderKind::Windows,
         ProviderKind::Calculator,
@@ -41,6 +49,10 @@ impl ProviderKind {
         ProviderKind::Clipboard,
         ProviderKind::Emoji,
         ProviderKind::Web,
+        ProviderKind::Things,
+        ProviderKind::Companion,
+        ProviderKind::Runs,
+        ProviderKind::Memory,
     ];
 }
 

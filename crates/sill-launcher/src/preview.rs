@@ -4,6 +4,8 @@
 //! say and this crate names no format. What a clipboard image is, the pane loads from the
 //! clipboard service.
 
+use almanac_core::MemoryItem;
+use prov::{RunId, TaskId};
 use serde::{Deserialize, Serialize};
 
 use crate::ids::AppId;
@@ -33,6 +35,14 @@ pub enum Preview {
     Emoji(EmojiFacts),
     /// A web search: the engine and the address.
     Web(WebFacts),
+    /// What an app says a thing looks like (`Intents1.Run.Preview`), once it has answered.
+    Intent(docket_core::Preview),
+    /// The companion's answer to a prompt: a card read live from the companion by its task.
+    Answer(TaskId),
+    /// A computer-use run: its row read live from cuad.
+    Run(RunId),
+    /// A memory row: its sources and what derives from it, read live from memoryd.
+    Memory(MemoryItem),
 }
 
 /// The kind of a preview, for a report or a test: its variant's name.
@@ -46,6 +56,10 @@ pub enum PreviewKind {
     Clipboard,
     Emoji,
     Web,
+    Intent,
+    Answer,
+    Run,
+    Memory,
 }
 
 impl Preview {
@@ -59,6 +73,10 @@ impl Preview {
             Preview::Clipboard(_) => PreviewKind::Clipboard,
             Preview::Emoji(_) => PreviewKind::Emoji,
             Preview::Web(_) => PreviewKind::Web,
+            Preview::Intent(_) => PreviewKind::Intent,
+            Preview::Answer(_) => PreviewKind::Answer,
+            Preview::Run(_) => PreviewKind::Run,
+            Preview::Memory(_) => PreviewKind::Memory,
         }
     }
 }
@@ -84,7 +102,10 @@ impl ExcerptLimit {
 ///
 /// Rules (`preview_tests` pins them): an `App` subject is `App` with the row's title and subtitle;
 /// a `File` is `File`, whatever its type; a `Clip` is `Clipboard`; an `Emoji` is `Emoji`; a `Web`
-/// is `Web`; `Subject::None` is `None`.
+/// is `Web`; `Subject::None` is `None`. An `Entity` has nothing to show until its app answers
+/// `Run.Preview`, so it is `None` here (the pane asks, and shows `Intent` when it has the
+/// answer); an `Answer`, a `Run` and a `Memory` row are previewed live by their key; an
+/// `Activity` row has no pane.
 pub fn preview_for(item: &Item) -> Preview {
     match &item.subject {
         Subject::None => Preview::None,
@@ -97,6 +118,10 @@ pub fn preview_for(item: &Item) -> Preview {
         Subject::Clip(facts) => Preview::Clipboard(facts.clone()),
         Subject::Emoji(facts) => Preview::Emoji(facts.clone()),
         Subject::Web(facts) => Preview::Web(facts.clone()),
+        Subject::Entity(_) | Subject::Activity(_) => Preview::None,
+        Subject::Answer(task) => Preview::Answer(task.clone()),
+        Subject::Run(run) => Preview::Run(run.clone()),
+        Subject::Memory(item) => Preview::Memory(item.clone()),
     }
 }
 

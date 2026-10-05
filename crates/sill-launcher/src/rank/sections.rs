@@ -31,6 +31,14 @@ pub enum Section {
     Clipboard,
     Emoji,
     System,
+    /// Things apps index.
+    Things,
+    /// Computer-use runs.
+    Runs,
+    /// What the companion remembers.
+    Memory,
+    /// "Ask the companion …", just above the web fallback.
+    Companion,
     /// "Search the web for …", always last.
     Web,
 }
@@ -50,6 +58,10 @@ impl Section {
             Section::Clipboard => "Clipboard",
             Section::Emoji => "Emoji",
             Section::System => "System",
+            Section::Things => "Things",
+            Section::Runs => "Runs",
+            Section::Memory => "Memory",
+            Section::Companion => "Companion",
             Section::Web => "Web",
         }
     }
@@ -91,11 +103,13 @@ pub struct SectionPlan {
 impl SectionPlan {
     /// The proposed numbers: apps rank as they are and show six (design/06 §11.3's mail cap),
     /// documents a little under them and five, windows three, the calculator its one answer,
-    /// settings and system three, clipboard three, emoji a grid row of eight, and the web
-    /// fallback one row. Top Hit comes from the primary providers only (apps, documents,
-    /// windows, the calculator, settings), as Spotlight's does: the secondary ones (system
-    /// commands, clipboard, emoji, web) have weight 0. Emoji rows also score on a scale of their
-    /// own (the position bits that order the grid), which no weight could compare with an app's.
+    /// settings and system three, clipboard three, emoji a grid row of eight, things five, runs
+    /// three, memory five, the companion's rows three and the web fallback one row. Top Hit
+    /// comes from the primary providers only (apps, documents, windows, the calculator,
+    /// settings), as Spotlight's does: the secondary ones (system commands, clipboard, emoji,
+    /// things, runs, memory, companion, web) have weight 0. Emoji rows also score on a scale of
+    /// their own (the position bits that order the grid), which no weight could compare with an
+    /// app's.
     pub fn default_plan() -> SectionPlan {
         use ProviderKind as K;
         use Section as S;
@@ -115,6 +129,10 @@ impl SectionPlan {
                 rule(K::Clipboard, S::Clipboard, 0, 3),
                 rule(K::Emoji, S::Emoji, 0, 8),
                 rule(K::System, S::System, 0, 3),
+                rule(K::Things, S::Things, 0, 5),
+                rule(K::Runs, S::Runs, 0, 3),
+                rule(K::Memory, S::Memory, 0, 5),
+                rule(K::Companion, S::Companion, 0, 3),
                 rule(K::Web, S::Web, 0, 1),
             ],
             order: vec![
@@ -126,6 +144,10 @@ impl SectionPlan {
                 S::Clipboard,
                 S::Emoji,
                 S::System,
+                S::Things,
+                S::Runs,
+                S::Memory,
+                S::Companion,
                 S::Web,
             ],
             ceiling: Cap(20),
@@ -287,6 +309,9 @@ fn never_recent(kind: ProviderKind) -> Option<&'static str> {
     match kind {
         ProviderKind::System => Some("already under Actions"),
         ProviderKind::Clipboard => Some("clipboard use is not counted"),
+        ProviderKind::Companion | ProviderKind::Runs | ProviderKind::Memory => {
+            Some("an answer, a run and a memory row are not habits")
+        }
         ProviderKind::Web => Some("the web row is the same row for every search"),
         _ => None,
     }

@@ -48,6 +48,9 @@ fn a_preview_kind_is_its_variant() {
 
 #[test]
 fn every_subject_has_its_preview() {
+    let task = prov::TaskId::parse("t-1").unwrap_or_else(|e| panic!("{e}"));
+    let run = prov::RunId::parse("r-1").unwrap_or_else(|e| panic!("{e}"));
+    let memory = almanac_core::MemoryItem::Fact(almanac_core::FactId::mint(1, [3; 10]));
     let clip = ClipFacts {
         key: ClipKey(3),
         kind: ClipKind::Text {
@@ -151,6 +154,42 @@ fn every_subject_has_its_preview() {
                 Subject::Web(web.clone()),
             ),
             Preview::Web(web),
+        ),
+        (
+            row(
+                ProviderKind::Companion,
+                "Forward the receipts",
+                "",
+                Subject::Answer(task.clone()),
+            ),
+            Preview::Answer(task),
+        ),
+        (
+            row(
+                ProviderKind::Runs,
+                "Book a table",
+                "",
+                Subject::Run(run.clone()),
+            ),
+            Preview::Run(run),
+        ),
+        (
+            row(
+                ProviderKind::Memory,
+                "Sam prefers mornings",
+                "",
+                Subject::Memory(memory.clone()),
+            ),
+            Preview::Memory(memory),
+        ),
+        (
+            row(
+                ProviderKind::Companion,
+                "Archived 3 threads",
+                "",
+                Subject::Activity(docket_core::UndoId(4)),
+            ),
+            Preview::None,
         ),
     ];
     for (item, want) in cases {

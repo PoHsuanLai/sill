@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::companion::CompanionAct;
 use crate::ids::{AppId, ClipKey};
 use crate::query::Generation;
 
@@ -35,6 +36,12 @@ pub enum Activation {
     SetClipboard { entry: ClipKey },
     /// Drop a clipboard history entry (its row's "Forget" action; the launcher stays open).
     ForgetClipboard { entry: ClipKey },
+    /// Perform an action of an app through intentd (a thing's primary action, from the things
+    /// provider).
+    Intent(docket_core::CallRequest),
+    /// Something for the companion: ask, press a card's button, steer a run, undo, settle a
+    /// memory, switch the panel's mode.
+    Companion(CompanionAct),
     /// Nothing to do (a header row, a stale result).
     Nothing,
 }
@@ -207,6 +214,23 @@ mod tests {
             (
                 Activation::ForgetClipboard { entry: ClipKey(9) },
                 r#"{"kind":"forget_clipboard","v":{"entry":9}}"#,
+            ),
+            (
+                Activation::Intent(docket_core::CallRequest {
+                    action: docket_core::ActionRef {
+                        app: prov::AppName::parse("org.quire.Mail").unwrap_or_else(|e| panic!("{e}")),
+                        name: prov::ActionName::parse("mail.message.open")
+                            .unwrap_or_else(|e| panic!("{e}")),
+                    },
+                    target: docket_core::TargetValue::Nothing,
+                    args: docket_core::Args::new(),
+                    origin: docket_core::Origin::Launcher,
+                }),
+                r#"{"kind":"intent","v":{"action":{"app":"org.quire.Mail","name":"mail.message.open"},"target":{"kind":"nothing"},"args":{},"origin":"launcher"}}"#,
+            ),
+            (
+                Activation::Companion(crate::CompanionAct::Mode(crate::LauncherMode::Search)),
+                r#"{"kind":"companion","v":{"kind":"mode","v":"search"}}"#,
             ),
             (Activation::Nothing, r#"{"kind":"nothing"}"#),
         ];
