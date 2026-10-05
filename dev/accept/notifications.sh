@@ -155,7 +155,7 @@ scratch_new
 mkdir -p "$CONFIG/sill"
 
 since() { echo $(( $(now_ms) - $1 )); }
-notify() { sill debug notify "$@" >>"$OUT_DIR/notify.log" 2>&1; }
+notify() { sill_sent debug notify "$@" >>"$OUT_DIR/notify.log" 2>&1; }
 
 # One field of `sill notifications status`: mode, holder (its kind), pid, banners or kept.
 status_field() {
@@ -367,7 +367,7 @@ step_grouping() {
 step_dnd() {
   local kept up=no
   dnd_setting on
-  sill reload >>"$OUT_DIR/notify.log" 2>&1 || return 1
+  sill_sent reload >>"$OUT_DIR/notify.log" 2>&1 || return 1
   sleep 0.5
   kept=$(status_field kept)
   notify "Quiet" --app accept || return 1
@@ -380,7 +380,7 @@ step_dnd() {
   shows && up=yes
   echo "DND: a normal one kept without a banner (kept $kept -> $((kept + 1))); a critical one up after 10 s: $up" >&2
   dnd_setting off
-  sill reload >>"$OUT_DIR/notify.log" 2>&1
+  sill_sent reload >>"$OUT_DIR/notify.log" 2>&1
   [ "$up" = yes ] && clear_banners
 }
 

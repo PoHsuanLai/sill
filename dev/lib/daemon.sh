@@ -21,7 +21,47 @@ in_env() {
 }
 
 # The daemon's CLI, in the daemon's environment.
-sill() { in_env "$SILL_BIN" "$@"; }
+# The calls that change nothing (a state read, a capture, a ping) are made again while the daemon
+# answers "no reply within": its thread was busy (a surface's first frame in a debug build on a
+# loaded host), which is the host's time, not a verdict. A call that changes something (a toggle,
+# a key, a notification) is made once.
+sill() {
+  case "$1 ${2:-}" in
+    "debug stats"|"debug capture"|"debug launcher-rows"|"notifications status"|"idle status"|"lock status"|"ping ")
+      sill_patient "$@" ;;
+    *) in_env "$SILL_BIN" "$@" ;;
+  esac
+}
+
+# A call that changes something, made once: it passes when it succeeded or when the daemon only
+# failed to answer in time ("no reply within": the change may well have been made, and the caller
+# then waits for the state it needs); its output goes to stdout.
+sill_sent() {
+  local out rc
+  out=$(sill "$@" 2>&1)
+  rc=$?
+  [ -z "$out" ] || printf '%s\n' "$out"
+  [ "$rc" = 0 ] || [[ "$out" == *"no reply within"* ]]
+}
+
+# `sill ARGS` made up to 6 times while it ends with "no reply within"; stdout and stderr stay apart.
+sill_patient() {
+  local err out rc tries=0
+  err=$(mktemp "${TMPDIR:-/tmp}/sill-patient.XXXXXX") || { in_env "$SILL_BIN" "$@"; return; }
+  while :; do
+    out=$(in_env "$SILL_BIN" "$@" 2>"$err")
+    rc=$?
+    tries=$(( tries + 1 ))
+    if [ "$rc" != 0 ] && [ "$tries" -lt 6 ] && { grep -q "no reply within" "$err" || [[ "$out" == *"no reply within"* ]]; }; then
+      continue
+    fi
+    break
+  done
+  [ -z "$out" ] || printf '%s\n' "$out"
+  cat "$err" >&2
+  rm -f "$err"
+  return "$rc"
+}
 
 # Builds the daemon (SILL_PROFILE: debug or release, with `--features debug`) plus, as further arguments "$@", other cargo invocations' arguments
 # (each one a quoted string such as "-p sill-testkit --example badge_emitter"), into

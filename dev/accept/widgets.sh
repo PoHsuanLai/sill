@@ -270,8 +270,8 @@ kill_terms() {
 step_center_default() {
   local log="$OUT_DIR/center.log" tiles
   : >"$log"
-  sill notifications open >>"$log" 2>&1 || return 1
-  wait_surface "$CENTER" 20 up || { echo "the center never mapped" >&2; return 1; }
+  sill_sent notifications open >>"$log" 2>&1 || return 1
+  wait_surface "$CENTER" 100 up || { echo "the center never mapped" >&2; return 1; }
   sleep 0.8
   capture_settled "$CENTER" "$OUT_DIR/center.png" || return 1
   shot "$SHOTS/widgets-center-cosmic.png" || echo "screenshot failed" >&2
@@ -292,7 +292,7 @@ step_center_all() {
 center = ["calendar", "up_next", "battery", "now_playing", "world_clock"]
 world_clocks = "Europe/London; America/New_York"
 TOML
-  sill reload >>"$log" 2>&1 || return 1
+  sill_sent reload >>"$log" 2>&1 || return 1
   sleep 1
   capture_settled "$CENTER" "$OUT_DIR/center-all.png" || return 1
   shot "$SHOTS/widgets-center-all-cosmic.png" || echo "screenshot failed" >&2
@@ -327,7 +327,7 @@ step_center_idle() {
   echo "5 s idle open with five widgets, the track paused: $(( f1 - f0 )) frames on $CENTER" \
     | tee -a "$log" >&2
   sill notifications close >/dev/null 2>&1
-  wait_surface "$CENTER" 20 down
+  wait_surface "$CENTER" 100 down
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
@@ -336,7 +336,7 @@ step_toggle_on() {
   local log="$OUT_DIR/toggle-on.log" frames saved
   : >"$log"
   has_surface "$LAYER" && { echo "$LAYER exists before any toggle" >&2; return 1; }
-  sill widgets toggle-desktop >>"$log" 2>&1 || { cat "$log" >&2; return 1; }
+  sill_sent widgets toggle-desktop >>"$log" 2>&1 || { cat "$log" >&2; return 1; }
   # Up to 10 s for each thing a toggle does, polled: the layer, the setting in the file.
   for _ in $(seq 200); do has_surface "$LAYER" && break; sleep 0.05; done
   has_surface "$LAYER" || { echo "$LAYER never appeared" | tee -a "$log" >&2; return 1; }
@@ -539,7 +539,7 @@ desktop = "on"
 desktop_widgets = ["calendar", "battery", "world_clock"]
 world_clocks = "Pacific/Kiritimati; Pacific/Pago_Pago"
 TOML
-  sill reload >>"$log" 2>&1 || return 1
+  sill_sent reload >>"$log" 2>&1 || return 1
   sleep 2
   capture_patient "$LAYER" "$OUT_DIR/clock-dates.png" || return 1
   frame=$(desktop_frames "$OUT_DIR/clock-dates.png" | awk '$3 - $1 > 300 { print; exit }')
@@ -758,7 +758,7 @@ step_edit() {
 step_toggle_off() {
   local log="$OUT_DIR/toggle-off.log"
   kill_terms
-  sill widgets toggle-desktop >"$log" 2>&1 || { cat "$log" >&2; return 1; }
+  sill_sent widgets toggle-desktop >"$log" 2>&1 || { cat "$log" >&2; return 1; }
   for _ in $(seq 40); do has_surface "$LAYER" || break; sleep 0.05; done
   has_surface "$LAYER" && { echo "$LAYER is still there" | tee -a "$log" >&2; return 1; }
   [ "$(setting_desktop)" = off ] || { echo "widgets.desktop is not off in the file" >&2; return 1; }

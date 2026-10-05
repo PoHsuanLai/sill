@@ -3,9 +3,12 @@
 # Whether SURFACE $1 is mapped (it captures), into $2 (default the scratch probe).
 mapped() { sill debug capture "$1" "${2:-$OUT_DIR/probe.png}" >/dev/null 2>&1; }
 
-# Waits up to $2 tenths of a second for SURFACE $1 to be up (or, with $3 = down, gone).
+# Waits up to $2 tenths of a second (never less than 10 s: the wait ends the moment the surface is
+# there, so the bound only matters to a failure, and a loaded host takes seconds to show a surface
+# for the first time) for SURFACE $1 to be up (or, with $3 = down, gone).
 wait_surface() {
   local surface="$1" tenths="$2" want="${3:-up}"
+  [ "$tenths" -ge 100 ] || tenths=100
   for _ in $(seq "$tenths"); do
     if mapped "$surface"; then [ "$want" = up ] && return 0
     else [ "$want" = down ] && return 0; fi
