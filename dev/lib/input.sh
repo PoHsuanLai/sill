@@ -49,20 +49,39 @@ input() {
 key() { input "key $1 down" "sleep 30" "key $1 up" "sleep 150"; }
 click() { input "move $1 $2" "sleep 60" "press left" "sleep 40" "release left" "sleep 200"; }
 
-# A click on the surface $1 at its local point ($2, $3). On KWin and cosmic-comp `sill debug click`
-# stands in for a pointer press (the daemon feeds it to the surface itself). Casement answers an
-# `xdg_popup.grab` whose serial is no real press with `popup_done`, as the protocol says, so a
-# popup opened by that stand-in is dismissed at once: on casement the click is a real pointer
-# press through `casementctl debug inject`, at the global point (the surface's origin plus the
-# point: callers name surfaces at the output's origin, such as the top bar).
+# A click on the surface $1 at its local point ($2, $3): `surface_click SURFACE X Y [--button
+# secondary] [--origin GX GY]`. On KWin and cosmic-comp `sill debug click` stands in for a pointer
+# press (the daemon feeds it to the surface itself). Casement answers an `xdg_popup.grab` whose
+# serial is no real press with `popup_done`, as the protocol says, so a popup opened by that
+# stand-in (a bar item's, a context menu) is dismissed at once: on casement the click is a real
+# pointer press through `casementctl debug inject`, at the global point: the surface's origin
+# (--origin, default the output's origin, where the top bar is) plus the point. `--button
+# secondary` is the right button.
 surface_click() {
+  local surface=$1 x=$2 y=$3 button=left origin_x=0 origin_y=0
+  shift 3
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --button) case "${2:?--button needs primary or secondary}" in
+                  primary) button=left ;; secondary) button=right ;;
+                  *) echo "surface_click: --button is primary or secondary" >&2; return 64 ;;
+                esac; shift 2 ;;
+      --origin) origin_x=${2:?--origin needs X Y}; origin_y=${3:?--origin needs X Y}; shift 3 ;;
+      *) echo "surface_click: unknown argument $1" >&2; return 64 ;;
+    esac
+  done
   case "$COMPOSITOR" in
     casement)
       local reply
-      reply=$(casementctl debug inject "move $2 $3" "sleep 60" "press left" "sleep 40" "release left" "sleep 200") \
+      reply=$(casementctl debug inject "move $(( origin_x + x )) $(( origin_y + y ))" "sleep 60" \
+        "press $button" "sleep 40" "release $button" "sleep 200") \
         && [ "$(grep -c '^ok ' <<<"$reply")" = 6 ] \
         || { echo "casementctl debug inject: $reply" >&2; return 1; }
       echo '{"kind":"done"}' ;;
-    *) sill debug click "$1" "$2" "$3" ;;
+    *)
+      case "$button" in
+        right) sill debug click "$surface" "$x" "$y" --button secondary ;;
+        *) sill debug click "$surface" "$x" "$y" ;;
+      esac ;;
   esac
 }

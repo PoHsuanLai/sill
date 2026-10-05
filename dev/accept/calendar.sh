@@ -6,8 +6,9 @@
 # XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY) and a fake DDC.
 # `calendar.sources` names three temp `.ics` files written here (never a real
 # calendar: `auto` is not used), each its own calendar so Up Next's colour bars tell them apart:
-# work.ics "Design review" today in an hour, team.ics a weekly "Yoga" (a week ago and today, in
-# three hours), personal.ics "Dentist" tomorrow at 09:00. `widgets.center = ["calendar",
+# work.ics "Design review" today (from 00:01 to 23:58), team.ics a weekly "Yoga" (a week ago and
+# today, from 00:02 to 23:59: both under way all day, so the script never depends on the hour),
+# personal.ics "Dentist" tomorrow at 09:00. `widgets.center = ["calendar",
 # "up_next"]`. The daemon is quit at the end.
 #
 #   1. `sill notifications open`: a capture of `sill-notification-center-<out>` shows the month
@@ -63,11 +64,16 @@ def write(name, body):
 def event(uid, title, start, end, extra=""):
     return (f"BEGIN:VEVENT\r\nUID:{uid}\r\nSUMMARY:{title}\r\nDTSTART:{fmt(start)}\r\n"
             f"DTEND:{fmt(end)}\r\n{extra}END:VEVENT\r\n")
-review_at = now + dt.timedelta(hours=1)
-write("work.ics", event("review", "Design review", review_at, review_at + dt.timedelta(minutes=30),
+# Both of today's events run from the first minutes of the day to the last, the review starting a
+# minute before the yoga: still under way whenever the script runs, today whatever the hour, and
+# in that order. (An "in an hour" and an "in three hours" slid into tomorrow after 21:00, where the
+# Calendar's today list, `Days(0)`, rightly leaves them out.)
+midnight = now.replace(hour=0, minute=0)
+review_at = midnight + dt.timedelta(minutes=1)
+write("work.ics", event("review", "Design review", review_at, midnight + dt.timedelta(hours=23, minutes=58),
                         f"STATUS:{review}\r\n"))
-yoga = now + dt.timedelta(hours=3) - dt.timedelta(days=7)
-write("team.ics", event("yoga", "Yoga", yoga, yoga + dt.timedelta(hours=1),
+yoga = midnight + dt.timedelta(minutes=2) - dt.timedelta(days=7)
+write("team.ics", event("yoga", "Yoga", yoga, yoga + dt.timedelta(hours=23, minutes=57),
                         "RRULE:FREQ=WEEKLY;COUNT=2\r\n"))
 dentist = (now + dt.timedelta(days=1)).replace(hour=9, minute=0)
 write("personal.ics", event("dentist", "Dentist", dentist, dentist + dt.timedelta(hours=1)))

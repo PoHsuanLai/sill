@@ -14,7 +14,9 @@
 #   3. A click on the pinned, not-running COSMIC Terminal tile launches it: its running dot
 #      (the dock's view of a mapped toplevel) shows within 3 s.
 #   4. `badge_emitter` for that app shows a count badge within 1 s.
-#   5. `sill debug click --button secondary` on that tile opens its context menu popup.
+#   5. A secondary click on that tile (`surface_click --button secondary`: `sill debug click` on KWin
+#      and cosmic-comp, a real right press through casement's inject on casement) opens its context
+#      menu popup.
 #   6. The pill's corner is a squircle of `dock.pill_radius_px` from the scratch settings
 #      (PILL_RADIUS, 12 by default, not the key's 22): the pixel centred 6.5 px in from the
 #      pill's left edge and 1.5 px down from its top is the pill's (inside a 12 px squircle,
@@ -60,11 +62,16 @@ RESERVE=68
 PILL_RADIUS="${PILL_RADIUS:-12}"
 TERM_ID=com.system76.CosmicTerm
 PINS=(com.system76.CosmicTerm com.system76.CosmicFiles google-chrome btop)
-# Surface-local geometry of the default dock (design/10 §10.3.1 with a 6 px
-# padding): 158 tall, the pill 90..150 with its middle at 120, the baseline at 144, the running
-# dot's centre 3 below it (`dock.running_dot_gap_px`).
-PILL_Y=120
-DOT_Y=147
+# Surface-local geometry of the default dock (design/10 §10.3.1): the surface is H_s tall (gut 8 +
+# pad 6 + magnified tile 72 + tile 48 = 134, read off a capture by `read_geometry` rather than
+# written down: it was 158 when the magnified tile was 96), the pill's bottom edge `gut` above the
+# surface's bottom, its middle half `H_p` above that, the tiles' baseline `gut + pad` above the
+# bottom, the running dot's centre 3 below the baseline (`dock.running_dot_gap_px`). Set by
+# `read_geometry` once the dock is up.
+GUT=8
+PAD=6
+TILE=48
+PILL_Y=0 BASELINE_Y=0 DOT_Y=0 SURFACE_H=0
 
 # Kill every COSMIC Terminal running in the nested session (never the host's).
 kill_nested_terms() {
@@ -90,6 +97,24 @@ await_dock() {
   [ -n "${DOCK:-}" ] || { echo "no dock surface in 'sill debug stats'" >&2; return 1; }
 }
 
+# The dock's height in logical px, from a capture of it (its width is OUT_W logical px), and the
+# surface-local rows derived from it.
+read_geometry() {
+  local png="$OUT_DIR/geometry.png"
+  sill debug capture "$DOCK" "$png" >/dev/null 2>&1 || { echo "no capture of $DOCK" >&2; return 1; }
+  SURFACE_H=$(python3 - "$png" "$OUT_W" <<'PY'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1])
+print(round(img.height * int(sys.argv[2]) / img.width))
+PY
+  ) || return 1
+  PILL_Y=$(( SURFACE_H - GUT - (TILE + 2 * PAD) / 2 ))
+  BASELINE_Y=$(( SURFACE_H - GUT - PAD ))
+  DOT_Y=$(( BASELINE_Y + 3 ))
+  echo "dock surface ${OUT_W}x${SURFACE_H}: pill middle $PILL_Y, baseline $BASELINE_Y, dot $DOT_Y" | tee "$OUT_DIR/geometry.log" >&2
+}
+
 start_dock_daemon() {
   mkdir -p "$CONFIG/sill"
   printf '[dock]\npill_radius_px = %s\n' "$PILL_RADIUS" >"$CONFIG/sill/settings.toml"
@@ -99,6 +124,7 @@ start_dock_daemon() {
   sill dock pin "$TERM_ID" >"$OUT_DIR/pin.log" 2>&1 || return 1
   await_dock || return 1
   sleep 1
+  read_geometry || return 1
 }
 
 # 1.
@@ -184,7 +210,7 @@ step_badge() {
   # Inside the badge's right padding, clear of its digit: quire's Small `Badge` is a 14 px tall
   # capsule hung off the plate's top right corner (`DockTile`), its right edge 2 px right of the
   # plate's (80.5 % of a 48 px tile) and its middle 7 px below the tile's top.
-  x=$(( $(first_tile_x) + 21 )); y=$(( 144 - 48 + 7 ))
+  x=$(( $(first_tile_x) + 21 )); y=$(( BASELINE_Y - TILE + 7 ))
   before=$(pixel "$DOCK" "$x" "$y" "$OUT_W")
   cp "$OUT_DIR/pixel.png" "$OUT_DIR/badge-before.png"
   start=$(date +%s%N)
@@ -207,7 +233,9 @@ step_badge() {
 step_menu() {
   local log="$OUT_DIR/menu.log" x opened=no
   x=$(first_tile_x)
-  sill debug click "$DOCK" "$x" "$PILL_Y" --button secondary >"$log" 2>&1 || return 1
+  # A real right press at the tile's global point: casement dismisses a popup grabbed on a
+  # synthetic click's serial. The dock is anchored to the bottom of the output, full width.
+  surface_click "$DOCK" "$x" "$PILL_Y" --button secondary --origin 0 $(( OUT_H - SURFACE_H )) >"$log" 2>&1 || return 1
   for _ in $(seq 40); do
     sill debug capture "$DOCK/popup" "$OUT_DIR/menu-popup.png" >>"$log" 2>&1 && { opened=yes; break; }
     sleep 0.05

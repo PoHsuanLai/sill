@@ -78,9 +78,7 @@ DAEMON_LOG="$OUT_DIR/daemon.log"
 COSMIC_ENV=(XDG_CURRENT_DESKTOP=COSMIC)
 IN_ENV_EXTRA=("${COSMIC_ENV[@]}")
 
-# Bounded: the stand-in creates no lock surface, and casement answers `locked` only once a locker's
-# first surface has content, so there it would wait for ever (exit 124).
-nested_locker() { WAYLAND_DISPLAY="$WL" timeout --kill-after=2 "${LOCKER_BOUND:-15}" "$LOCKER" "$@"; }
+nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
 # A wake: `sill debug idle-wake` stands in for the compositor's `resumed` (the nested
 # cosmic-comp 1.8 counts no virtual-keyboard input as activity, and a key typed into the host's
 # window of it would be real input on the person's own session).

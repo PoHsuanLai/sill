@@ -20,6 +20,7 @@ sill-model = { workspace = true }
 sill-search = { workspace = true }
 sill-services = { workspace = true }
 cosmic-client-toolkit = { workspace = true }
+rustix = { workspace = true }
 serde = { workspace = true }
 
 # Stand-ins the tests and dev scripts start as child processes, each under its own bus name or

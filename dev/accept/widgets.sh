@@ -40,8 +40,9 @@
 #      daemon's TZ is Pacific/Kiritimati): the first city is here, its day line says "Today"; the
 #      second, 25 hours behind, is on another date and its day line says it ("Fri 2 Oct"), which is
 #      wider. Measured on the layer's capture (dev/out/widgets-clock-dates-cosmic.png).
-#   8. The desktop's context menu, through shell-host's real pointer path (`sill debug click
-#      --button secondary` on the layer): a secondary press on the bare desktop opens a popup of
+#   8. The desktop's context menu, through shell-host's real pointer path (`surface_click --button
+#      secondary` on the layer: `sill debug click` on KWin and cosmic-comp, a real right press through
+#      casement's inject on casement): a secondary press on the bare desktop opens a popup of
 #      three entries, Change Wallpaper..., Edit Widgets... and Show View Options
 #      (dev/out/widgets-desktop-menu-cosmic.png). Change Wallpaper... starts the wallpaper picker
 #      (a scratch desktop entry standing in for COSMIC Settings' Wallpaper page, whose Exec writes a
@@ -575,11 +576,27 @@ print("x", (l + r) // 2)
 EOF
 }
 
+# The global origin "X Y" (logical px) of an output's desktop layer: its exclusive zone is Auto, so
+# it sits below the top bar (anchored at the output's origin), whose height is read off a capture.
+# Only casement's real press needs it: the other compositors take the surface-local point.
+layer_origin() {
+  local png="$OUT_DIR/origin-bar.png"
+  [ "$COMPOSITOR" = casement ] || { echo "0 0"; return 0; }
+  sill debug capture "sill-bar-$NAME" "$png" >/dev/null 2>&1 || return 1
+  python3 - "$png" "$(output_scale)" <<'PY'
+import sys
+from PIL import Image
+print(0, round(Image.open(sys.argv[1]).height / float(sys.argv[2])))
+PY
+}
+
 # Opens the desktop menu of layer $1 with a secondary press at MENU_AT and captures its popup into
 # $2 once it has been drawn for half a second: its entries take a press only after their
 # opening fade.
 menu_open_on() {
-  sill debug click "$1" $MENU_AT --button secondary >>"$OUT_DIR/menu.log" 2>&1 || return 1
+  # A real right press (surface_click): casement dismisses a popup grabbed on the serial of
+  # `sill debug click`'s stand-in press.
+  surface_click "$1" $MENU_AT --button secondary --origin $(layer_origin) >>"$OUT_DIR/menu.log" 2>&1 || return 1
   for _ in $(seq 40); do
     if sill debug capture "$1/popup" "$2" >/dev/null 2>&1; then
       sleep 0.5
@@ -589,6 +606,23 @@ menu_open_on() {
   done
   echo "the desktop menu never opened on $1" | tee -a "$OUT_DIR/menu.log" >&2
   return 1
+}
+
+# Hovers the popup of layer $1 at its local point ($2, $3), the menu last captured into
+# $OUT_DIR/menu.png (opened at MENU_AT). `sill debug pointer` stands in for a pointer motion on
+# KWin and cosmic-comp. On casement the pointer really moves, at the global point: the popup's
+# card sits with its top left at the point the menu was opened at, and the card's corner in the
+# popup's own pixels is read off the capture (sheet_corner).
+popup_hover() {
+  [ "$COMPOSITOR" = casement ] || { sill debug pointer "$1/popup" "$2" "$3"; return; }
+  local ox oy cx cy reply
+  read -r ox oy <<<"$(layer_origin)"
+  read -r cx cy <<<"$(sheet_corner "$OUT_DIR/menu.png")"
+  # shellcheck disable=SC2086
+  set -- $MENU_AT "$2" "$3"
+  reply=$(casementctl debug inject "move $(( ox + $1 - cx + $3 )) $(( oy + $2 - cy + $4 ))" "sleep 200") \
+    && [ "$(grep -c '^ok ' <<<"$reply")" = 2 ] || { echo "casementctl debug inject: $reply" >&2; return 1; }
+  echo '{"kind":"done"}'
 }
 
 # The same on this output's layer.
@@ -659,7 +693,7 @@ step_desktop_menu() {
   echo "Edit Widgets... mapped $edit" | tee -a "$log" >&2
   # Show View Options: hovered, its submenu opens; Large is picked.
   menu_open "$OUT_DIR/menu.png" || return 1
-  sill debug pointer "$LAYER/popup" "$x" "$view_y" >>"$log" 2>&1 || return 1
+  popup_hover "$LAYER" "$x" "$view_y" >>"$log" 2>&1 || return 1
   sleep 1
   sill debug capture "$LAYER/popup" "$OUT_DIR/menu-view.png" >>"$log" 2>&1 || return 1
   shot "$SHOTS/widgets-view-options-cosmic.png" || echo "screenshot failed" >&2
@@ -677,7 +711,7 @@ step_desktop_menu() {
   [ "$(widest_frame)" -gt "$before" ] || return 1
   # And Standard puts it back.
   menu_open "$OUT_DIR/menu.png" || return 1
-  sill debug pointer "$LAYER/popup" "$x" "$view_y" >>"$log" 2>&1 || return 1
+  popup_hover "$LAYER" "$x" "$view_y" >>"$log" 2>&1 || return 1
   sleep 1
   sill debug capture "$LAYER/popup" "$OUT_DIR/menu-view.png" >>"$log" 2>&1 || return 1
   standard=$(menu_lines "$OUT_DIR/menu-view.png" | sed -n 6p)

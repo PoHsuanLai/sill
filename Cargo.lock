@@ -6766,6 +6766,7 @@ name = "sill-testkit"
 version = "0.1.0"
 dependencies = [
  "cosmic-client-toolkit",
+ "rustix",
  "serde",
  "sill-launcher",
  "sill-model",

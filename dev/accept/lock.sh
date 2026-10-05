@@ -52,10 +52,7 @@ esac
 scratch_new
 MARKER="$RUNTIME/sill/locked"
 
-# The stand-in locker creates no lock surface, and casement answers `locked` once a locker's first
-# surface has content (casement-wayland session_lock.rs), so on casement it waits for ever: a bound
-# turns that into exit 124, which the steps below name as an expected skip.
-nested_locker() { WAYLAND_DISPLAY="$WL" timeout --kill-after=2 "${LOCKER_BOUND:-15}" "$LOCKER" "$@"; }
+nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
 
 output_names() {
   sill debug stats | python3 -c '
@@ -308,10 +305,6 @@ step_accept() {
     | tee -a "$log" >&2
   [ "$took" -ge 0 ] && budget_check "unlocked ${took} ms after accept against 1204 ms" "$(( took <= 1204 ))" \
     && [ "$gone" = yes ] && [ ! -e "$MARKER" ] || return 1
-  [ "$free" = 124 ] && [ "$COMPOSITOR" = casement ] && {
-    expected_skip "the stand-in locker (sill-testkit session_locker) creates no lock surface and casement never answers it \`locked\`: whether the session is free again is not proven here"
-    return 2
-  }
   [ "$free" = 0 ]
 }
 
