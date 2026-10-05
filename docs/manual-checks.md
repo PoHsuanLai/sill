@@ -81,7 +81,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   --icon=root` and drag from its square: the icon follows the pointer the whole way (the
   headless KWin draws no cursor). The screenshot thumbnail's own drag is automated up to a drop
   with no target (`dev/accept/screenshot.sh --real-input`).
-- [ ] **Launcher with a Mac keyboard through Toshy** (real typing, Down, Space, Ctrl+Y, → twice,
+- [ ] **Launcher with a Mac keyboard through keycap** (real typing, Down, Space, Ctrl+Y, → twice,
   Tab, Escape three times, Ctrl+R, Shift+Tab to Emoji and Enter on a clipboard row already pass
   under fake input through `dev/accept/launcher.sh --real-input`; this is the physical keys and
   the look). Open the launcher with `sill launcher open` (Cmd+Space itself needs a COSMIC
@@ -92,8 +92,8 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   to Documents): the selected row stays in view. In the emoji grid (Shift+Tab twice with
   nothing typed) all four arrows move and ⌘Y shows the emoji's preview; Enter then Cmd+V pastes
   the emoji in another app. By eye: the focus ring on the pane's buttons in the dark scheme, and
-  the chord hint on the selected row only. If ⌘ chords act like a terminal's, Toshy still thinks
-  the terminal has focus: note it.
+  the chord hint on the selected row only. If ⌘ chords act like a terminal's, keycap still thinks
+  the terminal has focus (`keycap status` names the profile): note it.
 - [ ] **A file from the launcher in the viewer** (needs `anyview` installed with its
   `org.quire.Anyview1.service` activation file, or already running). Type part of a document's
   name with other documents listed: the pane shows the viewer's own picture of it (a picture, a
@@ -164,7 +164,9 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 
 ## Needs a real COSMIC login (not the nested compositor)
 
-- [ ] **Cmd+Space through Toshy** opens the launcher (the `Launcher` system action override).
+- [ ] **Cmd+Space through keycap** opens the launcher (keycap writes Super+Space from the sill layer
+  `~/.config/keycap/keycap.toml`; Alt+Space means the layer is missing and only `/etc/keycap/keycap.toml`, the
+  Plasma overlay, applies).
 - [ ] **Super shortcuts** reach the shell (the nested compositor never gets them).
 - [ ] **A compositor shortcut runs `sill launcher toggle`**: bind Ctrl+Alt+Space to
   `Spawn("sill launcher toggle")` (or use Cmd+Space above) and press it: the launcher opens, and a
@@ -307,9 +309,12 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
 `cargo test -p sill-services --test keycap_socket` covers the socket against a fake daemon; these
 need the real daemon on a machine with a Mac keyboard (or a PC keyboard with the Mac layout) and
 root for the unit. Install keycap first (`install.sh` in the keycap repo, with its unit, config
-folder and polkit rule `dist/keycap.polkit.rules`), then log in to a sill session.
+folder and polkit rule `dist/keycap.polkit.rules`), run sill's `dist/install.sh` (it copies the
+sill layer `dist/keycap/keycap.toml` to `~/.config/keycap/keycap.toml` when missing), then log in to a sill session.
 
 - [ ] `sill keycap status` says `connected` with your keyboard listed and `grab` `active`.
+- [ ] Cmd+Space opens the launcher and again closes it (Super+Space, not Alt+Space), and Cmd+Shift+4 starts
+  `sill screenshot area`.
 - [ ] Focus a terminal (foot, Alacritty, COSMIC Terminal): Cmd+C copies in it, and Ctrl+C still
   interrupts a running program. Focus a browser: Cmd+C copies there too. Moving between the two
   changes nothing visible and loses no keystroke.
@@ -377,8 +382,8 @@ need a person, a real compositor or real eyes.
 The service, the machines and the launcher's mode are tested on stand-ins and fakes; these need
 the real daemons or a real keyboard.
 
-- [ ] **Double tap, route B** (Toshy maps a lone Cmd tap to the unique chord that runs `sill companion
-  tap`): tap Cmd twice within `companion.double_tap_ms` with the launcher closed: the launcher opens as a
+- [ ] **Double tap, route B** (a lone Cmd tap mapped to the unique chord that runs `sill companion
+  tap`; Toshy did this and keycap does not emit that chord yet, so this waits for a sender): tap Cmd twice within `companion.double_tap_ms` with the launcher closed: the launcher opens as a
   prompt ("Ask the companion", no rows). Cmd-click and Cmd-drag in a terminal and a browser are
   unharmed (spike T). One tap does nothing; two taps a second apart do nothing.
 - [ ] **Double tap with the launcher open in search**: type `mail` in the launcher, tap Cmd twice: the

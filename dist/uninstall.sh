@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 # Remove what dist/install.sh put in place: the binary, the session script, the login-screen
-# entry, the user target, the PAM service, the intents manifest and the seed files. Plasma, Toshy, keycap and your
-# own config are not touched. Run as yourself; sudo asks once.
+# entry, the user target, the PAM service, the intents manifest and the seed files. Plasma, Toshy,
+# keycap's system files and your own config are not touched. Run as yourself; sudo asks once.
 #
 #   dist/uninstall.sh --dry-run        print every step, change nothing
 #   dist/uninstall.sh                  remove the system files
 #   dist/uninstall.sh --forget-seeds   also remove the files sill-session copied into
-#                                      ~/.config/cosmic, but only those still identical to the seeds
-#                                      (shortcuts and the key repeat you never changed)
+#                                      ~/.config/cosmic and the keycap layer in
+#                                      ~/.config/keycap, but only those still identical to the
+#                                      seeds (files you never changed)
 set -euo pipefail
 # shellcheck source=install-lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/install-lib.sh"
 
-usage() { sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 export EXTRA_FLAGS="--forget-seeds"
 FLAG_forget_seeds=0
 parse_flags "$@"
@@ -36,6 +37,11 @@ if [ "${FLAG_forget_seeds:-0}" = 1 ]; then
       note "kept (you changed it): $mine"
     fi
   done < <(seeds)
+  if [ -f "$KEYCAP_LAYER_DEST" ] && cmp -s "$KEYCAP_LAYER_DEST" "$KEYCAP_LAYER_SRC"; then
+    run rm -f "$KEYCAP_LAYER_DEST"
+  elif [ -f "$KEYCAP_LAYER_DEST" ]; then
+    note "kept (you changed it): $KEYCAP_LAYER_DEST"
+  fi
 fi
 if [ -d "$SEED_DEST" ]; then run sudo rm -rf "$SEED_DEST"; else note "already gone: $SEED_DEST"; fi
 

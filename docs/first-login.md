@@ -1,42 +1,96 @@
 # First login: the sill session, with KDE as the fallback
 
-Written 2026-10-03 for the first real login. Plasma stays installed and stays in the login
+Written 2026-10-03 for the first real login, rewritten 2026-10-06 against `dist/install.sh`. Plasma stays installed and stays in the login
 screen's session list the whole time. Nothing below changes Plasma's files.
 
-## 1. Before you log out (about 15 minutes, in Plasma)
+## 1. Before you log out (about 30 minutes, in Plasma)
 
-1. **Install the session.** From this checkout (`~/rs-wt/m-login/sill` until it is merged; its
-   `../quire`, `../shell-host`, `../keycap`, `../blitz-kit` and `../palmrest` must exist next to it):
+1. **Save your work and know the way back.** The keycap emergency chord is both Shift keys + Esc
+   (`sudo systemctl stop keycap` also works). Keep a TTY in mind: Ctrl+Alt+F3. For anything before
+   the OS (MOK, BIOS) the K5 Max must be on Cable or 2.4G, not Bluetooth.
+2. **Bring the sibling checkouts up to date.** The install builds with `--locked`, and `Cargo.lock`
+   was resolved against the current master of every repo next to `~/sill`: `almanac`, `anyview`,
+   `blitz-kit`, `cua`, `docket`, `keycap`, `porter`, `quire`, `shell-host`, plus `stoker` and
+   `casement-protocols` (reached through them). `palmrest` is not needed to build. A stale one
+   (`anyview` was 11 commits behind once) stops the build with a raw cargo error, so check first:
 
    ```sh
-   rm -f ~/.cargo/bin/sill          # an old build there would shadow the installed one
+   for r in anyview quire shell-host keycap blitz-kit almanac cua docket porter stoker casement-protocols; do
+     git -C ~/$r pull --ff-only || echo "NOT FAST-FORWARD: $r"; done
+   git -C ~/anyview pull --ff-only                          # the one that was behind
+   cd ~/sill && git status --short && git log --oneline -1  # clean, master
+   cargo metadata --locked --format-version 1 >/dev/null && echo LOCK OK   # must print LOCK OK
+   ```
+
+   `dist/install.sh` runs the same `cargo metadata --locked` check as its step 2 and, when it fails,
+   names the siblings that are behind and the `git -C <path> pull --ff-only` that fixes each; follow that
+   advice and run it again. Install only when `sill` and `quire` are both on a merged master (a
+   quire merge breaks sill until sill follows it).
+3. **Remove a stale binary that would shadow the install:** `rm -f ~/.cargo/bin/sill`.
+4. **Install the session.** From `~/sill`:
+
+   ```sh
    dist/install.sh --dry-run        # read it: every step is printed, nothing is changed
    dist/install.sh                  # builds release (a few minutes), asks for sudo once
    ```
 
    It installs `/usr/local/bin/sill`, `/usr/local/bin/sill-session`,
    `/usr/share/wayland-sessions/sill.desktop`, `/etc/systemd/user/sill-session.target`,
-   `/etc/pam.d/sill` and the seed files in `/usr/local/share/sill`. It is safe to run again.
-2. **Install keycap, then check it before anything else.** It replaces Toshy; the sill session has
-   no Mac layout without it (Cmd stays Cmd). Follow `~/keycap/README.md`, "Install":
-   `~/keycap/install.sh` builds and prints the `sudo` commands to run. Then, still in Plasma:
-   `systemctl status keycap`, and try Cmd+C / Cmd+V in a text field. If the keyboard misbehaves:
-   hold both Shift keys and press Esc, or `sudo systemctl stop keycap`.
-3. **Only after keycap works, turn Toshy off** (it grabs the same keyboard; never run both):
+   `/etc/pam.d/sill`, the intents manifest `/usr/local/share/quire/intents/org.quire.Shell.toml`
+   and the seed files in `/usr/local/share/sill`; it also copies the keycap layer to
+   `~/.config/keycap/keycap.toml` when you have none (an existing file is never touched). It is
+   safe to run again. Confirm:
+
+   ```sh
+   ls /usr/share/wayland-sessions/sill.desktop /usr/local/bin/sill /usr/local/bin/sill-session \
+     /etc/systemd/user/sill-session.target /etc/pam.d/sill /usr/local/share/sill/cosmic \
+     ~/.config/keycap/keycap.toml
+   ```
+5. **keycap** replaces Toshy; the sill session has no Mac layout without it (Cmd stays Cmd). It is
+   installed and running on this machine; if not, `~/keycap/install.sh --dry-run`, then
+   `~/keycap/install.sh` (it builds and installs with sudo; see `~/keycap/README.md`, "Install").
+   Check `systemctl status keycap` and Cmd+C / Cmd+V in a text field in Plasma.
+
+   `/etc/keycap/keycap.toml` is the Plasma overlay and is shared by every session: it writes
+   Cmd+Space as Alt+Space (KRunner), which opens nothing in COSMIC. So the sill session has its own layer,
+   `~/.config/keycap/keycap.toml` (copied from `dist/keycap/keycap.toml` by the install). sill forwards
+   that file to keycap and keycap lays it over the machine file, so in sill Cmd+Space is Super+Space and
+   Cmd+Shift+3/4/5 is Print (`sill screenshot area`); Plasma never forwards it and keeps `alt+space`.
+   Check offline (`keycap replay` reads no device):
+
+   ```sh
+   printf '0 press 1 apple leftmeta\n10 press 1 apple space\n20 release 1 apple space\n30 release 1 apple leftmeta\n' > /tmp/cmd-space.txt
+   keycap replay /tmp/cmd-space.txt                           # built-in mapping: +leftmeta +space (Super+Space)
+   keycap replay --config /etc/keycap/keycap.toml /tmp/cmd-space.txt   # the Plasma overlay alone: +leftalt +space
+   ```
+
+   Replay takes one file, so the layered result is checked after login: Cmd+Space opens the launcher
+   (section 3, item 2).
+6. **If Toshy is still around, turn it off** (it grabs the same keyboard; never run both). It is already
+   gone on this machine; `systemctl --user list-unit-files 'toshy*'` and `ls ~/.config/autostart` tell you:
 
    ```sh
    systemctl --user disable --now toshy-config.service toshy-cosmic-dbus.service \
      toshy-kwin-dbus.service toshy-wlroots-dbus.service toshy-session-monitor.service
    mkdir -p ~/toshy-off && mv ~/.config/autostart/Toshy_*.desktop ~/toshy-off/   # tray and kickstart
    ```
-
-   (To bring Toshy back: move the three files back and `systemctl --user enable --now` the five units.)
-4. **Chrome and Electron passwords.** Under `XDG_CURRENT_DESKTOP=COSMIC` Chrome no longer picks
+7. **Chrome and Electron passwords.** Under `XDG_CURRENT_DESKTOP=COSMIC` Chrome no longer picks
    KWallet by itself. If an app asks you to sign in again, start it with `--password-store=kwallet6`
    (the LINE and Teams wrappers in `~/.local/bin`, Chrome's launcher, Cursor); that reads the same
    wallet Plasma used. `--password-store=gnome-libsecret` also works through the Secret Service but
    is a different store (you sign in once more).
-5. Save your work, then log out.
+8. **Mouse settings.** Plasma's per-mouse settings (natural scroll, acceleration) are not copied by themselves.
+   Import them before you log out; the first line prints what it would write and changes nothing:
+
+   ```sh
+   sill session import-input --from-plasma --dry-run
+   sill session import-input --from-plasma
+   ```
+
+   Every other pointer gets natural scroll by default.
+9. Do not install `dist/sill.service`, `dist/udev` or `dist/modules-load.d`, and do not enable
+   `voiced.service` (see "The agent stack" in section 3).
+10. Log out of Plasma.
 
 ## 2. At the login screen
 
@@ -46,55 +100,73 @@ pick **Plasma (Wayland)** (section 5). The keyboard works here over Bluetooth, m
 
 ## 3. The first 10 minutes (open COSMIC Term, or ghostty, with Cmd+Space then type it)
 
-Go/no-go set is 1 to 7 (if 1, 3, 4 or 6 fail, log out and use section 5):
+Go/no-go set is 1 to 8 (if 1, 2, 4, 6 or 7 fail, log out and use section 5):
 
 ```sh
 # 1 the session is up
-systemctl --user is-active graphical-session.target       # active
-echo $XDG_CURRENT_DESKTOP $XDG_SESSION_TYPE $XMODIFIERS   # COSMIC wayland @im=fcitx
-sill polkit status; sill idle status; sill ping           # registered; {"kind":"own"}; pong
-# 2 GPU: the session log says which render device it chose; sill is not at 100% CPU
-journalctl -b --no-pager | grep -iE 'render device|vulkan|adapter|llvmpipe' | tail
+systemctl --user is-active graphical-session.target; echo $XDG_CURRENT_DESKTOP $XDG_SESSION_TYPE $XMODIFIERS
+sill ping; sill polkit status; sill idle status        # pong; registered; {"kind":"own"}
+journalctl -b --no-pager | grep -E 'sill-session|keeps exiting' | tail     # no "keeps exiting"
+# 2 launcher by keyboard (G1/G2/L2): Cmd+Space opens it, again closes it; type "term", Enter; also Super+Space
+#   (Cmd+Space does nothing: Alt+Space is being sent, so ~/.config/keycap/keycap.toml is missing; section 1, item 5)
+# 3 GPU (B3): which device did it pick, is sill quiet
+journalctl -b --no-pager | grep -iE 'render device|adapter|vulkan|llvmpipe' | tail
 echo "${COSMIC_RENDER_DEVICE:-unset (cosmic-comp chose)}"
-top -b -n1 | head -12
-# 3 launcher and keys: Cmd+Space, Super+Space, Cmd+Tab; hold a key (repeat 400 ms / 10 per s)
-sill launcher toggle
-# 4 the Mac keyboard (keycap)
-sill keycap status; systemctl status keycap
-#   Cmd+C / Cmd+V in cosmic-term, Zen, Chrome
+top -b -n1 | head -12                                    # sill and cosmic-comp not busy at idle
+# 4 keyboard: Cmd+C/Cmd+V in cosmic-term, Zen, Chrome; Ctrl+C still interrupts in the terminal; hold a key (400 ms / 10 per s)
+keycap status; sill keycap status                        # grabbed; connected
 # 5 polkit
-pkexec true; echo $?                                       # prompt names the action; 0
-# 6 lock (a TTY on Ctrl+Alt+F3 is your net)
-loginctl lock-session                                      # unlock with your password
-# 7 notifications and tray
+pkexec true; echo $?                                     # prompt names the action; 0
+# 6 lock, with a TTY ready
+loginctl lock-session                                    # unlock with your password; try one wrong one
+# 7 power key and log out: the power key opens sill's menu (does not power off): systemd-inhibit --list shows sill-session
+# 8 notifications and tray
 notify-send -A default=Open hello "banner test"
-# 8 Chinese input
-pgrep -a fcitx5                                            # type in Zen and in the launcher
-# 9 secrets
-secret-tool search xdg:schema org.freedesktop.Secret.Generic 2>&1 | head -3
-busctl --user status org.freedesktop.secrets | head -3     # owned (ksecretd)
-#   open Chrome, Cursor, Teams: signed in? (section 1, item 4)
-# 10 workspaces, screenshot, display
-sill workspace next; sill workspace prev                   # also the Magic Mouse two-finger swipes
-sill screenshot area
-cosmic-randr list                                          # your monitor's mode and scale
-sill display brightness up                                 # the monitor's backlight moves
-# 11 a video in Zen: the screen must not dim; `sill idle status` shows "inhibition":"held"
 ```
 
-Tick what passed in `docs/manual-checks.md`.
+Then, in this order, tick them in `docs/manual-checks.md`:
+
+```sh
+# 9  Cmd+Tab: tap switches to the previous app, hold shows the panel
+# 10 Chinese input: pgrep -a fcitx5; type in Zen and in the launcher (Caps Lock switches input: keycap maps it to Ctrl+Space)
+# 11 secrets: secret-tool search xdg:schema org.freedesktop.Secret.Generic 2>&1 | head -3 ; open Chrome, Cursor, Teams: signed in?
+#    busctl --user status org.freedesktop.secrets | head -3   # owned (ksecretd)
+#    (if not: start them with --password-store=kwallet6; section 1, item 7)
+# 12 display: cosmic-randr list (3840x2160, scale 2); sill display brightness up (the BenQ moves, OSD shows)
+# 13 video in Zen: the screen must not dim; sill idle status shows "inhibition":"held"
+# 14 power menu offers (N14): the menu lists Log Out, Restart, Shut Down (do not press Restart or Shut Down)
+# 15 workspaces and the mouse: sill workspace next; sill workspace prev; scroll the Magic Mouse: direction (section 1, item 8; else COSMIC Settings > Mouse)
+# 16 screenshot and share: sill screenshot area; share a screen in Zen or Teams; plug a USB drive, open it in COSMIC Files
+# 17 quire apps: open mailo and anyview: which adapter do they log, does a second window close cleanly (X5)
+# 18 SELinux: sudo ausearch -m avc -ts recent | head    # expect nothing about sill, ksecretd, pam_kwallet_init
+# 19 leave it for an evening: free -h, top, journalctl -b -p warning (L16)
+```
+
+Write the results next to the boxes in `docs/manual-checks.md`, and the surprises in a note for the sill session.
+
+### The agent stack (none of it blocks the session)
+
+- Do not install or enable `voiced.service`: its binary is still a skeleton that exits 2.
+- Summon the companion once with no model installed (`sill companion summon`): it must
+  end with a plain failure within a few seconds, and the session keeps working.
+- `journalctl --user -u memoryd -b`: no crash loop. With the keyring locked or absent, memoryd reports the
+  Space locked and intentd counts audit records as lost; that is expected.
+- `journalctl --user -u cuad -b`: idle, no error loop; `cua.enabled` stays off.
+- Any hang or loop: save the journal lines for the agent session.
 
 ## 4. Known gaps (decided, not bugs)
 
-- No Toshy: the Mac layout is keycap's. Without keycap running, Cmd is Cmd.
+- No Toshy: the Mac layout is keycap's. Without keycap running, Cmd is Cmd. A lone Cmd tap has no sender yet (the companion's
+  Cmd double-tap); use `sill companion summon`.
 - `sill workspace overview` answers "unsupported" (no overview yet); `next` and `prev` work and
   stop at the first and last workspace (no wrap).
 - No sink list in the control centre (G352): switch audio in COSMIC Settings > Sound or `wpctl set-default <id>`.
-- Magic Mouse scroll direction and acceleration are per device in COSMIC Settings > Mouse (the
-  "palmrest" devices); KDE's setting did not carry over.
+- Mouse settings come from `sill session import-input --from-plasma` (section 1, item 8), or are per device in COSMIC
+  Settings > Mouse (the "palmrest" devices).
+- The dock and the launcher start empty on a fresh account and nothing is seeded: pin apps with `sill dock pin <id>`.
 - No colour management, no software night light (the monitor is dimmed and warmed over DDC/CI where it supports it), no
   screen recording app, no printer applet, no weather.
-- Tray menus lose submenus (Q21). Escape does not close the control centre after a pointer press (G400).
+- Escape does not close the control centre after a pointer press (G400).
 - fcitx5 starts from XDG autostart; `GTK_IM_MODULE` and `QT_IM_MODULE` are deliberately unset.
 - More in `docs/cosmic-gaps.md` and `FINDINGS.md`.
 
@@ -105,9 +177,9 @@ Tick what passed in `docs/manual-checks.md`.
 - **Black screen, or the login screen comes straight back**: press **Ctrl+Alt+F3**, log in on the TTY
   (with the cable or 2.4G keyboard if keycap or Bluetooth is the problem), then either
   - `systemctl restart plasmalogin` and pick Plasma at the login screen (use `sudo`), or
-  - remove the sill session: `~/rs-wt/m-login/sill/dist/uninstall.sh` (`--dry-run` first;
+  - remove the sill session: `~/sill/dist/uninstall.sh` (`--dry-run` first;
     `--forget-seeds` also removes the key repeat and shortcut files it copied into
-    `~/.config/cosmic`, if you have not changed them). The stock COSMIC and Plasma entries stay.
+    `~/.config/cosmic` and the keycap layer in `~/.config/keycap`, if you have not changed them). The stock COSMIC and Plasma entries stay.
 - **The keyboard is wrong**: hold both Shift keys and press Esc (keycap's release), or
   `sudo systemctl stop keycap`.
 - **The rendering GPU** is detected at each login: with two or more GPUs, `sill session detect-gpu`
