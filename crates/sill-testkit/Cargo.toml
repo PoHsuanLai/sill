@@ -33,11 +33,7 @@ name = "mpris_player"
 [[example]]
 name = "notifications_holder"
 [[example]]
-name = "auth_helper"
-[[example]]
 name = "polkit_authority"
-[[example]]
-name = "polkit_helper"
 [[example]]
 name = "files_probe"
 [[example]]
@@ -46,10 +42,6 @@ name = "file_manager_stub"
 name = "logind_standin"
 [[example]]
 name = "screensaver_client"
-[[example]]
-name = "tray_item"
-[[example]]
-name = "tray_host"
 [[example]]
 name = "app_menu_app"
 

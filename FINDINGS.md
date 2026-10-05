@@ -99,7 +99,7 @@ A settled item is deleted, not marked closed.
   `<destination>/StatusNotifierItem`. The crate has no scroll or context-menu call and keeps its
   connection private, so the host opens a second session connection to send `Scroll` and
   `ContextMenu`. It reads the process's own session bus, so `crates/sill-services/tests/tray_bus.rs` runs the service as
-  a child (`sill-testkit`'s `tray_host`) whose environment alone names the private bus, beside the
+  a child (`sill-services`' `tray_host` stand-in) whose environment alone names the private bus, beside the
   fake item `tray_item`. A dbusmenu `LayoutUpdated` for a parent other than the root replaces the
   item's whole cached menu with that subtree (the crate's own handling); apps send the root.
 - **A tray item's menu is a bar menu** (`BarMenu::Tray(slot)`, the slot being the item's place in

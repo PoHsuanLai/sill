@@ -3,7 +3,7 @@
 //! of the submenu reaches the item as `Event "clicked"`, the item is asked for its own menu
 //! (`ContextMenu`), told its menu is about to show, and a `LayoutUpdated` it emits is followed.
 //! The SNI host reads the process's own session bus, so it runs as a child
-//! (`examples/tray_host.rs`) whose environment alone names the private bus. The test needs a
+//! (`src/bin/tray_host.rs`) whose environment alone names the private bus. The test needs a
 //! `dbus-daemon` and skips, saying so, without one.
 
 use std::io::{BufRead, BufReader, Write};
@@ -17,19 +17,19 @@ use sill_testkit::{PrivateBus, TempDir};
 
 const WAIT: Duration = Duration::from_secs(20);
 
-/// An example built, and where it is.
-fn example(name: &str) -> PathBuf {
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
-    let status = Command::new(cargo)
-        .args(["build", "-q", "-p", "sill-testkit", "--example", name])
-        .status()
-        .unwrap_or_else(|e| panic!("building {name}: {e}"));
-    assert!(status.success(), "building {name}");
-    let target = std::env::var("CARGO_TARGET_DIR").map_or_else(
-        |_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"),
-        PathBuf::from,
-    );
-    target.join("debug/examples").join(name)
+/// A stand-in (`src/bin/NAME.rs`), built with this test: nextest's own path when it runs from an
+/// archive, else the one cargo gave this build. Nothing here shells out to cargo.
+fn stand_in(name: &str, built: &str) -> PathBuf {
+    std::env::var_os(format!("NEXTEST_BIN_EXE_{name}"))
+        .map_or_else(|| PathBuf::from(built), PathBuf::from)
+}
+
+fn tray_host() -> PathBuf {
+    stand_in("tray_host", env!("CARGO_BIN_EXE_tray_host"))
+}
+
+fn tray_item() -> PathBuf {
+    stand_in("tray_item", env!("CARGO_BIN_EXE_tray_item"))
 }
 
 /// The host and the item running on one private bus.
@@ -43,7 +43,7 @@ struct Fixture {
 
 impl Fixture {
     fn start(bus: &PrivateBus, scratch: &Path) -> Fixture {
-        let mut host = Command::new(example("tray_host"))
+        let mut host = Command::new(tray_host())
             .arg(scratch)
             .env("DBUS_SESSION_BUS_ADDRESS", &bus.address)
             .env_remove("DBUS_SYSTEM_BUS_ADDRESS")
@@ -68,7 +68,7 @@ impl Fixture {
             }
         });
         let log = scratch.join("item.log");
-        let mut item = Command::new(example("tray_item"))
+        let mut item = Command::new(tray_item())
             .arg(&bus.address)
             .arg(&log)
             .stdout(Stdio::piped())

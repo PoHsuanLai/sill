@@ -60,33 +60,6 @@ capture_all() {
   done
 }
 
-# Waits up to 10 s for surface $1 to differ from its $2 capture by $CHANGED (or, with $3 = same,
-# to be within $SETTLED of it); captures into $OUT_DIR/$4-$1.png. Prints the fraction.
-wait_look() {
-  local surface="$1" reference="$2" want="$3" tag="$4" fraction=1
-  for _ in $(seq 50); do
-    capture "$surface" "$OUT_DIR/$tag-$surface.png" || return 1
-    fraction=$(changed_fraction "$OUT_DIR/$tag-$surface.png" "$OUT_DIR/$reference-$surface.png")
-    if [ "$want" = same ]; then at_least "$SETTLED" "$fraction" && { echo "$fraction"; return 0; }
-    else at_least "$fraction" "$CHANGED" && { echo "$fraction"; return 0; }; fi
-    sleep 0.2
-  done
-  echo "$fraction"
-  return 1
-}
-
-# Every surface reaches the look $3 against the capture $2, captured as $4, with the same daemon.
-expect_all() {
-  local reference="$1" want="$2" tag="$3" surface fraction
-  for surface in "${SURFACES[@]}"; do
-    fraction=$(wait_look "$surface" "$reference" "$want" "$tag") || {
-      echo "$surface: $tag is not $want as $reference (changed fraction $fraction)" >&2; return 1; }
-    echo "$surface: $tag vs $reference changed fraction $fraction ($want)" | tee -a "$OUT_DIR/steps.log" >&2
-  done
-  kill -0 "$DAEMON_PID" 2>/dev/null && sill ping >/dev/null 2>&1 || {
-    echo "the daemon ($DAEMON_PID) is gone or not answering" >&2; return 1; }
-}
-
 step_baseline() { capture_all base; }
 
 step_check_clean() {

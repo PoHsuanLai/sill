@@ -1,12 +1,11 @@
 //! Live checks of the auth service. Nothing here calls PAM with anyone's real password: the service
 //! runs a `FakeAuthenticator` as its `Env`'s authenticator, and `PamHelper` runs against the
-//! stand-in helper (`examples/auth_helper.rs`). The one PAM test runs only when
+//! stand-in helper (`src/bin/auth_helper.rs`). The one PAM test runs only when
 //! `SILL_PAM_TEST_USER` and `SILL_PAM_TEST_SECRET` name a throwaway account, and says it skipped
 //! otherwise; that test is `#[ignore]`d and run with
 //! `cargo test -p sill-services --test auth_live -- --ignored --nocapture`.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -138,27 +137,13 @@ async fn an_unavailable_check_counts_nothing() {
     assert_eq!(auth.borrow().failures, Attempts(0));
 }
 
-/// The stand-in helper, built next to this test binary.
+/// The stand-in `auth_helper` (`src/bin/auth_helper.rs`), built with this test: nextest's own path when it runs
+/// from an archive, else the one cargo gave this build. Nothing here shells out to cargo.
 fn stand_in() -> PathBuf {
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
-    let built = Command::new(cargo)
-        .args([
-            "build",
-            "--quiet",
-            "-p",
-            "sill-testkit",
-            "--example",
-            "auth_helper",
-        ])
-        .status()
-        .expect("cargo build the stand-in helper");
-    assert!(built.success(), "building examples/auth_helper.rs");
-    let exe = std::env::current_exe().expect("test binary path");
-    exe.parent()
-        .and_then(Path::parent)
-        .expect("target/<profile>")
-        .join("examples")
-        .join("auth_helper")
+    std::env::var_os("NEXTEST_BIN_EXE_auth_helper").map_or_else(
+        || PathBuf::from(env!("CARGO_BIN_EXE_auth_helper")),
+        PathBuf::from,
+    )
 }
 
 fn helper(program: PathBuf, args: &[&str], timeout: Duration) -> PamHelper {

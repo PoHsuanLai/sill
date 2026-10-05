@@ -1,10 +1,9 @@
 //! sill's polkit agent against a stand-in Authority on a private bus and the stand-in helper
-//! (`examples/polkit_helper.rs`), never polkitd, the system bus or PAM. The bus test needs a
+//! (`src/bin/polkit_helper.rs`), never polkitd, the system bus or PAM. The bus test needs a
 //! `dbus-daemon` and skips, saying so, without one.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -84,26 +83,13 @@ impl StandIn {
     }
 }
 
-/// The stand-in helper, built.
+/// The stand-in `polkit_helper` (`src/bin/polkit_helper.rs`), built with this test: nextest's own path when it runs
+/// from an archive, else the one cargo gave this build. Nothing here shells out to cargo.
 fn helper_program() -> PathBuf {
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
-    let status = Command::new(cargo)
-        .args([
-            "build",
-            "-q",
-            "-p",
-            "sill-testkit",
-            "--example",
-            "polkit_helper",
-        ])
-        .status()
-        .unwrap_or_else(|e| panic!("building polkit_helper: {e}"));
-    assert!(status.success(), "building polkit_helper");
-    let target = std::env::var("CARGO_TARGET_DIR").map_or_else(
-        |_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"),
+    std::env::var_os("NEXTEST_BIN_EXE_polkit_helper").map_or_else(
+        || PathBuf::from(env!("CARGO_BIN_EXE_polkit_helper")),
         PathBuf::from,
-    );
-    target.join("debug/examples/polkit_helper")
+    )
 }
 
 async fn until(rx: &mut watch::Receiver<Polkit>, what: &str, ok: impl FnMut(&Polkit) -> bool) {

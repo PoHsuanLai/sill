@@ -12,7 +12,7 @@
 //! Log lines: `Event <id> <event>`, `AboutToShow <id>`, `Activate <x> <y>`,
 //! `SecondaryActivate <x> <y>`, `ContextMenu <x> <y>`, `Scroll <delta> <orientation>`.
 //!
-//! Usage: `cargo run -p sill-testkit --example tray_item -- <bus address> <log file>`
+//! Usage: `cargo run -p sill-services --bin tray_item -- <bus address> <log file>`
 
 use std::collections::HashMap;
 use std::io::Write;

@@ -7,7 +7,7 @@
 //! Stdin: one `TrayCommand` as JSON per line. Stdout: the `Tray` as JSON, one line each time it
 //! changes.
 //!
-//! Usage: `DBUS_SESSION_BUS_ADDRESS=<private bus> cargo run -p sill-testkit --example tray_host -- <scratch dir>`
+//! Usage: `DBUS_SESSION_BUS_ADDRESS=<private bus> cargo run -p sill-services --bin tray_host -- <scratch dir>`
 
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
