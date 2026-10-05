@@ -13,6 +13,9 @@ sill-launcher = { workspace = true }
 ds-core = { workspace = true }
 keycap-protocol = { workspace = true }
 docket-core = { workspace = true }
+companion-wire = { workspace = true }
+cua-bus = { workspace = true }
+almanac-core = { workspace = true }
 prov = { workspace = true }
 jiff = { workspace = true }
 serde = { workspace = true }
