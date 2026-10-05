@@ -192,7 +192,20 @@ if [ -z "$nested" ]; then
 fi
 respawn settings-daemon cosmic-settings-daemon
 respawn portal /usr/libexec/xdg-desktop-portal-cosmic
-respawn sill sill run
+# sill runs in its own named scope, sill-shell.scope: the companion's daemons (memoryd, intentd)
+# admit the shell by that unit through porter's caller identity, as they admit their own units.
+# If the scope name is still held (a sill that has not finished exiting, or another process of
+# this user), sill starts outside it and says so; the session never waits on the identity.
+sill_shell() {
+    if [ -z "$nested" ] && command -v systemd-run >/dev/null \
+        && [ "$(systemctl --user show -p LoadState --value sill-shell.scope 2>/dev/null)" = not-found ]; then
+        systemd-run --user --scope --unit=sill-shell --collect --quiet -- sill run
+    else
+        [ -z "$nested" ] && log "sill-shell.scope unavailable; sill runs without its unit identity"
+        sill run
+    fi
+}
+respawn sill sill_shell
 
 # Never return: this script's exit would end the compositor.
 while :; do
