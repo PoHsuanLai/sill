@@ -162,8 +162,8 @@ freedesktop-icons = "0.4"
 nucleo-matcher = "0.3.1"
 fend-core = "1.5.8"
 clap = { version = "4", features = ["derive"] }
-# latchkey lives in mailo until it is split into its own repo; cargo finds crates/latchkey itself.
-latchkey = { git = "https://github.com/PoHsuanLai/mailo", rev = "64edc015ef70f064b58ff1ef3a587325ee3337c6" }
+# latchkey: its own repo since 2026-10-07 (split out of mailo with its history).
+latchkey = { git = "https://github.com/PoHsuanLai/latchkey", rev = "f6a02834f36a81bc09d007db8bc34248e5783788" }
 # ---- END PINNED BLOCK ----
 
 # sill-only, outside the pinned block (they are not shared with quire or shell-host).
