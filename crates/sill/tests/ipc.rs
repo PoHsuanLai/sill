@@ -14,8 +14,10 @@ use sill_ipc::show::{LauncherRequest, ShowRequest};
 /// A `Listening` on a throwaway socket under a per-test temp directory, so this suite never
 /// touches the real `sill` agent's socket even when it runs alongside a live daemon.
 fn temp_door(name: &str) -> (latchkey::Agent, latchkey::Listening) {
+    // Short on purpose: the socket path must fit sun_path (108 bytes) under any TMPDIR; the pid
+    // and the clock already make it unique, and `name` is only for messages.
     let dir = std::env::temp_dir().join(format!(
-        "sill-ipc-test-{name}-{}-{}",
+        "sill-ipc-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
