@@ -8,7 +8,7 @@ use super::Command;
 use super::debug::debug_request;
 use super::desktop::{
     companion_request, control_center_request, dock_request, power_menu_request,
-    screenshot_request, widgets_request,
+    screenshot_request, voice_request, widgets_request,
 };
 use super::display::display_request;
 use super::intents::intents_request;
@@ -36,6 +36,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Screenshot { kind } => screenshot_request(*kind),
         Command::Widgets { action } => widgets_request(*action),
         Command::Companion { action } => companion_request(*action),
+        Command::Voice { action } => voice_request(*action),
         Command::Display { action } => display_request(action),
         Command::Notifications { action } => notifications_request(*action),
         Command::Lock { verb } => lock_request(*verb),

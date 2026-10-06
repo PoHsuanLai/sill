@@ -496,6 +496,12 @@ impl PanelCtx {
     /// so a pick that follows in the same handler keeps the panel mapped for its token. An
     /// Escape the preview pane takes never reaches the palette (`claim`).
     pub fn dismissed(&self) {
+        // Escape ends what voice was hearing too: the words are discarded, never sent.
+        let _ = self
+            .services
+            .voice
+            .control
+            .send(sill_model::voice::VoiceCommand::Cancel);
         let (picking, link) = (self.picking, self.link.clone());
         spawn(async move {
             if *picking.peek() == Picking::No {

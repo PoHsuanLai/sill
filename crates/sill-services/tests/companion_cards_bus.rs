@@ -96,6 +96,7 @@ fn ask_input() -> AskInput {
         window: None,
         app: None,
         space: SpaceId::desktop(),
+        via: docket_core::TurnVia::Typed,
     }
 }
 

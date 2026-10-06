@@ -49,6 +49,7 @@ const BASIC: &[&str] = &[
     "companion.summon",
     "companion.in_field",
     "companion.notify",
+    "voice.hold_to_talk",
 ];
 
 #[test]
@@ -70,7 +71,7 @@ fn basic_keys_are_on_their_section_5_pages() {
         "scroll" => Page::MouseAndGestures,
         "notifications" | "sound" => Page::Notifications,
         "spaces" => Page::Spaces,
-        "companion" => Page::Intelligence,
+        "companion" | "voice" => Page::Intelligence,
         other => panic!("no §5 page for {other}"),
     };
     for key in schema().key {

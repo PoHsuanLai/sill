@@ -27,7 +27,8 @@ use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper,
+    ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher,
+    VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
@@ -158,6 +159,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <ConfirmSheet as Surface>::NAME,
         css: sill_overlays::confirm_sheet::CONFIRM_SHEET_CSS,
         states: confirm_sheet_states,
+    },
+    SurfaceCase {
+        name: "voice_consent",
+        surface: <VoiceConsentSheet as Surface>::NAME,
+        css: sill_overlays::voice_consent::VOICE_CONSENT_CSS,
+        states: voice_consent_states,
     },
 ];
 
@@ -432,6 +439,24 @@ fn confirm_sheet_states() -> Vec<(&'static str, String)> {
         sheet.harness.advance(Duration::from_millis(700));
     }
     assert!(states[2].1.contains("sill-confirm"), "{}", states[2].1);
+    states
+}
+
+/// The consent sheet hidden, then asking.
+fn voice_consent_states() -> Vec<(&'static str, String)> {
+    use sill_model::voice::{ConsentSheet, Voice};
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    let mut sheet = SurfaceHarness::<VoiceConsentSheet>::setup(link, ()).start();
+    sheet.harness.advance(Duration::from_millis(40));
+    let mut states = vec![("hidden", sheet.harness.html())];
+    sheet.feeds.voice.send_replace(Voice {
+        sheet: ConsentSheet::Asking,
+        ..Voice::default()
+    });
+    sheet.harness.advance(Duration::from_millis(700));
+    states.push(("asking", sheet.harness.html()));
+    assert!(states[1].1.contains("sill-consent"), "{}", states[1].1);
     states
 }
 

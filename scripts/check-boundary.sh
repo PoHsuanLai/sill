@@ -78,10 +78,10 @@ done
 EDGES=(
   "sill-launcher: almanac-core docket-core ds-core prov"
   "sill-testkit:"
-  "sill-model: almanac-core companion-wire cua-bus docket-core ds-core keycap-protocol prov sill-launcher"
+  "sill-model: almanac-core companion-wire cua-bus docket-core ds-core keycap-protocol prov sill-launcher voice-wire"
   "sill-settings: ds-core ds-settings keycap-protocol sill-launcher sill-model"
   "sill-ipc: sill-launcher sill-model"
-  "sill-services: almanac-core almanac-dbus anyview-core anyview-platform companion-wire cua-bus cua-dbus docket-client docket-core docket-dbus ds-core keycap-protocol porter-core porter-dbus prov sill-launcher sill-model"
+  "sill-services: almanac-core almanac-dbus anyview-core anyview-platform companion-wire cua-bus cua-dbus docket-client docket-core docket-dbus ds-core keycap-protocol porter-core porter-dbus prov sill-launcher sill-model voice-wire"
   "sill-search: almanac-core anyview-core anyview-store companion-wire docket-core ds-core ds-settings prov sill-launcher sill-model sill-services"
   "sill-ui-kit: companion-wire docket-core ds ds-blitz ds-core ds-harness ds-settings ds-shell porter-core prov shell-host sill-launcher sill-model sill-search sill-services sill-settings"
   "sill-bar: ds ds-blitz ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"

@@ -35,6 +35,7 @@ use sill_services::screenshots::ScreenshotsService;
 use sill_services::service::{Handle, Service};
 use sill_services::session::SessionService;
 use sill_services::tray::TrayService;
+use sill_services::voice::VoiceService;
 use sill_services::volume::VolumeService;
 use sill_services::wallpaper::WallpaperService;
 use sill_services::wifi::WifiService;
@@ -95,6 +96,9 @@ pub struct Services {
     /// The companion: where a summon goes, its answers, the computer-use runs, the undo journal
     /// and the launcher's two lookups; it speaks as the shell on the connection `intents` holds.
     pub companion: Handle<CompanionService>,
+    /// Hold-to-talk: where the hold stands, the words heard so far and the consent sheet; it
+    /// speaks to voiced as the shell, and asks the companion what it heard.
+    pub voice: Handle<VoiceService>,
     /// The person's directories the services were started with (the icon theme's config, the
     /// widget placements' state folder).
     pub dirs: Dirs,
@@ -153,4 +157,5 @@ members! {
     accounts: AccountsService,
     intents: IntentsService,
     companion: CompanionService,
+    voice: VoiceService,
 }

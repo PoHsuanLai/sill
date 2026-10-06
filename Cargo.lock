@@ -7237,6 +7237,9 @@ dependencies = [
  "sill-widgets-ui",
  "thiserror 2.0.21",
  "tokio",
+ "toml",
+ "voice-wire",
+ "zbus",
 ]
 
 [[package]]
@@ -7355,11 +7358,14 @@ dependencies = [
  "jiff",
  "keycap-protocol",
  "porter-core",
+ "porter-infer",
  "prov",
  "serde",
  "serde_json",
  "sill-launcher",
  "thiserror 2.0.21",
+ "toml",
+ "voice-wire",
 ]
 
 [[package]]
@@ -7469,6 +7475,7 @@ dependencies = [
  "policy-point",
  "porter-core",
  "porter-dbus",
+ "porter-infer",
  "prov",
  "rustix",
  "serde",
@@ -7481,6 +7488,7 @@ dependencies = [
  "tokio",
  "toml",
  "upower_dbus",
+ "voice-wire",
  "zbus",
 ]
 
@@ -7491,6 +7499,7 @@ dependencies = [
  "ds-core",
  "ds-settings",
  "keycap-protocol",
+ "prov",
  "serde",
  "sill-launcher",
  "sill-model",
@@ -8957,6 +8966,18 @@ version = "0.1.0"
 dependencies = [
  "cua-action",
  "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "voice-wire"
+version = "0.1.0"
+dependencies = [
+ "docket-core",
+ "porter-core",
+ "porter-infer",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 

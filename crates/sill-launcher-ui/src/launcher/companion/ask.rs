@@ -3,7 +3,7 @@
 //! the launcher has no results or selection of its own to offer. The Space is the one the caller
 //! names: the focused workspace's when sill has a Space for it.
 
-use docket_core::{ContextKeep, Keep};
+use docket_core::{ContextKeep, Keep, TurnVia};
 use prov::{AppName, SpaceId};
 use sill_launcher::WindowKey;
 use sill_model::companion::LauncherOrigin;
@@ -43,6 +43,7 @@ pub fn ask_input(
         window,
         app: window.and_then(|key| app_of(toplevels, key)),
         space,
+        via: TurnVia::Typed,
     }
 }
 

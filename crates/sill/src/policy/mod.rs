@@ -12,6 +12,7 @@ pub mod keyboard;
 pub mod notifications;
 pub mod screenshots;
 pub mod search;
+pub mod voice;
 
 pub use follow::follow;
 

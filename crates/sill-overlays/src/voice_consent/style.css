@@ -1,0 +1,7 @@
+/* The voice consent sheet. The sheet and the buttons are quire's (Sheet, Button); this lays out
+   what sill puts in the sheet: the title, the one sentence, the footer. Tokens only. */
+
+.sill-consent{ display:flex; flex-direction:column; gap:var(--s-10); padding:var(--s-16); color:var(--ink); outline:none; }
+.sill-consent-title{ font-size:var(--fs-title); font-weight:700; }
+.sill-consent-body{ font-size:var(--fs-body); color:var(--ink-soft); }
+.sill-consent-footer{ display:flex; justify-content:flex-end; gap:var(--s-8); }

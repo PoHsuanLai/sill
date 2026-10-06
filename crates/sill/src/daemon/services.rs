@@ -7,6 +7,7 @@ use sill_model::companion::SummonOut;
 use sill_model::intents::IntentsCommand;
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
+use sill_model::voice::VoiceConsent;
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
 use sill_services::accounts::{AccountsLinks, AccountsService};
 use sill_services::apps::AppsService;
@@ -25,6 +26,7 @@ use sill_services::notifications::NotificationsService;
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::seat::seat;
 use sill_services::service::spawn;
+use sill_services::voice::{VoiceLinks, VoiceService};
 use sill_services::volume::VolumeService;
 use sill_services::{AppMenuDeps, AppMenuService, MenuLinks};
 use sill_ui_kit::app_menu::menu_name_of;
@@ -38,17 +40,20 @@ use crate::policy::{
     calendar::CalendarBridge, clipboard::ClipboardBridge, companion::CompanionBridge,
     displays::DisplaysBridge, follow, idle::IdleBridge, keyboard::KeyboardBridge,
     notifications::NotificationsBridge, screenshots::ScreenshotsBridge, search::SearchBridge,
+    voice::VoiceBridge,
 };
 
 /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
 /// against `env`'s seams, each after the ones it depends on. A service whose system half is
 /// missing still yields its receiver, at its default. `shell_calls` is where the shell's own
-/// actions go, `summons` where a summon's launcher effects go.
+/// actions go, `summons` where a summon's launcher effects go, `consents` where the answer to
+/// the voice consent sheet goes.
 pub(crate) fn start(
     rt: &Runtime,
     env: &Env,
     shell_calls: UnboundedSender<ShellCall>,
     summons: UnboundedSender<SummonOut>,
+    consents: UnboundedSender<VoiceConsent>,
 ) -> Services {
     // The connection the intents service claims `org.quire.Shell` on, which the companion speaks
     // on as the launcher.
@@ -57,8 +62,17 @@ pub(crate) fn start(
         rt,
         env,
         CompanionLinks {
-            seat: seat_view,
+            seat: seat_view.clone(),
             summons,
+        },
+    );
+    let voice = spawn::<VoiceService>(
+        rt,
+        env,
+        VoiceLinks {
+            seat: seat_view,
+            companion: companion.control.clone(),
+            consents,
         },
     );
     let volume = spawn::<VolumeService>(rt, env, ());
@@ -154,6 +168,7 @@ pub(crate) fn start(
             },
         ),
         companion,
+        voice,
         volume,
         battery,
         apps,
@@ -226,6 +241,7 @@ pub(crate) fn follow_settings(
         services.displays.control.clone(),
     );
     // The companion's double tap and summon follow `companion.*`.
+    follow(rt, settings(), VoiceBridge, services.voice.control.clone());
     follow(
         rt,
         settings(),
@@ -270,7 +286,14 @@ mod tests {
         let scratch = TempDir::new("services-spawn");
         let (calls, _shell_calls) = tokio::sync::mpsc::unbounded_channel();
         let (summons, _launcher_effects) = tokio::sync::mpsc::unbounded_channel();
-        let services = start(rt.handle(), &Env::isolated(scratch.path()), calls, summons);
+        let (consents, _written) = tokio::sync::mpsc::unbounded_channel();
+        let services = start(
+            rt.handle(),
+            &Env::isolated(scratch.path()),
+            calls,
+            summons,
+            consents,
+        );
 
         assert_eq!(
             services
@@ -291,6 +314,11 @@ mod tests {
             *services.companion.state.borrow(),
             Default::default(),
             "no seat, no companion: nothing known"
+        );
+        assert_eq!(
+            *services.voice.state.borrow(),
+            Default::default(),
+            "no seat, no voice: nothing can begin"
         );
         assert_eq!(*services.wallpaper.state.borrow(), Default::default());
         assert_eq!(

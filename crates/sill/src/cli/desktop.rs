@@ -4,7 +4,7 @@
 use clap::{Subcommand, ValueEnum};
 use sill_ipc::act::{ActRequest, DockRequest};
 use sill_ipc::request::Request;
-use sill_ipc::show::{CompanionRequest, EditWidgetsRequest, Reveal, ShowRequest};
+use sill_ipc::show::{CompanionRequest, EditWidgetsRequest, Reveal, ShowRequest, VoiceRequest};
 use sill_launcher::AppId;
 use sill_model::screenshots::ShotKind;
 
@@ -66,6 +66,20 @@ pub enum CompanionAction {
     StopAll,
 }
 
+/// `sill voice ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum VoiceAction {
+    /// The hold began: open the companion and listen.
+    #[command(name = "hold-start")]
+    Start,
+    /// The key was let go: finish and send what was said.
+    #[command(name = "hold-end")]
+    End,
+    /// Another input spoiled the hold: discard what was said.
+    #[command(name = "hold-cancel")]
+    Cancel,
+}
+
 /// The request `sill dock ACTION` sends.
 pub fn dock_request(action: &DockAction) -> Request {
     Request::Act(ActRequest::Dock(match action {
@@ -112,6 +126,15 @@ pub fn widgets_request(action: WidgetsAction) -> Request {
             Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Close))
         }
     }
+}
+
+/// The request `sill voice ACTION` sends.
+pub fn voice_request(action: VoiceAction) -> Request {
+    Request::Show(ShowRequest::Voice(match action {
+        VoiceAction::Start => VoiceRequest::HoldStart,
+        VoiceAction::End => VoiceRequest::HoldEnd,
+        VoiceAction::Cancel => VoiceRequest::HoldCancel,
+    }))
 }
 
 /// The request `sill companion ACTION` sends.

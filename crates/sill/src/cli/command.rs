@@ -5,7 +5,8 @@ use clap::Subcommand;
 
 use super::debug::DebugAction;
 use super::desktop::{
-    CompanionAction, ControlCenterAction, DockAction, PowerMenuAction, ShotArg, WidgetsAction,
+    CompanionAction, ControlCenterAction, DockAction, PowerMenuAction, ShotArg, VoiceAction,
+    WidgetsAction,
 };
 use super::display::DisplayAction;
 use super::intents::IntentsAction;
@@ -129,6 +130,11 @@ pub enum Command {
     Companion {
         #[command(subcommand)]
         action: CompanionAction,
+    },
+    /// Hold-to-talk: the edges of the hold, for a key source that detects it itself.
+    Voice {
+        #[command(subcommand)]
+        action: VoiceAction,
     },
     /// Your own stylesheet, `style.css`.
     Style {

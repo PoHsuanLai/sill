@@ -23,6 +23,8 @@ pub enum ShowRequest {
     EditWidgets(EditWidgetsRequest),
     /// The companion's summon (`sill companion {tap,summon,dismiss,stop-all}`).
     Companion(CompanionRequest),
+    /// Hold-to-talk (`sill voice {hold-start,hold-end,hold-cancel}`).
+    Voice(VoiceRequest),
 }
 
 /// How a panel changes: the shortcut that flips it, or the two that set it.
@@ -56,6 +58,19 @@ pub enum LauncherRequest {
 pub enum EditWidgetsRequest {
     Open,
     Close,
+}
+
+/// The hold-to-talk gesture's three edges, from a source that detects the hold itself (the
+/// keyboard remapper): the key held long enough, let go, or spoiled by another input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VoiceRequest {
+    /// The hold began: open the companion and listen.
+    HoldStart,
+    /// The key was let go: finish and send what was said.
+    HoldEnd,
+    /// Another key or the pointer spoiled the hold: discard what was said.
+    HoldCancel,
 }
 
 /// The companion's four verbs (`sill companion {tap,summon,dismiss,stop-all}`).

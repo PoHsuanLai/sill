@@ -50,7 +50,8 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let env = args.env();
     let (shell_calls, shell_actions) = tokio::sync::mpsc::unbounded_channel();
     let (summons_tx, summons) = tokio::sync::mpsc::unbounded_channel();
-    let services = services::start(runtime.handle(), &env, shell_calls, summons_tx);
+    let (consents_tx, consents) = tokio::sync::mpsc::unbounded_channel();
+    let services = services::start(runtime.handle(), &env, shell_calls, summons_tx, consents_tx);
     let store = settings::store(&env.dirs.config);
     let first = settings::load(&store);
     let (settings, settings_rx) = watch::channel(first.clone());
@@ -61,6 +62,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     };
     let links = build_links(&runtime, &env, &settings_feed, &settings, &store);
     services::follow_settings(runtime.handle(), &settings_feed, &links, &services, &env);
+    crate::voice::spawn_consent_writer(runtime.handle(), consents, store.clone(), settings.clone());
 
     let host = match Host::<ShellMsg>::connect(host_config(&first)) {
         Ok(host) => host,

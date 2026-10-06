@@ -27,6 +27,7 @@ pub fn dispatch(reach: &Reach, request: ShowRequest) -> Response {
         ShowRequest::ControlCenter => control_center(reach),
         ShowRequest::EditWidgets(request) => edit_widgets(reach, request),
         ShowRequest::Companion(request) => crate::companion::dispatch(reach, request),
+        ShowRequest::Voice(request) => crate::voice::dispatch(reach, request),
     }
 }
 

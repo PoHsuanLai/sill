@@ -17,7 +17,9 @@ use sill_ipc::error::IpcError;
 use sill_ipc::line::{MAX_LINE, decode, encode, read_message, write_message};
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
-use sill_ipc::show::{CompanionRequest, EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
+use sill_ipc::show::{
+    CompanionRequest, EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest,
+};
 use sill_ipc::status::{
     ClipboardStatus, IntentsStatus, LinkStatus, NotificationsStatus, PolkitStatus, StatusReport,
     StatusRequest,
@@ -112,6 +114,18 @@ fn requests() -> Vec<(Request, &'static str)> {
         (
             Request::Show(ShowRequest::Companion(CompanionRequest::StopAll)),
             r#"{"kind":"show","v":{"kind":"companion","v":"stop_all"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::Voice(VoiceRequest::HoldStart)),
+            r#"{"kind":"show","v":{"kind":"voice","v":"hold_start"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::Voice(VoiceRequest::HoldEnd)),
+            r#"{"kind":"show","v":{"kind":"voice","v":"hold_end"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::Voice(VoiceRequest::HoldCancel)),
+            r#"{"kind":"show","v":{"kind":"voice","v":"hold_cancel"}}"#,
         ),
         (
             Request::Show(ShowRequest::PowerMenu(Reveal::Open)),

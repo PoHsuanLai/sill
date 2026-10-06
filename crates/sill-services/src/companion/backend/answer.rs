@@ -7,8 +7,7 @@
 use companion_wire::{AnswerWire, AskWire, RouteNote};
 use docket_client::{DbusTransport, Intents};
 use docket_core::{
-    CardActionId, Origin, SessionOpen, SessionOpened, TurnIn, TurnSource, TurnVia, UserTurn,
-    WindowKey,
+    CardActionId, Origin, SessionOpen, SessionOpened, TurnIn, TurnSource, UserTurn, WindowKey,
 };
 use docket_dbus::{CompanionAnswerProxy, CompanionProxy, Details, answer_path};
 use prov::{AgentRef, SessionId, TaskId, UnixSeconds};
@@ -47,7 +46,7 @@ pub(super) async fn ask(
         text: input.prompt.clone(),
         origin: Origin::Launcher,
         keep: input.keep,
-        via: TurnVia::Typed,
+        via: input.via,
     };
     let id = intents
         .session_turn(opened.session.clone(), turn)
@@ -58,7 +57,7 @@ pub(super) async fn ask(
         text: input.prompt.clone(),
         at,
         from: TurnSource::Launcher,
-        via: TurnVia::Typed,
+        via: input.via,
     };
     let session = opened.session;
     let wire = AskWire {

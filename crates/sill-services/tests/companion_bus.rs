@@ -177,6 +177,7 @@ async fn an_ask_opens_a_session_records_the_turn_and_follows_the_answer() {
         window: Some(WindowKey(4)),
         app: Some(app("org.quire.Mail")),
         space: SpaceId::parse("work").unwrap_or_else(|e| panic!("{e}")),
+        via: docket_core::TurnVia::Typed,
     }));
     let asked = desk.log_starting("ask ").await;
     let wire_ask: AskWire =

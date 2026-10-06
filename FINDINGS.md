@@ -760,6 +760,23 @@ A settled item is deleted, not marked closed.
   `PopupSize::FitContent` measures the card plus that room. shell-host should take the room in
   `PopupSize::FitContent` and lay the root itself, which deletes `PopupFrame` and its rule.
 
+## voice: what hold-to-talk waits on
+
+Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `sill_overlays::voice_consent`):
+
+- **design/22 has no `voice` section.** `voice.hold_to_talk` ships and `voice.consent` is state
+  (`#[settings(skip)]`); `crates/sill-settings/tests/keys.rs` lists `voice.hold_to_talk` as
+  `UNCATALOGUED`. Ends when quire's design/22 gains the rows and `SECTIONS` names them.
+- **The hold's edges come from a source that detects the hold itself** (`sill voice
+  hold-start|hold-end|hold-cancel`). The raw-edge machine (`HoldKey`: command down, up, other key,
+  pointer) is not built; it ends when keycap or the compositor sends raw edges.
+- **Cancel carries no cause.** Escape and any other input both reach voiced as the shell's cancel.
+  Ends when `Utterance.Cancel` takes a `CancelCause`.
+- **Speech out is not wired.** The service subscribes to `Utterance.Ended` only; `Speech.Finished`
+  and `Voice1.Speak`/`Hush`/`Prepare` come with the answer being spoken.
+- **The companion's presence does not say Listening yet.** The prompt's placeholder shows the
+  words; the orb and glow follow when `presence_of` gains the voice phase.
+
 ## answer-session: handles shown through the answer's own session
 
 - **The "…" answers.** sill took an answer's router session from the one its own ask opened, so an

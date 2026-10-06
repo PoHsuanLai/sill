@@ -37,6 +37,7 @@ pub mod screenshots;
 pub mod session;
 pub mod tray;
 pub mod units;
+pub mod voice;
 pub mod volume;
 pub mod wallpaper;
 pub mod wifi;

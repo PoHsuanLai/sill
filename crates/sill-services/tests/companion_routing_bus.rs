@@ -88,6 +88,7 @@ impl Bench {
             window: None,
             app: None,
             space: SpaceId::desktop(),
+            via: docket_core::TurnVia::Typed,
         }));
     }
 

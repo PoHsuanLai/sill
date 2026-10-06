@@ -21,3 +21,4 @@ toml = { workspace = true }
 workspace = true
 
 [dev-dependencies]
+prov = { workspace = true }

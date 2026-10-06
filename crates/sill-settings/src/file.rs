@@ -26,6 +26,7 @@ use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
+use crate::voice::VoiceSettings;
 use crate::widgets::WidgetsSettings;
 use crate::window::WindowSettings;
 
@@ -62,6 +63,8 @@ pub struct ShellFile {
     pub keyboard: KeyboardSettings,
     /// The companion's summon and confirmation.
     pub companion: CompanionSettings,
+    /// Hold-to-talk and its consent.
+    pub voice: VoiceSettings,
 }
 
 impl SettingsDoc for ShellFile {

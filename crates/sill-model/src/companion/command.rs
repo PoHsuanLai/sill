@@ -4,8 +4,8 @@
 use almanac_core::{MemoryItem, TimelineEntry};
 use companion_wire::{AnswerWire, RouteNote};
 use docket_core::{
-    CallRequest, CardActionId, ContextKeep, Handle, Hit, SummonAnswer, SummonSerial, UndoEntry,
-    UndoScope,
+    CallRequest, CardActionId, ContextKeep, Handle, Hit, SummonAnswer, SummonSerial, TurnVia,
+    UndoEntry, UndoScope,
 };
 use ds_core::vocab::MemoryVerb;
 use prov::{AgentRef, AppName, RunId, SessionId, SpaceId, TaskId};
@@ -52,6 +52,8 @@ pub struct AskInput {
     pub app: Option<AppName>,
     /// The Space the ask is made in: the focused workspace's, or `desktop` outside any.
     pub space: SpaceId,
+    /// Whether the words were typed or spoken through the hold gesture.
+    pub via: TurnVia,
 }
 
 /// What the daemon and the surfaces tell the service.

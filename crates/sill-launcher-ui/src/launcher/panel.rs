@@ -35,10 +35,11 @@ use crate::launcher::row_icon::{row_art, row_tile};
 use crate::launcher::sections_view::{Draw, palette_groups};
 use crate::launcher::session::Session;
 use crate::launcher::view::View;
+use sill_model::voice::listening_line;
 use sill_search::ResultsService;
-use sill_services::ClipboardService;
+use sill_services::{ClipboardService, VoiceService};
 use sill_ui_kit::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
-use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
+use sill_ui_kit::hooks::{use_appearance, use_service, use_service_part, use_settings};
 use sill_ui_kit::links::LauncherLink;
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::root::{SurfaceRoot, use_host_scale};
@@ -70,6 +71,8 @@ pub(crate) struct Shown {
     pub pane: PaneSession,
     pub view: View,
     pub mode: LauncherMode,
+    /// What voice says on the prompt while the key is held, or after a hold that failed.
+    pub voice_line: Option<String>,
 }
 
 impl Shown {
@@ -113,6 +116,8 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     };
     let history = use_service::<ClipboardService>();
     let results = use_service::<ResultsService>();
+    let voice_line =
+        use_service_part::<VoiceService, _>(|voice| listening_line(&voice.phase, voice.notice));
     let panel = use_panel(output.id, results);
     let shown = panel.opening_tracked().map(|opening| {
         let session = panel.session.read().for_opening(&opening);
@@ -123,6 +128,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             session,
             pane,
             mode: opening.mode,
+            voice_line: voice_line.read().clone(),
         }
     });
     let contacts = use_contacts();
@@ -314,8 +320,11 @@ fn palette(
                 LauncherMode::Companion => "Ask",
             },
             placeholder: match shown.mode {
-                LauncherMode::Search => "Search apps, files, windows and settings",
-                LauncherMode::Companion => "Ask the companion",
+                LauncherMode::Search => "Search apps, files, windows and settings".to_owned(),
+                LauncherMode::Companion => shown
+                    .voice_line
+                    .clone()
+                    .unwrap_or_else(|| "Ask the companion".to_owned()),
             },
             query: session.query.clone(),
             tokens: Vec::new(),

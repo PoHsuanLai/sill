@@ -77,6 +77,10 @@ pub struct Feeds {
     /// launcher and the surfaces send it.
     pub companion: watch::Sender<sill_model::companion::Companion>,
     pub companion_commands: mpsc::UnboundedReceiver<sill_model::companion::CompanionCommand>,
+    /// Hold-to-talk: where the hold stands (idle until a test feeds it), and what the prompt and
+    /// the consent sheet send it.
+    pub voice: watch::Sender<sill_model::voice::Voice>,
+    pub voice_commands: mpsc::UnboundedReceiver<sill_model::voice::VoiceCommand>,
     /// The prepared wallpapers (none until a test feeds some).
     pub wallpaper: watch::Sender<Wallpapers>,
     /// The dock's app index, pins and badges (empty until a test feeds them), and the pin
@@ -128,6 +132,7 @@ pub fn services() -> (Services, Feeds) {
     let (polkit_agent, polkit_io) = Handle::channel(sill_model::polkit_agent::Polkit::default());
     let (intents, intents_io) = Handle::channel(sill_model::intents::Intents::default());
     let (companion, companion_io) = Handle::channel(sill_model::companion::Companion::default());
+    let (voice, voice_io) = Handle::channel(sill_model::voice::Voice::default());
     let (wallpaper, wallpaper_io) = Handle::channel(Wallpapers::default());
     keep.push(Box::new(wallpaper_io.commands));
     let (apps, apps_io) = Handle::channel(AppIndex::default());
@@ -173,6 +178,7 @@ pub fn services() -> (Services, Feeds) {
         accounts: fixed(sill_model::accounts::AccountsState::default(), &mut keep),
         intents,
         companion,
+        voice,
         // Nowhere real: a surface that reads a file under these finds nothing.
         dirs: sill_services::env::Dirs::under(std::path::Path::new(
             "/nonexistent/sill-ui-kit-test",
@@ -220,6 +226,8 @@ pub fn services() -> (Services, Feeds) {
         intents_commands: intents_io.commands,
         companion: companion_io.state,
         companion_commands: companion_io.commands,
+        voice: voice_io.state,
+        voice_commands: voice_io.commands,
         wallpaper: wallpaper_io.state,
         apps: apps_io.state,
         pins: pins_io.state,

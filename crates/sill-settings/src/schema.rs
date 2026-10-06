@@ -23,6 +23,7 @@ use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
+use crate::voice::VoiceSettings;
 use crate::widgets::WidgetsSettings;
 use crate::window::WindowSettings;
 
@@ -71,6 +72,7 @@ pub fn schemas() -> Vec<Schema> {
         IdleSettings::schema(),
         KeyboardSettings::schema(),
         CompanionSettings::schema(),
+        VoiceSettings::schema(),
     ]
 }
 
