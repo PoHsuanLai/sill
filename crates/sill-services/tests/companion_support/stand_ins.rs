@@ -33,6 +33,9 @@ impl StandInSession {
 
     async fn display(&self, session: String, handle: u64) -> fdo::Result<String> {
         self.0.push(format!("display {session} {handle}"));
+        if self.0.lines().contains(&format!("close {session}")) {
+            return Err(fdo::Error::Failed("NoSuchSession".to_owned()));
+        }
         Ok(format!("the text of handle {handle}"))
     }
 }
@@ -178,6 +181,8 @@ pub enum ActsAs {
 }
 
 pub struct StandInCompanion {
+    /// What the answers it makes say as their `Session`.
+    pub session: Option<String>,
     pub log: Log,
     pub view: Arc<Mutex<String>>,
     pub acts: ActsAs,
@@ -210,6 +215,7 @@ impl StandInCompanion {
             .at(
                 path.clone(),
                 StandInAnswer {
+                    session: self.session.clone(),
                     log: self.log.clone(),
                     view: self.view.clone(),
                     acts: self.acts,
@@ -232,6 +238,8 @@ impl StandInCompanion {
 }
 
 pub struct StandInAnswer {
+    /// The `Session` property; `None` is an older companion, whose object has no such property.
+    pub session: Option<String>,
     pub log: Log,
     pub view: Arc<Mutex<String>>,
     pub acts: ActsAs,
@@ -250,6 +258,13 @@ impl StandInAnswer {
 
     async fn cancel(&self) {
         self.log.push("cancel");
+    }
+
+    #[zbus(property)]
+    async fn session(&self) -> fdo::Result<String> {
+        self.session
+            .clone()
+            .ok_or_else(|| fdo::Error::UnknownProperty("Session".to_owned()))
     }
 
     #[zbus(property)]

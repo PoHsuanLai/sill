@@ -2,7 +2,11 @@
 //! (`stand_ins`), and the desk that holds the service under test and the connection the shell's
 //! seat would publish. Everything waits on the service's published state or on a stand-in's
 //! record, never on a clock.
-#![allow(dead_code, reason = "each test binary uses part of the bench")]
+#![allow(
+    dead_code,
+    unused_macros,
+    reason = "each test binary uses part of the bench"
+)]
 
 pub mod stand_ins;
 

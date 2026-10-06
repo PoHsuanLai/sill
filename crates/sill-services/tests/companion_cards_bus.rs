@@ -118,6 +118,7 @@ async fn bench(acts: ActsAs, first: &AnswerWire) -> Option<Bench> {
         .at(
             "/org/quire/Companion1",
             StandInCompanion {
+                session: None,
                 log: desk.log.clone(),
                 view: view.clone(),
                 acts,
@@ -520,6 +521,7 @@ async fn something_said_to_a_subagent_is_recorded_sent_and_told_to_the_companion
         .at(
             "/org/quire/Companion1",
             StandInCompanion {
+                session: None,
                 log: desk.log.clone(),
                 view,
                 acts: ActsAs::Accepts,

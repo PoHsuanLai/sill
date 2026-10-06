@@ -178,6 +178,22 @@ pub enum CompanionEvent {
         /// What it stands for, for the screen alone.
         text: String,
     },
+    /// The router refused to show a handle of an answer (its session is closed, or never held
+    /// it): the answer shows the handle's plain fallback text and the router is not asked again.
+    Unshown {
+        /// The answer.
+        task: TaskId,
+        /// The handle.
+        handle: Handle,
+    },
+    /// The answer object's router session: its `Session` property, or `None` when the object
+    /// has none (an older companion).
+    Session {
+        /// The answer.
+        task: TaskId,
+        /// The session its handles are shown through.
+        session: Option<SessionId>,
+    },
     /// A run appeared or changed.
     Run(Box<RunFacts>),
     /// A run's object went away.

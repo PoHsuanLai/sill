@@ -7,10 +7,10 @@ use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, FooterWire};
 use docket_core::{ContextKeep, Hit, Keep};
 use ds_core::machine::{Elapsed, Machine};
 use ds_core::time::stamp::Stamp;
-use prov::{SessionId, TaskId};
+use prov::TaskId;
 use sill_launcher::Generation;
 
-use super::card::{card_call, settled};
+use super::card::{card_call, handle_fallback, settled};
 use super::command::{CompanionEffect, CompanionEvent, CompanionParams};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
 use super::summon::{SummonCx, SummonIn, SummonOut};
@@ -100,11 +100,7 @@ fn summoned(
 /// The events that only change what is published.
 fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
     match event {
-        CompanionEvent::Asked {
-            task,
-            prompt,
-            session,
-        } => asked(state, task, prompt, session),
+        CompanionEvent::Asked { task, prompt, .. } => asked(state, task, prompt),
         CompanionEvent::Answer(wire) => answered(state, *wire),
         CompanionEvent::AnswerGone(task) => {
             let mut answers = state.answers;
@@ -136,6 +132,17 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
             shown.insert(handle, text);
             AnswerFacts { shown, ..answer }
         }),
+        CompanionEvent::Unshown { task, handle } => with_answer(state, &task, |answer| {
+            let mut shown = answer.shown;
+            shown.insert(handle, handle_fallback(handle));
+            AnswerFacts { shown, ..answer }
+        }),
+        CompanionEvent::Session { task, session } => {
+            with_answer(state, &task, |answer| AnswerFacts {
+                session: session.or(answer.session),
+                ..answer
+            })
+        }
         CompanionEvent::Run(run) => {
             let mut runs = state.runs;
             runs.insert(run.run.clone(), *run);
@@ -192,11 +199,11 @@ fn same_thing(a: &Hit, b: &Hit) -> bool {
 }
 
 /// An ask began: the answer exists, thinking, until the companion writes the first view.
-fn asked(state: Companion, task: TaskId, prompt: String, session: SessionId) -> Companion {
+fn asked(state: Companion, task: TaskId, prompt: String) -> Companion {
     let mut answers = state.answers;
-    let (wire, shown) = answers.remove(&task).map_or_else(
-        || (thinking(&task), BTreeMap::new()),
-        |known| (known.wire, known.shown),
+    let (wire, shown, session) = answers.remove(&task).map_or_else(
+        || (thinking(&task), BTreeMap::new(), None),
+        |known| (known.wire, known.shown, known.session),
     );
     answers.insert(
         task.clone(),
@@ -204,7 +211,7 @@ fn asked(state: Companion, task: TaskId, prompt: String, session: SessionId) -> 
             prompt,
             wire,
             busy: Busy::Idle,
-            session: Some(session),
+            session,
             shown,
         },
     );

@@ -59,6 +59,11 @@ pub(super) fn settled(busy: Busy, wire: &AnswerWire) -> Busy {
     if stopped || ended { Busy::Idle } else { busy }
 }
 
+/// What a handle reads as when the router will not show it: its number, plainly.
+pub(super) fn handle_fallback(handle: Handle) -> String {
+    format!("#{}", handle.0)
+}
+
 /// The handles `answer` shows that the router has not yet been asked to show, in the order they
 /// appear.
 pub fn unresolved_handles(answer: &AnswerFacts) -> Vec<Handle> {

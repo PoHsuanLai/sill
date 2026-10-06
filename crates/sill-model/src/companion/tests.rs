@@ -451,7 +451,14 @@ fn an_answer_keeps_its_prompt_and_its_session_through_updates() {
     assert_eq!(state.front, Some(task("t-1")));
     let answer = &state.answers[&task("t-1")];
     assert_eq!(answer.prompt, "forward the receipts");
-    assert_eq!(answer.session, Some(session()));
+    assert_eq!(answer.session, None, "the object has not named it yet");
+    let state = step_of(
+        state,
+        CompanionEvent::Session {
+            task: task("t-1"),
+            session: Some(session()),
+        },
+    );
     let state = step_of(
         state,
         CompanionEvent::Answer(Box::new(wire("t-1", AnswerPhase::Streaming))),
@@ -671,6 +678,36 @@ fn a_handle_waits_for_its_text_and_the_text_is_for_the_screen() {
         Some("the receipts")
     );
     assert_eq!(unresolved_handles(answer), Vec::<Handle>::new());
+}
+
+#[test]
+fn an_answers_named_session_is_kept_and_a_refused_handle_reads_plainly() {
+    let handle = Handle(7);
+    let asked = state_with(&[facts("t-1", AnswerPhase::Done)], &[], Summon::Rest);
+    assert_eq!(asked.answers[&task("t-1")].session, None);
+    let named = SessionId::parse("s-9").unwrap_or_else(|e| panic!("{e}"));
+    let kept = step_of(
+        asked.clone(),
+        CompanionEvent::Session {
+            task: task("t-1"),
+            session: Some(named.clone()),
+        },
+    );
+    assert_eq!(kept.answers[&task("t-1")].session, Some(named));
+    let plain = step_of(
+        asked,
+        CompanionEvent::Unshown {
+            task: task("t-1"),
+            handle,
+        },
+    );
+    assert_eq!(
+        plain.answers[&task("t-1")]
+            .shown
+            .get(&handle)
+            .map(String::as_str),
+        Some("#7")
+    );
 }
 
 #[test]

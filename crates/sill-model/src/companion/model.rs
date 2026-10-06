@@ -33,8 +33,8 @@ pub struct AnswerFacts {
     pub wire: AnswerWire,
     /// What the person is waiting on from a card button.
     pub busy: Busy,
-    /// The router session the answer was asked in, when sill asked it: a handle resolves only
-    /// in the session that holds it.
+    /// The router session the answer's object names, read once when it appeared: a handle
+    /// resolves only in the session that holds it. `None` until it is read.
     pub session: Option<SessionId>,
     /// The text behind each handle of the answer, as the router showed it to the screen. It
     /// is for drawing only: nothing here is ever sent back to a model.

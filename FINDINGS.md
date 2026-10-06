@@ -733,3 +733,15 @@ A settled item is deleted, not marked closed.
   absolutely placed box whose padding is the popup's transparent shadow room, so
   `PopupSize::FitContent` measures the card plus that room. shell-host should take the room in
   `PopupSize::FitContent` and lay the root itself, which deletes `PopupFrame` and its rule.
+
+## answer-session: handles shown through the answer's own session
+
+- **The "…" answers.** sill took an answer's router session from the one its own ask opened, so an
+  answer it did not ask (started from the CLI, another surface, an agent, or before sill restarted) had
+  no session and its handles were never shown: the card kept "…" for good. A failed `Session.Display`
+  also left the handle unresolved and marked as asked. Test: `companion_session_bus.rs`.
+- **Now.** The service reads `Answer.Session` once per answer when its object appears, keeps it in
+  `AnswerFacts.session`, and shows handles through it. An object without the property (older docket)
+  is shown through the session the ask opened, if sill asked it, and the service logs that once.
+- **After Close** `Session.Display` is refused: the handle reads as its plain fallback, `#n`, and is
+  not asked again.

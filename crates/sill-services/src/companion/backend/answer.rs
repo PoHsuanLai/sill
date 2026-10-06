@@ -11,7 +11,7 @@ use docket_core::{
     WindowKey,
 };
 use docket_dbus::{CompanionAnswerProxy, CompanionProxy, Details, answer_path};
-use prov::{AgentRef, TaskId, UnixSeconds};
+use prov::{AgentRef, SessionId, TaskId, UnixSeconds};
 use sill_launcher::WindowKey as ShellWindow;
 use sill_model::companion::{AskInput, CompanionEvent};
 use tokio::sync::mpsc::UnboundedSender;
@@ -96,23 +96,42 @@ pub(super) async fn follow(
     let Ok(mut updates) = proxy.receive_updated().await else {
         return;
     };
+    // The session is read once, as the answer appears, and kept with its state.
+    let session = proxy
+        .session()
+        .await
+        .ok()
+        .and_then(|session| SessionId::parse(&session).ok());
     if let Some(wire) = proxy
         .view()
         .await
         .ok()
         .and_then(|view| from_json::<AnswerWire>(&view).ok())
-        && events.send(CompanionEvent::Answer(Box::new(wire))).is_err()
+        && !publish(&events, wire, session.clone())
     {
         return;
     }
     while let Some(signal) = next(&mut updates).await {
         let Ok(args) = signal.args() else { continue };
         if let Ok(wire) = from_json::<AnswerWire>(args.view())
-            && events.send(CompanionEvent::Answer(Box::new(wire))).is_err()
+            && !publish(&events, wire, session.clone())
         {
             return;
         }
     }
+}
+
+/// Tell the service the answer and the session its object names; `false` when it is gone.
+fn publish(
+    events: &UnboundedSender<CompanionEvent>,
+    wire: AnswerWire,
+    session: Option<SessionId>,
+) -> bool {
+    let task = wire.task.clone();
+    events.send(CompanionEvent::Answer(Box::new(wire))).is_ok()
+        && events
+            .send(CompanionEvent::Session { task, session })
+            .is_ok()
 }
 
 /// Press `action` on `task`'s card. The call answers at once; the press is over when the

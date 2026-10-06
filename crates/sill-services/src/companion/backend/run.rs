@@ -14,7 +14,7 @@ use std::time::Duration;
 use docket_core::{CardActionId, Handle, UndoScope};
 use docket_dbus::{COMPANION_BUS, CompanionProxy, INTENTS_BUS, answer_path};
 use ds_core::time::stamp::Stamp;
-use prov::{TaskId, UnixSeconds};
+use prov::{SessionId, TaskId, UnixSeconds};
 use sill_launcher::{Generation, RunControl};
 use sill_model::companion::{
     Busy, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionLink,
@@ -83,6 +83,8 @@ pub(crate) async fn run(reach: Reach, links: CompanionLinks, io: ServiceIo<Compa
         followed: HashMap::new(),
         watchers: Vec::new(),
         displayed: HashSet::new(),
+        old_companion: OldCompanion::Unremarked,
+        opened: HashMap::new(),
     };
     live.seated(seat.as_ref().and_then(SeatView::current));
     loop {
@@ -136,6 +138,16 @@ struct Live {
     /// The handles the router was already asked to show, so a failed one is not asked again on
     /// every update of its answer.
     displayed: HashSet<(TaskId, Handle)>,
+    old_companion: OldCompanion,
+    /// The session each answer sill asked was opened in: the fallback for a companion whose
+    /// answers do not name theirs.
+    opened: HashMap<TaskId, SessionId>,
+}
+
+/// Whether the log already says an answer came without its `Session` property.
+enum OldCompanion {
+    Unremarked,
+    Remarked,
 }
 
 impl Live {
@@ -149,13 +161,22 @@ impl Live {
 
     /// Step the state by `event` now, publish it when it changed, and carry out what it asks.
     fn feed(&mut self, event: CompanionEvent) {
+        let Some(event) = self.named(event) else {
+            return;
+        };
+        if let CompanionEvent::Asked { task, session, .. } = &event {
+            self.opened.insert(task.clone(), session.clone());
+        }
         let answered = match &event {
             CompanionEvent::Answer(wire) => Some(wire.task.clone()),
-            CompanionEvent::Asked { task, .. } => Some(task.clone()),
+            CompanionEvent::Asked { task, .. } | CompanionEvent::Session { task, .. } => {
+                Some(task.clone())
+            }
             _ => None,
         };
         if let CompanionEvent::AnswerGone(task) = &event {
             self.displayed.retain(|(shown, _)| shown != task);
+            self.opened.remove(task);
         }
         let (next, effects) = step(self.state.clone(), event, self.now(), &self.params);
         if next != self.state {
@@ -167,6 +188,34 @@ impl Live {
         }
         if let Some(task) = answered {
             self.show_handles(&task);
+        }
+    }
+
+    /// An answer object that names no session is from an older companion: it is shown through
+    /// the session the ask opened, if sill asked it; otherwise it has none.
+    fn named(&mut self, event: CompanionEvent) -> Option<CompanionEvent> {
+        let CompanionEvent::Session {
+            task,
+            session: None,
+        } = event
+        else {
+            return Some(event);
+        };
+        self.warn_old_companion();
+        let session = self.opened.get(&task).cloned()?;
+        Some(CompanionEvent::Session {
+            task,
+            session: Some(session),
+        })
+    }
+
+    /// Say once that an answer came without its `Session` property.
+    fn warn_old_companion(&mut self) {
+        if matches!(self.old_companion, OldCompanion::Unremarked) {
+            eprintln!(
+                "sill: companion: an answer names no Session; using the session the ask opened"
+            );
+            self.old_companion = OldCompanion::Remarked;
         }
     }
 
@@ -195,7 +244,10 @@ impl Live {
                     Ok(text) => {
                         let _ = events.send(CompanionEvent::Shown { task, handle, text });
                     }
-                    Err(why) => eprintln!("sill: companion: showing a handle: {why}"),
+                    Err(why) => {
+                        eprintln!("sill: companion: showing a handle: {why}");
+                        let _ = events.send(CompanionEvent::Unshown { task, handle });
+                    }
                 }
             });
         }
