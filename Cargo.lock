@@ -4485,7 +4485,7 @@ dependencies = [
 [[package]]
 name = "latchkey"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/mailo?rev=6bb98914898f4d270e20e58f7fbd095ad670f94b#6bb98914898f4d270e20e58f7fbd095ad670f94b"
+source = "git+https://github.com/PoHsuanLai/mailo?rev=ca7f6150094fce44f73aede1ce6a8855718af9c9#ca7f6150094fce44f73aede1ce6a8855718af9c9"
 dependencies = [
  "interprocess",
 ]
@@ -7768,7 +7768,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -9572,7 +9572,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
