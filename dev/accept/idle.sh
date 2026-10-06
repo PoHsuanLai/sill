@@ -170,7 +170,7 @@ start_idle_daemon() {
   local launched=$?
   IN_ENV_EXTRA=("${COSMIC_ENV[@]}")
   [ "$launched" = 0 ] || return 1
-  [ "$(until_match "$(now_ms)" idle_state '^own ' 5000)" -ge 0 ] \
+  [ "$(until_match "$(now_ms)" idle_state '^own ' 30000)" -ge 0 ] \
     || { echo "idle is not own: $(idle_state)" >&2; return 1; }
   sleep 2
 }

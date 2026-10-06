@@ -395,9 +395,9 @@ EOF
 # A real drag on the desktop layer, through shell-host's real pointer path: press, move (the
 # existing `sill debug pointer`, which carries the held button on every move) and release at X Y
 # (layer px).
-pointer_press() { sill debug pointer-press "$LAYER" "$@" >/dev/null; }
-pointer_move() { sill debug pointer "$LAYER" "$@" >/dev/null; }
-pointer_release() { sill debug pointer-release "$LAYER" "$@" >/dev/null; }
+pointer_press() { sill_sent debug pointer-press "$LAYER" "$@" >/dev/null; }
+pointer_move() { sill_sent debug pointer "$LAYER" "$@" >/dev/null; }
+pointer_release() { sill_sent debug pointer-release "$LAYER" "$@" >/dev/null; }
 
 # Carry a drag from X0 Y0 to X1 Y1 in 12 moves a frame apart, without releasing.
 drag_to() {

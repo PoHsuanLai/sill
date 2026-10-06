@@ -312,13 +312,13 @@ step_hover() {
   # The pointer comes the moment the card is up (not at a fixed time after the notify call, which
   # a loaded host can stretch past the hold), and the card must still be up well past its hold.
   await_shows "$OUT_DIR/hover-up.png" || { echo "the card never showed" >&2; return 1; }
-  sill debug pointer "$BANNERS" "$BANNER_CARD_X" "$BANNER_CARD_Y" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
+  sill_sent debug pointer "$BANNERS" "$BANNER_CARD_X" "$BANNER_CARD_Y" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
   start=$(now_ms)
   while [ "$(since "$start")" -lt $((HOLD_MS + 1500)) ]; do sleep 0.02; done
   shows && up=yes
   local before slack
   before=$(now_ms)
-  sill debug leave "$BANNERS" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
+  sill_sent debug leave "$BANNERS" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
   slack=$(( $(now_ms) - before ))
   gone=$(await_hidden 6000)
   local limit=$((1500 + EXIT_MS + SLACK_MS))
