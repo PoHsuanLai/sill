@@ -170,6 +170,7 @@ pub fn services() -> (Services, Feeds) {
         clipboard: fixed(sill_model::clipboard::Clipboard::default(), &mut keep),
         idle,
         keycap: fixed(sill_model::keycap::KeycapState::default(), &mut keep),
+        accounts: fixed(sill_model::accounts::AccountsState::default(), &mut keep),
         intents,
         companion,
         // Nowhere real: a surface that reads a file under these finds nothing.

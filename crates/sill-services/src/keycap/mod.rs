@@ -15,8 +15,7 @@
 //! `Overrides` (the person's `keyboard.overrides`) replaces the service's own and re-chooses the
 //! focused window's profile, sending `Focus` when it changed.
 //!
-//! The notices carry no action: an action of sill's own notification reaches no service, so
-//! recovery is `sill keycap retry` and `sill keycap resume`.
+//! The notices carry no action, so recovery is `sill keycap retry` and `sill keycap resume`.
 
 mod backend;
 

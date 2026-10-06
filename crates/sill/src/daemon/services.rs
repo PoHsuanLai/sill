@@ -8,6 +8,7 @@ use sill_model::intents::IntentsCommand;
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
+use sill_services::accounts::{AccountsLinks, AccountsService};
 use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
 use sill_services::battery::BatteryService;
@@ -105,6 +106,14 @@ pub(crate) fn start(
             notes: notifications.state.clone(),
         },
     );
+    let accounts = spawn::<AccountsService>(
+        rt,
+        env,
+        AccountsLinks {
+            notifications: notifications.control.clone(),
+            notes: notifications.state.clone(),
+        },
+    );
     Services {
         clock: spawn(rt, env, ()),
         network: spawn(rt, env, ()),
@@ -156,6 +165,7 @@ pub(crate) fn start(
         auth,
         idle,
         keycap,
+        accounts,
         dirs: env.dirs.clone(),
         session_actions: Arc::clone(&env.session_actions),
     }

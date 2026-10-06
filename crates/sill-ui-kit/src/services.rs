@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use sill_search::results::ResultsService;
+use sill_services::accounts::AccountsService;
 use sill_services::app_menu::AppMenuService;
 use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
@@ -86,6 +87,8 @@ pub struct Services {
     pub idle: Handle<IdleService>,
     /// The keycap keyboard daemon: its connection, and the notices about it.
     pub keycap: Handle<KeycapService>,
+    /// The accounts that need signing in again, and the notices that say so.
+    pub accounts: Handle<AccountsService>,
     /// sill's seat at intentd: the confirmation sheet it serves, the terminal's grants, the shell's
     /// own actions as `org.quire.Shell`; passive until the daemon says to serve.
     pub intents: Handle<IntentsService>,
@@ -147,6 +150,7 @@ members! {
     polkit_agent: PolkitAgentService,
     idle: IdleService,
     keycap: KeycapService,
+    accounts: AccountsService,
     intents: IntentsService,
     companion: CompanionService,
 }

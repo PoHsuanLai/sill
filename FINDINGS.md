@@ -205,8 +205,8 @@ A settled item is deleted, not marked closed.
   socket has been down 3 s, then every 5 s: `GetUnit` answers `NoSuchUnit` for an installed unit
   that is not loaded (stopped and collected), which reads as `NotInstalled`, and that is as
   silent as `Unknown`. A stopped unit is silent on purpose; only a unit that gave up (five
-  failures in 30 s) is `Failed`. sill's own notifications carry no action that reaches a
-  service, so the notices point at `sill keycap retry` and `sill keycap resume`.
+  failures in 30 s) is `Failed`. keycap's notices carry no action, so they point at `sill keycap retry` and
+  `sill keycap resume`.
   `keyboard.overrides` (design/22 §3.25) is a list of `{ app, profile }` tables, which needs
   quire's `ds-settings` list-of-tables keys (`SettingsRow`, quire PR #2): sill builds against
   quire's `claude/settings-rows` branch until that PR merges. A row whose `profile` is not a
@@ -214,6 +214,22 @@ A settled item is deleted, not marked closed.
   dropped on load, each costs only itself and is logged as `sill: settings.toml: ...`, and when
   two rows name one app the last wins. The settings `Policy` sends `KeycapCommand::Overrides`
   and the service re-chooses the focused window's profile.
+
+- **accounts**: `sill_services::accounts` follows accountd (`org.quire.Accounts1`, session bus) through
+  `NameOwnerChanged`. On meeting it, it calls the shell's `Manager.NeedingReauth` (the accounts that need
+  signing in again, with labels; the call also puts sill on accountd's roster, which is what receives
+  unicast signals), then hears `NeedsReauth` and watches each such account's `State` until it is not
+  `needs_reauth` (a `PropertiesChanged` on the `Account` object, or the object going away). The
+  notice is a notification with desktop entry `sill-accounts`, never expiring, with one button "Sign in
+  again" whose action key is `sign-in-again:<account object path>`: the key carries the account, so the
+  answer needs no memory of what was posted and no notification id. The answer is the notifications
+  server's own `ActionInvoked` signal, taken only from the connection that owns
+  `org.freedesktop.Notifications` and only for an account the service tracks, so another program's
+  signal signs nothing in. The press calls `Account.Reauthenticate("", {})`; accountd asks sill's own
+  `AccountsSheet1` to draw the sign-in. The notice is dismissed when the account is no longer
+  `needs_reauth`, however that came about (the button, Settings' `accounts.<id>.reauth`, another
+  device's sign-in). A notice already held (banner or history) is replaced, not doubled. An accountd with
+  no `NeedingReauth` lists nothing and is followed by its signal alone. Test: `accounts_bus.rs`.
 
 ## Standing facts: displays
 
@@ -671,6 +687,16 @@ A settled item is deleted, not marked closed.
 - **No Toshy snippet ships for route B.** `dist/cosmic` binds `Ctrl+Alt+Shift+Super F19` to `sill companion tap`
   (and `F20` to `summon`, route A); the remap of a lone Cmd tap to that chord is written in the keyboard
   remapper's own config until spike T says tap-versus-hold is safe on Cmd.
+
+- **accountd does not yet serve the shell what the accounts service reads (porter ask).** sill is accountd's
+  `SheetHost` and holds no grants, so today accountd sends it no `NeedsReauth`, refuses it every `Account`
+  property and `Reauthenticate` (`UnknownObject`), and has no call that lists the accounts needing sign-in or
+  announces an account's recovery: the accounts service meets accountd and then sees nothing. The ask is
+  four small changes in `accountd` and `porter-dbus`: (1) `Manager.NeedingReauth() -> a(os)`, `SheetHost`
+  only; (2) a `SheetHost` caller sees every account's properties and may call `Reauthenticate` without a
+  grant; (3) `NeedsReauth` also goes to the roster's `SheetHost` connections; (4) `State` changes send
+  `PropertiesChanged` (invalidating `State`) to the same. Ends when accountd serves them and the accounts
+  service's local `ManagerSignIn` proxy is replaced by `porter_dbus::ManagerProxy::needing_reauth`.
 
 ### quire
 

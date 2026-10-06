@@ -30,8 +30,8 @@ pub struct Notice {
     pub body: String,
 }
 
-/// What the person is told about `attention`. The notification carries no action: nothing
-/// routes an action of sill's own back to a service, so the way out is the command line.
+/// What the person is told about `attention`. The notification carries no action: the way out is
+/// the command line.
 pub fn notice_text(attention: &Attention) -> Notice {
     let (summary, body) = match attention {
         Attention::Failed => (
