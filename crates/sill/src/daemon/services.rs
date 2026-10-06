@@ -21,6 +21,7 @@ use sill_services::keycap::{KeycapLinks, KeycapService};
 use sill_services::launch::LaunchService;
 use sill_services::locker::LockerService;
 use sill_services::notifications::NotificationsService;
+use sill_services::screenshots::ScreenshotsService;
 use sill_services::seat::seat;
 use sill_services::service::spawn;
 use sill_services::volume::VolumeService;
@@ -92,6 +93,8 @@ pub(crate) fn start(
             auth: auth.control.clone(),
         },
     );
+    let screenshots = spawn::<ScreenshotsService>(rt, env, ());
+    let shots = screenshots.state.clone();
     let keycap = spawn::<KeycapService>(
         rt,
         env,
@@ -125,7 +128,7 @@ pub(crate) fn start(
         session: spawn(rt, env, locker.control.clone()),
         notifications,
         events: spawn(rt, env, ()),
-        screenshots: spawn(rt, env, ()),
+        screenshots,
         polkit_agent: spawn(rt, env, ()),
         intents: spawn::<IntentsService>(
             rt,
@@ -137,6 +140,7 @@ pub(crate) fn start(
                     wl: cosmic_wl.control.clone(),
                     name_of: menu_name_of,
                 },
+                shots,
                 seat: seat_publisher,
             },
         ),

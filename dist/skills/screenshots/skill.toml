@@ -1,7 +1,7 @@
 vocab = 1
 id = "screenshots"
 owner = "org.quire.Shell"
-version = "0.1.0"
+version = "0.2.0"
 uses = ["org.quire.Shell:shell.screenshot"]
 [when]
 focused_app = []

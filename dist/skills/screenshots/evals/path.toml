@@ -1,0 +1,6 @@
+prompt = "Take a screenshot of the screen and tell me where it is"
+[[expect.calls]]
+action = "org.quire.Shell:shell.screenshot"
+args = { kind = "screen" }
+[expect]
+says = "the path the action returned, as given; if none came back, the Pictures folder and the Screenshot_ date pattern"

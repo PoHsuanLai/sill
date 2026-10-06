@@ -1,0 +1,6 @@
+prompt = "Go to my Chat workspace"
+[[expect.calls]]
+action = "org.quire.Shell:shell.workspace.list"
+[[expect.calls]]
+action = "org.quire.Shell:shell.workspace.switch"
+args = { workspace = "the id of the workspace named Chat in the list" }

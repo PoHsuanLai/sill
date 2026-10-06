@@ -9,7 +9,7 @@ use docket_core::{
     AppRefusal, CallId, ChoiceId, Invocation, Origin, ParamDecl, ParamNeed, ParamType, Value,
 };
 use prov::{ActionName, Actor, Label, Labelled, SpaceId};
-use sill_model::intents::shell::{action_of, menu_ask_of};
+use sill_model::intents::shell::{action_of, menu_ask_of, window_ask_of};
 use sill_services::intents::manifest;
 
 /// An invocation of `action` with the arguments `args`.
@@ -41,16 +41,17 @@ fn value_for(param: &ParamDecl) -> Value {
     match &param.ty {
         ParamType::Choice(options) => Value::Choice(options[0].id.clone()),
         ParamType::Text { .. } => Value::Text("firefox.desktop".to_owned()),
+        ParamType::Integer { min, .. } => Value::Integer(*min),
         other => panic!("{}: the shell declares no {other:?} parameter", param.name),
     }
 }
 
-/// An invocation read as the shell reads it: a menu ask, or one of its other actions.
+/// An invocation read as the shell reads it: a menu ask, a window ask, or one of its other actions.
 fn reads(invocation: &Invocation) -> Result<(), AppRefusal> {
-    match menu_ask_of(invocation)? {
-        Some(_) => Ok(()),
-        None => action_of(invocation).map(drop),
+    if menu_ask_of(invocation)?.is_some() || window_ask_of(invocation)?.is_some() {
+        return Ok(());
     }
+    action_of(invocation).map(drop)
 }
 
 #[test]
@@ -58,7 +59,7 @@ fn the_shipped_manifest_is_valid_and_is_the_shells() {
     let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));
     let manifest = manifest.manifest();
     assert_eq!(manifest.app.as_str(), "org.quire.Shell");
-    assert_eq!(manifest.actions.len(), 8);
+    assert_eq!(manifest.actions.len(), 17);
 }
 
 #[test]
@@ -116,6 +117,58 @@ fn a_defaulted_choice_names_one_of_its_options() {
                     param.name
                 );
             }
+        }
+    }
+}
+
+#[test]
+fn the_window_actions_declare_the_effects_the_model_charges() {
+    use prov::Effect;
+    let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));
+    for action in &manifest.manifest().actions {
+        let name = action.name.as_str();
+        if !(name.starts_with("shell.window.")
+            || name.starts_with("shell.app.")
+            || name == "shell.workspace.list")
+        {
+            continue;
+        }
+        let given = action
+            .params
+            .iter()
+            .map(|p| (p.name.clone(), value_for(p)))
+            .collect();
+        let call = invocation(&action.name, given);
+        let ask = window_ask_of(&call)
+            .unwrap_or_else(|e| panic!("{name}: {e:?}"))
+            .unwrap_or_else(|| panic!("{name} is not a window ask"));
+        assert_eq!(action.effect, ask.effect(), "{name}");
+        let wants = if name == "shell.window.close" {
+            Effect::Destructive
+        } else {
+            Effect::Read
+        };
+        assert_eq!(action.effect, wants, "{name}");
+    }
+}
+
+#[test]
+fn the_listings_are_declared_untrusted_text_and_the_screenshot_answers_with_a_path() {
+    use docket_core::{ResultShape, TitleTrust};
+    let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));
+    for action in &manifest.manifest().actions {
+        let name = action.name.as_str();
+        match (name, &action.result) {
+            ("shell.window.list" | "shell.workspace.list", ResultShape::Value { trust, .. }) => {
+                assert!(matches!(trust, TitleTrust::ThirdParty(_)), "{name}");
+            }
+            ("shell.window.list" | "shell.workspace.list" | "shell.screenshot", other) => {
+                assert!(
+                    matches!(other, ResultShape::Value { .. }),
+                    "{name}: {other:?}"
+                );
+            }
+            _ => {}
         }
     }
 }

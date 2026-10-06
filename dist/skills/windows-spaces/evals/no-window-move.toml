@@ -1,4 +1,0 @@
-prompt = "Move this window to workspace 3"
-[expect]
-calls = []
-says = "no shell action moves windows yet"

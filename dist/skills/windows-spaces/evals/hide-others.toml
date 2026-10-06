@@ -1,0 +1,4 @@
+prompt = "Hide everything except Firefox"
+[[expect.calls]]
+action = "org.quire.Shell:shell.app.hide_others"
+args = { app = "the app id of Firefox from the window list" }

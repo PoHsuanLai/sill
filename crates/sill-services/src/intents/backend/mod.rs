@@ -6,6 +6,8 @@ mod objects;
 mod provider;
 mod run;
 mod serve;
+mod shots;
+mod windows;
 
 pub use provider::manifest;
 pub(crate) use run::{Reach, run};

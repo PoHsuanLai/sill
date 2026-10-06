@@ -14,11 +14,12 @@ use docket_core::{
 use porter_core::Count;
 use prov::{Actor, EntityId, Label, Labelled};
 use sill_model::intents::shell::{
-    ShellAction, ShellFault, action_of, menu_ask_of, outcome_of, undo_of,
+    ShellAction, ShellFault, action_of, menu_ask_of, outcome_of, undo_of, window_ask_of,
 };
-use tokio::sync::{mpsc, oneshot};
+use sill_model::screenshots::Shots;
+use tokio::sync::{mpsc, oneshot, watch};
 
-use crate::app_menu::MenuAgent;
+use crate::app_menu::{MenuAgent, MenuLinks};
 use crate::intents::ShellCall;
 
 /// What the shell declares, as shipped: the installed file, held to the model by a test.
@@ -39,6 +40,10 @@ pub(super) struct ShellProvider {
     pub calls: mpsc::UnboundedSender<ShellCall>,
     /// The focused window's menus, for `shell.menu.list` and `shell.menu.activate`.
     pub menus: MenuAgent<DbusTransport>,
+    /// The windows and the compositor, for the window and workspace actions.
+    pub windows: MenuLinks,
+    /// The screenshots the shell has seen, for the path `shell.screenshot` answers with.
+    pub shots: watch::Receiver<Shots>,
 }
 
 impl ShellProvider {
@@ -72,13 +77,21 @@ impl IntentProvider for ShellProvider {
         if let Some(ask) = menu_ask_of(&inv)? {
             return super::menus::perform(&self.menus, ask, &inv).await;
         }
+        if let Some(ask) = window_ask_of(&inv)? {
+            return super::windows::perform(&self.windows, &ask, &inv);
+        }
         let action = action_of(&inv)?;
+        let first = self.shots.borrow().last_id;
         self.done(action.clone()).await.map_err(refusal)?;
-        Ok(outcome_of(&action))
+        let mut outcome = outcome_of(&action);
+        if let ShellAction::Screenshot(_) = action {
+            outcome.value = super::shots::saved(&mut self.shots.clone(), first, &inv).await;
+        }
+        Ok(outcome)
     }
 
     async fn dry_run(&self, inv: Invocation) -> Result<Preview, AppRefusal> {
-        if menu_ask_of(&inv)?.is_some() {
+        if menu_ask_of(&inv)?.is_some() || window_ask_of(&inv)?.is_some() {
             return Ok(Preview::None);
         }
         action_of(&inv).map(|_| Preview::None)

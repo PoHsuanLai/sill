@@ -6,7 +6,9 @@ use std::sync::atomic::AtomicU64;
 
 use docket_dbus::{CONFIRM_BUS, CONFIRM_PATH};
 use sill_model::intents::LinkTrouble;
+use sill_model::screenshots::Shots;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::watch;
 use zbus::Connection;
 use zbus::fdo::RequestNameFlags;
 
@@ -29,6 +31,7 @@ pub(super) async fn take(
     calls: UnboundedSender<Call>,
     shell: UnboundedSender<ShellCall>,
     menus: MenuLinks,
+    shots: watch::Receiver<Shots>,
     proc_root: PathBuf,
 ) -> Result<Seat, LinkTrouble> {
     let connection = match bus.connect().await {
@@ -41,7 +44,9 @@ pub(super) async fn take(
     let provider = ShellProvider {
         manifest,
         calls: shell,
-        menus: MenuAgent::over(connection.clone(), menus, proc_root),
+        menus: MenuAgent::over(connection.clone(), menus.clone(), proc_root),
+        windows: menus,
+        shots,
     };
     docket_client::serve_on(&connection, provider, ShellContext { app }, NoSummon)
         .await

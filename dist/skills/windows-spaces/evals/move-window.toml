@@ -1,0 +1,6 @@
+prompt = "Move this window to workspace 3"
+[[expect.calls]]
+action = "org.quire.Shell:shell.window.list"
+[[expect.calls]]
+action = "org.quire.Shell:shell.window.move_to_workspace"
+args = { window = "the id of the focused window in the list", index = 3 }

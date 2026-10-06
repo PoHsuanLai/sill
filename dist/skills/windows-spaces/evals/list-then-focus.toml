@@ -1,0 +1,6 @@
+prompt = "Bring my mail window forward"
+[[expect.calls]]
+action = "org.quire.Shell:shell.window.list"
+[[expect.calls]]
+action = "org.quire.Shell:shell.window.focus"
+args = { window = "the id of the mail window in the list" }

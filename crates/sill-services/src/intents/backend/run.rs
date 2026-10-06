@@ -83,6 +83,7 @@ pub(crate) async fn run(reach: Reach, links: IntentsLinks, io: ServiceIo<Intents
         calls_tx,
         links.calls,
         links.menus,
+        links.shots,
         reach.proc_root,
     )
     .await

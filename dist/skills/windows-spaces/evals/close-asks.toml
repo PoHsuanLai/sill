@@ -1,0 +1,8 @@
+prompt = "Close the terminal window"
+[[expect.calls]]
+action = "org.quire.Shell:shell.window.list"
+[[expect.calls]]
+action = "org.quire.Shell:shell.window.close"
+args = { window = "the id of the terminal window in the list" }
+[expect]
+says = "closing can lose unsaved work and the person is asked first"

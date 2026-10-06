@@ -43,9 +43,11 @@ pub struct ShellCall {
 #[derive(Debug, Clone)]
 pub struct IntentsLinks {
     pub calls: mpsc::UnboundedSender<ShellCall>,
-    /// What `shell.menu.list` and `shell.menu.activate` need: the windows, the shell's own rows
-    /// and how an app's menu name is made.
+    /// What the menu and window actions need: the windows, the compositor's commands and how an
+    /// app's menu name is made.
     pub menus: crate::app_menu::MenuLinks,
+    /// The screenshots the folder watch has seen: `shell.screenshot` answers with the file's path.
+    pub shots: tokio::sync::watch::Receiver<sill_model::screenshots::Shots>,
     /// Where the connection the seat claims its names on is published, for the companion
     /// service to speak as the shell on.
     pub seat: SeatPublisher,

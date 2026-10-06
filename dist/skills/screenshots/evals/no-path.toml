@@ -3,4 +3,4 @@ prompt = "Take a screenshot and tell me the file name"
 action = "org.quire.Shell:shell.screenshot"
 args = { kind = "screen" }
 [expect]
-says = "Pictures folder, Screenshot_ date pattern; no invented path"
+says = "the returned path when there is one; otherwise the Pictures folder and Screenshot_ date pattern, never an invented path"

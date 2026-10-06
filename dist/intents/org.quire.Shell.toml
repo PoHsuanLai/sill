@@ -9,7 +9,10 @@
 # changing what is on screen (the launcher, a workspace) only looks, so it is `read`; pinning to
 # the dock changes a file the shell can restore, so it is an `undoable_write` with a token; locking
 # the screen and taking a screenshot have no undo the shell can offer, so they are `destructive`
-# (the person holds the button to confirm), and a screenshot is `ask_always`.
+# (the person holds the button to confirm), and a screenshot is `ask_always`. The window actions
+# follow the same line: listing, raising, minimising, hiding, moving and switching are `read`,
+# and closing a window is `destructive` because the app may lose unsaved work. A window or a
+# workspace is named by the id its listing gave; an id the shell does not hold is refused.
 vocab = 1
 app = "org.quire.Shell"
 entities = []
@@ -57,6 +60,20 @@ ty = { kind = "choice", v = [
   { id = "prev", label = "Previous" },
 ] }
 need = { kind = "defaulted", v = { kind = "choice", v = "next" } }
+sink = "inert"
+
+[[actions.params]]
+name = "index"
+label = "Go to the workspace at this position instead (from 1, as the list counts)"
+ty = { kind = "integer", v = { min = 1, max = 64 } }
+need = { kind = "optional" }
+sink = "inert"
+
+[[actions.params]]
+name = "workspace"
+label = "Go to the workspace with this id from the list instead (wins over the position)"
+ty = { kind = "text", v = { max = 40, lines = "one" } }
+need = { kind = "optional" }
 sink = "inert"
 
 [[actions]]
@@ -125,7 +142,7 @@ classes = ["app_own"]
 undo = "not_undoable"
 reach = "ask_always"
 latency = "quick"
-result = { kind = "nothing" }
+result = { kind = "value", v = { ty = { kind = "text", v = { max = 4096, lines = "one" } }, trust = { kind = "app_authored" } } }
 keys = { kind = "none" }
 lasting = "no"
 dry_run = "none"
@@ -140,6 +157,191 @@ ty = { kind = "choice", v = [
 ] }
 need = { kind = "defaulted", v = { kind = "choice", v = "screen" } }
 sink = "inert"
+
+[[actions]]
+name = "shell.window.list"
+label = "List the open windows"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["screen"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "value", v = { ty = { kind = "text", v = { max = 12000, lines = "many" } }, trust = { kind = "third_party", v = { kind = "app", v = "org.quire.Shell" } } } }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+params = []
+
+[[actions]]
+name = "shell.window.focus"
+label = "Bring a window forward"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "window"
+label = "The window's id from the window list"
+ty = { kind = "text", v = { max = 40, lines = "one" } }
+need = { kind = "required" }
+sink = "inert"
+
+[[actions]]
+name = "shell.window.minimise"
+label = "Minimise a window"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "window"
+label = "The window's id from the window list"
+ty = { kind = "text", v = { max = 40, lines = "one" } }
+need = { kind = "required" }
+sink = "inert"
+
+[[actions]]
+name = "shell.window.move_to_workspace"
+label = "Move a window to a workspace"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "window"
+label = "The window's id from the window list"
+ty = { kind = "text", v = { max = 40, lines = "one" } }
+need = { kind = "required" }
+sink = "inert"
+
+[[actions.params]]
+name = "workspace"
+label = "The workspace's id from the workspace list"
+ty = { kind = "text", v = { max = 40, lines = "one" } }
+need = { kind = "optional" }
+sink = "inert"
+
+[[actions.params]]
+name = "index"
+label = "Or the workspace's position (from 1, as the list counts)"
+ty = { kind = "integer", v = { min = 1, max = 64 } }
+need = { kind = "optional" }
+sink = "inert"
+
+[[actions]]
+name = "shell.window.close"
+label = "Close a window"
+on = { kind = "nothing" }
+effect = "destructive"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "window"
+label = "The window's id from the window list"
+ty = { kind = "text", v = { max = 40, lines = "one" } }
+need = { kind = "required" }
+sink = "inert"
+
+[[actions]]
+name = "shell.app.hide"
+label = "Hide an app"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "app"
+label = "Which app, by its app id from the window list (the focused app when left out)"
+ty = { kind = "text", v = { max = 200, lines = "one" } }
+need = { kind = "optional" }
+sink = "inert"
+
+[[actions]]
+name = "shell.app.hide_others"
+label = "Hide the other apps"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "app"
+label = "Which app, by its app id from the window list (the focused app when left out)"
+ty = { kind = "text", v = { max = 200, lines = "one" } }
+need = { kind = "optional" }
+sink = "inert"
+
+[[actions]]
+name = "shell.app.show_all"
+label = "Show every hidden window"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+params = []
+
+[[actions]]
+name = "shell.workspace.list"
+label = "List the workspaces"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "value", v = { ty = { kind = "text", v = { max = 12000, lines = "many" } }, trust = { kind = "third_party", v = { kind = "app", v = "org.quire.Shell" } } } }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+params = []
 
 # The focused window's menus. The list only reads, but its words are the app's: the answer carries
 # an untrusted label naming that app (the floor here names the shell, the reader). An activation's

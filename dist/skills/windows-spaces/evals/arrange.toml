@@ -1,0 +1,4 @@
+prompt = "Tile my windows side by side"
+[expect]
+calls = []
+says = "the shell has no action that tiles or arranges windows"
