@@ -14,6 +14,7 @@
 //! service silently.
 
 mod backend;
+pub mod sheet;
 
 use sill_model::accounts::{AccountsCommand, AccountsState};
 

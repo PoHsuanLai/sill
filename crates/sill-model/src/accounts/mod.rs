@@ -7,6 +7,7 @@ mod command;
 mod model;
 mod notice;
 mod posted;
+pub mod sheet;
 mod step;
 #[cfg(test)]
 mod tests;

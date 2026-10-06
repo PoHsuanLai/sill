@@ -12,7 +12,7 @@ use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher,
+    AccountsSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher,
     VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{ShellFile, WallpaperDrawer};
@@ -62,6 +62,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<ConfirmSheet>(ctx, outputs, spawn, &links.banners);
     // The voice consent sheet asks the same way, once, before the microphone first opens.
     spawn_surface::<VoiceConsentSheet>(ctx, outputs, spawn, &links.banners);
+    // accountd's consent question and add-account steps, a window of their own on the same output.
+    spawn_surface::<AccountsSheet>(ctx, outputs, spawn, &links.banners);
     spawn_surface::<Switcher>(ctx, outputs, spawn, &links.switcher);
     // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
     spawn_surface::<Banners>(ctx, outputs, spawn, &links.banners);

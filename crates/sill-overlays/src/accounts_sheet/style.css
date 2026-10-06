@@ -1,0 +1,9 @@
+/* The accounts sheet (design/31 section 4.5 and 5.6): a window of its own, centred on the output.
+   Its titlebar is quire's `WindowTitlebar`, its steps are `ds-shell::accounts` parts; this only
+   stands the window in the middle and gives it the window's look from the tokens: the window
+   gradient, `--r-window`, `--shadow-window`. */
+
+.sill-accounts-stage{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:var(--s-36) 0; pointer-events:none; }
+.sill-accounts-window{ position:relative; display:flex; flex-direction:column; box-sizing:border-box; width:min(560px, 88%); max-height:100%; overflow:hidden; background:var(--f-grad); border-radius:var(--r-window); box-shadow:var(--shadow-window); color:var(--ink); pointer-events:auto; }
+.sill-accounts-window[data-step=consent]{ width:min(380px, 88%); }
+.sill-accounts-body{ display:flex; flex-direction:column; min-height:0; overflow-y:auto; scrollbar-width:none; }

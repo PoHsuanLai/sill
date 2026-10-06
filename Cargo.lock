@@ -7398,6 +7398,7 @@ dependencies = [
  "ds-shell",
  "image",
  "jiff",
+ "porter-core",
  "serde",
  "serde_json",
  "shell-host",
@@ -7511,6 +7512,8 @@ name = "sill-testkit"
 version = "0.1.0"
 dependencies = [
  "cosmic-client-toolkit",
+ "porter-core",
+ "porter-dbus",
  "rustix",
  "serde",
  "serde_json",

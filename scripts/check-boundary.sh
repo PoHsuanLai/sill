@@ -78,7 +78,7 @@ done
 EDGES=(
   "sill-launcher: almanac-core docket-core ds-core prov"
   "sill-testkit:"
-  "sill-model: almanac-core companion-wire cua-bus docket-core ds-core keycap-protocol prov sill-launcher voice-wire"
+  "sill-model: almanac-core companion-wire cua-bus docket-core ds-core keycap-protocol porter-core prov sill-launcher voice-wire"
   "sill-settings: ds-core ds-settings keycap-protocol sill-launcher sill-model"
   "sill-ipc: sill-launcher sill-model"
   "sill-services: almanac-core almanac-dbus anyview-core anyview-platform companion-wire cua-bus cua-dbus docket-client docket-core docket-dbus ds-core keycap-protocol porter-core porter-dbus prov sill-launcher sill-model voice-wire"
@@ -89,7 +89,7 @@ EDGES=(
   "sill-launcher-ui: almanac-core anyview-core anyview-image anyview-peek anyview-platform companion-wire docket-core ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
   "sill-notify-ui: ds ds-blitz ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
   "sill-widgets-ui: ds ds-shell shell-host sill-launcher sill-model sill-settings sill-ui-kit"
-  "sill-overlays: ds ds-behaviour ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
+  "sill-overlays: ds ds-behaviour ds-settings ds-shell porter-core shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
   "sill: ds-lint ds-blitz ds-settings ds-shell prov shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
 )
 for edge in "${EDGES[@]}"; do

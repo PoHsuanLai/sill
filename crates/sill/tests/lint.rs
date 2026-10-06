@@ -27,7 +27,7 @@ use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher,
+    AccountsSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher,
     VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
@@ -165,6 +165,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <VoiceConsentSheet as Surface>::NAME,
         css: sill_overlays::voice_consent::VOICE_CONSENT_CSS,
         states: voice_consent_states,
+    },
+    SurfaceCase {
+        name: "accounts_sheet",
+        surface: <AccountsSheet as Surface>::NAME,
+        css: sill_overlays::accounts_sheet::ACCOUNTS_SHEET_CSS,
+        states: accounts_sheet_states,
     },
 ];
 
@@ -457,6 +463,69 @@ fn voice_consent_states() -> Vec<(&'static str, String)> {
     sheet.harness.advance(Duration::from_millis(700));
     states.push(("asking", sheet.harness.html()));
     assert!(states[1].1.contains("sill-consent"), "{}", states[1].1);
+    states
+}
+
+/// The sheet hidden, then each step accountd can show, and the consent question.
+fn accounts_sheet_states() -> Vec<(&'static str, String)> {
+    use sill_model::accounts::sheet::{AccountsSheets, SheetEvent, SheetHandle, SheetLink, step};
+    const VIEWS: [(&str, &str); 6] = [
+        (
+            "providers",
+            r#"{"kind":"providers","v":[{"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"}]}"#,
+        ),
+        (
+            "sign_in",
+            r#"{"kind":"sign_in","v":{"provider":"nextcloud","fields":[
+            {"kind":"address","entry":"plain","presence":"required","prefill":null},
+            {"kind":"password","entry":"secret","presence":"required","prefill":null}],
+            "problem":{"field":"password","problem":"refused"}}}"#,
+        ),
+        (
+            "browser",
+            r#"{"kind":"browser_wait","v":{"provider":"google","url":"https://accounts.example.org/a"}}"#,
+        ),
+        ("working", r#"{"kind":"working","v":"nextcloud"}"#),
+        (
+            "failed",
+            r#"{"kind":"failed","v":{"provider":"nextcloud","fault":"refused"}}"#,
+        ),
+        (
+            "consent",
+            r#"{"kind":"consent","v":{"app":{"name":"org.quire.Photos","isolation":"flatpak"},
+            "kind":"storage","class":"app_own","usage":"interactive","accounts":[
+            {"account":"home","label":"ada@home.example","provider":"nextcloud"}]}}"#,
+        ),
+    ];
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    let mut sheet = SurfaceHarness::<AccountsSheet>::setup(link, ()).start();
+    sheet.harness.advance(Duration::from_millis(40));
+    let mut states = vec![("hidden", sheet.harness.html())];
+    let handle = SheetHandle::parse("lint").unwrap_or_else(|| panic!("handle"));
+    for (name, json) in VIEWS {
+        let view = serde_json::from_str(json).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let (sheets, _) = step(
+            AccountsSheets {
+                link: SheetLink::Serving,
+                ..AccountsSheets::default()
+            },
+            SheetEvent::Opened(handle.clone(), view),
+        );
+        sheet.feeds.accounts_sheet.send_replace(sheets);
+        sheet.harness.advance(Duration::from_millis(700));
+        states.push((name, sheet.harness.html()));
+        sheet
+            .feeds
+            .accounts_sheet
+            .send_replace(AccountsSheets::default());
+        sheet.harness.advance(Duration::from_millis(700));
+    }
+    assert!(
+        states[1].1.contains("sill-accounts-window"),
+        "{}",
+        states[1].1
+    );
     states
 }
 

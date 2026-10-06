@@ -71,6 +71,9 @@ pub struct Feeds {
     pub polkit_commands: mpsc::UnboundedReceiver<sill_model::polkit_agent::PolkitCommand>,
     /// intentd's seat: the confirmations waiting and the terminal's grants (none until a test feeds
     /// them), and what the sheet and the control center send it.
+    pub accounts_sheet: watch::Sender<sill_model::accounts::sheet::AccountsSheets>,
+    pub accounts_sheet_commands:
+        mpsc::UnboundedReceiver<sill_model::accounts::sheet::AccountsSheetCommand>,
     pub intents: watch::Sender<sill_model::intents::Intents>,
     pub intents_commands: mpsc::UnboundedReceiver<sill_model::intents::IntentsCommand>,
     /// The companion's answers, runs and journal (none until a test feeds them), and what the
@@ -130,6 +133,8 @@ pub fn services() -> (Services, Feeds) {
     let (displays, displays_io) = Handle::channel(sill_model::displays::Displays::default());
     let (session, session_io) = Handle::channel(sill_model::session::Session::default());
     let (polkit_agent, polkit_io) = Handle::channel(sill_model::polkit_agent::Polkit::default());
+    let (accounts_sheet, accounts_sheet_io) =
+        Handle::channel(sill_model::accounts::sheet::AccountsSheets::default());
     let (intents, intents_io) = Handle::channel(sill_model::intents::Intents::default());
     let (companion, companion_io) = Handle::channel(sill_model::companion::Companion::default());
     let (voice, voice_io) = Handle::channel(sill_model::voice::Voice::default());
@@ -176,6 +181,7 @@ pub fn services() -> (Services, Feeds) {
         idle,
         keycap: fixed(sill_model::keycap::KeycapState::default(), &mut keep),
         accounts: fixed(sill_model::accounts::AccountsState::default(), &mut keep),
+        accounts_sheet,
         intents,
         companion,
         voice,
@@ -222,6 +228,8 @@ pub fn services() -> (Services, Feeds) {
         session_commands: session_io.commands,
         polkit: polkit_io.state,
         polkit_commands: polkit_io.commands,
+        accounts_sheet: accounts_sheet_io.state,
+        accounts_sheet_commands: accounts_sheet_io.commands,
         intents: intents_io.state,
         intents_commands: intents_io.commands,
         companion: companion_io.state,

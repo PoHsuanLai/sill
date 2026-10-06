@@ -28,6 +28,7 @@ Renaming a surface below is a breaking change for your file, so it is named in t
 | `polkit` | the polkit prompt |
 | `confirm` | the confirmation sheet (what intentd asks before the terminal, the companion or an agent acts) |
 | `voice-consent` | the voice consent sheet (asked once, before the microphone first opens) |
+| `accounts-sheet` | the accounts sheet (accountd's consent question and add-account steps, in a window of their own) |
 | `switcher` | the app switcher |
 | `desktop-widgets` | the desktop widgets |
 | `edit-widgets` | the widget editor |

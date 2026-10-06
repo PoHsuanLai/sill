@@ -2,6 +2,7 @@
 //! dim, the hot corners, the wallpaper and the lock screen. One directory per surface, each
 //! implementing `sill_ui_kit::surface::Surface` (the lock screen `LockSurface`).
 
+pub mod accounts_sheet;
 pub mod confirm_sheet;
 pub mod hot_corners;
 pub mod idle_dim;
@@ -14,6 +15,7 @@ pub mod user_picture;
 pub mod voice_consent;
 pub mod wallpaper;
 
+pub use accounts_sheet::AccountsSheet;
 pub use confirm_sheet::ConfirmSheet;
 pub use hot_corners::HotCorners;
 pub use idle_dim::IdleDim;

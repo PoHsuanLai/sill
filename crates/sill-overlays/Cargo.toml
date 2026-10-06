@@ -15,7 +15,9 @@ ds-behaviour = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
 ds-shell = { workspace = true }
 jiff = { workspace = true }
+porter-core = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 shell-host = { workspace = true }
 sill-launcher = { workspace = true }
 sill-model = { workspace = true }
@@ -25,7 +27,6 @@ sill-ui-kit = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
-serde_json = { workspace = true }
 sill-ui-kit = { workspace = true, features = ["harness"] }
 ds-harness = { workspace = true }
 image = { workspace = true }

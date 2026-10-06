@@ -3,12 +3,14 @@
 
 use std::sync::Arc;
 
+use sill_model::accounts::sheet::AccountsSheetCommand;
 use sill_model::companion::SummonOut;
 use sill_model::intents::IntentsCommand;
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_model::voice::VoiceConsent;
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
+use sill_services::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
 use sill_services::accounts::{AccountsLinks, AccountsService};
 use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
@@ -128,6 +130,13 @@ pub(crate) fn start(
             notes: notifications.state.clone(),
         },
     );
+    let accounts_sheet = spawn::<AccountsSheetService>(
+        rt,
+        env,
+        AccountsSheetLinks {
+            launch: launch.control.clone(),
+        },
+    );
     Services {
         clock: spawn(rt, env, ()),
         network: spawn(rt, env, ()),
@@ -181,6 +190,7 @@ pub(crate) fn start(
         idle,
         keycap,
         accounts,
+        accounts_sheet,
         dirs: env.dirs.clone(),
         session_actions: Arc::clone(&env.session_actions),
     }
@@ -210,6 +220,11 @@ pub(crate) fn follow_settings(
     // grants, `org.quire.Shell`) are sill's own.
     let _ = services.locker.control.send(LockerCommand::Configure);
     let _ = services.intents.control.send(IntentsCommand::Serve);
+    // The accounts sheet is sill's too: accountd draws its consent and add-account steps here.
+    let _ = services
+        .accounts_sheet
+        .control
+        .send(AccountsSheetCommand::Serve);
     let _ = services
         .polkit_agent
         .control
@@ -364,6 +379,11 @@ mod tests {
         assert_eq!(
             services.intents.state.borrow().link,
             sill_model::intents::IntentsLink::Passive,
+            "no bus name claimed until the daemon says to serve"
+        );
+        assert_eq!(
+            services.accounts_sheet.state.borrow().link,
+            sill_model::accounts::sheet::SheetLink::Passive,
             "no bus name claimed until the daemon says to serve"
         );
         assert_eq!(

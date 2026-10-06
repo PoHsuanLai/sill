@@ -236,6 +236,23 @@ A settled item is deleted, not marked closed.
   device's sign-in). A notice already held (banner or history) is replaced, not doubled. An accountd with
   no `NeedingReauth` lists nothing and is followed by its signal alone. Test: `accounts_bus.rs`.
 
+- **accounts sheet**: `sill_services::accounts::sheet` serves `org.quire.AccountsSheet1` (`/org/quire/AccountsSheet1`) on the
+  session bus once the daemon says to serve (passive before, like intents); `Open(handle, parent_window, view)`,
+  `Update(handle, view)` and `Close(handle)` take a `SheetView` as JSON (at most 64 KiB; a handle is 1-64 of
+  `[A-Za-z0-9_.-]`; at most 8 sheets, one per handle). Only the owner of `org.quire.Accounts1` may call them, and `Update` and
+  `Close` only from the connection that opened the handle; any other caller gets `AccessDenied` and nothing is
+  drawn. `Input(handle, input)` is emitted to the opener's unique name, never broadcast, because it may carry a typed
+  password; the service never logs an input. accountd leaving the bus takes every sheet down. The sheet is a
+  `sill-overlays` surface (`accounts-sheet`, the banners' output, Overlay, keyboard exclusive, no blur): a centred
+  window of its own (the window gradient, `--r-window`, `--shadow-window`) with quire's `WindowTitlebar` carrying the step's
+  title, never an attached or dropping sheet. The typed values are the shell's (`sill_model::accounts::sheet::Draft`);
+  a secret is emptied from the draft by the same step that sends it, and a form that comes back refused keeps the address and
+  asks for the password again. "Other..." on the provider list picks the first `ProviderRow` whose `kind` is `Generic`;
+  "Add Account..." on the consent alert answers `ConsentAnswer::AddAccount`. The shell opens the page of every browser step it
+  is shown (accountd opens none), and "Open Again" sends `SheetInput::OpenAgain`: accountd shows the same `BrowserWait`
+  again, which opens the page again, through the launch service. Every step, the consent question included, is a centred
+  titled window (`ConsentBody` and the bare steps with `StepTitle::Host`); never `AccountSheet`. Test: `accounts_sheet_bus.rs`, `tests/accounts_sheet.rs`, `dev/accept/accounts.sh`.
+
 ## Standing facts: displays
 
 - **Scale policy**: density along the diagonal from the EDID's preferred-timing millimetres (else
@@ -703,6 +720,12 @@ A settled item is deleted, not marked closed.
   `PropertiesChanged` (invalidating `State`) to the same. Ends when accountd serves them and the accounts
   service's local `ManagerSignIn` proxy is replaced by `porter_dbus::ManagerProxy::needing_reauth`.
 
+- **The accounts sheet's props live in `sill-overlays`, not `sill-model`.** PLAN §2.4 and the lane brief put the
+  `SheetView` to props table in `sill-model`; the props are quire's (`ds-shell::accounts::model` names `MarkProvider`
+  and its own `Word` enums), and `sill-model` may reach no design system (`scripts/check-boundary.sh`). The pure half
+  (what is open, what is typed, what is sent back) is `sill_model::accounts::sheet`; the table is
+  `sill_overlays::accounts_sheet::props` (with `words.rs`, `events.rs`). `sill-model` takes `porter-core` for it.
+
 ### quire
 
 - **Q3** No per-workspace look store; `use_space_look` computes the preset for the position.
@@ -734,6 +757,11 @@ A settled item is deleted, not marked closed.
   `menus.highlight_radius_px` and `control_center.grid_gap_px`/`grid_padding_px`.
 - The Harness's `count` misses `[aria-selected="true"] .ds-chord` (an attribute selector with a
   descendant).
+
+- **`ConsentBody` has no `StepTitle::Host`.** The account steps take `title: StepTitle::Host` and draw no title under the
+  accounts sheet's titlebar; `ConsentBody` keeps its own headline ("Photos wants to ...", `.ds-alert-title`), so the window's
+  titlebar says "Account Access" instead of repeating it. Wanted: the same prop on `ConsentBody`, so the titlebar can carry the
+  headline. (`ConsentAsk.app.isolation`, "unsandboxed" per design/31 R12, also has no prop on it.)
 
 ### shell-host
 
