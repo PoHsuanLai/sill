@@ -1,5 +1,7 @@
 use super::needing;
-use crate::accounts::{AccountKey, NOTICE_ENTRY, account_of, notice_text, shown_for, sign_in_key};
+use crate::accounts::{
+    AccountKey, NOTICE_ENTRY, Posted, account_of, notice_text, shown_for, sign_in_key,
+};
 use crate::notifications::{
     Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, NotesState,
     Notification, NotificationId, UnixMs,
@@ -70,4 +72,51 @@ fn the_notice_shown_is_found_by_its_account_among_banners_and_history() {
     }];
     assert_eq!(shown_for(&notes, &b), Some(NotificationId(7)));
     assert_eq!(shown_for(&notes, &a), None);
+}
+
+#[test]
+fn a_press_answers_only_for_the_id_posted_for_that_account() {
+    let (a, b) = (AccountKey::new("/a"), AccountKey::new("/b"));
+    let mut notes = NotesState::default();
+    notes.live.banners = vec![
+        banner(note(1, NOTICE_ENTRY, &[sign_in_key(&a)])),
+        banner(note(2, NOTICE_ENTRY, &[sign_in_key(&b)])),
+    ];
+    let mut posted = Posted::default();
+    posted.learn(&notes, [&a, &b]);
+    let id = NotificationId;
+    assert_eq!(posted.answers(id(1), &sign_in_key(&a)), Some(a.clone()));
+    assert_eq!(posted.answers(id(2), &sign_in_key(&b)), Some(b.clone()));
+    // The right id with the wrong account, a foreign id, and a key that is not a sign-in.
+    assert_eq!(posted.answers(id(1), &sign_in_key(&b)), None);
+    assert_eq!(posted.answers(id(9), &sign_in_key(&a)), None);
+    assert_eq!(
+        posted.answers(id(1), &ActionKey("default".to_owned())),
+        None
+    );
+
+    // A pressed button leaves the notes before its signal is heard; the id still answers.
+    notes.live.banners.clear();
+    posted.learn(&notes, [&a, &b]);
+    assert_eq!(posted.answers(id(1), &sign_in_key(&a)), Some(a.clone()));
+    // Closed by the server: it answers nothing, and the other account's is untouched.
+    posted.closed(id(1));
+    assert_eq!(posted.answers(id(1), &sign_in_key(&a)), None);
+    assert_eq!(posted.answers(id(2), &sign_in_key(&b)), Some(b.clone()));
+    // The account well again forgets its id.
+    posted.forget(&b);
+    assert_eq!(posted.answers(id(2), &sign_in_key(&b)), None);
+}
+
+#[test]
+fn a_fresh_post_replaces_the_id_kept() {
+    let a = AccountKey::new("/a");
+    let mut notes = NotesState::default();
+    notes.live.banners = vec![banner(note(1, NOTICE_ENTRY, &[sign_in_key(&a)]))];
+    let mut posted = Posted::default();
+    posted.learn(&notes, [&a]);
+    notes.live.banners = vec![banner(note(5, NOTICE_ENTRY, &[sign_in_key(&a)]))];
+    posted.learn(&notes, [&a]);
+    assert_eq!(posted.answers(NotificationId(1), &sign_in_key(&a)), None);
+    assert_eq!(posted.answers(NotificationId(5), &sign_in_key(&a)), Some(a));
 }

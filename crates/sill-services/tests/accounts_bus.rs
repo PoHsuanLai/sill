@@ -11,7 +11,8 @@ use std::time::Duration;
 use accounts_support::{ACCOUNT, FakeAccountd, Listing};
 use sill_model::accounts::{AccountKey, AccountsLink, AccountsState, shown_for, sign_in_key};
 use sill_model::notifications::{
-    Activation, NotesState, NotificationId, NotificationsCommand, NotificationsPolicy, ServerMode,
+    ActionKey, Activation, NotesState, NotificationId, NotificationsCommand, NotificationsPolicy,
+    ServerMode,
 };
 use sill_services::accounts::{AccountsLinks, AccountsService};
 use sill_services::env::{BusRoute, Buses, Env};
@@ -105,7 +106,10 @@ async fn needing(shell: &mut Shell, count: usize) -> bool {
     .await
 }
 
-fn press(shell: &Shell, id: NotificationId) {
+/// The person presses the notice's button. A person is slower than the service's reading of the
+/// notes (it keeps the id when it first sees the notice), so the press waits a beat.
+async fn press(shell: &Shell, id: NotificationId) {
+    tokio::time::sleep(Duration::from_millis(150)).await;
     let _ = shell
         .notes
         .control
@@ -154,7 +158,7 @@ async fn needs_reauth_posts_a_notice_and_its_button_signs_in_again() {
     );
     assert!(needing(&mut shell, 1).await);
 
-    press(&shell, id);
+    press(&shell, id).await;
     assert!(
         until_reauthenticated(&accountd, 1).await,
         "Reauthenticate was never called"
@@ -233,7 +237,7 @@ async fn an_action_signal_from_any_other_connection_signs_nothing_in() {
     assert_eq!(accountd.reauthentications(), 0);
 
     // The same words from the notifications server do.
-    press(&shell, id);
+    press(&shell, id).await;
     assert!(until_reauthenticated(&accountd, 1).await);
 }
 
@@ -247,4 +251,168 @@ async fn an_accountd_with_no_list_is_followed_by_its_signal() {
     assert!(needing(&mut shell, 0).await, "accountd was not met");
     accountd.refuse().await;
     notice_shown(&mut shell).await;
+}
+
+/// A stand-in notifications server: another connection holding the name, which says what it likes
+/// was invoked, as the real one does. The shell's notifications service does not ask for the name
+/// (`Passive`), so what it holds is the notices sill posted and nothing the stand-in says changes
+/// that.
+struct FakeServer {
+    connection: zbus::Connection,
+}
+
+impl FakeServer {
+    async fn start(bus: &PrivateBus) -> FakeServer {
+        let connection = zbus::connection::Builder::address(bus.address.as_str())
+            .unwrap_or_else(|e| panic!("{e}"))
+            .name(sill_services::notifications::BUS_NAME)
+            .unwrap_or_else(|e| panic!("{e}"))
+            .build()
+            .await
+            .unwrap_or_else(|e| panic!("the stand-in server: {e}"));
+        FakeServer { connection }
+    }
+
+    async fn close(&self, id: NotificationId) {
+        self.connection
+            .emit_signal(
+                None::<&str>,
+                "/org/freedesktop/Notifications",
+                "org.freedesktop.Notifications",
+                "NotificationClosed",
+                &(id.0, 2_u32),
+            )
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+    }
+
+    async fn invoke(&self, id: NotificationId, key: &ActionKey) {
+        self.connection
+            .emit_signal(
+                None::<&str>,
+                "/org/freedesktop/Notifications",
+                "org.freedesktop.Notifications",
+                "ActionInvoked",
+                &(id.0, key.0.as_str()),
+            )
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+    }
+}
+
+/// The shell with its notifications service passive, so the stand-in server holds the name.
+async fn shell_under(bus: &PrivateBus) -> (Shell, FakeServer) {
+    let server = FakeServer::start(bus).await;
+    let scratch = TempDir::new("accounts-bus-id");
+    let env = Env {
+        buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        ..Env::isolated(scratch.path())
+    };
+    let runtime = tokio::runtime::Handle::current();
+    let notes = spawn::<NotificationsService>(&runtime, &env, ());
+    let accounts = spawn::<AccountsService>(
+        &runtime,
+        &env,
+        AccountsLinks {
+            notifications: notes.control.clone(),
+            notes: notes.state.clone(),
+        },
+    );
+    (
+        Shell {
+            notes,
+            accounts,
+            _scratch: scratch,
+        },
+        server,
+    )
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_server_naming_the_notice_sill_posted_signs_in_once() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let accountd = FakeAccountd::start(&bus, "ok", Listing::Of(vec![])).await;
+    let (mut shell, server) = shell_under(&bus).await;
+    assert!(needing(&mut shell, 0).await);
+    accountd.refuse().await;
+    let id = notice_shown(&mut shell).await;
+    server.invoke(id, &sign_in_key(&key())).await;
+    assert!(until_reauthenticated(&accountd, 1).await);
+    tokio::time::sleep(QUIET).await;
+    assert_eq!(accountd.reauthentications(), 1);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn an_id_sill_did_not_post_for_the_account_does_nothing() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let accountd = FakeAccountd::start(&bus, "ok", Listing::Of(vec![])).await;
+    let (mut shell, server) = shell_under(&bus).await;
+    assert!(needing(&mut shell, 0).await);
+    accountd.refuse().await;
+    let id = notice_shown(&mut shell).await;
+
+    // Another notification's id, an id nothing holds, and the notice's own id with another
+    // account's key.
+    let other = AccountKey::new("/org/quire/Accounts1/account/other");
+    server
+        .invoke(NotificationId(id.0 + 100), &sign_in_key(&key()))
+        .await;
+    server
+        .invoke(NotificationId(id.0 + 1), &sign_in_key(&key()))
+        .await;
+    server.invoke(id, &sign_in_key(&other)).await;
+    tokio::time::sleep(QUIET).await;
+    assert_eq!(accountd.reauthentications(), 0);
+
+    server.invoke(id, &sign_in_key(&key())).await;
+    assert!(until_reauthenticated(&accountd, 1).await);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_closed_notice_does_nothing() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let accountd = FakeAccountd::start(&bus, "ok", Listing::Of(vec![])).await;
+    let (mut shell, server) = shell_under(&bus).await;
+    assert!(needing(&mut shell, 0).await);
+    accountd.refuse().await;
+    let id = notice_shown(&mut shell).await;
+
+    // The person closes it; the account still needs them, but this id is no longer a notice.
+    let _ = shell.notes.control.send(NotificationsCommand::Dismiss(id));
+    assert!(notice_gone(&mut shell).await);
+    server.close(id).await;
+    server.invoke(id, &sign_in_key(&key())).await;
+    tokio::time::sleep(QUIET).await;
+    assert_eq!(accountd.reauthentications(), 0);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn after_the_account_is_well_and_needs_them_again_only_the_new_id_works() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let accountd = FakeAccountd::start(&bus, "ok", Listing::Of(vec![])).await;
+    let (mut shell, server) = shell_under(&bus).await;
+    assert!(needing(&mut shell, 0).await);
+    accountd.refuse().await;
+    let old = notice_shown(&mut shell).await;
+    accountd.recover().await;
+    assert!(notice_gone(&mut shell).await);
+    assert!(needing(&mut shell, 0).await);
+
+    accountd.refuse().await;
+    let new = notice_shown(&mut shell).await;
+    assert_ne!(old, new, "a fresh post is a new notification");
+    server.invoke(old, &sign_in_key(&key())).await;
+    tokio::time::sleep(QUIET).await;
+    assert_eq!(accountd.reauthentications(), 0);
+
+    server.invoke(new, &sign_in_key(&key())).await;
+    assert!(until_reauthenticated(&accountd, 1).await);
 }

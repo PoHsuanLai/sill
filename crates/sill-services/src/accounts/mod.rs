@@ -5,8 +5,9 @@
 //! The service follows accountd's name ([`crate::owner`]); on meeting it, it asks for the
 //! accounts needing sign-in now (which also makes the connection one accountd sends signals to),
 //! then hears `NeedsReauth` and watches each such account's `State` until it is no longer
-//! `needs_reauth`. The button's key carries the account, so its `ActionInvoked` from the
-//! notifications server is the whole answer: the service calls the account's `Reauthenticate`,
+//! `needs_reauth`. The button's key carries the account, and its `ActionInvoked` from the
+//! notifications server answers only when its id is the notice sill holds for that account: the
+//! service then calls the account's `Reauthenticate`,
 //! and accountd asks sill's own sheet (`org.quire.AccountsSheet1`) to draw the sign-in.
 //!
 //! Without accountd the state stays at its default. A bus that is absent by choice ends the

@@ -221,12 +221,17 @@ A settled item is deleted, not marked closed.
   unicast signals), then hears `NeedsReauth` and watches each such account's `State` until it is not
   `needs_reauth` (a `PropertiesChanged` on the `Account` object, or the object going away). The
   notice is a notification with desktop entry `sill-accounts`, never expiring, with one button "Sign in
-  again" whose action key is `sign-in-again:<account object path>`: the key carries the account, so the
-  answer needs no memory of what was posted and no notification id. The answer is the notifications
-  server's own `ActionInvoked` signal, taken only from the connection that owns
-  `org.freedesktop.Notifications` and only for an account the service tracks, so another program's
-  signal signs nothing in. The press calls `Account.Reauthenticate("", {})`; accountd asks sill's own
-  `AccountsSheet1` to draw the sign-in. The notice is dismissed when the account is no longer
+  again" whose action key is `sign-in-again:<account object path>`: the key carries the account. The
+  answer is the notifications server's own `ActionInvoked(id, key)` signal, taken only from the
+  connection that owns `org.freedesktop.Notifications`, only for an account the service tracks, and only
+  when `id` is a notice sill itself posted for that account: `sill_model::accounts::Posted` keeps the id
+  per account (learnt from the notes when the notice first appears there, replaced by a fresh post,
+  dropped on the server's `NotificationClosed` and when the account is well again). It outlives the
+  notes' own copy because a pressed button leaves the notes before its `ActionInvoked` is heard; the
+  flip side is that a press within microseconds of the post, before the service has read the notes, is
+  not answered (a person is slower; the test waits a beat). A foreign id, a closed id, or the right id
+  with another account's key does nothing, and so does another program's signal.
+  The press calls `Account.Reauthenticate("", {})`; accountd asks sill's own `AccountsSheet1` to draw the sign-in. The notice is dismissed when the account is no longer
   `needs_reauth`, however that came about (the button, Settings' `accounts.<id>.reauth`, another
   device's sign-in). A notice already held (banner or history) is replaced, not doubled. An accountd with
   no `NeedingReauth` lists nothing and is followed by its signal alone. Test: `accounts_bus.rs`.

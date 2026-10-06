@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use porter_dbus::ManagerProxy;
 use sill_model::accounts::{
     AccountKey, AccountsCommand, AccountsEffect, AccountsEvent, AccountsLink, AccountsState,
-    NeedsSignIn, shown_for, step,
+    NeedsSignIn, Posted, shown_for, step,
 };
 use sill_model::notifications::{NotesState, NotificationsCommand};
 use tokio::runtime::Handle;
@@ -15,6 +15,7 @@ use tokio::sync::watch;
 use tokio::task::AbortHandle;
 use zbus::{Connection, MessageStream};
 
+use super::actions::Said;
 use super::links::AccountsLinks;
 use super::{actions, notice, wire};
 use crate::accounts::AccountsService;
@@ -34,6 +35,8 @@ struct Live {
     state: AccountsState,
     notes: watch::Receiver<NotesState>,
     notifications: Control<NotificationsCommand>,
+    /// The ids of the notices sill posted, the only ones whose buttons answer.
+    posted: Posted,
     /// One watch per account that needs signing in again, ended when it is well.
     watches: HashMap<AccountKey, AbortHandle>,
 }
@@ -60,6 +63,7 @@ pub(crate) async fn run(
         state: AccountsState::default(),
         notes: links.notes,
         notifications: links.notifications,
+        posted: Posted::default(),
         watches: HashMap::new(),
     };
     loop {
@@ -108,15 +112,43 @@ impl Live {
                 }
                 Some(event) = events.recv() => self.apply(event),
                 Some(Ok(message)) = next(actions) => {
-                    if let Some(account) = actions::pressed(&self.connection, &message).await {
-                        self.sign_in(&account);
+                    if let Some(said) = actions::said(&self.connection, &message).await {
+                        self.heard_server(said);
                     }
                 }
+                Ok(()) = self.notes.changed() => self.learn(),
                 command = commands.recv() => match command {
                     Some(AccountsCommand::SignInAgain(account)) => self.sign_in(&account),
                     None => return Ended::Commands,
                 },
             }
+        }
+    }
+
+    /// Keep the id of each notice the notes now hold for an account that needs the person.
+    fn learn(&mut self) {
+        let accounts: Vec<AccountKey> = self
+            .state
+            .needing
+            .iter()
+            .map(|n| n.account.clone())
+            .collect();
+        self.posted.learn(&self.notes.borrow(), &accounts);
+    }
+
+    /// The notifications server's word: a press of a notice sill posted signs the account in
+    /// again; a close ends the notice's claim.
+    fn heard_server(&mut self, said: Said) {
+        // The notes may already have let go of a notice just pressed: what they held is learnt
+        // before the press is weighed.
+        self.learn();
+        match said {
+            Said::Pressed { id, key } => {
+                if let Some(account) = self.posted.answers(id, &key) {
+                    self.sign_in(&account);
+                }
+            }
+            Said::Closed(id) => self.posted.closed(id),
         }
     }
 
@@ -167,15 +199,17 @@ impl Live {
         self.follow();
     }
 
-    fn carry_out(&self, effect: AccountsEffect) {
+    fn carry_out(&mut self, effect: AccountsEffect) {
         let command = match effect {
             AccountsEffect::Tell(needing) => {
+                self.posted.forget(&needing.account);
                 let replaces = shown_for(&self.notes.borrow(), &needing.account);
                 Some(NotificationsCommand::Post(Box::new(notice::posting(
                     &needing, replaces,
                 ))))
             }
             AccountsEffect::Withdraw(account) => {
+                self.posted.forget(&account);
                 shown_for(&self.notes.borrow(), &account).map(NotificationsCommand::Dismiss)
             }
         };
