@@ -9,6 +9,10 @@ pub enum IcsPlace {
     File(PathBuf),
     /// A directory: a vdir collection itself, or a parent of collections (provider doc).
     Dir(PathBuf),
+    /// A directory of directories of collections: porter's `vdir/<account>/<collection>`. Read
+    /// afresh each time, so an account or a collection that appears later is found, and watched
+    /// as one directory.
+    Vdir(PathBuf),
 }
 
 /// What `calendar.sources` says.
@@ -76,11 +80,13 @@ fn place_of(path: PathBuf) -> IcsPlace {
 }
 
 /// Where `auto` looks, in order: `$XDG_DATA_HOME/sill/calendars` (a directory to drop `.ics`
-/// files into) and `~/.calendars` (vdirsyncer and khal's convention). Candidates only: the
-/// caller keeps those that exist (`provider_for`).
+/// files into), `$XDG_DATA_HOME/porter/vdir` (what porter's syncd mirrors from the accounts
+/// the person granted it: `<account>/<collection>/*.ics`) and `~/.calendars` (vdirsyncer and
+/// khal's convention). Candidates only: the caller keeps those that exist (`provider_for`).
 pub fn auto_places(env: &AutoEnv) -> Vec<IcsPlace> {
     vec![
         IcsPlace::Dir(env.data_home.join("sill").join("calendars")),
+        IcsPlace::Vdir(env.data_home.join("porter").join("vdir")),
         IcsPlace::Dir(env.home.join(".calendars")),
     ]
 }
@@ -114,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    fn auto_looks_at_sill_and_vdirsyncer() {
+    fn auto_looks_at_sill_porter_and_vdirsyncer() {
         let env = AutoEnv {
             home: PathBuf::from(HOME),
             data_home: PathBuf::from("/home/ada/.local/share"),
@@ -123,6 +129,7 @@ mod tests {
             auto_places(&env),
             vec![
                 IcsPlace::Dir(PathBuf::from("/home/ada/.local/share/sill/calendars")),
+                IcsPlace::Vdir(PathBuf::from("/home/ada/.local/share/porter/vdir")),
                 IcsPlace::Dir(PathBuf::from("/home/ada/.calendars")),
             ]
         );

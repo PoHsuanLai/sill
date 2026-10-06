@@ -44,6 +44,23 @@ pub(crate) fn calendars_in(place: &IcsPlace) -> Result<Vec<Calendar>, EventsErro
             name: name_of(path),
             files: vec![path.clone()],
         }]),
+        IcsPlace::Vdir(path) => {
+            // An account directory that cannot be read costs that account only.
+            let (_, accounts) = entries(path)?;
+            Ok(accounts
+                .iter()
+                .filter_map(|account| entries(account).ok())
+                .flat_map(|(_, collections)| collections)
+                .filter_map(|dir| {
+                    let (files, _) = entries(&dir).ok()?;
+                    Some(Calendar {
+                        name: name_of(&dir),
+                        files,
+                    })
+                })
+                .filter(|calendar| !calendar.files.is_empty())
+                .collect())
+        }
         IcsPlace::Dir(path) => {
             let (files, dirs) = entries(path)?;
             let own = Some(Calendar {

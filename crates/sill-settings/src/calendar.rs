@@ -38,7 +38,7 @@ pub struct CalendarSettings {
     /// `sill_model::events::parse_sources`).
     #[settings(
         label = "Calendars",
-        help = "`auto` reads `~/.calendars` (vdirsyncer and khal) and `~/.local/share/sill/calendars`; `off` reads none; or `.ics` files and folders separated by `;`.",
+        help = "`auto` reads `~/.calendars` (vdirsyncer and khal), `~/.local/share/sill/calendars` and the calendars porter mirrors into `~/.local/share/porter/vdir`; `off` reads none; or `.ics` files and folders separated by `;`.",
         section = "Calendar",
         advanced
     )]

@@ -62,7 +62,7 @@ impl EventsProvider for IcsProvider {
         self.places
             .iter()
             .map(|place| match place {
-                IcsPlace::File(path) | IcsPlace::Dir(path) => path.clone(),
+                IcsPlace::File(path) | IcsPlace::Dir(path) | IcsPlace::Vdir(path) => path.clone(),
             })
             .collect()
     }

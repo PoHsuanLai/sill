@@ -107,7 +107,7 @@ async fn plan_for(sources: &EventSources, auto: &AutoEnv) -> Plan {
     let env = auto.clone();
     let built = tokio::task::spawn_blocking(move || {
         let exists = |place: &IcsPlace| match place {
-            IcsPlace::File(path) | IcsPlace::Dir(path) => path.exists(),
+            IcsPlace::File(path) | IcsPlace::Dir(path) | IcsPlace::Vdir(path) => path.exists(),
         };
         let found = auto_places(&env).iter().any(exists);
         match (&sources, found) {

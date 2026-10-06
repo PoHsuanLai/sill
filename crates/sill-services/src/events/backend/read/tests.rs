@@ -179,6 +179,37 @@ fn a_vdirsyncer_folder_is_one_calendar_per_collection() {
     assert_eq!(work, Some(CalendarName("work".to_owned())));
 }
 
+/// porter's `vdir/<account>/<collection>`: every collection of every account is a calendar, an
+/// address book's `.vcf` files make none, and a place that is missing is a problem, not a panic.
+#[test]
+fn a_porter_vdir_is_one_calendar_per_collection_of_every_account() {
+    let root = std::env::temp_dir().join(format!("sill-vdir-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let event = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:u\r\nSUMMARY:Dentist\r\nDTSTART;VALUE=DATE:20260927\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+    for (collection, file, text) in [
+        ("cloud/personal", "u.ics", event),
+        ("cloud/work", "u2.ics", event),
+        ("cloud/contacts", "c1.vcf", "BEGIN:VCARD\r\nEND:VCARD\r\n"),
+        ("other/home", "u3.ics", event),
+        ("other/.hidden", "u4.ics", event),
+    ] {
+        let dir = root.join(collection);
+        std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(dir.join(file), text).unwrap_or_else(|e| panic!("{e}"));
+    }
+    let calendars = calendars_in(&IcsPlace::Vdir(root.clone())).unwrap_or_else(|e| panic!("{e}"));
+    let mut names: Vec<_> = calendars.iter().map(|c| c.name.0.clone()).collect();
+    names.sort();
+    assert_eq!(names, ["home", "personal", "work"]);
+    let read = read_places(&[IcsPlace::Vdir(root.clone())], autumn(), &taipei());
+    let _ = std::fs::remove_dir_all(&root);
+    assert_eq!(read.calendars, 3);
+    assert_eq!(read.problems, Vec::new());
+
+    let missing = read_places(&[IcsPlace::Vdir(root)], autumn(), &taipei());
+    assert_eq!(missing.problems.len(), 1);
+}
+
 #[test]
 fn a_missing_place_is_a_problem_and_costs_nothing_else() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/calendars");
