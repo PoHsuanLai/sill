@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The own polkit agent's acceptance, on a private headless KWin (shell-host scripts/dev/
-# kwin-virtual.sh), started and stopped by the script.
+# The own polkit agent's acceptance, on a private headless compositor: casement under
+# dev/accept.sh --compositor casement, else KWin (shell-host scripts/dev/kwin-virtual.sh), started and stopped by the script.
 #
 # Nothing here reaches polkitd, the system bus, PAM or a real password. Every bus is KWin's
 # private one (start_compositor refuses to go on if it would be the real one): the daemon's session and
@@ -9,7 +9,7 @@
 # crates/sill/src/run_args.rs, with --polkit-helper and --polkit-session). There,
 # examples/polkit_authority.rs plays polkitd's Authority (records the registration, sends
 # BeginAuthentication and CancelAuthentication on command, prints each call's result), and
-# examples/polkit_helper.rs plays polkit-agent-helper-1 (the helper protocol; accepts
+# crates/sill-services/src/bin/polkit_helper.rs plays polkit-agent-helper-1 (the helper protocol; accepts
 # `sill-fake`, refuses anything else, runs no PAM). The daemon gets its own XDG_RUNTIME_DIR and
 # a scratch XDG_CONFIG_HOME. Keys are `sill debug key SURFACE KEY`: shell-host's `Inject::Key`,
 # which enters the prompt where a real xkb key does, whether or not the compositor gave it the
@@ -35,7 +35,7 @@ OUT_DIR="$SILL_OUT_ROOT/accept-polkit"
 SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 AUTHORITY_BIN="$SILL_OUT/examples/polkit_authority"
-HELPER_BIN="$SILL_OUT/examples/polkit_helper"
+HELPER_BIN="$SILL_OUT/polkit_helper"
 AGENT_PATH=/org/sill/PolicyKit1/AuthenticationAgent
 SESSION_ID=accept-polkit
 ACTION=org.sill.test.run
@@ -267,7 +267,7 @@ step_idle() {
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
-build "-p sill-testkit --example polkit_authority --example polkit_helper" || exit 1
+build "-p sill-testkit --example polkit_authority" || exit 1
 start_compositor --default kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; exit 1; }
 echo "headless KWin at $WL, private bus $BUS" >&2
 start_authority || exit 1

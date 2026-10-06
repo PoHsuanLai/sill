@@ -81,6 +81,7 @@ prebuild() {
     echo "== the daemon with --features debug, the testkit's examples, the launcher demo"
     (cd "$root" && cargo build "${flags[@]}" -p sill --features debug \
       && cargo build "${flags[@]}" -p sill-testkit --examples \
+      && cargo build "${flags[@]}" -p sill-services --bins \
       && cargo build "${flags[@]}" -p sill-launcher-ui --example launcher_demo \
       && cargo build --release -p sill-bar --example bar_demo) || return 1
     echo "== shell-host's probe_toplevel (the maximised-window probe), into its own target dir"
