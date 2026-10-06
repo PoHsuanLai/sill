@@ -3,8 +3,8 @@
 //! (`org.quire.AppMenu.<app_id>`, `com.canonical.dbusmenu`) and logs every call it receives.
 //! The service follows the app's menu, a click reaches the app as `Event "clicked"`, a menu
 //! changed under it is followed, and an app with no owner has no entry. The agent lists the menu
-//! and activates items by the effect table: a verified app's own command goes through intentd
-//! (a recording transport) and never as a click; everything else the app sends is destructive.
+//! and activates items by the effect table: a verified app's own command is handed back as the next call
+//! (never done here, never a click); everything else the app sends is destructive.
 //! The tests need a `dbus-daemon` and skip, saying so, without one.
 
 use std::path::{Path, PathBuf};
@@ -15,10 +15,10 @@ use std::time::{Duration, Instant};
 use docket_client::{Intents, Transport, TransportError};
 use docket_core::Follow;
 use docket_core::{
-    CallRequest, IntentsReply, IntentsRequest, Manifest, Origin, Outcome, Preview, Undoable,
-    ValidManifest, validate,
+    ActionRef, CallClass, CallRequest, IntentsReply, IntentsRequest, Manifest, Origin, Outcome,
+    Preview, TargetValue, Undoable, ValidManifest, validate,
 };
-use prov::Effect;
+use prov::{ActionName, AppName, Effect};
 use sill_launcher::WindowKey;
 use sill_model::app_menu::{
     AppMenuCommand, AppMenus, Follower, MenuApp, MenuName, ServedMenu, titles,
@@ -204,7 +204,11 @@ async fn a_followed_apps_titles_clicks_and_changes_reach_the_bar_and_back() {
             ),
             (
                 "View".to_owned(),
-                vec!["Sidebar".to_owned(), "Erase All".to_owned()]
+                vec![
+                    "Sidebar".to_owned(),
+                    "Erase All".to_owned(),
+                    "Erase Notes".to_owned()
+                ]
             ),
         ]
     );
@@ -493,7 +497,7 @@ async fn an_unverified_apps_items_are_destructive_whatever_their_titles_or_comma
     let mut agent = agent(&bus, scratch.path(), &["test.app"], None).await;
 
     // An item that names another app's harmless Read action: a claim, so a destructive click.
-    let spoof = agent.agent.activate(None, "22", Origin::Companion).await;
+    let spoof = agent.agent.activate(None, "22", None).await;
     let spoof = spoof.unwrap_or_else(|e| panic!("{e:?}"));
     assert_eq!(
         (spoof.how, spoof.effect),
@@ -502,7 +506,7 @@ async fn an_unverified_apps_items_are_destructive_whatever_their_titles_or_comma
     app.logged("Event 22 clicked").await;
 
     // An item under a View title: the title is the app's too.
-    let erase = agent.agent.activate(None, "42", Origin::Companion).await;
+    let erase = agent.agent.activate(None, "42", None).await;
     let erase = erase.unwrap_or_else(|e| panic!("{e:?}"));
     assert_eq!(
         (erase.how, erase.effect),
@@ -511,7 +515,7 @@ async fn an_unverified_apps_items_are_destructive_whatever_their_titles_or_comma
     app.logged("Event 42 clicked").await;
 
     // The command id of its own manifest's action, with nobody proving the app: still a click.
-    let own = agent.agent.activate(None, "21", Origin::Companion).await;
+    let own = agent.agent.activate(None, "21", None).await;
     let own = own.unwrap_or_else(|e| panic!("{e:?}"));
     assert_eq!(
         (own.how, own.effect),
@@ -521,17 +525,13 @@ async fn an_unverified_apps_items_are_destructive_whatever_their_titles_or_comma
 
     // A submenu parent and an unknown key run nothing.
     assert_eq!(
-        agent
-            .agent
-            .activate(None, "20", Origin::Companion)
-            .await
-            .map(|a| a.how),
+        agent.agent.activate(None, "20", None).await.map(|a| a.how),
         Err(MenuFault::NotRunnable)
     );
     assert_eq!(
         agent
             .agent
-            .activate(None, "9999", Origin::Companion)
+            .activate(None, "9999", None)
             .await
             .map(|a| a.how),
         Err(MenuFault::NoSuchItem)
@@ -542,8 +542,15 @@ async fn an_unverified_apps_items_are_destructive_whatever_their_titles_or_comma
     );
 }
 
+fn notes(name: &str) -> ActionRef {
+    ActionRef {
+        app: AppName::parse("dev.notes").unwrap_or_else(|e| panic!("{e}")),
+        name: ActionName::parse(name).unwrap_or_else(|e| panic!("{e}")),
+    }
+}
+
 #[tokio::test(flavor = "multi_thread")]
-async fn a_verified_apps_own_command_goes_through_intentd_and_never_as_a_click() {
+async fn a_verified_apps_own_command_is_handed_back_as_the_next_call_and_never_clicked() {
     let Some(bus) = PrivateBus::start() else {
         return;
     };
@@ -557,18 +564,26 @@ async fn a_verified_apps_own_command_goes_through_intentd_and_never_as_a_click()
     )
     .await;
 
-    let done = agent.agent.activate(None, "21", Origin::Companion).await;
+    let done = agent.agent.activate(None, "21", None).await;
     let done = done.unwrap_or_else(|e| panic!("{e:?}"));
     assert_eq!(
         done.effect,
         Effect::UndoableWrite,
         "the action's own declared effect"
     );
-    let performed = agent.performed();
-    assert_eq!(performed.len(), 1, "{performed:?}");
-    assert_eq!(performed[0].action.app.as_str(), "dev.notes");
-    assert_eq!(performed[0].action.name.as_str(), "notes.archive");
-    assert_eq!(performed[0].origin, Origin::Companion);
+    assert_eq!(
+        done.how,
+        Activated::Delegated(CallRequest {
+            action: notes("notes.archive"),
+            target: TargetValue::Nothing,
+            args: Default::default(),
+            origin: Origin::AppInternal,
+        })
+    );
+    assert!(
+        agent.performed().is_empty(),
+        "the router makes the call, not the shell"
+    );
     assert!(
         !app.lines().iter().any(|l| l.starts_with("Event ")),
         "no dbusmenu click was sent: {:?}",
@@ -576,14 +591,152 @@ async fn a_verified_apps_own_command_goes_through_intentd_and_never_as_a_click()
     );
 
     // A command this app's manifest does not declare is a claim, even from the verified app.
-    let spoof = agent.agent.activate(None, "22", Origin::Companion).await;
+    let spoof = agent.agent.activate(None, "22", None).await;
     let spoof = spoof.unwrap_or_else(|e| panic!("{e:?}"));
     assert_eq!(
         (spoof.how, spoof.effect),
         (Activated::Clicked, Effect::Destructive)
     );
-    assert_eq!(agent.performed().len(), 1);
     app.logged("Event 22 clicked").await;
+}
+
+fn read() -> CallClass {
+    CallClass::Effect(Effect::Read)
+}
+
+fn destructive() -> CallClass {
+    CallClass::Effect(Effect::Destructive)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn classify_answers_read_destructive_or_delegates_as_the_table_says() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    // Verified: a declared command delegates; a spoof and a View item are destructive.
+    let scratch = TempDir::new("app-menu-classify-verified");
+    let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
+    let verified = agent(
+        &bus,
+        scratch.path(),
+        &["dev.notes"],
+        Some((app.pid, "dev.notes")),
+    )
+    .await;
+    let cases = [
+        ("21", CallClass::Delegates(notes("notes.archive"))),
+        ("22", destructive()),
+        ("42", destructive()),
+        ("hide", read()),
+        ("hide-others", read()),
+        ("show-all", read()),
+        ("minimise:1", read()),
+        ("raise:1", read()),
+        ("quit", destructive()),
+    ];
+    for (item, want) in cases {
+        let got = verified.agent.classify(None, item).await;
+        assert_eq!(got, Ok(want), "{item}");
+    }
+    assert_eq!(
+        verified.agent.classify(None, "20").await,
+        Err(MenuFault::NotRunnable)
+    );
+    assert_eq!(
+        verified.agent.classify(None, "9999").await,
+        Err(MenuFault::NoSuchItem)
+    );
+
+    // Unverified: even the declared command is a claim.
+    let scratch = TempDir::new("app-menu-classify-unverified");
+    let _app = FakeApp::start(&bus, scratch.path(), "test.app");
+    let unverified = agent(&bus, scratch.path(), &["test.app"], None).await;
+    for item in ["21", "22", "42"] {
+        assert_eq!(
+            unverified.agent.classify(None, item).await,
+            Ok(destructive()),
+            "{item}"
+        );
+    }
+    assert_eq!(
+        unverified.agent.classify(None, "minimise:1").await,
+        Ok(read())
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn perform_refuses_an_item_that_changed_since_it_was_gated_and_always_takes_destructive() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("app-menu-changed");
+    let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
+    let mut agent = agent(
+        &bus,
+        scratch.path(),
+        &["dev.notes"],
+        Some((app.pid, "dev.notes")),
+    )
+    .await;
+
+    // Gated as Read, but item 21 is a delegation now: refused, nothing sent or done.
+    let changed = agent.agent.activate(None, "21", Some(&read())).await;
+    assert_eq!(changed.map(|a| a.how), Err(MenuFault::Changed));
+    // Gated as a delegation of another action: refused.
+    let other = CallClass::Delegates(notes("notes.erase"));
+    let changed = agent.agent.activate(None, "21", Some(&other)).await;
+    assert_eq!(changed.map(|a| a.how), Err(MenuFault::Changed));
+    // Gated as Read, but the item is a click now.
+    let changed = agent.agent.activate(None, "22", Some(&read())).await;
+    assert_eq!(changed.map(|a| a.how), Err(MenuFault::Changed));
+    // Gated as a delegation, but the item is gone from the menu.
+    let gone = agent
+        .agent
+        .activate(
+            None,
+            "9999",
+            Some(&CallClass::Delegates(notes("notes.archive"))),
+        )
+        .await;
+    assert_eq!(gone.map(|a| a.how), Err(MenuFault::NoSuchItem));
+    assert!(
+        !app.lines().iter().any(|l| l.starts_with("Event ")),
+        "nothing was clicked: {:?}",
+        app.lines()
+    );
+    assert!(agent.wl.try_recv().is_err());
+
+    // The same item as gated is carried out: the delegation is handed back.
+    let ok = agent
+        .agent
+        .activate(
+            None,
+            "21",
+            Some(&CallClass::Delegates(notes("notes.archive"))),
+        )
+        .await;
+    assert!(matches!(ok.map(|a| a.how), Ok(Activated::Delegated(_))));
+    let own = agent
+        .agent
+        .activate(None, "minimise:1", Some(&read()))
+        .await;
+    assert_eq!(own.map(|a| a.how), Ok(Activated::Own));
+    assert_eq!(agent.wl.try_recv(), Ok(WlCommand::Minimize(WindowKey(1))));
+
+    // Destructive is the ceiling, the router's re-ask path: always accepted, whatever it is now.
+    let click = agent.agent.activate(None, "22", Some(&destructive())).await;
+    assert_eq!(click.map(|a| a.how), Ok(Activated::Clicked));
+    app.logged("Event 22 clicked").await;
+    let delegated = agent.agent.activate(None, "21", Some(&destructive())).await;
+    assert!(matches!(
+        delegated.map(|a| a.how),
+        Ok(Activated::Delegated(_))
+    ));
+    let quit = agent
+        .agent
+        .activate(None, "quit", Some(&destructive()))
+        .await;
+    assert_eq!(quit.map(|a| a.how), Ok(Activated::Own));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -602,7 +755,7 @@ async fn a_name_owned_by_another_app_than_it_names_is_not_verified() {
     )
     .await;
 
-    let done = agent.agent.activate(None, "21", Origin::Companion).await;
+    let done = agent.agent.activate(None, "21", None).await;
     let done = done.unwrap_or_else(|e| panic!("{e:?}"));
     assert_eq!(
         (done.how, done.effect),
@@ -649,7 +802,7 @@ async fn the_shells_own_rows_do_what_the_table_calls_cheap() {
         ),
     ];
     for (item, effect, want) in cases {
-        let done = agent.agent.activate(None, item, Origin::Companion).await;
+        let done = agent.agent.activate(None, item, None).await;
         let done = done.unwrap_or_else(|e| panic!("{item}: {e:?}"));
         assert_eq!((done.how, done.effect), (Activated::Own, effect), "{item}");
         let mut got = Vec::new();
@@ -657,5 +810,396 @@ async fn the_shells_own_rows_do_what_the_table_calls_cheap() {
             got.push(command);
         }
         assert_eq!(got, want, "{item}");
+    }
+}
+
+// ---- The shell's menu provider under docket's real router ---------------------------------
+
+mod routed {
+    use super::*;
+    use docket_core::{
+        ActionGrantKey, AppRefusal, CallRefusal, CallerId, CallerRole, ClassifyFault,
+        ConfirmAnswer, GrantCaller, GrantScope as ConsentScope, GrantTarget, Invocation, Latency,
+        ParamName, SessionOpen, Value,
+    };
+    use docket_fake::{
+        FakeMemory, FixedClock, MemoryGrants, RecordingSink, ScriptedConfirmer, ScriptedReader,
+        ScriptedReviewer, ScriptedWriter,
+    };
+    use docket_router::{AppFault, AppLink, GrantStore, LinkFault, Router, Seams};
+    use policy_point::Pdp;
+    use porter_core::consent::{Decision, Grant, Usage};
+    use porter_core::{AppId, DataClass, Isolation};
+    use prov::{AgentRef, SpaceId, SpaceScope, UnixSeconds};
+    use sill_model::intents::shell::menu_ask_of;
+    use sill_services::intents::menus;
+    use std::collections::BTreeSet;
+
+    /// The apps of the router: the shell, whose menu provider is the real one over the real
+    /// agent, and dev.notes, which records what it is asked to do.
+    struct Link {
+        shell: Agent,
+        notes_done: Mutex<Vec<String>>,
+    }
+
+    fn shell_app() -> AppName {
+        AppName::parse("org.quire.Shell").unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    impl AppLink for Link {
+        async fn perform(
+            &self,
+            app: &AppName,
+            inv: Invocation,
+            within: Latency,
+        ) -> Result<Outcome, AppFault> {
+            self.perform_classified(app, inv, None, None, within).await
+        }
+
+        async fn perform_classified(
+            &self,
+            app: &AppName,
+            inv: Invocation,
+            _activation: Option<docket_core::ActivationToken>,
+            classified: Option<CallClass>,
+            _within: Latency,
+        ) -> Result<Outcome, AppFault> {
+            if *app == shell_app() {
+                let ask = menu_ask_of(&inv)
+                    .map_err(AppFault::Refused)?
+                    .ok_or(AppFault::Refused(AppRefusal::Unsupported))?;
+                return menus::perform(&self.shell.agent, ask, &inv, classified)
+                    .await
+                    .map_err(AppFault::Refused);
+            }
+            self.notes_done
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .push(inv.action.as_str().to_owned());
+            Ok(Outcome {
+                value: None,
+                said: None,
+                show: Preview::None,
+                undo: Undoable::No,
+                follow: Follow::Nothing,
+            })
+        }
+
+        async fn classify(
+            &self,
+            app: &AppName,
+            inv: Invocation,
+        ) -> Result<CallClass, ClassifyFault> {
+            if *app != shell_app() {
+                return Err(ClassifyFault::Unsupported);
+            }
+            let ask = menu_ask_of(&inv)
+                .ok()
+                .flatten()
+                .ok_or(ClassifyFault::Unsupported)?;
+            menus::classify(&self.shell.agent, ask)
+                .await
+                .map_err(|_| ClassifyFault::Refused)
+        }
+
+        async fn dry_run(&self, _: &AppName, _: Invocation) -> Result<Preview, AppRefusal> {
+            Err(AppRefusal::Unsupported)
+        }
+
+        async fn undo(
+            &self,
+            _: &AppName,
+            _: &docket_core::UndoToken,
+            _: &prov::Actor,
+        ) -> Result<(), docket_core::UndoFault> {
+            Err(docket_core::UndoFault::AppUnavailable)
+        }
+
+        async fn context(
+            &self,
+            _: &AppName,
+            _: docket_core::ContextScope,
+        ) -> Result<docket_core::ContextSnapshot, LinkFault> {
+            Err(LinkFault::Unavailable)
+        }
+
+        async fn search(
+            &self,
+            _: &AppName,
+            _: &str,
+            _: docket_core::Generation,
+        ) -> Result<Vec<docket_core::Hit>, LinkFault> {
+            Err(LinkFault::Unavailable)
+        }
+
+        async fn preview(&self, _: &AppName, _: &prov::EntityId) -> Result<Preview, LinkFault> {
+            Err(LinkFault::Unavailable)
+        }
+
+        async fn suggest(
+            &self,
+            _: &AppName,
+            _: docket_core::SuggestAsk,
+        ) -> Result<Vec<docket_core::EntityRef>, LinkFault> {
+            Err(LinkFault::Unavailable)
+        }
+    }
+
+    struct Fakes {
+        link: Link,
+        confirmer: ScriptedConfirmer,
+        reviewer: ScriptedReviewer,
+        grants: MemoryGrants,
+        sink: RecordingSink,
+        clock: FixedClock,
+        memory: FakeMemory,
+        writer: ScriptedWriter,
+        reader: ScriptedReader,
+    }
+
+    impl Seams for Fakes {
+        type Link = Link;
+        type Confirm = ScriptedConfirmer;
+        type Review = ScriptedReviewer;
+        type Grants = MemoryGrants;
+        type Sink = RecordingSink;
+        type Time = FixedClock;
+        type Memory = FakeMemory;
+        type Writer = ScriptedWriter;
+        type Reading = ScriptedReader;
+        fn link(&self) -> &Link {
+            &self.link
+        }
+        fn confirmer(&self) -> &ScriptedConfirmer {
+            &self.confirmer
+        }
+        fn reviewer(&self) -> &ScriptedReviewer {
+            &self.reviewer
+        }
+        fn grants(&self) -> &MemoryGrants {
+            &self.grants
+        }
+        fn sink(&self) -> &RecordingSink {
+            &self.sink
+        }
+        fn clock(&self) -> &FixedClock {
+            &self.clock
+        }
+        fn memory(&self) -> &FakeMemory {
+            &self.memory
+        }
+        fn writer(&self) -> &ScriptedWriter {
+            &self.writer
+        }
+        fn reader(&self) -> &ScriptedReader {
+            &self.reader
+        }
+    }
+
+    fn companion() -> CallerId {
+        CallerId {
+            app: AppId {
+                name: AppName::parse("org.quire.Companiond").unwrap_or_else(|e| panic!("{e}")),
+                isolation: Isolation::Unsandboxed,
+            },
+            roles: BTreeSet::from([CallerRole::Companion]),
+        }
+    }
+
+    fn space() -> SpaceId {
+        SpaceId::parse("work").unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    fn call(item: &str) -> CallRequest {
+        let item_arg = prov::Labelled {
+            value: Value::Text(item.into()),
+            label: prov::Label::trusted_user(),
+        };
+        CallRequest {
+            action: ActionRef {
+                app: shell_app(),
+                name: ActionName::parse("shell.menu.activate").unwrap_or_else(|e| panic!("{e}")),
+            },
+            target: TargetValue::Nothing,
+            args: std::iter::once((
+                ParamName::parse("item").unwrap_or_else(|e| panic!("{e}")),
+                item_arg,
+            ))
+            .collect(),
+            origin: Origin::Companion,
+        }
+    }
+
+    async fn run(router: &Router<Fakes>, call: CallRequest) -> Result<Outcome, CallRefusal> {
+        let reply = router
+            .handle(
+                &companion(),
+                docket_core::IntentsRequest::Perform {
+                    activation: None,
+                    call,
+                    session: None,
+                    parent_window: None,
+                },
+            )
+            .await;
+        match reply {
+            IntentsReply::Performed(result) => *result,
+            other => panic!("perform: {other:?}"),
+        }
+    }
+
+    /// A router with a session, the companion's standing consent for both apps (so a first use
+    /// asks nothing), and `answers` yeses for the person.
+    async fn router(shell: Agent, answers: usize) -> Router<Fakes> {
+        let receipt = prov::ConfirmReceipt {
+            id: prov::ConfirmId::parse("c-1").unwrap_or_else(|e| panic!("{e}")),
+            input: prov::InputProof::HardwareSeat,
+            at: UnixSeconds(1),
+            covers: prov::Confidentiality::Secret,
+        };
+        let yes = ConfirmAnswer::Allowed {
+            scope: ConsentScope::Once,
+            receipt,
+        };
+        let seams = Fakes {
+            link: Link {
+                shell,
+                notes_done: Mutex::new(Vec::new()),
+            },
+            confirmer: ScriptedConfirmer::answering((0..answers).map(|_| yes.clone()).collect()),
+            reviewer: ScriptedReviewer::always_allow(),
+            grants: MemoryGrants::new(),
+            sink: RecordingSink::new(),
+            clock: FixedClock::at(UnixSeconds(0)),
+            memory: FakeMemory::default(),
+            writer: ScriptedWriter::failing(),
+            reader: ScriptedReader::default(),
+        };
+        for (owner, n) in [
+            (shell_app(), 0),
+            (
+                AppName::parse("dev.notes").unwrap_or_else(|e| panic!("{e}")),
+                2,
+            ),
+        ] {
+            for (m, usage) in [Usage::Interactive, Usage::Background]
+                .into_iter()
+                .enumerate()
+            {
+                seams.grants.record(Grant {
+                    id: porter_core::GrantId::parse(&format!("g-{}", n + m))
+                        .unwrap_or_else(|e| panic!("{e}")),
+                    key: ActionGrantKey {
+                        caller: GrantCaller::Companion,
+                        owner: owner.clone(),
+                        target: GrantTarget::App,
+                        class: DataClass::AppOwn,
+                        usage,
+                        space: SpaceScope::Only(space()),
+                    },
+                    decision: Decision::Allow,
+                    scope: ConsentScope::Always,
+                    at: UnixSeconds(0),
+                });
+            }
+        }
+        let router = Router::new(
+            seams,
+            docket_core::AgentConfig::default(),
+            Pdp::standard().unwrap_or_else(|e| panic!("{e:?}")),
+        );
+        {
+            let mut state = router.state.lock().unwrap_or_else(|e| e.into_inner());
+            for manifest in manifests() {
+                state.registry.insert(manifest);
+            }
+        }
+        let opened = router
+            .handle(
+                &companion(),
+                docket_core::IntentsRequest::SessionOpen(SessionOpen {
+                    space: space(),
+                    agent: AgentRef::Companion,
+                    parent: None,
+                }),
+            )
+            .await;
+        assert!(
+            matches!(opened, IntentsReply::SessionOpened(_)),
+            "{opened:?}"
+        );
+        router
+    }
+
+    fn asks(router: &Router<Fakes>) -> usize {
+        router.seams.confirmer.requests().len()
+    }
+
+    fn done(router: &Router<Fakes>) -> Vec<String> {
+        router
+            .seams
+            .link
+            .notes_done
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_read_row_asks_nothing_and_a_verified_delegate_asks_once_for_its_own_action() {
+        let Some(bus) = PrivateBus::start() else {
+            return;
+        };
+        let scratch = TempDir::new("app-menu-routed");
+        let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
+        let shell = agent(
+            &bus,
+            scratch.path(),
+            &["dev.notes"],
+            Some((app.pid, "dev.notes")),
+        )
+        .await;
+        let router = router(shell, 2).await;
+
+        // The shell's own Read row: no ask, and the compositor is told.
+        run(&router, call("minimise:1"))
+            .await
+            .unwrap_or_else(|e| panic!("{e:?}"));
+        assert_eq!(asks(&router), 0);
+        assert!(done(&router).is_empty());
+
+        // A verified, declared, undoable command: delegated, gated as the app's own action.
+        run(&router, call("21"))
+            .await
+            .unwrap_or_else(|e| panic!("{e:?}"));
+        assert_eq!(done(&router), vec!["notes.archive".to_owned()]);
+        assert_eq!(
+            asks(&router),
+            0,
+            "an undoable write of the app's own does not ask"
+        );
+
+        // A verified destructive command: one ask, for the inner action; then it runs.
+        run(&router, call("43"))
+            .await
+            .unwrap_or_else(|e| panic!("{e:?}"));
+        assert_eq!(asks(&router), 1);
+        assert_eq!(
+            done(&router),
+            vec!["notes.archive".to_owned(), "notes.erase".to_owned()]
+        );
+        assert!(
+            !app.lines().iter().any(|l| l.starts_with("Event ")),
+            "never a click: {:?}",
+            app.lines()
+        );
+
+        // A spoof is a destructive click, asked for as such, then sent.
+        run(&router, call("22"))
+            .await
+            .unwrap_or_else(|e| panic!("{e:?}"));
+        assert_eq!(asks(&router), 2);
+        app.logged("Event 22 clicked").await;
+        assert_eq!(done(&router).len(), 2, "nothing more reached dev.notes");
     }
 }

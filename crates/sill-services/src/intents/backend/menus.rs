@@ -3,9 +3,10 @@
 //! The listing is the app's own text, so it is labelled untrusted with the app as its source and
 //! never joins the shell's own words. An activation answers in fixed words, never the item's.
 
-use docket_client::DbusTransport;
+use docket_client::Transport;
 use docket_core::{
-    AppRefusal, FailText, Follow, Invocation, LabelText, Outcome, Preview, Undoable, Value,
+    AppRefusal, CallClass, FailText, Follow, Invocation, LabelText, Outcome, Preview, Undoable,
+    Value,
 };
 use porter_core::{AppName, DataClass};
 use prov::{Label, Labelled, Source};
@@ -17,10 +18,26 @@ use crate::app_menu::{Activated, MenuAgent, MenuFault};
 /// the shell, as the one that read it. The label stays untrusted.
 const SHELL_APP: &str = "org.quire.Shell";
 
-pub(super) async fn perform(
-    agent: &MenuAgent<DbusTransport>,
+/// What `ask` is, for the router's `Classify`. Only an activation has a class.
+pub async fn classify<T: Transport>(
+    agent: &MenuAgent<T>,
+    ask: MenuAsk,
+) -> Result<CallClass, AppRefusal> {
+    match ask {
+        MenuAsk::Activate { window, item } => agent
+            .classify(window.as_deref(), &item)
+            .await
+            .map_err(refusal),
+        MenuAsk::List { .. } => Err(AppRefusal::Unsupported),
+    }
+}
+
+/// What `ask` does, given the class the router gated it on.
+pub async fn perform<T: Transport>(
+    agent: &MenuAgent<T>,
     ask: MenuAsk,
     inv: &Invocation,
+    classified: Option<CallClass>,
 ) -> Result<Outcome, AppRefusal> {
     match ask {
         MenuAsk::List { window } => {
@@ -36,10 +53,14 @@ pub(super) async fn perform(
         }
         MenuAsk::Activate { window, item } => {
             let done = agent
-                .activate(window.as_deref(), &item, inv.origin)
+                .activate(window.as_deref(), &item, classified.as_ref())
                 .await
                 .map_err(refusal)?;
-            Ok(outcome(None, Some(said(&done.how))))
+            let mut out = outcome(None, Some(said(&done.how)));
+            if let Activated::Delegated(call) = done.how {
+                out.follow = Follow::Next(call);
+            }
+            Ok(out)
         }
     }
 }
@@ -47,7 +68,7 @@ pub(super) async fn perform(
 fn said(done: &Activated) -> &'static str {
     match done {
         Activated::Own => "Did the menu item",
-        Activated::Action(_) => "Ran the menu item's action",
+        Activated::Delegated(_) => "Passed the menu item to the app's own action",
         Activated::Clicked => "Clicked the menu item",
     }
 }
@@ -72,7 +93,7 @@ fn refusal(fault: MenuFault) -> AppRefusal {
         MenuFault::NoMenu => failed("the window's app has no menu"),
         MenuFault::NoSuchItem => failed("the menu has no such item"),
         MenuFault::NotRunnable => failed("the menu item is disabled or opens a submenu"),
-        MenuFault::Refused(why) => failed(&format!("the action was refused: {why}")),
+        MenuFault::Changed => AppRefusal::ClassificationChanged,
         MenuFault::Failed(why) => failed(&why),
     }
 }

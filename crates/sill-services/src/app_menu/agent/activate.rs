@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use docket_client::Transport;
-use docket_core::{ActionRef, CallRequest, Origin, TargetValue};
+use docket_core::{ActionRef, CallClass, CallRequest, Origin, TargetValue};
 use prov::Effect;
 use sill_model::app_menu::{
     ActionIndex, Identity, ItemKey, Route, effect_of, own_commands, route_of,
@@ -11,7 +11,7 @@ use sill_model::app_menu::{
 use sill_model::tray::{MenuCommand, TrayMenuEntry, TrayMenuKind};
 use sill_model::units::Availability;
 
-use super::MenuAgent;
+use super::{MenuAgent, Target};
 use crate::app_menu::wire;
 
 /// Why an ask about a menu did not happen. The words never carry the app's own text.
@@ -25,8 +25,8 @@ pub enum MenuFault {
     NoSuchItem,
     /// The item is disabled, or opens a submenu and runs nothing.
     NotRunnable,
-    /// intentd refused the verified app's own action.
-    Refused(String),
+    /// The item is no longer what the router gated the call on.
+    Changed,
     /// Something else failed.
     Failed(String),
 }
@@ -44,35 +44,101 @@ pub struct Activation {
 pub enum Activated {
     /// The shell did one of its own rows.
     Own,
-    /// The verified app's action ran through intentd.
-    Action(ActionRef),
+    /// The verified app's action, to be made as the next call (the router gates it on its own).
+    Delegated(CallRequest),
     /// The app was sent a click it must weigh itself.
     Clicked,
 }
 
+/// What an item is now, worked out from the live menu and the proof of the app: how it would be
+/// carried out, and what it costs.
+#[derive(Debug)]
+struct Resolved {
+    route: Route,
+    effect: Effect,
+    /// The bus name's owner, for a click.
+    owner: Option<String>,
+    /// The windows as they are, for the shell's own rows.
+    target: Target,
+}
+
+impl Resolved {
+    /// What the router is told about the item.
+    fn class(&self) -> CallClass {
+        match &self.route {
+            Route::Intents(action) => CallClass::Delegates(action.clone()),
+            Route::Own(_) | Route::Click(_) => CallClass::Effect(self.effect),
+        }
+    }
+}
+
 impl<T: Transport> MenuAgent<T> {
-    /// Activate `item` of the window asked for (the focused one when `window` is `None`). `origin`
-    /// is where the call came from, which an action run through intentd keeps.
+    /// What `item` of the window asked for would be, as the router gates it
+    /// (`shell.menu.activate` is `per_call = "classified"`): its effect for a row the shell does
+    /// itself, a delegation to the verified app's own action, otherwise `Destructive`.
+    pub async fn classify(&self, window: Option<&str>, item: &str) -> Result<CallClass, MenuFault> {
+        self.resolve(window, item).await.map(|r| r.class())
+    }
+
+    /// Activate `item` of the window asked for (the focused one when `window` is `None`).
+    /// `classified` is what the router gated the call on, when it says: the item is worked out
+    /// again, and a call that is no longer that is `MenuFault::Changed`, except `Destructive`,
+    /// the declared effect, which is always accepted. A verified app's own action is not done
+    /// here: it is handed back as the call to make next, which the router gates on its own.
     pub async fn activate(
         &self,
         window: Option<&str>,
         item: &str,
-        origin: Origin,
+        classified: Option<&CallClass>,
     ) -> Result<Activation, MenuFault> {
-        let key = ItemKey::parse(item).ok_or(MenuFault::NoSuchItem)?;
-        let target = self.target(window)?;
-        let id = match key {
-            ItemKey::Own(own) => {
-                for command in own_commands(own, &target.app.0, &target.toplevels) {
+        let now = self.resolve(window, item).await?;
+        let ceiling = CallClass::Effect(Effect::Destructive);
+        if let Some(said) = classified
+            && *said != ceiling
+            && *said != now.class()
+        {
+            return Err(MenuFault::Changed);
+        }
+        let effect = now.effect;
+        let how = match now.route {
+            Route::Own(own) => {
+                for command in own_commands(own, &now.target.app.0, &now.target.toplevels) {
                     self.links
                         .wl
                         .send(command)
                         .map_err(|_| MenuFault::Failed("the compositor is not there".to_owned()))?;
                 }
-                let effect = effect_of(&Route::Own(own), &ActionIndex::default());
-                return Ok(Activation {
-                    how: Activated::Own,
+                Activated::Own
+            }
+            Route::Intents(action) => Activated::Delegated(CallRequest {
+                action,
+                target: TargetValue::Nothing,
+                args: BTreeMap::new(),
+                origin: Origin::AppInternal,
+            }),
+            Route::Click(id) => {
+                let owner = now.owner.ok_or(MenuFault::NoMenu)?;
+                wire::click(&self.connection, &owner, id)
+                    .await
+                    .map_err(|_| MenuFault::Failed("the app could not be told".to_owned()))?;
+                Activated::Clicked
+            }
+        };
+        Ok(Activation { how, effect })
+    }
+
+    async fn resolve(&self, window: Option<&str>, item: &str) -> Result<Resolved, MenuFault> {
+        let key = ItemKey::parse(item).ok_or(MenuFault::NoSuchItem)?;
+        let target = self.target(window)?;
+        let id = match key {
+            ItemKey::Own(own) => {
+                let route = Route::Own(own);
+                let effect = effect_of(&route, &ActionIndex::default());
+                return Ok(Resolved {
+                    route,
                     effect,
+                    owner: None,
+                    target,
                 });
             }
             ItemKey::Menu(id) => id,
@@ -84,17 +150,12 @@ impl<T: Transport> MenuAgent<T> {
         let actions = self.actions(command, &identity).await?;
         let route = route_of(key, command, &identity, &actions);
         let effect = effect_of(&route, &actions);
-        let how = match route {
-            Route::Intents(action) => self.perform(action, origin).await?,
-            Route::Click(id) => {
-                wire::click(&self.connection, served.owner.as_str(), id)
-                    .await
-                    .map_err(|_| MenuFault::Failed("the app could not be told".to_owned()))?;
-                Activated::Clicked
-            }
-            Route::Own(_) => return Err(MenuFault::NoSuchItem),
-        };
-        Ok(Activation { how, effect })
+        Ok(Resolved {
+            route,
+            effect,
+            owner: Some(served.owner.as_str().to_owned()),
+            target,
+        })
     }
 
     /// The installed actions and their effects; none are read unless a proven app names one.
@@ -127,20 +188,6 @@ impl<T: Transport> MenuAgent<T> {
             })
             .collect();
         Ok(ActionIndex(actions))
-    }
-
-    async fn perform(&self, action: ActionRef, origin: Origin) -> Result<Activated, MenuFault> {
-        let call = CallRequest {
-            action: action.clone(),
-            target: TargetValue::Nothing,
-            args: BTreeMap::new(),
-            origin,
-        };
-        match self.intents.perform(call, None, None).await {
-            Ok(Ok(_outcome)) => Ok(Activated::Action(action)),
-            Ok(Err(refusal)) => Err(MenuFault::Refused(format!("{refusal:?}"))),
-            Err(_) => Err(MenuFault::Failed("intentd could not be asked".to_owned())),
-        }
     }
 }
 

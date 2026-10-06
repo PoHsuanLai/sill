@@ -8,7 +8,7 @@
 //!
 //! The bar: `Notes` (11: `About Notes` 12, `Quit Notes` 13), `Edit` (20: `Undo` 21 with Cmd+Z and
 //! the command `notes.archive`, `Spoof` 22 naming the command `shell.workspace.switch`, `Refresh`
-//! 23), `View` (40: `Sidebar` 41 checked, `Erase All` 42 with no command). Clicking `Refresh`
+//! 23), `View` (40: `Sidebar` 41 checked, `Erase All` 42 with no command, `Erase Notes` 43 naming the command `notes.erase`). Clicking `Refresh`
 //! adds `Redo` (24) to Edit and emits `LayoutUpdated`, as an app does when its menu changes under
 //! an open popup.
 //!
@@ -227,7 +227,15 @@ fn layout(grown: bool) -> Node {
                 ],
             ),
             menu(EDIT, "Edit", edit),
-            menu(40, "View", vec![sidebar, row(42, "Erase All", Vec::new())]),
+            menu(
+                40,
+                "View",
+                vec![
+                    sidebar,
+                    row(42, "Erase All", Vec::new()),
+                    row(43, "Erase Notes", vec![command("notes.erase")]),
+                ],
+            ),
         ],
     }
 }

@@ -592,11 +592,18 @@ A settled item is deleted, not marked closed.
 - **G371** App menus: `shell.menu.activate`'s Zoom and full-screen items are not provided: the shell
   has no `WlCommand` for maximise or fullscreen, so the Read set is Minimise, Hide, Hide Others, Show
   All and raising a window. Ends when `cosmic_wl` gains those commands (then two `OwnItem`s).
-- **G372** App menus: the router gates on an action's declared effect, so `shell.menu.activate` is
-  declared `destructive` and every call asks, including the Read rows of the table. Ends when
-  intentd takes a per-call effect from the provider (interface ask: docket); `effect_of` is the table
-  it would call. The call goes out on the shell's connection with the caller's own `Origin`; intentd
-  must not treat it as the person's launcher act.
+- **G372** (resolved) App menus: `shell.menu.activate` is declared `destructive`, now the ceiling,
+  with `per_call = "classified"`, so the router asks `Classify` first (`MenuAgent::classify`, over the
+  pure `route_of` and `effect_of`). The answers: `{"kind":"effect","v":"read"}` for the shell's own
+  rows (Hide, Hide Others, Show All, Minimise, raising a window); `{"kind":"effect","v":"destructive"}`
+  for Quit and every foreign, unverified or spoofed item; `{"kind":"delegates","v":{"app":"dev.notes",
+  "name":"<command id>"}}` for a command id of an app proven by porter's caller identity and declared in
+  that app's own manifest (`app` is the intents manifest app id; the dbusmenu bus name only proves the
+  owner). `Perform` re-derives the class and refuses `ClassificationChanged` on a mismatch, accepting
+  `destructive` always (the router's re-ask); a delegation is not done by the shell: it answers
+  `Follow::Next` for exactly that action with `Origin::AppInternal`, which the router gates on its own
+  (no click, no `Run.Perform`). Tests: `tests/app_menu_bus.rs` (classify table, changed-layout,
+  destructive-accepted, and the real router with a cross-app delegate).
 - **G373** App menus: the verified path needs the app launched in a systemd scope
   (`app-<id>-<n>.scope`, which COSMIC's launcher and `sill`'s own start); an app started from a
   terminal has no scope, so its command ids are claims and its items are clicks. The app's

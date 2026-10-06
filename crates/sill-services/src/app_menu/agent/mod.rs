@@ -81,6 +81,7 @@ impl<T: Transport> MenuAgent<T> {
 }
 
 /// The app an ask is about, and every window as it was when asked.
+#[derive(Debug)]
 struct Target {
     app: MenuApp,
     toplevels: Toplevels,

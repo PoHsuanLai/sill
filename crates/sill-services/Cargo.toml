@@ -52,6 +52,9 @@ percent-encoding = { workspace = true }
 
 [dev-dependencies]
 sill-testkit = { workspace = true }
+docket-router = { workspace = true }
+docket-fake = { workspace = true }
+policy-point = { workspace = true }
 
 [lints]
 workspace = true

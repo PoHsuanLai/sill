@@ -375,6 +375,7 @@ name = "shell.menu.activate"
 label = "Choose a menu item of a window"
 on = { kind = "nothing" }
 effect = "destructive"
+per_call = "classified"
 classes = ["app_own"]
 undo = "not_undoable"
 reach = "offered"

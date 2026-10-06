@@ -7,9 +7,10 @@ use std::time::Duration;
 
 use docket_client::{ContextSource, DbusTransport, IntentProvider, SummonTarget};
 use docket_core::{
-    AppRefusal, ContextScope, ContextSnapshot, EntityRef, FailText, Here, Hit, Invocation,
-    Manifest, Outcome, Preview, Selection, SuggestAsk, SummonAnswer, SummonOrigin, SummonSerial,
-    TextTarget, UndoFault, UndoToken, ValidManifest, Visible, WindowPrivacy, validate,
+    ActivationToken, AppRefusal, CallClass, ContextScope, ContextSnapshot, EntityRef, FailText,
+    Here, Hit, Invocation, Manifest, Outcome, Preview, Selection, SuggestAsk, SummonAnswer,
+    SummonOrigin, SummonSerial, TextTarget, UndoFault, UndoToken, ValidManifest, Visible,
+    WindowPrivacy, validate,
 };
 use porter_core::Count;
 use prov::{Actor, EntityId, Label, Labelled};
@@ -74,8 +75,18 @@ impl IntentProvider for ShellProvider {
     }
 
     async fn perform(&self, inv: Invocation) -> Result<Outcome, AppRefusal> {
+        self.perform_classified(inv, None, None).await
+    }
+
+    async fn perform_classified(
+        &self,
+        inv: Invocation,
+        activation: Option<ActivationToken>,
+        classified: Option<CallClass>,
+    ) -> Result<Outcome, AppRefusal> {
+        let _ = activation;
         if let Some(ask) = menu_ask_of(&inv)? {
-            return super::menus::perform(&self.menus, ask, &inv).await;
+            return super::menus::perform(&self.menus, ask, &inv, classified).await;
         }
         if let Some(ask) = window_ask_of(&inv)? {
             return super::windows::perform(&self.windows, &ask, &inv);
@@ -88,6 +99,13 @@ impl IntentProvider for ShellProvider {
             outcome.value = super::shots::saved(&mut self.shots.clone(), first, &inv).await;
         }
         Ok(outcome)
+    }
+
+    async fn classify(&self, inv: Invocation) -> Result<CallClass, AppRefusal> {
+        match menu_ask_of(&inv)? {
+            Some(ask) => super::menus::classify(&self.menus, ask).await,
+            None => Err(AppRefusal::Unsupported),
+        }
     }
 
     async fn dry_run(&self, inv: Invocation) -> Result<Preview, AppRefusal> {

@@ -30,7 +30,7 @@ use crate::error::ServiceError;
 use crate::seat::SeatPublisher;
 use crate::service::{Service, ServiceIo};
 
-pub use backend::manifest;
+pub use backend::{manifest, menus};
 
 /// One `Perform` of a shell action, and where to say how it went.
 #[derive(Debug)]

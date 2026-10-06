@@ -153,6 +153,25 @@ fn the_window_actions_declare_the_effects_the_model_charges() {
 }
 
 #[test]
+fn the_menu_activation_is_a_destructive_ceiling_the_provider_classifies_under() {
+    use docket_core::PerCall;
+    use prov::Effect;
+    let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));
+    let rows: Vec<_> = manifest
+        .manifest()
+        .actions
+        .iter()
+        .filter(|a| a.per_call == PerCall::Classified)
+        .map(|a| (a.name.as_str().to_owned(), a.effect))
+        .collect();
+    assert_eq!(
+        rows,
+        vec![("shell.menu.activate".to_owned(), Effect::Destructive)],
+        "only the menu activation classifies per call"
+    );
+}
+
+#[test]
 fn the_listings_are_declared_untrusted_text_and_the_screenshot_answers_with_a_path() {
     use docket_core::{ResultShape, TitleTrust};
     let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));

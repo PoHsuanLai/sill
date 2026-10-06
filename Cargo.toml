@@ -210,6 +210,11 @@ porter-dbus = { path = "../porter/crates/porter-dbus" }
 # cuad's bus bodies and D-Bus proxies (run states, outcomes, `Cua1.Manager`/`Run`) and memoryd's
 # vocabulary and proxies (`MemoryItem`, the timeline): serde data and zbus declarations only, the
 # same sibling checkouts as `docket-core`; MIT OR Apache-2.0.
+# Test-only: docket's router and its fakes, so a test runs the shell's menu provider under the
+# real gate (`crates/sill-services/tests/menu_router.rs`); MIT OR Apache-2.0, sibling checkouts.
+docket-router = { path = "../docket/crates/docket-router" }
+docket-fake = { path = "../docket/crates/docket-fake" }
+policy-point = { path = "../docket/crates/policy-point" }
 companion-wire = { path = "../docket/crates/companion-wire" }
 cua-bus = { path = "../cua/crates/cua-bus" }
 cua-dbus = { path = "../cua/crates/cua-dbus" }
