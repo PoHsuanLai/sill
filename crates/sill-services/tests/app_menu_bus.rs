@@ -39,19 +39,13 @@ use zbus::Connection;
 
 const WAIT: Duration = Duration::from_secs(20);
 
-/// An example built, and where it is.
-fn example(name: &str) -> PathBuf {
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
-    let status = Command::new(cargo)
-        .args(["build", "-q", "-p", "sill-testkit", "--example", name])
-        .status()
-        .unwrap_or_else(|e| panic!("building {name}: {e}"));
-    assert!(status.success(), "building {name}");
-    let target = std::env::var("CARGO_TARGET_DIR").map_or_else(
-        |_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"),
+/// The stand-in app (`src/bin/app_menu_app.rs`), built with this test: nextest's own path when it
+/// runs from an archive, else the one cargo gave this build. Nothing here shells out to cargo.
+fn app_menu_app() -> PathBuf {
+    std::env::var_os("NEXTEST_BIN_EXE_app_menu_app").map_or_else(
+        || PathBuf::from(env!("CARGO_BIN_EXE_app_menu_app")),
         PathBuf::from,
-    );
-    target.join("debug/examples").join(name)
+    )
 }
 
 /// The bus name of `app`'s menu: these ids are already legal bus-name elements, so quire's
@@ -72,7 +66,7 @@ impl FakeApp {
     fn start(bus: &PrivateBus, scratch: &Path, app_id: &str) -> FakeApp {
         use std::io::{BufRead, BufReader};
         let log = scratch.join(format!("{app_id}.log"));
-        let mut child = Command::new(example("app_menu_app"))
+        let mut child = Command::new(app_menu_app())
             .arg(&bus.address)
             .arg(&log)
             .arg(name_of(&MenuApp(app_id.to_owned())).map_or_else(String::new, |n| n.0))

@@ -42,8 +42,6 @@ name = "file_manager_stub"
 name = "logind_standin"
 [[example]]
 name = "screensaver_client"
-[[example]]
-name = "app_menu_app"
 
 [lints]
 workspace = true

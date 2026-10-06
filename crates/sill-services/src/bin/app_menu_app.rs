@@ -14,7 +14,7 @@
 //!
 //! Log lines: `Event <id> <event>`, `AboutToShow <id>`.
 //!
-//! Usage: `cargo run -p sill-testkit --example app_menu_app -- <bus address> <log file> <bus name>`
+//! Usage: `cargo run -p sill-services --bin app_menu_app -- <bus address> <log file> <bus name>`
 
 use std::collections::HashMap;
 use std::io::Write;
