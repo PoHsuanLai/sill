@@ -93,7 +93,12 @@ fn the_panel_renders_no_raw_markup() {
 
 #[test]
 fn the_panel_with_its_preview_pane_and_sections_lints_clean() {
-    let mut open = launcher_harness::open("m9");
+    // The report's look is held (until `_held` drops), so the pane is the pending one however fast
+    // the page would raster.
+    let (look, _held) = launcher_harness::launcher_support::m9::gated(
+        launcher_harness::launcher_support::m9::folder().join("m9-report.pdf"),
+    );
+    let mut open = launcher_harness::open_looking("m9", Some(look));
     open.press(launcher_harness::Press::QuickLook);
     open.harness.advance(std::time::Duration::from_millis(60));
     let html = open.harness.html();

@@ -25,7 +25,12 @@ fn the_launcher_stylesheet_is_clean_under_details() {
 
 #[test]
 fn the_panel_with_its_pane_markup_is_clean_under_details() {
-    let mut open = launcher_harness::open("m9");
+    // The report's look is held (until `_held` drops), so the pane is the pending one however fast
+    // the page would raster.
+    let (look, _held) = launcher_harness::launcher_support::m9::gated(
+        launcher_harness::launcher_support::m9::folder().join("m9-report.pdf"),
+    );
+    let mut open = launcher_harness::open_looking("m9", Some(look));
     open.press(launcher_harness::Press::QuickLook);
     open.harness.advance(Duration::from_millis(60));
     let html = open.harness.html();

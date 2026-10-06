@@ -25,14 +25,14 @@ pub fn folder() -> &'static Path {
             option_env!("CARGO_TARGET_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
         let dir = base.join(format!("sill-launcher-m9-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("a scratch folder"); // test-only
-        write(&dir.join("m9-report.pdf"), &pdf());
+        write(&dir.join("m9-report.pdf"), &pdf(LIGHT));
         write(&dir.join("m9-shot.png"), &png());
         write(
             &dir.join("m9-notes.md"),
             b"# M9 notes\n\nThe preview pane reads this head.\n",
         );
         for n in 1..=5 {
-            write(&dir.join(format!("m9-extra-{n}.pdf")), &pdf());
+            write(&dir.join(format!("m9-extra-{n}.pdf")), &pdf(HEAVY));
         }
         dir
     })
@@ -42,10 +42,21 @@ fn write(path: &Path, bytes: &[u8]) {
     std::fs::write(path, bytes).expect("a fixture file"); // test-only
 }
 
-/// A one-page PDF of many small stroked circles, written by hand (offsets counted below): heavy
-/// enough that rasterising it takes a while, as a real page does.
-pub fn pdf() -> Vec<u8> {
-    let rings: String = (0..6000)
+/// How many circles a PDF fixture strokes.
+#[derive(Clone, Copy)]
+struct Rings(u32);
+
+/// The report (the Top Hit, the page the tests wait for): next to nothing to raster, however
+/// loaded the machine is, since the tests wait on the wall clock for it.
+const LIGHT: Rings = Rings(120);
+
+/// The extra PDFs: heavy enough that rasterising one takes a while, as a real page does, so
+/// holding Down through them (`launcher_pdf_rasters`) outpaces the worker.
+const HEAVY: Rings = Rings(6000);
+
+/// A one-page PDF of `rings` small stroked circles, written by hand (offsets counted below).
+fn pdf(rings: Rings) -> Vec<u8> {
+    let rings: String = (0..rings.0)
         .map(|n| {
             let (x, y) = (20 + (n * 7) % 160, 20 + (n * 13) % 220);
             format!("{x} {y} m {} {y} {x} {} {x} {y} c S\n", x + 9, y + 9)
