@@ -562,7 +562,12 @@ step_ui_demo() {
     echo "$PANEL capture $OUT_DIR/demo-actions.png" >&7; sleep 0.7
     [ "$(differing_pixels "$OUT_DIR/demo-open.png" "$OUT_DIR/demo-actions.png" 2>/dev/null || echo 0)" -gt 1000 ] && break
   done
-  demo_key escape; sleep 0.5
+  demo_key escape
+  # The first Escape closes the actions menu: the panel looks as it did open again. Only then the second.
+  for _ in $(seq 20); do
+    echo "$PANEL capture $OUT_DIR/demo-menu-closed.png" >&7; sleep 0.7
+    [ "$(differing_pixels "$OUT_DIR/demo-open.png" "$OUT_DIR/demo-menu-closed.png" 2>/dev/null || echo 99999)" -le 1000 ] && break
+  done
   demo_key escape; sleep 0.8
   for _ in $(seq 20); do
     echo "$PANEL capture $OUT_DIR/demo-closed.png" >&7; sleep 0.7
@@ -730,7 +735,7 @@ step_palette_pane_levels() {
   debug_key escape
   await_preview hidden || { echo "the second Escape left the pane up: preview $(field preview)" >&2; return 1; }
   echo "escape 2: preview $(field preview)" >&2
-  is_open || return 1
+  is_open || { echo "the second Escape closed the launcher with the pane" >&2; return 1; }
   debug_key escape
   await_closed || { echo "the third Escape left the launcher open" >&2; return 1; }
 }

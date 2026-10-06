@@ -660,7 +660,7 @@ wait_cell_px() {
 
 # The widest frame on the layer now, in px.
 widest_frame() {
-  sill debug capture "$LAYER" "$OUT_DIR/frames-now.png" >>"$OUT_DIR/menu.log" 2>&1 || return 1
+  capture_settled "$LAYER" "$OUT_DIR/frames-now.png" >>"$OUT_DIR/menu.log" 2>&1 || return 1
   desktop_frames "$OUT_DIR/frames-now.png" | awk '{ w = $3 - $1 + 1; if (w > m) m = w } END { print m }'
 }
 
@@ -712,9 +712,15 @@ step_desktop_menu() {
   sill debug click "$LAYER/popup" "$x" "$large" >>"$log" 2>&1 || return 1
   wait_cell_px 196 || { echo "Large did not write widgets.desktop_cell_px = 196 (it is $(setting_cell_px))" | tee -a "$log" >&2; return 1; }
   menu_closed || return 1
-  sleep 1.5
-  echo "Large: widgets.desktop_cell_px = 196; the widest frame was $before px, is $(widest_frame) px" | tee -a "$log" >&2
-  [ "$(widest_frame)" -gt "$before" ] || return 1
+  # The layer lays out at the new size on its own time: look until the frames are wider (up to 20 s).
+  local after=0
+  for _ in $(seq 10); do
+    after=$(widest_frame) || after=0
+    [ "${after:-0}" -gt "$before" ] && break
+    sleep 1
+  done
+  echo "Large: widgets.desktop_cell_px = 196; the widest frame was $before px, is $after px" | tee -a "$log" >&2
+  [ "${after:-0}" -gt "$before" ] || return 1
   # And Standard puts it back.
   menu_open "$OUT_DIR/menu.png" || return 1
   popup_hover "$LAYER" "$x" "$view_y" >>"$log" 2>&1 || return 1
