@@ -99,7 +99,7 @@ impl Default for MenusSettings {
             submenu_triangle_timeout_ms: Ms(300),
             first_mouse_window_ms: Ms(100),
             font_px: Px(13),
-            highlight_radius_px: Px(5),
+            highlight_radius_px: Px(6),
             tooltip_font_px: Px(12),
         }
     }
