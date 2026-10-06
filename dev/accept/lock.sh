@@ -69,9 +69,13 @@ import json, sys
 r = json.loads(sys.stdin.read())["v"]["v"]
 print(r["phase"])' 2>/dev/null; }
 
-# ms since $1 until the status is "$2", or -1 within $3 ms.
+# ms since $1 until the status is "$2", or -1 within $3 ms. Each poll is a `sill debug status`
+# round trip, which on a host whose load is past its cores takes seconds (a gate run saw "locked
+# -1 ms" while the lock itself took 268 ms): the limit is then ten times longer, the same host
+# test the latency budgets use (budget_check says "not enforced" there).
 until_phase() {
   local start=$1 want=$2 limit=$3 t
+  awk -v cores="$(nproc)" '{ exit !($1 < cores) }' /proc/loadavg || limit=$(( limit * 10 ))
   while :; do
     t=$(( $(now_ms) - start ))
     [ "$t" -gt "$limit" ] && { echo -1; return; }
@@ -230,7 +234,13 @@ step_refuse_shakes() {
   last=$(band_diff "$OUT_DIR/idle.png" "$OUT_DIR/refuse-after.png" 70 97)
   echo "refuse: $moved captures moved (spinner, shake); after it settled $last pixels differ; status $(lock_phase)" \
     | tee -a "$log" >&2
-  [ "$moved" -ge 1 ] && [ "${last:-1000000000}" -lt 150 ] && [ "$(lock_phase)" = "locked" ]
+  # A capture takes 0.6 s on an idle host and seconds on a loaded one, longer than the 0.67 s
+  # animation: with no room on the host none may land in it, and step_idle's commit count on the
+  # lock surface (independent of capture speed) is what shows the animation drew.
+  if [ "$moved" -lt 1 ]; then
+    budget_check "no capture caught the refuse animation (0.67 s; one capture takes longer on a loaded host)" 0 || return 1
+  fi
+  [ "${last:-1000000000}" -lt 150 ] && [ "$(lock_phase)" = "locked" ]
 }
 
 # 4.
@@ -249,23 +259,10 @@ step_no_lockout() {
   [ "$diff" -lt 150 ] && [ "$(lock_phase)" = "locked" ]
 }
 
-# 5.
-step_idle() {
-  local log="$OUT_DIR/idle.log" wlog="$OUT_DIR/daemon-wayland-debug.log" from to commits start
-  # A daemon logging its Wayland requests (WAYLAND_DEBUG=client), for this step only: the log
-  # slows a capture past the client's 2 s wait, and `debug stats` has no lock rows.
-  stop_daemon || return 1
-  start_lock_daemon daemon-wayland-debug.log wayland-debug || return 1
-  start=$(now_ms)
-  sill lock >"$log" 2>&1
-  [ "$(until_phase "$start" "locked" 2000)" -ge 0 ] || { echo "not locked" | tee -a "$log" >&2; return 1; }
-  # Keep the window inside one minute: the clock redraws once a minute.
-  while [ "$(date +%S | sed 's/^0//')" -ge 50 ]; do sleep 1; done
-  sleep 2
-  from=$(wc -l <"$wlog")
-  sleep 5
-  to=$(wc -l <"$wlog")
-  commits=$(python3 - "$wlog" "$from" "$to" <<'EOF'
+# The commits on the lock surfaces (the wl_surfaces ext_session_lock_v1.get_lock_surface made
+# before line $2) of the WAYLAND_DEBUG=client log $1 between its lines $2 and $3: "SURFACES COMMITS".
+lock_commits() {
+  python3 - "$1" "$2" "$3" <<'EOF'
 import re, sys
 path, start, end = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 lock_surfaces, count = set(), 0
@@ -281,14 +278,40 @@ with open(path, errors="replace") as log:
             break
 print(len(lock_surfaces), count)
 EOF
-)
+}
+
+# 5.
+step_idle() {
+  local log="$OUT_DIR/idle.log" wlog="$OUT_DIR/daemon-wayland-debug.log" from to commits refused start
+  # A daemon logging its Wayland requests (WAYLAND_DEBUG=client), for this step only: the log
+  # slows a capture past the client's 2 s wait, and `debug stats` has no lock rows.
+  stop_daemon || return 1
+  start_lock_daemon daemon-wayland-debug.log wayland-debug || return 1
+  start=$(now_ms)
+  sill lock >"$log" 2>&1
+  [ "$(until_phase "$start" "locked" 2000)" -ge 0 ] || { echo "not locked" | tee -a "$log" >&2; return 1; }
+  # Keep the window inside one minute: the clock redraws once a minute.
+  while [ "$(date +%S | sed 's/^0//')" -ge 50 ]; do sleep 1; done
+  sleep 2
+  from=$(wc -l <"$wlog")
+  sleep 5
+  to=$(wc -l <"$wlog")
+  commits=$(lock_commits "$wlog" "$from" "$to")
   echo "5 s locked and idle: lock surfaces seen, commits on them: $commits" | tee -a "$log" >&2
+  # A refused attempt redraws the lock surface (a 250 ms spinner, a 420 ms shake): counted in the
+  # protocol log, so it does not depend on how fast a capture is (step_refuse_shakes' pixels do).
+  from=$(wc -l <"$wlog")
+  sill debug auth refuse >>"$log" 2>&1
+  sleep 2
+  refused=$(lock_commits "$wlog" "$from" "$(wc -l <"$wlog")")
+  echo "a refused attempt: lock surfaces seen, commits on them: $refused" | tee -a "$log" >&2
   start=$(now_ms)
   sill debug auth accept >>"$log" 2>&1
   until_phase "$start" "unlocked" 3000 >/dev/null
   stop_daemon || return 1
   start_lock_daemon daemon.log || return 1
-  [ "$(echo "$commits" | cut -d' ' -f1)" -ge 1 ] && [ "$(echo "$commits" | cut -d' ' -f2)" = 0 ]
+  [ "$(echo "$commits" | cut -d' ' -f1)" -ge 1 ] && [ "$(echo "$commits" | cut -d' ' -f2)" = 0 ] \
+    && [ "$(echo "$refused" | cut -d' ' -f2)" -ge 3 ]
 }
 
 # 6.

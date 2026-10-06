@@ -59,15 +59,27 @@ SHEET=
 scratch_new
 mkdir -p "$CONFIG/sill" "$DATA/quire/intents"
 
+# intentd names a caller that owns no bus name by its cgroup, and only a terminal's child
+# (`vte-spawn-*.scope`) is the cli that `quire-do` must be; this script runs in whatever scope its
+# caller has (a gate, an agent's shell, a service), so it presents `quire-do` as a terminal's
+# child: intentd is built with docket's `test-proc-root` feature and reads its callers from a
+# scratch proc root, where `as_terminal` writes the cgroup of the process it then execs.
+PROC_ROOT="$OUT_DIR/proc"
+as_terminal() {
+  mkdir -p "$PROC_ROOT/$$"
+  echo "0::/user.slice/user-1000.slice/user@1000.service/app.slice/vte-spawn-accept.scope" >"$PROC_ROOT/$$/cgroup"
+  exec "$@"
+}
+
 # `quire-do ARGS` in the scratch environment, to completion.
-quire() { in_env "$QUIRE_DO" "$@"; }
+quire() { in_env bash -c "$(declare -f as_terminal); PROC_ROOT=\$0 as_terminal \"\$@\"" "$PROC_ROOT" "$QUIRE_DO" "$@"; }
 
 # `quire-do ARGS` in the background: its output and exit code go to $OUT_DIR/NAME.{out,code}.
 quire_bg() {
   local name="$1"
   shift
   rm -f "$OUT_DIR/$name.code"
-  ( in_env "$QUIRE_DO" "$@" >"$OUT_DIR/$name.out" 2>&1; echo $? >"$OUT_DIR/$name.code" ) &
+  ( quire "$@" >"$OUT_DIR/$name.out" 2>&1; echo $? >"$OUT_DIR/$name.code" ) &
   ASKER=$!
 }
 
@@ -142,7 +154,8 @@ fresh() {
 }
 
 start_intentd() {
-  in_env "$INTENTD" >"$OUT_DIR/intentd.log" 2>&1 &
+  mkdir -p "$PROC_ROOT"
+  in_env env INTENTD_PROC_ROOT="$PROC_ROOT" "$INTENTD" >"$OUT_DIR/intentd.log" 2>&1 &
   INTENTD_PID=$!
   # intentd owns org.quire.Intents1 once `quire-do apps` answers.
   for _ in $(seq 100); do
@@ -338,7 +351,7 @@ build_docket() {
     return 0
   fi
   {
-    (cd "$DOCKET_DIR" && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p intentd -p docket-cli --bins)
+    (cd "$DOCKET_DIR" && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p intentd -p docket-cli --bins --features intentd/test-proc-root)
   } >"$OUT_DIR/docket-build.log" 2>&1 || { echo "docket build failed (see $OUT_DIR/docket-build.log)" >&2; return 1; }
 }
 
