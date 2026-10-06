@@ -346,15 +346,19 @@ require_scale() {
 }
 
 # Shoots the whole output into $1 (a PNG): grim on the nested socket (shell-host's shot.sh) for
-# cosmic, `casementctl shot` for casement. Returns 2 (expected skip) while casement has no
-# ext-image-copy-capture (P1-C1); KWin's own scripts use spectacle themselves.
+# cosmic, `casementctl shot --output NAME` for casement (the last presented frame of that output, the
+# size answered as JSON; `--window` and `--masked` are P1-C1 and not used here). Returns 2
+# (expected skip) when this casement build has no capture at all; KWin's own scripts use spectacle
+# themselves.
 shot() {
   case "$COMPOSITOR" in
     casement)
       mkdir -p "$(dirname "$1")"
-      casementctl shot "$1"
-      local rc=$?
-      [ "$rc" != 2 ] || expected_skip "casementctl shot is not built yet (needs ext-image-copy-capture, P1-C1)"
+      local rc
+      # The headless casement's first output (dev/up.sh) is HEADLESS-1.
+      casementctl shot --output "${CASEMENT_OUTPUT:-HEADLESS-1}" "$1" >/dev/null
+      rc=$?
+      [ "$rc" != 2 ] || expected_skip "this casement build has no screenshot (casementctl shot exits 2)"
       return "$rc" ;;
     # shell-host's shot.sh falls back to the host's session when no nested compositor answers, so
     # it is never called without one.
