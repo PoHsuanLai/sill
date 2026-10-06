@@ -207,6 +207,16 @@ sill_shell() {
 }
 respawn sill sill_shell
 
+# The welcome window of Settings (AI stays on this computer; which local runtime): once per login
+# here, and once ever for the person, since `detent --first-run` exits at once when it has run. Not
+# respawned: closing it without Done only means it asks again at the next login.
+if [ -z "$nested" ] && command -v detent >/dev/null; then
+    (
+        sleep 5
+        detent --first-run || log "detent --first-run exited with $?"
+    ) &
+fi
+
 # Never return: this script's exit would end the compositor.
 while :; do
     wait || true
