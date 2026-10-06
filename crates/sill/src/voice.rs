@@ -7,7 +7,7 @@ use ds_settings::Store;
 use sill_ipc::response::Response;
 use sill_ipc::show::VoiceRequest;
 use sill_model::companion::CompanionCommand;
-use sill_model::voice::{AskScope, VoiceCommand, VoiceConsent, VoiceTrigger};
+use sill_model::voice::{AskScope, CancelCause, VoiceCommand, VoiceConsent, VoiceTrigger};
 use sill_settings::ShellFile;
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc::UnboundedReceiver, watch};
@@ -39,7 +39,8 @@ pub fn dispatch(reach: &Reach, request: VoiceRequest) -> Response {
             }
         }
         VoiceRequest::HoldEnd => voice(VoiceCommand::Stop),
-        VoiceRequest::HoldCancel => voice(VoiceCommand::Cancel),
+        // Another key or the pointer spoiled the hold.
+        VoiceRequest::HoldCancel => voice(VoiceCommand::Cancel(CancelCause::OtherInput)),
     }
 }
 

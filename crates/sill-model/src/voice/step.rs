@@ -3,7 +3,7 @@
 
 use docket_core::{ContextKeep, Keep, TurnVia};
 use prov::SpaceId;
-use voice_wire::{UtteranceEnd, VoiceEvent as Frame, VoiceRefusal};
+use voice_wire::{CancelCause, UtteranceEnd, VoiceEvent as Frame, VoiceRefusal};
 
 use super::command::{VoiceCommand, VoiceEffect, VoiceEvent};
 use super::model::{
@@ -28,6 +28,19 @@ pub fn step(state: Voice, event: VoiceEvent) -> (Voice, Vec<VoiceEffect>) {
             Phase::Live(_) | Phase::Finishing(_) => idle(state, Notice::None),
             Phase::Idle | Phase::Opening(_) => (state, Vec::new()),
         },
+        // The stream cannot be followed: tell voiced to let go of the microphone.
+        VoiceEvent::StreamBroken => match state.phase {
+            Phase::Live(_) | Phase::Finishing(_) => {
+                let (state, _) = idle(state, Notice::Broken);
+                (state, vec![VoiceEffect::Cancel(CancelCause::Shell)])
+            }
+            Phase::Idle | Phase::Opening(_) => (state, Vec::new()),
+        },
+        // Only a hold that is over says so: a newer hold is not spoiled by the old cancel.
+        VoiceEvent::CancelRefused => match state.phase {
+            Phase::Idle => idle(state, Notice::Broken),
+            Phase::Opening(_) | Phase::Live(_) | Phase::Finishing(_) => (state, Vec::new()),
+        },
     }
 }
 
@@ -49,7 +62,7 @@ fn told(state: Voice, command: VoiceCommand) -> (Voice, Vec<VoiceEffect>) {
         }
         VoiceCommand::Start { scope, trigger } => start(state, scope, trigger),
         VoiceCommand::Stop => stop(state),
-        VoiceCommand::Cancel => cancel(state),
+        VoiceCommand::Cancel(cause) => cancel(state, cause),
         VoiceCommand::Answer(answer) => match state.sheet {
             ConsentSheet::Asking => (
                 Voice {
@@ -112,11 +125,11 @@ fn stop(state: Voice) -> (Voice, Vec<VoiceEffect>) {
     }
 }
 
-fn cancel(state: Voice) -> (Voice, Vec<VoiceEffect>) {
+fn cancel(state: Voice, cause: CancelCause) -> (Voice, Vec<VoiceEffect>) {
     match state.phase {
         Phase::Opening(_) => (
             Voice {
-                phase: Phase::Opening(Then::Cancel),
+                phase: Phase::Opening(Then::Cancel(cause)),
                 ..state
             },
             Vec::new(),
@@ -126,7 +139,7 @@ fn cancel(state: Voice) -> (Voice, Vec<VoiceEffect>) {
                 phase: Phase::Idle,
                 ..state
             },
-            vec![VoiceEffect::Cancel],
+            vec![VoiceEffect::Cancel(cause)],
         ),
         Phase::Idle => (state, Vec::new()),
     }
@@ -139,7 +152,7 @@ fn began(state: Voice) -> (Voice, Vec<VoiceEffect>) {
             Phase::Finishing(Heard::default()),
             vec![VoiceEffect::Release],
         ),
-        Phase::Opening(Then::Cancel) => (Phase::Idle, vec![VoiceEffect::Cancel]),
+        Phase::Opening(Then::Cancel(cause)) => (Phase::Idle, vec![VoiceEffect::Cancel(cause)]),
         Phase::Idle | Phase::Live(_) | Phase::Finishing(_) => return (state, Vec::new()),
     };
     (Voice { phase, ..state }, effects)
@@ -203,6 +216,7 @@ fn finished(state: Voice, end: UtteranceEnd) -> (Voice, Vec<VoiceEffect>) {
         (_, UtteranceEnd::Heard { .. } | UtteranceEnd::NothingHeard) => {
             idle(state, Notice::NothingHeard)
         }
+        (_, UtteranceEnd::Cancelled(CancelCause::TooLong)) => idle(state, Notice::TooLong),
         (_, UtteranceEnd::Cancelled(_)) => idle(state, Notice::None),
         (_, UtteranceEnd::Failed(fault)) => idle(state, Notice::Failed(fault)),
     }

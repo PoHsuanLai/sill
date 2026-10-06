@@ -20,6 +20,8 @@ pub fn notice_line(notice: Notice) -> &'static str {
         Notice::Refused(VoiceRefusal::NeedsConsent) => "Voice needs your permission first.",
         Notice::Unreachable => "Voice is not running.",
         Notice::NothingHeard => "Didn't catch that.",
+        Notice::TooLong => "That took too long.",
+        Notice::Broken => "Voice stopped working.",
         Notice::Failed(VoiceFault::Engine(_) | VoiceFault::Refused(_)) => {
             "Couldn't turn speech into text."
         }

@@ -18,11 +18,13 @@ use sill_model::voice::{
 use tokio::net::UnixStream;
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
-use voice_wire::{UtteranceEnd, VoiceBegin, VoiceEvent as Frame, VoiceRefusal, VoiceTrigger, seal};
+use voice_wire::{
+    CancelCause, UtteranceEnd, VoiceBegin, VoiceEvent as Frame, VoiceRefusal, VoiceTrigger, seal,
+};
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
-use super::proxy::{UtteranceProxy, VoiceProxy};
+use super::proxy::{MALFORMED, UtteranceProxy, VoiceProxy};
 use super::{reader, signals};
 use crate::control::Control;
 use crate::env::{Env, WallClock};
@@ -45,6 +47,8 @@ pub(super) enum Inbound {
     Frame(Serial, Frame),
     /// Utterance `Serial`'s stream closed.
     Closed(Serial),
+    /// Utterance `Serial`'s stream sent a frame over the cap and was closed.
+    TooLong(Serial),
     /// `Ended` of the object at this path.
     Signal(String, UtteranceEnd),
 }
@@ -163,7 +167,10 @@ impl Live {
                 self.feed(VoiceEvent::Frame(frame));
             }
             Inbound::Closed(serial) if self.current(serial) => self.feed(VoiceEvent::StreamClosed),
-            Inbound::Frame(..) | Inbound::Closed(_) => {}
+            Inbound::TooLong(serial) if self.current(serial) => {
+                self.feed(VoiceEvent::StreamBroken);
+            }
+            Inbound::Frame(..) | Inbound::Closed(_) | Inbound::TooLong(_) => {}
             Inbound::Signal(path, end) => self.signalled(path, end),
         }
     }
@@ -237,7 +244,7 @@ impl Live {
         match effect {
             VoiceEffect::Begin(trigger) => self.begin(trigger),
             VoiceEffect::Release => self.call(Call::Release),
-            VoiceEffect::Cancel => self.call(Call::Cancel),
+            VoiceEffect::Cancel(cause) => self.call(Call::Cancel(cause)),
             VoiceEffect::Record(answer) => {
                 let consent = match answer {
                     ConsentAnswer::Allow => {
@@ -278,8 +285,15 @@ impl Live {
             return;
         };
         let path = path.clone();
+        let inbound = self.inbound.clone();
         tokio::spawn(async move {
-            let _ = call.on(&connection, path).await;
+            // Voiced refusing a cancel as malformed leaves the microphone open: say so. Any
+            // other failure means voiced is gone, and nothing is left to cancel.
+            if let Err(zbus::Error::MethodError(name, ..)) = call.on(&connection, path).await
+                && name.as_str() == MALFORMED
+            {
+                let _ = inbound.send(Inbound::Event(VoiceEvent::CancelRefused));
+            }
         });
     }
 }
@@ -287,7 +301,7 @@ impl Live {
 /// What is said to the utterance object.
 enum Call {
     Release,
-    Cancel,
+    Cancel(CancelCause),
 }
 
 impl Call {
@@ -298,7 +312,10 @@ impl Call {
             .await?;
         match self {
             Call::Release => utterance.release().await,
-            Call::Cancel => utterance.cancel().await,
+            Call::Cancel(cause) => {
+                let sealed = seal(&cause).map_err(|e| zbus::Error::Failure(e.to_string()))?;
+                utterance.cancel(&sealed).await
+            }
         }
     }
 }

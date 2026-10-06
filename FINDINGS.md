@@ -770,8 +770,12 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
 - **The hold's edges come from a source that detects the hold itself** (`sill voice
   hold-start|hold-end|hold-cancel`). The raw-edge machine (`HoldKey`: command down, up, other key,
   pointer) is not built; it ends when keycap or the compositor sends raw edges.
-- **Cancel carries no cause.** Escape and any other input both reach voiced as the shell's cancel.
-  Ends when `Utterance.Cancel` takes a `CancelCause`.
+- **Cancel carries a cause** (docket a0c168a): Escape when the launcher is dismissed, OtherInput
+  for `sill voice hold-cancel`, Shell for the service's own cancel after a broken stream.
+  `FocusLost` is modelled but nothing sends it: sill does not watch the focus leaving the prompt
+  while a hold is on. A cancel voiced refuses as `Malformed` leaves its microphone open, so the
+  service says "Voice stopped working."; so does a frame over `MAX_FRAME` (stream closed).
+  `Cancelled(TooLong)` shows "That took too long."; the other causes show nothing.
 - **Speech out is not wired.** The service subscribes to `Utterance.Ended` only; `Speech.Finished`
   and `Voice1.Speak`/`Hush`/`Prepare` come with the answer being spoken.
 - **The companion's presence does not say Listening yet.** The prompt's placeholder shows the

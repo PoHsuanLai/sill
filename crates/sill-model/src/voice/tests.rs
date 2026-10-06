@@ -181,6 +181,16 @@ fn the_end_signal_with_words_waits_for_the_stream_and_any_other_end_finishes() {
             Notice::None,
         ),
         (
+            "superseded",
+            UtteranceEnd::Cancelled(CancelCause::Superseded),
+            Notice::None,
+        ),
+        (
+            "too long",
+            UtteranceEnd::Cancelled(CancelCause::TooLong),
+            Notice::TooLong,
+        ),
+        (
             "no mic",
             UtteranceEnd::Failed(VoiceFault::MicUnavailable),
             Notice::Failed(VoiceFault::MicUnavailable),
@@ -207,10 +217,14 @@ fn a_hold_let_go_before_begin_returns_releases_when_it_does() {
     assert_eq!(effects[1..], [VoiceEffect::Release]);
     let (state, effects) = run(
         ready(),
-        vec![started(), told(VoiceCommand::Cancel), VoiceEvent::Began],
+        vec![
+            started(),
+            told(VoiceCommand::Cancel(CancelCause::Escape)),
+            VoiceEvent::Began,
+        ],
     );
     assert_eq!(state.phase, Phase::Idle);
-    assert_eq!(effects[1..], [VoiceEffect::Cancel]);
+    assert_eq!(effects[1..], [VoiceEffect::Cancel(CancelCause::Escape)]);
 }
 
 #[test]
@@ -221,13 +235,13 @@ fn cancel_discards_the_words_and_asks_nobody() {
             started(),
             VoiceEvent::Began,
             partial("never mind"),
-            told(VoiceCommand::Cancel),
+            told(VoiceCommand::Cancel(CancelCause::OtherInput)),
             VoiceEvent::Frame(Frame::Ended(heard_end("never mind"))),
         ],
     );
     assert_eq!(state.phase, Phase::Idle);
     assert_eq!(state.notice, Notice::None);
-    assert_eq!(effects[1..], [VoiceEffect::Cancel]);
+    assert_eq!(effects[1..], [VoiceEffect::Cancel(CancelCause::OtherInput)]);
 }
 
 #[test]
@@ -342,4 +356,35 @@ fn consent_is_written_as_the_forms_voiced_reads() {
             table
         );
     }
+}
+
+#[test]
+fn a_broken_stream_says_so_and_lets_go_of_the_microphone() {
+    let (state, effects) = run(
+        ready(),
+        vec![started(), VoiceEvent::Began, VoiceEvent::StreamBroken],
+    );
+    assert_eq!(state.phase, Phase::Idle);
+    assert_eq!(state.notice, Notice::Broken);
+    assert_eq!(effects[1..], [VoiceEffect::Cancel(CancelCause::Shell)]);
+}
+
+#[test]
+fn a_refused_cancel_is_told_only_once_the_hold_is_over() {
+    let (state, _) = run(
+        ready(),
+        vec![
+            started(),
+            VoiceEvent::Began,
+            told(VoiceCommand::Cancel(CancelCause::Escape)),
+            VoiceEvent::CancelRefused,
+        ],
+    );
+    assert_eq!(state.notice, Notice::Broken);
+    let (state, _) = run(
+        ready(),
+        vec![started(), VoiceEvent::Began, VoiceEvent::CancelRefused],
+    );
+    assert!(matches!(state.phase, Phase::Live(_)));
+    assert_eq!(state.notice, Notice::None);
 }

@@ -8,6 +8,11 @@ pub(super) const VOICE_BUS: &str = "org.quire.Voice1";
 /// Where utterance objects live, `<prefix>/<n>`.
 pub(super) const UTTERANCE_PREFIX: &str = "/org/quire/Voice1/utterance";
 
+/// The error voiced answers a body that does not parse with (`VoiceError::Malformed`), and a
+/// `Cancel` whose cause it will not take (superseded, too long, empty, bad JSON): the microphone
+/// stays open.
+pub(super) const MALFORMED: &str = "org.quire.Voice1.Error.Malformed";
+
 /// The caller's side of `org.quire.Voice1`.
 #[zbus::proxy(
     interface = "org.quire.Voice1",
@@ -28,6 +33,6 @@ pub(super) trait Voice {
 pub(super) trait Utterance {
     /// The end of the hold: finish and send.
     fn release(&self) -> zbus::Result<()>;
-    /// Discards everything.
-    fn cancel(&self) -> zbus::Result<()>;
+    /// Discards everything, for `cause`: a sealed `CancelCause`.
+    fn cancel(&self, cause: &str) -> zbus::Result<()>;
 }

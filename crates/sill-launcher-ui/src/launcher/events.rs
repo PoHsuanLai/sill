@@ -501,7 +501,9 @@ impl PanelCtx {
             .services
             .voice
             .control
-            .send(sill_model::voice::VoiceCommand::Cancel);
+            .send(sill_model::voice::VoiceCommand::Cancel(
+                sill_model::voice::CancelCause::Escape,
+            ));
         let (picking, link) = (self.picking, self.link.clone());
         spawn(async move {
             if *picking.peek() == Picking::No {

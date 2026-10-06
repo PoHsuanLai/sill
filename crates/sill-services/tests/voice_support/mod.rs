@@ -22,7 +22,9 @@ use sill_testkit::PrivateBus;
 use tokio::io::AsyncWriteExt;
 use tokio::net::UnixStream;
 use tokio::sync::{mpsc, watch};
-use voice_wire::{UtteranceEnd, VoiceEvent as Frame, VoiceRefusal, frame, seal};
+use voice_wire::{
+    CancelCause, Envelope, UtteranceEnd, VoiceEvent as Frame, VoiceRefusal, VoiceVocab, frame, seal,
+};
 use zbus::message::Header;
 use zbus::zvariant::{OwnedFd, OwnedObjectPath};
 use zbus::{Connection, DBusError};
@@ -41,9 +43,19 @@ pub enum BeginAnswer {
     FromSettings(PathBuf),
 }
 
+/// What `Cancel` does with a cause it can read.
+#[derive(Debug, Clone, Copy)]
+pub enum CancelAnswer {
+    /// Take it and record it.
+    Accept,
+    /// Refuse it as `org.quire.Voice1.Error.Malformed`, as voiced does a cause it will not take.
+    Malformed,
+}
+
 /// The stand-in's script and record.
 pub struct Script {
     pub answer: Mutex<BeginAnswer>,
+    pub cancel_answer: Mutex<CancelAnswer>,
     /// `Ended` to emit, unicast, from inside `Begin` before it replies.
     pub early_end: Mutex<Option<UtteranceEnd>>,
     streams: Mutex<Vec<UnixStream>>,
@@ -54,6 +66,7 @@ impl Script {
     fn new(answer: BeginAnswer) -> Arc<Script> {
         Arc::new(Script {
             answer: Mutex::new(answer),
+            cancel_answer: Mutex::new(CancelAnswer::Accept),
             early_end: Mutex::new(None),
             streams: Mutex::new(Vec::new()),
             log: watch::Sender::new(Vec::new()),
@@ -92,6 +105,11 @@ impl Script {
     /// One frame down the newest utterance's stream.
     pub async fn write(&self, event: &Frame) {
         let bytes = frame(event).unwrap_or_else(|e| panic!("{e}"));
+        self.write_raw(&bytes).await;
+    }
+
+    /// These bytes, as they are, down the newest utterance's stream.
+    pub async fn write_raw(&self, bytes: &[u8]) {
         let mut stream = self
             .streams
             .lock()
@@ -99,7 +117,7 @@ impl Script {
             .pop()
             .unwrap_or_else(|| panic!("no utterance is open"));
         stream
-            .write_all(&bytes)
+            .write_all(bytes)
             .await
             .unwrap_or_else(|e| panic!("{e}"));
         self.streams
@@ -121,6 +139,7 @@ enum Refused {
     NotAllowed(String),
     NoModel(String),
     MicUnavailable(String),
+    Malformed(String),
 }
 
 impl From<VoiceRefusal> for Refused {
@@ -232,8 +251,31 @@ impl StandInUtterance {
         self.script.push("release");
     }
 
-    async fn cancel(&self) {
-        self.script.push("cancel");
+    /// Takes a sealed `CancelCause` and records it as its snake_case name; superseded, too long,
+    /// anything that does not parse and a scripted refusal are `Malformed`.
+    async fn cancel(&self, cause: String) -> Result<(), Refused> {
+        let parsed = serde_json::from_str::<Envelope<CancelCause>>(&cause)
+            .ok()
+            .filter(|e| e.vocab == VoiceVocab::CURRENT)
+            .map(|e| e.body)
+            .filter(|c| !matches!(c, CancelCause::Superseded | CancelCause::TooLong));
+        let scripted = *self
+            .script
+            .cancel_answer
+            .lock()
+            .unwrap_or_else(|e| panic!("{e}"));
+        match (parsed, scripted) {
+            (Some(cause), CancelAnswer::Accept) => {
+                let name = serde_json::to_string(&cause).unwrap_or_else(|e| panic!("{e}"));
+                self.script
+                    .push(format!("cancel {}", name.trim_matches('"')));
+                Ok(())
+            }
+            (None, _) | (Some(_), CancelAnswer::Malformed) => {
+                self.script.push("cancel refused");
+                Err(Refused::Malformed("cause".to_owned()))
+            }
+        }
     }
 }
 

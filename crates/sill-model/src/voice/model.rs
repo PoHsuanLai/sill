@@ -5,7 +5,7 @@ use ds_core::word::Word;
 use prov::{AppName, UnixSeconds};
 use serde::{Deserialize, Serialize};
 use sill_launcher::WindowKey;
-use voice_wire::{VoiceFault, VoiceRefusal};
+use voice_wire::{CancelCause, VoiceFault, VoiceRefusal};
 
 /// What the person said. `Debug` hides it: words must not reach logs or panics.
 #[derive(Clone, PartialEq, Eq, Default)]
@@ -110,8 +110,8 @@ pub enum Then {
     Listen,
     /// The key was let go.
     Release,
-    /// The hold was cancelled.
-    Cancel,
+    /// The hold was cancelled, for this cause.
+    Cancel(CancelCause),
 }
 
 /// Where the hold stands.
@@ -142,6 +142,10 @@ pub enum Notice {
     NothingHeard,
     /// The utterance failed.
     Failed(VoiceFault),
+    /// The hold ran past what `voiced` allows and was cut off.
+    TooLong,
+    /// The stream or a call went wrong in a way the person cannot mend.
+    Broken,
 }
 
 /// Whether the first-use consent sheet is up.

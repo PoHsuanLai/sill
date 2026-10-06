@@ -1,6 +1,6 @@
 //! What tells the voice service things, what happens in it, and what that asks of the outside.
 
-use voice_wire::{UtteranceEnd, VoiceEvent as Frame, VoiceRefusal, VoiceTrigger};
+use voice_wire::{CancelCause, UtteranceEnd, VoiceEvent as Frame, VoiceRefusal, VoiceTrigger};
 
 use super::model::{AskScope, ConsentAnswer, VoiceLink, VoiceParams};
 use crate::companion::AskInput;
@@ -19,8 +19,8 @@ pub enum VoiceCommand {
     },
     /// The key was let go: finish and send.
     Stop,
-    /// Escape or other input: discard everything.
-    Cancel,
+    /// Discard everything, for `cause`: Escape, other input, focus lost or the shell.
+    Cancel(CancelCause),
     /// The note was read.
     Dismiss,
     /// The consent sheet was answered.
@@ -46,6 +46,10 @@ pub enum VoiceEvent {
     Ended(UtteranceEnd),
     /// The stream closed.
     StreamClosed,
+    /// The stream sent a frame over the size cap and was closed: it cannot be followed on.
+    StreamBroken,
+    /// `voiced` refused our `Cancel` as malformed: the microphone may still be open.
+    CancelRefused,
 }
 
 /// What the service must do outside the pure state.
@@ -55,8 +59,8 @@ pub enum VoiceEffect {
     Begin(VoiceTrigger),
     /// Call `Utterance.Release`.
     Release,
-    /// Call `Utterance.Cancel`.
-    Cancel,
+    /// Call `Utterance.Cancel` with this cause.
+    Cancel(CancelCause),
     /// Write the answer to the sheet into the settings.
     Record(ConsentAnswer),
     /// Give the companion the question.

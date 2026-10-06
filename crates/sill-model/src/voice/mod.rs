@@ -18,5 +18,5 @@ pub use model::{
     VoiceConsent, VoiceLink, VoiceParams, Words,
 };
 pub use step::step;
-pub use voice_wire::VoiceTrigger;
+pub use voice_wire::{CancelCause, VoiceTrigger};
 pub use words::{listening_line, notice_line};

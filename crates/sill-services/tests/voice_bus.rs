@@ -16,9 +16,9 @@ use sill_model::voice::{
     AskScope, ConsentAnswer, ConsentSheet, Notice, Phase, VoiceCommand, VoiceConsent, VoiceParams,
     listening_line, notice_line,
 };
-use voice_support::BeginAnswer;
+use voice_support::{BeginAnswer, CancelAnswer};
 use voice_wire::{
-    CancelCause, Envelope, HeardSegment, HeardTail, HeardText, UtteranceEnd, VoiceBegin,
+    CancelCause, Envelope, HeardSegment, HeardTail, HeardText, MAX_FRAME, UtteranceEnd, VoiceBegin,
     VoiceEvent as Frame, VoiceRefusal, VoiceTrigger,
 };
 
@@ -251,9 +251,9 @@ async fn cancel_tells_voiced_and_discards_what_was_heard() {
         (listening_line(&v.phase, v.notice).as_deref() == Some("never mind")).then_some(())
     })
     .await;
-    desk.send(VoiceCommand::Cancel);
+    desk.send(VoiceCommand::Cancel(CancelCause::Escape));
     desk.script
-        .until(|lines| lines.iter().any(|l| l == "cancel").then_some(()))
+        .until(|lines| lines.iter().any(|l| l == "cancel escape").then_some(()))
         .await;
     desk.state(|v| matches!(v.phase, Phase::Idle).then_some(()))
         .await;
@@ -271,4 +271,121 @@ async fn without_the_seat_a_hold_says_voice_is_not_running() {
     desk.state(|v| matches!(v.notice, Notice::Unreachable).then_some(()))
         .await;
     assert!(desk.script.lines().is_empty(), "nothing was said to voiced");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancel_carries_the_cause_of_each_trigger() {
+    for (cause, name) in [
+        (CancelCause::Escape, "escape"),
+        (CancelCause::OtherInput, "other_input"),
+        (CancelCause::FocusLost, "focus_lost"),
+        (CancelCause::Shell, "shell"),
+    ] {
+        let mut desk = desk!(BeginAnswer::Open);
+        desk.seated().await;
+        desk.send(start());
+        desk.state(|v| matches!(v.phase, Phase::Live(_)).then_some(()))
+            .await;
+        desk.send(VoiceCommand::Cancel(cause));
+        let want = format!("cancel {name}");
+        desk.script
+            .until(|lines| lines.contains(&want).then_some(()))
+            .await;
+        desk.state(|v| matches!(v.phase, Phase::Idle).then_some(()))
+            .await;
+        assert_eq!(desk.voice.state.borrow().notice, Notice::None, "{name}");
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_malformed_frame_is_skipped_and_the_frames_after_it_arrive() {
+    let mut desk = desk!(BeginAnswer::Open);
+    desk.seated().await;
+    desk.send(start());
+    desk.state(|v| matches!(v.phase, Phase::Live(_)).then_some(()))
+        .await;
+    let junk = b"{not json";
+    let mut bytes = u32::try_from(junk.len())
+        .unwrap_or_else(|e| panic!("{e}"))
+        .to_be_bytes()
+        .to_vec();
+    bytes.extend_from_slice(junk);
+    desk.script.write_raw(&bytes).await;
+    desk.script
+        .write(&Frame::Partial(HeardTail {
+            text: HeardText("still here".to_owned()),
+        }))
+        .await;
+    desk.state(|v| {
+        (listening_line(&v.phase, v.notice).as_deref() == Some("still here")).then_some(())
+    })
+    .await;
+    assert_eq!(desk.voice.state.borrow().notice, Notice::None);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_frame_over_the_cap_closes_the_stream_and_says_so_plainly() {
+    let mut desk = desk!(BeginAnswer::Open);
+    desk.seated().await;
+    desk.send(start());
+    desk.state(|v| matches!(v.phase, Phase::Live(_)).then_some(()))
+        .await;
+    desk.script.write_raw(&(MAX_FRAME + 1).to_be_bytes()).await;
+    let notice = desk
+        .state(|v| match v.notice {
+            Notice::None => None,
+            notice => Some(notice),
+        })
+        .await;
+    assert_eq!(notice, Notice::Broken);
+    assert_eq!(notice_line(notice), "Voice stopped working.");
+    assert!(matches!(desk.voice.state.borrow().phase, Phase::Idle));
+    desk.script
+        .until(|lines| lines.iter().any(|l| l == "cancel shell").then_some(()))
+        .await;
+    assert!(desk.asks.try_recv().is_err());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_cancel_voiced_refuses_as_malformed_is_told_and_the_next_hold_still_begins() {
+    let mut desk = desk!(BeginAnswer::Open);
+    *desk
+        .script
+        .cancel_answer
+        .lock()
+        .unwrap_or_else(|e| panic!("{e}")) = CancelAnswer::Malformed;
+    desk.seated().await;
+    desk.send(start());
+    desk.state(|v| matches!(v.phase, Phase::Live(_)).then_some(()))
+        .await;
+    desk.send(VoiceCommand::Cancel(CancelCause::Escape));
+    desk.script
+        .until(|lines| lines.iter().any(|l| l == "cancel refused").then_some(()))
+        .await;
+    desk.state(|v| matches!(v.notice, Notice::Broken).then_some(()))
+        .await;
+    desk.send(VoiceCommand::Dismiss);
+    desk.send(start());
+    desk.state(|v| matches!(v.phase, Phase::Live(_)).then_some(()))
+        .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_too_long_end_is_told_and_a_superseded_one_is_not() {
+    for (cause, notice) in [
+        (CancelCause::TooLong, Notice::TooLong),
+        (CancelCause::Superseded, Notice::None),
+    ] {
+        let mut desk = desk!(BeginAnswer::Open);
+        desk.seated().await;
+        desk.send(start());
+        desk.state(|v| matches!(v.phase, Phase::Live(_)).then_some(()))
+            .await;
+        desk.script
+            .write(&Frame::Ended(UtteranceEnd::Cancelled(cause)))
+            .await;
+        desk.state(|v| matches!(v.phase, Phase::Idle).then_some(()))
+            .await;
+        assert_eq!(desk.voice.state.borrow().notice, notice, "{cause:?}");
+    }
 }
