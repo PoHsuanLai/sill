@@ -13,7 +13,10 @@ pub enum MenuAsk {
     /// `shell.menu.list`: the menus of `window` (the focused one when `None`).
     List { window: Option<String> },
     /// `shell.menu.activate`: the item with key `item` of `window`'s menus.
-    Activate { window: Option<String>, item: String },
+    Activate {
+        window: Option<String>,
+        item: String,
+    },
 }
 
 /// The menu ask `invocation` is, `None` when it is another action of the shell.

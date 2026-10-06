@@ -102,8 +102,9 @@ pub fn route_of(
 ) -> Route {
     match item {
         ItemKey::Own(own) => Route::Own(own),
-        ItemKey::Menu(id) => proven_action(command, identity, actions)
-            .map_or(Route::Click(id), Route::Intents),
+        ItemKey::Menu(id) => {
+            proven_action(command, identity, actions).map_or(Route::Click(id), Route::Intents)
+        }
     }
 }
 

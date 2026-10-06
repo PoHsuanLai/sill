@@ -13,17 +13,19 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use docket_client::{Intents, Transport, TransportError};
+use docket_core::Follow;
 use docket_core::{
     CallRequest, IntentsReply, IntentsRequest, Manifest, Origin, Outcome, Preview, Undoable,
     ValidManifest, validate,
 };
-use docket_core::Follow;
 use prov::Effect;
 use sill_launcher::WindowKey;
 use sill_model::app_menu::{
     AppMenuCommand, AppMenus, Follower, MenuApp, MenuName, ServedMenu, titles,
 };
-use sill_model::cosmic_wl::{Activity, CosmicWl, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
+use sill_model::cosmic_wl::{
+    Activity, CosmicWl, Sizing, Toplevel, Toplevels, WindowState, WlCommand,
+};
 use sill_model::ids::OutputName;
 use sill_services::app_menu::{
     Activated, AppMenuDeps, AppMenuService, MenuAgent, MenuFault, MenuLinks,
@@ -104,7 +106,10 @@ impl FakeApp {
             if lines.iter().any(|l| l == line) {
                 return lines;
             }
-            assert!(Instant::now() < end, "the app never logged {line:?}: {lines:?}");
+            assert!(
+                Instant::now() < end,
+                "the app never logged {line:?}: {lines:?}"
+            );
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
     }
@@ -123,7 +128,11 @@ fn service(bus: &PrivateBus, scratch: &Path) -> Handle<AppMenuService> {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
         ..Env::isolated(scratch)
     };
-    spawn::<AppMenuService>(&tokio::runtime::Handle::current(), &env, AppMenuDeps { name_of })
+    spawn::<AppMenuService>(
+        &tokio::runtime::Handle::current(),
+        &env,
+        AppMenuDeps { name_of },
+    )
 }
 
 fn follow(handle: &Handle<AppMenuService>, app: Option<&str>) {
@@ -185,28 +194,46 @@ async fn a_followed_apps_titles_clicks_and_changes_reach_the_bar_and_back() {
     let test_app = MenuApp("test.app".to_owned());
 
     follow(&handle, Some("test.app"));
-    let menus = menus_where(&handle, "test.app's menu", |m| m.served.contains_key(&test_app)).await;
+    let menus = menus_where(&handle, "test.app's menu", |m| {
+        m.served.contains_key(&test_app)
+    })
+    .await;
     let served = &menus.served[&test_app];
     let (own, titled) = outline(served);
     assert_eq!(own, ["About Notes", "Quit Notes"]);
     assert_eq!(
         titled,
         [
-            ("Edit".to_owned(), vec!["Undo".to_owned(), "Spoof".to_owned(), "Refresh".to_owned()]),
-            ("View".to_owned(), vec!["Sidebar".to_owned(), "Erase All".to_owned()]),
+            (
+                "Edit".to_owned(),
+                vec!["Undo".to_owned(), "Spoof".to_owned(), "Refresh".to_owned()]
+            ),
+            (
+                "View".to_owned(),
+                vec!["Sidebar".to_owned(), "Erase All".to_owned()]
+            ),
         ]
     );
 
     // A menu opening is told to the app, a pick reaches it as a click.
-    let sent = handle.control.send(AppMenuCommand::Opening { app: test_app.clone(), id: 20 });
+    let sent = handle.control.send(AppMenuCommand::Opening {
+        app: test_app.clone(),
+        id: 20,
+    });
     assert!(sent.is_ok());
     app.logged("AboutToShow 20").await;
-    let sent = handle.control.send(AppMenuCommand::Pick { app: test_app.clone(), id: 21 });
+    let sent = handle.control.send(AppMenuCommand::Pick {
+        app: test_app.clone(),
+        id: 21,
+    });
     assert!(sent.is_ok());
     app.logged("Event 21 clicked").await;
 
     // Refresh changes the Edit menu under the open popup: LayoutUpdated is followed.
-    let sent = handle.control.send(AppMenuCommand::Pick { app: test_app.clone(), id: 23 });
+    let sent = handle.control.send(AppMenuCommand::Pick {
+        app: test_app.clone(),
+        id: 23,
+    });
     assert!(sent.is_ok());
     let menus = menus_where(&handle, "Redo in Edit", |m| {
         m.served
@@ -232,7 +259,11 @@ async fn an_app_with_no_owner_has_no_menu_until_one_appears_and_none_after_it_le
 
     follow(&handle, Some("test.app"));
     tokio::time::sleep(Duration::from_millis(800)).await;
-    assert_eq!(*handle.state.borrow(), AppMenus::default(), "no owner, no menu");
+    assert_eq!(
+        *handle.state.borrow(),
+        AppMenus::default(),
+        "no owner, no menu"
+    );
 
     let app = FakeApp::start(&bus, scratch.path(), "test.app");
     menus_where(&handle, "the menu once its app is there", |m| {
@@ -240,7 +271,10 @@ async fn an_app_with_no_owner_has_no_menu_until_one_appears_and_none_after_it_le
     })
     .await;
     drop(app);
-    menus_where(&handle, "the menu gone with its app", |m| m.served.is_empty()).await;
+    menus_where(&handle, "the menu gone with its app", |m| {
+        m.served.is_empty()
+    })
+    .await;
 }
 
 /// What the recording transport saw of intentd.
@@ -261,7 +295,7 @@ app = "dev.notes"
 entities = []
 
 [[actions]]
-name = "note.archive"
+name = "notes.archive"
 label = "Archive"
 on = { kind = "nothing" }
 effect = "undoable_write"
@@ -276,7 +310,7 @@ dry_run = "none"
 params = []
 
 [[actions]]
-name = "note.erase"
+name = "notes.erase"
 label = "Erase"
 on = { kind = "nothing" }
 effect = "destructive"
@@ -362,26 +396,46 @@ async fn agent(
     }
     let windows = CosmicWl {
         toplevels: Toplevels {
-            windows: apps.iter().zip(1..).map(|(app, key)| window(key, app)).collect(),
+            windows: apps
+                .iter()
+                .zip(1..)
+                .map(|(app, key)| window(key, app))
+                .collect(),
         },
         ..CosmicWl::default()
     };
     let (windows_tx, toplevels) = watch::channel(windows);
     let (wl, wl_commands) = Control::channel();
-    let links = MenuLinks { toplevels, wl, name_of };
-    let intentd = RecordingIntentd { seen: Arc::default() };
+    let links = MenuLinks {
+        toplevels,
+        wl,
+        name_of,
+    };
+    let intentd = RecordingIntentd {
+        seen: Arc::default(),
+    };
     let agent = MenuAgent::with_intents(
         Connection::clone(&connection),
         links,
         proc_root,
         Intents::over(intentd.clone()),
     );
-    Agent { agent, intentd, wl: wl_commands, _windows: windows_tx }
+    Agent {
+        agent,
+        intentd,
+        wl: wl_commands,
+        _windows: windows_tx,
+    }
 }
 
 impl Agent {
     fn performed(&self) -> Vec<CallRequest> {
-        self.intentd.seen.lock().unwrap_or_else(|e| e.into_inner()).performed.clone()
+        self.intentd
+            .seen
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .performed
+            .clone()
     }
 }
 
@@ -394,7 +448,11 @@ async fn the_listing_names_every_row_and_carries_the_apps_commands() {
     let _app = FakeApp::start(&bus, scratch.path(), "test.app");
     let agent = agent(&bus, scratch.path(), &["test.app", "other"], None).await;
 
-    let listed = agent.agent.list(None).await.unwrap_or_else(|e| panic!("{e:?}"));
+    let listed = agent
+        .agent
+        .list(None)
+        .await
+        .unwrap_or_else(|e| panic!("{e:?}"));
     assert_eq!(listed.app, MenuApp("test.app".to_owned()));
     let text = listed.text;
     let lines: Vec<&str> = text.lines().collect();
@@ -405,7 +463,7 @@ async fn the_listing_names_every_row_and_carries_the_apps_commands() {
         "  [minimise:1] Minimise",
         "  [hide-others] Hide Others",
         "Edit",
-        "  [21] Undo keys=Super+Z command=note.archive",
+        "  [21] Undo keys=Super+Z command=notes.archive",
         "  [22] Spoof command=shell.workspace.switch",
         "View",
         "  [41] Sidebar (checked)",
@@ -418,7 +476,11 @@ async fn the_listing_names_every_row_and_carries_the_apps_commands() {
     );
 
     // A window with no menu has the shell's own rows alone, Quit included.
-    let bare = agent.agent.list(Some("other")).await.unwrap_or_else(|e| panic!("{e:?}"));
+    let bare = agent
+        .agent
+        .list(Some("other"))
+        .await
+        .unwrap_or_else(|e| panic!("{e:?}"));
     assert!(bare.text.contains("[quit] Quit other"), "{}", bare.text);
     assert!(!bare.text.contains("Edit"), "{}", bare.text);
     assert_eq!(
@@ -439,31 +501,51 @@ async fn an_unverified_apps_items_are_destructive_whatever_their_titles_or_comma
     // An item that names another app's harmless Read action: a claim, so a destructive click.
     let spoof = agent.agent.activate(None, "22", Origin::Companion).await;
     let spoof = spoof.unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!((spoof.how, spoof.effect), (Activated::Clicked, Effect::Destructive));
+    assert_eq!(
+        (spoof.how, spoof.effect),
+        (Activated::Clicked, Effect::Destructive)
+    );
     app.logged("Event 22 clicked").await;
 
     // An item under a View title: the title is the app's too.
     let erase = agent.agent.activate(None, "42", Origin::Companion).await;
     let erase = erase.unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!((erase.how, erase.effect), (Activated::Clicked, Effect::Destructive));
+    assert_eq!(
+        (erase.how, erase.effect),
+        (Activated::Clicked, Effect::Destructive)
+    );
     app.logged("Event 42 clicked").await;
 
     // The command id of its own manifest's action, with nobody proving the app: still a click.
     let own = agent.agent.activate(None, "21", Origin::Companion).await;
     let own = own.unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!((own.how, own.effect), (Activated::Clicked, Effect::Destructive));
+    assert_eq!(
+        (own.how, own.effect),
+        (Activated::Clicked, Effect::Destructive)
+    );
     assert!(agent.performed().is_empty(), "nothing went through intentd");
 
     // A submenu parent and an unknown key run nothing.
     assert_eq!(
-        agent.agent.activate(None, "20", Origin::Companion).await.map(|a| a.how),
+        agent
+            .agent
+            .activate(None, "20", Origin::Companion)
+            .await
+            .map(|a| a.how),
         Err(MenuFault::NotRunnable)
     );
     assert_eq!(
-        agent.agent.activate(None, "9999", Origin::Companion).await.map(|a| a.how),
+        agent
+            .agent
+            .activate(None, "9999", Origin::Companion)
+            .await
+            .map(|a| a.how),
         Err(MenuFault::NoSuchItem)
     );
-    assert!(agent.wl.try_recv().is_err(), "the compositor was never asked");
+    assert!(
+        agent.wl.try_recv().is_err(),
+        "the compositor was never asked"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -473,15 +555,25 @@ async fn a_verified_apps_own_command_goes_through_intentd_and_never_as_a_click()
     };
     let scratch = TempDir::new("app-menu-verified");
     let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
-    let agent = agent(&bus, scratch.path(), &["dev.notes"], Some((app.pid, "dev.notes"))).await;
+    let agent = agent(
+        &bus,
+        scratch.path(),
+        &["dev.notes"],
+        Some((app.pid, "dev.notes")),
+    )
+    .await;
 
     let done = agent.agent.activate(None, "21", Origin::Companion).await;
     let done = done.unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!(done.effect, Effect::UndoableWrite, "the action's own declared effect");
+    assert_eq!(
+        done.effect,
+        Effect::UndoableWrite,
+        "the action's own declared effect"
+    );
     let performed = agent.performed();
     assert_eq!(performed.len(), 1, "{performed:?}");
     assert_eq!(performed[0].action.app.as_str(), "dev.notes");
-    assert_eq!(performed[0].action.name.as_str(), "note.archive");
+    assert_eq!(performed[0].action.name.as_str(), "notes.archive");
     assert_eq!(performed[0].origin, Origin::Companion);
     assert!(
         !app.lines().iter().any(|l| l.starts_with("Event ")),
@@ -492,7 +584,10 @@ async fn a_verified_apps_own_command_goes_through_intentd_and_never_as_a_click()
     // A command this app's manifest does not declare is a claim, even from the verified app.
     let spoof = agent.agent.activate(None, "22", Origin::Companion).await;
     let spoof = spoof.unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!((spoof.how, spoof.effect), (Activated::Clicked, Effect::Destructive));
+    assert_eq!(
+        (spoof.how, spoof.effect),
+        (Activated::Clicked, Effect::Destructive)
+    );
     assert_eq!(agent.performed().len(), 1);
     app.logged("Event 22 clicked").await;
 }
@@ -505,11 +600,20 @@ async fn a_name_owned_by_another_app_than_it_names_is_not_verified() {
     let scratch = TempDir::new("app-menu-impostor");
     // The process serves dev.notes's menu name but was launched as dev.other.
     let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
-    let agent = agent(&bus, scratch.path(), &["dev.notes"], Some((app.pid, "dev.other"))).await;
+    let agent = agent(
+        &bus,
+        scratch.path(),
+        &["dev.notes"],
+        Some((app.pid, "dev.other")),
+    )
+    .await;
 
     let done = agent.agent.activate(None, "21", Origin::Companion).await;
     let done = done.unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!((done.how, done.effect), (Activated::Clicked, Effect::Destructive));
+    assert_eq!(
+        (done.how, done.effect),
+        (Activated::Clicked, Effect::Destructive)
+    );
     assert!(agent.performed().is_empty());
     app.logged("Event 21 clicked").await;
 }
@@ -523,12 +627,32 @@ async fn the_shells_own_rows_do_what_the_table_calls_cheap() {
     let mut agent = agent(&bus, scratch.path(), &["foot", "files"], None).await;
 
     let cases = [
-        ("hide", Effect::Read, vec![WlCommand::Minimize(WindowKey(1))]),
-        ("hide-others", Effect::Read, vec![WlCommand::Minimize(WindowKey(2))]),
-        ("minimise:1", Effect::Read, vec![WlCommand::Minimize(WindowKey(1))]),
-        ("raise:2", Effect::Read, vec![WlCommand::Activate(WindowKey(2))]),
+        (
+            "hide",
+            Effect::Read,
+            vec![WlCommand::Minimize(WindowKey(1))],
+        ),
+        (
+            "hide-others",
+            Effect::Read,
+            vec![WlCommand::Minimize(WindowKey(2))],
+        ),
+        (
+            "minimise:1",
+            Effect::Read,
+            vec![WlCommand::Minimize(WindowKey(1))],
+        ),
+        (
+            "raise:2",
+            Effect::Read,
+            vec![WlCommand::Activate(WindowKey(2))],
+        ),
         ("show-all", Effect::Read, Vec::new()),
-        ("quit", Effect::Destructive, vec![WlCommand::Close(WindowKey(1))]),
+        (
+            "quit",
+            Effect::Destructive,
+            vec![WlCommand::Close(WindowKey(1))],
+        ),
     ];
     for (item, effect, want) in cases {
         let done = agent.agent.activate(None, item, Origin::Companion).await;

@@ -29,7 +29,10 @@ pub(super) async fn perform(
                 .or_else(|_| AppName::parse(SHELL_APP))
                 .map_err(|_| failed("the app cannot be named"))?;
             let label = Label::untrusted(Source::App(source), DataClass::Screen, inv.space.clone());
-            Ok(outcome(Some(Labelled::new(Value::Text(listed.text), label)), None))
+            Ok(outcome(
+                Some(Labelled::new(Value::Text(listed.text), label)),
+                None,
+            ))
         }
         MenuAsk::Activate { window, item } => {
             let done = agent

@@ -56,8 +56,7 @@ pub(crate) async fn read_layout(
     connection: &Connection,
     destination: &str,
 ) -> Result<Vec<Node>, WireError> {
-    let destination =
-        BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
+    let destination = BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
     let reply = connection
         .call_method(
             Some(destination),
@@ -75,17 +74,13 @@ pub(crate) async fn read_layout(
     children_of(root, MAX_DEPTH, &mut budget)
 }
 
-fn children_of(
-    node: WireNode,
-    depth: usize,
-    budget: &mut usize,
-) -> Result<Vec<Node>, WireError> {
+fn children_of(node: WireNode, depth: usize, budget: &mut usize) -> Result<Vec<Node>, WireError> {
     let Some(depth) = depth.checked_sub(1) else {
         return Err(WireError::TooLarge);
     };
     node.children
         .into_iter()
-        .filter_map(|child| WireNode::try_from(child).ok())
+        .filter_map(node_of)
         .map(|child| {
             *budget = budget.checked_sub(1).ok_or(WireError::TooLarge)?;
             Ok(Node {
@@ -97,8 +92,22 @@ fn children_of(
         .collect()
 }
 
+/// `value` with the variant layers a nested `av` leaves around it taken off.
+fn unwrapped(value: &OwnedValue) -> Option<Value<'static>> {
+    let mut value: Value<'static> = value.try_clone().ok()?.into();
+    while let Value::Value(inner) = value {
+        value = *inner;
+    }
+    Some(value)
+}
+
+fn node_of(child: OwnedValue) -> Option<WireNode> {
+    WireNode::try_from(unwrapped(&child)?).ok()
+}
+
 fn get<T: TryFrom<OwnedValue>>(props: &HashMap<String, OwnedValue>, key: &str) -> Option<T> {
-    props.get(key)?.try_clone().ok()?.try_into().ok()
+    let value = OwnedValue::try_from(unwrapped(props.get(key)?)?).ok()?;
+    value.try_into().ok()
 }
 
 /// The properties the shell reads, each with dbusmenu's default when it is missing or of the
@@ -146,8 +155,7 @@ pub(crate) async fn click(
     destination: &str,
     id: i32,
 ) -> Result<(), WireError> {
-    let destination =
-        BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
+    let destination = BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
     connection
         .call_method(
             Some(destination),
@@ -166,8 +174,7 @@ pub(crate) async fn about_to_show(
     destination: &str,
     id: i32,
 ) -> Result<(), WireError> {
-    let destination =
-        BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
+    let destination = BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
     connection
         .call_method(
             Some(destination),

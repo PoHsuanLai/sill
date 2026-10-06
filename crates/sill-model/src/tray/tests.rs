@@ -186,6 +186,8 @@ fn a_menu_with_a_submenu_and_icons_round_trips() {
                     command: None,
                 },
             }],
+            shortcut: None,
+            command: None,
         },
     }];
     let json = serde_json::to_string(&menu).unwrap_or_else(|e| panic!("{e}"));

@@ -39,8 +39,7 @@ async fn session(
     name: &MenuName,
     events: &UnboundedSender<AppMenuEvent>,
 ) {
-    let Ok(proxy) = Proxy::new(connection, name.0.as_str(), MENU_PATH, MENU_INTERFACE).await
-    else {
+    let Ok(proxy) = Proxy::new(connection, name.0.as_str(), MENU_PATH, MENU_INTERFACE).await else {
         return;
     };
     // Both streams are open before the first read, so no announcement falls between.

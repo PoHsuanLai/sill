@@ -78,7 +78,15 @@ pub(crate) async fn run(reach: Reach, links: IntentsLinks, io: ServiceIo<Intents
     }
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
     let (inner_tx, mut inner) = mpsc::unbounded_channel();
-    let seat = match serve::take(&reach.session, calls_tx, links.calls, links.menus, reach.proc_root).await {
+    let seat = match serve::take(
+        &reach.session,
+        calls_tx,
+        links.calls,
+        links.menus,
+        reach.proc_root,
+    )
+    .await
+    {
         Ok(seat) => seat,
         Err(trouble) => {
             tx.send_modify(|state| state.link = IntentsLink::Unavailable(trouble));

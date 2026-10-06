@@ -49,14 +49,11 @@ fn menu(entry: &TrayMenuEntry) -> Option<TitledMenu> {
     else {
         return None;
     };
-    children
-        .iter()
-        .any(|row| shown(row))
-        .then(|| TitledMenu {
-            id: entry.id,
-            title: label.clone(),
-            rows: children.clone(),
-        })
+    children.iter().any(shown).then(|| TitledMenu {
+        id: entry.id,
+        title: label.clone(),
+        rows: children.clone(),
+    })
 }
 
 /// Whether `row` is a row that draws.

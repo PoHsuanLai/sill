@@ -15,13 +15,15 @@ use docket_core::{
 use docket_dbus::{CONFIRM_BUS, ConfirmProxy, INTENTS_BUS};
 use porter_core::Count;
 use prov::{ActionName, Actor, AppName, Effect, InputProof, SpaceId};
+use sill_model::cosmic_wl::CosmicWl;
 use sill_model::intents::sheet::SheetChoice;
 use sill_model::intents::terminal::{Breaker, ControlReach};
 use sill_model::intents::{Intents, IntentsCommand, IntentsLink, LinkTrouble};
+use sill_services::control::Control;
 use sill_services::env::{BusRoute, Buses, Env};
 use sill_services::seat::seat;
 use sill_services::service::{Handle, spawn};
-use sill_services::{IntentsLinks, IntentsService, ShellCall};
+use sill_services::{IntentsLinks, IntentsService, MenuLinks, ShellCall};
 use sill_testkit::PrivateBus;
 use tokio::sync::{mpsc, watch};
 use zbus::fdo;
@@ -131,6 +133,7 @@ async fn desk() -> Option<Desk> {
         &env,
         IntentsLinks {
             calls,
+            menus: no_menus(),
             seat: seat().0,
         },
     );
@@ -205,6 +208,15 @@ async fn eventually(what: &str, ok: impl Fn() -> bool) {
 
 fn answer_of(body: &str) -> ConfirmAnswer {
     serde_json::from_str(body).unwrap_or_else(|e| panic!("{body}: {e}"))
+}
+
+/// The agent's links with no windows and no compositor: these tests never ask a menu.
+fn no_menus() -> MenuLinks {
+    MenuLinks {
+        toplevels: watch::channel(CosmicWl::default()).1,
+        wl: Control::channel().0,
+        name_of: |_| None,
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -453,6 +465,7 @@ async fn no_session_bus_is_no_sheet_and_not_a_crash() {
         &env,
         IntentsLinks {
             calls,
+            menus: no_menus(),
             seat: seat().0,
         },
     );

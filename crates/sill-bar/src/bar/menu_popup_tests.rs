@@ -19,11 +19,11 @@ use tokio::sync::{mpsc, watch};
 
 use super::{PopupDocument, PopupLink, SUBMENU_ROOM, submenu_room};
 use crate::bar::content::PopupBody;
+use crate::bar::dbusmenu::menu_items;
 use crate::bar::menus::{BarMenu, TraySlot};
 use crate::bar::model::PopupView;
 use crate::bar::pick::BarPick;
 use crate::bar::plan::PopupReport;
-use crate::bar::dbusmenu::menu_items;
 
 thread_local! {
     static REPORTS: RefCell<Option<mpsc::UnboundedReceiver<PopupReport>>> =

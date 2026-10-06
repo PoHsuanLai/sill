@@ -30,12 +30,12 @@ use sill_model::tray::{TrayCommand, TrayIcon, TrayItem, TrayStatus};
 use sill_services::TrayService;
 use sill_services::tray::icon_art;
 
+use super::dbusmenu::has_rows;
 use super::menus::{BarMenu, TraySlot};
 use super::title::{shown_of, use_title_pointer};
 use super::tray_input::{
     ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, scroll_delta,
 };
-use super::dbusmenu::has_rows;
 use sill_ui_kit::hooks::{use_appearance, use_control, use_service, use_settings};
 
 /// The element id of the button at `index` (`tray-<n>`, as the module doc says).

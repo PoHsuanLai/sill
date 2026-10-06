@@ -24,7 +24,10 @@ mod tests {
             ("dev.mailo.Mailo", Some("org.quire.AppMenu.dev.mailo.Mailo")),
             ("test.app", Some("org.quire.AppMenu.test.app")),
             ("foot", Some("org.quire.AppMenu.foot")),
-            ("org.gnome.gedit-2", Some("org.quire.AppMenu.org.gnome.gedit-2")),
+            (
+                "org.gnome.gedit-2",
+                Some("org.quire.AppMenu.org.gnome.gedit-2"),
+            ),
             ("1password", Some("org.quire.AppMenu._1password")),
             ("a b.c", Some("org.quire.AppMenu.a_b.c")),
             ("", None),

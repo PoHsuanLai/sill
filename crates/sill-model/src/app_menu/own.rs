@@ -30,9 +30,11 @@ impl OwnItem {
     /// What doing it costs: the effect the gate would weigh.
     pub fn effect(self) -> Effect {
         match self {
-            OwnItem::Raise(_) | OwnItem::Minimise(_) | OwnItem::Hide | OwnItem::HideOthers | OwnItem::ShowAll => {
-                Effect::Read
-            }
+            OwnItem::Raise(_)
+            | OwnItem::Minimise(_)
+            | OwnItem::Hide
+            | OwnItem::HideOthers
+            | OwnItem::ShowAll => Effect::Read,
             OwnItem::Quit => Effect::Destructive,
         }
     }

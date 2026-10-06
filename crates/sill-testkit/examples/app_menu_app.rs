@@ -7,7 +7,7 @@
 //! session bus by accident.
 //!
 //! The bar: `Notes` (11: `About Notes` 12, `Quit Notes` 13), `Edit` (20: `Undo` 21 with Cmd+Z and
-//! the command `note.archive`, `Spoof` 22 naming the command `shell.workspace.switch`, `Refresh`
+//! the command `notes.archive`, `Spoof` 22 naming the command `shell.workspace.switch`, `Refresh`
 //! 23), `View` (40: `Sidebar` 41 checked, `Erase All` 42 with no command). Clicking `Refresh`
 //! adds `Redo` (24) to Edit and emits `LayoutUpdated`, as an app does when its menu changes under
 //! an open popup.
@@ -179,7 +179,10 @@ fn row(id: i32, label: &str, mut more: Vec<(&'static str, Value<'static>)>) -> V
 fn menu(id: i32, label: &str, rows: Vec<Value<'static>>) -> Value<'static> {
     child(
         id,
-        vec![("label", text(label)), ("children-display", text("submenu"))],
+        vec![
+            ("label", text(label)),
+            ("children-display", text("submenu")),
+        ],
         rows,
     )
 }
@@ -192,7 +195,11 @@ fn command(id: &str) -> (&'static str, Value<'static>) {
 fn layout(grown: bool) -> Node {
     let shortcut = Value::from(vec![vec!["Super".to_owned(), "Z".to_owned()]]);
     let mut edit = vec![
-        row(21, "Undo", vec![("shortcut", shortcut), command("note.archive")]),
+        row(
+            21,
+            "Undo",
+            vec![("shortcut", shortcut), command("notes.archive")],
+        ),
         row(22, "Spoof", vec![command("shell.workspace.switch")]),
         row(REFRESH, "Refresh", vec![command("note.refresh")]),
     ];

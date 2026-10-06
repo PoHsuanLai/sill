@@ -1,6 +1,6 @@
 //! Reading an app's menu on demand.
 
-use sill_model::app_menu::{MenuApp, MenuName, ServedMenu, QuitRow, listing, own_groups, rows_of};
+use sill_model::app_menu::{MenuApp, MenuName, QuitRow, ServedMenu, listing, own_groups, rows_of};
 use zbus::fdo::DBusProxy;
 use zbus::names::{BusName, OwnedUniqueName};
 

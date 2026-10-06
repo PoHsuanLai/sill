@@ -2,9 +2,7 @@
 
 use std::collections::HashMap;
 
-use sill_model::app_menu::{
-    AppMenuCommand, AppMenuEvent, Followers, MenuApp, MenuName, step,
-};
+use sill_model::app_menu::{AppMenuCommand, AppMenuEvent, Followers, MenuApp, MenuName, step};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use zbus::Connection;

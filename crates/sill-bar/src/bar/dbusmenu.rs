@@ -7,9 +7,7 @@ use ds::components::menus::export::Chord as ExportChord;
 use ds::components::menus::item::item::MenuImage;
 use ds::prelude::Check as DsCheck;
 use ds::prelude::*;
-use sill_model::tray::{
-    Check as TrayCheck, Chord, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
-};
+use sill_model::tray::{Check as TrayCheck, Chord, TrayMenuEntry, TrayMenuIcon, TrayMenuKind};
 use sill_model::units::{Availability as TrayAvailability, Visibility};
 
 use super::pick::BarPick;

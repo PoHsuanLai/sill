@@ -22,7 +22,11 @@ pub fn listing(name: &str, own: &[OwnGroup], served: Option<&ServedMenu>) -> Str
         rows_lines(rows, 1, &mut lines);
     }
     for row in own.iter().flatten() {
-        lines.push(format!("  [{}] {}", ItemKey::Own(row.item).text(), row.label));
+        lines.push(format!(
+            "  [{}] {}",
+            ItemKey::Own(row.item).text(),
+            row.label
+        ));
     }
     for menu in &sent.menus {
         lines.push(menu.title.clone());

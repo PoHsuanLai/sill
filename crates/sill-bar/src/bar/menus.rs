@@ -80,16 +80,14 @@ impl BarMenu {
 
     /// The menu the machine names `id`, if it is one of the bar's.
     pub(crate) fn of(id: MenuId) -> Option<BarMenu> {
-        let title = id
-            .0
-            .checked_sub(APP_TITLE_ID_BASE)
-            .and_then(|index| u16::try_from(index).ok())
-            .map(|index| BarMenu::AppMenu(AppTitle(index)));
-        let tray = id
-            .0
-            .checked_sub(TRAY_ID_BASE)
-            .and_then(|slot| u16::try_from(slot).ok())
-            .map(|slot| BarMenu::Tray(TraySlot(slot)));
+        let title =
+            id.0.checked_sub(APP_TITLE_ID_BASE)
+                .and_then(|index| u16::try_from(index).ok())
+                .map(|index| BarMenu::AppMenu(AppTitle(index)));
+        let tray =
+            id.0.checked_sub(TRAY_ID_BASE)
+                .and_then(|slot| u16::try_from(slot).ok())
+                .map(|slot| BarMenu::Tray(TraySlot(slot)));
         title
             .or(tray)
             .or_else(|| BarMenu::ALL.into_iter().find(|menu| menu.id() == id))

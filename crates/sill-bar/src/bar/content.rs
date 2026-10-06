@@ -8,9 +8,7 @@
 
 use ds::prelude::*;
 use sill_launcher::WindowKey;
-use sill_model::app_menu::{
-    AppMenus, MenuApp, OwnGroup, QuitRow, Titles, own_groups, titles,
-};
+use sill_model::app_menu::{AppMenus, MenuApp, OwnGroup, QuitRow, Titles, own_groups, titles};
 use sill_model::apps::{AppIndex, match_app};
 use sill_model::cosmic_wl::Toplevels;
 use sill_model::ids::OutputName;
@@ -18,9 +16,9 @@ use sill_model::tray::Tray;
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
+use super::dbusmenu::{RowIcon, menu_items};
 use super::menus::{AppTitle, BarMenu};
 use super::pick::BarPick;
-use super::dbusmenu::{RowIcon, menu_items};
 
 /// The frontmost app on an output: its name and every one of its windows.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,14 +88,16 @@ pub(crate) fn body(menu: BarMenu, state: &BarState, icon: RowIcon) -> PopupBody 
                 .tray
                 .items
                 .get(usize::from(slot.0))
-                .map(|item| menu_items(
-                    &|entry| BarPick::Tray {
-                        item: item.id.clone(),
-                        entry,
-                    },
-                    &item.menu,
-                    icon,
-                ))
+                .map(|item| {
+                    menu_items(
+                        &|entry| BarPick::Tray {
+                            item: item.id.clone(),
+                            entry,
+                        },
+                        &item.menu,
+                        icon,
+                    )
+                })
                 .unwrap_or_default(),
         ),
         BarMenu::App => PopupBody::Menu(app_menu(state.app.as_ref(), state.menus.as_ref(), icon)),
@@ -177,7 +177,9 @@ fn app_menu(
     let quit = QuitRow::of_titles(menus.map(|menus| &menus.titles));
     let groups = own_groups(&app.name, &app.windows, quit);
     let shell = groups.into_iter().map(|group| own_rows(app, group));
-    let sections = std::iter::once(own).chain(shell).filter(|rows| !rows.is_empty());
+    let sections = std::iter::once(own)
+        .chain(shell)
+        .filter(|rows| !rows.is_empty());
     let mut entries = vec![MenuItem::Header(app.name.clone())];
     for (at, rows) in sections.enumerate() {
         if at > 0 {
@@ -246,8 +248,8 @@ mod tests {
     use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
     use sill_model::ids::OutputName;
     use sill_model::tray::{
-        Check, Chord, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
-        TrayStatus,
+        Check, Chord, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon,
+        TrayMenuKind, TrayStatus,
     };
     use sill_model::units::{Availability as Enabled, Visibility};
     use sill_settings::ControlCenterModule;
@@ -456,7 +458,11 @@ mod tests {
         let served = ServedMenu {
             name: MenuName("org.quire.AppMenu.foot".to_owned()),
             menus: vec![
-                menu(11, "Foot", vec![row(12, "About Foot", None), row(13, "Quit Foot", None)]),
+                menu(
+                    11,
+                    "Foot",
+                    vec![row(12, "About Foot", None), row(13, "Quit Foot", None)],
+                ),
                 menu(20, "Edit", vec![row(21, "Undo", Some(cmd_z))]),
                 menu(40, "View", vec![row(41, "Sidebar", None)]),
             ],
@@ -518,14 +524,26 @@ mod tests {
         assert_eq!(
             picks(BarMenu::App)[..2],
             [
-                BarPick::AppMenu { app: app.clone(), id: 12 },
-                BarPick::AppMenu { app: app.clone(), id: 13 },
+                BarPick::AppMenu {
+                    app: app.clone(),
+                    id: 12
+                },
+                BarPick::AppMenu {
+                    app: app.clone(),
+                    id: 13
+                },
             ]
         );
-        assert_eq!(titles(&entries(BarMenu::AppMenu(AppTitle(0)), &state)), ["Undo"]);
+        assert_eq!(
+            titles(&entries(BarMenu::AppMenu(AppTitle(0)), &state)),
+            ["Undo"]
+        );
         assert_eq!(
             picks(BarMenu::AppMenu(AppTitle(1))),
-            [BarPick::AppMenu { app: app.clone(), id: 41 }]
+            [BarPick::AppMenu {
+                app: app.clone(),
+                id: 41
+            }]
         );
         assert!(entries(BarMenu::AppMenu(AppTitle(2)), &state).is_empty());
         let undo = entries(BarMenu::AppMenu(AppTitle(0)), &state);

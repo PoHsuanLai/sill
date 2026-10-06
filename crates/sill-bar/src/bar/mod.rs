@@ -8,6 +8,7 @@ mod app_titles;
 mod clock;
 mod content;
 mod control_center_item;
+mod dbusmenu;
 mod io;
 mod layer;
 mod menu_popup;
@@ -24,7 +25,6 @@ mod title;
 pub mod track;
 mod tray;
 mod tray_input;
-mod dbusmenu;
 mod view;
 mod workspaces;
 

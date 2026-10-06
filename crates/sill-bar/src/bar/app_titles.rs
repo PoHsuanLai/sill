@@ -6,7 +6,6 @@
 
 use dioxus::prelude::*;
 use ds::host::measure::use_rect;
-use ds::prelude::*;
 use ds::root::common::Common;
 use ds_shell::prelude::*;
 use shell_host::OutputInfo;
