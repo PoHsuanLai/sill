@@ -43,7 +43,7 @@ step "4/8 the binary and the session script"
 put 755 "$BUILT" "$BIN_DEST"
 put 755 "$DIST/sill-session" "$SESSION_DEST"
 
-step "5/8 the login-screen entry, the user target, the PAM service, the intents manifest and the skills"
+step "5/8 the login-screen entry, the user target, the PAM service, the intents manifest, the skills and the settings schema"
 put 644 "$DIST/sill.desktop" "$DESKTOP_DEST"
 put 644 "$DIST/sill-session.target" "$TARGET_DEST"
 put 644 "$DIST/pam.d/sill" "$PAM_DEST"
@@ -53,6 +53,15 @@ put 644 "$DIST/intents/org.quire.Shell.toml" "$INTENTS_DEST"
 while IFS= read -r file; do
   put 644 "$DIST/skills/$file" "$SKILLS_DEST/$file"
 done < <(skills)
+# The settings schema, written by the binary just built, so it always matches it.
+schema_dir=$(mktemp -d)
+trap 'rm -rf "$schema_dir"' EXIT
+if [ "$DRY" = 1 ]; then
+  note "would write the settings schema with $BUILT --write-schema and install it at $SCHEMA_DEST"
+else
+  "$BUILT" --write-schema "$schema_dir" >/dev/null
+  put 644 "$schema_dir/sill.settings.toml" "$SCHEMA_DEST"
+fi
 
 step "6/8 the COSMIC seed files (copied into ~/.config/cosmic at login when missing; never overwritten)"
 while IFS= read -r file; do
@@ -70,7 +79,7 @@ fi
 
 step "8/8 SELinux labels and the user manager"
 if command -v restorecon >/dev/null; then
-  run sudo restorecon -F "$BIN_DEST" "$SESSION_DEST" "$DESKTOP_DEST" "$TARGET_DEST" "$PAM_DEST" "$INTENTS_DEST"
+  run sudo restorecon -F "$BIN_DEST" "$SESSION_DEST" "$DESKTOP_DEST" "$TARGET_DEST" "$PAM_DEST" "$INTENTS_DEST" "$SCHEMA_DEST"
   run sudo restorecon -RF "$SEED_DEST"
 else
   note "no restorecon: skipped"

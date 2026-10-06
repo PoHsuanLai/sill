@@ -19,6 +19,9 @@ INTENTS_DEST=/usr/local/share/quire/intents/org.quire.Shell.toml
 # The skills sill teaches the companion (dist/skills/<id>/): docket's loader reads every directory
 # under $XDG_DATA_DIRS/quire/skills/.
 SKILLS_DEST=/usr/local/share/quire/skills
+# sill's settings schema (every domain's keys, app `sill`): Settings (detent) reads every schema
+# under $XDG_DATA_DIRS/quire/settings/. The binary writes it (`sill --write-schema <dir>`).
+SCHEMA_DEST=/usr/local/share/quire/settings/sill.settings.toml
 # The seed files sill-session copies into ~/.config/cosmic when they are missing there: the
 # shortcuts (dist/cosmic) and the keyboard repeat. System-wide COSMIC defaults under
 # /usr/share/cosmic belong to cosmic-settings-daemon's package, so nothing is written there.

@@ -24,7 +24,7 @@ refuse_root
 need_sudo
 
 step "2/3 system files"
-for path in "$DESKTOP_DEST" "$SESSION_DEST" "$TARGET_DEST" "$PAM_DEST" "$INTENTS_DEST" "$BIN_DEST"; do
+for path in "$DESKTOP_DEST" "$SESSION_DEST" "$TARGET_DEST" "$PAM_DEST" "$INTENTS_DEST" "$SCHEMA_DEST" "$BIN_DEST"; do
   if [ -e "$path" ]; then run sudo rm -f "$path"; else note "already gone: $path"; fi
 done
 if [ "${FLAG_forget_seeds:-0}" = 1 ]; then
