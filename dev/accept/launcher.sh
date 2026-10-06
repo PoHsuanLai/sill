@@ -555,10 +555,19 @@ step_ui_demo() {
   demo_key f; demo_key i; sleep 2.0
   echo "$PANEL capture $OUT_DIR/demo-open.png" >&7; sleep 0.5
   demo_key actions; sleep 1.5
-  echo "$PANEL capture $OUT_DIR/demo-actions.png" >&7; sleep 0.5
+  # The demo answers only a capture, so each look is a capture, repeated (up to 20 times, 0.7 s
+  # apart) until it shows what the key should have done: the actions menu over the open panel, then
+  # the panel gone after two Escapes.
+  for _ in $(seq 20); do
+    echo "$PANEL capture $OUT_DIR/demo-actions.png" >&7; sleep 0.7
+    [ "$(differing_pixels "$OUT_DIR/demo-open.png" "$OUT_DIR/demo-actions.png" 2>/dev/null || echo 0)" -gt 1000 ] && break
+  done
   demo_key escape; sleep 0.5
   demo_key escape; sleep 0.8
-  echo "$PANEL capture $OUT_DIR/demo-closed.png" >&7; sleep 0.5
+  for _ in $(seq 20); do
+    echo "$PANEL capture $OUT_DIR/demo-closed.png" >&7; sleep 0.7
+    grep -q '"capture":"[^"]*demo-closed.png","err":"[^n]' "$log" && break
+  done
   echo "quit" >&7
   exec 7>&-
   wait "$demo" 2>/dev/null
@@ -705,6 +714,10 @@ step_palette_pane_levels() {
   # A key is answered when the daemon has handled it, not when `sill debug key` returns: every
   # look below waits for the state it expects (up to 10 s), never for a fixed sleep.
   await_preview shown || { echo "quick-look showed nothing" >&2; return 1; }
+  # `right` reaches the pane's first control once the pane has been drawn (a capture returns when a
+  # frame has): before that it has nothing to give the keyboard to.
+  capture_launcher "$OUT_DIR/pane-up.png" || return 1
+  sleep 0.3
   debug_key right # into the pane
   capture_launcher "$SHOTS/launcher-v2-pane-focus.png"
   debug_key escape

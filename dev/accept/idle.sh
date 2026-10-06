@@ -89,7 +89,23 @@ wake() { sill debug idle-wake >/dev/null; }
 # short of the real one by up to that much. WAKE_SLACK (ms) is the uncertainty: "never early" is
 # checked against elapsed + WAKE_SLACK, "never late" against elapsed alone.
 WAKE_SLACK=0
-wake_timed() { local before; before=$(now_ms); wake; WAKE_SLACK=$(( $(now_ms) - before )); }
+# When the daemon's log is a WAYLAND_DEBUG one (step 1) the wake is over when the daemon has made its
+# idle notifications afresh (two more `get_idle_notification` requests than before): the wire
+# thread can be busy for seconds, and a time counted before that is short of the real one.
+wake_timed() {
+  local before asked=0 want
+  before=$(now_ms)
+  grep -q 'get_idle_notification' "$DAEMON_LOG" 2>/dev/null && asked=$(grep -c 'get_idle_notification' "$DAEMON_LOG")
+  wake
+  if [ "$asked" != 0 ]; then
+    want=$(( asked + 2 ))
+    for _ in $(seq 300); do
+      [ "$(grep -c 'get_idle_notification' "$DAEMON_LOG")" -ge "$want" ] && break
+      sleep 0.1
+    done
+  fi
+  WAKE_SLACK=$(( $(now_ms) - before ))
+}
 # A command to the logind stand-in.
 logind() { echo "$*" >&3; }
 
