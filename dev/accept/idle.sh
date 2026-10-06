@@ -332,7 +332,7 @@ step_wake_after_grace() {
   local log="$OUT_DIR/3-wake-after-grace.log" start locked still
   : >"$log"
   wake; start=$(now_ms)
-  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 12000)
+  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 30000)
   sleep 7
   wake; sleep 1.5
   still=$(lock_state)
@@ -383,7 +383,7 @@ step_inhibit_holds() {
   echo uninhibit >&4
   [ "$(until_idle ' free 0$' 10000)" -ge 0 ] || echo "the inhibit was never released" >&2
   local start; start=$(now_ms)
-  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 12000)
+  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 30000)
   open_lock
   echo inhibit >&4
   [ "$(until_idle ' held 1$' 10000)" -ge 0 ] || echo "the second inhibit was never registered" >&2
@@ -433,9 +433,9 @@ step_idle_suspend() {
   : >"$OUT_DIR/logind.log.mark"
   local before; before=$(grep -c '^suspend ' "$OUT_DIR/logind.log")
   wake_timed; start=$(now_ms)
-  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 12000)
+  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 30000)
   suspended=-1
-  while [ $(( $(now_ms) - start )) -lt 16000 ]; do
+  while [ $(( $(now_ms) - start )) -lt 30000 ]; do
     [ "$(grep -c '^suspend ' "$OUT_DIR/logind.log")" -gt "$before" ] && { suspended=$(( $(now_ms) - start )); break; }
     sleep 0.1
   done

@@ -358,10 +358,10 @@ step_toggle_on() {
     # check as an expected skip.
     [ "$frames" = 2 ] && [[ "$saved" == *calendar* ]] && [[ "$saved" == *battery* ]] || return 1
     shot "$SHOTS/widgets-desktop-casement.png" || { echo "casementctl shot failed" >&2; return 1; }
-    in_env timeout 60 "$(casement_bin casement-probe)" toplevel --maximised >"$OUT_DIR/probe.log" 2>&1 </dev/null &
+    in_env timeout 60 "$(casement_bin casement-probe)" toplevel --maximised --hold >"$OUT_DIR/probe.log" 2>&1 </dev/null &
     local cprobe=$! cover=0
     for _ in $(seq 100); do
-      grep -qE '"maxim(ised|ized)":true' "$OUT_DIR/probe.log" && { cover=1; break; }
+      grep -qE '"maxim(ised|ized)":true' "$OUT_DIR/probe.log" && grep -q '"event":"mapped"' "$OUT_DIR/probe.log" && { cover=1; break; }
       sleep 0.1
     done
     if [ "$cover" = 0 ]; then

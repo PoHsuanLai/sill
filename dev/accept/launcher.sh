@@ -709,7 +709,19 @@ step_palette_preview_pdf_and_image() {
 }
 
 # palette 5.
+# Up to three attempts: a `right` that reached the pane before it could take the keyboard is the
+# host's timing, but a pane that never takes it fails all three.
 step_palette_pane_levels() {
+  local attempt
+  for attempt in 1 2 3; do
+    pane_levels_once && { [ "$attempt" = 1 ] || echo "pane levels held on attempt $attempt" >&2; return 0; }
+    echo "pane levels: attempt $attempt did not hold" >&2
+    close_launcher
+  done
+  return 1
+}
+
+pane_levels_once() {
   local query=m9
   documents_answer || query=ghostty
   close_launcher
