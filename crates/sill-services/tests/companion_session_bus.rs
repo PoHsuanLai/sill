@@ -52,6 +52,7 @@ async fn bench(session: Option<&str>) -> Option<Bench> {
                 log: desk.log.clone(),
                 view: view.clone(),
                 acts: ActsAs::Accepts,
+                routing: None,
             },
         )
         .await
@@ -108,6 +109,7 @@ impl Bench {
                     log: self.desk.log.clone(),
                     view: self.view.clone(),
                     acts: ActsAs::Accepts,
+                    routing: None,
                 },
             )
             .await

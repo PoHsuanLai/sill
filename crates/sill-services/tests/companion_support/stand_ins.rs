@@ -186,6 +186,8 @@ pub struct StandInCompanion {
     pub log: Log,
     pub view: Arc<Mutex<String>>,
     pub acts: ActsAs,
+    /// What the answers it makes say as their `Routing`.
+    pub routing: Option<Arc<Mutex<String>>>,
 }
 
 #[interface(name = "org.quire.Companion1")]
@@ -219,6 +221,7 @@ impl StandInCompanion {
                     log: self.log.clone(),
                     view: self.view.clone(),
                     acts: self.acts,
+                    routing: self.routing.clone(),
                 },
             )
             .await?;
@@ -243,6 +246,9 @@ pub struct StandInAnswer {
     pub log: Log,
     pub view: Arc<Mutex<String>>,
     pub acts: ActsAs,
+    /// The `Routing` property's JSON; `None` is an older companion, whose object has no such
+    /// property.
+    pub routing: Option<Arc<Mutex<String>>>,
 }
 
 #[interface(name = "org.quire.Companion1.Answer")]
@@ -265,6 +271,14 @@ impl StandInAnswer {
         self.session
             .clone()
             .ok_or_else(|| fdo::Error::UnknownProperty("Session".to_owned()))
+    }
+
+    #[zbus(property)]
+    async fn routing(&self) -> fdo::Result<String> {
+        self.routing
+            .as_ref()
+            .map(|routing| routing.lock().unwrap_or_else(|e| panic!("{e}")).clone())
+            .ok_or_else(|| fdo::Error::UnknownProperty("Routing".to_owned()))
     }
 
     #[zbus(property)]

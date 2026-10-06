@@ -9,7 +9,9 @@ use std::time::Duration;
 
 use docket_core::Keep;
 use ds_harness::{Driver, Query};
-use launcher_harness::launcher_support::companion::{companion, draft, fresh, task, thinking};
+use launcher_harness::launcher_support::companion::{
+    HAIKU, companion, declined, draft, fresh, routed, task, thinking,
+};
 use launcher_harness::{Open, Press, is_open, open, open_in, selected_title, titles};
 use sill_launcher::{LauncherMode, ProviderKind, WindowKey};
 use sill_model::companion::{CompanionCommand, LauncherOrigin, Summon};
@@ -55,6 +57,62 @@ fn answer_card_in_aside() {
         "the card's button is the pane's action: {}",
         h.html()
     );
+}
+
+const HAIKU_LINE: &str = "Answered by Claude Haiku 4.5 via OpenRouter (already loaded)";
+
+#[test]
+fn the_card_footer_says_how_the_answer_was_reached_in_the_wire_crates_words() {
+    let open = open_in("", LauncherMode::Companion, |bar| {
+        bar.companion
+            .send_replace(companion(vec![routed(draft(), HAIKU)], fresh()));
+    });
+    let h = &open.harness;
+    assert_eq!(h.count(".ds-palette-aside .sill-route-line"), 1);
+    assert_eq!(
+        h.text_of(".sill-route-line").as_deref(),
+        Some(HAIKU_LINE),
+        "exactly the line companion_wire::footer_line prints"
+    );
+}
+
+#[test]
+fn an_answer_with_no_notes_has_no_footer_line() {
+    let open = open_in("", LauncherMode::Companion, |bar| {
+        bar.companion
+            .send_replace(companion(vec![draft()], fresh()));
+    });
+    assert_eq!(open.harness.count(".ds-answer-card"), 1);
+    assert_eq!(open.harness.count(".sill-route-line"), 0);
+}
+
+#[test]
+fn the_footer_line_follows_the_notes_as_they_change() {
+    let mut open = open_in("", LauncherMode::Companion, |bar| {
+        bar.companion
+            .send_replace(companion(vec![draft()], fresh()));
+    });
+    assert_eq!(open.harness.count(".sill-route-line"), 0);
+    open.feeds
+        .bar
+        .companion
+        .send_replace(companion(vec![routed(draft(), HAIKU)], fresh()));
+    settled(&mut open);
+    assert_eq!(
+        open.harness.text_of(".sill-route-line").as_deref(),
+        Some(HAIKU_LINE)
+    );
+}
+
+#[test]
+fn a_declined_named_model_shows_its_reason_not_a_generic_error() {
+    let why = "Kimi K2.6 cannot answer: it is not installed on this computer.";
+    let open = open_in("", LauncherMode::Companion, |bar| {
+        bar.companion
+            .send_replace(companion(vec![declined(why)], fresh()));
+    });
+    let html = open.harness.html();
+    assert!(html.contains(why), "the card says why: {html}");
 }
 
 #[test]

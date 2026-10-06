@@ -143,6 +143,12 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
                 ..answer
             })
         }
+        CompanionEvent::Routing { task, notes } => {
+            with_answer(state, &task, |answer| AnswerFacts {
+                routing: notes,
+                ..answer
+            })
+        }
         CompanionEvent::Run(run) => {
             let mut runs = state.runs;
             runs.insert(run.run.clone(), *run);
@@ -201,18 +207,20 @@ fn same_thing(a: &Hit, b: &Hit) -> bool {
 /// An ask began: the answer exists, thinking, until the companion writes the first view.
 fn asked(state: Companion, task: TaskId, prompt: String) -> Companion {
     let mut answers = state.answers;
-    let (wire, shown, session) = answers.remove(&task).map_or_else(
-        || (thinking(&task), BTreeMap::new(), None),
-        |known| (known.wire, known.shown, known.session),
-    );
+    let known = answers.remove(&task).unwrap_or_else(|| AnswerFacts {
+        prompt: String::new(),
+        wire: thinking(&task),
+        busy: Busy::Idle,
+        session: None,
+        routing: Vec::new(),
+        shown: BTreeMap::new(),
+    });
     answers.insert(
         task.clone(),
         AnswerFacts {
             prompt,
-            wire,
             busy: Busy::Idle,
-            session,
-            shown,
+            ..known
         },
     );
     Companion {
@@ -238,6 +246,7 @@ fn answered(state: Companion, wire: AnswerWire) -> Companion {
             wire,
             busy: Busy::Idle,
             session: None,
+            routing: Vec::new(),
             shown: BTreeMap::new(),
         },
     };

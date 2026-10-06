@@ -54,6 +54,7 @@ fn facts(id: &str, phase: AnswerPhase) -> AnswerFacts {
         wire: wire(id, phase),
         busy: Busy::Idle,
         session: None,
+        routing: Vec::new(),
         shown: BTreeMap::new(),
     }
 }
@@ -707,6 +708,45 @@ fn an_answers_named_session_is_kept_and_a_refused_handle_reads_plainly() {
             .get(&handle)
             .map(String::as_str),
         Some("#7")
+    );
+}
+
+#[test]
+fn an_answers_routing_is_kept_through_its_views_and_replaced_when_it_changes() {
+    let note: Vec<companion_wire::RouteNote> = serde_json::from_str(
+        r#"[{"stage":"answer","served":{"account":"a","model":"claude-haiku-4-5","locality":{"kind":"on_device"}},"why":[],"reached":null}]"#,
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let state = state_with(&[facts("t-1", AnswerPhase::Thinking)], &[], Summon::Rest);
+    assert_eq!(state.answers[&task("t-1")].routing, Vec::new());
+    let routed = step_of(
+        state,
+        CompanionEvent::Routing {
+            task: task("t-1"),
+            notes: note.clone(),
+        },
+    );
+    assert_eq!(routed.answers[&task("t-1")].routing, note);
+    let viewed = step_of(
+        routed.clone(),
+        CompanionEvent::Answer(Box::new(wire("t-1", AnswerPhase::Done))),
+    );
+    assert_eq!(
+        viewed.answers[&task("t-1")].routing,
+        note,
+        "a view keeps it"
+    );
+    let elsewhere = step_of(
+        routed,
+        CompanionEvent::Routing {
+            task: task("t-9"),
+            notes: Vec::new(),
+        },
+    );
+    assert_eq!(
+        elsewhere.answers[&task("t-1")].routing,
+        note,
+        "another answer's notes are not this one's"
     );
 }
 

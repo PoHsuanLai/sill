@@ -122,6 +122,7 @@ async fn bench(acts: ActsAs, first: &AnswerWire) -> Option<Bench> {
                 log: desk.log.clone(),
                 view: view.clone(),
                 acts,
+                routing: None,
             },
         )
         .await
@@ -525,6 +526,7 @@ async fn something_said_to_a_subagent_is_recorded_sent_and_told_to_the_companion
                 log: desk.log.clone(),
                 view,
                 acts: ActsAs::Accepts,
+                routing: None,
             },
         )
         .await

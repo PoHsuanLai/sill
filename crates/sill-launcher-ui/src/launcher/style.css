@@ -14,3 +14,5 @@
    wrapper only fills the aside's width. The body widens to the card's and the pane's room while
    the pane is there (written inline from the layer's constants). */
 .sill-launcher-preview{ display:flex; flex-direction:column; flex:1; min-width:0; }
+/* How an answer was reached: one quiet line under the answer's card, in the secondary text. */
+.sill-route-line{ margin:var(--s-8) 0 0; font-size:var(--fs-caption); color:var(--ink-faint); }

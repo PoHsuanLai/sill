@@ -7,6 +7,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyview_peek::{AnyPeeked, Pane};
+use companion_wire::footer_line;
 use dioxus::prelude::*;
 use ds::components::companion::answer::view::AnswerCard;
 use ds::components::content::image_source::{ImageSize, ImageSource};
@@ -149,10 +150,15 @@ fn answer_card(task: &prov::TaskId, companion: &Companion) -> PaneContent {
         display: &display,
     };
     let view = without_actions(answer_view(&answer.wire, &answer.prompt, &cx));
+    // How the answer was reached, in the words the companion's wire crate prints; no stage, no line.
+    let route = footer_line(&answer.routing);
     PaneContent::Slot {
         label: answer.prompt.clone(),
         element: rsx! {
             AnswerCard { view, on_action: move |_| {} }
+            if !route.is_empty() {
+                p { class: "sill-route-line", "{route}" }
+            }
         },
     }
 }

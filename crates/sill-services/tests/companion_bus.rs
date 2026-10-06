@@ -71,6 +71,7 @@ async fn a_serving_app_takes_the_summon_and_the_launcher_stays_shut() {
                 log: desk.log.clone(),
                 view: Arc::default(),
                 acts: ActsAs::Accepts,
+                routing: None,
             },
         )
         .await
@@ -159,6 +160,7 @@ async fn an_ask_opens_a_session_records_the_turn_and_follows_the_answer() {
                 log: desk.log.clone(),
                 view: view.clone(),
                 acts: ActsAs::Accepts,
+                routing: None,
             },
         )
         .await

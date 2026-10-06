@@ -7331,6 +7331,7 @@ dependencies = [
  "md-5 0.10.6",
  "png",
  "prov",
+ "serde_json",
  "shell-host",
  "sill-launcher",
  "sill-model",

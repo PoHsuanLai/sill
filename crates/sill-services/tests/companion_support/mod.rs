@@ -332,3 +332,16 @@ pub fn timeline_entry(seq: u64) -> TimelineEntry {
         undo: UndoRef::None,
     }
 }
+
+/// The stages of a turn as `Routing` carries them: `Answered by Claude Haiku 4.5 via OpenRouter
+/// (already loaded)`.
+pub fn haiku_notes() -> Vec<companion_wire::RouteNote> {
+    route_notes(
+        r#"[{"stage":"answer","served":{"account":"openrouter","model":"claude-haiku-4-5","locality":{"kind":"cloud","v":{"region":null}}},"why":[{"kind":"warm"}],"reached":{"provider":"openrouter","door":"gateway"}}]"#,
+    )
+}
+
+/// Notes from the JSON `Routing` carries.
+pub fn route_notes(text: &str) -> Vec<companion_wire::RouteNote> {
+    serde_json::from_str(text).unwrap_or_else(|e| panic!("{e}"))
+}

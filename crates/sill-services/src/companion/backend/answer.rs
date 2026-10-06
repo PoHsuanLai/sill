@@ -4,7 +4,7 @@
 //! `Updated`. A card button is `Answer.Act`, which answers at once: what the call comes to is the
 //! answer's own plan, which `Updated` carries.
 
-use companion_wire::{AnswerWire, AskWire};
+use companion_wire::{AnswerWire, AskWire, RouteNote};
 use docket_client::{DbusTransport, Intents};
 use docket_core::{
     CardActionId, Origin, SessionOpen, SessionOpened, TurnIn, TurnSource, TurnVia, UserTurn,
@@ -96,28 +96,56 @@ pub(super) async fn follow(
     let Ok(mut updates) = proxy.receive_updated().await else {
         return;
     };
+    // `Routing` changes while stages happen; an older companion has no such property.
+    let mut routing = proxy.receive_routing_changed().await;
     // The session is read once, as the answer appears, and kept with its state.
     let session = proxy
         .session()
         .await
         .ok()
         .and_then(|session| SessionId::parse(&session).ok());
-    if let Some(wire) = proxy
+    let first = proxy
         .view()
         .await
         .ok()
-        .and_then(|view| from_json::<AnswerWire>(&view).ok())
+        .and_then(|view| from_json::<AnswerWire>(&view).ok());
+    let task = first.as_ref().map(|wire| wire.task.clone());
+    if let Some(wire) = first
         && !publish(&events, wire, session.clone())
     {
         return;
     }
-    while let Some(signal) = next(&mut updates).await {
-        let Ok(args) = signal.args() else { continue };
-        if let Ok(wire) = from_json::<AnswerWire>(args.view())
-            && !publish(&events, wire, session.clone())
-        {
-            return;
+    if let Some(task) = &task {
+        notes(&events, task, proxy.routing().await.ok());
+    }
+    loop {
+        tokio::select! {
+            Some(signal) = next(&mut updates) => {
+                let Ok(args) = signal.args() else { continue };
+                if let Ok(wire) = from_json::<AnswerWire>(args.view())
+                    && !publish(&events, wire, session.clone())
+                {
+                    return;
+                }
+            }
+            Some(changed) = next(&mut routing) => {
+                if let Some(task) = &task {
+                    notes(&events, task, changed.get().await.ok());
+                }
+            }
+            else => return,
         }
+    }
+}
+
+/// Tell the service what the answer's `Routing` says. A property that cannot be read or is not
+/// notes (an older companion has none) says nothing.
+fn notes(events: &UnboundedSender<CompanionEvent>, task: &TaskId, routing: Option<String>) {
+    if let Some(notes) = routing.and_then(|json| from_json::<Vec<RouteNote>>(&json).ok()) {
+        let _ = events.send(CompanionEvent::Routing {
+            task: task.clone(),
+            notes,
+        });
     }
 }
 

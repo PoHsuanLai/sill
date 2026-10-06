@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use almanac_core::TimelineEntry;
-use companion_wire::AnswerWire;
+use companion_wire::{AnswerWire, RouteNote};
 use cua_bus::{BudgetBody, CuaOutcome, RunStateSlug};
 use docket_core::{ActionRef, CardActionId, Handle, Hit, RunMode, UndoEntry};
 use prov::{AppName, EntityKind, RunId, SessionId, TaskId};
@@ -36,6 +36,9 @@ pub struct AnswerFacts {
     /// The router session the answer's object names, read once when it appeared: a handle
     /// resolves only in the session that holds it. `None` until it is read.
     pub session: Option<SessionId>,
+    /// How the answer's last model turn was reached, as its `Routing` property says: empty until
+    /// a model announced a stage (and for a companion without the property).
+    pub routing: Vec<RouteNote>,
     /// The text behind each handle of the answer, as the router showed it to the screen. It
     /// is for drawing only: nothing here is ever sent back to a model.
     pub shown: BTreeMap<Handle, String>,

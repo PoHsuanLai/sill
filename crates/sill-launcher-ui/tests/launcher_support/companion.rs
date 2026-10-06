@@ -52,6 +52,7 @@ pub fn answer(id: &str, prompt: &str, phase: AnswerPhase, body: AnswerBody) -> A
         },
         busy: Busy::Idle,
         session: None,
+        routing: Vec::new(),
         shown: std::collections::BTreeMap::new(),
     }
 }
@@ -97,4 +98,26 @@ pub fn fresh() -> Summon {
     Summon::InLauncher {
         origin: LauncherOrigin::Fresh { window: None },
     }
+}
+
+/// `answer` as it was reached through `notes` (the JSON the `Routing` property carries).
+pub fn routed(answer: AnswerFacts, notes: &str) -> AnswerFacts {
+    AnswerFacts {
+        routing: serde_json::from_str(notes).unwrap_or_else(|e| panic!("{e}")),
+        ..answer
+    }
+}
+
+/// The notes of one answering stage on a hosted model.
+pub const HAIKU: &str = r#"[{"stage":"answer","served":{"account":"openrouter","model":"claude-haiku-4-5","locality":{"kind":"cloud","v":{"region":null}}},"why":[{"kind":"warm"}],"reached":{"provider":"openrouter","door":"gateway"}}]"#;
+
+/// An answer that failed because the named model could not serve, with the reason as the
+/// companion words it.
+pub fn declined(why: &str) -> AnswerFacts {
+    answer(
+        "t-3",
+        "ask Kimi",
+        AnswerPhase::Failed,
+        AnswerBody::Refused(companion_wire::RefusalWire::Failed(why.to_owned())),
+    )
 }

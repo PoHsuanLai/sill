@@ -251,6 +251,7 @@ mod tests {
             },
             busy: Busy::Idle,
             session: None,
+            routing: Vec::new(),
             shown: std::collections::BTreeMap::new(),
         }
     }

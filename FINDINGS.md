@@ -745,3 +745,12 @@ A settled item is deleted, not marked closed.
   is shown through the session the ask opened, if sill asked it, and the service logs that once.
 - **After Close** `Session.Display` is refused: the handle reads as its plain fallback, `#n`, and is
   not asked again.
+
+## routing-footer: how an answer was reached
+
+- **Now.** The service reads `Answer.Routing` (JSON `Vec<RouteNote>`) when an answer's object appears and on every
+  `PropertiesChanged`, as `CompanionEvent::Routing`, kept in `AnswerFacts.routing`. The launcher's answer card shows
+  `companion_wire::footer_line` of it as one caption line (`.sill-route-line`, quire tokens only); no notes, no line.
+- **Older companiond.** An object without the property keeps `[]`: no footer, nothing logged.
+- **Declined.** A named model that cannot serve arrives as `RefusalWire::Failed(reason)`; the card shows that reason.
+- Test: `companion_routing_bus.rs`, `launcher_companion.rs`.

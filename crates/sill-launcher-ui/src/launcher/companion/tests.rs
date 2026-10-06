@@ -296,6 +296,7 @@ fn answer_in(phase: companion_wire::AnswerPhase) -> sill_model::companion::Compa
             wire,
             busy: Busy::Idle,
             session: None,
+            routing: Vec::new(),
             shown: std::collections::BTreeMap::new(),
         },
     );

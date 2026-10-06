@@ -2,7 +2,7 @@
 //! outside.
 
 use almanac_core::{MemoryItem, TimelineEntry};
-use companion_wire::AnswerWire;
+use companion_wire::{AnswerWire, RouteNote};
 use docket_core::{
     CallRequest, CardActionId, ContextKeep, Handle, Hit, SummonAnswer, SummonSerial, UndoEntry,
     UndoScope,
@@ -193,6 +193,13 @@ pub enum CompanionEvent {
         task: TaskId,
         /// The session its handles are shown through.
         session: Option<SessionId>,
+    },
+    /// The answer object's `Routing` property, read as it appeared and again when it changed.
+    Routing {
+        /// The answer.
+        task: TaskId,
+        /// The stages of its last model turn.
+        notes: Vec<RouteNote>,
     },
     /// A run appeared or changed.
     Run(Box<RunFacts>),
