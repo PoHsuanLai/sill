@@ -352,11 +352,42 @@ step_toggle_on() {
     sleep 0.1
   done
   if [ "$COMPOSITOR" = casement ]; then
-    # What follows covers the layer with a terminal and a maximised window and reads output
-    # screenshots: window management (P1/P2) and `casementctl shot` (P1-C1) on casement.
+    # casement has `casementctl shot --output` (the desktop as the output shows it) but no terminal
+    # to cover part of the layer: only the maximised window, from casement-probe, is tried. A
+    # compositor that does not configure it maximised (window management, P1/P2) leaves the cover
+    # check as an expected skip.
     [ "$frames" = 2 ] && [[ "$saved" == *calendar* ]] && [[ "$saved" == *battery* ]] || return 1
-    expected_skip "windows over the desktop widgets, read off output screenshots: needs casement's window management (P1/P2) and casementctl shot (P1-C1)"
-    return 2
+    shot "$SHOTS/widgets-desktop-casement.png" || { echo "casementctl shot failed" >&2; return 1; }
+    in_env timeout 60 "$(casement_bin casement-probe)" toplevel --maximised >"$OUT_DIR/probe.log" 2>&1 </dev/null &
+    local cprobe=$! cover=0
+    for _ in $(seq 100); do
+      grep -qE '"maxim(ised|ized)":true' "$OUT_DIR/probe.log" && { cover=1; break; }
+      sleep 0.1
+    done
+    if [ "$cover" = 0 ]; then
+      kill "$cprobe" 2>/dev/null; wait "$cprobe" 2>/dev/null
+      expected_skip "a maximised window over the desktop widgets: casement-probe is never configured maximised yet (window management, P1/P2)"
+      return 2
+    fi
+    sleep 1
+    shot "$OUT_DIR/covered.png" || echo "casementctl shot failed" >&2
+    kill "$cprobe" 2>/dev/null; wait "$cprobe" 2>/dev/null
+    local diff
+    diff=$(python3 - "$SHOTS/widgets-desktop-casement.png" "$OUT_DIR/covered.png" \
+      "$(head -1 "$OUT_DIR/desktop-frames.txt")" "$BAR_H" <<'EOF2'
+import sys
+from PIL import Image
+shown, covered = (Image.open(p).convert("RGB") for p in sys.argv[1:3])
+l, t, r, b = map(int, sys.argv[3].split())
+dy = int(sys.argv[4])
+box = (l + 8, t + dy + 8, r - 8, b + dy - 8)
+d = sum(abs(p - q) for p, q in zip(shown.crop(box).tobytes(), covered.crop(box).tobytes()))
+print(d // max(1, (box[2] - box[0]) * (box[3] - box[1])))
+EOF2
+)
+    echo "toggle-desktop: $LAYER up, widgets.desktop = on, $frames frames, saved $saved; a maximised window over the first frame changes it by $diff per pixel" | tee -a "$log" >&2
+    [ "${diff:-0}" -gt 30 ]
+    return
   fi
   # A COSMIC Terminal in the nested session (its own scratch config and private bus), over part
   # of the layer.
