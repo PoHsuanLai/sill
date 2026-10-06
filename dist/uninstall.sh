@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Remove what dist/install.sh put in place: the binary, the session script, the login-screen
-# entry, the user target, the PAM service, the intents manifest and the seed files. Plasma, Toshy,
+# entry, the user target, the PAM service, the intents manifest, the skills and the seed files. Plasma, Toshy,
 # keycap's system files and your own config are not touched. Run as yourself; sudo asks once.
 #
 #   dist/uninstall.sh --dry-run        print every step, change nothing
@@ -43,6 +43,12 @@ if [ "${FLAG_forget_seeds:-0}" = 1 ]; then
     note "kept (you changed it): $KEYCAP_LAYER_DEST"
   fi
 fi
+while IFS= read -r file; do
+  if [ -e "$SKILLS_DEST/$file" ]; then run sudo rm -f "$SKILLS_DEST/$file"; else note "already gone: $SKILLS_DEST/$file"; fi
+done < <(skills)
+for id in $(cd "$DIST/skills" && ls); do
+  [ ! -d "$SKILLS_DEST/$id" ] || run sudo rmdir --ignore-fail-on-non-empty "$SKILLS_DEST/$id"
+done
 if [ -d "$SEED_DEST" ]; then run sudo rm -rf "$SEED_DEST"; else note "already gone: $SEED_DEST"; fi
 
 step "3/3 the user manager"

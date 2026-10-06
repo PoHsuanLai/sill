@@ -1,0 +1,9 @@
+prompt = "Turn on the sidebar"
+context = "menu listing: View > Show Sidebar is id v7; the app declares no action for it"
+[[expect.calls]]
+action = "org.quire.Shell:shell.menu.list"
+[[expect.calls]]
+action = "org.quire.Shell:shell.menu.activate"
+args = { item = "v7" }
+[expect]
+confirms = true

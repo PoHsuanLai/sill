@@ -16,6 +16,9 @@ PAM_DEST=/etc/pam.d/sill
 # What the shell can be asked to do (`org.quire.Shell`): intentd reads every manifest under
 # $XDG_DATA_DIRS/quire/intents/, and /usr/local/share is in the default XDG_DATA_DIRS.
 INTENTS_DEST=/usr/local/share/quire/intents/org.quire.Shell.toml
+# The skills sill teaches the companion (dist/skills/<id>/): docket's loader reads every directory
+# under $XDG_DATA_DIRS/quire/skills/.
+SKILLS_DEST=/usr/local/share/quire/skills
 # The seed files sill-session copies into ~/.config/cosmic when they are missing there: the
 # shortcuts (dist/cosmic) and the keyboard repeat. System-wide COSMIC defaults under
 # /usr/share/cosmic belong to cosmic-settings-daemon's package, so nothing is written there.
@@ -59,6 +62,9 @@ put() {
   fi
   run sudo install -D -m "$mode" "$src" "$dest"
 }
+
+# skills: the skill files' paths relative to dist/skills, one per line (evals are not installed).
+skills() { (cd "$DIST/skills" && find . -type f -not -path '*/evals/*' | sed 's|^\./||' | sort); }
 
 # seeds: the seed files' paths relative to dist/cosmic, one per line.
 seeds() { (cd "$DIST/cosmic" && find . -type f | sed 's|^\./||' | sort); }

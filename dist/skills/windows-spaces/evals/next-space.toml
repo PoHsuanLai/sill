@@ -1,0 +1,5 @@
+# No case format is run yet (docket FINDINGS: evals not run); written to skills.md section 6's shape.
+prompt = "Go to the next space"
+[[expect.calls]]
+action = "org.quire.Shell:shell.workspace.switch"
+args = { direction = "next" }

@@ -1,0 +1,9 @@
+vocab = 1
+id = "windows-spaces"
+owner = "org.quire.Shell"
+version = "0.1.0"
+uses = ["org.quire.Shell:shell.workspace.switch", "org.quire.Shell:shell.launcher.open"]
+[when]
+focused_app = []
+kinds = []
+always = "no"

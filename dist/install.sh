@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Install the sill session from this checkout: build `sill` in release, then put the binary, the
 # session script, the login-screen entry, the user target, the PAM service, the intents manifest
-# (`org.quire.Shell`, for intentd and `quire-do`) and the COSMIC seed files where a login reads
-# them, and copy the keycap layer for the sill session to ~/.config/keycap/keycap.toml when that
+# (`org.quire.Shell`, for intentd and `quire-do`), the companion skills (dist/skills) and the COSMIC
+# seed files where a login reads them, and copy the keycap layer for the sill session to ~/.config/keycap/keycap.toml when that
 # file is missing (never over yours). Run as yourself; sudo asks once. Safe to run again.
 #
 #   dist/install.sh --dry-run    print every step, change nothing (no build; the lock check still runs)
@@ -43,12 +43,16 @@ step "4/8 the binary and the session script"
 put 755 "$BUILT" "$BIN_DEST"
 put 755 "$DIST/sill-session" "$SESSION_DEST"
 
-step "5/8 the login-screen entry, the user target, the PAM service and the intents manifest"
+step "5/8 the login-screen entry, the user target, the PAM service, the intents manifest and the skills"
 put 644 "$DIST/sill.desktop" "$DESKTOP_DEST"
 put 644 "$DIST/sill-session.target" "$TARGET_DEST"
 put 644 "$DIST/pam.d/sill" "$PAM_DEST"
 # intentd (docket) lists it, and `quire-do shell --list` shows it: sill serves it as `org.quire.Shell`.
 put 644 "$DIST/intents/org.quire.Shell.toml" "$INTENTS_DEST"
+# The skills the companion loads (docket-eval --check-skills validates them); they grant nothing.
+while IFS= read -r file; do
+  put 644 "$DIST/skills/$file" "$SKILLS_DEST/$file"
+done < <(skills)
 
 step "6/8 the COSMIC seed files (copied into ~/.config/cosmic at login when missing; never overwritten)"
 while IFS= read -r file; do

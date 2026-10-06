@@ -1,0 +1,7 @@
+prompt = "Hide this app"
+context = "menu listing has item id h1 labelled Hide (built by the shell)"
+[[expect.calls]]
+action = "org.quire.Shell:shell.menu.list"
+[[expect.calls]]
+action = "org.quire.Shell:shell.menu.activate"
+args = { item = "h1" }

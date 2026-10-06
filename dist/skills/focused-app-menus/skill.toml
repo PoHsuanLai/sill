@@ -1,0 +1,9 @@
+vocab = 1
+id = "focused-app-menus"
+owner = "org.quire.Shell"
+version = "0.1.0"
+uses = ["org.quire.Shell:shell.menu.list", "org.quire.Shell:shell.menu.activate"]
+[when]
+focused_app = []
+kinds = []
+always = "no"
