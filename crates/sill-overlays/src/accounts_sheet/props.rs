@@ -25,7 +25,8 @@ use ds_shell::accounts::model::{
     ServiceOffer, SignInFault,
 };
 use porter_core::sheet::{
-    Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, ServiceState, SheetView,
+    Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, RowKind, ServiceState,
+    SheetView,
 };
 use porter_core::{AccountId, ProviderId, Toggle};
 use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
@@ -136,8 +137,10 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                 .map(|account| ChoiceKey(account.as_str().to_owned())),
         }),
         SheetView::Providers(rows) => Step::Providers(ProvidersProps {
+            // The generic row is ProviderList's own "Other…", so it is not listed twice.
             providers: rows
                 .iter()
+                .filter(|row| row.kind != RowKind::Generic)
                 .map(|row| ProviderEntry {
                     key: ProviderKey(row.id.as_str().to_owned()),
                     label: row.label.clone(),

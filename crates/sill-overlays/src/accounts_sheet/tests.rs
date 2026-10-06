@@ -109,6 +109,13 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             mark: "google".to_owned(),
             kind: RowKind::Provider,
         },
+        // ProviderList draws its own "Other…": the generic row is not a second one.
+        ProviderRow {
+            id: provider("imap"),
+            label: "Other mail account".to_owned(),
+            mark: "imap".to_owned(),
+            kind: RowKind::Generic,
+        },
     ]);
     let form = SheetView::SignIn(SignInView {
         provider: provider("nextcloud"),
