@@ -282,7 +282,9 @@ vision-prep = { path = "../stoker/crates/vision-prep" }
 almanac-core = { path = "../almanac/crates/almanac-core" }
 
 [patch."https://github.com/PoHsuanLai/docket"]
+docket-client = { path = "../docket/crates/docket-client" }
 docket-core = { path = "../docket/crates/docket-core" }
+docket-dbus = { path = "../docket/crates/docket-dbus" }
 
 [patch."https://github.com/PoHsuanLai/porter"]
 porter-core = { path = "../porter/crates/porter-core" }
