@@ -18,7 +18,7 @@ use sill_model::accounts::sheet::{
     AccountsSheetCommand, AccountsSheets, SheetEvent, SheetHandle, SheetLink, SheetOut, step,
 };
 use sill_overlays::AccountsSheet;
-use sill_ui_kit::harness::{SurfaceHarness, fake};
+use sill_ui_kit::harness::{FocusFallback, SurfaceHarness, fake};
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::links::{BannerLink, BannerOutput};
 
@@ -35,6 +35,17 @@ const PROVIDERS: &str = r#"{"kind":"providers","v":[
 const FORM: &str = r#"{"kind":"sign_in","v":{"provider":"nextcloud","fields":[
   {"kind":"address","entry":"plain","presence":"required","prefill":null},
   {"kind":"password","entry":"secret","presence":"required","prefill":null}],"problem":null}}"#;
+/// The hand-typed server form of a mail account: the protocol is a pop-up, then the server.
+const MANUAL: &str = r#"{"kind":"sign_in","v":{"provider":"generic-imap","fields":[
+  {"kind":"address","entry":"plain","presence":"required","prefill":null},
+  {"kind":"protocol","entry":"plain","presence":"required","prefill":"imap"},
+  {"kind":"server","entry":"plain","presence":"required","prefill":null},
+  {"kind":"security","entry":"plain","presence":"required","prefill":"tls"},
+  {"kind":"port","entry":"plain","presence":"optional","prefill":"993"},
+  {"kind":"outgoing_server","entry":"plain","presence":"required","prefill":null},
+  {"kind":"outgoing_security","entry":"plain","presence":"required","prefill":"tls"},
+  {"kind":"outgoing_port","entry":"plain","presence":"optional","prefill":"465"},
+  {"kind":"username","entry":"plain","presence":"optional","prefill":null}],"problem":null}}"#;
 const REFUSED: &str = r#"{"kind":"sign_in","v":{"provider":"nextcloud","fields":[
   {"kind":"address","entry":"plain","presence":"required","prefill":null},
   {"kind":"password","entry":"secret","presence":"required","prefill":null}],
@@ -74,11 +85,16 @@ struct Run {
 }
 
 fn start_on(output: OutputId, environment: Environment) -> Run {
+    start_with(output, environment, FocusFallback::default())
+}
+
+fn start_with(output: OutputId, environment: Environment, focus: FocusFallback) -> Run {
     let link = BannerLink::new();
     link.set(BannerOutput::On(output));
     let mut running = SurfaceHarness::<AccountsSheet>::setup(link, ())
         .viewport(VIEWPORT)
         .appearance(PinnedAppearance(environment))
+        .focus(focus)
         .start();
     running.harness.advance(Duration::from_millis(40));
     let sheets = AccountsSheets {
@@ -402,6 +418,64 @@ fn add_account_on_an_alert_with_no_fitting_account_answers_add_account() {
         run.told(),
         vec![SheetInput::Answer(ConsentAnswer::AddAccount)]
     );
+}
+
+/// The protocol the draft holds, as its slug.
+fn protocol_held(run: &Run) -> Option<&'static str> {
+    let draft = run
+        .sheets
+        .open
+        .first()
+        .map(|sheet| format!("{:?}", sheet.draft))?;
+    ["imap", "pop3", "jmap"].into_iter().find(|slug| {
+        draft.contains(&format!(
+            "kind: Protocol, entry: Plain, presence: Required, value: Plain(\"{slug}\")"
+        ))
+    })
+}
+
+/// Choose POP3 in the protocol pop-up from the keyboard: Tab to it, Down to open (the highlight
+/// starts on the chosen IMAP), Down to POP3 and Enter.
+fn choose_pop3_by_keys(run: &mut Run) {
+    run.key(ShortcutKey::Tab);
+    run.key(ShortcutKey::Down);
+    assert_eq!(run.count(".ds-menu"), 1, "{}", run.running.harness.html());
+    run.key(ShortcutKey::Down);
+    run.key(ShortcutKey::Enter);
+    // The pick blinks, then the menu fades out and the choice reaches the service.
+    run.running.harness.advance(Duration::from_millis(600));
+    run.pump();
+}
+
+/// After the choice the pop-up has the keyboard again: Tab leaves it for the server field, which
+/// takes the typing.
+fn tab_and_type_after_choosing(mut run: Run) {
+    run.open(MANUAL);
+    choose_pop3_by_keys(&mut run);
+    assert_eq!(run.count(".ds-menu"), 0, "the menu closed");
+    assert_eq!(protocol_held(&run), Some("pop3"));
+    run.key(ShortcutKey::Tab);
+    run.text("pop.example.org");
+    let held = format!("{:?}", run.sheets.open.first().map(|sheet| &sheet.draft));
+    assert!(held.contains("Plain(\"pop.example.org\")"), "{held}");
+}
+
+#[test]
+fn after_a_pop_up_choice_by_keys_tab_and_typing_go_to_the_next_field() {
+    tab_and_type_after_choosing(start());
+}
+
+/// Quire's hand-back of the keyboard needs a focus keeper that shell-host's documents do not
+/// have yet (`ds_blitz::provide_host` wires none): on `BlitzDefault`, the focus a closed menu
+/// leaves is nowhere and Tab and typing are dropped. Run it when a host wires the keeper.
+#[test]
+#[ignore = "quire/shell-host: a shell-host surface has no focus keeper to hand the keyboard back"]
+fn after_a_pop_up_choice_by_keys_on_the_hosts_wiring_tab_and_typing_go_to_the_next_field() {
+    tab_and_type_after_choosing(start_with(
+        fake::output().id,
+        Environment::default(),
+        FocusFallback::BlitzDefault,
+    ));
 }
 
 /// The steps as pictures, light and dark, when `SILL_SHOTS` names a directory.

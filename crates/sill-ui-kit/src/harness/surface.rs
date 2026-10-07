@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
+use ds_blitz::FocusFallback;
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use ds_settings::{Environment, UserStyle};
 use shell_host::{LayerExtent, OutputInfo};
@@ -79,6 +80,7 @@ pub struct SurfaceSetup<S: Surface> {
     services: Option<(Services, fake::Feeds)>,
     root_hook: Option<Rc<dyn Fn()>>,
     user_style: UserStyle,
+    focus: FocusFallback,
 }
 
 impl<S: Surface> fmt::Debug for SurfaceSetup<S> {
@@ -114,6 +116,7 @@ impl<S: Surface> SurfaceHarness<S> {
             services: None,
             root_hook: None,
             user_style: UserStyle::default(),
+            focus: FocusFallback::default(),
         }
     }
 }
@@ -163,6 +166,14 @@ impl<S: Surface> SurfaceSetup<S> {
         self
     }
 
+    /// Where the keyboard goes when the element that had it leaves the document. The harness
+    /// hands it on to an ancestor, as a window of quire's own does; `BlitzDefault` is what a
+    /// shell-host surface has today, which wires no focus keeper.
+    pub fn focus(mut self, focus: FocusFallback) -> Self {
+        self.focus = focus;
+        self
+    }
+
     /// Mount the surface and draw its first frame.
     pub fn start(self) -> SurfaceHarness<S> {
         let SurfaceSetup {
@@ -175,6 +186,7 @@ impl<S: Surface> SurfaceSetup<S> {
             services,
             root_hook,
             user_style,
+            focus,
         } = self;
         let viewport = viewport.unwrap_or_else(|| layer_viewport::<S>(&output, &settings, slot));
         let (services, feeds) = services.unwrap_or_else(fake::services);
@@ -198,7 +210,12 @@ impl<S: Surface> SurfaceSetup<S> {
             mount::<S>(MountProps::new(output.clone(), slot))
         });
         WORLD.with(|world| *world.borrow_mut() = Some(build));
-        let harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+        let harness = Harness::new(
+            app,
+            HarnessConfig::new(viewport)
+                .with_clock(Clock::Virtual)
+                .with_focus_fallback(focus),
+        );
         SurfaceHarness {
             harness,
             feeds,
