@@ -20,9 +20,9 @@ use ds::components::content::provider_mark::MarkProvider;
 use ds::prelude::Check;
 use ds_shell::accounts::hidden::Hidden;
 use ds_shell::accounts::model::{
-    AccountChoice, Attempt, ChoiceKey, CopyState, FieldProblem, FieldRole, FieldText, FormField,
-    ProblemKind, ProviderEntry, ProviderKey, ProviderPick, Requirement, ServiceKey, ServiceLine,
-    ServiceOffer, SignInFault,
+    AccountChoice, Attempt, Choice, ChoiceKey, CopyState, FieldProblem, FieldRole, FieldText,
+    FormField, FormPart, ProblemKind, ProviderEntry, ProviderKey, ProviderPick, Requirement,
+    ServiceKey, ServiceLine, ServiceOffer, SignInFault,
 };
 use porter_core::sheet::{
     Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, RowKind, ServiceState,
@@ -32,8 +32,8 @@ use porter_core::{AccountId, ProviderId, Toggle};
 use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 
 use super::words::{
-    absence_of, app_name, fault_of, limit_of, mark_of, provider_label, request_phrase, service_key,
-    service_name,
+    absence_of, app_name, choice_label, fault_of, limit_of, mark_of, provider_label,
+    request_phrase, service_key, service_name, usual_port,
 };
 
 /// What the consent alert is given.
@@ -158,33 +158,28 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
         SheetView::SignIn(form) => Step::SignIn(SignInProps {
             provider: provider_label(&form.provider),
             mark: mark_of(form.provider.as_str()),
-            fields: draft
-                .fields
-                .iter()
-                .map(|field| FormField {
-                    role: role_of(field.kind),
-                    requirement: match field.presence {
-                        Presence::Required => Requirement::Required,
-                        Presence::Optional => Requirement::Optional,
-                    },
-                    text: match (&field.value, field.entry) {
-                        (FieldValue::Secret(text), _) => {
-                            FieldText::Secret(Hidden::new(text.expose()))
-                        }
-                        (FieldValue::Plain(text), Entry::Plain | Entry::Secret) => {
-                            FieldText::Plain(text.clone())
-                        }
-                    },
+            fields: form_fields(draft),
+            // A refusal from accountd first; else what cannot be right in what is typed (a
+            // port that is no number), marked on its field as it is typed. An empty required
+            // field is not marked: Continue says it.
+            problem: form
+                .problem
+                .map(|problem| (problem.field, problem.problem))
+                .or_else(|| {
+                    draft
+                        .problem(&form.fields)
+                        .filter(|problem| problem.problem == PorterProblem::Invalid)
+                        .map(|problem| (problem.field, problem.problem))
                 })
-                .collect(),
-            problem: form.problem.map(|problem| FieldProblem {
-                role: role_of(problem.field),
-                kind: match problem.problem {
-                    PorterProblem::Missing => ProblemKind::Missing,
-                    PorterProblem::Refused => ProblemKind::Refused,
-                },
-                attempt: Attempt(draft.submits.0),
-            }),
+                .map(|(field, problem)| FieldProblem {
+                    role: role_of(field),
+                    kind: match problem {
+                        PorterProblem::Missing => ProblemKind::Missing,
+                        PorterProblem::Refused => ProblemKind::Refused,
+                        PorterProblem::Invalid => ProblemKind::Invalid,
+                    },
+                    attempt: Attempt(draft.submits.0),
+                }),
         }),
         SheetView::BrowserWait { provider, url } => Step::Browser {
             provider: provider_label(provider),
@@ -232,6 +227,80 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
     })
 }
 
+/// The form's fields as drawn: what each holds, its choices, its hint and its group.
+fn form_fields(draft: &Draft) -> Vec<FormField> {
+    let held = |kind| {
+        draft
+            .fields
+            .iter()
+            .find(|field| field.kind == kind)
+            .and_then(|field| match &field.value {
+                FieldValue::Plain(text) => Some(text.as_str()),
+                FieldValue::Secret(_) => None,
+            })
+    };
+    let protocol = held(FieldKind::Protocol).unwrap_or("imap");
+    // Only the hand-typed server form is grouped; the others stay one plain list.
+    let manual = draft.fields.iter().any(|f| f.kind == FieldKind::Protocol);
+    let security = |kind| held(kind).unwrap_or("tls");
+    draft
+        .fields
+        .iter()
+        .map(|field| {
+            let base = FormField::new(
+                role_of(field.kind),
+                match field.presence {
+                    Presence::Required => Requirement::Required,
+                    Presence::Optional => Requirement::Optional,
+                },
+                match (&field.value, field.entry) {
+                    (FieldValue::Secret(text), _) => FieldText::Secret(Hidden::new(text.expose())),
+                    (FieldValue::Plain(text), Entry::Plain | Entry::Secret) => {
+                        FieldText::Plain(text.clone())
+                    }
+                },
+            );
+            let base = match field.kind.choices() {
+                [] => base,
+                slugs => base.choosing(
+                    slugs
+                        .iter()
+                        .map(|slug| Choice::new(*slug, choice_label(slug)))
+                        .collect(),
+                ),
+            };
+            let base = match field.kind {
+                FieldKind::Port => base
+                    .hinted(usual_port(protocol, false, security(FieldKind::Security)).to_string()),
+                FieldKind::OutgoingPort => base.hinted(
+                    usual_port(protocol, true, security(FieldKind::OutgoingSecurity)).to_string(),
+                ),
+                _ => base,
+            };
+            match part_of(field.kind).filter(|_| manual) {
+                Some(part) => base.in_part(part),
+                None => base,
+            }
+        })
+        .collect()
+}
+
+/// The group a field of the hand-typed server form sits in; the other forms have none.
+fn part_of(kind: FieldKind) -> Option<FormPart> {
+    match kind {
+        FieldKind::Protocol
+        | FieldKind::Server
+        | FieldKind::Port
+        | FieldKind::Security
+        | FieldKind::SessionUrl => Some(FormPart::Incoming),
+        FieldKind::OutgoingServer | FieldKind::OutgoingPort | FieldKind::OutgoingSecurity => {
+            Some(FormPart::Outgoing)
+        }
+        FieldKind::Username | FieldKind::Password | FieldKind::Token => Some(FormPart::SignIn),
+        FieldKind::Address | FieldKind::ApiKey => None,
+    }
+}
+
 fn switch(toggle: Toggle) -> Check {
     match toggle {
         Toggle::On => Check::On,
@@ -255,6 +324,13 @@ pub(super) fn role_of(kind: FieldKind) -> FieldRole {
         FieldKind::Password => FieldRole::Password,
         FieldKind::ApiKey => FieldRole::ApiKey,
         FieldKind::Token => FieldRole::Token,
+        FieldKind::Protocol => FieldRole::Protocol,
+        FieldKind::Port => FieldRole::Port,
+        FieldKind::Security => FieldRole::Security,
+        FieldKind::OutgoingServer => FieldRole::OutgoingServer,
+        FieldKind::OutgoingPort => FieldRole::OutgoingPort,
+        FieldKind::OutgoingSecurity => FieldRole::OutgoingSecurity,
+        FieldKind::SessionUrl => FieldRole::SessionUrl,
     }
 }
 
@@ -267,6 +343,13 @@ pub(super) fn kind_of(role: FieldRole) -> FieldKind {
         FieldRole::Password => FieldKind::Password,
         FieldRole::ApiKey => FieldKind::ApiKey,
         FieldRole::Token => FieldKind::Token,
+        FieldRole::Protocol => FieldKind::Protocol,
+        FieldRole::Port => FieldKind::Port,
+        FieldRole::Security => FieldKind::Security,
+        FieldRole::OutgoingServer => FieldKind::OutgoingServer,
+        FieldRole::OutgoingPort => FieldKind::OutgoingPort,
+        FieldRole::OutgoingSecurity => FieldKind::OutgoingSecurity,
+        FieldRole::SessionUrl => FieldKind::SessionUrl,
     }
 }
 

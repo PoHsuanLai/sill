@@ -13,6 +13,7 @@ use super::{form, handle, provider, rows};
 use crate::accounts::sheet::{
     AccountsSheets, Admit, ListKey, SheetAction as Do, SheetEvent as Ev, SheetOut, admits, step,
 };
+use porter_core::sheet::SignInView;
 
 fn run(mut sheets: AccountsSheets, events: Vec<Ev>) -> (AccountsSheets, Vec<SheetOut>) {
     let mut out = Vec::new();
@@ -518,4 +519,109 @@ fn handles_are_short_plain_words() {
     ] {
         assert_eq!(SheetHandle::parse(text).is_some(), ok, "{text}");
     }
+}
+
+fn manual(protocol: porter_core::sheet::Protocol) -> SheetView {
+    SheetView::SignIn(SignInView {
+        provider: provider("generic-imap"),
+        fields: porter_core::sheet::manual_form(protocol, Some("example.org")),
+        problem: None,
+    })
+}
+
+fn kinds(sheets: &AccountsSheets) -> Vec<FieldKind> {
+    let Some(sheet) = sheets.open.first() else {
+        panic!("no sheet");
+    };
+    sheet.draft.fields.iter().map(|f| f.kind).collect()
+}
+
+fn text_of(sheets: &AccountsSheets, kind: FieldKind) -> Option<String> {
+    sheets
+        .open
+        .first()?
+        .draft
+        .fields
+        .iter()
+        .find_map(|f| match &f.value {
+            FieldValue::Plain(text) if f.kind == kind => Some(text.clone()),
+            _ => None,
+        })
+}
+
+#[test]
+fn the_protocol_reshapes_the_server_form_and_keeps_what_survives() {
+    use porter_core::sheet::Protocol;
+    let (sheets, _) = act(
+        opened(manual(Protocol::Imap)),
+        vec![
+            typed(FieldKind::Username, "ada"),
+            typed(FieldKind::Port, "1993"),
+            typed(FieldKind::Protocol, "jmap"),
+        ],
+    );
+    let want: Vec<FieldKind> = vec![
+        FieldKind::Protocol,
+        FieldKind::SessionUrl,
+        FieldKind::Token,
+        FieldKind::Username,
+    ];
+    assert_eq!(kinds(&sheets), want);
+    assert_eq!(
+        text_of(&sheets, FieldKind::Username).as_deref(),
+        Some("ada")
+    );
+    assert_eq!(
+        text_of(&sheets, FieldKind::Protocol).as_deref(),
+        Some("jmap")
+    );
+    assert_eq!(
+        text_of(&sheets, FieldKind::SessionUrl).as_deref(),
+        Some("https://example.org/.well-known/jmap")
+    );
+
+    // And back: the server fields return, the guessed host follows the protocol, a port that
+    // was not typed again is empty, and the login stays.
+    let (sheets, _) = act(sheets, vec![typed(FieldKind::Protocol, "pop3")]);
+    assert!(kinds(&sheets).contains(&FieldKind::OutgoingServer));
+    assert_eq!(
+        text_of(&sheets, FieldKind::Server).as_deref(),
+        Some("pop.example.org")
+    );
+    assert_eq!(text_of(&sheets, FieldKind::Port).as_deref(), Some(""));
+    assert_eq!(
+        text_of(&sheets, FieldKind::Username).as_deref(),
+        Some("ada")
+    );
+}
+
+#[test]
+fn a_port_that_cannot_be_right_keeps_the_form_unsent() {
+    use porter_core::sheet::{ProblemKind, Protocol};
+    let view = manual(Protocol::Imap);
+    let (sheets, out) = act(
+        opened(view.clone()),
+        vec![typed(FieldKind::Port, "ninety"), Do::Submit],
+    );
+    assert_eq!(out, vec![]);
+    let Some(sheet) = sheets.open.first() else {
+        panic!("no sheet");
+    };
+    let SheetView::SignIn(form) = &sheet.view else {
+        panic!("no form");
+    };
+    assert_eq!(
+        sheet
+            .draft
+            .problem(&form.fields)
+            .map(|p| (p.field, p.problem)),
+        Some((FieldKind::Port, ProblemKind::Invalid))
+    );
+
+    // Mended, it goes.
+    let (_, out) = act(
+        opened(view),
+        vec![typed(FieldKind::Port, "1993"), Do::Submit],
+    );
+    assert_eq!(out.len(), 1);
 }

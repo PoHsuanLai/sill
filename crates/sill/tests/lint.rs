@@ -469,7 +469,7 @@ fn voice_consent_states() -> Vec<(&'static str, String)> {
 /// The sheet hidden, then each step accountd can show, and the consent question.
 fn accounts_sheet_states() -> Vec<(&'static str, String)> {
     use sill_model::accounts::sheet::{AccountsSheets, SheetEvent, SheetHandle, SheetLink, step};
-    const VIEWS: [(&str, &str); 6] = [
+    const VIEWS: [(&str, &str); 7] = [
         (
             "providers",
             r#"{"kind":"providers","v":[{"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"}]}"#,
@@ -480,6 +480,19 @@ fn accounts_sheet_states() -> Vec<(&'static str, String)> {
             {"kind":"address","entry":"plain","presence":"required","prefill":null},
             {"kind":"password","entry":"secret","presence":"required","prefill":null}],
             "problem":{"field":"password","problem":"refused"}}}"#,
+        ),
+        (
+            "sign_in_manual",
+            r#"{"kind":"sign_in","v":{"provider":"generic-imap","fields":[
+            {"kind":"protocol","entry":"plain","presence":"required","prefill":"imap"},
+            {"kind":"server","entry":"plain","presence":"required","prefill":"imap.example.org"},
+            {"kind":"security","entry":"plain","presence":"required","prefill":"tls"},
+            {"kind":"port","entry":"plain","presence":"optional","prefill":"993"},
+            {"kind":"outgoing_server","entry":"plain","presence":"required","prefill":"smtp.example.org"},
+            {"kind":"outgoing_security","entry":"plain","presence":"required","prefill":"starttls"},
+            {"kind":"outgoing_port","entry":"plain","presence":"optional","prefill":"465"},
+            {"kind":"username","entry":"plain","presence":"optional","prefill":null}],
+            "problem":null}}"#,
         ),
         (
             "browser",

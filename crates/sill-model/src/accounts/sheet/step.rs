@@ -2,7 +2,7 @@
 
 use porter_core::consent::{ConsentAnswer, GrantScope};
 use porter_core::sheet::RowKind;
-use porter_core::sheet::{FieldAnswer, FieldValue, Presence, SheetInput, SheetView};
+use porter_core::sheet::{FieldKind, FieldSpec, FieldValue, Presence, SheetInput, SheetView};
 use porter_core::{AccountId, WebUrl};
 
 use super::command::{SheetAction, SheetEvent, SheetOut};
@@ -96,7 +96,7 @@ fn act(view: &SheetView, draft: Draft, action: SheetAction) -> (Draft, Option<Sh
             None,
         ),
         (SheetView::Providers(rows), action) => providers(rows, draft, action),
-        (SheetView::SignIn(_), action) => form(draft, action),
+        (SheetView::SignIn(form_view), action) => form(&form_view.fields, draft, action),
         (SheetView::Consent(ask), action) => consent(&ask.accounts, draft, action),
         (SheetView::Review(_), SheetAction::Toggle(kind, toggle)) => (
             Draft {
@@ -142,7 +142,7 @@ fn providers(
     }
 }
 
-fn form(draft: Draft, action: SheetAction) -> (Draft, Option<SheetInput>) {
+fn form(specs: &[FieldSpec], draft: Draft, action: SheetAction) -> (Draft, Option<SheetInput>) {
     match action {
         SheetAction::Type(kind, value) => {
             let fields = draft
@@ -161,33 +161,38 @@ fn form(draft: Draft, action: SheetAction) -> (Draft, Option<SheetInput>) {
                     field
                 })
                 .collect();
-            (Draft { fields, ..draft }, None)
+            let draft = Draft { fields, ..draft };
+            // What decides the shape of the server form reshapes it: the protocol (which fields
+            // there are) and the securities (which port is the usual one).
+            let reshapes = matches!(
+                kind,
+                FieldKind::Protocol | FieldKind::Security | FieldKind::OutgoingSecurity
+            );
+            (
+                match reshapes {
+                    true => draft.refitted(specs),
+                    false => draft,
+                },
+                None,
+            )
         }
-        SheetAction::Submit => submit(draft),
+        SheetAction::Submit => submit(specs, draft),
         _ => (draft, None),
     }
 }
 
 /// Send the form when every required field has text; the secrets leave the draft with it.
-fn submit(draft: Draft) -> (Draft, Option<SheetInput>) {
+fn submit(specs: &[FieldSpec], draft: Draft) -> (Draft, Option<SheetInput>) {
     let ready = draft
         .fields
         .iter()
         .all(|field| field.presence == Presence::Optional || !field.is_blank());
-    if !ready {
+    // Nothing goes while an answer cannot be right either (the same check accountd's machine
+    // makes again).
+    if !ready || draft.problem(specs).is_some() {
         return (draft, None);
     }
-    let answers = draft
-        .fields
-        .iter()
-        .map(|field| FieldAnswer {
-            kind: field.kind,
-            value: match &field.value {
-                FieldValue::Plain(text) => FieldValue::Plain(text.trim().to_owned()),
-                secret @ FieldValue::Secret(_) => secret.clone(),
-            },
-        })
-        .collect();
+    let answers = draft.answers();
     let fields = draft
         .fields
         .into_iter()

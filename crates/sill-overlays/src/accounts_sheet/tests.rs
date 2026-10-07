@@ -205,21 +205,21 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
                 provider: "Nextcloud".to_owned(),
                 mark: MarkProvider::Imap,
                 fields: vec![
-                    FormField {
-                        role: FieldRole::Address,
-                        requirement: Requirement::Required,
-                        text: FieldText::Plain(String::new()),
-                    },
-                    FormField {
-                        role: FieldRole::Password,
-                        requirement: Requirement::Required,
-                        text: FieldText::Secret(Hidden::new("")),
-                    },
-                    FormField {
-                        role: FieldRole::Server,
-                        requirement: Requirement::Optional,
-                        text: FieldText::Plain(String::new()),
-                    },
+                    FormField::new(
+                        FieldRole::Address,
+                        Requirement::Required,
+                        FieldText::Plain(String::new()),
+                    ),
+                    FormField::new(
+                        FieldRole::Password,
+                        Requirement::Required,
+                        FieldText::Secret(Hidden::new("")),
+                    ),
+                    FormField::new(
+                        FieldRole::Server,
+                        Requirement::Optional,
+                        FieldText::Plain(String::new()),
+                    ),
                 ],
                 problem: Some(FieldProblem {
                     role: FieldRole::Password,
@@ -487,5 +487,177 @@ fn the_words_follow_the_table() {
         CapabilityKind::KeyValue,
     ] {
         assert_eq!(service_of(&service_key(kind)), Some(kind));
+    }
+}
+
+#[test]
+fn the_server_form_becomes_choices_hints_and_parts() {
+    use ds_shell::accounts::model::{Choice, FormPart};
+    use porter_core::sheet::{Protocol, manual_form};
+    let view = |protocol| {
+        SheetView::SignIn(SignInView {
+            provider: provider("generic-imap"),
+            fields: manual_form(protocol, Some("example.org")),
+            problem: None,
+        })
+    };
+    let Some(Step::SignIn(props)) = shown(view(Protocol::Imap), vec![]) else {
+        panic!("no form");
+    };
+    let of = |role| {
+        props
+            .fields
+            .iter()
+            .find(|f| f.role == role)
+            .unwrap_or_else(|| panic!("{role:?}"))
+    };
+    assert_eq!(
+        of(FieldRole::Protocol).choices,
+        Some(vec![
+            Choice::new("imap", "IMAP"),
+            Choice::new("pop3", "POP3"),
+            Choice::new("jmap", "JMAP"),
+        ])
+    );
+    assert_eq!(
+        of(FieldRole::Protocol).text,
+        FieldText::Plain("imap".to_owned())
+    );
+    assert_eq!(
+        of(FieldRole::Security).choices,
+        Some(vec![
+            Choice::new("tls", "TLS"),
+            Choice::new("starttls", "STARTTLS")
+        ])
+    );
+    assert_eq!(of(FieldRole::Port).requirement, Requirement::Optional);
+    assert_eq!(of(FieldRole::Port).text, FieldText::Plain(String::new()));
+    assert_eq!(of(FieldRole::Port).hint.as_deref(), Some("993"));
+    assert_eq!(of(FieldRole::OutgoingPort).hint.as_deref(), Some("465"));
+    assert_eq!(of(FieldRole::Server).part, Some(FormPart::Incoming));
+    assert_eq!(of(FieldRole::OutgoingServer).part, Some(FormPart::Outgoing));
+    assert_eq!(of(FieldRole::Username).part, Some(FormPart::SignIn));
+    assert_eq!(props.problem, None);
+
+    // The hint follows protocol and security.
+    let Some(Step::SignIn(props)) = shown(
+        view(Protocol::Imap),
+        vec![
+            SheetAction::Type(FieldKind::Protocol, FieldValue::Plain("pop3".to_owned())),
+            SheetAction::Type(
+                FieldKind::Security,
+                FieldValue::Plain("starttls".to_owned()),
+            ),
+            SheetAction::Type(
+                FieldKind::OutgoingSecurity,
+                FieldValue::Plain("starttls".to_owned()),
+            ),
+        ],
+    ) else {
+        panic!("no form");
+    };
+    let hint = |role| {
+        props
+            .fields
+            .iter()
+            .find(|f| f.role == role)
+            .and_then(|f| f.hint.clone())
+    };
+    assert_eq!(hint(FieldRole::Port).as_deref(), Some("110"));
+    assert_eq!(hint(FieldRole::OutgoingPort).as_deref(), Some("587"));
+
+    // JMAP has no outgoing fields.
+    let Some(Step::SignIn(props)) = shown(
+        view(Protocol::Imap),
+        vec![SheetAction::Type(
+            FieldKind::Protocol,
+            FieldValue::Plain("jmap".to_owned()),
+        )],
+    ) else {
+        panic!("no form");
+    };
+    assert!(
+        props
+            .fields
+            .iter()
+            .all(|f| f.role != FieldRole::OutgoingServer)
+    );
+    assert!(props.fields.iter().any(|f| f.role == FieldRole::SessionUrl));
+
+    // A port that is no number is marked as it is typed.
+    let Some(Step::SignIn(props)) = shown(
+        view(Protocol::Imap),
+        vec![SheetAction::Type(
+            FieldKind::Port,
+            FieldValue::Plain("ninety".to_owned()),
+        )],
+    ) else {
+        panic!("no form");
+    };
+    assert_eq!(
+        props.problem.map(|p| (p.role, p.kind)),
+        Some((FieldRole::Port, ProblemKind::Invalid))
+    );
+}
+
+#[test]
+fn every_role_and_kind_pair_up() {
+    use super::props::{kind_of, role_of};
+    for kind in [
+        FieldKind::Address,
+        FieldKind::Server,
+        FieldKind::Username,
+        FieldKind::Password,
+        FieldKind::ApiKey,
+        FieldKind::Token,
+        FieldKind::Protocol,
+        FieldKind::Port,
+        FieldKind::Security,
+        FieldKind::OutgoingServer,
+        FieldKind::OutgoingPort,
+        FieldKind::OutgoingSecurity,
+        FieldKind::SessionUrl,
+    ] {
+        assert_eq!(kind_of(role_of(kind)), kind);
+    }
+    assert_eq!(
+        events::typed(FieldRole::Security, FieldText::Plain("starttls".to_owned())),
+        SheetAction::Type(
+            FieldKind::Security,
+            FieldValue::Plain("starttls".to_owned())
+        )
+    );
+}
+
+#[test]
+fn the_port_hints_are_porters_usual_ports() {
+    use super::words::usual_port;
+    use porter_core::sheet::{FieldSpec, Protocol, manual_form, refit};
+    for (protocol, slug) in [(Protocol::Imap, "imap"), (Protocol::Pop3, "pop3")] {
+        let fields: Vec<FieldSpec> = manual_form(protocol, None);
+        for (security, outgoing_kind, kind) in [
+            ("tls", FieldKind::OutgoingSecurity, FieldKind::Security),
+            ("starttls", FieldKind::OutgoingSecurity, FieldKind::Security),
+        ] {
+            let answers = [kind, outgoing_kind].map(|kind| porter_core::sheet::FieldAnswer {
+                kind,
+                value: FieldValue::Plain(security.to_owned()),
+            });
+            let shaped = refit(&fields, &answers);
+            let prefill = |kind| {
+                shaped
+                    .iter()
+                    .find(|f| f.kind == kind)
+                    .and_then(|f| f.prefill.clone())
+            };
+            assert_eq!(
+                prefill(FieldKind::Port),
+                Some(usual_port(slug, false, security).to_string())
+            );
+            assert_eq!(
+                prefill(FieldKind::OutgoingPort),
+                Some(usual_port(slug, true, security).to_string())
+            );
+        }
     }
 }

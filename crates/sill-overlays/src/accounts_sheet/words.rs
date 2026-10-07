@@ -159,3 +159,30 @@ pub(super) fn service_key(kind: CapabilityKind) -> String {
 pub(super) fn service_of(key: &str) -> Option<CapabilityKind> {
     serde_json::from_value(serde_json::Value::String(key.to_owned())).ok()
 }
+
+/// What a choice's slug is called on a pop-up: the protocols and securities porter offers.
+pub(super) fn choice_label(slug: &str) -> &str {
+    match slug {
+        "imap" => "IMAP",
+        "pop3" => "POP3",
+        "jmap" => "JMAP",
+        "tls" => "TLS",
+        "starttls" => "STARTTLS",
+        other => other,
+    }
+}
+
+/// The port a server usually listens on, the hint in an empty port entry. porter keeps its own
+/// table private (`usual_port` in `porter-core/src/sheet/manual.rs`); this one repeats it, and
+/// a test pins the two together through `refit`'s prefill: outgoing 465 for TLS and 587 for
+/// STARTTLS; POP3 995 for TLS and 110 for STARTTLS; IMAP (and JMAP, which has no port) 993 and 143.
+pub(super) fn usual_port(protocol: &str, outgoing: bool, security: &str) -> u16 {
+    match (outgoing, protocol, security) {
+        (true, _, "tls") => 465,
+        (true, _, _) => 587,
+        (false, "pop3", "tls") => 995,
+        (false, "pop3", _) => 110,
+        (false, _, "tls") => 993,
+        (false, _, _) => 143,
+    }
+}

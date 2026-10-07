@@ -6,7 +6,8 @@ use porter_core::ProviderId;
 use porter_core::SecretText;
 use porter_core::Toggle;
 use porter_core::sheet::{
-    Entry, FieldKind, FieldSpec, FieldValue, Presence, ServiceChoice, ServiceState, SheetView,
+    Entry, FieldAnswer, FieldKind, FieldProblem, FieldSpec, FieldValue, Presence, ServiceChoice,
+    ServiceState, SheetView, form_problem, refit,
 };
 
 use super::model::Draft;
@@ -51,6 +52,10 @@ impl FieldDraft {
     fn of(spec: &FieldSpec, kept: Option<&FieldDraft>) -> FieldDraft {
         let value = match (spec.entry, kept.map(|field| &field.value)) {
             (Entry::Plain, Some(FieldValue::Plain(text))) => FieldValue::Plain(text.clone()),
+            // A port starts empty: empty is the usual one, which the form shows as a hint.
+            (Entry::Plain, _) if matches!(spec.kind, FieldKind::Port | FieldKind::OutgoingPort) => {
+                FieldValue::Plain(String::new())
+            }
             (Entry::Plain, _) => FieldValue::Plain(spec.prefill.clone().unwrap_or_default()),
             // A secret never survives a new view: what was sent is gone, and so is the rest.
             (Entry::Secret, _) => FieldValue::Secret(SecretText::new("")),
@@ -69,6 +74,52 @@ impl FieldDraft {
             FieldValue::Plain(text) => text.trim().is_empty(),
             FieldValue::Secret(text) => text.expose().is_empty(),
         }
+    }
+}
+
+impl Draft {
+    /// What the form holds as answers: plain text trimmed, secrets as they are.
+    pub fn answers(&self) -> Vec<FieldAnswer> {
+        self.fields
+            .iter()
+            .map(|field| FieldAnswer {
+                kind: field.kind,
+                value: match &field.value {
+                    FieldValue::Plain(text) => FieldValue::Plain(text.trim().to_owned()),
+                    secret @ FieldValue::Secret(_) => secret.clone(),
+                },
+            })
+            .collect()
+    }
+
+    /// What is wrong with the form as typed, if anything (porter's `form_problem` over the form
+    /// the view asked for, reshaped by the answers). The form stays unsent while this is `Some`.
+    pub fn problem(&self, specs: &[FieldSpec]) -> Option<FieldProblem> {
+        let answers = self.answers();
+        form_problem(&refit(specs, &answers), &answers)
+    }
+
+    /// The draft with the form reshaped to its answers: the fields porter's `refit` of `specs`
+    /// gives, each keeping what was typed. A typed host follows the protocol (porter retargets a
+    /// guessed `imap.` or `pop.` name); a port keeps only what was typed, since empty means the
+    /// usual one; a secret does not survive, as everywhere.
+    pub(super) fn refitted(self, specs: &[FieldSpec]) -> Draft {
+        let shaped = refit(specs, &self.answers());
+        let fields = shaped
+            .iter()
+            .map(|spec| {
+                let kept = self.fields.iter().find(|field| field.kind == spec.kind);
+                let mut field = FieldDraft::of(spec, kept);
+                match (spec.kind, kept) {
+                    (FieldKind::Server, Some(_)) if spec.prefill.is_some() => {
+                        field.value = FieldValue::Plain(spec.prefill.clone().unwrap_or_default());
+                    }
+                    _ => {}
+                }
+                field
+            })
+            .collect();
+        Draft { fields, ..self }
     }
 }
 
@@ -92,7 +143,9 @@ pub(super) fn drafted(old: &Draft, before: &SheetView, view: &SheetView) -> Draf
             fields: fields_of(&now.fields, &old.fields),
             submits: old.submits,
             ..Draft::default()
-        },
+        }
+        // The form comes back in the shape it was first sent in; the person's protocol decides.
+        .refitted(&now.fields),
         (SheetView::Consent(_), SheetView::Consent(_)) => Draft {
             chosen: old.chosen.clone(),
             ..Draft::default()
