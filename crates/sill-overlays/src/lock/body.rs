@@ -3,11 +3,11 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_shell::lock::vocab::CapsLock;
-use ds_shell::prelude::*;
 use shell_host::OutputInfo;
 use sill_model::auth::{Auth, AuthCommand, AuthFault, AuthPhase, PamNote, Secret};
 use sill_model::ids::OutputName;
+use sill_shell_kit::lock::vocab::CapsLock;
+use sill_shell_kit::prelude::*;
 
 use super::backdrop::backdrop_for;
 use super::model::{clock_lines, lock_user, prompt_state};

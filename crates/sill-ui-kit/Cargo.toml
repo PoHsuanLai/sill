@@ -12,7 +12,7 @@ publish.workspace = true
 sill-model = { workspace = true }
 dioxus = { workspace = true }
 ds = { workspace = true }
-ds-shell = { workspace = true }
+sill-shell-kit = { workspace = true }
 ds-blitz = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
 shell-host = { workspace = true }

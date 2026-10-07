@@ -69,7 +69,7 @@ fn app() -> Element {
     rsx! {
         AppStyle { css: CONTROL_CENTER_CSS }
         PopupFrame { room: PopupRoom { side: 28, top: 8, bottom: 40 },
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance { theme: THEME(), ..Appearance::default() }, material: Material::Popover,
+        Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance { theme: THEME(), ..Appearance::default() }, material: Material::Popover,
             extent: RootExtent::Popup,
             Popover {
                 anchor: Anchor::Point(Point { x: Px(8.0), y: Px(1.0) }),

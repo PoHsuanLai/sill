@@ -8,9 +8,9 @@ use crate::bar::{BarMenu, StatusIcon};
 use crate::control_center::modules::use_plate;
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_shell::prelude::*;
 use sill_services::NowPlayingService;
 use sill_settings::{ControlCenterSettings, InMenuBar};
+use sill_shell_kit::prelude::*;
 use sill_ui_kit::hooks::use_service;
 use sill_ui_kit::widgets::now_playing::{MediaView, use_media};
 

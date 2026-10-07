@@ -1,0 +1,23 @@
+/* BannerStack (design/13 section 13.3.6): the banners in a column at the right edge,
+   newest first; at the bottom right the column runs upwards. Each row pads itself by the stack's
+   gap (`--notifications-stack-gap`) on the side away from the edge it grows from, so its measured
+   height is its whole pitch. A row's card enters with `panel-in` as it mounts (on the inner
+   element, not on `data-presence=entering`: Blitz keeps the last animated value when an
+   animation is taken off, so a presence turned `present` early would freeze it mid-slide), and
+   the row leaves with `panel-out` (`--t-quick`, from where a swipe left it), held until the stack drops it; the rows after it then heal from `--dy` (signed by
+   the position) with the heal ripple. A row at rest plays `hold`, which moves nothing, so a
+   heal settled or an exit taken back never drops an animation without starting another.
+   A card swiped away inside a row holds its offset while the
+   row carries it out (the card's own flight is for a card alone). Attribute selectors carry `*|`
+   (spike S2).
+*/
+
+.ds-banner-stack{ display:flex; flex-direction:column; align-items:flex-end; }
+.ds-banner-stack[*|data-position=bottom-right]{ flex-direction:column-reverse; }
+.ds-banner{ display:flex; justify-content:flex-end; padding-bottom:var(--notifications-stack-gap); }
+.ds-banner-stack[*|data-position=bottom-right] > .ds-banner{ padding-bottom:0; padding-top:var(--notifications-stack-gap); }
+.ds-banner-card{ display:flex; justify-content:flex-end; animation:panel-in var(--t-move) var(--e-out); }
+.ds-banner[*|data-presence=present]{ animation:hold var(--t-quick) var(--e-linear); }
+.ds-banner[*|data-presence=leaving]{ animation:panel-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }
+.ds-banner[*|data-presence=healing]{ animation:heal var(--t-move) var(--e-in-out) backwards; }
+.ds-banner .ds-notification[*|data-swipe=gone]{ animation:none; }

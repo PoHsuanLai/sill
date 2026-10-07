@@ -1,0 +1,68 @@
+/* NotificationCard (design/20 section 1.6, design/13 section 13.3.6). The card is a
+   plate in its material, inside a transparent scope of that material, so the plate and its
+   group's layers paint the material's tint, edge and drop (the transparent-root card rule in the
+   materials section). Geometry is the `--notifications-*` tokens `NotificationMetrics` writes:
+   360 wide, at least 64 tall, padded 12, the icon 32, the close button 18. Attribute selectors
+   carry `*|` (spike S2).
+
+   Hover (`data-hover=on`, set from the pointer in Rust so the caller hears it too): the body
+   opens from two lines to six (`max-height` in whole lines of 1.35em, `--t-move --e-out`; Blitz
+   has no line-clamp), the actions row opens under it, and the close button fades in at the top
+   left corner. The body's fade is drawn only where the component measured text being cut
+   (`data-clip`). A group's layers (`--layers`, each layer's `--i`) sit under the plate, each one
+   `--notifications-group-offset` lower and 6 narrower each side, a step fainter.
+
+   Blitz hit-tests the lines a clamp hides (overflow clips the paint, not the hit test), so the
+   body's text takes no pointer (a press on it lands on the plate, as it would anyway) except its
+   links, and the actions row is raised above the hidden lines that run under it. */
+
+.ds-notification{ position:relative; box-sizing:border-box; width:var(--notifications-banner-width); max-width:100%; color:var(--ink);
+  padding-bottom:calc(var(--layers,0) * var(--notifications-group-offset)); }
+
+/* The keyboard's cursor on a card of a list (`data-focus=ring`, which the list's owner writes: its
+   rows are not focus targets, the list keeps the cursor): the focus ring, as a focused control's. */
+.ds-notification[*|data-focus=ring]{ outline:var(--ring) solid var(--accent-ring); outline-offset:var(--focus-gap); border-radius:var(--m-radius); }
+
+.ds-notification-layer{ position:absolute; top:calc(var(--i) * var(--notifications-group-offset)); bottom:calc((var(--layers) - var(--i)) * var(--notifications-group-offset));
+  left:calc(var(--i) * var(--s-6)); right:calc(var(--i) * var(--s-6)); border-radius:var(--m-radius); opacity:calc(1 - var(--i) * .2); pointer-events:none; }
+
+.ds-notification-plate{ position:relative; display:flex; align-items:flex-start; gap:var(--s-10); box-sizing:border-box;
+  min-height:var(--notifications-banner-min-height); padding:var(--notifications-banner-padding); border-radius:var(--m-radius); cursor:default; }
+.ds-notification-icon{ display:flex; align-items:center; justify-content:center; flex:none; width:var(--notifications-icon); height:var(--notifications-icon); line-height:0; }
+.ds-notification-words{ display:flex; flex-direction:column; gap:var(--s-2); flex:1; min-width:0; }
+
+.ds-notification-head{ display:flex; align-items:center; gap:var(--s-6); min-width:0; }
+.ds-notification-summary{ flex:1; font-size:var(--fs-shell-menu); font-weight:700; line-height:1.35; color:var(--ink); }
+.ds-notification-count{ flex:none; padding:0 var(--s-5); border-radius:var(--r-pill); background:var(--accent-soft); color:var(--ink);
+  font-size:var(--fs-nano); font-weight:700; line-height:1.6; font-variant-numeric:tabular-nums; }
+.ds-notification-age{ flex:none; font-family:var(--font-data); font-variant-numeric:tabular-nums; font-size:var(--fs-caption); color:var(--ink-faint); white-space:nowrap; }
+
+.ds-notification-body{ position:relative; overflow:hidden; max-height:calc(2 * 1.35em); font-size:var(--fs-shell-menu); line-height:1.35; color:var(--ink);
+  transition:max-height var(--t-move) var(--e-out); }
+.ds-notification[*|data-hover=on] .ds-notification-body{ max-height:calc(6 * 1.35em); }
+.ds-notification[*|data-hover=off] .ds-notification-body[*|data-clip=rest],
+.ds-notification-body[*|data-clip=always]{ mask-image:linear-gradient(to bottom,var(--ink) calc(100% - .9em),transparent); }
+.ds-notification-body-text{ overflow-wrap:break-word; pointer-events:none; }
+.ds-notification-body-text .ds-run-link{ pointer-events:auto; }
+.ds-notification-body-line{ position:absolute; top:0; left:0; opacity:0; pointer-events:none; }
+
+.ds-notification-actions{ position:relative; z-index:var(--z-raise); display:flex; flex-wrap:wrap; gap:var(--s-6); max-height:0; margin-top:0; opacity:0; overflow:hidden; pointer-events:none;
+  transition:max-height var(--t-move) var(--e-out), margin-top var(--t-move) var(--e-out), opacity var(--t-quick) var(--e-out); }
+.ds-notification[*|data-hover=on] .ds-notification-actions{ max-height:calc(2 * var(--s-36)); margin-top:var(--s-6); opacity:1; pointer-events:auto; }
+
+.ds-notification .ds-notification-close{ position:absolute; top:calc(-1 * var(--s-6)); left:calc(-1 * var(--s-6)); z-index:var(--z-raise);
+  display:flex; align-items:center; justify-content:center; box-sizing:border-box; width:var(--notifications-close); height:var(--notifications-close); padding:0;
+  border:var(--hair) solid var(--line); border-radius:var(--r-pill); background:var(--raise); color:var(--ink-soft); box-shadow:var(--shadow-1); cursor:default;
+  opacity:0; pointer-events:none; transition:opacity var(--t-quick) var(--e-out); }
+.ds-notification[*|data-hover=on] .ds-notification-close,
+.ds[*|data-modality=keyboard] .ds-notification-close:focus{ opacity:1; pointer-events:auto; }
+.ds-notification .ds-notification-close:hover{ color:var(--ink); }
+
+/* Swipe to dismiss (`data-swipe` on a card that can be swiped). The card is drawn
+   `--swipe-dx` off its place: following a drag or a scroll 1:1 (`live`), springing back home
+   (`rest`), and flying out to the right from where it was (`gone`, `panel-out`). The way back
+   is driven motion (design/05 section 14, H1): a spring in Rust writes `--swipe-dx` frame by
+   frame from the release's position and velocity (critically damped under Reduced), so nothing
+   here transitions the transform. */
+.ds-notification[*|data-swipe]{ transform:translateX(var(--swipe-dx,0px)); touch-action:none; }
+.ds-notification[*|data-swipe=gone]{ animation:panel-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }

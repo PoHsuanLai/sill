@@ -10,13 +10,13 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::style::icon::url::IconUrl;
-use ds_shell::notifications::parts::{AppMark, Hover};
-use ds_shell::notifications::swipe::NotificationSwipe;
-use ds_shell::prelude::*;
 use sill_model::apps::AppIcon;
 use sill_model::notifications::{AppRef, Href, Notification, UnixMs};
 use sill_services::apps::{icon_theme, resolve_icon};
 use sill_settings::{BannerMaterial, NotificationsSettings};
+use sill_shell_kit::notifications::parts::{AppMark, Hover};
+use sill_shell_kit::notifications::swipe::NotificationSwipe;
+use sill_shell_kit::prelude::*;
 
 use super::actions::card_actions;
 use super::body::rich_body;

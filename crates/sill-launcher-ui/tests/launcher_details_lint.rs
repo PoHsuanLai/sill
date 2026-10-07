@@ -14,7 +14,7 @@ const LAUNCHER_CSS: &str = include_str!("../src/launcher/style.css");
 fn details() -> LintConfig {
     LintConfig {
         profile: Profile::Details,
-        ..LintConfig::new(&ds_shell::kits())
+        ..LintConfig::new(&sill_shell_kit::kits())
     }
 }
 
@@ -35,7 +35,7 @@ fn the_panel_with_its_pane_markup_is_clean_under_details() {
     open.harness.advance(Duration::from_millis(60));
     let html = open.harness.html();
     assert!(html.contains("ds-preview"), "the pane is up");
-    let css = format!("{}\n{}", ds_shell::stylesheet(), LAUNCHER_CSS);
+    let css = format!("{}\n{}", sill_shell_kit::stylesheet(), LAUNCHER_CSS);
     let offences = markup(&html, &css, &details());
     assert!(offences.is_empty(), "{offences:#?}");
 }

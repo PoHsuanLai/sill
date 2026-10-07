@@ -4,8 +4,8 @@ use super::provider::{battery_entry, battery_rows, machine_name};
 use crate::hooks::use_service;
 use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
 use dioxus::prelude::*;
-use ds_shell::widget::battery::BatteryWidget;
 use sill_services::{BatteryService, BluetoothService};
+use sill_shell_kit::widget::battery::BatteryWidget;
 
 /// The batteries: a new entry each time a level changes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

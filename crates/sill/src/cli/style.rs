@@ -45,7 +45,7 @@ pub struct StyleCheck {
 /// The notes on `css` against the shell's own kits.
 pub fn check(css: &str) -> StyleCheck {
     StyleCheck {
-        notes: user_stylesheet(css, &ds_shell::kits()),
+        notes: user_stylesheet(css, &sill_shell_kit::kits()),
     }
 }
 

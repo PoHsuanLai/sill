@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 use ds::components::controls::segmented::Tracking;
 use ds::prelude::*;
 use ds_settings::{AppName, AppearanceFile, ConfigRoot, Store};
-use ds_shell::prelude::*;
+use sill_shell_kit::prelude::*;
 
 use super::cc_module::{CcCx, CcModule, Span};
 use crate::control_center::modules::use_plate;

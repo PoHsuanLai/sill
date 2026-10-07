@@ -1,9 +1,9 @@
 //! The world clocks' feed, from the clock service.
 
-use ds_shell::widget::clock::WorldClockWidget;
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_services::ClockService;
+use sill_shell_kit::widget::clock::WorldClockWidget;
 
 use super::provider::{clock_entry, clock_rows, parse_zones};
 use crate::hooks::{use_service, use_settings};

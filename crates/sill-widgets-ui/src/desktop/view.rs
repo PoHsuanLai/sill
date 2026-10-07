@@ -16,10 +16,10 @@ use dioxus::prelude::*;
 use ds::host::measure::use_rect;
 use ds::motion::wake::WakeStamp;
 use ds::prelude::*;
-use ds_shell::prelude::*;
-use ds_shell::tokens::widgets::WidgetMetrics;
 use shell_host::{OutputInfo, use_watch};
 use sill_settings::WidgetKind;
+use sill_shell_kit::prelude::*;
+use sill_shell_kit::tokens::widgets::WidgetMetrics;
 
 use super::drag::{DragInput, Hold, shown};
 use super::geometry::GridMetrics;

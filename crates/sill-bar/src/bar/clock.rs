@@ -6,8 +6,8 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::root::pass_through::ExtraClass;
-use ds_shell::prelude::*;
 use shell_host::{OutputInfo, use_watch};
+use sill_shell_kit::prelude::*;
 
 use sill_services::ClockService;
 use sill_ui_kit::hooks::use_service;

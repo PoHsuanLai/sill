@@ -1,0 +1,50 @@
+/* ModuleTile (design/20 section 1.5, design/13 section 13.3.7): a module on
+   the control center's grid, 56 tall (two Large controls, `--cc-tile-h`) at the module radius 8
+   (`--cc-module-r`, design/29-SIZING.md), its disc a Large control (28). Off: the Mini button's plate (`--surface-2` and a
+   hairline) with a paper disc in ink. On: the same plate (the tile does not tint, as macOS's
+   does not), the disc in `--accent` with `--accent-ink`. Busy: the Off disc with the progress ring around it. The tile does not
+   lift under the pointer (design/30 Part 4).
+   A Full tile spans every grid column. The chevron is a quiet 18 x 28 hit target of
+   its own (narrow, so a half tile's title keeps about 72 of its 144 px), `--ink-faint` until the pointer is on it. */
+
+.ds-module-tile{
+  position:relative; display:flex; align-items:center; gap:var(--s-6); min-width:0; min-height:var(--cc-tile-h); box-sizing:border-box;
+  padding:0 var(--s-4) 0 var(--cc-pad); border:var(--hair) solid var(--line); border-radius:var(--cc-module-r);
+  background:var(--surface-2); color:var(--ink); cursor:default; user-select:none;
+  transition:background-color var(--t-quick) var(--e-out), border-color var(--t-quick) var(--e-out);
+}
+.ds-module-tile[*|data-span=full]{ grid-column:1 / -1; }
+.ds-module-tile[*|aria-disabled=true]{ opacity:.35; cursor:default; }
+.ds-module-tile[*|aria-busy=true]{ cursor:default; }
+
+.ds-module-disc > .ds-progress{ position:absolute; top:-4px; right:-4px; bottom:-4px; left:-4px; width:auto; height:auto; }
+.ds-module-disc{
+  position:relative; display:grid; place-items:center; flex:none; width:var(--ctl-h-l); height:var(--ctl-h-l); border-radius:var(--r-pill);
+  background:var(--paper); color:var(--ink); box-shadow:var(--shadow-1);
+  transition:background-color var(--t-quick) var(--e-out), color var(--t-quick) var(--e-out);
+}
+.ds-module-tile[*|data-state=on] .ds-module-disc{ background:var(--accent); color:var(--accent-ink); box-shadow:inset 0 0 0 var(--hair) var(--accent-text), var(--shadow-1); }
+
+.ds-module-words{ display:flex; flex-direction:column; flex:1; min-width:0; }
+/* Clipped, not faded: `.ds-truncate`'s fade covers the last 1.5em of the column whether the
+   words reach it or not, and a half tile's column is about as wide as "Bluetooth". */
+.ds-module-title,
+.ds-module-status{ white-space:nowrap; overflow:hidden; }
+.ds-module-title{ font-size:var(--fs-shell-menu); font-weight:600; line-height:var(--cc-head); }
+.ds-module-status{ font-size:var(--fs-help); color:var(--ink-faint); line-height:var(--s-14); }
+
+.ds-module-chevron{
+  font:inherit; display:grid; place-items:center; flex:none; width:18px; height:var(--ctl-h-l); padding:0; border:0; border-radius:var(--ctl-r-m);
+  background:transparent; color:var(--ink-faint); cursor:default;
+  transition:background-color var(--t-quick) var(--e-out), color var(--t-quick) var(--e-out);
+}
+.ds-module-chevron:hover{ color:var(--ink); background:var(--surface); }
+.ds-module-chevron[*|aria-disabled=true]{ opacity:.35; cursor:default; }
+.ds-module-chevron[*|aria-disabled=true]:hover{ background:transparent; color:var(--ink-faint); }
+
+/* ModuleGrid (design/13 section 13.3.7): `--grid-columns` equal columns
+   (2), `--grid-gap` apart (10), `--grid-padding` inside (10); the component writes all three
+   inline from `control_center.grid_*`, and these are the control center's sizes
+   (`--cc-gap`, `--cc-pad`, design/29-SIZING.md). */
+.ds-module-grid{ --grid-columns:2; --grid-gap:var(--cc-gap); --grid-padding:var(--cc-pad); display:grid;
+  grid-template-columns:repeat(var(--grid-columns),minmax(0,1fr)); gap:var(--grid-gap); padding:var(--grid-padding); }

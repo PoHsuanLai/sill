@@ -34,14 +34,14 @@ const ALL: [WidgetKind; 5] = [
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds_shell::kits())
+        ..LintConfig::new(&sill_shell_kit::kits())
     }
 }
 
 fn full_css() -> String {
     format!(
         "{}\n{}\n{}\n{}",
-        ds_shell::stylesheet(),
+        sill_shell_kit::stylesheet(),
         widgets_css(),
         DESKTOP_WIDGETS_CSS,
         EDIT_WIDGETS_CSS
@@ -85,7 +85,7 @@ fn app() -> Element {
         WidgetHost::Desktop => Material::Widget,
     };
     rsx! {
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material, extent: RootExtent::Viewport,
+        Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material, extent: RootExtent::Viewport,
             AppStyle { css: widgets_css() }
             for kind in ALL {
                 Widget { kind, host }

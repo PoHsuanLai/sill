@@ -1,0 +1,32 @@
+/* LockPrompt (design/04-COMPONENTS.md section 42; design/20 section 1.9). Flat and bright, as
+   the reference lock screen: the person's picture at 64 (a face, a photo cropped round, or an
+   animated emoji playing its own animation once), the name in white 16/700, a pill of flat white
+   glass 260 x 38 (`--lock-glass`, no blur assumed, no bevel; `password_field.css`) holding the secret field, the
+   caps-lock mark and a 28 px enter arrow in a brighter glass disc that shows once something is
+   typed, and a small hint line in `--lock-ink-soft`. The pill plays `shake-x` once through its
+   pulse class (`a-shake-x`, `--t-shake --e-shake`) when a password was wrong. Under
+   `data-look=space` the pill is the Space gradient in the frame's ink. */
+
+.ds-lock-prompt{ display:flex; flex-direction:column; align-items:center; color:var(--lock-ink); }
+.ds-lock-name{ margin-top:var(--s-10); font-family:var(--font-ui); font-size:var(--fs-title); font-weight:700; line-height:1.3; color:var(--lock-ink); }
+
+.ds-lock-go{ display:grid; place-items:center; flex:none; width:28px; height:28px; padding:0; border:0; border-radius:var(--r-pill);
+  background:var(--lock-glass-strong); color:var(--lock-ink); cursor:default;
+  transition:opacity var(--t-quick) var(--e-out); }
+.ds-lock-go[*|data-filled=empty]{ opacity:0; pointer-events:none; }
+.ds-lock-go[*|aria-busy=true]{ opacity:1; }
+.ds-lock-busy{ position:relative; display:block; width:14px; height:14px; }
+.ds-lock-busy .ds-progress-indicator{ background:var(--lock-ink); }
+
+.ds-lock-hint{ margin-top:var(--s-12); font-family:var(--font-ui); font-size:var(--fs-small); font-weight:500; color:var(--lock-ink-soft); text-align:center; }
+
+/* The Space's colour (`LockLook::Space`): the pill is the Space gradient, in the frame's ink. */
+.ds-lock-prompt[*|data-look=space] .ds-password-field{ background:var(--f-grad); color:var(--f-ink); }
+.ds-lock-prompt[*|data-look=space] .ds-password-field .ds-input[*|data-kind=secure]{ caret-color:var(--f-ink); }
+.ds-lock-prompt[*|data-look=space] .ds-password-field .ds-input[*|data-caret=drawn]{ caret-color:transparent; }
+.ds-lock-prompt[*|data-look=space] .ds-password-field .ds-input-caret::before{ background:var(--f-ink); }
+.ds-lock-prompt[*|data-look=space] .ds-password-field .ds-input-mask{ color:var(--f-ink); }
+.ds-lock-prompt[*|data-look=space] .ds-password-field .ds-input-placeholder,
+.ds-lock-prompt[*|data-look=space] .ds-password-field .ds-password-caps{ color:var(--f-ink-soft); }
+.ds-lock-prompt[*|data-look=space] .ds-lock-go{ background:var(--f-pill); color:var(--f-ink); }
+.ds-lock-prompt[*|data-look=space] .ds-lock-busy .ds-progress-indicator{ background:var(--f-ink); }

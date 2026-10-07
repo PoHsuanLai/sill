@@ -6,8 +6,8 @@ use sill_model::units::{Percent, Presence};
 
 use ds::components::content::status::battery_state::{BatteryPower, BatteryState, LowAt};
 use ds::prelude::*;
-use ds_shell::battery::device_glyph::Device;
-use ds_shell::widget::battery::{BatteryCell, BatteryEntry};
+use sill_shell_kit::battery::device_glyph::Device;
+use sill_shell_kit::widget::battery::{BatteryCell, BatteryEntry};
 
 use super::provider::machine_name;
 use super::{BatteryOwner, BatteryRow, battery_entry, battery_rows, cell_of};

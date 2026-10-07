@@ -1,0 +1,1995 @@
+{
+ "source": "Noto Animated Emoji, https://googlefonts.github.io/noto-emoji-animation/",
+ "licence": "CC-BY-4.0",
+ "attribution": "Animated emoji from Noto Animated Emoji by Google, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Resampled, cropped to frames and packed into sprite sheets by quire's tools/emoji.",
+ "step_ms": 80,
+ "colours": 256,
+ "sizes": [
+  128,
+  256
+ ],
+ "emoji": [
+  {
+   "slug": "grinning",
+   "codepoint": "1f600",
+   "name": "Grinning face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    240,
+    400,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "grinning-128.png",
+     "bytes": 43923
+    },
+    "256": {
+     "file": "grinning-256.png",
+     "bytes": 110846
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f600/512.webp",
+    "sha256": "99ae57c7ca271adaa211f2c3e599e996dcc2d962564e49bcd979671e5c73146f",
+    "frames": 48,
+    "rest_frame": 25
+   }
+  },
+  {
+   "slug": "grinning-eyes",
+   "codepoint": "1f604",
+   "name": "Grinning face with smiling eyes",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "grinning-eyes-128.png",
+     "bytes": 60485
+    },
+    "256": {
+     "file": "grinning-eyes-256.png",
+     "bytes": 153591
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f604/512.webp",
+    "sha256": "43a3dfe932da3b430ee7db85eca6ccc42ac52da4d7009caa7c962d69fde4d88e",
+    "frames": 67,
+    "rest_frame": 10
+   }
+  },
+  {
+   "slug": "beaming",
+   "codepoint": "1f601",
+   "name": "Beaming face with smiling eyes",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "beaming-128.png",
+     "bytes": 70323
+    },
+    "256": {
+     "file": "beaming-256.png",
+     "bytes": 170988
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f601/512.webp",
+    "sha256": "d3db2f7b94efd6faca3356be1b1979f5ac0659d6d9acdc771ea1c8ed15517f6c",
+    "frames": 76,
+    "rest_frame": 37
+   }
+  },
+  {
+   "slug": "laughing",
+   "codepoint": "1f606",
+   "name": "Grinning squinting face",
+   "columns": 8,
+   "rows": 5,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "laughing-128.png",
+     "bytes": 82126
+    },
+    "256": {
+     "file": "laughing-256.png",
+     "bytes": 207307
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f606/512.webp",
+    "sha256": "67a6a4bc49708c519ab9f0c3ada4fb8d0fed46b40026d7e7aad7157a3a079756",
+    "frames": 93,
+    "rest_frame": 11
+   }
+  },
+  {
+   "slug": "grin-sweat",
+   "codepoint": "1f605",
+   "name": "Grinning face with sweat",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "grin-sweat-128.png",
+     "bytes": 54002
+    },
+    "256": {
+     "file": "grin-sweat-256.png",
+     "bytes": 133004
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f605/512.webp",
+    "sha256": "2cb382210d45c594c606fcd1bc7faf91f67c6709c7f143c2d7c78c85b5979b60",
+    "frames": 60,
+    "rest_frame": 23
+   }
+  },
+  {
+   "slug": "joy",
+   "codepoint": "1f602",
+   "name": "Face with tears of joy",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "joy-128.png",
+     "bytes": 63716
+    },
+    "256": {
+     "file": "joy-256.png",
+     "bytes": 160064
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f602/512.webp",
+    "sha256": "281d5ceb7881fe9393c200ea16c73a4d53af58b4ff04d76a46c432e7e4dd0901",
+    "frames": 59,
+    "rest_frame": 57
+   }
+  },
+  {
+   "slug": "rofl",
+   "codepoint": "1f923",
+   "name": "Rolling on the floor laughing",
+   "columns": 8,
+   "rows": 2,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "rofl-128.png",
+     "bytes": 39147
+    },
+    "256": {
+     "file": "rofl-256.png",
+     "bytes": 96856
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f923/512.webp",
+    "sha256": "6dc164b225a4688da15a6642c366e9eb536a0bfb5fe5a475a75c94d2fe14eba5",
+    "frames": 30,
+    "rest_frame": 0
+   }
+  },
+  {
+   "slug": "slight-smile",
+   "codepoint": "1f642",
+   "name": "Slightly smiling face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    1280,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    160,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "slight-smile-128.png",
+     "bytes": 44172
+    },
+    "256": {
+     "file": "slight-smile-256.png",
+     "bytes": 110833
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f642/512.webp",
+    "sha256": "649b1026c246417a42e7bb6d0dcb1b3832c7eef8ace5a2e2167270850295b075",
+    "frames": 56,
+    "rest_frame": 10
+   }
+  },
+  {
+   "slug": "upside-down",
+   "codepoint": "1f643",
+   "name": "Upside-down face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    240
+   ],
+   "sizes": {
+    "128": {
+     "file": "upside-down-128.png",
+     "bytes": 30206
+    },
+    "256": {
+     "file": "upside-down-256.png",
+     "bytes": 79643
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f643/512.webp",
+    "sha256": "4df5aa853f57b632d7ce78956c6effa191bc4d9057d5bd93100173452af6a1c5",
+    "frames": 46,
+    "rest_frame": 0
+   }
+  },
+  {
+   "slug": "wink",
+   "codepoint": "1f609",
+   "name": "Winking face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    560,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "wink-128.png",
+     "bytes": 51014
+    },
+    "256": {
+     "file": "wink-256.png",
+     "bytes": 129557
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f609/512.webp",
+    "sha256": "ab2dfbceeae29a7a1b6ff0bb2cfb9d2abb779b0b3dbb428907ecdf7532b383fb",
+    "frames": 55,
+    "rest_frame": 34
+   }
+  },
+  {
+   "slug": "blush",
+   "codepoint": "1f60a",
+   "name": "Smiling face with smiling eyes",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    240,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "blush-128.png",
+     "bytes": 62997
+    },
+    "256": {
+     "file": "blush-256.png",
+     "bytes": 155788
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60a/512.webp",
+    "sha256": "cd29299c0bfd6c49484c3e536208a81ba1473b80e7236ba7b6ca07c81a21dd6e",
+    "frames": 73,
+    "rest_frame": 59
+   }
+  },
+  {
+   "slug": "halo",
+   "codepoint": "1f607",
+   "name": "Smiling face with halo",
+   "columns": 8,
+   "rows": 5,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    160,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "halo-128.png",
+     "bytes": 87874
+    },
+    "256": {
+     "file": "halo-256.png",
+     "bytes": 219081
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f607/512.webp",
+    "sha256": "438e8256a8fce73e9fa439fcb0b7b55ed7d9cabaa2dab6c617a6a59067ed1c0e",
+    "frames": 98,
+    "rest_frame": 47
+   }
+  },
+  {
+   "slug": "hearts",
+   "codepoint": "1f970",
+   "name": "Smiling face with hearts",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "hearts-128.png",
+     "bytes": 59295
+    },
+    "256": {
+     "file": "hearts-256.png",
+     "bytes": 146491
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f970/512.webp",
+    "sha256": "7734ab5ea4f0f8169df1f9d0faa00983d1d535b9d73b8d4243250531ea9ed898",
+    "frames": 49,
+    "rest_frame": 0
+   }
+  },
+  {
+   "slug": "heart-eyes",
+   "codepoint": "1f60d",
+   "name": "Smiling face with heart-eyes",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "heart-eyes-128.png",
+     "bytes": 51795
+    },
+    "256": {
+     "file": "heart-eyes-256.png",
+     "bytes": 131046
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.webp",
+    "sha256": "f9a12dd0779299de1c77d8c6168be39ad0f5c579b7ac46f9c77d60be042bc3de",
+    "frames": 51,
+    "rest_frame": 49
+   }
+  },
+  {
+   "slug": "star-struck",
+   "codepoint": "1f929",
+   "name": "Star-struck",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "star-struck-128.png",
+     "bytes": 63150
+    },
+    "256": {
+     "file": "star-struck-256.png",
+     "bytes": 157595
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f929/512.webp",
+    "sha256": "878a5c5ac1397cf4f79cb73bdb4d077e0eb19b633ebc46dbdf53ecb74223d2b6",
+    "frames": 60,
+    "rest_frame": 40
+   }
+  },
+  {
+   "slug": "kissing-heart",
+   "codepoint": "1f618",
+   "name": "Face blowing a kiss",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "kissing-heart-128.png",
+     "bytes": 47850
+    },
+    "256": {
+     "file": "kissing-heart-256.png",
+     "bytes": 119750
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f618/512.webp",
+    "sha256": "acb27c59d0dc049d5b56dacee775e0a7b4049f226017e6ecd126cf3480199f3d",
+    "frames": 53,
+    "rest_frame": 37
+   }
+  },
+  {
+   "slug": "yum",
+   "codepoint": "1f60b",
+   "name": "Face savoring food",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "yum-128.png",
+     "bytes": 41314
+    },
+    "256": {
+     "file": "yum-256.png",
+     "bytes": 103187
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60b/512.webp",
+    "sha256": "326317843daeaf9929226597fd5b14622ed1077bb9d29741a953c12f9ddc211d",
+    "frames": 43,
+    "rest_frame": 16
+   }
+  },
+  {
+   "slug": "winky-tongue",
+   "codepoint": "1f61c",
+   "name": "Winking face with tongue",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    160,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "winky-tongue-128.png",
+     "bytes": 40063
+    },
+    "256": {
+     "file": "winky-tongue-256.png",
+     "bytes": 98838
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f61c/512.webp",
+    "sha256": "a892eb657ad8643aab9f7a535c0f9709a19e2fd7ed16d13e250dfe68cc601d8e",
+    "frames": 40,
+    "rest_frame": 20
+   }
+  },
+  {
+   "slug": "zany",
+   "codepoint": "1f92a",
+   "name": "Zany face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "zany-128.png",
+     "bytes": 51270
+    },
+    "256": {
+     "file": "zany-256.png",
+     "bytes": 126507
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92a/512.webp",
+    "sha256": "9c442622ad3613f98bc0f88705856972c31b84869df366d1535f99812c6ff22a",
+    "frames": 55,
+    "rest_frame": 37
+   }
+  },
+  {
+   "slug": "hugging",
+   "codepoint": "1f917",
+   "name": "Smiling face with open hands",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    240,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "hugging-128.png",
+     "bytes": 69174
+    },
+    "256": {
+     "file": "hugging-256.png",
+     "bytes": 180242
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f917/512.webp",
+    "sha256": "a8807ffe440c7f9b13095256079cad2ff12e92caad4a203d49b3199987e54628",
+    "frames": 53,
+    "rest_frame": 5
+   }
+  },
+  {
+   "slug": "chuckling",
+   "codepoint": "1f92d",
+   "name": "Face with hand over mouth",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "chuckling-128.png",
+     "bytes": 56815
+    },
+    "256": {
+     "file": "chuckling-256.png",
+     "bytes": 144594
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92d/512.webp",
+    "sha256": "611a57c74c6c2599de4ca115c9b6519fdb8bb66573f2c58ee898c88378f7944c",
+    "frames": 54,
+    "rest_frame": 48
+   }
+  },
+  {
+   "slug": "thinking",
+   "codepoint": "1f914",
+   "name": "Thinking face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "thinking-128.png",
+     "bytes": 58375
+    },
+    "256": {
+     "file": "thinking-256.png",
+     "bytes": 151448
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.webp",
+    "sha256": "4f8cbd8d563d8bf16d4d7043c3e91afcfe514389bd7e81cc5624f6097aa2053c",
+    "frames": 60,
+    "rest_frame": 35
+   }
+  },
+  {
+   "slug": "raised-eyebrow",
+   "codepoint": "1f928",
+   "name": "Face with raised eyebrow",
+   "columns": 8,
+   "rows": 2,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    160,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "raised-eyebrow-128.png",
+     "bytes": 31113
+    },
+    "256": {
+     "file": "raised-eyebrow-256.png",
+     "bytes": 81638
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f928/512.webp",
+    "sha256": "bde15a8e6f4b9d71996c8cc5b6fcc67c5bc3ef971231a74bf613d9b291dba9b5",
+    "frames": 36,
+    "rest_frame": 29
+   }
+  },
+  {
+   "slug": "smirk",
+   "codepoint": "1f60f",
+   "name": "Smirking face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    320,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "smirk-128.png",
+     "bytes": 42379
+    },
+    "256": {
+     "file": "smirk-256.png",
+     "bytes": 108834
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60f/512.webp",
+    "sha256": "58a0c12facc58d7a8484f79faac8ea4202824eaa2366efa6d1554569a7ea94f1",
+    "frames": 51,
+    "rest_frame": 5
+   }
+  },
+  {
+   "slug": "relieved",
+   "codepoint": "1f60c",
+   "name": "Relieved face",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    80,
+    80,
+    240,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "relieved-128.png",
+     "bytes": 64821
+    },
+    "256": {
+     "file": "relieved-256.png",
+     "bytes": 165115
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60c/512.webp",
+    "sha256": "246334419df307e3ae84f0b47501a9908723d24b3f4feb25a8e2d8385f697cf6",
+    "frames": 79,
+    "rest_frame": 73
+   }
+  },
+  {
+   "slug": "sleepy",
+   "codepoint": "1f62a",
+   "name": "Sleepy face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "sleepy-128.png",
+     "bytes": 53565
+    },
+    "256": {
+     "file": "sleepy-256.png",
+     "bytes": 131998
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f62a/512.webp",
+    "sha256": "cb6e310714ab9417a965eb1219bd5e4ff9728c608e3055148c7e5ced54e45897",
+    "frames": 60,
+    "rest_frame": 19
+   }
+  },
+  {
+   "slug": "sleeping",
+   "codepoint": "1f634",
+   "name": "Sleeping face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "sleeping-128.png",
+     "bytes": 58209
+    },
+    "256": {
+     "file": "sleeping-256.png",
+     "bytes": 144515
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f634/512.webp",
+    "sha256": "ca41f50126de30ef67ae2df42f17ae3fd2ffd7deb7b1bba6d2e4141b1ff2ce3f",
+    "frames": 60,
+    "rest_frame": 0
+   }
+  },
+  {
+   "slug": "sunglasses",
+   "codepoint": "1f60e",
+   "name": "Smiling face with sunglasses",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    240,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    160
+   ],
+   "sizes": {
+    "128": {
+     "file": "sunglasses-128.png",
+     "bytes": 60163
+    },
+    "256": {
+     "file": "sunglasses-256.png",
+     "bytes": 148244
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp",
+    "sha256": "16e9f241e5471c77bd94b3ff1fbdfd4a37e2056d6485256db41729165b57e66f",
+    "frames": 62,
+    "rest_frame": 0
+   }
+  },
+  {
+   "slug": "nerd",
+   "codepoint": "1f913",
+   "name": "Nerd face",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    240,
+    80,
+    80,
+    160,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    400,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "nerd-128.png",
+     "bytes": 74870
+    },
+    "256": {
+     "file": "nerd-256.png",
+     "bytes": 193533
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f913/512.webp",
+    "sha256": "febaf220b3d57f8d0b3d2ad9b2ea65abac93bbbc49b5a3c862c499811d327c48",
+    "frames": 64,
+    "rest_frame": 24
+   }
+  },
+  {
+   "slug": "partying",
+   "codepoint": "1f973",
+   "name": "Partying face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "partying-128.png",
+     "bytes": 57742
+    },
+    "256": {
+     "file": "partying-256.png",
+     "bytes": 143891
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f973/512.webp",
+    "sha256": "fcf2af3bb9244afe32685f0293ff2ad3f4fb3575e93fec3054f59c052b82762f",
+    "frames": 54,
+    "rest_frame": 0
+   }
+  },
+  {
+   "slug": "cowboy",
+   "codepoint": "1f920",
+   "name": "Cowboy hat face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    160,
+    160,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "cowboy-128.png",
+     "bytes": 44692
+    },
+    "256": {
+     "file": "cowboy-256.png",
+     "bytes": 109192
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f920/512.webp",
+    "sha256": "5cdff01e7d032c751cbb03ce27577b495174becb4b6896d71b97b4734320144a",
+    "frames": 42,
+    "rest_frame": 41
+   }
+  },
+  {
+   "slug": "mind-blown",
+   "codepoint": "1f92f",
+   "name": "Exploding head",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    160,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "mind-blown-128.png",
+     "bytes": 69937
+    },
+    "256": {
+     "file": "mind-blown-256.png",
+     "bytes": 170551
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp",
+    "sha256": "9bda8e4f7c8941625b0ae64c2c3c85c794bbbe14f8e7bdd13b92b34c726ac59e",
+    "frames": 83,
+    "rest_frame": 20
+   }
+  },
+  {
+   "slug": "confounded",
+   "codepoint": "1f616",
+   "name": "Confounded face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "confounded-128.png",
+     "bytes": 47811
+    },
+    "256": {
+     "file": "confounded-256.png",
+     "bytes": 120560
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f616/512.webp",
+    "sha256": "cc43f5faee0f591bd5036d1561517cf35e77b6e9864bb7ea98473ba49acb3b78",
+    "frames": 61,
+    "rest_frame": 45
+   }
+  },
+  {
+   "slug": "persevering",
+   "codepoint": "1f623",
+   "name": "Persevering face",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    800,
+    880,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "persevering-128.png",
+     "bytes": 43649
+    },
+    "256": {
+     "file": "persevering-256.png",
+     "bytes": 108609
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f623/512.webp",
+    "sha256": "025654eddc87269e2bb1c3de11d4015ba76dfefda716092ac43e041fc3b06a8a",
+    "frames": 44,
+    "rest_frame": 43
+   }
+  },
+  {
+   "slug": "eyes",
+   "codepoint": "1f440",
+   "name": "Eyes",
+   "columns": 8,
+   "rows": 2,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    240,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "eyes-128.png",
+     "bytes": 33494
+    },
+    "256": {
+     "file": "eyes-256.png",
+     "bytes": 76847
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f440/512.webp",
+    "sha256": "44da2fbd6e9ec1dee07808fef5216fb8393d78155c7f104be99525215961e07e",
+    "frames": 37,
+    "rest_frame": 35
+   }
+  },
+  {
+   "slug": "wave",
+   "codepoint": "1f44b",
+   "name": "Waving hand",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "wave-128.png",
+     "bytes": 48732
+    },
+    "256": {
+     "file": "wave-256.png",
+     "bytes": 120133
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f44b/512.webp",
+    "sha256": "2209749c084f37f914e7878346b1285896f4ce9d1a3f5294db93779c00186fa9",
+    "frames": 46,
+    "rest_frame": 0
+   }
+  },
+  {
+   "slug": "thumbs-up",
+   "codepoint": "1f44d",
+   "name": "Thumbs up",
+   "columns": 8,
+   "rows": 2,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "thumbs-up-128.png",
+     "bytes": 19622
+    },
+    "256": {
+     "file": "thumbs-up-256.png",
+     "bytes": 45500
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f44d/512.webp",
+    "sha256": "f456f329ec2457828e0511f31b855e1b3b21c91f53d7d465dc3a1aa7d3b73383",
+    "frames": 24,
+    "rest_frame": 19
+   }
+  },
+  {
+   "slug": "raising-hands",
+   "codepoint": "1f64c",
+   "name": "Raising hands",
+   "columns": 8,
+   "rows": 2,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    240,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "raising-hands-128.png",
+     "bytes": 32784
+    },
+    "256": {
+     "file": "raising-hands-256.png",
+     "bytes": 78289
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f64c/512.webp",
+    "sha256": "51accc877dc32ac4ecfbb5745b89afdf1f610c7e23c4fb292f4bea3dd603fa44",
+    "frames": 40,
+    "rest_frame": 16
+   }
+  },
+  {
+   "slug": "victory",
+   "codepoint": "270c_fe0f",
+   "name": "Victory hand",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    320,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "victory-128.png",
+     "bytes": 37016
+    },
+    "256": {
+     "file": "victory-256.png",
+     "bytes": 91973
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/270c_fe0f/512.webp",
+    "sha256": "116172b2c450bd61d99c844eba03d92bc16ca674e98ec6d76f927f409d5cf321",
+    "frames": 43,
+    "rest_frame": 27
+   }
+  },
+  {
+   "slug": "ghost",
+   "codepoint": "1f47b",
+   "name": "Ghost",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "ghost-128.png",
+     "bytes": 49924
+    },
+    "256": {
+     "file": "ghost-256.png",
+     "bytes": 117357
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f47b/512.webp",
+    "sha256": "5a609490cb6e1931fc7074666b53cf1685c313fae347daceed330545eae429fc",
+    "frames": 71,
+    "rest_frame": 69
+   }
+  },
+  {
+   "slug": "robot",
+   "codepoint": "1f916",
+   "name": "Robot",
+   "columns": 8,
+   "rows": 4,
+   "durations_ms": [
+    400,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "robot-128.png",
+     "bytes": 41061
+    },
+    "256": {
+     "file": "robot-256.png",
+     "bytes": 98039
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f916/512.webp",
+    "sha256": "0b4793fdd518d65b6804449bad81d26908b14e1b6bb5bf560ad8bdeded5a72e2",
+    "frames": 72,
+    "rest_frame": 0
+   }
+  },
+  {
+   "slug": "fox",
+   "codepoint": "1f98a",
+   "name": "Fox",
+   "columns": 8,
+   "rows": 3,
+   "durations_ms": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "sizes": {
+    "128": {
+     "file": "fox-128.png",
+     "bytes": 54498
+    },
+    "256": {
+     "file": "fox-256.png",
+     "bytes": 132864
+    }
+   },
+   "source": {
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f98a/512.webp",
+    "sha256": "e793f95ebe1c383d7f2cb9389ebe41d90738b2283e8f86ff0354fe42d51ec614",
+    "frames": 63,
+    "rest_frame": 2
+   }
+  }
+ ]
+}

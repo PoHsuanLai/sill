@@ -19,13 +19,15 @@ cd "$(dirname "$0")/.."
 # sill-services and sill-search are effectful but UI-free: their state reaches surfaces only
 # through watch channels read by sill-ui-kit's hooks, so neither links a renderer.
 # sill-testkit is std only and names no sill crate.
+# sill-shell-kit (the shell-only parts over quire's `ds`) names no other sill crate and no service,
+# bus, runtime or compositor client: it is what the surfaces and sill-ui-kit draw with.
 # sill-ui-kit is what every surface shares, so it reaches no surface crate and not the binary.
 # `sill` (the whole process) takes the viewer's light tier, its history, its vocabulary and its
 # D-Bus requests, and never its media player: it reaches neither libmpv binding.
 # The surface crates never depend on one another and none depends on `sill`; the daemon is the one
 # crate that names them all.
-PURE="dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds ds-shell ds-blitz ds-harness blitz-dom"
-UI_FREE="dioxus dioxus-core blitz-dom shell-host ds ds-shell ds-blitz ds-harness"
+PURE="dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds ds-shell sill-shell-kit ds-blitz ds-harness blitz-dom"
+UI_FREE="dioxus dioxus-core blitz-dom shell-host ds ds-shell sill-shell-kit ds-blitz ds-harness"
 SURFACES=(sill-overlays sill-notify-ui sill-widgets-ui sill-dock sill-launcher-ui sill-bar)
 # The other surfaces, and the binary, for one surface crate.
 others() {
@@ -39,7 +41,8 @@ RULES=(
   "sill-ipc: $PURE"
   "sill-services: $UI_FREE ds-settings"
   "sill-search: $UI_FREE"
-  "sill-testkit: sill-launcher sill-model sill-settings sill-ipc sill-services sill-search sill-ui-kit ${SURFACES[*]} sill"
+  "sill-shell-kit: sill-launcher sill-model sill-settings sill-ipc sill-services sill-search sill-testkit sill-ui-kit ${SURFACES[*]} sill zbus tokio wayland-client libpulse-binding shell-host ds-blitz blitz-dom"
+  "sill-testkit: sill-launcher sill-model sill-settings sill-ipc sill-services sill-search sill-shell-kit sill-ui-kit ${SURFACES[*]} sill"
   "sill-ui-kit: ${SURFACES[*]} sill"
   "sill: mpv-wgpu-player rsmpv"
 )
@@ -78,19 +81,20 @@ done
 EDGES=(
   "sill-launcher: almanac-core docket-core ds-core prov"
   "sill-testkit:"
+  "sill-shell-kit: ds ds-core ds-shell"
   "sill-model: almanac-core companion-wire cua-bus docket-core ds-core keycap-protocol porter-core prov sill-launcher voice-wire"
   "sill-settings: ds-core ds-settings keycap-protocol sill-launcher sill-model"
   "sill-ipc: sill-launcher sill-model"
   "sill-services: almanac-core almanac-dbus anyview-core anyview-platform companion-wire cua-bus cua-dbus docket-client docket-core docket-dbus ds-core keycap-protocol porter-core porter-dbus prov sill-launcher sill-model voice-wire"
   "sill-search: almanac-core anyview-core anyview-store companion-wire docket-core ds-core ds-settings prov sill-launcher sill-model sill-services"
-  "sill-ui-kit: companion-wire docket-core ds ds-blitz ds-core ds-harness ds-settings ds-shell porter-core prov shell-host sill-launcher sill-model sill-search sill-services sill-settings"
-  "sill-bar: ds ds-blitz ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill-dock: ds ds-blitz ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
+  "sill-ui-kit: companion-wire docket-core ds ds-blitz ds-core ds-harness ds-settings porter-core prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-shell-kit"
+  "sill-bar: ds ds-blitz ds-settings shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
+  "sill-dock: ds ds-blitz shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill-launcher-ui: almanac-core anyview-core anyview-image anyview-peek anyview-platform companion-wire docket-core ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
-  "sill-notify-ui: ds ds-blitz ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
-  "sill-widgets-ui: ds ds-shell shell-host sill-launcher sill-model sill-settings sill-ui-kit"
-  "sill-overlays: ds ds-behaviour ds-settings ds-shell porter-core shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill: ds-lint ds-blitz ds-settings ds-shell prov shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
+  "sill-notify-ui: ds ds-blitz ds-settings shell-host sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
+  "sill-widgets-ui: ds shell-host sill-launcher sill-model sill-settings sill-shell-kit sill-ui-kit"
+  "sill-overlays: ds ds-behaviour ds-settings ds-shell porter-core shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
+  "sill: ds-blitz ds-lint ds-settings prov shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-shell-kit sill-ui-kit sill-widgets-ui"
 )
 for edge in "${EDGES[@]}"; do
   crate="${edge%%:*}"

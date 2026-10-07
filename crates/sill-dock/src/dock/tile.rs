@@ -16,11 +16,11 @@ use ds::prelude::*;
 use ds::style::icon::family::PlateFamily;
 use ds::style::icon::plate_tint::PlateTint;
 use ds::style::scale::use_scale;
-use ds_shell::dock::tile::plate_side;
-use ds_shell::prelude::*;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
 use sill_settings::{DockSettings, Indicators};
+use sill_shell_kit::dock::tile::plate_side;
+use sill_shell_kit::prelude::*;
 
 use crate::dock::frame::Rows;
 use crate::dock::icon::{IconContext, TileSizes, drawn, tile_art};

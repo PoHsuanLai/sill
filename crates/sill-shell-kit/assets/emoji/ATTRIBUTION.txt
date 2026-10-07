@@ -1,0 +1,16 @@
+Animated emoji: Noto Animated Emoji by Google
+https://googlefonts.github.io/noto-emoji-animation/
+
+Licensed under the Creative Commons Attribution 4.0 International licence (CC BY 4.0),
+https://creativecommons.org/licenses/by/4.0/ ; the full legal code is in CC-BY-4.0.txt beside
+this file. The source site states: "Animated Noto Emoji is licensed under CC BY 4.0." (FAQ,
+checked 2026-09-26).
+
+Changes made: each emoji's animated WebP (512 px, fetched from fonts.gstatic.com as the source
+site links it) was decoded, its loop rotated to begin at the rest pose, resampled every 80 ms,
+scaled to 128 px and 256 px frames, quantised to a 256-colour palette and packed into one
+sprite-sheet PNG per size by tools/emoji (design/25-EMOJI.md). manifest.json records each
+source URL and its sha256. No endorsement by Google is implied.
+
+These files are data, not code: the rest of this crate is MIT OR Apache-2.0; these sheets
+stay CC BY 4.0 wherever they are copied, and this notice travels with them.

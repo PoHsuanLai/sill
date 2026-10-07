@@ -13,7 +13,7 @@ dioxus = { workspace = true }
 ds = { workspace = true }
 ds-blitz = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
-ds-shell = { workspace = true }
+sill-shell-kit = { workspace = true }
 image = { workspace = true }
 shell-host = { workspace = true }
 sill-launcher = { workspace = true }

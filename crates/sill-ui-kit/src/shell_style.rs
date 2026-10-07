@@ -45,8 +45,8 @@ mod tests {
     use ds::style::tokens::control_size::ControlSize;
     use ds::style::tokens::shell_scale::SHELL_SCALE;
     use ds::style::tokens::shell_type::ShellMetrics;
-    use ds_shell::tokens::control_center::CONTROL_CENTER;
     use sill_settings::{Px, ShellFile};
+    use sill_shell_kit::tokens::control_center::CONTROL_CENTER;
 
     #[test]
     fn the_default_keys_are_quires_defaults() {

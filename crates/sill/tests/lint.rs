@@ -181,7 +181,7 @@ fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
         own_vars: OWN_VARS.iter().map(|var| (*var).to_owned()).collect(),
-        ..LintConfig::new(&ds_shell::kits())
+        ..LintConfig::new(&sill_shell_kit::kits())
     }
 }
 
@@ -704,7 +704,7 @@ fn every_surface_draws_clean_markup_in_each_state() {
     for case in SURFACES {
         let css = format!(
             "{}\n{}\n{}",
-            ds_shell::stylesheet(),
+            sill_shell_kit::stylesheet(),
             case.css,
             injected_css(case.name)
         );

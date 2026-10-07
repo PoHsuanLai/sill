@@ -18,13 +18,13 @@ use ds::base::vocab::InputModality;
 use ds::focus::select::Select;
 use ds::focus::selector::{FocusError, focus_by_selector};
 use ds::prelude::*;
-use ds_shell::notifications::parts::Hover;
 use shell_host::{KeyboardMode, SurfaceHandle, SurfaceOp};
 use sill_model::notifications::{
     ActionKey, Activation, ActivationToken, LiveBanner, Notification, NotificationId,
     NotificationsCommand,
 };
 use sill_services::Control;
+use sill_shell_kit::notifications::parts::Hover;
 
 use super::commands::action_command;
 use super::deck::{Deck, DeckIn, DeckOut, EntryKey, advance};

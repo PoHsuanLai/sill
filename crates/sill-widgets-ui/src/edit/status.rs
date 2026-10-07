@@ -11,7 +11,7 @@ use ds::components::content::label::{LabelRole, LabelStyle};
 use ds::motion::detail::once::use_shake;
 use ds::motion::detail::touch::Touch;
 use ds::prelude::*;
-use ds_shell::widget::{WidgetEdit, WidgetLayout};
+use sill_shell_kit::widget::{WidgetEdit, WidgetLayout};
 
 use sill_ui_kit::widgets::layout::Refused;
 use sill_ui_kit::widgets::{WidgetHost, WidgetKind, kind_of, registry};
@@ -142,9 +142,9 @@ pub(super) fn EditStatus(outcome: Outcome) -> Element {
 mod tests {
     use ds::motion::detail::detailed::moment_table;
     use ds::prelude::*;
-    use ds_shell::catalog::PlacementId;
-    use ds_shell::prelude::*;
-    use ds_shell::widget::{LayoutError, Order, WidgetAt, WidgetEdit, WidgetLayout};
+    use sill_shell_kit::catalog::PlacementId;
+    use sill_shell_kit::prelude::*;
+    use sill_shell_kit::widget::{LayoutError, Order, WidgetAt, WidgetEdit, WidgetLayout};
 
     use super::{EditCount, Outcome, Said, outcome_of};
     use sill_ui_kit::widgets::layout::Refused;

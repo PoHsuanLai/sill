@@ -9,8 +9,8 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::root::pass_through::{DataAttr, DataName};
-use ds_shell::prelude::*;
 use sill_model::notifications::{AppGroup, History, Notification, UnixMs};
+use sill_shell_kit::prelude::*;
 
 use super::groups::Expanded;
 use super::io::CenterCtx;

@@ -16,9 +16,9 @@ use std::path::{Path, PathBuf};
 use ds::prelude::*;
 use ds::style::icon::render::IconPx;
 use ds::style::icon::url::IconUrl;
-use ds_shell::dock::tile::plate_side;
 use sill_model::apps::{App, AppIcon};
 use sill_settings::{DockSettings, Magnification};
+use sill_shell_kit::dock::tile::plate_side;
 
 use crate::dock::items::ItemKind;
 pub use sill_ui_kit::app_icons::IconContext;

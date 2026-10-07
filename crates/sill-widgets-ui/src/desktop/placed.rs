@@ -9,8 +9,8 @@ use dioxus::core::queue_effect;
 use dioxus::prelude::*;
 use ds::motion::spring_point::{SpringPointMotion, use_spring_point_motion};
 use ds::motion::spring_spec::SpringResponse;
-use ds_shell::widget::kind::Lift;
 use sill_settings::WidgetKind;
+use sill_shell_kit::widget::kind::Lift;
 
 use super::arrange::LayerPoint;
 use super::drag::corner;

@@ -5,10 +5,10 @@
 use dioxus::prelude::*;
 use ds::components::controls::button_model::Bezel;
 use ds::prelude::*;
-use ds_shell::prelude::*;
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_services::LaunchService;
+use sill_shell_kit::prelude::*;
 
 use sill_ui_kit::hooks::use_control;
 

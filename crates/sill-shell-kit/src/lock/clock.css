@@ -1,0 +1,11 @@
+/* LockClock (design/04-COMPONENTS.md section 42; design/20 section 1.9). Flat and bright: white
+   type over the wallpaper, no shadow, no bevel. The date is the display face at 600, a quiet
+   white; the time the display face at `--fs-lock-clock` (140), 700, tight, tabular so a changing
+   minute does not shift it. Under `data-look=space` the date sits in a pill of the Space
+   gradient in the frame's ink (Arc's colour on the small surfaces; the time stays white). */
+
+.ds-lock-clock{ display:flex; flex-direction:column; align-items:center; color:var(--lock-ink); text-align:center; }
+.ds-lock-date{ font-family:var(--font-display); font-size:var(--fs-amount); font-weight:600; letter-spacing:var(--tracking-lock-date); line-height:1.2; color:var(--lock-ink-soft); }
+.ds-lock-time{ font-family:var(--font-display); font-size:var(--fs-lock-clock); font-weight:700; letter-spacing:var(--tracking-lock-clock); line-height:1; font-variant-numeric:tabular-nums; color:var(--lock-ink); margin-top:var(--s-2); }
+
+.ds-lock-clock[*|data-look=space] .ds-lock-date{ background:var(--f-grad); color:var(--f-ink); border-radius:var(--r-pill); padding:var(--s-3) var(--s-14); margin-bottom:var(--s-8); }

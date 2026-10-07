@@ -1,0 +1,25 @@
+/* UserPicture (design/25-EMOJI.md section 7): a letter disc (`.ds-avatar`), an animated emoji
+   (`.ds-emoji`) or the user's photo, inside `.ds-user-picture`, the wrapper that adds no box of
+   its own: it is the picture's size. */
+
+.ds-user-picture{ display:inline-flex; flex:none; }
+
+/* UserPicture::Photo: the user's own picture, cropped round. The disc clips (overflow hidden
+   under the pill radius) and the image covers it (`object-fit:cover`, centred), so a portrait
+   or landscape photo fills the disc without stretching. The sizes are the avatar's and the
+   emoji's: 28, 48 (the polkit prompt), 64 and 128; --surface-2 shows until the image lands. */
+.ds-user-photo{ position:relative; flex:none; box-sizing:border-box; overflow:hidden; border-radius:var(--r-pill);
+  background:var(--surface-2); }
+.ds-user-photo[*|data-size="28"]{ width:28px; height:28px; }
+.ds-user-photo[*|data-size="48"]{ width:48px; height:48px; }
+.ds-user-photo[*|data-size="64"]{ width:64px; height:64px; }
+.ds-user-photo[*|data-size="128"]{ width:128px; height:128px; }
+.ds-user-photo-image{ display:block; width:100%; height:100%; object-fit:cover; object-position:50% 50%; }
+
+/* UserPicturePicker: the letter and the emoji set as 64 px discs in 76 px cells (inline
+   `grid-template-columns` and `grid-auto-rows`), one radio group. The chosen cell takes the
+   emoji grid's selection look, `--accent-soft` on the item radius; the group shows no focus
+   ring of its own, its choice being the mark. */
+.ds-picture-picker{ display:grid; gap:0; outline:none; cursor:default; }
+.ds-picture-cell{ display:grid; place-items:center; min-width:0; box-sizing:border-box; border-radius:var(--r-menu-item); cursor:default; }
+.ds-picture-cell[*|aria-checked=true]{ background:var(--accent-soft); }

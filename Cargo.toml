@@ -10,6 +10,7 @@ members = [
   "crates/sill-notify-ui",
   "crates/sill-overlays",
   "crates/sill-search",
+  "crates/sill-shell-kit",
   "crates/sill-services",
   "crates/sill-settings",
   "crates/sill-testkit",
@@ -32,6 +33,7 @@ sill-ipc      = { path = "crates/sill-ipc" }
 sill-launcher = { path = "crates/sill-launcher" }
 sill-model    = { path = "crates/sill-model" }
 sill-search   = { path = "crates/sill-search" }
+sill-shell-kit = { path = "crates/sill-shell-kit" }
 sill-services = { path = "crates/sill-services" }
 sill-settings = { path = "crates/sill-settings" }
 sill-testkit  = { path = "crates/sill-testkit" }

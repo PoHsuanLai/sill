@@ -69,8 +69,8 @@ mod tests {
         AvatarFace, AvatarShape, AvatarSize, AvatarTone, person_hue,
     };
     use ds::prelude::*;
-    use ds_shell::lock::vocab::{LockUser, PromptState};
     use sill_model::polkit_agent::Cookie;
+    use sill_shell_kit::lock::vocab::{LockUser, PromptState};
 
     use super::{Mapped, Stage, StageIn, advance};
     use crate::polkit_prompt::model::PolkitPromptView;

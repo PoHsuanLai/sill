@@ -6,11 +6,11 @@
 use dioxus::prelude::*;
 use ds::components::content::status::wifi_state::WifiState;
 use ds::prelude::*;
-use ds_shell::prelude::*;
 use sill_model::network::Network;
 use sill_model::units::Presence;
 use sill_model::wifi::{Radio, Wifi, WifiCommand};
 use sill_services::WifiService;
+use sill_shell_kit::prelude::*;
 
 use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use crate::bar::{BarMenu, StatusIcon};

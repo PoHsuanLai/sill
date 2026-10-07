@@ -1,0 +1,30 @@
+[package]
+name = "sill-shell-kit"
+description = "The shell-only parts: lock, switcher, bar, dock, control center, notifications, OSD, clocks, batteries, emoji and the desktop widgets, with the shell's tokens and sheets."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+ds = { workspace = true }
+ds-core = { workspace = true }
+ds-shell = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+image = { workspace = true }
+
+[dev-dependencies]
+dioxus-ssr = { workspace = true }
+ds-blitz = { workspace = true }
+ds-core = { workspace = true, features = ["testing"] }
+ds-harness = { workspace = true }
+ds-lint = { workspace = true }
+ds-settings = { workspace = true, features = ["dioxus"] }
+
+[lints]
+workspace = true

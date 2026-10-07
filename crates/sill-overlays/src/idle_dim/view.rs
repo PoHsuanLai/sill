@@ -2,8 +2,8 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_shell::idle_dim::IdleDim;
 use shell_host::OutputInfo;
+use sill_shell_kit::idle_dim::IdleDim;
 
 use super::io::use_dim;
 use sill_ui_kit::hooks::use_appearance;
@@ -17,7 +17,7 @@ pub(super) fn idle_dim(output: OutputInfo) -> Element {
     let root = use_root_style();
     rsx! {
         Ds {
-            sheet: Some(ds_shell::stylesheet()),
+            sheet: Some(sill_shell_kit::stylesheet()),
             appearance: environment.settings.appearance.appearance(),
             system: environment.system,
             material: Material::Sheet,

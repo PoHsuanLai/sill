@@ -39,7 +39,7 @@ use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
 use ds::prelude::*;
-use ds_shell::control_center::module_panel::PanelPlate;
+use sill_shell_kit::control_center::module_panel::PanelPlate;
 
 pub use cc_module::Span;
 pub(crate) use cc_module::{CcCx, CcModule};

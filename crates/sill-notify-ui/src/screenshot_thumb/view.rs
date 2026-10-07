@@ -8,12 +8,12 @@
 use dioxus::prelude::*;
 use ds::motion::swipe::SwipeMetrics;
 use ds::prelude::*;
-use ds_shell::notifications::banner_stack::{Banner, BannerKey, BannerPosition};
-use ds_shell::prelude::*;
 use shell_host::{OutputId, OutputInfo, use_watch};
 use sill_model::screenshots::ShotId;
 use sill_services::ScreenshotsService;
 use sill_settings::ShotThumbnail;
+use sill_shell_kit::notifications::banner_stack::{Banner, BannerKey, BannerPosition};
+use sill_shell_kit::prelude::*;
 
 use super::card::ThumbCard;
 use super::follow::{Here, follow};

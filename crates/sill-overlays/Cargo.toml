@@ -13,6 +13,7 @@ dioxus = { workspace = true }
 ds = { workspace = true }
 ds-behaviour = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
+sill-shell-kit = { workspace = true }
 ds-shell = { workspace = true }
 jiff = { workspace = true }
 porter-core = { workspace = true }

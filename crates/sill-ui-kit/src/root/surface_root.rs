@@ -28,7 +28,7 @@ pub fn SurfaceRoot(
     let root = use_root_style();
     rsx! {
         Ds {
-            sheet: Some(ds_shell::stylesheet()),
+            sheet: Some(sill_shell_kit::stylesheet()),
             appearance: environment.settings.appearance.appearance(),
             system: environment.system,
             look,

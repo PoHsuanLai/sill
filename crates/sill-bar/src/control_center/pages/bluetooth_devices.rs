@@ -9,7 +9,6 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_shell::prelude::*;
 use sill_model::attempt::Attempts;
 use sill_model::bluetooth::{
     Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
@@ -17,6 +16,7 @@ use sill_model::bluetooth::{
 };
 use sill_model::units::Presence;
 use sill_services::BluetoothService;
+use sill_shell_kit::prelude::*;
 
 use super::feature_switch::{FeatureSwitch, back_button};
 use super::foot::SettingsFoot;

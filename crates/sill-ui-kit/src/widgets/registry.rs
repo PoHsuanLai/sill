@@ -3,18 +3,18 @@
 //! each host, and the stylesheets sill's own widgets need.
 
 use ds::prelude::*;
-use ds_shell::prelude::*;
-use ds_shell::widget::registry::provide_widget_registry;
 use sill_settings::WidgetKind;
+use sill_shell_kit::prelude::*;
+use sill_shell_kit::widget::registry::provide_widget_registry;
 
 use super::{OnProvider, WidgetProvider, now_playing, size_of, up_next, with_provider};
 
 /// `kind`'s name in quire's registry.
-pub fn kind_id(kind: WidgetKind) -> ds_shell::prelude::WidgetKind {
+pub fn kind_id(kind: WidgetKind) -> sill_shell_kit::prelude::WidgetKind {
     struct RegistryId;
     impl OnProvider for RegistryId {
-        type Out = ds_shell::prelude::WidgetKind;
-        fn on<P: WidgetProvider>(self) -> ds_shell::prelude::WidgetKind {
+        type Out = sill_shell_kit::prelude::WidgetKind;
+        fn on<P: WidgetProvider>(self) -> sill_shell_kit::prelude::WidgetKind {
             P::registry_id()
         }
     }
@@ -22,7 +22,7 @@ pub fn kind_id(kind: WidgetKind) -> ds_shell::prelude::WidgetKind {
 }
 
 /// The settings' kind named `id`; none for a widget sill does not place.
-pub fn kind_of(id: &ds_shell::prelude::WidgetKind) -> Option<WidgetKind> {
+pub fn kind_of(id: &sill_shell_kit::prelude::WidgetKind) -> Option<WidgetKind> {
     WidgetKind::ALL
         .iter()
         .copied()
@@ -46,9 +46,9 @@ pub fn registry() -> WidgetRegistry {
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub(super) enum RegistryError {
     #[error("{0}")]
-    Taken(#[from] ds_shell::widget::TakenKind),
+    Taken(#[from] sill_shell_kit::widget::TakenKind),
     #[error("{0}")]
-    Unsized(#[from] ds_shell::widget::UnsizedKind),
+    Unsized(#[from] sill_shell_kit::widget::UnsizedKind),
 }
 
 /// `quire` with sill's two widgets added and every kind held to its one size in each host.

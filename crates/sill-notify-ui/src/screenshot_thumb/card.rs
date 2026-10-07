@@ -10,12 +10,12 @@ use dioxus::prelude::*;
 use ds::motion::swipe::SwipeMetrics;
 use ds::prelude::*;
 use ds::root::common::Common;
-use ds_shell::notifications::parts::Hover;
-use ds_shell::notifications::swipe::NotificationSwipe;
-use ds_shell::prelude::*;
-use ds_shell::thumbs::shot_press::DragStart;
-use ds_shell::thumbs::shot_thumbnail::ThumbAction;
 use sill_model::screenshots::ShotId;
+use sill_shell_kit::notifications::parts::Hover;
+use sill_shell_kit::notifications::swipe::NotificationSwipe;
+use sill_shell_kit::prelude::*;
+use sill_shell_kit::thumbs::shot_press::DragStart;
+use sill_shell_kit::thumbs::shot_thumbnail::ThumbAction;
 
 use super::ghost::GhostLook;
 use super::io::Thumb;

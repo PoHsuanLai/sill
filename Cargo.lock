@@ -2622,6 +2622,7 @@ dependencies = [
  "futures-timer",
  "keyboard-types 0.7.0",
  "serde",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 
@@ -2725,10 +2726,7 @@ dependencies = [
  "ds-core",
  "ds-motion",
  "ds-style",
- "image",
  "serde",
- "serde_json",
- "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -7216,7 +7214,6 @@ dependencies = [
  "ds-harness",
  "ds-lint",
  "ds-settings",
- "ds-shell",
  "keyboard-types 0.7.0",
  "latchkey",
  "prov",
@@ -7235,6 +7232,7 @@ dependencies = [
  "sill-search",
  "sill-services",
  "sill-settings",
+ "sill-shell-kit",
  "sill-testkit",
  "sill-ui-kit",
  "sill-widgets-ui",
@@ -7256,7 +7254,6 @@ dependencies = [
  "ds-harness",
  "ds-lint",
  "ds-settings",
- "ds-shell",
  "image",
  "serde_json",
  "shell-host",
@@ -7264,6 +7261,7 @@ dependencies = [
  "sill-model",
  "sill-services",
  "sill-settings",
+ "sill-shell-kit",
  "sill-ui-kit",
  "tokio",
 ]
@@ -7278,12 +7276,12 @@ dependencies = [
  "ds-harness",
  "ds-lint",
  "ds-settings",
- "ds-shell",
  "shell-host",
  "sill-launcher",
  "sill-model",
  "sill-services",
  "sill-settings",
+ "sill-shell-kit",
  "sill-ui-kit",
  "tokio",
 ]
@@ -7331,7 +7329,6 @@ dependencies = [
  "ds-blitz",
  "ds-harness",
  "ds-lint",
- "ds-shell",
  "image",
  "jiff",
  "md-5 0.10.6",
@@ -7344,6 +7341,7 @@ dependencies = [
  "sill-search",
  "sill-services",
  "sill-settings",
+ "sill-shell-kit",
  "sill-testkit",
  "sill-ui-kit",
  "tokio",
@@ -7380,12 +7378,12 @@ dependencies = [
  "ds-blitz",
  "ds-harness",
  "ds-settings",
- "ds-shell",
  "image",
  "shell-host",
  "sill-model",
  "sill-services",
  "sill-settings",
+ "sill-shell-kit",
  "sill-ui-kit",
 ]
 
@@ -7409,6 +7407,7 @@ dependencies = [
  "sill-model",
  "sill-services",
  "sill-settings",
+ "sill-shell-kit",
  "sill-ui-kit",
  "tokio",
 ]
@@ -7511,6 +7510,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "sill-shell-kit"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "dioxus-ssr",
+ "ds",
+ "ds-blitz",
+ "ds-core",
+ "ds-harness",
+ "ds-lint",
+ "ds-settings",
+ "ds-shell",
+ "image",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "sill-testkit"
 version = "0.1.0"
 dependencies = [
@@ -7543,7 +7561,6 @@ dependencies = [
  "ds-harness",
  "ds-lint",
  "ds-settings",
- "ds-shell",
  "image",
  "jiff",
  "porter-core",
@@ -7557,6 +7574,7 @@ dependencies = [
  "sill-search",
  "sill-services",
  "sill-settings",
+ "sill-shell-kit",
  "sill-ui-kit",
  "thiserror 2.0.21",
  "tokio",
@@ -7571,11 +7589,11 @@ dependencies = [
  "ds-harness",
  "ds-lint",
  "ds-settings",
- "ds-shell",
  "shell-host",
  "sill-launcher",
  "sill-model",
  "sill-settings",
+ "sill-shell-kit",
  "sill-ui-kit",
  "tokio",
 ]

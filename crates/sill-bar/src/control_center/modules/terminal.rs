@@ -11,10 +11,10 @@ use ds::components::content::label::{LabelRole, LabelStyle};
 use ds::components::controls::button_model::Bezel;
 use ds::prelude::*;
 use ds::root::common::Common;
-use ds_shell::prelude::*;
 use sill_model::intents::terminal::{Breaker, Terminal, grant_words};
 use sill_model::intents::{ActionRef, IntentsCommand};
 use sill_services::IntentsService;
+use sill_shell_kit::prelude::*;
 
 use super::cc_module::{CcCx, CcModule, Span};
 use crate::control_center::modules::use_plate;

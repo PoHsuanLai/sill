@@ -7,8 +7,8 @@ use ds::host::measure::use_rect;
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::style::tokens::status::StatusMetrics;
-use ds_shell::prelude::*;
 use sill_settings::{BarGlyphSize, BarSettings};
+use sill_shell_kit::prelude::*;
 
 use super::menus::BarMenu;
 use super::title::{shown_of, use_title_pointer};

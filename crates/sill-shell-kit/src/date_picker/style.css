@@ -1,0 +1,27 @@
+/* DatePicker (design/30 section 2.3, `NSDatePicker`). Attribute selectors carry `*|` (spike S2). The
+   textual style is one bezel like a text field's, the segments in it side by side, the selected
+   one on the accent under its ink, and the stepper after it. The graphical style stacks the
+   month grid over the time field. */
+
+.ds-date-picker{ --dp-h:var(--ctl-h-m); --dp-r:var(--ctl-r-m); --dp-fs:var(--ctl-fs-m);
+  display:inline-flex; align-items:center; gap:var(--s-4); flex:none; font-size:var(--dp-fs);
+}
+.ds-date-picker[*|data-size=mini]{ --dp-h:var(--ctl-h-xs); --dp-r:var(--ctl-r-xs); --dp-fs:var(--ctl-fs-xs); }
+.ds-date-picker[*|data-size=small]{ --dp-h:var(--ctl-h-s); --dp-r:var(--ctl-r-s); --dp-fs:var(--ctl-fs-s); }
+.ds-date-picker[*|data-size=large]{ --dp-h:var(--ctl-h-l); --dp-r:var(--ctl-r-l); --dp-fs:var(--ctl-fs-l); }
+.ds-date-picker[*|data-size=extra-large]{ --dp-h:var(--ctl-h-xl); --dp-r:var(--ctl-r-xl); --dp-fs:var(--ctl-fs-xl); }
+.ds-date-picker[*|data-style=graphical]{ flex-direction:column; align-items:stretch; gap:var(--s-8); }
+
+.ds-date-picker-field{
+  display:inline-flex; align-items:center; box-sizing:border-box; height:var(--dp-h); padding:0 var(--s-4);
+  background:var(--surface); border-radius:var(--dp-r); box-shadow:inset 0 0 0 var(--hair) var(--line);
+  color:var(--ink); white-space:nowrap;
+}
+.ds-date-picker-segment{
+  box-sizing:border-box; height:calc(var(--dp-h) - var(--s-4)); padding:0 var(--s-2); border:0; border-radius:var(--r-micro);
+  background:transparent; color:inherit; font:inherit; font-variant-numeric:tabular-nums; line-height:1; cursor:default;
+}
+.ds-date-picker-segment[*|data-selected=true]{ background:var(--accent); color:var(--accent-ink); }
+.ds-date-picker-sep{ color:var(--ink-faint); }
+.ds-date-picker-time{ display:flex; align-items:center; justify-content:center; gap:var(--s-4); }
+.ds-date-picker[*|aria-disabled=true] .ds-date-picker-field{ opacity:.35; pointer-events:none; }

@@ -467,7 +467,7 @@ step_drag() {
   capture_settled "$LAYER" "$OUT_DIR/drag-lifted.png" || return 1
   shot "$SHOTS/widgets-drag-lifted-cosmic.png" || echo "screenshot failed" >&2
   # quire's lift is the drag shadow, not a scale (`.ds-widget[data-lift=lifted]` in
-  # ds-shell/src/widget/frame.css): the card keeps its cell's size and the detected frame is at
+  # sill-shell-kit/src/widget/frame.css): the card keeps its cell's size and the detected frame is at
   # most a few px wider where the shadow starts. So "lifted" is: the frame under the pointer, about a
   # cell wide (the cell, up to 24 px of shadow).
   lifted=$(desktop_frames "$OUT_DIR/drag-lifted.png" | python3 -c '

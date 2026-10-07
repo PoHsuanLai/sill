@@ -14,10 +14,10 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::style::icon::url::IconUrl;
-use ds_shell::now_playing::kind::Playback;
-use ds_shell::prelude::*;
 use serde::{Deserialize, Serialize};
 use sill_model::now_playing::{Abilities, Art, MediaPlayer, MediaVerb, Micros, Timeline};
+use sill_shell_kit::now_playing::kind::Playback;
+use sill_shell_kit::prelude::*;
 
 /// The Now Playing module's two lines: the title (the player's identity when there is none),
 /// and the artists joined with ", " then " — " and the album, leaving out whichever is empty.

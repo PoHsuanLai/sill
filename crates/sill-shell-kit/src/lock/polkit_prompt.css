@@ -1,0 +1,18 @@
+/* PolkitPrompt (design/04-COMPONENTS.md section 42; design/20 section 1.10): a narrow centred
+   sheet (`SheetWidth::Narrow`, 340) as the reference desktop's password alert: everything
+   centred in one column, the person's picture at 48 (a face, a photo, or an animated emoji), a bold title (display 16/700), the program's message
+   in the soft ink, "Details" in the accent with the detail as a hover card, the person's name
+   over a boxed secret field (`password_field.css`) that shakes once when it was wrong, and Cancel and
+   Authenticate side by side at equal width. Flat: the sheet's own material, no extra shadow. */
+
+.ds-polkit{ display:flex; flex-direction:column; align-items:center; box-sizing:border-box; width:100%; padding:var(--s-22) var(--s-22) var(--s-18); text-align:center; color:var(--ink); }
+/* An emoji is drawn at Medium and set in a 48 box: its sheet is sized in shares of its box. */
+.ds-polkit .ds-emoji[*|data-size]{ width:48px; height:48px; }
+.ds-polkit-title{ margin-top:var(--s-12); font-family:var(--font-display); font-size:var(--fs-title); font-weight:700; line-height:1.3; color:var(--ink); }
+.ds-polkit-action{ margin-top:var(--s-6); font-size:var(--fs-control); line-height:1.45; color:var(--ink-soft); }
+.ds-polkit-details{ margin-top:var(--s-6); font-size:var(--fs-small); }
+.ds-polkit-details-word{ color:var(--accent-text); font-weight:600; cursor:default; }
+.ds-polkit-user{ align-self:stretch; margin-top:var(--s-16); font-size:var(--fs-small); font-weight:600; color:var(--ink-soft); text-align:left; }
+.ds-polkit-hint{ margin-top:var(--s-8); font-size:var(--fs-small); color:var(--danger); }
+.ds-polkit-actions{ display:grid; grid-template-columns:1fr 1fr; gap:var(--s-8); align-self:stretch; margin-top:var(--s-18); }
+.ds-polkit-actions .ds-button{ width:100%; justify-content:center; }

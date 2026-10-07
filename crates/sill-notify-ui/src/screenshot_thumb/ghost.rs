@@ -7,8 +7,8 @@ use ds::components::content::image_source::ImageSize;
 use ds::prelude::*;
 use ds::style::material::stack::MaterialStack;
 use ds_settings::Environment;
-use ds_shell::prelude::*;
 use shell_host::{DragIcon, HostRoot, Size};
+use sill_shell_kit::prelude::*;
 
 use super::picture::ThumbPicture;
 
@@ -78,7 +78,7 @@ fn ghost_root(ghost: Ghost) -> Element {
     let look = ghost.look;
     rsx! {
         Ds {
-            sheet: Some(ds_shell::stylesheet()),
+            sheet: Some(sill_shell_kit::stylesheet()),
             appearance: look.appearance,
             system: look.system,
             look: look.look,

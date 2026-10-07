@@ -3,8 +3,8 @@
 use ds::components::content::avatar::{
     AvatarFace, AvatarShape, AvatarSize, AvatarTone, person_hue,
 };
-use ds_shell::lock::vocab::{LockUser, PromptState};
 use sill_model::polkit_agent::{Cookie, LastTry, Polkit, PromptPhase, PromptView};
+use sill_shell_kit::lock::vocab::{LockUser, PromptState};
 
 /// quire's `PolkitPrompt` props that follow the request (the rest are the surface's handlers).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -74,12 +74,12 @@ fn user_of(name: &str) -> LockUser {
 
 #[cfg(test)]
 mod tests {
-    use ds_shell::lock::vocab::PromptState;
     use sill_model::auth::UserName;
     use sill_model::polkit_agent::Polkit;
     use sill_model::polkit_agent::{
         ActionId, Cookie, Echo, LastTry, PromptPhase, PromptView, Registration,
     };
+    use sill_shell_kit::lock::vocab::PromptState;
 
     use super::{detail_of, prompt_view};
     use crate::user_picture::initial_of;

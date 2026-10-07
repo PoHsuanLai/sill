@@ -1,9 +1,9 @@
 //! Which month the Calendar widget shows, and the grid as quire's `MonthGrid` takes it: pure, so
 //! the view only reads.
 
-use ds_shell::month_grid::data::MonthGridData;
-use ds_shell::month_grid::data::MonthWeek;
 use jiff::civil::{Date, Weekday};
+use sill_shell_kit::month_grid::data::MonthGridData;
+use sill_shell_kit::month_grid::data::MonthWeek;
 
 use super::grid::{
     DayMark, DayPlace, Eventful, GridDay, GridWeek, Month, MonthGrid, Step, shift_month,
@@ -59,7 +59,7 @@ impl Shown {
 /// initials in words.
 pub(super) fn grid_data(grid: &MonthGrid, today: Date) -> MonthGridData {
     MonthGridData {
-        month: ds_shell::month_grid::data::MonthKey {
+        month: sill_shell_kit::month_grid::data::MonthKey {
             year: grid.month.year,
             month: grid.month.month,
         },
@@ -71,30 +71,30 @@ pub(super) fn grid_data(grid: &MonthGrid, today: Date) -> MonthGridData {
 
 fn week_data(week: &GridWeek) -> MonthWeek {
     MonthWeek {
-        number: ds_shell::month_grid::data::IsoWeek(week.number.0),
+        number: sill_shell_kit::month_grid::data::IsoWeek(week.number.0),
         days: week.days.map(|day| day_data(&day)),
     }
 }
 
-fn day_data(day: &GridDay) -> ds_shell::month_grid::data::MonthDay {
-    ds_shell::month_grid::data::MonthDay {
-        key: ds_shell::month_grid::data::DayKey {
+fn day_data(day: &GridDay) -> sill_shell_kit::month_grid::data::MonthDay {
+    sill_shell_kit::month_grid::data::MonthDay {
+        key: sill_shell_kit::month_grid::data::DayKey {
             year: day.date.year(),
             month: day.date.month(),
             day: day.date.day(),
         },
         place: match day.place {
-            DayPlace::Before => ds_shell::month_grid::data::DayPlace::Before,
-            DayPlace::InMonth => ds_shell::month_grid::data::DayPlace::InMonth,
-            DayPlace::After => ds_shell::month_grid::data::DayPlace::After,
+            DayPlace::Before => sill_shell_kit::month_grid::data::DayPlace::Before,
+            DayPlace::InMonth => sill_shell_kit::month_grid::data::DayPlace::InMonth,
+            DayPlace::After => sill_shell_kit::month_grid::data::DayPlace::After,
         },
         mark: match day.mark {
-            DayMark::Today => ds_shell::month_grid::data::DayMark::Today,
-            DayMark::Plain => ds_shell::month_grid::data::DayMark::Plain,
+            DayMark::Today => sill_shell_kit::month_grid::data::DayMark::Today,
+            DayMark::Plain => sill_shell_kit::month_grid::data::DayMark::Plain,
         },
         events: match day.events {
-            Eventful::Busy => ds_shell::month_grid::data::Eventful::Busy,
-            Eventful::Free => ds_shell::month_grid::data::Eventful::Free,
+            Eventful::Busy => sill_shell_kit::month_grid::data::Eventful::Busy,
+            Eventful::Free => sill_shell_kit::month_grid::data::Eventful::Free,
         },
     }
 }
@@ -192,7 +192,7 @@ mod tests {
         let data = grid_data(&grid, today);
         assert_eq!(
             data.month,
-            ds_shell::month_grid::data::MonthKey {
+            sill_shell_kit::month_grid::data::MonthKey {
                 year: 2026,
                 month: 9
             }
@@ -201,16 +201,16 @@ mod tests {
         let heads: Vec<String> = data.heads.iter().map(TextLine::plain_text).collect();
         assert_eq!(heads, ["S", "M", "T", "W", "T", "F", "S"]);
         assert_eq!(data.weeks.len(), grid.weeks.len());
-        let days: Vec<&ds_shell::month_grid::data::MonthDay> =
+        let days: Vec<&sill_shell_kit::month_grid::data::MonthDay> =
             data.weeks.iter().flat_map(|w| w.days.iter()).collect();
         let marked: Vec<_> = days
             .iter()
-            .filter(|d| d.mark == ds_shell::month_grid::data::DayMark::Today)
+            .filter(|d| d.mark == sill_shell_kit::month_grid::data::DayMark::Today)
             .map(|d| d.key)
             .collect();
         assert_eq!(
             marked,
-            [ds_shell::month_grid::data::DayKey {
+            [sill_shell_kit::month_grid::data::DayKey {
                 year: 2026,
                 month: 9,
                 day: 26
@@ -218,18 +218,18 @@ mod tests {
         );
         let busy_days: Vec<_> = days
             .iter()
-            .filter(|d| d.events == ds_shell::month_grid::data::Eventful::Busy)
+            .filter(|d| d.events == sill_shell_kit::month_grid::data::Eventful::Busy)
             .map(|d| d.key.day)
             .collect();
         assert_eq!(busy_days, [28]);
         assert_eq!(
             days[0].place,
-            ds_shell::month_grid::data::DayPlace::Before,
+            sill_shell_kit::month_grid::data::DayPlace::Before,
             "30 August"
         );
         assert_eq!(
             data.weeks[0].number,
-            ds_shell::month_grid::data::IsoWeek(36)
+            sill_shell_kit::month_grid::data::IsoWeek(36)
         );
     }
 

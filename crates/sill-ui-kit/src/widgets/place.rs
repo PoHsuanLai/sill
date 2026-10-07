@@ -2,9 +2,9 @@
 
 use dioxus::prelude::EventHandler;
 use ds::prelude::*;
-use ds_shell::prelude::*;
-use ds_shell::widget::kind::Lift;
 use sill_settings::WidgetKind;
+use sill_shell_kit::prelude::*;
+use sill_shell_kit::widget::kind::Lift;
 
 use super::{OnProvider, WidgetProvider, with_provider};
 

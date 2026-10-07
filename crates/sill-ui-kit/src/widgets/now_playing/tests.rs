@@ -1,8 +1,8 @@
 use super::face::{TrackTimes, playback_of, position_of, track_lines};
 use ds::base::time::stamp::Stamp;
-use ds_shell::now_playing::kind::Playback;
 use sill_model::now_playing::{Abilities, MediaPlayer, PlayerId, Track};
 use sill_model::now_playing::{Micros, Timeline};
+use sill_shell_kit::now_playing::kind::Playback;
 use std::time::Duration;
 
 #[test]

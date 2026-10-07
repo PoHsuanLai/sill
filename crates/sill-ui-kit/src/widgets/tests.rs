@@ -4,7 +4,7 @@ use super::{
     widget_element_id,
 };
 use ds::prelude::*;
-use ds_shell::prelude::*;
+use sill_shell_kit::prelude::*;
 
 #[test]
 fn each_widget_has_its_footprint_in_each_host() {
@@ -51,7 +51,9 @@ fn each_kind_is_named_in_the_registry_at_its_one_size() {
     assert!(all_sized(WidgetRegistry::quire()).is_ok());
     assert_eq!(registry.all().len(), WidgetKind::ALL.len());
     assert_eq!(
-        kind_of(&ds_shell::prelude::WidgetKind::fixed("org.example.weather")),
+        kind_of(&sill_shell_kit::prelude::WidgetKind::fixed(
+            "org.example.weather"
+        )),
         None
     );
 }

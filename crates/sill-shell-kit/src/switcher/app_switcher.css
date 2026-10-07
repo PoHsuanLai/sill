@@ -1,0 +1,32 @@
+/* AppSwitcher (design/04-COMPONENTS.md section 43; design/13 section 13.3.5; design/20 section
+   1.11): one row on the Osd material, painted as the OSD card is (the Space gradient at the
+   frame alpha, the material's hairline and drop, `--m-radius` 18), padding 16, cells `--switcher-cell` (112) with icons
+   `--switcher-icon` (96) and `--switcher-gap` (8) between them, all written inline from
+   `SwitcherMetrics` and the output's width. The selection is one rounded square of `--f-pill`
+   (`--r-tile`, 12) behind the row that moves to the selected cell by `--switcher-at`, a
+   fractional cell index a spring in Rust writes (design/05 section 14, H1); nothing here
+   transitions it. The selected app's name is its Fly, drawn under the tile in
+   the UI face at 13/600 (not the Fly's usual dark label above). A row wider than its view is
+   scrolled by `--switcher-shift`, at once (a transition there played on the panel's first
+   frame on Blitz, sliding the row in as it appeared). It appears with `fade` at `--t-quick`, no pop; a quitting
+   tile (`data-presence=leaving`) plays `row-out` at `--t-quick --e-exit`, held. Flat: no gloss on the panel or the selection. */
+
+.ds-switcher{ --switcher-cell:112px; --switcher-icon:96px; --switcher-gap:8px; --switcher-view:592px; --switcher-shift:0px; --switcher-at:0;
+  position:relative; z-index:var(--z-raise); display:inline-flex; box-sizing:border-box; max-width:100%; padding:var(--s-16) var(--s-16) var(--s-10);
+  border-radius:var(--m-radius); box-shadow:var(--m-box); color:var(--f-ink); animation:fade var(--t-quick) var(--e-out); }
+/* The panel paints what the OSD card paints (design/20 section 1.7, the same material): the
+   Space gradient at the frame alpha, the solid floor without blur, the inner pair over it. */
+.ds-switcher > .ds-frame::after{ content:""; position:absolute; inset:0; border-radius:inherit; box-shadow:var(--m-inner); }
+.ds[*|data-blur=off] .ds-switcher > .ds-frame{ opacity:.94; }
+.ds-switcher-view{ width:var(--switcher-view); overflow:hidden; padding-bottom:var(--s-26); }
+.ds-switcher-row{ position:relative; display:flex; gap:var(--switcher-gap); width:max-content; margin-left:calc(-1 * var(--switcher-shift)); }
+.ds-switcher-ring{ position:absolute; left:0; top:0; width:var(--switcher-cell); height:var(--switcher-cell); border-radius:var(--r-tile); background:var(--f-pill);
+  transform:translateX(calc(var(--switcher-at) * (var(--switcher-cell) + var(--switcher-gap)))); }
+.ds-switcher-cell{ position:relative; display:grid; place-items:center; flex:none; width:var(--switcher-cell); height:var(--switcher-cell); cursor:default; }
+.ds-switcher-cell[*|data-presence=leaving]{ animation:row-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }
+.ds-switcher-icon{ display:grid; place-items:center; width:var(--switcher-icon); height:var(--switcher-icon); }
+.ds-switcher-icon .ds-ext-icon{ width:var(--switcher-icon); height:var(--switcher-icon); }
+
+/* The name under the selected tile: the Fly moved below its target and set in the UI face. */
+.ds-switcher-cell .ds-fly{ top:calc(100% + var(--s-14)); bottom:auto; padding:0; background:transparent; color:var(--f-ink);
+  font-family:var(--font-ui); font-size:var(--fs-control); font-weight:600; border-radius:0; }

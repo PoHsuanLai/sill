@@ -57,7 +57,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     rsx! {
         div { class: "sill-bar-root", style: metrics.style_attr(),
         Ds {
-            sheet: Some(ds_shell::stylesheet()),
+            sheet: Some(sill_shell_kit::stylesheet()),
             appearance: popup_look.appearance,
             system: popup_look.system,
             look,

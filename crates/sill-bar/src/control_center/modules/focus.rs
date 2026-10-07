@@ -4,8 +4,8 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_shell::prelude::*;
 use sill_settings::FocusMode;
+use sill_shell_kit::prelude::*;
 use sill_ui_kit::links::FocusLink;
 
 use super::cc_module::{CcCx, CcModule, Span};

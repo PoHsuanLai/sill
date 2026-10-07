@@ -13,14 +13,14 @@ const CONTROL_CENTER_CSS: &str = include_str!("../src/control_center/style.css")
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds_shell::kits())
+        ..LintConfig::new(&sill_shell_kit::kits())
     }
 }
 
 fn full_css() -> String {
     format!(
         "{}\n{}\n{}",
-        ds_shell::stylesheet(),
+        sill_shell_kit::stylesheet(),
         sill_ui_kit::menu::POPUP_FRAME_CSS,
         CONTROL_CENTER_CSS
     )

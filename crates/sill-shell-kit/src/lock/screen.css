@@ -1,0 +1,11 @@
+/* LockScreen (design/04-COMPONENTS.md section 42; design/20 section 1.9): the wallpaper covering
+   the stage under `--lock-veil`, the clock 7 % of the width from the top and the prompt 6 % from
+   the bottom, centred across, as the reference lock screen stands. The stage fills its root
+   (`RootExtent::Viewport` for a surface). */
+
+.ds-lock{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:space-between; box-sizing:border-box;
+  width:100%; height:100%; min-height:100%; overflow:hidden; padding:7% var(--s-16) 5%; color:var(--lock-ink); }
+.ds-lock-wallpaper{ position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; }
+.ds-lock-veil{ position:absolute; inset:0; background:var(--lock-veil); }
+.ds-lock-top,
+.ds-lock-bottom{ position:relative; display:flex; justify-content:center; width:100%; }

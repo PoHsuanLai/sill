@@ -30,7 +30,7 @@ pub fn MenuPopup<Model: MenuModel>(
     rsx! {
         PopupFrame { room, style: look.metrics.style_attr(),
             Ds {
-                sheet: Some(ds_shell::stylesheet()),
+                sheet: Some(sill_shell_kit::stylesheet()),
                 extent: RootExtent::Popup,
                 appearance: look.appearance,
                 system: look.system,

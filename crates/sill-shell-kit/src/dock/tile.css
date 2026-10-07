@@ -1,0 +1,12 @@
+/* DockTile (design/30 section 2.10; design/08-ICONS.md section 2.2; design/10-BEHAVIOUR-dock.md
+   section 10.3.2): a tile is a square of its side (written inline, the shell's magnification),
+   the plate centred in it at 80.5 % of it (its `left` and `top` inline, less the bounce's lift, so its label follows). The badge hangs off the plate's top right corner, the
+   progress bar sits inside its foot, both on the plate; the running dot is positioned against the
+   tile's own box (`parts.css`), so a bouncing plate leaves it on the baseline. The tile draws
+   no bezel of its own: no pressed fill, no lift, no hover state (the shell magnifies).
+   Attribute selectors carry `*|` (spike S2). */
+
+.ds-dock-tile{ position:relative; display:block; flex:none; box-sizing:border-box; padding:0; border:0; background:transparent; font:inherit; cursor:default; }
+.ds-dock-plate{ position:absolute; display:block; }
+.ds-dock-badge{ position:absolute; top:calc(var(--s-4) * -1); right:calc(var(--s-4) * -1); z-index:var(--z-raise); }
+.ds-dock-progress{ position:absolute; left:16%; right:16%; bottom:var(--s-6); z-index:var(--z-raise); }

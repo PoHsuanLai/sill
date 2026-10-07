@@ -14,9 +14,9 @@ use super::opening::{Facts, Opening};
 use dioxus::prelude::*;
 use ds::machine::{MachineRef, MachineState, use_machine_in, use_machine_state};
 use ds::prelude::*;
-use ds_shell::switcher::app_switcher::AppKey;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_launcher::AppId;
+use sill_shell_kit::switcher::app_switcher::AppKey;
 use sill_ui_kit::services::Services;
 
 use super::hold::{Hold, Watch, chord_input};

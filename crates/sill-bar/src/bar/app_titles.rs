@@ -7,10 +7,10 @@
 use dioxus::prelude::*;
 use ds::host::measure::use_rect;
 use ds::root::common::Common;
-use ds_shell::prelude::*;
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 use sill_services::{AppMenuService, AppsService, CosmicWlService};
+use sill_shell_kit::prelude::*;
 use sill_ui_kit::hooks::{use_service, use_service_part};
 
 use super::content::{AppMenuState, front_app};

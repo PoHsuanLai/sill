@@ -12,10 +12,10 @@
 use dioxus::prelude::*;
 use ds::focus::soon::focus_soon;
 use ds::prelude::*;
-use ds_shell::prelude::*;
-use ds_shell::switcher::app_switcher::AppKey;
-use ds_shell::switcher::app_switcher::SwitcherApp as Tile;
 use shell_host::{OutputInfo, SurfaceHandle};
+use sill_shell_kit::prelude::*;
+use sill_shell_kit::switcher::app_switcher::AppKey;
+use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
 
 use super::icon::SwitcherIcons;
 use super::io::{SwitcherCtx, use_switcher};

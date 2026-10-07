@@ -1,0 +1,61 @@
+/* The widgets' content on the card (design/23-WIDGETS.md sections 3.3, 4.1, 4.2 and 9.6): the
+   compositions the reference measures, moved into quire with the widget contract so no host
+   lays out a widget's content. The card itself (corner, inset, material, tint) is
+   `widget_frame`'s. Batteries: Small with one device, the ring top left and the hero figure
+   bottom left (M13); Small with several, a 2 x 2 grid of rings (M14); Medium, four places on the
+   reference's fixed 80 pitch (a 64 ring and a 16 gap, the row centred so the first sits 20 in),
+   the figure 18 under each and a bare track with an empty figure line in a place with no battery
+   (M15). World Clock: Medium, four dials across with the city and the
+   notes under each (M19, M24); Small, the large dial alone (clock_face's small-card rules).
+   Attribute selectors carry `*|` (spike S2). */
+
+.ds-batteries{ display:flex; flex:1; min-width:0; min-height:0; }
+.ds-batteries[*|data-layout=solo]{ flex-direction:column; justify-content:space-between; }
+.ds-batteries[*|data-layout=grid]{ flex-wrap:wrap; justify-content:space-between; align-content:space-between; }
+.ds-batteries[*|data-layout=row]{ justify-content:center; align-items:center; gap:var(--s-16); }
+.ds-batteries[*|data-layout=absent]{ align-items:center; justify-content:center; }
+.ds-batteries-hero{ margin-bottom:calc(-1 * var(--s-6)); font-family:var(--font-display); font-size:var(--fs-widget-hero);
+  font-weight:500; line-height:1; letter-spacing:-.01em; color:var(--ink); }
+.ds-batteries-hero .ds-label,
+.ds-batteries-figure .ds-label{ font:inherit; color:inherit; }
+.ds-batteries-cell{ display:flex; flex:none; width:64px; flex-direction:column; align-items:center; gap:var(--s-18); }
+.ds-batteries-figure{ min-height:1em; font-family:var(--font-display); font-size:var(--fs-widget-figure); font-weight:500; line-height:1; color:var(--ink); }
+.ds-batteries-quiet,
+.ds-world-clock-quiet{ font-family:var(--font-ui); font-size:var(--fs-small); font-weight:700; line-height:1.2; color:var(--ink-faint); }
+
+.ds-world-clock{ display:flex; justify-content:space-between; align-items:center; flex:1; min-width:0; padding:0 var(--s-6); }
+.ds-world-clock-city{ display:flex; flex-direction:column; align-items:center; min-width:0; }
+.ds-world-clock-note{ max-width:100%; white-space:nowrap; overflow:hidden; font-family:var(--font-ui); font-size:var(--fs-small);
+  font-weight:700; line-height:1.2; color:var(--ink-faint); }
+
+/* The month widget (design/23 section 5.2), the reference's layouts rather than one grid
+   stretched over the card. Medium (`data-layout=split`): the today column on the left, the
+   compact month in a 140 x 140 box on the right, the small card's own metrics (20 px columns,
+   19-24 px rows). Large (`data-layout=stack`): the regular month at its own pitch (32 px columns,
+   30 px rows), centred, over the day's events. The weekday and the title take the card's title
+   colour on the desktop (below). An event is its calendar's 3 px bar, its title (UI face 600 at
+   `--fs-help`) and its time (`--fs-nano`, `--ink-soft`). */
+.ds-month-widget{ display:flex; flex:1; min-width:0; min-height:0; }
+.ds-month-widget[*|data-layout=split]{ gap:var(--s-16); }
+.ds-month-widget[*|data-layout=stack]{ flex-direction:column; align-items:center; gap:var(--s-8); }
+.ds-month-widget-month{ display:flex; flex-direction:column; flex:none; width:calc(7 * 2 * var(--fs-caption)); }
+.ds-month-today{ display:flex; flex-direction:column; flex:1; min-width:0; gap:var(--s-2); padding-left:var(--s-4); }
+.ds-month-weekday{ font-family:var(--font-ui); font-size:var(--fs-small); font-weight:700;
+  letter-spacing:0; color:var(--accent-text); }
+.ds-month-date{ margin-bottom:var(--s-8); font-family:var(--font-display); font-size:var(--fs-widget-hero); font-weight:500; line-height:1; color:var(--ink); }
+.ds-month-events{ display:flex; flex-direction:column; align-self:stretch; gap:var(--s-4); padding:0 var(--s-6); }
+.ds-month-event{ display:flex; flex-direction:column; min-width:0; padding-left:var(--s-8); border-left:var(--s-3) solid var(--c-blue); }
+.ds-month-event[*|data-hue=red]{ border-left-color:var(--c-red); }
+.ds-month-event[*|data-hue=amber]{ border-left-color:var(--c-amber); }
+.ds-month-event[*|data-hue=green]{ border-left-color:var(--c-green); }
+.ds-month-event[*|data-hue=violet]{ border-left-color:var(--c-violet); }
+.ds-month-event-title{ white-space:nowrap; overflow:hidden; font-family:var(--font-ui); font-size:var(--fs-help); font-weight:600; line-height:1.25; color:var(--ink); }
+.ds-month-event-time{ font-family:var(--font-ui); font-size:var(--fs-nano); line-height:1.25; color:var(--ink-soft); }
+.ds-month-quiet{ font-family:var(--font-ui); font-size:var(--fs-small); color:var(--ink-faint); }
+
+/* The month's title on a desktop card (option (b), the default pending the
+   user's pick, design/23 section 4.3): `--ink-soft`, not the accent as text, which the
+   see-through card cannot hold at 4.5:1 over the wallpaper. Today's disc and the busy dots keep
+   the accent. */
+.ds-widget[*|data-host=desktop] .ds-month-title,
+.ds-widget[*|data-host=desktop] .ds-month-weekday{ color:var(--ink-soft); }

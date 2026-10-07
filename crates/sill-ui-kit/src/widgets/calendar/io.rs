@@ -6,12 +6,12 @@
 //! reads ([`crate::widgets::up_next::today_events`]). Redrawn on the clock's minute tick.
 
 use dioxus::prelude::*;
-use ds_shell::month_grid::data::MonthStep;
-use ds_shell::widget::calendar::MonthWidget;
-use ds_shell::widget::calendar::{MonthEntry, MonthFace, MonthIntent, TodayLine};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_settings::{CalendarSettings, WeekNumbers};
+use sill_shell_kit::month_grid::data::MonthStep;
+use sill_shell_kit::widget::calendar::MonthWidget;
+use sill_shell_kit::widget::calendar::{MonthEntry, MonthFace, MonthIntent, TodayLine};
 
 use super::grid::{Step, busy_days, month_grid};
 use super::shown::{Shown, grid_data, weekday_name};
@@ -40,8 +40,8 @@ impl WidgetProvider for CalendarProvider {
         let busy = busy_days(&agenda.events, &zone, month);
         let grid = month_grid(month, calendar.first_weekday, today, &busy);
         let weeks = match calendar.week_numbers {
-            WeekNumbers::Hide => ds_shell::month_grid::data::WeekNumbers::Hide,
-            WeekNumbers::Show => ds_shell::month_grid::data::WeekNumbers::Show,
+            WeekNumbers::Hide => sill_shell_kit::month_grid::data::WeekNumbers::Hide,
+            WeekNumbers::Show => sill_shell_kit::month_grid::data::WeekNumbers::Show,
         };
         let face = MonthFace {
             today: Some(TodayLine {

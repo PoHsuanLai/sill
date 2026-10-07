@@ -10,11 +10,11 @@
 use ds::base::vocab::Muting;
 use ds::components::content::level_glyph::vocab::LevelGlyph;
 use ds::prelude::*;
-use ds_shell::osd::OsdLevel;
 use sill_model::displays::{BrightnessTarget, Displays};
 use sill_model::ids::OutputName;
 use sill_model::units::{Percent, Presence};
 use sill_model::volume::{Mute, Volume};
+use sill_shell_kit::osd::OsdLevel;
 
 use sill_ui_kit::links::{Level, LevelSource, OsdKind};
 

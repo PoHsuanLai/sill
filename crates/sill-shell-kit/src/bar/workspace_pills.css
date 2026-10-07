@@ -1,0 +1,14 @@
+/* WorkspacePills (the macOS polish pass): one segmented group on the frame, not a row of
+   buttons. The track is the frame's hover fill; the current workspace is the raised pressed
+   fill with the current-item shadow (`S:118`); the others are soft ink, hovered to full ink.
+   Text is the bar's shell size. Inks are the paper names the frame ground redirects. The track is
+   a bar item (22, radius 5); each pill sits 2 inside it at the concentric radius, 5 - 2 = 3
+   (design/29-SIZING.md R6). */
+
+.ds-ws-pills{ display:inline-flex; align-items:center; gap:var(--s-2); padding:var(--s-2); height:var(--shell-bar-item); box-sizing:border-box;
+  border-radius:var(--r-shell-bar-item); background:var(--surface); }
+.ds-ws-pill{ font:inherit; display:inline-grid; place-items:center; min-width:var(--s-22); height:100%; padding:0 var(--s-7); border:0; border-radius:calc(var(--r-shell-bar-item) - var(--s-2));
+  background:transparent; color:var(--ink-soft); font-size:var(--fs-shell-bar); font-weight:var(--fw-shell-bar); cursor:default;
+  transition:background-color var(--t-quick) var(--e-out), color var(--t-quick) var(--e-out); }
+.ds-ws-pill:hover{ color:var(--ink); }
+.ds-ws-pill[*|data-selected=selected]{ background:var(--surface-2); color:var(--ink); box-shadow:var(--shadow-current); }

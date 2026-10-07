@@ -1,0 +1,21 @@
+/* BatteryRing (design/30 section 2.10; design/23-WIDGETS.md sections 2 and 4.1; design/04
+   "Widgets"): a flat, bright ring, 64 across (the reference's ring in a small and a medium
+   widget): a `ProgressIndicator` ring whose track is `--battery-track`, the plate darkened, and
+   whose arc runs from twelve, clockwise, round-capped, in `--battery-fill`, `--battery-low` while
+   the battery reads low (`data-tone=low`); the stroke is .093 of the ring's diameter. The
+   device's glyph sits in the middle at .47 of the ring in `--ink`. While charging, the ring is
+   notched at twelve and a bolt in `--ink`, .16 of the ring tall, sits on the stroke in the notch.
+   The arc follows its level from Rust (the tween a determinate value takes; no keyframe, no
+   transition). The figure under a ring (`Readout::Under`): the percentage in the help size and
+   the soft ink, tabular. */
+
+.ds-battery-ring{ display:flex; flex-direction:column; align-items:center; gap:var(--s-4); flex:none; }
+.ds-battery{ position:relative; display:block; flex:none; width:64px; height:64px; color:var(--ink); }
+.ds-battery .ds-progress{ --pg-box:64px; }
+.ds-battery .ds-progress[*|data-style=ring] .ds-progress-track{ color:var(--battery-track); }
+.ds-battery .ds-progress[*|data-style=ring] .ds-progress-fill{ color:var(--battery-fill); }
+.ds-battery-ring[*|data-tone=low] .ds-battery .ds-progress[*|data-style=ring] .ds-progress-fill{ color:var(--battery-low); }
+.ds-battery .ds-progress-glyph{ color:var(--ink); }
+.ds-battery .ds-progress-glyph .ds-ic{ width:47%; height:47%; }
+.ds-battery-bolt{ position:absolute; left:45%; top:-3.35%; display:block; width:10%; height:16%; color:var(--ink); }
+.ds-battery-figure{ font-variant-numeric:tabular-nums; }

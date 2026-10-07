@@ -1,0 +1,5 @@
+/* DeviceGlyph (design/23-WIDGETS.md section 4.4): a filled device solid in `currentColor`, the
+   same `svg.ds-ic` box as every glyph (its size from its attributes), so a battery ring's
+   `.ds-battery-device .ds-ic` rule sizes it at .47 of the ring. It never shrinks in a row. */
+
+.ds-device-glyph{ display:block; flex:none; }

@@ -2,7 +2,7 @@
 //!
 //! While `use_service::<PolkitAgentService>().current` is a request and the `BannerLink` names this
 //! output, the surface maps itself (`SurfaceOp::SetVisibility`), and a `Ds { material: Sheet,
-//! extent: Viewport }` holds `ds_shell::prelude::PolkitPrompt` from [`super::model::prompt_view`] (keyed by the cookie,
+//! extent: Viewport }` holds `sill_shell_kit::prelude::PolkitPrompt` from [`super::model::prompt_view`] (keyed by the cookie,
 //! so a new request enters again), `caps` from the last key event's modifiers, `onsubmit` sending
 //! `PolkitCommand::Answer { cookie, secret: Secret::new(text) }` (the text moves into the `Secret`
 //! at once and is never kept in a signal), `oncancel` sending `PolkitCommand::Dismiss(cookie)`;
@@ -13,12 +13,12 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
-use ds_shell::lock::vocab::CapsLock;
-use ds_shell::prelude::*;
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::auth::Secret;
 use sill_model::polkit_agent::{Cookie, PolkitCommand};
 use sill_services::{Control, PolkitAgentService};
+use sill_shell_kit::lock::vocab::CapsLock;
+use sill_shell_kit::prelude::*;
 
 use super::layer::PANEL_ID;
 use super::model::{PolkitPromptView, prompt_view};

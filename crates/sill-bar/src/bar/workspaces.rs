@@ -8,12 +8,12 @@
 use dioxus::prelude::*;
 use ds::base::press::{PointerButton, Press};
 use ds::prelude::*;
-use ds_shell::bar::pointer::BarPointer;
-use ds_shell::prelude::*;
 use shell_host::OutputInfo;
 use sill_model::cosmic_wl::{Activity, WlCommand, Workspace};
 use sill_model::ids::OutputName;
 use sill_services::CosmicWlService;
+use sill_shell_kit::bar::pointer::BarPointer;
+use sill_shell_kit::prelude::*;
 
 use super::reorder::{Dropped, Pressed, reorder};
 use super::title::pointer_at;

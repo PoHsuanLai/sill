@@ -1,0 +1,7 @@
+/* PaneHeader and PaneFooter (design/30 section 2.10): the head and foot of a control-center
+   detail pane. The header is a row: an optional Large toolbar back button, the title (a Label
+   that takes the room left), the trailing element. The footer is one action under a hairline. */
+
+.ds-pane-header{ display:flex; align-items:center; gap:var(--s-6); padding:var(--s-2) var(--s-2) var(--s-6); }
+.ds-pane-header > .ds-label{ flex:1 1 0; min-width:0; }
+.ds-pane-footer{ display:flex; padding-top:var(--s-6); border-top:var(--hair) solid var(--line-soft); }

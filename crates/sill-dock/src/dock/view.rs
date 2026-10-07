@@ -16,11 +16,11 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::chrome::Ground;
 use ds::style::appearance::blur::BlurState;
-use ds_shell::prelude::*;
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
 use sill_model::ids::OutputName;
 use sill_model::units::Cpx;
 use sill_settings::AutoHide;
+use sill_shell_kit::prelude::*;
 
 use crate::dock::frame::{Area, Frame, Rows, frame};
 use crate::dock::geometry::{dock_metrics, pill_corner};
@@ -148,7 +148,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
             class: "sill-dock-pill",
             style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px);{metrics.style_attr()}{dock_metrics(&file.dock).style_attr()}",
             Ds {
-                sheet: Some(ds_shell::stylesheet()),
+                sheet: Some(sill_shell_kit::stylesheet()),
                 appearance,
                 system: environment.system,
                 look,

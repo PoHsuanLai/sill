@@ -1,0 +1,102 @@
+/* MonthGrid (design/04-COMPONENTS.md section 39; design/20 section 1.12): the
+   calendar widget's month. The title in the data face, upper and tracked .12em, in `--accent`
+   (design/02 sections 4-5, "calendar month"); the weekday heads in the data face at
+   `--fs-micro`, upper and tracked as a menu's section header. Seven 32 px columns, led by a
+   24 px week-number column under `data-weeks=show`. A day is its number on a 24 px disc: the
+   neighbours' days in `--ink-faint`, today on `--accent` in `--accent-ink`, a busy day with a
+   4 px dot under it (`--accent`; `--ink-soft` on a neighbour's day). A pressable day
+   (`data-kind=pressable`) takes `--surface-2` on its disc under the pointer.
+   The weeks slide in by the utility classes `a-slide-l`/`a-slide-r` (design/05).
+
+   Compact (`data-density=compact`, the compact-spacing pass of 2026-09-27): a
+   small desktop widget's content box is 140 x 140, which the regular grid (224 wide, 254 tall
+   for six weeks) overflows. The month fills that box as the reference's small Month widget
+   does (design/23 section 5.1): a 14 px header (the title in the UI face at `--fs-micro`,
+   `--fw-caps`, tracked, upper, `--accent`, its left edge 4 in, where a two-digit first column
+   starts; the plain 14 px `ds-month-step` glyph buttons), 12 px heads at `--fs-nano` in the UI
+   face, then the weeks sharing the rest evenly: seven columns across the width (20 each in
+   140) and the rows over the height, 118 / 6 = 19.67 for six weeks, 118 / 5 = 23.6 for five.
+   The weeks run 4 past the box's foot so the last row's numbers end as far from the card's
+   foot as the title's caps start from its top (about 15 and 17: an optical inset, the 12 of
+   padding measured to ink, not to line boxes). The number at `--fs-caption` on a disc of twice
+   its size (20) sits in the middle of its row; a 3 px dot inside the disc's foot (tucked
+   4, with 1 under it so a busy day's stack is the disc's 20 and centres alike), `--accent-ink`
+   on today's disc. The compact grid never draws week numbers. */
+
+.ds-month{ display:flex; flex-direction:column; align-items:flex-start; color:var(--ink); user-select:none; }
+
+.ds-month-header{ display:flex; align-items:center; gap:var(--s-2); align-self:stretch; min-height:28px; margin-bottom:var(--s-4); }
+.ds-month-title{
+  flex:1; min-width:0; white-space:nowrap; overflow:hidden; padding-left:var(--s-6);
+  font-family:var(--font-ui); font-size:var(--fs-eyebrow); font-weight:700; letter-spacing:0; font-variant-numeric:tabular-nums; color:var(--accent-text);
+}
+
+.ds-month-weeks{ display:flex; flex-direction:column; }
+.ds-month-row{ display:grid; grid-template-columns:repeat(7,32px); }
+.ds-month[*|data-weeks=show] .ds-month-row{ grid-template-columns:24px repeat(7,32px); }
+
+.ds-month-head,
+.ds-month-week{
+  display:grid; place-items:center; font-family:var(--font-data); font-size:var(--fs-micro); font-variant-numeric:tabular-nums; color:var(--ink-faint);
+}
+.ds-month-head{ height:18px; font-weight:600; letter-spacing:0; }
+.ds-month-week{ height:24px; align-self:start; }
+
+.ds-month-day{
+  font:inherit; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:var(--s-2);
+  height:30px; padding:0; border:0; background:transparent; color:var(--ink);
+}
+.ds-month-day[*|data-place=before],
+.ds-month-day[*|data-place=after]{ color:var(--ink-faint); }
+
+.ds-month-num{
+  display:grid; place-items:center; width:24px; height:24px; border-radius:var(--r-pill);
+  font-size:var(--fs-help); font-weight:500; line-height:1.3; font-variant-numeric:tabular-nums;
+  transition:background-color var(--t-quick) var(--e-out);
+}
+.ds-month-day[*|aria-current=date] .ds-month-num{ background:var(--accent); color:var(--accent-ink); font-weight:700; }
+
+.ds-month-day[*|data-kind=pressable]{ cursor:default; }
+.ds-month-day[*|data-kind=pressable]:hover .ds-month-num{ background:var(--surface-2); }
+.ds-month-day[*|data-kind=pressable][*|aria-current=date]:hover .ds-month-num{ background:var(--accent); }
+
+.ds-month-dot{ flex:none; width:4px; height:4px; border-radius:var(--r-pill); background:var(--accent-text); }
+.ds-month-day[*|data-place=before] .ds-month-dot,
+.ds-month-day[*|data-place=after] .ds-month-dot{ background:var(--ink-soft); }
+
+.ds-month-step{
+  font:inherit; display:grid; place-items:center; width:14px; height:14px; padding:0; border:0; border-radius:var(--r-pill);
+  background:transparent; color:var(--ink-faint); cursor:default;
+  transition:background-color var(--t-quick) var(--e-out), color var(--t-quick) var(--e-out);
+}
+.ds-month-step:hover{ color:var(--ink); background:var(--surface-2); }
+
+/* Compact: the month fills the small frame's content box (flex:1 in `.ds-widget-body`); the
+   header and heads keep their heights and the weeks share the rest, so a five-week month's rows
+   are taller than a six-week one's. */
+.ds-month[*|data-density=compact]{ flex:1; min-height:0; align-items:stretch; }
+.ds-month[*|data-density=compact] .ds-month-header{ height:var(--s-14); min-height:0; gap:var(--s-1); margin-bottom:0; }
+.ds-month[*|data-density=compact] .ds-month-title{
+  font-family:var(--font-ui); font-size:var(--fs-micro); font-weight:var(--fw-caps); line-height:1; padding-left:var(--s-4);
+}
+.ds-month[*|data-density=compact] .ds-month-row{ grid-template-columns:repeat(7,minmax(calc(2 * var(--fs-caption)),1fr)); }
+.ds-month[*|data-density=compact] .ds-month-head{ height:var(--s-12); font-family:var(--font-ui); font-size:var(--fs-nano); line-height:1; }
+.ds-month[*|data-density=compact] .ds-month-weeks{ flex:1; min-height:0; margin-bottom:calc(-1 * var(--s-4)); }
+/* Basis 19, one under the disc: unstretched (a wrapper that does not fill the frame, sill's `.sill-cal`), six weeks come to 14 + 12 + 6 x 19 - 4 = 136 and still fit 140. */
+.ds-month[*|data-density=compact] .ds-month-weeks > .ds-month-row{
+  flex:1 1 calc(2 * var(--fs-caption) - var(--s-1)); min-height:0; grid-template-rows:minmax(0,1fr);
+}
+.ds-month[*|data-density=compact] .ds-month-day{ height:auto; min-height:0; gap:0; justify-content:center; }
+.ds-month[*|data-density=compact] .ds-month-num{
+  flex:none; width:calc(2 * var(--fs-caption)); height:calc(2 * var(--fs-caption)); font-size:var(--fs-caption); line-height:1;
+}
+.ds-month[*|data-density=compact] .ds-month-dot{
+  width:var(--s-3); height:var(--s-3); margin:calc(-1 * var(--s-4)) 0 var(--s-1);
+}
+.ds-month[*|data-density=compact] .ds-month-day[*|aria-current=date] .ds-month-dot{ background:var(--accent-ink); }
+
+/* In a widget's card (`data-fit=frame`, design/23-WIDGETS.md section 5.2): the compact month
+   fills its box as above (the Small card's, or the Medium card's 140 x 140 right half); the
+   regular month keeps its own pitch (32 px columns, 30 px rows: the reference's large calendar
+   sits near 28-32) and is centred in the room left, never spread over it. */
+.ds-month[*|data-fit=frame][*|data-density=regular]{ flex:none; align-self:center; }

@@ -4,9 +4,9 @@
 use crate::magnify::MagnifyParams;
 use ds::prelude::*;
 use ds::style::tokens::shape::Corner;
-use ds_shell::tokens::dock::{DockFloorSetting, DockMetrics};
 use sill_model::units::Cpx;
 use sill_settings::{DockFloor, DockSettings};
+use sill_shell_kit::tokens::dock::{DockFloorSetting, DockMetrics};
 
 /// quire's dock tokens from `dock.tile_size_px`, `dock.tile_gap_px`, `dock.pill_padding_px`,
 /// `dock.running_dot_diameter_px`, `dock.running_dot_gap_px` and `dock.floor`: written inline
@@ -59,9 +59,9 @@ pub fn magnify_params(dock: &DockSettings, output_width_px: i32) -> MagnifyParam
 mod tests {
     use super::{dock_metrics, magnify_params};
     use crate::magnify::MagnifyParams;
-    use ds_shell::tokens::dock::DockMetrics;
     use sill_model::units::Cpx;
     use sill_settings::DockSettings;
+    use sill_shell_kit::tokens::dock::DockMetrics;
 
     #[test]
     fn default_settings_are_the_design_geometry() {

@@ -1,11 +1,11 @@
 //! The lock surface's view.
 //!
-//! It draws `Ds { material: Window, extent: Viewport }` holding `ds_shell::prelude::LockScreen { wallpaper, clock,
+//! It draws `Ds { material: Window, extent: Viewport }` holding `sill_shell_kit::prelude::LockScreen { wallpaper, clock,
 //! prompt }`: the wallpaper is [`super::backdrop::backdrop_for`] over `use_service::<WallpaperService>()` in
 //! the scheme `use_appearance()` resolves (`ImageSource::file`; `None` lets quire paint its veil
-//! alone); the clock is `ds_shell::prelude::LockClock` from [`super::model::clock_lines`] over the minute
+//! alone); the clock is `sill_shell_kit::prelude::LockClock` from [`super::model::clock_lines`] over the minute
 //! (`use_service::<ClockService>()` wakes it) and `session.lock_clock`; the prompt, only on the
-//! output the [`sill_ui_kit::links::LockLink`] names, is `ds_shell::prelude::LockPrompt` with [`super::model::lock_user`] over
+//! output the [`sill_ui_kit::links::LockLink`] names, is `sill_shell_kit::prelude::LockPrompt` with [`super::model::lock_user`] over
 //! `use_service::<AuthService>().account`, [`super::model::prompt_state`] over
 //! `use_service::<AuthService>().phase`, the Caps Lock mark from shell-host's `use_modifiers()`
 //! (published on keyboard focus, so a Caps Lock toggled before the lock shows from the first frame;
@@ -23,8 +23,8 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::style::appearance::blur::BlurState;
-use ds_shell::lock::vocab::CapsLock;
 use shell_host::{LockHandle, LockPhase, OutputInfo, use_lock, use_lock_phase, use_modifiers};
+use sill_shell_kit::lock::vocab::CapsLock;
 
 use super::body::{HostLock, LockBody};
 use super::model::caps_of;
@@ -83,7 +83,7 @@ fn Stage(
     let scheme = resolve(appearance, SpaceLook::default().theme, environment.system).scheme;
     rsx! {
         Ds {
-            sheet: Some(ds_shell::stylesheet()),
+            sheet: Some(sill_shell_kit::stylesheet()),
             appearance,
             system: environment.system,
             material: Material::Window,

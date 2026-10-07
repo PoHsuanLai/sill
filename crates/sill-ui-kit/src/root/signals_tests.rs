@@ -30,7 +30,7 @@ fn app() -> Element {
     use_hook(|| SEAT.with(|seat| *seat.borrow_mut() = Some(Seat { modality, scale })));
     use_republished(modality.into(), scale.into());
     rsx! {
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Window, "content" }
+        Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Window, "content" }
     }
 }
 

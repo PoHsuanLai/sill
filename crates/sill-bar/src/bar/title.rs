@@ -7,8 +7,8 @@ use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use ds::host::measure::RectProbe;
 use ds::prelude::*;
-use ds_shell::bar::pointer::BarPointer;
 use shell_host::Point;
+use sill_shell_kit::bar::pointer::BarPointer;
 
 use super::io::MenuBar;
 use super::menus::BarMenu;

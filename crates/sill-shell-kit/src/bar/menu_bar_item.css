@@ -1,0 +1,33 @@
+/* MenuBarItem (design/30 section 2.10; design/13-BEHAVIOUR-menus-windows.md section 13.3.1): a bar
+   item's text at the shell scale, and the pill behind it on hover, while pressed and while its
+   menu is open: a Regular control, 22 tall at radius 5 (design/29-SIZING.md), centred in the 24
+   bar. Inks are the paper names, which the bar's frame ground redirects to `--f-*`. A glyph item
+   is the bar's status slot (`--bar-status-w`, design/29-SIZING.md section 5.1: the glyph 7 in from
+   each side) by the box's height; the box and the glyph come from the consumer's settings through
+   `--bar-status-box` and `--bar-status-glyph` (`ds::StatusMetrics`), the fallbacks being the keys'
+   defaults, 22 and 16. */
+
+.ds-menu-bar-item{ font:inherit; display:inline-flex; align-items:center; justify-content:center; gap:var(--s-4); height:var(--shell-bar-item); box-sizing:border-box;
+  padding:0 var(--shell-bar-pad); border:0; border-radius:var(--r-shell-bar-item); background:transparent;
+  font-size:var(--fs-shell-bar); font-weight:var(--fw-shell-bar); color:var(--ink); white-space:nowrap; cursor:default; }
+.ds-menu-bar-item[*|data-emphasis=strong]{ font-weight:700; }
+.ds-menu-bar-item:hover{ background:var(--surface); }
+.ds-menu-bar-item[*|data-pressed],
+.ds-menu-bar-item[*|aria-pressed=true],
+.ds-menu-bar-item[*|aria-expanded=true]{ background:var(--surface-2); }
+.ds-menu-bar-item[*|aria-disabled=true]{ opacity:.35; pointer-events:none; }
+.ds-menu-bar-item-icon{ display:inline-flex; align-items:center; line-height:0; flex:none; }
+
+.ds-menu-bar-item[*|data-image=only]{ width:max(var(--bar-status-w),var(--bar-status-box,22px)); height:var(--bar-status-box,22px); padding:0; color:var(--ink-soft); }
+.ds-menu-bar-item[*|data-image=only]:hover,
+.ds-menu-bar-item[*|data-image=only][*|data-pressed],
+.ds-menu-bar-item[*|data-image=only][*|aria-pressed=true],
+.ds-menu-bar-item[*|data-image=only][*|aria-expanded=true]{ color:var(--ink); }
+/* A status glyph takes the same square as an icon; its stacked parts (and a volume glyph's level
+   parts) fill that square, so the glyph follows the setting as a single icon does. */
+.ds-menu-bar-item[*|data-image=only] .ds-ic,
+.ds-menu-bar-item[*|data-image=only] .ds-ext-icon,
+.ds-menu-bar-item[*|data-image=only] .ds-status-glyph{ width:var(--bar-status-glyph,16px); height:var(--bar-status-glyph,16px); }
+.ds-menu-bar-item[*|data-image=only] .ds-status-glyph > .ds-status-part,
+.ds-menu-bar-item[*|data-image=only] .ds-status-glyph .ds-level-part{ width:100%; height:100%; }
+.ds-menu-bar-item-title{ min-width:0; }

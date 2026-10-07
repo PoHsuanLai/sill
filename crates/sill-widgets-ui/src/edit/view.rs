@@ -21,10 +21,10 @@ use ds::components::overlays::sheet_attach::Attach;
 use ds::components::overlays::sheet_width::SheetWidth;
 use ds::host::measure::use_rect;
 use ds::prelude::*;
-use ds_shell::prelude::*;
-use ds_shell::widget::{DesktopGrid, WidgetEdit};
 use shell_host::{OutputInfo, use_watch};
 use sill_settings::{DesktopWidgets, WidgetsSettings};
+use sill_shell_kit::prelude::*;
+use sill_shell_kit::widget::{DesktopGrid, WidgetEdit};
 
 use super::io::{places_to_save, use_phase};
 use super::layer::EDIT_PANEL_ID;
@@ -232,10 +232,10 @@ fn take_keyboard(element: Rc<MountedData>) {
 
 #[cfg(test)]
 mod tests {
-    use ds_shell::catalog::PlacementId;
-    use ds_shell::prelude::*;
-    use ds_shell::widget::WidgetEdit;
     use sill_settings::{DesktopWidgets, WidgetKind};
+    use sill_shell_kit::catalog::PlacementId;
+    use sill_shell_kit::prelude::*;
+    use sill_shell_kit::widget::WidgetEdit;
 
     use super::shown_after;
     use sill_ui_kit::widgets::kind_id;

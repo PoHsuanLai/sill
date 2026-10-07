@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 use ds::components::content::level_glyph::vocab::LevelSource;
 use ds::components::controls::slider_model::SliderLook;
 use ds::prelude::*;
-use ds_shell::prelude::*;
+use sill_shell_kit::prelude::*;
 
 use super::modules::use_plate;
 

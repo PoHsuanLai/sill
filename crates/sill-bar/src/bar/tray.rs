@@ -23,12 +23,12 @@ use ds::host::measure::use_rect;
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::style::icon::classify::ChromaLimit;
-use ds_shell::bar::pointer::BarPointer;
-use ds_shell::prelude::*;
 use shell_host::OutputInfo;
 use sill_model::tray::{TrayCommand, TrayIcon, TrayItem, TrayStatus};
 use sill_services::TrayService;
 use sill_services::tray::icon_art;
+use sill_shell_kit::bar::pointer::BarPointer;
+use sill_shell_kit::prelude::*;
 
 use super::dbusmenu::has_rows;
 use super::menus::{BarMenu, TraySlot};
@@ -166,8 +166,8 @@ mod tests {
     use ds::prelude::*;
     use ds::root::common::Common;
     use ds_lint::{LintConfig, Profile, Rule, markup};
-    use ds_shell::bar::pointer::BarPointer;
     use sill_model::tray::{TrayIcon, TrayItem, TrayItemId, TrayStatus};
+    use sill_shell_kit::bar::pointer::BarPointer;
 
     fn fake_item(name: &str) -> TrayItem {
         TrayItem {
@@ -196,7 +196,7 @@ mod tests {
     }
 
     fn full_css() -> &'static str {
-        ds_shell::stylesheet()
+        sill_shell_kit::stylesheet()
     }
 
     #[test]
@@ -207,7 +207,7 @@ mod tests {
             full_css(),
             &LintConfig {
                 profile: Profile::Strict,
-                ..LintConfig::new(&ds_shell::kits())
+                ..LintConfig::new(&sill_shell_kit::kits())
             },
         );
         assert!(offences.is_empty(), "{offences:#?}");
@@ -216,7 +216,7 @@ mod tests {
     #[test]
     fn no_raw_button_or_img_outside_ds_components() {
         let html = render_ssr();
-        let offences = markup(&html, full_css(), &LintConfig::new(&ds_shell::kits()));
+        let offences = markup(&html, full_css(), &LintConfig::new(&sill_shell_kit::kits()));
         assert!(
             offences.iter().all(|o| o.rule != Rule::RawMarkup),
             "{offences:#?}"

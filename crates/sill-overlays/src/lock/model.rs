@@ -5,10 +5,10 @@ use ds::components::content::avatar::{
     AvatarFace, AvatarShape, AvatarSize, AvatarTone, person_hue,
 };
 use ds::prelude::*;
-use ds_shell::lock::vocab::{CapsLock, LockUser, PromptState};
-use ds_shell::user_picture::picture::UserPicture;
 use sill_model::auth::{Account, AuthPhase, AvatarSource, UserName};
 use sill_settings::LockClock;
+use sill_shell_kit::lock::vocab::{CapsLock, LockUser, PromptState};
+use sill_shell_kit::user_picture::picture::UserPicture;
 
 /// Caps Lock from shell-host's live modifiers (`use_modifiers()`, published on keyboard focus
 /// and on every change, so it is known before the first key).
@@ -104,11 +104,11 @@ fn time_text(at: &jiff::Zoned, format: LockClock) -> String {
 #[cfg(test)]
 mod tests {
     use ds::prelude::*;
-    use ds_shell::lock::vocab::{CapsLock, PromptState};
-    use ds_shell::user_picture::picture::UserPicture;
     use sill_model::auth::AuthPhase;
     use sill_model::auth::{Account, AuthFault, AvatarSource, RealName, UserName};
     use sill_settings::LockClock;
+    use sill_shell_kit::lock::vocab::{CapsLock, PromptState};
+    use sill_shell_kit::user_picture::picture::UserPicture;
 
     use super::{ClockLines, caps_of, clock_lines, lock_user, prompt_state};
 

@@ -4,9 +4,9 @@
 //! `ModulePanel`, the popover card being its plate.
 
 use dioxus::prelude::*;
-use ds_shell::control_center::module_panel::PanelPlate;
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
+use sill_shell_kit::control_center::module_panel::PanelPlate;
 
 use super::modules::CcCx;
 use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};

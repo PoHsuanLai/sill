@@ -3,12 +3,12 @@
 
 use super::apps::SwitcherApp;
 use ds::prelude::*;
-use ds_shell::switcher::app_switcher::AppKey;
-use ds_shell::switcher::app_switcher::SwitcherApp as Tile;
-use ds_shell::switcher::switcher_fit::SwitcherMetrics;
 use sill_launcher::AppId;
 use sill_model::apps::AppIndex;
 use sill_settings::SwitcherSettings;
+use sill_shell_kit::switcher::app_switcher::AppKey;
+use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
+use sill_shell_kit::switcher::switcher_fit::SwitcherMetrics;
 
 /// One tile per app, in order: the key is the app id, the name the desktop entry's `Name` (the
 /// id when it has no entry), the icon from `icon` (the caller's resolver, at the cell's icon
@@ -69,11 +69,11 @@ pub fn output_width(width: i32) -> Option<Px> {
 mod tests {
     use crate::switcher::apps::{AppShown, SwitcherApp};
     use ds::prelude::*;
-    use ds_shell::switcher::app_switcher::AppKey;
-    use ds_shell::switcher::switcher_fit::SwitcherMetrics;
     use sill_launcher::AppId;
     use sill_model::apps::AppIndex;
     use sill_settings::SwitcherSettings;
+    use sill_shell_kit::switcher::app_switcher::AppKey;
+    use sill_shell_kit::switcher::switcher_fit::SwitcherMetrics;
 
     use super::{index_of, key_of, metrics_of, output_width, tiles};
 

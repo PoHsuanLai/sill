@@ -1,0 +1,15 @@
+/* Animated emoji (design/25-EMOJI.md): one sprite sheet per emoji on `.ds-emoji-face`, the
+   frame chosen by `background-position`, which the component's Rust timer moves once through
+   the animation when the emoji appears and on each wake. The sheet, its size and its position arrive as inline style properties
+   computed in Rust (the sheet is a `data:` URI; no colour or duration is written inline). An
+   optional disc (`data-disc=tinted`) takes its derived colour as `--em-disc` and insets the
+   emoji on it. Nothing here animates: no transition, no keyframes. */
+
+.ds-emoji{ position:relative; flex:none; box-sizing:border-box; border-radius:var(--r-pill); }
+.ds-emoji[*|data-size="28"]{ width:28px; height:28px; }
+.ds-emoji[*|data-size="64"]{ width:64px; height:64px; }
+.ds-emoji[*|data-size="128"]{ width:128px; height:128px; }
+.ds-emoji[*|data-disc=tinted]{ background:var(--em-disc); }
+
+.ds-emoji-face{ position:absolute; inset:0; background-repeat:no-repeat; }
+.ds-emoji[*|data-disc=tinted] .ds-emoji-face{ inset:14%; }

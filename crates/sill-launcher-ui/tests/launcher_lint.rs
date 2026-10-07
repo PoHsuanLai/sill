@@ -21,7 +21,7 @@ const LAUNCHER_CSS: &str = include_str!("../src/launcher/style.css");
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds_shell::kits())
+        ..LintConfig::new(&sill_shell_kit::kits())
     }
 }
 
@@ -64,7 +64,7 @@ fn panel_ssr() -> String {
 }
 
 fn full_css() -> String {
-    format!("{}\n{}", ds_shell::stylesheet(), LAUNCHER_CSS)
+    format!("{}\n{}", sill_shell_kit::stylesheet(), LAUNCHER_CSS)
 }
 
 #[test]

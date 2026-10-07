@@ -7,11 +7,11 @@ use dioxus::prelude::*;
 use ds::components::controls::level_indicator::LevelStyle;
 use ds::prelude::*;
 use ds::root::common::Common;
-use ds_shell::osd::OsdPosition;
-use ds_shell::prelude::*;
-use ds_shell::tokens::osd::OsdMetrics;
 use shell_host::{OutputInfo, Visibility};
 use sill_model::ids::OutputName;
+use sill_shell_kit::osd::OsdPosition;
+use sill_shell_kit::prelude::*;
+use sill_shell_kit::tokens::osd::OsdMetrics;
 
 use super::io::{times, use_follow_position, use_osd};
 use super::layer::CARD_ID;
@@ -28,7 +28,7 @@ pub const OSD_CSS: &str = include_str!("style.css");
 /// this is the one place.
 const LOOK: LevelStyle = LevelStyle::Continuous;
 
-/// `sill_settings::OsdPosition` as quire's `ds_shell::osd::OsdPosition`.
+/// `sill_settings::OsdPosition` as quire's `sill_shell_kit::osd::OsdPosition`.
 fn position_of(position: sill_settings::OsdPosition) -> OsdPosition {
     match position {
         sill_settings::OsdPosition::TopRight => OsdPosition::TopRight,

@@ -35,7 +35,7 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
     let root = use_root_style();
     rsx! {
         Ds {
-            sheet: Some(ds_shell::stylesheet()),
+            sheet: Some(sill_shell_kit::stylesheet()),
             appearance,
             system: environment.system,
             material: Material::Widget,

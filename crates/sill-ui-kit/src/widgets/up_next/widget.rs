@@ -7,10 +7,10 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::style::tokens::label_hue::LabelHue;
-use ds_shell::prelude::*;
-use ds_shell::widget::contract::NoIntent;
-use ds_shell::widget::kind::WidgetTitle;
 use serde::{Deserialize, Serialize};
+use sill_shell_kit::prelude::*;
+use sill_shell_kit::widget::contract::NoIntent;
+use sill_shell_kit::widget::kind::WidgetTitle;
 
 use super::provider::EVENT_ROWS;
 

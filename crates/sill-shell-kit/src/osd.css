@@ -1,0 +1,25 @@
+/* Osd (design/20 section 1.7): the on-screen display's card inside a
+   transparent Osd root. It paints what a tinted root paints on its own box: the material's box
+   shadow, and a `.ds-frame` group of the Space gradient at the frame alpha (the solid floor
+   without blur and the inner pair over it are in the materials section). Its shape and padding
+   are a control-center module's (design/13 section 13.3.7: `--r-tile`, the grid's 12 padding);
+   its width a module spanning both columns of the 320 panel. Attribute selectors carry `*|`
+   (spike S2).
+
+   Motion (design/30 section 1.3). A fade in over `--t-quick` (`fade`, restarted under
+   its other name on each showing: `data-pulse`); `osd-out` at `--t-move --e-exit`, held, while
+   leaving. Hidden, nothing is laid out. Present keeps the entrance declared, so the settle
+   timer never cancels an entrance the frame clock is still playing; present again after a hide
+   was taken back (`data-pulse=held`), it plays `hold`, so dropping `osd-out` starts an animation
+   in the same restyle. */
+
+.ds-osd{ position:relative; z-index:var(--z-raise); display:flex; flex-direction:column; gap:var(--s-8); box-sizing:border-box;
+  width:296px; max-width:100%; padding:var(--s-12); border-radius:var(--r-tile); box-shadow:var(--m-box); color:var(--ink); }
+.ds-osd[*|data-position=top-right]{ margin:var(--osd-margin) var(--s-12) 0 auto; }
+.ds-osd[*|data-position=bottom-centre]{ margin:0 auto var(--osd-margin); }
+.ds-osd[*|data-shown=hidden]{ display:none; }
+.ds-osd[*|data-presence=entering],.ds-osd[*|data-presence=present]{ animation:fade var(--t-quick) var(--e-out); }
+.ds-osd[*|data-presence=entering][*|data-pulse=b],.ds-osd[*|data-presence=present][*|data-pulse=b]{ animation-name:fade--b; }
+.ds-osd[*|data-presence=present][*|data-pulse=held]{ animation:hold var(--t-quick) var(--e-linear); }
+.ds-osd[*|data-presence=leaving]{ animation:osd-out var(--t-move) var(--e-exit) forwards; }
+.ds-osd-title{ font-size:var(--fs-shell-menu); font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; }

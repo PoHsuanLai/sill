@@ -7,24 +7,26 @@
 
 use ds::components::content::status::battery_state::{BatteryPower, BatteryState, LowAt};
 use ds::prelude::*;
-use ds_shell::battery::device_glyph::Device;
-use ds_shell::widget::battery::{BatteryCell, BatteryEntry};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection, BtKind};
 use sill_model::units::{Percent, Presence};
+use sill_shell_kit::battery::device_glyph::Device;
+use sill_shell_kit::widget::battery::{BatteryCell, BatteryEntry};
 
 /// A device's filled glyph (quire's `DeviceGlyph`, twelve devices): the battery rings' glyph
 /// in the Batteries widget and the control center's Battery module.
-pub fn device_of(kind: BtKind) -> ds_shell::battery::device_glyph::Device {
+pub fn device_of(kind: BtKind) -> sill_shell_kit::battery::device_glyph::Device {
     match kind {
-        BtKind::Headphones | BtKind::Headset => ds_shell::battery::device_glyph::Device::Headphones,
-        BtKind::Speaker => ds_shell::battery::device_glyph::Device::Speaker,
-        BtKind::Keyboard => ds_shell::battery::device_glyph::Device::Keyboard,
-        BtKind::Mouse => ds_shell::battery::device_glyph::Device::Mouse,
-        BtKind::Gamepad => ds_shell::battery::device_glyph::Device::Gamepad,
-        BtKind::Phone => ds_shell::battery::device_glyph::Device::Phone,
-        BtKind::Computer => ds_shell::battery::device_glyph::Device::Laptop,
-        BtKind::Other => ds_shell::battery::device_glyph::Device::Other,
+        BtKind::Headphones | BtKind::Headset => {
+            sill_shell_kit::battery::device_glyph::Device::Headphones
+        }
+        BtKind::Speaker => sill_shell_kit::battery::device_glyph::Device::Speaker,
+        BtKind::Keyboard => sill_shell_kit::battery::device_glyph::Device::Keyboard,
+        BtKind::Mouse => sill_shell_kit::battery::device_glyph::Device::Mouse,
+        BtKind::Gamepad => sill_shell_kit::battery::device_glyph::Device::Gamepad,
+        BtKind::Phone => sill_shell_kit::battery::device_glyph::Device::Phone,
+        BtKind::Computer => sill_shell_kit::battery::device_glyph::Device::Laptop,
+        BtKind::Other => sill_shell_kit::battery::device_glyph::Device::Other,
     }
 }
 

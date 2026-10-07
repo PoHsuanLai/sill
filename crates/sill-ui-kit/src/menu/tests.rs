@@ -181,7 +181,7 @@ fn the_submenu_sheet_names_quires_overlay_and_nothing_else_strict_forbids() {
         profile: Profile::Strict,
         own_vars: vec!["--popup-submenu-room".to_owned()],
         exceptions: OVERLAY_EXCEPTIONS,
-        ..LintConfig::new(&ds_shell::kits())
+        ..LintConfig::new(&sill_shell_kit::kits())
     };
     assert_clean(super::frame::POPUP_SUBMENU_CSS, &config);
 }

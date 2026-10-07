@@ -10,10 +10,10 @@ use dioxus::prelude::*;
 use ds::components::lists::preview::switcher::PaneSwitcher;
 use ds::motion::pane_slide::Pane;
 use ds::prelude::*;
-use ds_shell::control_center::module_grid::GridColumns;
-use ds_shell::prelude::*;
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
+use sill_shell_kit::control_center::module_grid::GridColumns;
+use sill_shell_kit::prelude::*;
 
 use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
 use super::modules::{CcCx, KINDS, Module, module};

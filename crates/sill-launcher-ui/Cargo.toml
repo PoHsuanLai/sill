@@ -47,7 +47,7 @@ image = { workspace = true }
 sill-ui-kit = { workspace = true, features = ["harness"] }
 dioxus-ssr = { workspace = true }
 ds-lint = { workspace = true }
-ds-shell = { workspace = true }
+sill-shell-kit = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
 
 [[example]]

@@ -21,7 +21,7 @@ use sill_ui_kit::settings::SettingsFeed;
 #[component]
 fn Panel() -> Element {
     rsx! {
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
+        Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
             ControlCenter {
                 output: Some(OutputName("DP-1".to_owned())),
                 on_close: move |()| {},
@@ -35,7 +35,7 @@ fn Panel() -> Element {
 #[component]
 fn Dropdown(module: ControlCenterModule) -> Element {
     rsx! {
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
+        Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
             ModuleDropdown {
                 module,
                 output: Some(OutputName("DP-1".to_owned())),

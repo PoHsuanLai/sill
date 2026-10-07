@@ -4,8 +4,8 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_shell::notifications::parts::CardAction;
 use sill_model::notifications::{Action, Notification};
+use sill_shell_kit::notifications::parts::CardAction;
 
 use super::CardPress;
 

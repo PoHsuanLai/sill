@@ -1,0 +1,52 @@
+/* ShotThumbnail and ShotGhost (design/04-COMPONENTS.md section 39, design/20 section 1.13).
+   The card is a plate in the Toast material inside a transparent Toast scope (the
+   transparent-root card rule in the materials section paints its tint, edge and drop); its
+   width and height are written inline from `shot_frame`, and so is the picture's letterboxed
+   rect inside it, so the bars round a picture outside 2:1..16:10 are the material. The picture's
+   corners follow the card's less the 4 px mat (`--s-4`, the same number as `shot_frame::MAT`).
+   Attribute selectors carry `*|` (spike S2).
+
+   Motion. Entering, `panel-in` at `--t-move --e-out` (`Anim::PanelIn`), restarted under its other
+   name on each showing (`data-pulse`); leaving, `panel-out` at `--t-quick --e-exit`, held
+   (`Anim::PanelOut`), taking no pointer; hidden, nothing is laid out. Present keeps the entrance
+   declared and plays `hold` after a taken-back hide (`data-pulse=held`), so no settle or
+   take-back drops an animation without starting another. 
+
+   Hover (`data-hover=on`, set from the pointer in Rust so the caller's hold hears it too): the
+   actions row fades in at the bottom right over `--t-quick --e-out`. The ghost is the plate at 120 wide and .8 opaque, with no motion. */
+
+.ds-shot{ position:relative; box-sizing:border-box; max-width:100%; color:var(--ink); }
+.ds-shot[*|data-shown=hidden]{ display:none; }
+.ds-shot[*|data-presence=entering],.ds-shot[*|data-presence=present]{ animation:panel-in var(--t-move) var(--e-out); }
+.ds-shot[*|data-presence=entering][*|data-pulse=b],.ds-shot[*|data-presence=present][*|data-pulse=b]{ animation-name:panel-in--b; }
+.ds-shot[*|data-presence=present][*|data-pulse=held]{ animation:hold var(--t-quick) var(--e-linear); }
+.ds-shot[*|data-presence=leaving]{ animation:panel-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }
+
+.ds-shot-plate{ position:relative; box-sizing:border-box; width:100%; border-radius:var(--m-radius); overflow:hidden; }
+.ds-shot-picture{ position:absolute; inset:0; cursor:default; }
+.ds-shot-image{ position:absolute; display:block; border-radius:calc(var(--m-radius) - var(--s-4)); pointer-events:none; user-select:none; }
+
+.ds-shot-actions{ position:absolute; right:var(--s-6); bottom:var(--s-6); z-index:var(--z-raise); display:flex; gap:var(--s-3); padding:var(--s-3);
+  border-radius:var(--r-pill); background:var(--raise); border:var(--hair) solid var(--line); box-shadow:var(--shadow-2);
+  opacity:0; pointer-events:none; transition:opacity var(--t-quick) var(--e-out); }
+.ds-shot[*|data-hover=on] .ds-shot-actions{ opacity:1; pointer-events:auto; }
+.ds-shot-action{ display:flex; }
+
+.ds-shot-ghost{ position:relative; box-sizing:border-box; opacity:.8; pointer-events:none; }
+
+/* Swipe to dismiss (`data-swipe` on a card that can be swiped; `notification_swipe`, as a
+   notification card's). The card is drawn `--swipe-dx` off its place: following a drag or a
+   scroll 1:1 (`live`), springing back home on a spring in Rust (design/05 section 14), and flying
+   out to the right from where it was (`gone`, `panel-out`). A card that flew out is already
+   gone when its caller hides it, so its leaving plays nothing and stays invisible, rather than
+   `panel-out` starting over from its place.
+   Reduced motion is decided here, never by a caller: the spring back is critically damped, and the entrance
+   neither lifts nor leaves by sliding; it fades in and out (the motion tokens already shorten
+   both to Reduced's length). */
+.ds-shot[*|data-swipe]{ transform:translateX(var(--swipe-dx,0px)); touch-action:none; }
+.ds-shot[*|data-swipe=gone]{ animation:panel-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }
+.ds-shot[*|data-swipe=gone][*|data-presence=leaving]{ animation:none; opacity:0; }
+.ds[*|data-motion=reduced] .ds-shot[*|data-presence=entering],.ds[*|data-motion=reduced] .ds-shot[*|data-presence=present]{ animation-name:fade; }
+.ds[*|data-motion=reduced] .ds-shot[*|data-presence=entering][*|data-pulse=b],.ds[*|data-motion=reduced] .ds-shot[*|data-presence=present][*|data-pulse=b]{ animation-name:fade--b; }
+.ds[*|data-motion=reduced] .ds-shot[*|data-presence=present][*|data-pulse=held]{ animation-name:hold; }
+.ds[*|data-motion=reduced] .ds-shot[*|data-presence=leaving]{ animation-name:menu-out; }

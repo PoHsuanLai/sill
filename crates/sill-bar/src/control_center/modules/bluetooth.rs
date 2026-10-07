@@ -5,9 +5,9 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_shell::prelude::*;
 use sill_model::bluetooth::{Bluetooth, BtPower};
 use sill_model::units::Presence;
+use sill_shell_kit::prelude::*;
 
 use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use crate::bar::{BarMenu, StatusIcon};

@@ -1,0 +1,21 @@
+/* Now Playing (design/26-DETAILS.md 5.2.10). NowPlayingTrack: the art in a 48 px well at
+   `--r-media` beside the title (`--fs-shell-menu` 600) over the `by` line (`--fs-help`,
+   `--ink-faint`). A new track cross-fades: the outgoing layer sits over the incoming one and each
+   plays its fade once (`a-morph-fade-out`, `a-morph-fade-in`, `--t-quick`). TrackPosition: a `ProgressIndicator` bar (the played share, written each whole second from
+   Rust: a clock-paced report steps), the times under it in tabular figures. Nothing loops. */
+
+.ds-track{ display:flex; align-items:center; gap:var(--s-12); min-width:0; }
+.ds-track-art{
+  position:relative; display:grid; place-items:center; flex:none; width:48px; height:48px; overflow:hidden;
+  border-radius:var(--r-media);
+}
+.ds-track-words{ position:relative; display:flex; flex-direction:column; flex:1 1 0; min-width:0; }
+.ds-track-layer{ display:flex; flex-direction:column; min-width:0; }
+.ds-track-art > .ds-track-layer{ display:grid; place-items:center; width:100%; height:100%; }
+.ds-track-layer[*|data-morph=out]{ position:absolute; left:0; top:0; right:0; }
+.ds-track-none{ display:grid; place-items:center; width:100%; height:100%; background:var(--surface); color:var(--ink-faint); }
+.ds-track-title{ font-size:var(--fs-shell-menu); font-weight:600; line-height:1.3; }
+.ds-track-by{ font-size:var(--fs-help); color:var(--ink-faint); line-height:1.3; }
+
+.ds-track-position{ display:flex; flex-direction:column; gap:var(--s-4); min-width:0; }
+.ds-track-times{ display:flex; justify-content:space-between; white-space:nowrap; font-variant-numeric:tabular-nums; }

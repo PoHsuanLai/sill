@@ -10,7 +10,7 @@ its traits, its recipes and its repo rules. Where they disagree, this file wins 
 
 | Repo | What sill takes from it |
 | --- | --- |
-| quire (`../quire`, path deps) | `ds-core` (vocabulary, units, `Word`, colour, time), `ds-style` (appearance, tokens, materials), `ds-motion` (timelines, `Presence`, gestures), `ds` (components, `DocumentHost`, menus, `ds::prelude`), `ds-shell` (shell components, widget contract, status glyphs, battery), `ds-lint`, `ds-behaviour` (the switcher and hot-corner machines), `ds-settings` (`SettingsDoc`, `Store`, schema derive, the switcher and hot-corner sections; dioxus behind a feature), `ds-blitz` (`provide_host()`, measure, focus, caret, snap), `ds-harness` (`Driver`, `DocQuery`; dev only) |
+| quire (`../quire`, path deps) | `ds-core` (vocabulary, units, `Word`, colour, time), `ds-style` (appearance, tokens, materials), `ds-motion` (timelines, `Presence`, gestures), `ds` (components, `DocumentHost`, menus, `ds::prelude`), `ds-shell` (the app-facing parts: account sheets, consent alert, missing-helper sheet; sill takes the account sheets from it), `ds-lint`, `ds-behaviour` (the switcher and hot-corner machines), `ds-settings` (`SettingsDoc`, `Store`, schema derive, the switcher and hot-corner sections; dioxus behind a feature), `ds-blitz` (`provide_host()`, measure, focus, caret, snap), `ds-harness` (`Driver`, `DocQuery`; dev only) |
 | shell-host (`../shell-host`) | Host, layer surfaces and popups, input, frames, regions, session lock, scroll engine, `Visibility`, `Inject` (pointer and key, `debug-inject`) |
 | anyview (`../anyview`, path deps) | the viewer's format library and its desktop contract: `anyview-core` (kinds, sniffing, the shared file actions and their keys, `Resume`, `Sequence`), `anyview-peek` (every kind's light peek and the `Pane` that draws it; the launcher's preview), `anyview-store` (the history the viewer keeps, read for file rows), `anyview-platform` (the viewer's D-Bus requests, `Handoff` and `Play`, which sill calls through `forward_over`; and its freedesktop thumbnail cache, read for a video's frame), `anyview-image` (`Rgba8`, the picture a cached thumbnail becomes). Taken by path until anyview is merged and its revision is pinned in quire's `docs/workspace-deps.toml` (FINDINGS) |
 | keycap (`../keycap`, path dep) | `keycap-protocol`: the socket messages, `ProfileName`, `Status`; `sill-model` and `sill-services` take it (serde, serde_json, thiserror only) |
@@ -35,19 +35,20 @@ listed except where noted.
 | --- | --- | --- | --- |
 | 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, chords, preview facts. Pure; a future repo | `almanac-core`, `docket-core`, `ds-core` (`MemoryVerb`), `prov`; nucleo-matcher, serde |
 | 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
+| 0 | `sill-shell-kit` | The shell-only parts over `ds`, moved here from quire's `ds-shell` (2026-10-07): bar, dock, control center, lock, switcher, OSD, idle dim, notifications, thumbnails, battery, clock, now playing, user picture, emoji, month grid, date picker, widget contract, registry, catalog and the widgets, with the shell's tokens (`tokens/`), sheets (`sheets.rs`), `KIT`, `kits()` and `stylesheet()` (the whole shell stylesheet: quire's plus these) and their SSR goldens and behaviour tests | none of ours; quire's `ds`, `ds-core`, `ds-shell` (its `KIT` and sheets). Dev: `ds-blitz`, `ds-harness`, `ds-lint`, `ds-settings` |
 | 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`, `Machine`), `docket-core`, `almanac-core`, `companion-wire`, `cua-bus`, `prov`, `porter-core` (the accounts sheet's `SheetView`/`SheetInput`, serde data); serde, jiff, thiserror |
 | 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `Section`, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
 | 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`), `docket-core`, `docket-dbus`, `docket-client`, `companion-wire`, `cua-bus`, `cua-dbus`, `almanac-core`, `almanac-dbus`, `prov`, `porter-core`, `porter-dbus` (who owns a bus name: caller identity; accountd's `Manager` and `Account` proxies), `anyview-core`, `anyview-platform` (the viewer's D-Bus request, for the launch service); tokio, zbus, rustix, cctk, libpulse, notify, nonstick, ddc, image, toml |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/` (the files provider reads the viewer's history and takes the shared file actions), clip images | `sill-services`, `sill-model`, `sill-launcher`, `anyview-core`, `anyview-store`, `ds-core`, `docket-core`, `almanac-core`, `companion-wire`, `prov`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
-| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `companion-wire`, `docket-core`, `porter-core`, `prov`, `ds-core`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
-| 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
-| 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
+| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-shell-kit`, `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `companion-wire`, `docket-core`, `porter-core`, `prov`, `ds-core`, `ds`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
+| 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `sill-shell-kit`, `ds`, `ds-settings`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
+| 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `sill-shell-kit`, `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*, `anyview-core`, `anyview-image`, `anyview-peek` (what a file's pane looks like), `anyview-platform` (the thumbnail cache behind a video's frame, `preview::frames`), `almanac-core`, `companion-wire`, `docket-core`, `prov` (a companion row's pane and keys); `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint`, `ds-shell` |
-| 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host` |
-| 6 | `sill-widgets-ui` | Desktop widget layer and its context menu, Edit Widgets | `sill-ui-kit`, `sill-model`, `sill-launcher`, `sill-settings`; `ds`, `ds-shell`, `shell-host`; dev: `ds-lint` |
-| 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-behaviour` (the switcher and hot-corner machines), `ds-shell`, `ds-settings`, `shell-host`, `porter-core` (the accounts sheet's props) |
-| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-blitz`, `ds-settings`, `shell-host`; clap, latchkey, `ds-lint` and `ds-shell` (`sill style check`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
+| 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*; `sill-shell-kit`, `ds`, `ds-settings`, `ds-blitz`, `shell-host` |
+| 6 | `sill-widgets-ui` | Desktop widget layer and its context menu, Edit Widgets | `sill-ui-kit`, `sill-model`, `sill-launcher`, `sill-settings`; `sill-shell-kit`, `ds`, `shell-host`; dev: `ds-lint` |
+| 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-behaviour` (the switcher and hot-corner machines), `ds-shell` (the accounts sheet), `sill-shell-kit`, `ds-settings`, `shell-host`, `porter-core` (the accounts sheet's props) |
+| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-blitz`, `ds-settings`, `shell-host`; clap, latchkey, `ds-lint` and `sill-shell-kit` (`sill style check` lints against its `kits()`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
 
 `*` A surface crate names `sill-services` (and `sill-search` for the launcher) only for service
 marker types (`BatteryService`), `Control` and `Handle`, the type arguments of `use_service`.
@@ -59,10 +60,11 @@ its status, and `EDGES` compare each crate's direct path dependencies with the t
 
 | Crates | Reach none of (through any path) |
 | --- | --- |
-| `sill-launcher`, `sill-model`, `sill-ipc` | dioxus, dioxus-core, zbus, wayland-client, tokio, libpulse-binding, shell-host, ds, ds-shell, ds-blitz, blitz-dom |
-| `sill-settings`, `sill-search` | dioxus, dioxus-core, blitz-dom, shell-host, ds, ds-shell, ds-blitz (`ds-settings` brings zbus and tokio to both) |
+| `sill-launcher`, `sill-model`, `sill-ipc` | dioxus, dioxus-core, zbus, wayland-client, tokio, libpulse-binding, shell-host, ds, ds-shell, sill-shell-kit, ds-blitz, blitz-dom |
+| `sill-settings`, `sill-search` | dioxus, dioxus-core, blitz-dom, shell-host, ds, ds-shell, sill-shell-kit, ds-blitz (`ds-settings` brings zbus and tokio to both) |
 | `sill-services` | the same, and `ds-settings` |
 | `sill-testkit` | every other sill crate |
+| `sill-shell-kit` | every other sill crate, zbus, tokio, wayland-client, libpulse-binding, shell-host, ds-blitz, blitz-dom |
 | `sill-ui-kit` | every surface crate, `sill` |
 | each surface crate | every other surface crate, `sill` |
 
@@ -78,6 +80,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | `sill-ipc` | `line` (encode, decode, cap), `error`, `request`, `response`, `show`, `status`, `act`, `debug` (one word file per request group) |
 | `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `file_touch` (a debounced watch on one file), then one dir per service (29, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview` (a clipboard image), `providers/<kind>/` (`files/`: `actions` (the shared file actions as a row's), `viewed` (the viewer's history as rows and uses)), `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
+| `sill-shell-kit` | `tokens`, then leaf parts `battery`, `clock`, `emoji`, `month_grid`, `now_playing`, `notifications`, `osd`, `idle_dim`, `dock`, `bar`, `control_center`, `switcher`, `date_picker` < `user_picture`, `thumbs` < `lock` < `widget` (`contract`, `registry`, `wire`, `card`, `frame`, `gallery`, one dir per kind) and `catalog` < `sheets`, `kit` < `prelude` |
 | `sill-ui-kit` | `look`, `links/`, `settings`, `shell_style`, `services`, `hooks/`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
 | each surface crate | one dir per surface, named after it (`osd/`, `dock/`, `banners/`); `lib.rs` re-exports each surface marker type and nothing else |
 | `sill` | `policy/`, `ipc/`, `cli/`, `daemon/` (`daemon` is the top: it names every crate) |
@@ -188,11 +191,11 @@ code into `tests.rs`. Exceptions and renames:
 | From (`crates/sill-surfaces/`) | To |
 | --- | --- |
 | `src/hooks/*`, `host_modality.rs`, `src/lib.rs` host config helpers | `sill-ui-kit/src/{hooks,root}`; `clock.rs` (`FrameClock`) is `ds::base::time::stamp::FrameClock` |
-| `src/app_icons/`, `surfaces/notification_card/`, `surfaces/user_picture.rs`, `surfaces/naming.rs` | `sill-ui-kit/src/{app_icons,notification_card,surface}`; `user_picture` is `ds-shell`'s |
+| `src/app_icons/`, `surfaces/notification_card/`, `surfaces/user_picture.rs`, `surfaces/naming.rs` | `sill-ui-kit/src/{app_icons,notification_card,surface}`; `user_picture` is `sill-shell-kit`'s |
 | `src/widgets/` (providers, layout, wake) | `sill-ui-kit/src/widgets/<kind>/` |
 | `bar/menu_track/` | deleted; `ds`'s `menu_track` |
 | `bar/{menu_popup,menus,dbusmenu}.rs`, `dock/{menu_popup,context_menu,menu_document,menu_geometry}.rs`, `launcher` actions menu | `impl MenuModel` in the owning surface; the popup is `sill-ui-kit::menu::MenuPopup` |
-| `bar/{glyph_state,status_item,status}.rs`, `low_battery.rs` | `sill-ui-kit/src/status/` (service state to `ds-shell` glyph props) |
+| `bar/{glyph_state,status_item,status}.rs`, `low_battery.rs` | `sill-ui-kit/src/status/` (service state to `sill-shell-kit` glyph props) |
 | `bar/*` (rest), `control_center/*` | `sill-bar/src/bar/`, `sill-bar/src/control_center/` |
 | `control_center/{fit,sizes}.rs`, estimate half of `geometry.rs`, `bar/geometry.rs`, `menu_size_tests.rs`, `tests/cc_estimates.rs` | deleted (FitContent popups measure) |
 | `dock/*` | `sill-dock/src/dock/` |
@@ -301,7 +304,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Popup menus (bar, tray, dock, launcher actions) | `sill_ui_kit::menu` (`MenuModel`, `MenuPopup<M>`) over `ds`'s `menu_track`; a context menu a layer opens at its pointer is `context_menu_popup::<M>` (the popup root, reporting over a channel) |
 | Popup sizing | shell-host `FitContent`; no estimation code |
 | App icons, look, cache | `sill_ui_kit::app_icons` |
-| Status glyph props from service state | `sill_ui_kit::status` over `ds-shell` glyphs |
+| Status glyph props from service state | `sill_ui_kit::status` over `sill-shell-kit` glyphs |
 | Notification card | `sill_ui_kit::notification_card` |
 | Widget provider, `Card<P>`, registry, layout mapping | `sill_ui_kit::widgets` |
 | Desktop widget grid; the desktop's context menu; Edit Widgets sheet | `sill_widgets_ui::{desktop, desktop::menu, edit}` |
@@ -459,13 +462,13 @@ Bluetooth, Focus, Display, Keyboard, Sound, Now Playing, Appearance, Battery.
 
 ```rust
 pub trait WidgetProvider: Clone + PartialEq + 'static {
-    type W: ds_shell::prelude::Widget;        // a value: `Widget: Default`
+    type W: sill_shell_kit::prelude::Widget;        // a value: `Widget: Default`
     const KIND: WidgetKind;
     const DESKTOP_SIZE: WidgetSize;           // its one size on the desktop (tiles are all Medium)
     fn use_feed() -> Feed<Self::W>;           // reads the services; one hook, one shape
-    fn registry_id() -> ds_shell::prelude::WidgetKind;  // provided: `W::kind()`, the name in quire's registry
+    fn registry_id() -> sill_shell_kit::prelude::WidgetKind;  // provided: `W::kind()`, the name in quire's registry
 }
-pub struct Feed<W: ds_shell::prelude::Widget> {
+pub struct Feed<W: sill_shell_kit::prelude::Widget> {
     pub entry: W::Entry,                                   // the entry now
     pub onintent: Option<EventHandler<W::Intent>>,         // the card's controls; none without any
 }
@@ -590,7 +593,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 
 ### Add a widget
 
-1. The `ds_shell::Widget` (quire's recipe), then a `WidgetKind` variant in
+1. The `sill_shell_kit::prelude::Widget` (its recipe is `sill-shell-kit`'s: `widget/<kind>/{mod, model, view, style.css}` and a row in `widget/registry.rs::builtin()`), then a `WidgetKind` variant in
    `sill-settings/src/widgets.rs`.
 2. `sill-ui-kit/src/widgets/<kind>/{mod,provider,io,tests}.rs` (+ `style.css` if it has one):
    `impl WidgetProvider` (`use_feed` over services) on a unit struct in `io.rs`.

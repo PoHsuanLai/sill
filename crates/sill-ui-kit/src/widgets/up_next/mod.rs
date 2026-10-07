@@ -2,7 +2,7 @@
 //! over `calendar.up_next_days` and `calendar.up_next_max`), each a title and a time line, as
 //! [`UpNextEntry`]; "No upcoming events" when there are none, and a quiet line naming the source
 //! state when the calendars are off or unreadable. A new entry on the clock's minute tick. The
-//! widget itself ([`UpNext`], `widget.rs`) is a `ds_shell::prelude::Widget` of kind `sill.up-next`. The
+//! widget itself ([`UpNext`], `widget.rs`) is a `sill_shell_kit::prelude::Widget` of kind `sill.up-next`. The
 //! same agenda feeds the month widget's events ([`today_events`]), in the same colours.
 //!
 //! `up_next_max` is a ceiling, not a promise. The card's body is a fixed number of pixels

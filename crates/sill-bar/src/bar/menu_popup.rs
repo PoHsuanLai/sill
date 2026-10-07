@@ -134,7 +134,7 @@ pub(crate) fn PopupDocument(current: PopupView) -> Element {
         AppStyle { css: CONTROL_CENTER_CSS }
         PopupFrame { room: room(), widest, submenu_room, style: look.metrics.style_attr(),
             Ds {
-                sheet: Some(ds_shell::stylesheet()),
+                sheet: Some(sill_shell_kit::stylesheet()),
                 extent: RootExtent::Popup,
                 appearance: look.appearance,
                 system: look.system,

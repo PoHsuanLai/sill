@@ -6,8 +6,8 @@
 use ds::motion::swipe::{Speed, SwipeMetrics};
 use ds::prelude::*;
 use ds::style::icon::render::IconPx;
-use ds_shell::tokens::notifications::NotificationMetrics;
 use sill_settings::NotificationsSettings;
+use sill_shell_kit::tokens::notifications::NotificationMetrics;
 
 /// The geometry keys as quire's tokens.
 pub fn notification_metrics(n: &NotificationsSettings) -> NotificationMetrics {
@@ -44,8 +44,8 @@ mod tests {
     use ds::motion::swipe::SwipeMetrics;
     use ds::style::icon::render::IconPx;
     use ds_settings::Px;
-    use ds_shell::tokens::notifications::NotificationMetrics;
     use sill_settings::NotificationsSettings;
+    use sill_shell_kit::tokens::notifications::NotificationMetrics;
 
     #[test]
     fn the_defaults_are_quires_and_the_keys_reach_it() {

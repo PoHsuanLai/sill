@@ -1,0 +1,31 @@
+/* ModulePanel (design/13 section 13.3.7; sized by design/29-SIZING.md): a
+   module with content of its own on the tile's frame: the control center's module radius 8
+   (`--cc-module-r`), the Off tile's plate (`--surface-2`, a hairline drawn inset so it takes no
+   room) and the control center's padding of 10 (`--cc-pad`). A level module is then its padding,
+   a 16 header, a 6 gap and the Regular 22 capsule: 64 (`--cc-level-h`). Not pressable, so no
+   hover lift: its content takes the presses. The header row: a 16 px glyph in `--ink-soft`, the
+   title in the tile's type (13/600), the trailing slot at the far end in the tile's status type
+   (`--fs-help`, `--ink-faint`, tabular figures, for a level's percentage). Full by default: it
+   spans every grid column. `Bare` drops the plate where a popover card already is the module's.
+   Attribute selectors carry `*|` (spike S2). */
+
+.ds-module-panel{
+  display:flex; flex-direction:column; gap:var(--cc-head-gap); min-width:0; box-sizing:border-box;
+  padding:var(--cc-pad); border:0; box-shadow:inset 0 0 0 var(--hair) var(--line); border-radius:var(--cc-module-r);
+  background:var(--surface-2); color:var(--ink);
+}
+.ds-module-panel[*|data-span=full]{ grid-column:1 / -1; }
+.ds-module-panel[*|data-plate=bare]{ padding:0; box-shadow:none; background:none; }
+
+.ds-module-panel-head{ display:flex; align-items:center; gap:var(--s-6); min-width:0; height:var(--cc-head); }
+.ds-module-panel-glyph{ display:flex; align-items:center; flex:none; color:var(--ink-soft); }
+.ds-module-panel-title{ flex:1 1 0; min-width:0; white-space:nowrap; overflow:hidden;
+  font-size:var(--fs-shell-menu); font-weight:600; line-height:var(--cc-head); }
+.ds-module-panel-trailing{ display:flex; align-items:center; flex:none; gap:var(--s-4);
+  font-size:var(--fs-help); color:var(--ink-faint); font-variant-numeric:tabular-nums; }
+
+/* A module whose content is unavailable (`availability: Disabled`): the header's glyph and
+   trailing figure (a level's percentage) at the disabled .35 beside the dimmed level; the title
+   stays legible so the module is still named. */
+.ds-module-panel[*|aria-disabled=true] .ds-module-panel-glyph,
+.ds-module-panel[*|aria-disabled=true] .ds-module-panel-trailing{ opacity:.35; }

@@ -15,7 +15,7 @@ clap = { workspace = true }
 ds-lint = { workspace = true }
 ds-blitz = { workspace = true }
 ds-settings = { workspace = true }
-ds-shell = { workspace = true }
+sill-shell-kit = { workspace = true }
 latchkey = { workspace = true }
 shell-host = { workspace = true }
 sill-ipc = { workspace = true }

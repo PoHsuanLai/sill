@@ -219,7 +219,7 @@ fn the_plate_carries_the_icon_style_under_muted_and_monochrome() {
 fn the_popup_frame_stylesheet_is_clean_under_strict() {
     let strict = LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds_shell::kits())
+        ..LintConfig::new(&sill_shell_kit::kits())
     };
     assert_clean(sill_ui_kit::menu::POPUP_FRAME_CSS, &strict);
 }
