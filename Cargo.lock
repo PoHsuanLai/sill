@@ -6,7 +6,7 @@ version = 4
 name = "a11y-tree"
 version = "0.1.0"
 dependencies = [
- "cua-action",
+ "cua-action 0.1.0",
  "cua-desktop",
  "porter-core",
  "prov",
@@ -1786,12 +1786,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "cua-action"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/stoker?rev=b24f6d456e7915f1052c722f5aebabf1ee0f0e74#b24f6d456e7915f1052c722f5aebabf1ee0f0e74"
+dependencies = [
+ "keyboard-types 0.7.0",
+ "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "cua-bus"
 version = "0.1.0"
 dependencies = [
  "a11y-tree",
  "almanac-core",
- "cua-action",
+ "cua-action 0.1.0",
  "cua-desktop",
  "docket-core",
  "maskcap",
@@ -1817,7 +1827,7 @@ dependencies = [
 name = "cua-desktop"
 version = "0.1.0"
 dependencies = [
- "cua-action",
+ "cua-action 0.1.0",
  "docket-core",
  "porter-core",
  "prov",
@@ -2467,7 +2477,7 @@ name = "docket-core"
 version = "0.1.0"
 dependencies = [
  "almanac-core",
- "cua-action",
+ "cua-action 0.1.0",
  "model-provider",
  "porter-core",
  "prov",
@@ -2597,6 +2607,7 @@ dependencies = [
  "dioxus-native",
  "dioxus-native-dom",
  "ds",
+ "ds-desktop",
  "image",
  "keyboard-types 0.7.0",
  "parley",
@@ -2635,6 +2646,10 @@ dependencies = [
  "quote",
  "syn 2.0.119",
 ]
+
+[[package]]
+name = "ds-desktop"
+version = "0.1.0"
 
 [[package]]
 name = "ds-harness"
@@ -4854,7 +4869,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "blake3",
- "cua-action",
+ "cua-action 0.1.0",
  "cua-desktop",
  "serde",
  "thiserror 2.0.21",
@@ -5013,7 +5028,7 @@ name = "model-provider"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "cua-action",
+ "cua-action 0.1.0",
  "genai-names",
  "serde",
  "serde_json",
@@ -6236,7 +6251,7 @@ name = "porter-infer"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "cua-action",
+ "cua-action 0.1.0 (git+https://github.com/PoHsuanLai/stoker?rev=b24f6d456e7915f1052c722f5aebabf1ee0f0e74)",
  "porter-core",
  "serde",
  "serde_json",
@@ -6961,7 +6976,7 @@ dependencies = [
 name = "seat-input"
 version = "0.1.0"
 dependencies = [
- "cua-action",
+ "cua-action 0.1.0",
  "cua-desktop",
  "keyboard-types 0.7.0",
  "porter-core",
@@ -8988,7 +9003,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 name = "vision-prep"
 version = "0.1.0"
 dependencies = [
- "cua-action",
+ "cua-action 0.1.0",
  "serde",
  "thiserror 2.0.21",
 ]

@@ -53,6 +53,7 @@ pub mod voice;
 pub mod volume;
 pub mod wallpaper;
 pub mod wifi;
+pub mod work_areas;
 
 pub use accounts::{AccountsLinks, AccountsService};
 pub use app_menu::{AppMenuDeps, AppMenuService, MenuLinks, MenuNameOf};
@@ -89,3 +90,4 @@ pub use voice::{VoiceLinks, VoiceService};
 pub use volume::VolumeService;
 pub use wallpaper::WallpaperService;
 pub use wifi::WifiService;
+pub use work_areas::WorkAreaService;

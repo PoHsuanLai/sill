@@ -41,3 +41,4 @@ pub mod voice;
 pub mod volume;
 pub mod wallpaper;
 pub mod wifi;
+pub mod work_areas;
