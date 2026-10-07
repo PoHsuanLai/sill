@@ -465,11 +465,10 @@ fn after_a_pop_up_choice_by_keys_tab_and_typing_go_to_the_next_field() {
     tab_and_type_after_choosing(start());
 }
 
-/// Quire's hand-back of the keyboard needs a focus keeper that shell-host's documents do not
-/// have yet (`ds_blitz::provide_host` wires none): on `BlitzDefault`, the focus a closed menu
-/// leaves is nowhere and Tab and typing are dropped. Run it when a host wires the keeper.
+/// A shell-host document has no focus keeper (`ds_blitz::provide_host` wires none): on
+/// `BlitzDefault` quire's pop-up gives the keyboard back to its button itself, so Tab and typing
+/// reach the next field.
 #[test]
-#[ignore = "quire/shell-host: a shell-host surface has no focus keeper to hand the keyboard back"]
 fn after_a_pop_up_choice_by_keys_on_the_hosts_wiring_tab_and_typing_go_to_the_next_field() {
     tab_and_type_after_choosing(start_with(
         fake::output().id,
@@ -512,11 +511,9 @@ fn a_press_on_a_pop_up_item_once_it_has_settled_chooses_it() {
     assert_eq!(pressed_after(8), Some("pop3"));
 }
 
-/// Quire draws a pop-up's menu at the window's corner until it has measured the button (three
-/// frames), then moves it: a press in that time lands outside the menu, which closes and chooses
-/// nothing, so the pop-up keeps IMAP.
+/// Quire places a pop-up's menu at its button in the frame it opens (and hides and shields it
+/// where the button is not measured yet), so a press at once chooses the item under it.
 #[test]
-#[ignore = "quire: ds menu surface sits at (0, 0) until its anchor is measured"]
 fn a_press_on_a_pop_up_item_right_after_it_opens_chooses_it() {
     for frames in 0..8 {
         assert_eq!(pressed_after(frames), Some("pop3"), "{frames} frames in");
