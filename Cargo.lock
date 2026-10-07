@@ -2653,6 +2653,7 @@ dependencies = [
  "ds-core",
  "image",
  "keyboard-types 0.7.0",
+ "parley",
  "peniko",
  "rustc-hash 2.1.3",
  "thiserror 2.0.21",
