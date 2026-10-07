@@ -13,7 +13,7 @@ mod step;
 mod tests;
 
 pub use command::{AccountsCommand, AccountsEffect, AccountsEvent};
-pub use model::{AccountKey, AccountStanding, AccountsLink, AccountsState, NeedsSignIn};
+pub use model::{AccountKey, AccountStanding, AccountsLink, AccountsState, NeedsSignIn, SignInAsk};
 pub use notice::{NOTICE_ENTRY, Notice, account_of, notice_text, shown_for, sign_in_key};
 pub use posted::Posted;
 pub use step::step;

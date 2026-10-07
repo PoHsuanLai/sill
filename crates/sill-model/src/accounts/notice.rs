@@ -2,7 +2,7 @@
 
 use crate::notifications::{ActionKey, NotesState, NotificationId};
 
-use super::model::{AccountKey, NeedsSignIn};
+use super::model::{AccountKey, NeedsSignIn, SignInAsk};
 
 /// The desktop entry the notices carry; it names them among the notifications held.
 pub const NOTICE_ENTRY: &str = "sill-accounts";
@@ -20,10 +20,17 @@ pub struct Notice {
 
 /// What the person is told about `needing`.
 pub fn notice_text(needing: &NeedsSignIn) -> Notice {
-    Notice {
-        summary: format!("{} needs you to sign in again", needing.label),
-        body: "Apps cannot use this account until you do.".to_owned(),
-        button: "Sign in again".to_owned(),
+    match needing.ask {
+        SignInAsk::Again => Notice {
+            summary: format!("{} needs you to sign in again", needing.label),
+            body: "Apps cannot use this account until you do.".to_owned(),
+            button: "Sign in again".to_owned(),
+        },
+        SignInAsk::Login => Notice {
+            summary: format!("Sign in to {} to use it again", needing.label),
+            body: "Apps cannot use this agent until you do.".to_owned(),
+            button: "Sign in".to_owned(),
+        },
     }
 }
 

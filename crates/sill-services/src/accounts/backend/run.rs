@@ -191,7 +191,12 @@ impl Live {
         let (connection, told) = (self.connection.clone(), self.told.clone());
         self.rt.spawn(async move {
             let label = wire::label_of(&connection, &account).await;
-            let _ = told.send(AccountsEvent::NeedsSignIn(NeedsSignIn { account, label }));
+            let ask = wire::ask_of(&connection, &account).await;
+            let _ = told.send(AccountsEvent::NeedsSignIn(NeedsSignIn {
+                account,
+                label,
+                ask,
+            }));
         });
     }
 

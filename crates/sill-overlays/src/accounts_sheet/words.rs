@@ -77,6 +77,7 @@ pub(super) fn service_name(kind: CapabilityKind) -> &'static str {
         CapabilityKind::ComputerUse => "Operating windows",
         CapabilityKind::KeyValue => "Small synced items",
         CapabilityKind::Push => "Notifications",
+        CapabilityKind::Agent => "Coding agent",
     }
 }
 
@@ -105,6 +106,7 @@ pub(super) fn request_phrase(kind: CapabilityKind, class: DataClass, usage: Usag
         (CapabilityKind::ComputerUse, _) => "operate a window for you",
         (CapabilityKind::KeyValue, _) => "keep small settings in sync",
         (CapabilityKind::Push, _) => "send you notifications",
+        (CapabilityKind::Agent, _) => "run a coding agent with your account",
     };
     match usage {
         Usage::Interactive => what.to_owned(),

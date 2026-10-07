@@ -269,3 +269,7 @@ anyrender_vello_cpu = { git = "https://github.com/PoHsuanLai/anyrender", rev = "
 anyrender_vello_hybrid = { git = "https://github.com/PoHsuanLai/anyrender", rev = "a0825ebfc0443f3ef0830c0e09f2d85df3da632b" }
 wgpu_context = { git = "https://github.com/PoHsuanLai/anyrender", rev = "a0825ebfc0443f3ef0830c0e09f2d85df3da632b" }
 pixels_window_renderer = { git = "https://github.com/PoHsuanLai/anyrender", rev = "a0825ebfc0443f3ef0830c0e09f2d85df3da632b" }
+
+# porter takes stoker by git rev (porter ARCHITECTURE section 1); the sibling checkout is the one copy of cua-action.
+[patch."https://github.com/PoHsuanLai/stoker"]
+cua-action = { path = "../stoker/crates/cua-action" }

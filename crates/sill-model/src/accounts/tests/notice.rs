@@ -1,6 +1,7 @@
 use super::needing;
+use crate::accounts::NeedsSignIn;
 use crate::accounts::{
-    AccountKey, NOTICE_ENTRY, Posted, account_of, notice_text, shown_for, sign_in_key,
+    AccountKey, NOTICE_ENTRY, Posted, SignInAsk, account_of, notice_text, shown_for, sign_in_key,
 };
 use crate::notifications::{
     Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, NotesState,
@@ -42,6 +43,18 @@ fn the_notice_names_the_account_and_the_button_says_what_it_does() {
     let text = notice_text(&needing("/a/1", "Work mail"));
     assert_eq!(text.summary, "Work mail needs you to sign in again");
     assert_eq!(text.button, "Sign in again");
+}
+
+#[test]
+fn an_agent_that_must_be_signed_in_has_its_own_words() {
+    let agent = NeedsSignIn {
+        ask: SignInAsk::Login,
+        ..needing("/a/2", "Claude Code")
+    };
+    let text = notice_text(&agent);
+    assert_eq!(text.summary, "Sign in to Claude Code to use it again");
+    assert_eq!(text.body, "Apps cannot use this agent until you do.");
+    assert_eq!(text.button, "Sign in");
 }
 
 #[test]

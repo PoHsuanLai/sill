@@ -2,7 +2,7 @@
 //! and the call that signs one in again.
 
 use porter_dbus::{ACCOUNTS_BUS, AccountProxy, Details};
-use sill_model::accounts::{AccountKey, AccountStanding, AccountsEvent, NeedsSignIn};
+use sill_model::accounts::{AccountKey, AccountStanding, AccountsEvent, NeedsSignIn, SignInAsk};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
@@ -32,13 +32,19 @@ pub(crate) trait ManagerSignIn {
 pub(crate) async fn listed(connection: &Connection) -> zbus::Result<Vec<NeedsSignIn>> {
     let manager = ManagerSignInProxy::new(connection).await?;
     match manager.needing_reauth().await {
-        Ok(list) => Ok(list
-            .into_iter()
-            .map(|(path, label)| NeedsSignIn {
-                account: AccountKey::new(path.as_str()),
-                label,
-            })
-            .collect()),
+        Ok(list) => {
+            let mut found = Vec::with_capacity(list.len());
+            for (path, label) in list {
+                let account = AccountKey::new(path.as_str());
+                let ask = ask_of(connection, &account).await;
+                found.push(NeedsSignIn {
+                    account,
+                    label,
+                    ask,
+                });
+            }
+            Ok(found)
+        }
         Err(zbus::Error::MethodError(name, ..))
             if name.as_str() == "org.freedesktop.DBus.Error.UnknownMethod" =>
         {
@@ -63,6 +69,18 @@ pub(crate) async fn label_of(connection: &Connection, key: &AccountKey) -> Strin
     }
     .filter(|label| !label.is_empty())
     .unwrap_or_else(|| UNNAMED.to_owned())
+}
+
+/// Which sign-in the account asks for; a plain sign-in again when accountd will not say.
+pub(crate) async fn ask_of(connection: &Connection, key: &AccountKey) -> SignInAsk {
+    let standing = match account(connection, key).await {
+        Ok(proxy) => proxy.state().await.ok(),
+        Err(_) => None,
+    };
+    standing
+        .and_then(|word| AccountStanding::parse(&word))
+        .and_then(AccountStanding::ask)
+        .unwrap_or_default()
 }
 
 /// Ask accountd to sign the account in again; the sign-in itself is drawn by sill's own sheet.

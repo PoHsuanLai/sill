@@ -6,7 +6,7 @@ version = 4
 name = "a11y-tree"
 version = "0.1.0"
 dependencies = [
- "cua-action 0.1.0",
+ "cua-action",
  "cua-desktop",
  "porter-core",
  "prov",
@@ -283,7 +283,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -294,7 +294,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1786,22 +1786,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "cua-action"
-version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/stoker?rev=b24f6d456e7915f1052c722f5aebabf1ee0f0e74#b24f6d456e7915f1052c722f5aebabf1ee0f0e74"
-dependencies = [
- "keyboard-types 0.7.0",
- "serde",
- "thiserror 2.0.21",
-]
-
-[[package]]
 name = "cua-bus"
 version = "0.1.0"
 dependencies = [
  "a11y-tree",
  "almanac-core",
- "cua-action 0.1.0",
+ "cua-action",
  "cua-desktop",
  "docket-core",
  "maskcap",
@@ -1827,7 +1817,7 @@ dependencies = [
 name = "cua-desktop"
 version = "0.1.0"
 dependencies = [
- "cua-action 0.1.0",
+ "cua-action",
  "docket-core",
  "porter-core",
  "prov",
@@ -2424,7 +2414,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.3",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2477,7 +2467,7 @@ name = "docket-core"
 version = "0.1.0"
 dependencies = [
  "almanac-core",
- "cua-action 0.1.0",
+ "cua-action",
  "model-provider",
  "porter-core",
  "prov",
@@ -2929,7 +2919,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4869,7 +4859,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "blake3",
- "cua-action 0.1.0",
+ "cua-action",
  "cua-desktop",
  "serde",
  "thiserror 2.0.21",
@@ -5028,7 +5018,7 @@ name = "model-provider"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "cua-action 0.1.0",
+ "cua-action",
  "genai-names",
  "serde",
  "serde_json",
@@ -6251,7 +6241,7 @@ name = "porter-infer"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "cua-action 0.1.0 (git+https://github.com/PoHsuanLai/stoker?rev=b24f6d456e7915f1052c722f5aebabf1ee0f0e74)",
+ "cua-action",
  "porter-core",
  "serde",
  "serde_json",
@@ -6881,7 +6871,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6976,7 +6966,7 @@ dependencies = [
 name = "seat-input"
 version = "0.1.0"
 dependencies = [
- "cua-action 0.1.0",
+ "cua-action",
  "cua-desktop",
  "keyboard-types 0.7.0",
  "porter-core",
@@ -7789,7 +7779,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7817,7 +7807,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8368,10 +8358,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8389,7 +8379,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8725,7 +8715,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9003,7 +8993,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 name = "vision-prep"
 version = "0.1.0"
 dependencies = [
- "cua-action 0.1.0",
+ "cua-action",
  "serde",
  "thiserror 2.0.21",
 ]

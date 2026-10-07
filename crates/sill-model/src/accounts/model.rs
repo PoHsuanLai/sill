@@ -25,6 +25,18 @@ pub struct NeedsSignIn {
     pub account: AccountKey,
     /// What the person calls it (`Work mail`).
     pub label: String,
+    /// Which sign-in it needs.
+    pub ask: SignInAsk,
+}
+
+/// Which sign-in an account needs, for the words that tell the person.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SignInAsk {
+    /// The sign-in held no longer works: sign in again.
+    #[default]
+    Again,
+    /// A coding agent that has to be signed in, inside the agent: sign in to use it again.
+    Login,
 }
 
 /// Whether accountd is on the bus. Its absence is a state: a machine without it has nothing to
@@ -54,6 +66,8 @@ pub enum AccountStanding {
     Ok,
     /// The sign-in no longer holds: the person has to sign in again.
     NeedsReauth,
+    /// A coding agent that must be signed in (inside the agent) before it can be used.
+    NeedsLogin,
     /// The service cannot be reached; it will be tried again.
     Offline,
     /// Works with a restriction.
@@ -63,6 +77,18 @@ pub enum AccountStanding {
 impl AccountStanding {
     /// Whether only the person can put it right.
     pub fn needs_sign_in(self) -> bool {
-        self == AccountStanding::NeedsReauth
+        matches!(
+            self,
+            AccountStanding::NeedsReauth | AccountStanding::NeedsLogin
+        )
+    }
+
+    /// Which sign-in it asks for, when it asks for one.
+    pub fn ask(self) -> Option<SignInAsk> {
+        match self {
+            AccountStanding::NeedsReauth => Some(SignInAsk::Again),
+            AccountStanding::NeedsLogin => Some(SignInAsk::Login),
+            AccountStanding::Ok | AccountStanding::Offline | AccountStanding::Limited => None,
+        }
     }
 }
