@@ -506,6 +506,8 @@ html,body{margin:0;padding:0;background:transparent}
 
 .ds-acc-step{ display:flex; flex-direction:column; gap:var(--s-12); box-sizing:border-box; width:100%; padding:var(--s-22); color:var(--ink); }
 .ds-acc-header{ display:flex; align-items:center; gap:var(--s-12); }
+.ds-acc-disc{ display:grid; place-items:center; flex:none; width:48px; height:48px; border-radius:var(--r-pill); overflow:hidden; }
+.ds-acc-disc > .ds-ext-icon{ width:100%; height:100%; }
 .ds-acc-title{ font-family:var(--font-display); font-size:var(--fs-title); font-weight:700; line-height:1.3; color:var(--ink); }
 .ds-acc-body{ display:flex; flex-direction:column; gap:var(--s-12); font-size:var(--fs-control); line-height:1.45; color:var(--ink-soft); }
 .ds-acc-actions{ display:flex; justify-content:flex-end; gap:var(--s-8); margin-top:var(--s-6); }
@@ -721,7 +723,7 @@ html,body{margin:0;padding:0;background:transparent}
    level of fixed width. The bar's tooltip rises above the capsule's row, so the capsule is not
    clipped. */
 .ds-capsule[*|data-span=wide]{ width:calc(100% - var(--s-16) * 2); max-width:640px; }
-.ds-capsule-scrub{ flex:1 1 auto; min-width:160px; padding:0 var(--s-8); }
+.ds-capsule-scrub{ flex:1 1 auto; min-width:120px; padding:0 var(--s-8); }
 .ds-capsule-level{ flex:none; width:96px; padding:0 var(--s-4); }
 /* -- checkbox -- */
 /* Checkbox (design/30 section 2.3, `NSButton` checkbox). Attribute selectors carry `*|` (spike
@@ -1076,6 +1078,7 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-field-row-title{ font-size:var(--fs-control); color:var(--ink); line-height:1.3; }
 .ds-field-row-help{ font-size:var(--fs-help); color:var(--ink-faint); line-height:1.3; }
 .ds-field-row-control{ display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; flex:0 1 auto; gap:var(--s-8); min-width:0; }
+.ds-field-row[*|data-layout=setting] > .ds-field-row-control{ margin-inline-start:auto; }
 .ds-field-row[*|data-layout=form]{ padding-left:0; }
 .ds-field-row[*|data-layout=form] .ds-field-row-label{ flex:none; width:120px; align-items:flex-end; text-align:end; }
 .ds-field-row[*|data-layout=form] .ds-field-row-control{ flex:1 1 0; justify-content:flex-start; }
@@ -1578,9 +1581,19 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-menu-title{ display:block; overflow:hidden; }
 .ds-menu-subtitle{ display:block; overflow:hidden; font-size:var(--fs-help); color:var(--ink-faint); line-height:1.3; }
 .ds-menu-item[*|data-lines=two]{ padding-top:var(--s-3); padding-bottom:var(--s-3); }
-.ds-menu-image[*|data-image=avatar]{ color:inherit; }
+.ds-menu-image[*|data-image=avatar]{ color:inherit; width:auto; min-width:22px; }
 .ds-menu-item[*|data-focus=highlight][*|data-selected=true] .ds-menu-subtitle{ color:var(--accent-ink); }
 .ds[*|data-activity=inactive] .ds-menu-item[*|data-focus=highlight][*|data-selected=true] .ds-menu-subtitle{ color:var(--ink-faint); }
+/* -- search_card -- */
+/* The search card (`present: SuggestionsPresent::Card`, Spotlight): the field and its results as
+   one surface. Floated from a `CardPlace`, the popover is the surface and this adds the width and
+   the clip; drawn where it stands (`data-surface=own`) it is the surface itself, with the
+   popover's plate, radius and shadow. The results sit under a hairline, inset as a menu's rows
+   are. */
+.ds-search-card{ width:600px; max-width:100%; overflow:hidden; border-radius:inherit; }
+.ds-search-card[*|data-surface=own]{ background:var(--raise); color:var(--ink); border-radius:var(--r-panel); box-shadow:var(--shadow-pop); }
+.ds-search-card-rows{ max-height:440px; overflow-y:auto; scrollbar-width:none; border-top:var(--hair) solid var(--line-soft); }
+.ds-search-card-rows .ds-menu[*|data-flow=inline]{ padding:var(--shell-menu-inset); }
 /* -- pane_stack -- */
 /* PaneStack and PageHeader (design/34-MODERN-LOOK.md sections 3.5 and 7). The pages slide as the
    control center's panes do, 26 px and a fade, from one spring in Rust (design/05 section 14, H1):
@@ -2031,6 +2044,9 @@ html,body{margin:0;padding:0;background:transparent}
    been busy wears `ds-busy-seen`, so a row's first show plays nothing. */
 .ds-busy-seen > .ds-row-trailing{ animation:fade var(--t-quick) var(--e-out); }
 .ds-row-trailing[*|data-mark=text]{ font-family:var(--font-data); font-variant-numeric:tabular-nums; }
+.ds-row-trailing[*|data-mark=badge]{ color:var(--ink-soft); }
+/* A count is plain text (macOS Mail's sidebar): semibold, tabular, secondary ink, no capsule. */
+.ds-row-count{ font-family:var(--font-data); font-size:var(--fs-help); font-weight:600; font-variant-numeric:tabular-nums; line-height:1; white-space:nowrap; }
 .ds-row-figure{ font-variant-numeric:tabular-nums; min-width:3.2ch; text-align:right; }
 .ds-row-when{ display:inline-block; flex:none; margin-left:auto; font-family:var(--font-data); font-size:var(--fs-caption); color:var(--ink-faint); font-variant-numeric:tabular-nums; }
 .ds-row-when + .ds-row-trailing, .ds-row-when + .ds-key-equivalent{ margin-left:calc(var(--s-6) - var(--s-8)); }
@@ -2057,8 +2073,12 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-row[*|data-drop=target]{ background:var(--accent-soft); color:var(--ink); transform:scale(1.045); box-shadow:var(--shadow-1); }
 .ds-row[*|data-drop=accepts]{ box-shadow:inset 0 0 0 var(--hair) var(--accent-text); }
 
-/* A Today tab: what it has left is its trailing data; one about to expire is drawn quieter. */
+/* A Today tab: what it has left is plain semibold tabular text in the secondary ink, as a count is;
+   one about to expire is drawn quieter and its time in the warn ink. No fill, border or padding. */
+.ds-row[*|data-shape=today] .ds-row-when,
+.ds-row[*|data-shape=today-soon] .ds-row-when{ font-size:var(--fs-help); font-weight:600; color:var(--ink-soft); }
 .ds-row[*|data-shape=today-soon]{ opacity:.6; }
+.ds-row[*|data-shape=today-soon] .ds-row-when{ color:var(--warn); }
 
 /* A palette group's Show More brings the rows it added in as inserted rows come. */
 .ds-row[*|data-row-motion=in]{ animation:row-in var(--t-move) var(--e-out) backwards; }

@@ -398,9 +398,9 @@ fn a_status_item_takes_its_box_and_glyph_from_the_properties() {
         );
         let svg = rect(&harness, &format!("{scope} .ds-ic"));
         assert_eq!(svg.size.width, Px(glyph), "{scope}");
-        // The drawing scales with the element: Lucide's wifi spans 20 of its 24 units.
+        // The drawing scales with the element: the solid wifi spans 22 of its 24 units.
         let inked = inked_width(&frame, button);
-        let want = (glyph * 20.0 / 24.0).round() as u32;
+        let want = (glyph * 22.0 / 24.0).round() as u32;
         assert!(
             inked.abs_diff(want) <= 2,
             "{scope}: the glyph is drawn {inked} wide, want about {want}"
