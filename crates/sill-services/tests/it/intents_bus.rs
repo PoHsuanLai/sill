@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use docket_core::{
     ActionRef, Anchor, AskReason, ConfirmAnswer, ConfirmDetail, ConfirmEnd, ConfirmId,
-    ConfirmOffer, ConfirmRequest, Gesture, GrantScope, LabelText, Seconds, TaintNote,
+    ConfirmOffer, ConfirmParts, ConfirmRequest, Gesture, GrantScope, LabelText, Seconds, TaintNote,
 };
 use docket_dbus::{CONFIRM_BUS, ConfirmProxy, INTENTS_BUS};
 use porter_core::Count;
@@ -50,7 +50,7 @@ fn grant(action: &str) -> ActionRef {
 }
 
 fn request(id: &str, offer: ConfirmOffer, expires: u32) -> ConfirmRequest {
-    ConfirmRequest {
+    ConfirmRequest::new(ConfirmParts {
         id: ConfirmId::parse(id).unwrap_or_else(|e| panic!("{id}: {e}")),
         space: SpaceId::parse("desktop").unwrap_or_else(|e| panic!("{e}")),
         actor: Actor::Cli,
@@ -66,7 +66,7 @@ fn request(id: &str, offer: ConfirmOffer, expires: u32) -> ConfirmRequest {
         gesture: Gesture::Press,
         anchor: Anchor::Centre,
         expires: Seconds(expires),
-    }
+    })
 }
 
 /// What the stand-in `Control` holds and was told.

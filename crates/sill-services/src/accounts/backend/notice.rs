@@ -1,6 +1,6 @@
 //! The notification about an account: its posting.
 
-use sill_model::accounts::{NOTICE_ENTRY, NeedsSignIn, notice_text, sign_in_key};
+use sill_model::accounts::{NOTICE_ENTRY, NeedsSignIn, no_launcher_text, notice_text, sign_in_key};
 use sill_model::notifications::{
     Action, AppRef, Body, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
 };
@@ -27,5 +27,26 @@ pub(crate) fn posting(needing: &NeedsSignIn, replaces: Option<NotificationId>) -
             ..Hints::default()
         },
         expiry: Expiry::Never,
+    }
+}
+
+/// The posting that tells the person which app to open to sign the agent `label` in. It has no
+/// button, so it never stands for the sign-in notice.
+pub(crate) fn no_launcher_posting(label: &str) -> Posting {
+    Posting {
+        replaces: None,
+        app: AppRef {
+            name: "Accounts".to_owned(),
+            icon: IconRef::Name("avatar-default".to_owned()),
+            desktop_entry: Some(NOTICE_ENTRY.to_owned()),
+        },
+        summary: no_launcher_text(label),
+        body: Body::plain(""),
+        actions: Vec::new(),
+        hints: Hints {
+            urgency: NotifyUrgency::Normal,
+            ..Hints::default()
+        },
+        expiry: Expiry::Default,
     }
 }

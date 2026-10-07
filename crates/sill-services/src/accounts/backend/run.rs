@@ -3,7 +3,8 @@
 
 use std::collections::HashMap;
 
-use porter_dbus::ManagerProxy;
+use porter_core::wire::Refusal;
+use porter_dbus::{ManagerProxy, refusal_of};
 use sill_model::accounts::{
     AccountKey, AccountsCommand, AccountsEffect, AccountsEvent, AccountsLink, AccountsState,
     NeedsSignIn, Posted, shown_for, step,
@@ -206,9 +207,16 @@ impl Live {
             return;
         }
         let (connection, account) = (self.connection.clone(), account.clone());
+        let notifications = self.notifications.clone();
         self.rt.spawn(async move {
-            if let Err(error) = wire::sign_in_again(&connection, &account).await {
-                eprintln!("sill: accounts: signing in again: {error}");
+            match wire::sign_in_again(&connection, &account).await {
+                Ok(()) => {}
+                Err(error) if refusal_of(&error) == Some(Refusal::NoLauncher) => {
+                    let label = wire::label_of(&connection, &account).await;
+                    let post = notice::no_launcher_posting(&label);
+                    let _ = notifications.send(NotificationsCommand::Post(Box::new(post)));
+                }
+                Err(error) => eprintln!("sill: accounts: signing in again: {error}"),
             }
         });
     }

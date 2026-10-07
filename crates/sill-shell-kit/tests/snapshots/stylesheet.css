@@ -2583,6 +2583,29 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-space-dot[*|data-stops="3"], .ds-preset[*|data-stops="3"], .ds-space-swatch[*|data-stops="3"]{
   background:linear-gradient(135deg,var(--dot-c1) 0%,var(--dot-c2) 50%,var(--dot-c3) 100%); }
 .ds-handle, .ds-stop-disc{ background:var(--dot-c1); }
+/* -- spaces -- */
+/* Spaces (design/21-SPACES.md section 13): the sidebar head and foot, and the parts of a
+   Space's menu. Colours are the frame's own (`--f-*`) and tokens; nothing is Space-tinted here
+   but through them. */
+
+.ds-space-head{ display:flex; align-items:center; min-width:0; padding:0 var(--s-6); }
+
+.ds-spaces-foot{ display:flex; align-items:center; gap:var(--s-6); padding-top:var(--s-6); min-width:0; }
+.ds-spaces-foot > *{ flex:none; }
+/* The dots take the foot's free width, so the buttons sit at its end. */
+.ds-spaces-foot > .ds-spaces-dots{ display:flex; gap:var(--s-5); align-items:center; flex:1 1 auto; min-width:0; }
+/* The hold a dot's right click is caught on: it lays out as the dot. The Spaces not on screen are
+   drawn quieter. */
+.ds-spaces-dot-hold{ display:flex; }
+.ds-spaces-dot-hold[*|data-current=false]{ opacity:.62; }
+
+.ds-space-part{ display:grid; gap:var(--s-10); padding:var(--s-12); }
+.ds-space-rename{ width:240px; }
+.ds-space-colour{ width:340px; }
+.ds-space-delete{ width:300px; }
+.ds-space-delete h3{ margin:0; }
+.ds-space-delete-body{ margin:0; }
+.ds-space-part-acts{ display:flex; justify-content:flex-end; gap:var(--s-6); }
 /* -- progress -- */
 /* ProgressIndicator (design/30 section 2.9). Attribute selectors carry `*|` (spike S2). Sized
    by the ladder: the bar's thickness is `--progress-*`, the spinner's and the ring's box

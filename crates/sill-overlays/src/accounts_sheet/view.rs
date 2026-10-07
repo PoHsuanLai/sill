@@ -165,13 +165,21 @@ fn body(step: Step, io: Io) -> Element {
                 title: StepTitle::Host,
             }
         },
-        Step::Working { provider } => {
-            rsx! { SignInWorking { provider, on_cancel: cancel, title: StepTitle::Host } }
-        }
-        Step::Failed { provider, why } => rsx! {
+        Step::Working {
+            provider,
+            waiting_for,
+        } => rsx! {
+            SignInWorking { provider, waiting_for, on_cancel: cancel, title: StepTitle::Host }
+        },
+        Step::Failed {
+            provider,
+            why,
+            mark,
+        } => rsx! {
             SignInFailed {
                 provider,
                 why,
+                mark,
                 on_retry: move |()| io.act.call(SheetAction::Retry),
                 on_back: back,
                 on_cancel: cancel,

@@ -4,6 +4,7 @@
 
 use ds::components::content::provider_mark::MarkProvider;
 use ds_shell::accounts::model::{Limitation, SignInFault};
+use ds_shell::prelude::WorkingFor;
 use porter_core::LimitReason;
 use porter_core::consent::Usage;
 use porter_core::sheet::SignInFault as PorterFault;
@@ -20,8 +21,12 @@ pub(super) fn app_name(app: &AppId) -> String {
 /// labels): the shipped provider files' labels, and the id itself for any other.
 pub(super) fn provider_label(id: &ProviderId) -> String {
     match id.as_str() {
+        "acp-agent" => "your ACP agent",
         "anthropic" => "Anthropic",
+        "claude-code" => "Claude Code",
+        "codex" => "Codex",
         "fastmail" => "Fastmail",
+        "gemini-cli" => "Gemini CLI",
         "generic-dav" => "your calendar and contacts server",
         "generic-imap" => "your email server",
         "generic-jmap" => "your email server",
@@ -55,6 +60,17 @@ pub(super) fn mark_of(mark: &str) -> MarkProvider {
         "yahoo" => MarkProvider::Yahoo,
         "local" => MarkProvider::Local,
         _ => MarkProvider::Imap,
+    }
+}
+
+/// What a sign-in is waiting on: the agent that logs itself in for the providers whose files say
+/// `agent_login`, the provider's own sign-in for every other.
+pub(super) fn waiting_on(id: &ProviderId) -> WorkingFor {
+    match id.as_str() {
+        "acp-agent" | "claude-code" | "codex" | "gemini-cli" => {
+            WorkingFor::Agent(provider_label(id))
+        }
+        _ => WorkingFor::Provider,
     }
 }
 
@@ -146,6 +162,9 @@ pub(super) fn fault_of(fault: PorterFault) -> SignInFault {
         PorterFault::Cancelled => SignInFault::Cancelled,
         PorterFault::Forbidden => SignInFault::Forbidden,
         PorterFault::StoreFailed => SignInFault::StoreFailed,
+        PorterFault::NoLauncher => SignInFault::NoLauncher,
+        PorterFault::NotInstalled => SignInFault::NotInstalled,
+        PorterFault::Expired => SignInFault::TimedOut,
     }
 }
 

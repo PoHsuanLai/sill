@@ -458,8 +458,6 @@ dependencies = [
  "anyview-plugin",
  "anyview-plugin-protocol",
  "dirs 6.0.0",
- "docket-client",
- "docket-core",
  "ds-core",
  "freedesktop-desktop-entry",
  "futures-util",
@@ -468,13 +466,10 @@ dependencies = [
  "memfd",
  "percent-encoding",
  "png",
- "porter-core",
- "prov",
  "rustix",
  "serde_json",
  "thiserror 2.0.21",
  "tokio",
- "toml",
  "zbus",
 ]
 

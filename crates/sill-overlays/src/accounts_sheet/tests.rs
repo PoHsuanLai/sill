@@ -8,6 +8,7 @@ use ds_shell::accounts::model::{
     FieldRole, FieldText, FormField, Limitation, ProblemKind, ProviderEntry, ProviderKey,
     ProviderPick, Requirement, ServiceKey, ServiceLine, ServiceOffer, SignInFault,
 };
+use ds_shell::prelude::WorkingFor;
 use porter_core::consent::{AccountChoice as AskChoice, ConsentAsk, GrantScope, Usage};
 use porter_core::sheet::{
     Entry, FieldKind, FieldSpec, FieldValue, Presence, ProblemKind as PorterProblem, ProviderRow,
@@ -282,6 +283,15 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             SheetView::Working(provider("nextcloud")),
             Some(Step::Working {
                 provider: "Nextcloud".to_owned(),
+                waiting_for: WorkingFor::Provider,
+            }),
+        ),
+        (
+            "working on an agent login",
+            SheetView::Working(provider("claude-code")),
+            Some(Step::Working {
+                provider: "Claude Code".to_owned(),
+                waiting_for: WorkingFor::Agent("Claude Code".to_owned()),
             }),
         ),
         (
@@ -293,6 +303,31 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             Some(Step::Failed {
                 provider: "Nextcloud".to_owned(),
                 why: SignInFault::NeedsClientId,
+                mark: Some(MarkProvider::Imap),
+            }),
+        ),
+        (
+            "failed on Google, which names its client id",
+            SheetView::Failed {
+                provider: provider("google"),
+                fault: PorterFault::NeedsClientId,
+            },
+            Some(Step::Failed {
+                provider: "Google".to_owned(),
+                why: SignInFault::NeedsClientId,
+                mark: Some(MarkProvider::Google),
+            }),
+        ),
+        (
+            "failed on a coding agent with no launcher",
+            SheetView::Failed {
+                provider: provider("claude-code"),
+                fault: PorterFault::NoLauncher,
+            },
+            Some(Step::Failed {
+                provider: "Claude Code".to_owned(),
+                why: SignInFault::NoLauncher,
+                mark: Some(MarkProvider::Imap),
             }),
         ),
         ("done", SheetView::Done, None),
@@ -659,5 +694,18 @@ fn the_port_hints_are_porters_usual_ports() {
                 Some(usual_port(slug, true, security).to_string())
             );
         }
+    }
+}
+
+#[test]
+fn porter_faults_land_on_the_shell_faults() {
+    use super::words::fault_of;
+    let cases = [
+        (PorterFault::NoLauncher, SignInFault::NoLauncher),
+        (PorterFault::NotInstalled, SignInFault::NotInstalled),
+        (PorterFault::Expired, SignInFault::TimedOut),
+    ];
+    for (porter, shell) in cases {
+        assert_eq!(fault_of(porter), shell);
     }
 }

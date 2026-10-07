@@ -133,3 +133,11 @@ fn a_fresh_post_replaces_the_id_kept() {
     assert_eq!(posted.answers(NotificationId(1), &sign_in_key(&a)), None);
     assert_eq!(posted.answers(NotificationId(5), &sign_in_key(&a)), Some(a));
 }
+
+#[test]
+fn an_agent_with_no_launcher_says_which_app_to_open() {
+    assert_eq!(
+        crate::accounts::no_launcher_text("Claude Code"),
+        "Open the app that runs Claude Code to sign in"
+    );
+}

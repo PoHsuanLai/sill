@@ -2,8 +2,8 @@
 //! parts' tests share.
 
 use docket_core::{
-    Anchor, AskReason, ConfirmAnswer, ConfirmDetail, ConfirmId, ConfirmOffer, ConfirmRequest,
-    Gesture, LabelText, Seconds, TaintNote,
+    Anchor, AskReason, ConfirmAnswer, ConfirmDetail, ConfirmId, ConfirmOffer, ConfirmParts,
+    ConfirmRequest, Gesture, LabelText, Seconds, TaintNote,
 };
 use porter_core::Count;
 use prov::{Actor, AppName, Effect, SpaceId, UnixSeconds};
@@ -22,7 +22,7 @@ pub(crate) fn id(text: &str) -> ConfirmId {
 
 /// A terminal call's request `id` offering `offer`, expiring after `expires` seconds.
 pub(crate) fn request(id_text: &str, offer: ConfirmOffer, expires: u32) -> ConfirmRequest {
-    ConfirmRequest {
+    ConfirmRequest::new(ConfirmParts {
         id: id(id_text),
         space: SpaceId::parse("work").unwrap_or_else(|e| panic!("{e}")),
         actor: Actor::Cli,
@@ -38,7 +38,7 @@ pub(crate) fn request(id_text: &str, offer: ConfirmOffer, expires: u32) -> Confi
         gesture: Gesture::Press,
         anchor: Anchor::Centre,
         expires: Seconds(expires),
-    }
+    })
 }
 
 fn sheet_taint() -> TaintNote {

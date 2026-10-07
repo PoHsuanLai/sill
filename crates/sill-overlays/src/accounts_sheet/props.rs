@@ -24,6 +24,7 @@ use ds_shell::accounts::model::{
     FormField, FormPart, ProblemKind, ProviderEntry, ProviderKey, ProviderPick, Requirement,
     ServiceKey, ServiceLine, ServiceOffer, SignInFault,
 };
+use ds_shell::prelude::WorkingFor;
 use porter_core::sheet::{
     Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, RowKind, ServiceState,
     SheetView,
@@ -33,7 +34,7 @@ use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 
 use super::words::{
     absence_of, app_name, choice_label, fault_of, limit_of, mark_of, provider_label,
-    request_phrase, service_key, service_name, usual_port,
+    request_phrase, service_key, service_name, usual_port, waiting_on,
 };
 
 /// What the consent alert is given.
@@ -90,10 +91,12 @@ pub(super) enum Step {
     Review(ReviewProps),
     Working {
         provider: String,
+        waiting_for: WorkingFor,
     },
     Failed {
         provider: String,
         why: SignInFault,
+        mark: Option<MarkProvider>,
     },
 }
 
@@ -109,7 +112,7 @@ impl Step {
             Step::Browser { .. } => "Continue in your browser".to_owned(),
             Step::Code { .. } => "Enter this code".to_owned(),
             Step::Review(_) => "Choose what to use".to_owned(),
-            Step::Working { provider } => format!("Signing in to {provider}"),
+            Step::Working { provider, .. } => format!("Signing in to {provider}"),
             Step::Failed { provider, .. } => format!("Could not add {provider}"),
         }
     }
@@ -220,10 +223,12 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
         }),
         SheetView::Working(provider) => Step::Working {
             provider: provider_label(provider),
+            waiting_for: waiting_on(provider),
         },
         SheetView::Failed { provider, fault } => Step::Failed {
             provider: provider_label(provider),
             why: fault_of(*fault),
+            mark: Some(mark_of(provider.as_str())),
         },
         SheetView::Done => return None,
     })

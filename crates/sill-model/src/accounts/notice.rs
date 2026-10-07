@@ -34,6 +34,12 @@ pub fn notice_text(needing: &NeedsSignIn) -> Notice {
     }
 }
 
+/// What the person is told when an agent account's sign-in has no app to run it: the app that runs
+/// the agent is the one to open.
+pub fn no_launcher_text(label: &str) -> String {
+    format!("Open the app that runs {label} to sign in")
+}
+
 /// The action key of the button that signs `account` in again: it carries the account, so the
 /// answer to the button needs no memory of what was posted.
 pub fn sign_in_key(account: &AccountKey) -> ActionKey {
