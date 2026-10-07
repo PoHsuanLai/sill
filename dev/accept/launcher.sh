@@ -1136,7 +1136,7 @@ files_tracker() {
     pending 5 "expected skip: cargo does not run in the jail (A7); the Tracker sandbox test is not run under dev/accept.sh"
     return
   fi
-  (cd "$SILL_REPO" && cargo test -p sill-search --test files_tracker_live -- --ignored \
+  (cd "$SILL_REPO" && cargo test -p sill-search --test it files_tracker_live -- --ignored \
     --nocapture) >"$OUT_DIR/step5-tracker.txt" 2>&1
   if grep -q 'test result: ok. 1 passed' "$OUT_DIR/step5-tracker.txt"; then
     pass 5 "Tracker found m9-report.pdf and 'm9 dir' in localsearch's sandbox"

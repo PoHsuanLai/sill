@@ -1,0 +1,215 @@
+//! An answer names its router session in its `Session` property, and the shell shows the text
+//! behind each handle through it: for an answer the shell asked and for one anybody else started,
+//! with the session the ask opened as the fallback for an older companion, and a plain reading
+//! for a handle the router refuses once the session is closed. On a private bus, with stand-ins
+//! for companiond and intentd; every wait is on published state or on a stand-in's record.
+
+use crate::companion_support;
+
+use std::sync::{Arc, Mutex};
+
+use companion_support::stand_ins::{ActsAs, StandInAnswer, StandInCompanion, StandInSession};
+use companion_support::{Desk, json, task, wire};
+use companion_wire::{AnswerBody, AnswerPhase, AnswerWire};
+use docket_core::{ContextKeep, Handle, Keep, Reveal};
+use docket_dbus::{COMPANION_BUS, INTENTS_BUS, answer_path};
+use prov::SpaceId;
+use sill_model::companion::{AskInput, CompanionCommand, answer_line};
+use zbus::Connection;
+use zbus::zvariant::ObjectPath;
+
+const HANDLE: Handle = Handle(7);
+
+fn with_handle() -> AnswerWire {
+    AnswerWire {
+        body: AnswerBody::Text {
+            lines: vec![Reveal::Handle(HANDLE)],
+        },
+        ..wire(AnswerPhase::Done, "")
+    }
+}
+
+struct Bench {
+    desk: Desk,
+    companiond: Connection,
+    view: Arc<Mutex<String>>,
+    _intentd: Connection,
+}
+
+/// The stand-ins are up and the shell holds its seat. The answers companiond makes name `session`
+/// (`None`: an older companion, no such property).
+async fn bench(session: Option<&str>) -> Option<Bench> {
+    let mut desk = companion_support::desk().await?;
+    let view = Arc::new(Mutex::new(json(&with_handle())));
+    let companiond = desk.peer(COMPANION_BUS).await;
+    companiond
+        .object_server()
+        .at(
+            "/org/quire/Companion1",
+            StandInCompanion {
+                session: session.map(str::to_owned),
+                log: desk.log.clone(),
+                view: view.clone(),
+                acts: ActsAs::Accepts,
+                routing: None,
+            },
+        )
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    let intentd = desk.peer(INTENTS_BUS).await;
+    intentd
+        .object_server()
+        .at("/org/quire/Intents1", StandInSession(desk.log.clone()))
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    desk.seated().await;
+    Some(Bench {
+        desk,
+        companiond,
+        view,
+        _intentd: intentd,
+    })
+}
+
+macro_rules! bench {
+    ($session:expr) => {
+        match bench($session).await {
+            Some(bench) => bench,
+            None => return,
+        }
+    };
+}
+
+impl Bench {
+    /// The shell asks; the stand-in opens session `s-1` and makes the answer.
+    fn ask(&self) {
+        self.desk.send(CompanionCommand::Ask(AskInput {
+            prompt: "find the receipts".to_owned(),
+            keep: ContextKeep {
+                query: Keep::Dropped,
+                results: Keep::Dropped,
+                selection: Keep::Dropped,
+                window: Keep::Dropped,
+            },
+            window: None,
+            app: None,
+            space: SpaceId::desktop(),
+            via: docket_core::TurnVia::Typed,
+        }));
+    }
+
+    /// An answer somebody else started appears: the shell never asked for it.
+    async fn appears(&self, session: &str) {
+        self.companiond
+            .object_server()
+            .at(
+                answer_path(&task()).as_str(),
+                StandInAnswer {
+                    session: Some(session.to_owned()),
+                    log: self.desk.log.clone(),
+                    view: self.view.clone(),
+                    acts: ActsAs::Accepts,
+                    routing: None,
+                },
+            )
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+        // The service subscribes to `AnswerAdded` some moments after it takes its seat, and there
+        // is nothing on the bus to wait for: announce until it has followed the answer.
+        let mut state = self.desk.companion.state.clone();
+        loop {
+            self.companiond
+                .emit_signal(
+                    None::<&str>,
+                    "/org/quire/Companion1",
+                    "org.quire.Companion1",
+                    "AnswerAdded",
+                    &(ObjectPath::try_from(answer_path(&task()).as_str())
+                        .unwrap_or_else(|e| panic!("{e}")),),
+                )
+                .await
+                .unwrap_or_else(|e| panic!("{e}"));
+            let followed = state.wait_for(|c| c.answers.contains_key(&task()));
+            if tokio::time::timeout(std::time::Duration::from_millis(200), followed)
+                .await
+                .is_ok()
+            {
+                return;
+            }
+        }
+    }
+
+    /// What the answer's first line reads, once the handle has a text.
+    async fn line(&self) -> String {
+        self.desk
+            .state(|c| {
+                let answer = c.answers.get(&task())?;
+                answer
+                    .shown
+                    .contains_key(&HANDLE)
+                    .then(|| answer_line(answer).1)
+            })
+            .await
+    }
+
+    fn displays(&self) -> Vec<String> {
+        self.desk
+            .log
+            .lines()
+            .into_iter()
+            .filter(|l| l.starts_with("display "))
+            .collect()
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_session_property_is_the_session_a_handle_is_shown_through() {
+    let bench = bench!(Some("s-9"));
+    bench.ask();
+    assert_eq!(bench.line().await, "the text of handle 7");
+    assert_eq!(
+        bench.displays(),
+        vec!["display s-9 7"],
+        "the property's session, not the one the ask opened (s-1), once"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_answer_somebody_else_started_shows_its_handle_not_an_ellipsis() {
+    let bench = bench!(Some("s-9"));
+    bench.appears("s-9").await;
+    assert_eq!(bench.line().await, "the text of handle 7");
+    assert_eq!(bench.displays(), vec!["display s-9 7"]);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_older_companion_without_the_property_falls_back_to_the_session_the_ask_opened() {
+    let bench = bench!(None);
+    bench.ask();
+    assert_eq!(bench.line().await, "the text of handle 7");
+    assert_eq!(bench.displays(), vec!["display s-1 7"]);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_handle_refused_after_close_reads_plainly_and_is_not_asked_again() {
+    let bench = bench!(Some("s-9"));
+    // The answer was dismissed (`Close`) before its handle was first shown.
+    bench.desk.log.push("close s-9");
+    bench.ask();
+    assert_eq!(bench.line().await, "#7", "the handle's plain fallback text");
+    // The answer changes again: the refused handle is not asked for in a loop.
+    *bench.view.lock().unwrap_or_else(|e| panic!("{e}")) = json(&with_handle());
+    bench
+        .companiond
+        .emit_signal(
+            None::<&str>,
+            answer_path(&task()).as_str(),
+            "org.quire.Companion1.Answer",
+            "Updated",
+            &(json(&with_handle()),),
+        )
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(bench.line().await, "#7");
+    assert_eq!(bench.displays(), vec!["display s-9 7"]);
+}

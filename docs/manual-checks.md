@@ -306,7 +306,7 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
 
 ### keycap (the Mac keyboard layout)
 
-`cargo test -p sill-services --test keycap_socket` covers the socket against a fake daemon; these
+`cargo test -p sill-services --test it keycap_socket` covers the socket against a fake daemon; these
 need the real daemon on a machine with a Mac keyboard (or a PC keyboard with the Mac layout) and
 root for the unit. Install keycap first (`install.sh` in the keycap repo, with its unit, config
 folder and polkit rule `dist/keycap.polkit.rules`), run sill's `dist/install.sh` (it copies the

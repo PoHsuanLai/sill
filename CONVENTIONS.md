@@ -69,7 +69,7 @@ quietly.
 - **Unique, specific names.** No two public types share a name in one crate (`Placement`,
   `Layers`, `Ground`, `Held` each existed twice). No bare generic names at a crate root
   (`Level`, `Filter`, `Step`, `Key`, `Text`, `Run`): qualify them (`OsdLevel`, `SearchFilter`).
-- **Test helpers are not API.** They live in `tests/support/`, a `testing` feature, or a dev
+- **Test helpers are not API.** They live in `tests/it/support/`, a `testing` feature, or a dev
   crate; never plain `pub` in the lib. Dry-run backends, scripts and demo drivers are test or
   dev code.
 - **An API change updates every caller in the same change.** No deprecated alias, no "kept
@@ -169,8 +169,17 @@ remembers.
 
 - **Name tests after behaviour:** `row_leaves_and_rows_below_heal`, not `fixes_3`.
 - **Unit tests beside the code** (`#[cfg(test)] mod tests`, or the concept's `tests.rs`) for
-  private behaviour; **integration tests** in `crates/<crate>/tests/<topic>.rs` for the public
+  private behaviour; **integration tests** in `crates/<crate>/tests/it/<topic>.rs` for the public
   surface.
+- **One integration-test executable per crate.** Cargo links every file directly under `tests/`
+  into its own executable, and each one statically holds Blitz, Stylo and wgpu. Integration
+  tests are therefore modules of `tests/it/main.rs` (`mod <topic>;`), shared helpers are
+  `tests/it/support/` modules (`use crate::support::...`), and goldens stay in
+  `tests/snapshots/`. A separate target (`tests/<name>.rs` plus `[[test]]` in the crate's
+  `Cargo.toml`, with a comment in `tests/it/main.rs`) needs a stated reason: it changes the
+  environment (`set_var`, a panic hook, the current dir), holds a process-wide singleton the
+  others must not share, needs its own `required-features`, or has `harness = false`. A
+  new `tests/*.rs` without that reason is a mistake.
 - **Pure functions get table tests.** One table per function, a `const CASES: &[(Input,
   Expected)]` and one loop; each row names its case, and a failure names the row.
 - **Behaviour tests go through the real shape**: a surface test drives the surface through the

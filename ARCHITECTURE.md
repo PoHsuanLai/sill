@@ -98,7 +98,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | `io.rs` | `use_<surface>`: reads services and settings, follows the link, feeds `use_machine`, carries effects |
 | `view.rs` | components; no decisions beyond reading the model |
 | `style.css` | the concept's stylesheet, `include_str!`ed in `view.rs` |
-| `tests.rs` | unit tests; integration tests are `crates/<crate>/tests/<surface>.rs` on `SurfaceHarness<S>` |
+| `tests.rs` | unit tests; integration tests are `crates/<crate>/tests/it/<surface>.rs` on `SurfaceHarness<S>` |
 
 A concept over about 300 lines becomes a sub-directory with the same roles (`dock/machine/`,
 `launcher/preview/`, `control_center/pages/`). No files named `drive`, `link`, `presence`, `session`, `machine` or `panel`: those names for "the model" and "the io" are
@@ -723,6 +723,10 @@ is installed and starts the wallet's Secret Service; `~/.config/sill/session.env
 runs the script itself nested. `docs/first-login.md` is the user's checklist.
 
 ## 9. Test harness
+
+> Test paths below written `tests/<name>.rs` mean `tests/it/<name>.rs`: a crate's integration tests are
+> modules of one executable (`tests/it/main.rs`), and a separate target needs a stated reason
+> (CONVENTIONS.md section 8).
 
 | Kind of thing | How it is tested |
 | --- | --- |

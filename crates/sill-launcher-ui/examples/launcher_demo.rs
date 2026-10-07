@@ -13,7 +13,8 @@
 //!
 //! `cargo run -p sill-launcher-ui --example launcher_demo`
 
-#[path = "../tests/launcher_support/mod.rs"]
+#[allow(dead_code, reason = "the demo uses part of the test bench")]
+#[path = "../tests/it/launcher_support/mod.rs"]
 mod launcher_support;
 
 use std::fmt::Debug;
