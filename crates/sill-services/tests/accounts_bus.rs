@@ -174,6 +174,43 @@ async fn needs_reauth_posts_a_notice_and_its_button_signs_in_again() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn a_refused_first_call_is_tried_again_and_the_account_is_told() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    // Three refusals fit inside the backoff (100, 250, 500 ms); the fourth try is let through.
+    let _accountd = FakeAccountd::start(
+        &bus,
+        "needs_reauth",
+        Listing::Refusing(3, vec![(ACCOUNT, "Work mail")]),
+    )
+    .await;
+    let mut shell = shell(&bus).await;
+    notice_shown(&mut shell).await;
+    assert!(needing(&mut shell, 1).await);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_refusal_past_the_backoff_waits_for_the_name_to_change() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    // Five refusals outlast the four waits: only a new owner of the name starts it over.
+    let first = FakeAccountd::start(&bus, "ok", Listing::Refusing(5, vec![])).await;
+    let mut shell = shell(&bus).await;
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    assert_eq!(shell.accounts.state.borrow().link, AccountsLink::Absent);
+    drop(first);
+    let _second = FakeAccountd::start(
+        &bus,
+        "needs_reauth",
+        Listing::Of(vec![(ACCOUNT, "Work mail")]),
+    )
+    .await;
+    assert!(needing(&mut shell, 1).await);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn the_notice_goes_when_the_account_is_well_without_the_button() {
     let Some(bus) = PrivateBus::start() else {
         return;

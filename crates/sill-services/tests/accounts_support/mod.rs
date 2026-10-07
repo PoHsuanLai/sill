@@ -3,6 +3,7 @@
 //! recorded and puts the account right, as a finished sign-in does.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use sill_testkit::PrivateBus;
@@ -24,12 +25,23 @@ pub type Shared = Arc<Mutex<Record>>;
 /// The accounts the list names (object path and label).
 struct Manager {
     listed: Vec<(OwnedObjectPath, String)>,
+    /// How many more calls are refused with `AccessDenied`, as before accountd knows the caller.
+    refusals: AtomicUsize,
 }
 
 #[zbus::interface(name = "org.quire.Accounts1.Manager")]
 impl Manager {
-    fn needing_reauth(&self) -> Vec<(OwnedObjectPath, String)> {
-        self.listed.clone()
+    fn needing_reauth(&self) -> zbus::fdo::Result<Vec<(OwnedObjectPath, String)>> {
+        let refused = self
+            .refusals
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1))
+            .is_ok();
+        if refused {
+            return Err(zbus::fdo::Error::AccessDenied(
+                "caller not known yet".into(),
+            ));
+        }
+        Ok(self.listed.clone())
     }
 
     #[zbus(signal)]
@@ -82,6 +94,21 @@ impl Account {
     }
 }
 
+fn manager(refusals: usize, listed: Vec<(&str, &str)>) -> Manager {
+    Manager {
+        listed: listed
+            .into_iter()
+            .map(|(path, label)| {
+                (
+                    OwnedObjectPath::try_from(path).unwrap_or_else(|e| panic!("{e}")),
+                    label.to_owned(),
+                )
+            })
+            .collect(),
+        refusals: AtomicUsize::new(refusals),
+    }
+}
+
 /// The stand-in on `bus`, holding `org.quire.Accounts1`.
 pub struct FakeAccountd {
     pub connection: zbus::Connection,
@@ -92,6 +119,8 @@ pub struct FakeAccountd {
 pub enum Listing {
     /// Names `listed` as needing sign-in.
     Of(Vec<(&'static str, &'static str)>),
+    /// Refuses the first `usize` calls with `AccessDenied`, then lists the `Of` way.
+    Refusing(usize, Vec<(&'static str, &'static str)>),
     /// An accountd with no such call.
     None,
 }
@@ -111,20 +140,10 @@ impl FakeAccountd {
             )
             .unwrap_or_else(|e| panic!("{e}"));
         let builder = match listing {
-            Listing::Of(listed) => builder.serve_at(
-                MANAGER,
-                Manager {
-                    listed: listed
-                        .into_iter()
-                        .map(|(path, label)| {
-                            (
-                                OwnedObjectPath::try_from(path).unwrap_or_else(|e| panic!("{e}")),
-                                label.to_owned(),
-                            )
-                        })
-                        .collect(),
-                },
-            ),
+            Listing::Of(listed) => builder.serve_at(MANAGER, manager(0, listed)),
+            Listing::Refusing(refusals, listed) => {
+                builder.serve_at(MANAGER, manager(refusals, listed))
+            }
             Listing::None => builder.serve_at(MANAGER, ManagerWithoutList),
         }
         .unwrap_or_else(|e| panic!("{e}"));

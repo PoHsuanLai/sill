@@ -3,6 +3,7 @@
 mod actions;
 mod links;
 mod notice;
+mod retry;
 mod run;
 mod wire;
 

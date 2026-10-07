@@ -17,6 +17,7 @@ use zbus::{Connection, MessageStream};
 
 use super::actions::Said;
 use super::links::AccountsLinks;
+use super::retry::{self, Retry, Wait};
 use super::{actions, notice, wire};
 use crate::accounts::AccountsService;
 use crate::control::Control;
@@ -66,16 +67,48 @@ pub(crate) async fn run(
         posted: Posted::default(),
         watches: HashMap::new(),
     };
+    let mut retry = Retry::default();
     loop {
         owner::appeared(&connection, wire::ACCOUNTS).await;
         tokio::select! {
-            ended = live.session(&mut commands, &mut actions, &mut events) => match ended {
-                Ended::Commands => return Ok(()),
-                Ended::Unreadable => owner::changed(&connection, wire::ACCOUNTS).await,
+            met = live.session(&mut commands, &mut actions, &mut events) => match met {
+                Met::Ended(Ended::Commands) => return Ok(()),
+                Met::Ended(Ended::Unreadable) => {
+                    owner::changed(&connection, wire::ACCOUNTS).await;
+                    retry = Retry::default();
+                }
+                Met::Refused => {
+                    // Not met yet: nothing is shown as found while the tries wait.
+                    live.lost();
+                    retry = after_refusal(&connection, retry).await;
+                }
             },
-            () = owner::changed(&connection, wire::ACCOUNTS) => {}
+            () = owner::changed(&connection, wire::ACCOUNTS) => retry = Retry::default(),
         }
         live.lost();
+    }
+}
+
+/// How a session ended: as every service's does, or with accountd refusing the first call.
+enum Met {
+    Ended(Ended),
+    Refused,
+}
+
+/// Wait out a refusal: a short backoff, then the name changing hands. A name change at any point
+/// starts the tries over.
+async fn after_refusal(connection: &Connection, retry: Retry) -> Retry {
+    let (wait, spent) = retry.refused();
+    let changed = owner::changed(connection, wire::ACCOUNTS);
+    match wait {
+        Wait::Then(after) => tokio::select! {
+            () = tokio::time::sleep(after) => spent,
+            () = changed => Retry::default(),
+        },
+        Wait::OnNameChange => {
+            changed.await;
+            Retry::default()
+        }
     }
 }
 
@@ -87,20 +120,21 @@ impl Live {
         commands: &mut UnboundedReceiver<AccountsCommand>,
         actions: &mut MessageStream,
         events: &mut UnboundedReceiver<AccountsEvent>,
-    ) -> Ended {
+    ) -> Met {
         let Ok(manager) = ManagerProxy::new(&self.connection).await else {
-            return Ended::Unreadable;
+            return Met::Ended(Ended::Unreadable);
         };
         // Open before asking, so no signal falls between the list and the wait.
         let Ok(mut signals) = manager.receive_needs_reauth().await else {
-            return Ended::Unreadable;
+            return Met::Ended(Ended::Unreadable);
         };
         self.apply(AccountsEvent::Found);
         match wire::listed(&self.connection).await {
             Ok(list) => self.apply(AccountsEvent::Listed(list)),
+            Err(error) if retry::is_refusal(&error) => return Met::Refused,
             Err(error) => {
                 eprintln!("sill: accounts: asking who needs signing in: {error}");
-                return Ended::Unreadable;
+                return Met::Ended(Ended::Unreadable);
             }
         }
         loop {
@@ -119,7 +153,7 @@ impl Live {
                 Ok(()) = self.notes.changed() => self.learn(),
                 command = commands.recv() => match command {
                     Some(AccountsCommand::SignInAgain(account)) => self.sign_in(&account),
-                    None => return Ended::Commands,
+                    None => return Met::Ended(Ended::Commands),
                 },
             }
         }
