@@ -461,6 +461,7 @@ dependencies = [
  "ds-core",
  "freedesktop-desktop-entry",
  "futures-util",
+ "latchkey",
  "md-5 0.10.6",
  "memfd",
  "percent-encoding",
