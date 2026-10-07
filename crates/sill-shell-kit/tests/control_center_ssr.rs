@@ -31,6 +31,7 @@ fn glyph(icon: Icon) -> String {
             icon,
             size: IconSize::Bar,
             style: GlyphStyle::default(),
+            cut: Default::default(),
         },
     );
     dom.rebuild_in_place();
