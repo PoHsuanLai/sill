@@ -261,6 +261,7 @@ fn row_entry(
         availability: Availability::Enabled,
         hint: None,
         after: AfterPick::Close,
+        text: Default::default(),
     })
 }
 

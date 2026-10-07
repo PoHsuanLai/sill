@@ -227,6 +227,7 @@ fn entries() -> Vec<MenuItem<u8>> {
             availability: Availability::Enabled,
             hint: None,
             after: AfterPick::Close,
+            text: Default::default(),
         })
         .collect()
 }

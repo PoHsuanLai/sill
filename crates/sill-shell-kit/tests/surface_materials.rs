@@ -243,6 +243,7 @@ fn SlimMenu() -> Element {
             availability: Availability::Enabled,
             hint: None,
             after: AfterPick::Close,
+            text: Default::default(),
         },
         MenuItem::Separator,
         MenuItem::Item {
@@ -254,6 +255,7 @@ fn SlimMenu() -> Element {
             availability: Availability::Enabled,
             hint: None,
             after: AfterPick::Close,
+            text: Default::default(),
         },
     ];
     rsx! {

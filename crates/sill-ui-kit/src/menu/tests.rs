@@ -49,6 +49,7 @@ impl MenuModel for Numbers {
                 availability: Availability::Enabled,
                 hint: None,
                 after: AfterPick::Close,
+                text: Default::default(),
             })
             .collect()
     }

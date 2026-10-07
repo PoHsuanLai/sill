@@ -84,5 +84,6 @@ pub fn schema() -> Schema {
         file: FilePath("sill/settings.toml".to_owned()),
         version: 1,
         key: schemas().into_iter().flat_map(|s| s.key).collect(),
+        foreign: Default::default(),
     }
 }
