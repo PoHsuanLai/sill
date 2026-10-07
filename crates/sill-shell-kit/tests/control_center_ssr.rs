@@ -49,7 +49,9 @@ fn every_control_glyph_renders_and_lints_clean() {
         let children = html.matches("<path").count()
             + html.matches("<rect").count()
             + html.matches("<circle").count();
-        if children != icon.shapes_in(GlyphStyle::default()).len() || !html.contains("class=\"ds-ic\"") {
+        if children != icon.shapes_in(GlyphStyle::default()).len()
+            || !html.contains("class=\"ds-ic\"")
+        {
             failures.push(format!("{icon:?} drew {children} children: {html}"));
         }
         for offence in markup(&html, sill_shell_kit::stylesheet(), &strict) {
