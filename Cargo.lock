@@ -995,6 +995,7 @@ version = "0.1.0"
 dependencies = [
  "blitz-dom",
  "blitz-traits",
+ "keyboard-types 0.7.0",
  "parley",
  "serde",
  "tokio",
