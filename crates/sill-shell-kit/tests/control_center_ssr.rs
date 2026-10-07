@@ -20,6 +20,7 @@ use ds::motion::pane_slide::Pane;
 use ds::prelude::*;
 use ds::style::icon::render::Glyph;
 use ds::style::icon::render::GlyphProps;
+use ds::style::icon::style::GlyphStyle;
 use ds_lint::{LintConfig, Profile, markup};
 
 /// `icon` at the bar's 22 px, rendered alone.
@@ -29,6 +30,7 @@ fn glyph(icon: Icon) -> String {
         GlyphProps {
             icon,
             size: IconSize::Bar,
+            style: GlyphStyle::default(),
         },
     );
     dom.rebuild_in_place();
