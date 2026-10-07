@@ -191,9 +191,9 @@ fn the_panel_header_holds_the_battery_and_the_disc_holds_the_wifi_glyph() {
         "{}",
         harness.html()
     );
-    // The fill stands at its level on first show: nothing sweeps in.
+    // The fill stands at its level on first show: nothing sweeps in (91 % of the solid fill box, 14.5 units).
     assert!(
-        (fill(&harness) - 10.0).abs() < 0.6,
+        (fill(&harness) - 13.18).abs() < 0.1,
         "full: {}",
         fill(&harness)
     );
