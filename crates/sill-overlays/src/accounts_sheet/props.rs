@@ -141,10 +141,12 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
             providers: rows
                 .iter()
                 .filter(|row| row.kind != RowKind::Generic)
-                .map(|row| ProviderEntry {
-                    key: ProviderKey(row.id.as_str().to_owned()),
-                    label: row.label.clone(),
-                    mark: mark_of(&row.mark),
+                .map(|row| {
+                    ProviderEntry::new(
+                        ProviderKey(row.id.as_str().to_owned()),
+                        row.label.clone(),
+                        mark_of(&row.mark),
+                    )
                 })
                 .collect(),
             query: draft.query.clone(),

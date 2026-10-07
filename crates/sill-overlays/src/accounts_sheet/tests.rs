@@ -183,16 +183,16 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             providers,
             Some(Step::Providers(ProvidersProps {
                 providers: vec![
-                    ProviderEntry {
-                        key: ProviderKey("nextcloud".to_owned()),
-                        label: "Nextcloud".to_owned(),
-                        mark: MarkProvider::Imap,
-                    },
-                    ProviderEntry {
-                        key: ProviderKey("google".to_owned()),
-                        label: "Google".to_owned(),
-                        mark: MarkProvider::Google,
-                    },
+                    ProviderEntry::new(
+                        ProviderKey("nextcloud".to_owned()),
+                        "Nextcloud",
+                        MarkProvider::Imap,
+                    ),
+                    ProviderEntry::new(
+                        ProviderKey("google".to_owned()),
+                        "Google",
+                        MarkProvider::Google,
+                    ),
                 ],
                 query: String::new(),
                 cursor: None,
