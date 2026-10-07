@@ -57,7 +57,8 @@ mod tests {
     }
 
     /// The size keys quire's `ShellMetrics` does not carry default to quire's size ladder
-    /// (design/29 §13): a 24 bar of Regular items, and the control center's 320 wide grid with
+    /// (design/29 §13): a 24 bar of bar-scale items (22, not the Regular control, which is 28
+    /// since the Tahoe ladder), Regular menu rows, and the control center's 320 wide grid with
     /// 10 of padding and gap.
     #[test]
     fn the_default_sizes_are_quires_ladder() {
@@ -74,7 +75,7 @@ mod tests {
             (
                 "bar.status_icon_box_px",
                 px(file.bar.status_icon_box_px),
-                regular,
+                SHELL_SCALE.item().0,
             ),
             (
                 "menus.item_height_px",

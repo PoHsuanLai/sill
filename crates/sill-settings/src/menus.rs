@@ -94,12 +94,12 @@ impl Default for MenusSettings {
     fn default() -> Self {
         MenusSettings {
             submenu_delay_ms: Ms(200),
-            item_height_px: Px(22),
+            item_height_px: Px(28),
             separator_margin_px: Px(5),
             submenu_triangle_timeout_ms: Ms(300),
             first_mouse_window_ms: Ms(100),
             font_px: Px(13),
-            highlight_radius_px: Px(6),
+            highlight_radius_px: Px(8),
             tooltip_font_px: Px(12),
         }
     }

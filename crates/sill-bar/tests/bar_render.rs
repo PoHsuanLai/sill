@@ -48,8 +48,8 @@ fn the_bar_shows_what_the_services_hold() {
         ("the app name bold", "data-emphasis=\"strong\"", 1),
         ("the shell type scale", "--shell-bar-font:13px;", 1),
         (
-            "22 px menu rows for the popups",
-            "--shell-menu-row-h:22px;",
+            "28 px menu rows for the popups",
+            "--shell-menu-row-h:28px;",
             1,
         ),
         ("the material stack", "--m-vibrancy:1;", 1),
