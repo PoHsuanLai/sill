@@ -24,6 +24,7 @@ pub fn refusal_words(refusal: &CallRefusal) -> String {
         CallRefusal::BadArgs { why, .. } => format!("A detail is wrong ({}).", arg_words(*why)),
         CallRefusal::AppUnavailable(_) => "The app is not running.".to_owned(),
         CallRefusal::Timeout => "The app did not answer in time.".to_owned(),
+        CallRefusal::NotRecorded => "It could not be recorded, so it did not run.".to_owned(),
     }
 }
 

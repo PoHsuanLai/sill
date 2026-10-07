@@ -273,3 +273,19 @@ pixels_window_renderer = { git = "https://github.com/PoHsuanLai/anyrender", rev 
 # porter takes stoker by git rev (porter ARCHITECTURE section 1); the sibling checkout is the one copy of cua-action.
 [patch."https://github.com/PoHsuanLai/stoker"]
 cua-action = { path = "../stoker/crates/cua-action" }
+genai-names = { path = "../stoker/crates/genai-names" }
+model-provider = { path = "../stoker/crates/model-provider" }
+vision-prep = { path = "../stoker/crates/vision-prep" }
+
+# the git copies of porter, almanac and docket (taken by git inside those repos) are the sibling checkouts here: one copy.
+[patch."https://github.com/PoHsuanLai/almanac"]
+almanac-core = { path = "../almanac/crates/almanac-core" }
+
+[patch."https://github.com/PoHsuanLai/docket"]
+docket-core = { path = "../docket/crates/docket-core" }
+
+[patch."https://github.com/PoHsuanLai/porter"]
+porter-core = { path = "../porter/crates/porter-core" }
+porter-dbus = { path = "../porter/crates/porter-dbus" }
+porter-infer = { path = "../porter/crates/porter-infer" }
+prov = { path = "../porter/crates/prov" }

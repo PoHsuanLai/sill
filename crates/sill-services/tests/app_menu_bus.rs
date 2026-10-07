@@ -826,7 +826,7 @@ mod routed {
         FakeMemory, FixedClock, MemoryGrants, RecordingSink, ScriptedConfirmer, ScriptedReader,
         ScriptedReviewer, ScriptedWriter,
     };
-    use docket_router::{AppFault, AppLink, GrantStore, LinkFault, Router, Seams};
+    use docket_router::{AppFault, AppLink, GrantStore, LinkFault, NoLog, Router, Seams};
     use policy_point::Pdp;
     use porter_core::consent::{Decision, Grant, Usage};
     use porter_core::{AppId, DataClass, Isolation};
@@ -955,6 +955,7 @@ mod routed {
         memory: FakeMemory,
         writer: ScriptedWriter,
         reader: ScriptedReader,
+        log: NoLog,
     }
 
     impl Seams for Fakes {
@@ -967,6 +968,7 @@ mod routed {
         type Memory = FakeMemory;
         type Writer = ScriptedWriter;
         type Reading = ScriptedReader;
+        type Log = NoLog;
         fn link(&self) -> &Link {
             &self.link
         }
@@ -993,6 +995,9 @@ mod routed {
         }
         fn reader(&self) -> &ScriptedReader {
             &self.reader
+        }
+        fn log(&self) -> &NoLog {
+            &self.log
         }
     }
 
@@ -1074,6 +1079,7 @@ mod routed {
             memory: FakeMemory::default(),
             writer: ScriptedWriter::failing(),
             reader: ScriptedReader::default(),
+            log: NoLog,
         };
         for (owner, n) in [
             (shell_app(), 0),
