@@ -478,6 +478,51 @@ fn after_a_pop_up_choice_by_keys_on_the_hosts_wiring_tab_and_typing_go_to_the_ne
     ));
 }
 
+/// A press on the POP3 item `frames` frames after the pop-up opened, at the place the item
+/// settles; the protocol the sheet then holds.
+fn pressed_after(frames: u64) -> Option<&'static str> {
+    let mut probe = start();
+    probe.open(MANUAL);
+    let button = probe.running.harness.centre(".ds-popup button");
+    probe
+        .running
+        .harness
+        .send(Input::click(button.expect("laid out"))); // test-only
+    probe.running.harness.advance(Duration::from_millis(500));
+    let item = probe.running.harness.centre(".ds-menu-item:nth-child(2)");
+    let item = item.expect("the item settled"); // test-only
+
+    let mut run = start();
+    run.open(MANUAL);
+    run.running
+        .harness
+        .send(Input::click(button.expect("laid out"))); // test-only
+    run.running
+        .harness
+        .advance(Duration::from_millis(frames * 16));
+    run.running.harness.send(Input::pointer_move(item));
+    run.running.harness.send(Input::click(item));
+    run.running.harness.advance(Duration::from_millis(600));
+    run.pump();
+    protocol_held(&run)
+}
+
+#[test]
+fn a_press_on_a_pop_up_item_once_it_has_settled_chooses_it() {
+    assert_eq!(pressed_after(8), Some("pop3"));
+}
+
+/// Quire draws a pop-up's menu at the window's corner until it has measured the button (three
+/// frames), then moves it: a press in that time lands outside the menu, which closes and chooses
+/// nothing, so the pop-up keeps IMAP.
+#[test]
+#[ignore = "quire: ds menu surface sits at (0, 0) until its anchor is measured"]
+fn a_press_on_a_pop_up_item_right_after_it_opens_chooses_it() {
+    for frames in 0..8 {
+        assert_eq!(pressed_after(frames), Some("pop3"), "{frames} frames in");
+    }
+}
+
 /// The steps as pictures, light and dark, when `SILL_SHOTS` names a directory.
 #[test]
 fn the_steps_render() {
