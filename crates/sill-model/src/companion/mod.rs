@@ -11,13 +11,13 @@
 mod card;
 mod command;
 mod model;
+#[cfg(test)]
+mod openers_tests;
 mod presence;
 mod run_state;
 mod step;
 mod summon;
 mod tap;
-#[cfg(test)]
-mod openers_tests;
 #[cfg(test)]
 mod tests;
 mod words;
