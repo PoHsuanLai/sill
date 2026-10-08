@@ -221,6 +221,19 @@ fn record(tx: &watch::Sender<Launches>, outcome: LaunchOutcome) {
     tx.send_modify(|launches| *launches = step(std::mem::take(launches), outcome));
 }
 
+/// Settings at `account`, started by the bus when it is not running.
+async fn open_settings(session: &Bus, account: &SettingsAccount) {
+    match session.connect().await {
+        Ok(Some(connection)) => {
+            if let Err(error) = dbus::open_settings(&connection, account).await {
+                eprintln!("sill: launch: opening Settings: {error}");
+            }
+        }
+        Ok(None) => {}
+        Err(error) => eprintln!("sill: launch: opening Settings: {error}"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Manager, bare_command, start_with};
@@ -274,18 +287,5 @@ mod tests {
             let status = child.wait().await.unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(status.success(), succeeds, "{manager:?}");
         }
-    }
-}
-
-/// Settings at `account`, started by the bus when it is not running.
-async fn open_settings(session: &Bus, account: &SettingsAccount) {
-    match session.connect().await {
-        Ok(Some(connection)) => {
-            if let Err(error) = dbus::open_settings(&connection, account).await {
-                eprintln!("sill: launch: opening Settings: {error}");
-            }
-        }
-        Ok(None) => {}
-        Err(error) => eprintln!("sill: launch: opening Settings: {error}"),
     }
 }
