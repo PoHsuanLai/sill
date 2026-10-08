@@ -35,6 +35,9 @@ pub enum SignInAsk {
     /// The sign-in held no longer works: sign in again.
     #[default]
     Again,
+    /// Google signed the account out because the app is still in testing (every seven days until
+    /// it is verified): sign in again, and the words say why.
+    TestingExpired,
     /// A coding agent that has to be signed in, inside the agent: sign in to use it again.
     Login,
 }

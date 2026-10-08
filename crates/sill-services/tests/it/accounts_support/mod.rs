@@ -61,6 +61,8 @@ impl ManagerWithoutList {
 
 struct Account {
     state: String,
+    /// `ReauthReason`: empty, or `testing_app_expired`.
+    reason: String,
     record: Shared,
 }
 
@@ -74,6 +76,11 @@ impl Account {
     #[zbus(property)]
     fn state(&self) -> String {
         self.state.clone()
+    }
+
+    #[zbus(property)]
+    fn reauth_reason(&self) -> String {
+        self.reason.clone()
     }
 
     async fn reauthenticate(
@@ -135,6 +142,7 @@ impl FakeAccountd {
                 ACCOUNT,
                 Account {
                     state: state.to_owned(),
+                    reason: String::new(),
                     record: Arc::clone(&record),
                 },
             )
@@ -166,6 +174,19 @@ impl FakeAccountd {
         Manager::needs_reauth(&emitter, path)
             .await
             .unwrap_or_else(|e| panic!("{e}"));
+    }
+
+    /// The account stops working because Google signs an unverified app out every seven days:
+    /// `ReauthReason` says `testing_app_expired` before the state changes.
+    pub async fn refuse_testing_app_expired(&self) {
+        let object = self
+            .connection
+            .object_server()
+            .interface::<_, Account>(ACCOUNT)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+        object.get_mut().await.reason = "testing_app_expired".to_owned();
+        self.refuse().await;
     }
 
     /// The account is well again, without anyone pressing a button.

@@ -13,6 +13,9 @@ use ds_core::word::Word;
 /// accountd's well-known name.
 pub(crate) const ACCOUNTS: &str = ACCOUNTS_BUS;
 
+/// accountd's `ReauthReason` word for Google's seven-day sign-out of an unverified app.
+const TESTING_EXPIRED: &str = "testing_app_expired";
+
 /// What the notice calls an account whose label cannot be read.
 const UNNAMED: &str = "An account";
 
@@ -77,10 +80,27 @@ pub(crate) async fn ask_of(connection: &Connection, key: &AccountKey) -> SignInA
         Ok(proxy) => proxy.state().await.ok(),
         Err(_) => None,
     };
-    standing
+    let ask = standing
         .and_then(|word| AccountStanding::parse(&word))
         .and_then(AccountStanding::ask)
-        .unwrap_or_default()
+        .unwrap_or_default();
+    match ask {
+        SignInAsk::Again => again_by_reason(connection, key).await,
+        SignInAsk::TestingExpired | SignInAsk::Login => ask,
+    }
+}
+
+/// A plain sign-in again, or the one Google's testing-app limit asks for when accountd's
+/// `ReauthReason` says `testing_app_expired`.
+async fn again_by_reason(connection: &Connection, key: &AccountKey) -> SignInAsk {
+    let reason = match account(connection, key).await {
+        Ok(proxy) => proxy.reauth_reason().await.ok(),
+        Err(_) => None,
+    };
+    match reason.as_deref() {
+        Some(TESTING_EXPIRED) => SignInAsk::TestingExpired,
+        _ => SignInAsk::Again,
+    }
 }
 
 /// Ask accountd to sign the account in again; the sign-in itself is drawn by sill's own sheet.

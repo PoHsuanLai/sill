@@ -8,6 +8,7 @@ use ds_shell::prelude::WorkingFor;
 use porter_core::LimitReason;
 use porter_core::consent::Usage;
 use porter_core::sheet::SignInFault as PorterFault;
+use porter_core::sheet::{ProviderKind, ProviderRow};
 use porter_core::{AbsentReason, AppId, CapabilityKind, DataClass, ProviderId};
 
 /// What the person reads for an app: the last element of its reverse-DNS name (`org.quire.Photos`
@@ -21,12 +22,8 @@ pub(super) fn app_name(app: &AppId) -> String {
 /// labels): the shipped provider files' labels, and the id itself for any other.
 pub(super) fn provider_label(id: &ProviderId) -> String {
     match id.as_str() {
-        "acp-agent" => "your ACP agent",
         "anthropic" => "Anthropic",
-        "claude-code" => "Claude Code",
-        "codex" => "Codex",
         "fastmail" => "Fastmail",
-        "gemini-cli" => "Gemini CLI",
         "generic-dav" => "your calendar and contacts server",
         "generic-imap" => "your email server",
         "generic-jmap" => "your email server",
@@ -49,6 +46,15 @@ pub(super) fn provider_label(id: &ProviderId) -> String {
     .to_owned()
 }
 
+/// What the steps call the provider: the row's own label for a coding agent (its provider file's
+/// display name), else `provider_label`.
+pub(super) fn provider_name(id: &ProviderId, row: Option<&ProviderRow>) -> String {
+    match row {
+        Some(row) if row.auth == ProviderKind::AgentLogin => row.label.clone(),
+        Some(_) | None => provider_label(id),
+    }
+}
+
 /// The mark a provider row wears, from the provider file's `mark` word. Providers without a mark
 /// of their own wear the neutral one.
 pub(super) fn mark_of(mark: &str) -> MarkProvider {
@@ -63,14 +69,12 @@ pub(super) fn mark_of(mark: &str) -> MarkProvider {
     }
 }
 
-/// What a sign-in is waiting on: the agent that logs itself in for the providers whose files say
-/// `agent_login`, the provider's own sign-in for every other.
-pub(super) fn waiting_on(id: &ProviderId) -> WorkingFor {
-    match id.as_str() {
-        "acp-agent" | "claude-code" | "codex" | "gemini-cli" => {
-            WorkingFor::Agent(provider_label(id))
-        }
-        _ => WorkingFor::Provider,
+/// What a sign-in is waiting on: the agent that logs itself in for a row whose provider file says
+/// `agent_login`, the provider's own sign-in for every other (and for a view that carries no row).
+pub(super) fn waiting_on(row: Option<&ProviderRow>) -> WorkingFor {
+    match row {
+        Some(row) if row.auth == ProviderKind::AgentLogin => WorkingFor::Agent(row.label.clone()),
+        Some(_) | None => WorkingFor::Provider,
     }
 }
 

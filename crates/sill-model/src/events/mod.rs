@@ -24,5 +24,5 @@ pub use model::{
 };
 pub use rule::{Freq, Rule, RuleEnd, occurrences, parse_rule, week_start};
 pub use rule_expand::unsupported_parts;
-pub use sources::{AutoEnv, EventSources, IcsPlace, auto_places, parse_sources};
+pub use sources::{AutoEnv, EventSources, IcsPlace, auto_places, is_task_list, parse_sources};
 pub use step::step;

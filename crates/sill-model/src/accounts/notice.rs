@@ -26,6 +26,11 @@ pub fn notice_text(needing: &NeedsSignIn) -> Notice {
             body: "Apps cannot use this account until you do.".to_owned(),
             button: "Sign in again".to_owned(),
         },
+        SignInAsk::TestingExpired => Notice {
+            summary: format!("{} needs you to sign in again", needing.label),
+            body: "Google signs this app out every 7 days until it is verified.".to_owned(),
+            button: "Sign in again".to_owned(),
+        },
         SignInAsk::Login => Notice {
             summary: format!("Sign in to {} to use it again", needing.label),
             body: "Apps cannot use this agent until you do.".to_owned(),

@@ -51,6 +51,7 @@ fn providers() -> String {
         label: "Nextcloud".to_owned(),
         mark: "nextcloud".to_owned(),
         kind: porter_core::sheet::RowKind::Provider,
+        auth: porter_core::sheet::ProviderKind::Service,
     }]))
 }
 
@@ -63,6 +64,7 @@ fn form() -> String {
     };
     json(&SheetView::SignIn(SignInView {
         provider: provider("nextcloud"),
+        row: None,
         fields: vec![
             spec(FieldKind::Address, Entry::Plain),
             spec(FieldKind::Password, Entry::Secret),

@@ -66,12 +66,14 @@ fn consent() -> SheetView {
         class: DataClass::AppOwn,
         usage: Usage::Interactive,
         accounts: vec![choice("home"), choice("work")],
+        session: None,
     })
 }
 
 fn browser() -> SheetView {
     SheetView::BrowserWait {
         provider: provider("google"),
+        row: None,
         url: porter_core::WebUrl::parse("https://login.example.org/a")
             .unwrap_or_else(|e| panic!("{e}")),
     }
@@ -109,6 +111,7 @@ fn review() -> SheetView {
     };
     SheetView::Review(porter_core::sheet::ReviewView {
         provider: provider("nextcloud"),
+        row: None,
         review: Review {
             label: AccountLabel("ada".to_owned()),
             services: vec![
@@ -146,6 +149,7 @@ fn case(name: &'static str, view: SheetView, actions: Vec<Do>, told: Vec<SheetIn
 fn what_the_person_does_is_what_accountd_is_told() {
     let failed = SheetView::Failed {
         provider: provider("nextcloud"),
+        row: None,
         fault: porter_core::sheet::SignInFault::Refused,
     };
     let cases = vec![
@@ -231,7 +235,10 @@ fn what_the_person_does_is_what_accountd_is_told() {
         ),
         case(
             "Cancel is a dismissal at every step",
-            SheetView::Working(provider("nextcloud")),
+            SheetView::Working {
+                provider: provider("nextcloud"),
+                row: None,
+            },
             vec![Do::Cancel],
             vec![SheetInput::Dismiss],
         ),
@@ -329,6 +336,7 @@ fn what_the_person_does_is_what_accountd_is_told() {
             "Copied tells accountd nothing",
             SheetView::ShowCode {
                 provider: provider("nextcloud"),
+                row: None,
                 user_code: UserCode("ABCD".to_owned()),
                 url: porter_core::EndpointUrl::parse("https://example.org/device")
                     .unwrap_or_else(|e| panic!("{e}")),
@@ -440,7 +448,13 @@ fn a_browser_step_shown_opens_its_page_and_shown_again_opens_it_again() {
     assert_eq!(out, vec![page()], "the same page shown again");
     let (_, out) = step(
         sheets,
-        Ev::Updated(handle("a"), SheetView::Working(provider("google"))),
+        Ev::Updated(
+            handle("a"),
+            SheetView::Working {
+                provider: provider("google"),
+                row: None,
+            },
+        ),
     );
     assert_eq!(out, vec![], "no page, no open");
     let (_, out) = step(
@@ -458,7 +472,13 @@ fn a_new_step_starts_a_clean_draft() {
     );
     let (sheets, _) = step(
         sheets,
-        Ev::Updated(handle("a"), SheetView::Working(provider("nextcloud"))),
+        Ev::Updated(
+            handle("a"),
+            SheetView::Working {
+                provider: provider("nextcloud"),
+                row: None,
+            },
+        ),
     );
     assert!(sheets.open[0].draft.fields.is_empty());
     let (sheets, _) = step(sheets, Ev::Updated(handle("a"), form(None)));
@@ -471,9 +491,27 @@ fn a_new_step_starts_a_clean_draft() {
 #[test]
 fn sheets_queue_in_the_order_opened_and_close_by_handle() {
     let events = vec![
-        Ev::Opened(handle("a"), SheetView::Working(provider("one"))),
-        Ev::Opened(handle("b"), SheetView::Working(provider("two"))),
-        Ev::Opened(handle("a"), SheetView::Working(provider("three"))),
+        Ev::Opened(
+            handle("a"),
+            SheetView::Working {
+                provider: provider("one"),
+                row: None,
+            },
+        ),
+        Ev::Opened(
+            handle("b"),
+            SheetView::Working {
+                provider: provider("two"),
+                row: None,
+            },
+        ),
+        Ev::Opened(
+            handle("a"),
+            SheetView::Working {
+                provider: provider("three"),
+                row: None,
+            },
+        ),
     ];
     let (sheets, _) = run(AccountsSheets::default(), events);
     let handles: Vec<&str> = sheets.open.iter().map(|s| s.handle.as_str()).collect();
@@ -524,6 +562,7 @@ fn handles_are_short_plain_words() {
 fn manual(protocol: porter_core::sheet::Protocol) -> SheetView {
     SheetView::SignIn(SignInView {
         provider: provider("generic-imap"),
+        row: None,
         fields: porter_core::sheet::manual_form(protocol, Some("example.org")),
         problem: None,
     })

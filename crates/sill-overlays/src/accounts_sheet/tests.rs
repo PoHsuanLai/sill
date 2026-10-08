@@ -11,13 +11,13 @@ use ds_shell::accounts::model::{
 use ds_shell::prelude::WorkingFor;
 use porter_core::consent::{AccountChoice as AskChoice, ConsentAsk, GrantScope, Usage};
 use porter_core::sheet::{
-    Entry, FieldKind, FieldSpec, FieldValue, Presence, ProblemKind as PorterProblem, ProviderRow,
-    Review, ReviewView, RowKind, ServiceRow, ServiceState, SheetView, SignInFault as PorterFault,
-    SignInView, UserCode,
+    Entry, FieldKind, FieldSpec, FieldValue, Presence, ProblemKind as PorterProblem, ProviderKind,
+    ProviderRow, Review, ReviewView, RowKind, ServiceRow, ServiceState, SheetView,
+    SignInFault as PorterFault, SignInView, UserCode,
 };
 use porter_core::{
     AbsentReason, AccountId, AccountLabel, AppId, AppName, CapabilityKind, DataClass, EndpointUrl,
-    Isolation, LimitReason, ProviderId, SecretText, Toggle, WebUrl,
+    Isolation, LauncherSession, LimitReason, ProviderId, SecretText, Toggle, WebUrl,
 };
 use sill_model::accounts::sheet::{
     AccountsSheets, CopyMark, ListKey, SheetAction, SheetEvent, SheetHandle, step,
@@ -77,6 +77,17 @@ fn line(key: &str, name: &str, offer: ServiceOffer, limit: Option<Limitation>) -
     }
 }
 
+/// The row porter sends for a coding agent whose provider file says `agent_login`.
+fn agent_row() -> ProviderRow {
+    ProviderRow {
+        id: provider("claude-code"),
+        label: "Claude Code".to_owned(),
+        mark: "claude-code".to_owned(),
+        kind: RowKind::Provider,
+        auth: ProviderKind::AgentLogin,
+    }
+}
+
 #[test]
 fn every_sheet_view_becomes_the_props_of_its_part() {
     let consent = SheetView::Consent(ConsentAsk {
@@ -96,6 +107,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
                 provider: provider("microsoft"),
             },
         ],
+        session: None,
     });
     let providers = SheetView::Providers(vec![
         ProviderRow {
@@ -103,12 +115,14 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             label: "Nextcloud".to_owned(),
             mark: "nextcloud".to_owned(),
             kind: RowKind::Provider,
+            auth: ProviderKind::Service,
         },
         ProviderRow {
             id: provider("google"),
             label: "Google".to_owned(),
             mark: "google".to_owned(),
             kind: RowKind::Provider,
+            auth: ProviderKind::Service,
         },
         // ProviderList draws its own "Other…": the generic row is not a second one.
         ProviderRow {
@@ -116,10 +130,12 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             label: "Other mail account".to_owned(),
             mark: "imap".to_owned(),
             kind: RowKind::Generic,
+            auth: ProviderKind::Service,
         },
     ]);
     let form = SheetView::SignIn(SignInView {
         provider: provider("nextcloud"),
+        row: None,
         fields: vec![
             spec(FieldKind::Address, Entry::Plain, Presence::Required),
             spec(FieldKind::Password, Entry::Secret, Presence::Required),
@@ -132,6 +148,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
     });
     let review = SheetView::Review(ReviewView {
         provider: provider("microsoft"),
+        row: None,
         review: Review {
             label: AccountLabel("ada@work.example".to_owned()),
             services: vec![
@@ -177,6 +194,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
                     },
                 ],
                 chosen: None,
+                session: None,
             })),
         ),
         (
@@ -233,6 +251,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "browser",
             SheetView::BrowserWait {
                 provider: provider("google"),
+                row: None,
                 url,
             },
             Some(Step::Browser {
@@ -245,6 +264,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "code",
             SheetView::ShowCode {
                 provider: provider("microsoft"),
+                row: None,
                 user_code: UserCode("ABCD-EFGH".to_owned()),
                 url: device,
             },
@@ -280,7 +300,10 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
         ),
         (
             "working",
-            SheetView::Working(provider("nextcloud")),
+            SheetView::Working {
+                provider: provider("nextcloud"),
+                row: None,
+            },
             Some(Step::Working {
                 provider: "Nextcloud".to_owned(),
                 waiting_for: WorkingFor::Provider,
@@ -288,7 +311,10 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
         ),
         (
             "working on an agent login",
-            SheetView::Working(provider("claude-code")),
+            SheetView::Working {
+                provider: provider("claude-code"),
+                row: Some(agent_row()),
+            },
             Some(Step::Working {
                 provider: "Claude Code".to_owned(),
                 waiting_for: WorkingFor::Agent("Claude Code".to_owned()),
@@ -298,6 +324,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "failed",
             SheetView::Failed {
                 provider: provider("nextcloud"),
+                row: None,
                 fault: PorterFault::NeedsClientId,
             },
             Some(Step::Failed {
@@ -310,6 +337,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "failed on Google, which names its client id",
             SheetView::Failed {
                 provider: provider("google"),
+                row: None,
                 fault: PorterFault::NeedsClientId,
             },
             Some(Step::Failed {
@@ -322,6 +350,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "failed on a coding agent with no launcher",
             SheetView::Failed {
                 provider: provider("claude-code"),
+                row: Some(agent_row()),
                 fault: PorterFault::NoLauncher,
             },
             Some(Step::Failed {
@@ -342,6 +371,7 @@ fn the_draft_reaches_the_props() {
     let form = || {
         SheetView::SignIn(SignInView {
             provider: provider("nextcloud"),
+            row: None,
             fields: vec![
                 spec(FieldKind::Address, Entry::Plain, Presence::Required),
                 spec(FieldKind::Password, Entry::Secret, Presence::Required),
@@ -380,6 +410,7 @@ fn the_draft_reaches_the_props() {
     let url = WebUrl::parse("https://login.example.org/").unwrap_or_else(|e| panic!("{e}"));
     let browser = SheetView::BrowserWait {
         provider: provider("google"),
+        row: None,
         url,
     };
     let Some(Step::Browser { copied, .. }) = shown(browser, vec![SheetAction::Copied]) else {
@@ -393,6 +424,7 @@ fn the_draft_reaches_the_props() {
 fn a_review_switch_shows_what_the_person_chose() {
     let review = SheetView::Review(ReviewView {
         provider: provider("nextcloud"),
+        row: None,
         review: Review {
             label: AccountLabel("ada".to_owned()),
             services: vec![row(
@@ -426,12 +458,16 @@ fn the_title_area_carries_the_steps_own_title() {
             "Account Access",
         ),
         (
-            SheetView::Working(provider("nextcloud")),
+            SheetView::Working {
+                provider: provider("nextcloud"),
+                row: None,
+            },
             "Signing in to Nextcloud",
         ),
         (
             SheetView::Failed {
                 provider: provider("google"),
+                row: None,
                 fault: PorterFault::Refused,
             },
             "Could not add Google",
@@ -450,31 +486,55 @@ fn only_the_banners_output_draws_and_a_finished_add_draws_nothing() {
     let handle = SheetHandle::parse("a").unwrap_or_else(|| panic!("handle"));
     let (sheets, _) = step(
         AccountsSheets::default(),
-        SheetEvent::Opened(handle, SheetView::Working(provider("nextcloud"))),
+        SheetEvent::Opened(
+            handle,
+            SheetView::Working {
+                provider: provider("nextcloud"),
+                row: None,
+            },
+        ),
     );
     assert!(drawn(&sheets, Here::Yes).is_some());
     assert!(drawn(&sheets, Here::No).is_none());
 }
 
 #[test]
+fn this_session_only_grants_the_session_the_ask_came_from() {
+    let session = LauncherSession::parse("sess-1").unwrap_or_else(|e| panic!("{e}"));
+    let answer = ConsentAnswer::Allow {
+        account: ChoiceKey("home".to_owned()),
+        scope: AllowScope::Session,
+    };
+    assert_eq!(
+        events::consent(answer.clone(), Some(&session)),
+        Some(SheetAction::Allow(GrantScope::Session(session)))
+    );
+    // Without a session the alert does not offer it; a stray answer is no action.
+    assert_eq!(events::consent(answer, None), None);
+}
+
+#[test]
 fn events_become_what_the_person_did() {
     assert_eq!(
-        events::consent(ConsentAnswer::Allow {
-            account: ChoiceKey("home".to_owned()),
-            scope: AllowScope::Always
-        }),
+        events::consent(
+            ConsentAnswer::Allow {
+                account: ChoiceKey("home".to_owned()),
+                scope: AllowScope::Always
+            },
+            None
+        ),
         Some(SheetAction::Allow(GrantScope::Always))
     );
     assert_eq!(
-        events::consent(ConsentAnswer::Deny),
+        events::consent(ConsentAnswer::Deny, None),
         Some(SheetAction::Deny)
     );
     assert_eq!(
-        events::consent(ConsentAnswer::Dismiss),
+        events::consent(ConsentAnswer::Dismiss, None),
         Some(SheetAction::Cancel)
     );
     assert_eq!(
-        events::consent(ConsentAnswer::AddAccount),
+        events::consent(ConsentAnswer::AddAccount, None),
         Some(SheetAction::AddAccount)
     );
     assert_eq!(
@@ -532,6 +592,7 @@ fn the_server_form_becomes_choices_hints_and_parts() {
     let view = |protocol| {
         SheetView::SignIn(SignInView {
             provider: provider("generic-imap"),
+            row: None,
             fields: manual_form(protocol, Some("example.org")),
             problem: None,
         })

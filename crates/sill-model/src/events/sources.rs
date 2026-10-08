@@ -91,11 +91,18 @@ pub fn auto_places(env: &AutoEnv) -> Vec<IcsPlace> {
     ]
 }
 
+/// Whether a vdir collection directory is a task list (VTODO), not a calendar: porter names it
+/// `<collection>-tasks`. The calendar view skips it.
+pub fn is_task_list(dir: &Path) -> bool {
+    dir.file_name()
+        .is_some_and(|name| name.to_string_lossy().ends_with("-tasks"))
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{AutoEnv, EventSources, IcsPlace, auto_places, parse_sources};
+    use super::{AutoEnv, EventSources, IcsPlace, auto_places, is_task_list, parse_sources};
 
     const HOME: &str = "/home/ada";
 
@@ -133,5 +140,12 @@ mod tests {
                 IcsPlace::Dir(PathBuf::from("/home/ada/.calendars")),
             ]
         );
+    }
+
+    #[test]
+    fn a_collection_ending_in_tasks_is_a_task_list() {
+        assert!(is_task_list(Path::new("/v/google/personal-tasks")));
+        assert!(!is_task_list(Path::new("/v/google/personal")));
+        assert!(!is_task_list(Path::new("/v/google/tasks-and-more")));
     }
 }

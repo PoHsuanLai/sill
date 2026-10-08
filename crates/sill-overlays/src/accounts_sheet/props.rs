@@ -29,12 +29,12 @@ use porter_core::sheet::{
     Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, RowKind, ServiceState,
     SheetView,
 };
-use porter_core::{AccountId, ProviderId, Toggle};
+use porter_core::{AccountId, LauncherSession, ProviderId, Toggle};
 use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 
 use super::words::{
-    absence_of, app_name, choice_label, fault_of, limit_of, mark_of, provider_label,
-    request_phrase, service_key, service_name, usual_port, waiting_on,
+    absence_of, app_name, choice_label, fault_of, limit_of, mark_of, provider_name, request_phrase,
+    service_key, service_name, usual_port, waiting_on,
 };
 
 /// What the consent alert is given.
@@ -44,6 +44,8 @@ pub(super) struct ConsentProps {
     pub request: String,
     pub choices: Vec<AccountChoice>,
     pub chosen: Option<ChoiceKey>,
+    /// The launcher session the ask was made inside: when present, "This Session Only" is offered.
+    pub session: Option<LauncherSession>,
 }
 
 /// What the provider list is given.
@@ -138,6 +140,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                 .chosen
                 .as_ref()
                 .map(|account| ChoiceKey(account.as_str().to_owned())),
+            session: ask.session.clone(),
         }),
         SheetView::Providers(rows) => Step::Providers(ProvidersProps {
             // The generic row is ProviderList's own "Other…", so it is not listed twice.
@@ -161,7 +164,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
             }),
         }),
         SheetView::SignIn(form) => Step::SignIn(SignInProps {
-            provider: provider_label(&form.provider),
+            provider: provider_name(&form.provider, form.row.as_ref()),
             mark: mark_of(form.provider.as_str()),
             fields: form_fields(draft),
             // A refusal from accountd first; else what cannot be right in what is typed (a
@@ -186,17 +189,18 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                     attempt: Attempt(draft.submits.0),
                 }),
         }),
-        SheetView::BrowserWait { provider, url } => Step::Browser {
-            provider: provider_label(provider),
+        SheetView::BrowserWait { provider, row, url } => Step::Browser {
+            provider: provider_name(provider, row.as_ref()),
             url: url.as_str().to_owned(),
             copied: copy_state(draft),
         },
         SheetView::ShowCode {
             provider,
+            row,
             user_code,
             url,
         } => Step::Code {
-            provider: provider_label(provider),
+            provider: provider_name(provider, row.as_ref()),
             code: user_code.0.clone(),
             url: url.as_str().to_owned(),
             copied: copy_state(draft),
@@ -221,12 +225,16 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                 .collect(),
             allow: review.allow.as_ref().map(app_name),
         }),
-        SheetView::Working(provider) => Step::Working {
-            provider: provider_label(provider),
-            waiting_for: waiting_on(provider),
+        SheetView::Working { provider, row } => Step::Working {
+            provider: provider_name(provider, row.as_ref()),
+            waiting_for: waiting_on(row.as_ref()),
         },
-        SheetView::Failed { provider, fault } => Step::Failed {
-            provider: provider_label(provider),
+        SheetView::Failed {
+            provider,
+            row,
+            fault,
+        } => Step::Failed {
+            provider: provider_name(provider, row.as_ref()),
             why: fault_of(*fault),
             mark: Some(mark_of(provider.as_str())),
         },

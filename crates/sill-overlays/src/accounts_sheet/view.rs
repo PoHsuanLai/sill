@@ -6,7 +6,7 @@
 use dioxus::prelude::*;
 use ds::components::chrome::window_frame::WindowTitlebar;
 use ds::prelude::*;
-use ds_shell::accounts::model::StepTitle;
+use ds_shell::accounts::model::{SessionOffer, StepTitle};
 use ds_shell::prelude::{
     BrowserWait, ConsentBody, ProviderList, ReviewServices, ShowCode, SignInFailed, SignInForm,
     SignInWorking,
@@ -84,15 +84,23 @@ fn body(step: Step, io: Io) -> Element {
     };
     let cancel = move |()| io.act.call(SheetAction::Cancel);
     let back = move |()| io.act.call(SheetAction::Back);
+    let session = match &step {
+        Step::Consent(props) => props.session.clone(),
+        _ => None,
+    };
     match step {
         Step::Consent(props) => rsx! {
             ConsentBody {
+                session: match props.session {
+                    Some(_) => SessionOffer::Offered,
+                    None => SessionOffer::None,
+                },
                 app: props.app,
                 request: props.request,
                 choices: props.choices,
                 chosen: props.chosen,
                 on_choose: move |key| act(events::chosen(&key)),
-                on_answer: move |answer| act(events::consent(answer)),
+                on_answer: move |answer| act(events::consent(answer, session.as_ref())),
             }
         },
         Step::Providers(props) => rsx! {

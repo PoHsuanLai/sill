@@ -27,6 +27,7 @@ pub(super) fn rows(ids: &[&str]) -> SheetView {
                 } else {
                     RowKind::Provider
                 },
+                auth: porter_core::sheet::ProviderKind::Service,
             })
             .collect(),
     )
@@ -47,6 +48,7 @@ pub(super) fn form(prefill: Option<&str>) -> SheetView {
     address.prefill = prefill.map(str::to_owned);
     SheetView::SignIn(SignInView {
         provider: provider("nextcloud"),
+        row: None,
         fields: vec![
             address,
             spec(FieldKind::Password, Entry::Secret, Presence::Required),

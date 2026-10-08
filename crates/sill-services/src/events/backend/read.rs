@@ -8,8 +8,8 @@ use std::sync::{Mutex, PoisonError};
 
 use jiff::tz::TimeZone;
 use sill_model::events::{
-    CalendarName, EventsError, IcsError, IcsEvent, IcsPlace, Window, occurrences, parse_ics,
-    unsupported_parts,
+    CalendarName, EventsError, IcsError, IcsEvent, IcsPlace, Window, is_task_list, occurrences,
+    parse_ics, unsupported_parts,
 };
 
 use super::provider::ProviderRead;
@@ -51,6 +51,8 @@ pub(crate) fn calendars_in(place: &IcsPlace) -> Result<Vec<Calendar>, EventsErro
                 .iter()
                 .filter_map(|account| entries(account).ok())
                 .flat_map(|(_, collections)| collections)
+                // `<collection>-tasks` holds VTODOs: a task list is not a calendar.
+                .filter(|dir| !is_task_list(dir))
                 .filter_map(|dir| {
                     let (files, _) = entries(&dir).ok()?;
                     Some(Calendar {

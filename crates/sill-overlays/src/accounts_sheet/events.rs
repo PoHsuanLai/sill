@@ -8,18 +8,28 @@ use ds_shell::accounts::model::{
 };
 use porter_core::consent::GrantScope;
 use porter_core::sheet::FieldValue;
-use porter_core::{SecretText, Toggle};
+use porter_core::{LauncherSession, SecretText, Toggle};
 use sill_model::accounts::sheet::{ListKey, SheetAction};
 
 use super::props::{account_of, kind_of, provider_of};
 use super::words::service_of;
 
-/// The consent alert's answer.
-pub(super) fn consent(answer: ConsentAnswer) -> Option<SheetAction> {
+/// The consent alert's answer; `session` is the launcher session the ask was made inside, which
+/// "This Session Only" grants.
+pub(super) fn consent(
+    answer: ConsentAnswer,
+    session: Option<&LauncherSession>,
+) -> Option<SheetAction> {
     match answer {
         ConsentAnswer::Allow { scope, .. } => Some(SheetAction::Allow(match scope {
             AllowScope::Once => GrantScope::Once,
             AllowScope::Always => GrantScope::Always,
+            // The alert offers it only with a session, so there is always one here.
+            AllowScope::Session => {
+                return session
+                    .cloned()
+                    .map(|s| SheetAction::Allow(GrantScope::Session(s)));
+            }
         })),
         ConsentAnswer::Deny => Some(SheetAction::Deny),
         ConsentAnswer::AddAccount => Some(SheetAction::AddAccount),

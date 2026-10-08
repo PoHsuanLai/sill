@@ -180,7 +180,7 @@ fn a_vdirsyncer_folder_is_one_calendar_per_collection() {
 }
 
 /// porter's `vdir/<account>/<collection>`: every collection of every account is a calendar, an
-/// address book's `.vcf` files make none, and a place that is missing is a problem, not a panic.
+/// address book's `.vcf` files make none, a `*-tasks` directory (a VTODO task list) is no calendar, and a place that is missing is a problem, not a panic.
 #[test]
 fn a_porter_vdir_is_one_calendar_per_collection_of_every_account() {
     let root = std::env::temp_dir().join(format!("sill-vdir-{}", std::process::id()));
@@ -189,6 +189,7 @@ fn a_porter_vdir_is_one_calendar_per_collection_of_every_account() {
     for (collection, file, text) in [
         ("cloud/personal", "u.ics", event),
         ("cloud/work", "u2.ics", event),
+        ("cloud/personal-tasks", "t1.ics", event),
         ("cloud/contacts", "c1.vcf", "BEGIN:VCARD\r\nEND:VCARD\r\n"),
         ("other/home", "u3.ics", event),
         ("other/.hidden", "u4.ics", event),

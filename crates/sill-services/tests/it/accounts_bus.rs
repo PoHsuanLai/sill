@@ -175,6 +175,31 @@ async fn needs_reauth_posts_a_notice_and_its_button_signs_in_again() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn a_testing_app_sign_out_says_google_does_it_every_seven_days() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let accountd = FakeAccountd::start(&bus, "ok", Listing::Of(vec![])).await;
+    let mut shell = shell(&bus).await;
+    assert!(needing(&mut shell, 0).await, "accountd was not met");
+
+    accountd.refuse_testing_app_expired().await;
+    let id = notice_shown(&mut shell).await;
+    let notes = shell.notes.state.borrow().clone();
+    let body = notes
+        .live
+        .banners
+        .iter()
+        .map(|banner| &banner.note)
+        .find(|note| note.id == id)
+        .map(|note| note.body.text());
+    assert_eq!(
+        body.as_deref(),
+        Some("Google signs this app out every 7 days until it is verified.")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn a_refused_first_call_is_tried_again_and_the_account_is_told() {
     let Some(bus) = PrivateBus::start() else {
         return;
