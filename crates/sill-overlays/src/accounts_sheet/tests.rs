@@ -153,8 +153,8 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
         },
         // ProviderList draws its own "Other…": the generic row is not a second one.
         ProviderRow {
-            id: provider("imap"),
-            label: "Other mail account".to_owned(),
+            id: provider("generic-imap"),
+            label: "Other email account".to_owned(),
             mark: "imap".to_owned(),
             kind: RowKind::Generic,
             auth: ProviderKind::Service,
