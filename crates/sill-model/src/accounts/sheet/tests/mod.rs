@@ -28,6 +28,8 @@ pub(super) fn rows(ids: &[&str]) -> SheetView {
                     RowKind::Provider
                 },
                 auth: porter_core::sheet::ProviderKind::Service,
+                mark_face: None,
+                group: None,
             })
             .collect(),
     )

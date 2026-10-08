@@ -33,7 +33,7 @@ pub fn notice_text(needing: &NeedsSignIn) -> Notice {
         },
         SignInAsk::Login => Notice {
             summary: format!("Sign in to {} to use it again", needing.label),
-            body: "Apps cannot use this agent until you do.".to_owned(),
+            body: "Apps cannot use this assistant until you do.".to_owned(),
             button: "Sign in".to_owned(),
         },
     }

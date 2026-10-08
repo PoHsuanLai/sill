@@ -31,7 +31,7 @@ const VIEWPORT: Viewport = Viewport {
 const PROVIDERS: &str = r#"{"kind":"providers","v":[
   {"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"},
   {"id":"google","label":"Google","mark":"google"},
-  {"id":"generic-imap","label":"Email (IMAP)","mark":"mail"}]}"#;
+  {"id":"generic-imap","label":"Other mail account","mark":"mail"}]}"#;
 const FORM: &str = r#"{"kind":"sign_in","v":{"provider":"nextcloud","row":{"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"},"fields":[
   {"kind":"address","entry":"plain","presence":"required","prefill":null},
   {"kind":"password","entry":"secret","presence":"required","prefill":null}],"problem":null}}"#;

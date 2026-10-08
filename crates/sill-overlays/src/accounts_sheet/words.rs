@@ -108,7 +108,7 @@ pub(super) fn request_phrase(kind: CapabilityKind, class: DataClass, usage: Usag
         (CapabilityKind::ComputerUse, _) => "operate a window for you",
         (CapabilityKind::KeyValue, _) => "keep small settings in sync",
         (CapabilityKind::Push, _) => "send you notifications",
-        (CapabilityKind::Agent, _) => "run a coding agent with your account",
+        (CapabilityKind::Agent, _) => "run an assistant with your account",
     };
     match usage {
         Usage::Interactive => what.to_owned(),
@@ -151,28 +151,28 @@ pub(super) fn fault_of(fault: PorterFault) -> SignInFault {
         PorterFault::NoLauncher => SignInFault::NoLauncher,
         PorterFault::NotInstalled => SignInFault::NotInstalled,
         PorterFault::Expired => SignInFault::TimedOut,
-        // gap(quire): SignInFault has no AlreadyAdded yet ("This account is already added.");
-        // Forbidden is the closest fault that says only a change outside the sheet helps.
-        PorterFault::AlreadyAdded => SignInFault::Forbidden,
+        PorterFault::AlreadyAdded => SignInFault::AlreadyAdded,
     }
 }
 
-/// Whether trying the sign-in again could help: not for a fault only a change outside the sheet
-/// fixes (a build without a client id, a missing agent or launcher, an account already added).
-pub(super) fn recovery_of(fault: PorterFault) -> Recovery {
+/// Whether trying the sign-in again could help, when the sheet has more to say than the fault's
+/// own answer: not for a fault only a change outside the sheet fixes (a build without a client id,
+/// a missing assistant or launcher). An account already added needs no word of ours: the fault
+/// knows a retry changes nothing.
+pub(super) fn recovery_of(fault: PorterFault) -> Option<Recovery> {
     match fault {
+        PorterFault::AlreadyAdded => None,
         PorterFault::NeedsClientId
         | PorterFault::NotInstalled
         | PorterFault::NoLauncher
-        | PorterFault::AlreadyAdded
-        | PorterFault::Forbidden => Recovery::NoRetry,
+        | PorterFault::Forbidden => Some(Recovery::NoRetry),
         PorterFault::Refused
         | PorterFault::Unreachable
         | PorterFault::Unreadable
         | PorterFault::TimedOut
         | PorterFault::Cancelled
         | PorterFault::StoreFailed
-        | PorterFault::Expired => Recovery::Retry,
+        | PorterFault::Expired => Some(Recovery::Retry),
     }
 }
 
@@ -189,14 +189,15 @@ pub(super) fn service_of(key: &str) -> Option<CapabilityKind> {
     serde_json::from_value(serde_json::Value::String(key.to_owned())).ok()
 }
 
-/// What a choice's slug is called on a pop-up: the protocols and securities porter offers.
+/// What a choice's slug is called on a pop-up: the plain name of each protocol and security porter
+/// offers, the protocol after it in brackets (the hand-typed server form is the one place it shows).
 pub(super) fn choice_label(slug: &str) -> &str {
     match slug {
-        "imap" => "IMAP",
-        "pop3" => "POP3",
-        "jmap" => "JMAP",
-        "tls" => "TLS",
-        "starttls" => "STARTTLS",
+        "imap" => "Most servers (IMAP)",
+        "pop3" => "Older servers (POP)",
+        "jmap" => "Newer servers (JMAP)",
+        "tls" => "Secure from the start (SSL/TLS)",
+        "starttls" => "Secure after connecting (STARTTLS)",
         other => other,
     }
 }
@@ -213,5 +214,16 @@ pub(super) fn usual_port(protocol: &str, outgoing: bool, security: &str) -> u16 
         (false, "pop3", _) => 110,
         (false, _, "tls") => 993,
         (false, _, _) => 143,
+    }
+}
+
+/// Where the person makes the app password a provider asks for in place of the account's own,
+/// said short enough for an empty entry. porter words the full steps; the entry only points.
+pub(super) fn app_password_hint(provider: &ProviderId) -> Option<&'static str> {
+    match provider.as_str() {
+        "icloud" => Some("Made at account.apple.com, not your Apple Account password"),
+        "fastmail" => Some("Made in Fastmail under Privacy & Security, not your password"),
+        "yahoo" => Some("Made under Account security, not your Yahoo password"),
+        _ => None,
     }
 }

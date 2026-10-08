@@ -17,6 +17,8 @@ fn row(id: &str, label: &str) -> ProviderRow {
         mark: id.to_owned(),
         kind: RowKind::Provider,
         auth: ProviderKind::Service,
+        mark_face: None,
+        group: None,
     }
 }
 

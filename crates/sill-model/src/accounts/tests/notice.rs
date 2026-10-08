@@ -53,7 +53,7 @@ fn an_agent_that_must_be_signed_in_has_its_own_words() {
     };
     let text = notice_text(&agent);
     assert_eq!(text.summary, "Sign in to Claude Code to use it again");
-    assert_eq!(text.body, "Apps cannot use this agent until you do.");
+    assert_eq!(text.body, "Apps cannot use this assistant until you do.");
     assert_eq!(text.button, "Sign in");
 }
 

@@ -31,7 +31,7 @@ pub fn refusal_words(refusal: &CallRefusal) -> String {
 fn deny_words(code: &DenyCode) -> &'static str {
     match code {
         DenyCode::OutsideTask => "outside what you asked",
-        DenyCode::NotAllowed => "not for an agent to do",
+        DenyCode::NotAllowed => "not for an assistant to do",
         DenyCode::NeedsUser => "needs you",
         DenyCode::Repeated => "refused before",
     }

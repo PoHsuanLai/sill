@@ -10,8 +10,8 @@ pub fn asker_words(actor: &Actor) -> &'static str {
     match actor {
         Actor::Cli => "The terminal",
         Actor::Companion { .. } => "The companion",
-        Actor::Mcp { .. } => "An outside agent",
-        Actor::Acp { .. } => "A coding agent",
+        Actor::Mcp { .. } => "An outside assistant",
+        Actor::Acp { .. } => "An assistant",
         Actor::User { .. } => "You",
         Actor::App { .. } | Actor::ThirdParty { .. } => "An app",
         Actor::System { .. } | Actor::Unknown => "Something on this computer",
@@ -71,7 +71,7 @@ pub fn source_words(source: &Source) -> &'static str {
         Source::Contacts => "your contacts",
         Source::Notes => "your notes",
         Source::Model(_) => "a model",
-        Source::Mcp(_) => "an outside agent",
+        Source::Mcp(_) => "an outside assistant",
         Source::Cli => "the terminal",
     }
 }

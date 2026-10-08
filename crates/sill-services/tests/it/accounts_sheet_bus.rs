@@ -52,6 +52,8 @@ fn providers() -> String {
         mark: "nextcloud".to_owned(),
         kind: porter_core::sheet::RowKind::Provider,
         auth: porter_core::sheet::ProviderKind::Service,
+        mark_face: None,
+        group: None,
     }]))
 }
 

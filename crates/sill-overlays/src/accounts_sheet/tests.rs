@@ -92,10 +92,12 @@ fn named(id: &str) -> ProviderRow {
         mark: id.to_owned(),
         kind: RowKind::Provider,
         auth: ProviderKind::Service,
+        mark_face: None,
+        group: None,
     }
 }
 
-/// The row porter sends for a coding agent whose provider file says `agent_login`.
+/// The row porter sends for an assistant whose provider file says `agent_login`.
 fn agent_row() -> ProviderRow {
     ProviderRow {
         id: provider("claude-code"),
@@ -103,6 +105,8 @@ fn agent_row() -> ProviderRow {
         mark: "claude-code".to_owned(),
         kind: RowKind::Provider,
         auth: ProviderKind::AgentLogin,
+        mark_face: None,
+        group: None,
     }
 }
 
@@ -135,6 +139,8 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             mark: "nextcloud".to_owned(),
             kind: RowKind::Provider,
             auth: ProviderKind::Service,
+            mark_face: None,
+            group: None,
         },
         ProviderRow {
             id: provider("google"),
@@ -142,6 +148,8 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             mark: "google".to_owned(),
             kind: RowKind::Provider,
             auth: ProviderKind::Service,
+            mark_face: None,
+            group: None,
         },
         // ProviderList draws its own "Other…": the generic row is not a second one.
         ProviderRow {
@@ -150,6 +158,8 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             mark: "imap".to_owned(),
             kind: RowKind::Generic,
             auth: ProviderKind::Service,
+            mark_face: None,
+            group: None,
         },
     ]);
     let form = SheetView::SignIn(SignInView {
@@ -351,7 +361,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             Some(Step::Failed {
                 provider: "Nextcloud".to_owned(),
                 why: SignInFault::NeedsClientId,
-                recovery: Recovery::NoRetry,
+                recovery: Some(Recovery::NoRetry),
                 mark: Some(MarkProvider::Imap),
             }),
         ),
@@ -365,12 +375,12 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             Some(Step::Failed {
                 provider: "Google".to_owned(),
                 why: SignInFault::NeedsClientId,
-                recovery: Recovery::NoRetry,
+                recovery: Some(Recovery::NoRetry),
                 mark: Some(MarkProvider::Google),
             }),
         ),
         (
-            "failed on a coding agent with no launcher",
+            "failed on an assistant with no launcher",
             SheetView::Failed {
                 provider: provider("claude-code"),
                 row: Some(agent_row()),
@@ -379,7 +389,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             Some(Step::Failed {
                 provider: "Claude Code".to_owned(),
                 why: SignInFault::NoLauncher,
-                recovery: Recovery::NoRetry,
+                recovery: Some(Recovery::NoRetry),
                 mark: Some(MarkProvider::Imap),
             }),
         ),
@@ -645,9 +655,9 @@ fn the_server_form_becomes_choices_hints_and_parts() {
     assert_eq!(
         of(FieldRole::Protocol).choices,
         Some(vec![
-            Choice::new("imap", "IMAP"),
-            Choice::new("pop3", "POP3"),
-            Choice::new("jmap", "JMAP"),
+            Choice::new("imap", "Most servers (IMAP)"),
+            Choice::new("pop3", "Older servers (POP)"),
+            Choice::new("jmap", "Newer servers (JMAP)"),
         ])
     );
     assert_eq!(
@@ -657,8 +667,8 @@ fn the_server_form_becomes_choices_hints_and_parts() {
     assert_eq!(
         of(FieldRole::Security).choices,
         Some(vec![
-            Choice::new("tls", "TLS"),
-            Choice::new("starttls", "STARTTLS")
+            Choice::new("tls", "Secure from the start (SSL/TLS)"),
+            Choice::new("starttls", "Secure after connecting (STARTTLS)")
         ])
     );
     assert_eq!(of(FieldRole::Port).requirement, Requirement::Optional);
@@ -794,14 +804,51 @@ fn the_port_hints_are_porters_usual_ports() {
 }
 
 #[test]
+fn an_app_password_field_says_where_the_provider_makes_one() {
+    const CASES: &[(&str, Option<&str>)] = &[
+        (
+            "icloud",
+            Some("Made at account.apple.com, not your Apple Account password"),
+        ),
+        (
+            "fastmail",
+            Some("Made in Fastmail under Privacy & Security, not your password"),
+        ),
+        (
+            "yahoo",
+            Some("Made under Account security, not your Yahoo password"),
+        ),
+        ("nextcloud", None),
+    ];
+    for (id, hint) in CASES {
+        let view = SheetView::SignIn(SignInView {
+            provider: provider(id),
+            row: Some(named(id)),
+            fields: vec![
+                spec(FieldKind::Address, Entry::Plain, Presence::Required),
+                spec(FieldKind::AppPassword, Entry::Secret, Presence::Required),
+            ],
+            problem: None,
+        });
+        let Some(Step::SignIn(props)) = shown(view, vec![]) else {
+            panic!("{id}: no form");
+        };
+        let field = props
+            .fields
+            .iter()
+            .find(|f| f.role == FieldRole::AppPassword);
+        assert_eq!(field.and_then(|f| f.hint.as_deref()), *hint, "{id}");
+    }
+}
+
+#[test]
 fn porter_faults_land_on_the_shell_faults() {
     use super::words::fault_of;
     let cases = [
         (PorterFault::NoLauncher, SignInFault::NoLauncher),
         (PorterFault::NotInstalled, SignInFault::NotInstalled),
         (PorterFault::Expired, SignInFault::TimedOut),
-        // gap(quire): no AlreadyAdded fault yet; Forbidden is the nearest.
-        (PorterFault::AlreadyAdded, SignInFault::Forbidden),
+        (PorterFault::AlreadyAdded, SignInFault::AlreadyAdded),
     ];
     for (porter, shell) in cases {
         assert_eq!(fault_of(porter), shell);
@@ -812,14 +859,15 @@ fn porter_faults_land_on_the_shell_faults() {
 fn only_a_fault_a_retry_can_fix_offers_try_again() {
     use super::words::recovery_of;
     let cases = [
-        (PorterFault::NeedsClientId, Recovery::NoRetry),
-        (PorterFault::NotInstalled, Recovery::NoRetry),
-        (PorterFault::NoLauncher, Recovery::NoRetry),
-        (PorterFault::AlreadyAdded, Recovery::NoRetry),
-        (PorterFault::Forbidden, Recovery::NoRetry),
-        (PorterFault::Unreachable, Recovery::Retry),
-        (PorterFault::TimedOut, Recovery::Retry),
-        (PorterFault::Refused, Recovery::Retry),
+        (PorterFault::NeedsClientId, Some(Recovery::NoRetry)),
+        (PorterFault::NotInstalled, Some(Recovery::NoRetry)),
+        (PorterFault::NoLauncher, Some(Recovery::NoRetry)),
+        // The fault's own answer applies: it is no retry.
+        (PorterFault::AlreadyAdded, None),
+        (PorterFault::Forbidden, Some(Recovery::NoRetry)),
+        (PorterFault::Unreachable, Some(Recovery::Retry)),
+        (PorterFault::TimedOut, Some(Recovery::Retry)),
+        (PorterFault::Refused, Some(Recovery::Retry)),
     ];
     for (fault, recovery) in cases {
         assert_eq!(recovery_of(fault), recovery, "{fault:?}");
@@ -837,7 +885,7 @@ fn the_microsoft_failure_without_a_client_id_has_no_try_again() {
         panic!("no failure");
     };
     assert_eq!(why, SignInFault::NeedsClientId);
-    assert_eq!(recovery, Recovery::NoRetry);
+    assert_eq!(recovery, Some(Recovery::NoRetry));
 }
 
 #[test]

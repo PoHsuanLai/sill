@@ -40,6 +40,8 @@ fn rows() -> ProgramLabels {
         mark: String::new(),
         kind: RowKind::Provider,
         auth,
+        mark_face: None,
+        group: None,
     };
     ProgramLabels::of_rows(&[
         row("claude-code", "Claude Code", ProviderKind::AgentLogin),
@@ -55,7 +57,7 @@ fn who(actor: Actor, programs: &ProgramLabels) -> String {
 fn the_persons_label_comes_first() {
     assert_eq!(
         who(acp("claude-code", Some("My Claude")), &rows()),
-        "My Claude (coding agent) archived"
+        "My Claude (assistant) archived"
     );
 }
 
@@ -63,7 +65,7 @@ fn the_persons_label_comes_first() {
 fn the_provider_rows_label_comes_second() {
     assert_eq!(
         who(acp("claude-code", None), &rows()),
-        "Claude Code (coding agent) archived"
+        "Claude Code (assistant) archived"
     );
 }
 
@@ -71,11 +73,11 @@ fn the_provider_rows_label_comes_second() {
 fn the_raw_program_comes_last() {
     assert_eq!(
         who(acp("codex", None), &rows()),
-        "codex (coding agent) archived"
+        "codex (assistant) archived"
     );
     assert_eq!(
         who(acp("claude-code", None), &ProgramLabels::default()),
-        "claude-code (coding agent) archived"
+        "claude-code (assistant) archived"
     );
 }
 
@@ -85,7 +87,7 @@ fn a_label_is_never_taken_from_anywhere_else() {
     // swapped for a row's label.
     assert_eq!(
         who(acp("nextcloud", None), &rows()),
-        "nextcloud (coding agent) archived"
+        "nextcloud (assistant) archived"
     );
     let client = ClientName::parse("claude-code").unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(who(Actor::Mcp { client }, &rows()), "claude-code archived");

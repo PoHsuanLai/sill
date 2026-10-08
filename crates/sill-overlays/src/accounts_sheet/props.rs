@@ -34,9 +34,9 @@ use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 
 use super::ranking::ranked;
 use super::words::{
-    ACCOUNT_LABEL, APP_NAME, absence_of, app_name, choice_label, clipped, fault_of, limit_of,
-    mark_of, provider_name, recovery_of, request_phrase, service_key, short_link, usual_port,
-    waiting_on,
+    ACCOUNT_LABEL, APP_NAME, absence_of, app_name, app_password_hint, choice_label, clipped,
+    fault_of, limit_of, mark_of, provider_name, recovery_of, request_phrase, service_key,
+    short_link, usual_port, waiting_on,
 };
 
 /// What the consent alert is given.
@@ -103,7 +103,7 @@ pub(super) enum Step {
     Failed {
         provider: String,
         why: SignInFault,
-        recovery: Recovery,
+        recovery: Option<Recovery>,
         mark: Option<MarkProvider>,
     },
 }
@@ -180,7 +180,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
         SheetView::SignIn(form) => Step::SignIn(SignInProps {
             provider: provider_name(&form.provider, form.row.as_ref()),
             mark: mark_of(form.provider.as_str()),
-            fields: form_fields(draft),
+            fields: form_fields(draft, &form.provider),
             // A refusal from accountd first; else what cannot be right in what is typed (a
             // port that is no number), marked on its field as it is typed. An empty required
             // field is not marked: Continue says it.
@@ -262,7 +262,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
 }
 
 /// The form's fields as drawn: what each holds, its choices, its hint and its group.
-fn form_fields(draft: &Draft) -> Vec<FormField> {
+fn form_fields(draft: &Draft, provider: &ProviderId) -> Vec<FormField> {
     let held = |kind| {
         draft
             .fields
@@ -309,6 +309,10 @@ fn form_fields(draft: &Draft) -> Vec<FormField> {
                 FieldKind::OutgoingPort => base.hinted(
                     usual_port(protocol, true, security(FieldKind::OutgoingSecurity)).to_string(),
                 ),
+                FieldKind::AppPassword => match app_password_hint(provider) {
+                    Some(hint) => base.hinted(hint),
+                    None => base,
+                },
                 _ => base,
             };
             match part_of(field.kind).filter(|_| manual) {
@@ -330,7 +334,9 @@ fn part_of(kind: FieldKind) -> Option<FormPart> {
         FieldKind::OutgoingServer | FieldKind::OutgoingPort | FieldKind::OutgoingSecurity => {
             Some(FormPart::Outgoing)
         }
-        FieldKind::Username | FieldKind::Password | FieldKind::Token => Some(FormPart::SignIn),
+        FieldKind::Username | FieldKind::Password | FieldKind::AppPassword | FieldKind::Token => {
+            Some(FormPart::SignIn)
+        }
         FieldKind::Address | FieldKind::ApiKey => None,
     }
 }
@@ -356,6 +362,7 @@ pub(super) fn role_of(kind: FieldKind) -> FieldRole {
         FieldKind::Server => FieldRole::Server,
         FieldKind::Username => FieldRole::Username,
         FieldKind::Password => FieldRole::Password,
+        FieldKind::AppPassword => FieldRole::AppPassword,
         FieldKind::ApiKey => FieldRole::ApiKey,
         FieldKind::Token => FieldRole::Token,
         FieldKind::Protocol => FieldRole::Protocol,
@@ -375,6 +382,7 @@ pub(super) fn kind_of(role: FieldRole) -> FieldKind {
         FieldRole::Server => FieldKind::Server,
         FieldRole::Username => FieldKind::Username,
         FieldRole::Password => FieldKind::Password,
+        FieldRole::AppPassword => FieldKind::AppPassword,
         FieldRole::ApiKey => FieldKind::ApiKey,
         FieldRole::Token => FieldKind::Token,
         FieldRole::Protocol => FieldKind::Protocol,

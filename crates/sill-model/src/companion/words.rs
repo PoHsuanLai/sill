@@ -88,8 +88,8 @@ pub fn activity_line(entry: &UndoEntry) -> (String, String) {
     let who = match &entry.actor {
         Actor::User { .. } => "You",
         Actor::Companion { .. } => "Companion",
-        Actor::Mcp { .. } => "An outside agent",
-        Actor::Acp { .. } => "A coding agent",
+        Actor::Mcp { .. } => "An outside assistant",
+        Actor::Acp { .. } => "An assistant",
         Actor::Cli => "A terminal",
         Actor::App { .. } | Actor::ThirdParty { .. } => "An app",
         Actor::System { .. } => "The system",
@@ -117,7 +117,7 @@ pub fn memory_line(entry: &TimelineEntry, programs: &ProgramLabels) -> (String, 
         Actor::Mcp { client } => client.as_str().to_owned(),
         Actor::Acp { program, label } => {
             format!(
-                "{} (coding agent)",
+                "{} (assistant)",
                 programs.name_of(program.as_str(), label.as_ref())
             )
         }
