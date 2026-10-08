@@ -11,6 +11,7 @@ pub fn asker_words(actor: &Actor) -> &'static str {
         Actor::Cli => "The terminal",
         Actor::Companion { .. } => "The companion",
         Actor::Mcp { .. } => "An outside agent",
+        Actor::Acp { .. } => "A coding agent",
         Actor::User { .. } => "You",
         Actor::App { .. } | Actor::ThirdParty { .. } => "An app",
         Actor::System { .. } | Actor::Unknown => "Something on this computer",
@@ -31,6 +32,7 @@ pub fn effect_words(effect: Effect) -> &'static str {
         Effect::UndoableWrite => "It changes something you can undo.",
         Effect::Outbound => "It sends something out.",
         Effect::Destructive => "It cannot be undone.",
+        Effect::Execute => "It runs commands on this computer.",
     }
 }
 

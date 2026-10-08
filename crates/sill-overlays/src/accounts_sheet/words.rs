@@ -78,29 +78,6 @@ pub(super) fn waiting_on(row: Option<&ProviderRow>) -> WorkingFor {
     }
 }
 
-/// What a kind of service is called on the review.
-pub(super) fn service_name(kind: CapabilityKind) -> &'static str {
-    match kind {
-        CapabilityKind::Identity => "Account details",
-        CapabilityKind::Mail => "Mail",
-        CapabilityKind::Calendar => "Calendar",
-        CapabilityKind::Contacts => "Contacts",
-        CapabilityKind::Tasks => "Tasks",
-        CapabilityKind::Notes => "Notes",
-        CapabilityKind::Storage => "Files",
-        CapabilityKind::Photos => "Photos",
-        CapabilityKind::Llm => "Language model",
-        CapabilityKind::Embeddings => "Search by meaning",
-        CapabilityKind::Speech => "Speech",
-        CapabilityKind::ImageGen => "Image generation",
-        CapabilityKind::Rerank => "Result ranking",
-        CapabilityKind::ComputerUse => "Operating windows",
-        CapabilityKind::KeyValue => "Small synced items",
-        CapabilityKind::Push => "Notifications",
-        CapabilityKind::Agent => "Coding agent",
-    }
-}
-
 /// How the consent title finishes "{app} wants to ...": by what it asks for, never by provider
 /// (design/31 §4.5).
 pub(super) fn request_phrase(kind: CapabilityKind, class: DataClass, usage: Usage) -> String {

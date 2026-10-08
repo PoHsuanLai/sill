@@ -17,6 +17,8 @@ mod step;
 mod summon;
 mod tap;
 #[cfg(test)]
+mod openers_tests;
+#[cfg(test)]
 mod tests;
 mod words;
 

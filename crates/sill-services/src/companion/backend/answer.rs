@@ -39,6 +39,9 @@ pub(super) async fn ask(
         space: input.space,
         agent: AgentRef::Companion,
         parent: None,
+        cwd: None,
+        started_from: None,
+        external: None,
     };
     let opened: SessionOpened = from_json(&companion.open(&to_json(&open)?).await.map_err(text)?)?;
     let intents = Intents::over(DbusTransport::new(connection.clone()));

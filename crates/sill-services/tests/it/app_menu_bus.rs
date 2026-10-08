@@ -1127,6 +1127,9 @@ mod routed {
                     space: space(),
                     agent: AgentRef::Companion,
                     parent: None,
+                    cwd: None,
+                    started_from: None,
+                    external: None,
                 }),
             )
             .await;

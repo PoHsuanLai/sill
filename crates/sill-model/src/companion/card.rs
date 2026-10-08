@@ -4,7 +4,7 @@
 use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, CardWire, StepWireState};
 use std::collections::BTreeSet;
 
-use docket_core::{ActionRef, CardActionId, Handle, Reveal, ValidManifest};
+use docket_core::{ActionRef, CardActionId, Handle, Reveal, ValidManifest, Visibility};
 
 use super::model::{AnswerFacts, Busy, Opener};
 
@@ -97,11 +97,12 @@ pub fn unresolved_handles(answer: &AnswerFacts) -> Vec<Handle> {
 }
 
 /// The kinds of thing each of `manifests` opens: those whose app declares the kind's open
-/// action (`docket_core::open_name`).
+/// action (`docket_core::open_name`). An app that is host-only is not listed.
 pub fn openers_of(manifests: &[ValidManifest]) -> BTreeSet<Opener> {
     manifests
         .iter()
         .map(ValidManifest::manifest)
+        .filter(|manifest| manifest.visibility == Visibility::Everyone)
         .flat_map(|manifest| {
             manifest
                 .entities

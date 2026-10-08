@@ -9,10 +9,10 @@ use super::marks::effect_mark;
 
 /// A card's button. The first button that only reads or writes undoably is the default; an
 /// outbound button is never drawn as the default without its mark, and a destructive one is
-/// never the default at all.
+/// never the default at all (running commands counts as destructive).
 pub fn card_action(card: &CardWire, first: bool) -> CardAction {
     let role = match (card.effect, first) {
-        (Effect::Destructive, _) => ActionRole::Destructive,
+        (Effect::Destructive | Effect::Execute, _) => ActionRole::Destructive,
         (Effect::Read | Effect::UndoableWrite | Effect::Outbound, true) => ActionRole::Primary,
         (Effect::Read | Effect::UndoableWrite | Effect::Outbound, false) => ActionRole::Secondary,
     };

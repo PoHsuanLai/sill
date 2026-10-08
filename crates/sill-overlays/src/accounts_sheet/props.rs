@@ -34,7 +34,7 @@ use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 
 use super::words::{
     absence_of, app_name, choice_label, fault_of, limit_of, mark_of, provider_name, request_phrase,
-    service_key, service_name, usual_port, waiting_on,
+    service_key, usual_port, waiting_on,
 };
 
 /// What the consent alert is given.
@@ -213,7 +213,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                 .iter()
                 .map(|row| ServiceLine {
                     key: ServiceKey(service_key(row.kind)),
-                    name: service_name(row.kind).to_owned(),
+                    name: row.kind.display_name().to_owned(),
                     offer: match row.state {
                         ServiceState::Offered(shipped) => ServiceOffer::Offered(switch(
                             draft.toggle_of(row.kind).unwrap_or(shipped),
