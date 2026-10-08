@@ -52,7 +52,7 @@ const REFUSED: &str = r#"{"kind":"sign_in","v":{"provider":"nextcloud","fields":
   "problem":{"field":"password","problem":"refused"}}}"#;
 const BROWSER: &str = r#"{"kind":"browser_wait","v":{"provider":"google","url":"https://accounts.example.org/auth?c=1"}}"#;
 const CODE: &str = r#"{"kind":"show_code","v":{"provider":"microsoft","user_code":"ABCD-EFGH","url":"https://example.org/device"}}"#;
-const WORKING: &str = r#"{"kind":"working","v":"nextcloud"}"#;
+const WORKING: &str = r#"{"kind":"working","v":{"provider":"nextcloud"}}"#;
 const FAILED: &str = r#"{"kind":"failed","v":{"provider":"nextcloud","fault":"unreachable"}}"#;
 const DONE: &str = r#"{"kind":"done"}"#;
 const REVIEW: &str = r#"{"kind":"review","v":{"provider":"nextcloud","allow":{"name":"org.quire.Mail","isolation":"flatpak"}

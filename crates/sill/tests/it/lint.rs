@@ -498,7 +498,10 @@ fn accounts_sheet_states() -> Vec<(&'static str, String)> {
             "browser",
             r#"{"kind":"browser_wait","v":{"provider":"google","url":"https://accounts.example.org/a"}}"#,
         ),
-        ("working", r#"{"kind":"working","v":"nextcloud"}"#),
+        (
+            "working",
+            r#"{"kind":"working","v":{"provider":"nextcloud"}}"#,
+        ),
         (
             "failed",
             r#"{"kind":"failed","v":{"provider":"nextcloud","fault":"refused"}}"#,
