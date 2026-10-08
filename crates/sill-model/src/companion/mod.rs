@@ -10,10 +10,13 @@
 
 mod card;
 mod command;
+#[cfg(test)]
+mod memory_line_tests;
 mod model;
 #[cfg(test)]
 mod openers_tests;
 mod presence;
+mod program_labels;
 mod run_state;
 mod step;
 mod summon;
@@ -30,6 +33,7 @@ pub use model::{
     AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,
 };
 pub use presence::presence_of;
+pub use program_labels::ProgramLabels;
 pub use run_state::{RunState, going_runs, run_controls, run_state_of};
 pub use step::{step, wake};
 pub use summon::{

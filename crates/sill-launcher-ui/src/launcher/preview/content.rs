@@ -196,7 +196,7 @@ fn memory_facts(item: &almanac_core::MemoryItem, companion: &Companion) -> PaneC
     );
     match entry {
         Some(entry) => {
-            let (title, app) = memory_line(entry);
+            let (title, app) = memory_line(entry, &companion.programs);
             facts(
                 Icon::Clock,
                 &title,

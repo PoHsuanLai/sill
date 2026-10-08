@@ -5,7 +5,7 @@
 use ds::base::text::clip::clip_chars;
 use ds::components::content::provider_mark::MarkProvider;
 use ds_shell::accounts::model::{Limitation, SignInFault};
-use ds_shell::prelude::WorkingFor;
+use ds_shell::prelude::{Recovery, WorkingFor};
 use porter_core::LimitReason;
 use porter_core::consent::Usage;
 use porter_core::sheet::SignInFault as PorterFault;
@@ -151,6 +151,28 @@ pub(super) fn fault_of(fault: PorterFault) -> SignInFault {
         PorterFault::NoLauncher => SignInFault::NoLauncher,
         PorterFault::NotInstalled => SignInFault::NotInstalled,
         PorterFault::Expired => SignInFault::TimedOut,
+        // gap(quire): SignInFault has no AlreadyAdded yet ("This account is already added.");
+        // Forbidden is the closest fault that says only a change outside the sheet helps.
+        PorterFault::AlreadyAdded => SignInFault::Forbidden,
+    }
+}
+
+/// Whether trying the sign-in again could help: not for a fault only a change outside the sheet
+/// fixes (a build without a client id, a missing agent or launcher, an account already added).
+pub(super) fn recovery_of(fault: PorterFault) -> Recovery {
+    match fault {
+        PorterFault::NeedsClientId
+        | PorterFault::NotInstalled
+        | PorterFault::NoLauncher
+        | PorterFault::AlreadyAdded
+        | PorterFault::Forbidden => Recovery::NoRetry,
+        PorterFault::Refused
+        | PorterFault::Unreachable
+        | PorterFault::Unreadable
+        | PorterFault::TimedOut
+        | PorterFault::Cancelled
+        | PorterFault::StoreFailed
+        | PorterFault::Expired => Recovery::Retry,
     }
 }
 

@@ -8,7 +8,9 @@ use sill_launcher::{
     Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink,
     Scope, Score, Subject,
 };
-use sill_model::companion::{Companion, CompanionCommand, CompanionLink, LookupPhase, memory_line};
+use sill_model::companion::{
+    Companion, CompanionCommand, CompanionLink, LookupPhase, ProgramLabels, memory_line,
+};
 use sill_services::control::Control;
 use tokio::sync::watch;
 
@@ -37,6 +39,7 @@ impl Provider for MemoryProvider {
         if query.is_cancelled() {
             return;
         }
+        let programs = self.companion.borrow().programs.clone();
         let needle = query.text.trim().to_lowercase();
         sink.push(Batch {
             provider: ProviderKind::Memory,
@@ -44,7 +47,7 @@ impl Provider for MemoryProvider {
             items: entries
                 .iter()
                 .enumerate()
-                .map(|(at, entry)| row(entry, at))
+                .map(|(at, entry)| row(entry, at, &programs))
                 .filter(|item| needle.is_empty() || item.title.to_lowercase().contains(&needle))
                 .collect(),
         });
@@ -85,8 +88,8 @@ impl MemoryProvider {
     }
 }
 
-fn row(entry: &TimelineEntry, at: usize) -> Item {
-    let (title, subtitle) = memory_line(entry);
+fn row(entry: &TimelineEntry, at: usize, programs: &ProgramLabels) -> Item {
+    let (title, subtitle) = memory_line(entry, programs);
     Item {
         id: ItemId(format!(
             "memory:{}:{:?}:{}",

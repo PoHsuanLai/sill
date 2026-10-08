@@ -185,11 +185,13 @@ fn body(step: Step, io: Io) -> Element {
         Step::Failed {
             provider,
             why,
+            recovery,
             mark,
         } => rsx! {
             SignInFailed {
                 provider,
                 why,
+                recovery,
                 mark,
                 on_retry: move |()| io.act.call(SheetAction::Retry),
                 on_back: back,

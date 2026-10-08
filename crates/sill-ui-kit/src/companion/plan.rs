@@ -79,6 +79,7 @@ fn effect_words(effect: EffectMark) -> &'static str {
         EffectMark::Read => "Look up",
         EffectMark::UndoableWrite => "Change",
         EffectMark::Outbound => "Send",
+        EffectMark::Execute => "Run",
         EffectMark::Destructive => "Delete",
     }
 }

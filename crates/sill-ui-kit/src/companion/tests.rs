@@ -110,6 +110,7 @@ fn effect_mark_total() {
         (E::UndoableWrite, EffectMark::UndoableWrite),
         (E::Outbound, EffectMark::Outbound),
         (E::Destructive, EffectMark::Destructive),
+        (E::Execute, EffectMark::Execute),
     ];
     for (effect, mark) in table {
         assert_eq!(effect_mark(effect), mark, "{effect:?}");

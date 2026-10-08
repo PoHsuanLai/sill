@@ -8,7 +8,7 @@ use ds_shell::accounts::model::{
     FieldRole, FieldText, FormField, Limitation, ProblemKind, ProviderEntry, ProviderKey,
     ProviderPick, Requirement, ServiceKey, ServiceLine, ServiceOffer, SignInFault,
 };
-use ds_shell::prelude::WorkingFor;
+use ds_shell::prelude::{Recovery, WorkingFor};
 use porter_core::consent::{AccountChoice as AskChoice, ConsentAsk, GrantScope, Usage};
 use porter_core::sheet::{
     Entry, FieldKind, FieldSpec, FieldValue, Presence, ProblemKind as PorterProblem, ProviderKind,
@@ -109,6 +109,7 @@ fn agent_row() -> ProviderRow {
 #[test]
 fn every_sheet_view_becomes_the_props_of_its_part() {
     let consent = SheetView::Consent(ConsentAsk {
+        app_label: None,
         app: app("org.quire.Photos"),
         kind: CapabilityKind::Storage,
         class: DataClass::AppOwn,
@@ -165,6 +166,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
         }),
     });
     let review = SheetView::Review(ReviewView {
+        allow_label: None,
         provider: provider("microsoft"),
         row: Some(named("microsoft")),
         review: Review {
@@ -349,6 +351,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             Some(Step::Failed {
                 provider: "Nextcloud".to_owned(),
                 why: SignInFault::NeedsClientId,
+                recovery: Recovery::NoRetry,
                 mark: Some(MarkProvider::Imap),
             }),
         ),
@@ -362,6 +365,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             Some(Step::Failed {
                 provider: "Google".to_owned(),
                 why: SignInFault::NeedsClientId,
+                recovery: Recovery::NoRetry,
                 mark: Some(MarkProvider::Google),
             }),
         ),
@@ -375,6 +379,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             Some(Step::Failed {
                 provider: "Claude Code".to_owned(),
                 why: SignInFault::NoLauncher,
+                recovery: Recovery::NoRetry,
                 mark: Some(MarkProvider::Imap),
             }),
         ),
@@ -442,6 +447,7 @@ fn the_draft_reaches_the_props() {
 #[test]
 fn a_review_switch_shows_what_the_person_chose() {
     let review = SheetView::Review(ReviewView {
+        allow_label: None,
         provider: provider("nextcloud"),
         row: Some(named("nextcloud")),
         review: Review {
@@ -794,8 +800,75 @@ fn porter_faults_land_on_the_shell_faults() {
         (PorterFault::NoLauncher, SignInFault::NoLauncher),
         (PorterFault::NotInstalled, SignInFault::NotInstalled),
         (PorterFault::Expired, SignInFault::TimedOut),
+        // gap(quire): no AlreadyAdded fault yet; Forbidden is the nearest.
+        (PorterFault::AlreadyAdded, SignInFault::Forbidden),
     ];
     for (porter, shell) in cases {
         assert_eq!(fault_of(porter), shell);
     }
+}
+
+#[test]
+fn only_a_fault_a_retry_can_fix_offers_try_again() {
+    use super::words::recovery_of;
+    let cases = [
+        (PorterFault::NeedsClientId, Recovery::NoRetry),
+        (PorterFault::NotInstalled, Recovery::NoRetry),
+        (PorterFault::NoLauncher, Recovery::NoRetry),
+        (PorterFault::AlreadyAdded, Recovery::NoRetry),
+        (PorterFault::Forbidden, Recovery::NoRetry),
+        (PorterFault::Unreachable, Recovery::Retry),
+        (PorterFault::TimedOut, Recovery::Retry),
+        (PorterFault::Refused, Recovery::Retry),
+    ];
+    for (fault, recovery) in cases {
+        assert_eq!(recovery_of(fault), recovery, "{fault:?}");
+    }
+}
+
+#[test]
+fn the_microsoft_failure_without_a_client_id_has_no_try_again() {
+    let failed = SheetView::Failed {
+        provider: provider("microsoft"),
+        row: Some(named("microsoft")),
+        fault: PorterFault::NeedsClientId,
+    };
+    let Some(Step::Failed { recovery, why, .. }) = shown(failed, vec![]) else {
+        panic!("no failure");
+    };
+    assert_eq!(why, SignInFault::NeedsClientId);
+    assert_eq!(recovery, Recovery::NoRetry);
+}
+
+#[test]
+fn consent_and_review_name_the_app_as_porter_resolved_it() {
+    let agent = app("org.quire.Agent.claude-code");
+    let consent = SheetView::Consent(ConsentAsk {
+        app: agent.clone(),
+        app_label: Some(porter_core::AppLabel("Claude Code".to_owned())),
+        kind: CapabilityKind::Mail,
+        class: DataClass::Mail,
+        usage: Usage::Interactive,
+        accounts: Vec::new(),
+        session: None,
+    });
+    let Some(Step::Consent(props)) = shown(consent, vec![]) else {
+        panic!("no consent");
+    };
+    assert_eq!(props.app, "Claude Code");
+    let review = SheetView::Review(ReviewView {
+        allow_label: Some(porter_core::AppLabel("Claude Code".to_owned())),
+        provider: provider("nextcloud"),
+        row: None,
+        review: Review {
+            label: AccountLabel("ada".to_owned()),
+            services: Vec::new(),
+            endpoints: Vec::new(),
+        },
+        allow: Some(agent),
+    });
+    let Some(Step::Review(props)) = shown(review, vec![]) else {
+        panic!("no review");
+    };
+    assert_eq!(props.allow.as_deref(), Some("Claude Code"));
 }

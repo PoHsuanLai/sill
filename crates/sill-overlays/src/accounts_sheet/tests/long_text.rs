@@ -97,6 +97,7 @@ fn the_cursor_keeps_its_row_whatever_the_order() {
 
 fn consent_for(id: &str, label: &str) -> SheetView {
     SheetView::Consent(ConsentAsk {
+        app_label: None,
         app: app(id),
         kind: CapabilityKind::Mail,
         class: DataClass::Mail,
@@ -141,6 +142,7 @@ fn a_long_account_label_is_cut_short_on_the_review_and_the_consent_line() {
         "{label}"
     );
     let review = SheetView::Review(ReviewView {
+        allow_label: None,
         provider: provider("nextcloud"),
         row: None,
         review: Review {

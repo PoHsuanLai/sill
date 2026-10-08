@@ -155,4 +155,6 @@ pub struct Companion {
     pub things: Lookup<Hit>,
     /// What the memory provider asked for.
     pub memory: Lookup<TimelineEntry>,
+    /// The provider rows' labels for coding-agent programs; empty until porter's list is read.
+    pub programs: super::ProgramLabels,
 }

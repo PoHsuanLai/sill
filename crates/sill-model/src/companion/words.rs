@@ -7,6 +7,7 @@ use docket_core::{Reveal, UndoEntry, UndoState};
 use prov::Actor;
 
 use super::model::{AnswerFacts, Busy};
+use super::program_labels::ProgramLabels;
 
 /// The answer's row: what was asked, and where the answer stands.
 pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
@@ -109,12 +110,17 @@ pub fn activity_line(entry: &UndoEntry) -> (String, String) {
 }
 
 /// A timeline row: who did what to which thing, and in which app.
-pub fn memory_line(entry: &TimelineEntry) -> (String, String) {
+pub fn memory_line(entry: &TimelineEntry, programs: &ProgramLabels) -> (String, String) {
     let who = match &entry.actor {
         Actor::User { .. } => "You".to_owned(),
         Actor::Companion { .. } => "Companion".to_owned(),
         Actor::Mcp { client } => client.as_str().to_owned(),
-        Actor::Acp { program } => format!("{} (coding agent)", program.as_str()),
+        Actor::Acp { program, label } => {
+            format!(
+                "{} (coding agent)",
+                programs.name_of(program.as_str(), label.as_ref())
+            )
+        }
         Actor::Cli => "A terminal".to_owned(),
         Actor::App { app } | Actor::ThirdParty { app, .. } => last_element(app.as_str()),
         Actor::System { .. } => "The system".to_owned(),

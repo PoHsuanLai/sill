@@ -6,14 +6,14 @@ use ds_core::vocab::EffectMark;
 use prov::Effect;
 use sill_model::companion::RunState;
 
-/// How much a call can change, for drawing. `EffectMark` has no mark for running commands; it
-/// ranks above destructive, so it takes the strongest mark there is.
+/// How much a call can change, for drawing.
 pub fn effect_mark(effect: Effect) -> EffectMark {
     match effect {
         Effect::Read => EffectMark::Read,
         Effect::UndoableWrite => EffectMark::UndoableWrite,
         Effect::Outbound => EffectMark::Outbound,
-        Effect::Destructive | Effect::Execute => EffectMark::Destructive,
+        Effect::Destructive => EffectMark::Destructive,
+        Effect::Execute => EffectMark::Execute,
     }
 }
 

@@ -67,6 +67,7 @@ fn consent() -> SheetView {
         usage: Usage::Interactive,
         accounts: vec![choice("home"), choice("work")],
         session: None,
+        app_label: None,
     })
 }
 
@@ -125,6 +126,7 @@ fn review() -> SheetView {
             endpoints: Vec::new(),
         },
         allow: None,
+        allow_label: None,
     })
 }
 

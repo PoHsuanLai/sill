@@ -456,7 +456,12 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-alert-footer[*|data-layout=stack]{ flex-direction:column; }
 .ds-alert-slot{ display:flex; flex:1; min-width:0; }
 .ds-alert-slot .ds-button{ width:100%; justify-content:center; }
-.ds-alert .ds-button[*|data-variant=danger]{ color:var(--danger); }
+/* A destructive action that is not the default is filled danger with its own ink: the red as
+   text on the raised ground measured about 3.5:1 in dark, the filled pair clears 4.5:1 in both
+   schemes. The hover and pressed states keep the pair (they outrank the button's own wash). */
+.ds-alert .ds-button[*|data-variant=push][*|data-role=destructive]{ background:var(--danger); color:var(--danger-ink); }
+.ds-alert .ds-button[*|data-variant=push][*|data-role=destructive]:hover{ background:var(--danger); color:var(--danger-ink); }
+.ds-alert .ds-button[*|data-variant=push][*|data-role=destructive][*|data-pressed]{ background:var(--danger); color:var(--danger-ink); }
 .ds-alert-stage{ position:absolute; inset:0; z-index:var(--z-peek); pointer-events:auto; }
 .ds-alert-suppression{ margin-top:var(--s-12); }
 .ds-alert-help{ position:absolute; left:var(--s-24); bottom:var(--s-20); }
@@ -3286,6 +3291,14 @@ html,body{margin:0;padding:0;background:transparent}
 /* -- context_chips -- */
 /* The context chips (design/32 section 4). Placeholder root until its fill. */
 .ds-context-chips { display:flex; flex-wrap:wrap; }
+/* -- effect_tag -- */
+/* The effect tag (design/32 section 4). Read and undoable writes are quiet; an outbound effect
+   is warned; running commands is a strong neutral plate; destruction is the danger wash. */
+.ds-effect-tag{ display:inline-flex; align-items:center; gap:var(--s-6); padding:var(--s-2) var(--s-8); border-radius:var(--r-pill); font-size:var(--fs-caption); color:var(--ink); }
+.ds-effect-tag[*|data-effect=outbound]{ background:var(--warn-wash); }
+.ds-effect-tag[*|data-effect=execute]{ background:var(--fill); border:var(--hair) solid var(--line); }
+.ds-effect-tag[*|data-effect=destructive]{ background:var(--danger-wash); }
+.ds-effect-tag-words{ line-height:1.25; }
 /* -- answer_card -- */
 /* The answer card (design/32 section 4). Placeholder root until its fill. */
 .ds-answer-card { display:block; }

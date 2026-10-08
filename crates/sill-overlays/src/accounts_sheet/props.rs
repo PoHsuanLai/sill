@@ -24,7 +24,7 @@ use ds_shell::accounts::model::{
     FormField, FormPart, ProblemKind, ProviderEntry, ProviderKey, ProviderPick, Requirement,
     ServiceKey, ServiceLine, ServiceOffer, SignInFault,
 };
-use ds_shell::prelude::WorkingFor;
+use ds_shell::prelude::{Recovery, WorkingFor};
 use porter_core::sheet::{
     Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, RowKind, ServiceState,
     SheetView,
@@ -35,7 +35,8 @@ use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 use super::ranking::ranked;
 use super::words::{
     ACCOUNT_LABEL, APP_NAME, absence_of, app_name, choice_label, clipped, fault_of, limit_of,
-    mark_of, provider_name, request_phrase, service_key, short_link, usual_port, waiting_on,
+    mark_of, provider_name, recovery_of, request_phrase, service_key, short_link, usual_port,
+    waiting_on,
 };
 
 /// What the consent alert is given.
@@ -102,6 +103,7 @@ pub(super) enum Step {
     Failed {
         provider: String,
         why: SignInFault,
+        recovery: Recovery,
         mark: Option<MarkProvider>,
     },
 }
@@ -129,7 +131,13 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
     let draft = &sheet.draft;
     Some(match &sheet.view {
         SheetView::Consent(ask) => Step::Consent(ConsentProps {
-            app: clipped(&app_name(&ask.app, None), APP_NAME),
+            app: clipped(
+                &app_name(
+                    &ask.app,
+                    ask.app_label.as_ref().map(|label| label.0.as_str()),
+                ),
+                APP_NAME,
+            ),
             request: request_phrase(ask.kind, ask.class, ask.usage),
             choices: ask
                 .accounts
@@ -230,10 +238,10 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                     limit: row.limit.map(limit_of),
                 })
                 .collect(),
-            allow: review
-                .allow
-                .as_ref()
-                .map(|app| clipped(&app_name(app, None), APP_NAME)),
+            allow: review.allow.as_ref().map(|app| {
+                let resolved = review.allow_label.as_ref().map(|label| label.0.as_str());
+                clipped(&app_name(app, resolved), APP_NAME)
+            }),
         }),
         SheetView::Working { provider, row } => Step::Working {
             provider: provider_name(provider, row.as_ref()),
@@ -246,6 +254,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
         } => Step::Failed {
             provider: provider_name(provider, row.as_ref()),
             why: fault_of(*fault),
+            recovery: recovery_of(*fault),
             mark: Some(mark_of(provider.as_str())),
         },
         SheetView::Done => return None,
