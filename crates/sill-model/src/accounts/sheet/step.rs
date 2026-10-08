@@ -67,6 +67,9 @@ pub fn step(sheets: AccountsSheets, event: SheetEvent) -> (AccountsSheets, Vec<S
     (AccountsSheets { link, open }, out)
 }
 
+/// The provider file "Other..." leads to: the hand-typed mail server form.
+const OTHER_PROVIDER: &str = "generic-imap";
+
 /// The page a browser step shows.
 fn page_of(view: &SheetView) -> Option<WebUrl> {
     match view {
@@ -130,9 +133,10 @@ fn providers(
         SheetAction::Pick(key) => {
             let picked = match key {
                 ListKey::Provider(id) => rows.iter().find(|row| row.id == id).map(|row| &row.id),
+                // "Other..." is the mail form, chosen by id: the row order is porter's to change.
                 ListKey::Other => rows
                     .iter()
-                    .find(|row| row.kind == RowKind::Generic)
+                    .find(|row| row.kind == RowKind::Generic && row.id.as_str() == OTHER_PROVIDER)
                     .map(|row| &row.id),
             }
             .cloned();

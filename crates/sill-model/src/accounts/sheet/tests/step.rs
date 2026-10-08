@@ -166,10 +166,22 @@ fn what_the_person_does_is_what_accountd_is_told() {
             vec![],
         ),
         case(
-            "Other picks the first generic provider",
+            "Other picks the mail form, whatever the row order",
             rows(&["nextcloud", "generic-imap", "generic-dav"]),
             vec![Do::Pick(ListKey::Other)],
             vec![SheetInput::Pick(provider("generic-imap"))],
+        ),
+        case(
+            "Other picks the mail form when the calendar form is listed first",
+            rows(&["generic-dav", "nextcloud", "generic-jmap", "generic-imap"]),
+            vec![Do::Pick(ListKey::Other)],
+            vec![SheetInput::Pick(provider("generic-imap"))],
+        ),
+        case(
+            "Other with only the calendar form listed picks nothing",
+            rows(&["nextcloud", "generic-dav"]),
+            vec![Do::Pick(ListKey::Other)],
+            vec![],
         ),
         case(
             "Other with no generic provider picks nothing",
