@@ -32,9 +32,10 @@ use porter_core::sheet::{
 use porter_core::{AccountId, LauncherSession, ProviderId, Toggle};
 use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 
+use super::ranking::ranked;
 use super::words::{
-    absence_of, app_name, choice_label, fault_of, limit_of, mark_of, provider_name, request_phrase,
-    service_key, usual_port, waiting_on,
+    ACCOUNT_LABEL, APP_NAME, absence_of, app_name, choice_label, clipped, fault_of, limit_of,
+    mark_of, provider_name, request_phrase, service_key, short_link, usual_port, waiting_on,
 };
 
 /// What the consent alert is given.
@@ -81,6 +82,9 @@ pub(super) enum Step {
     SignIn(SignInProps),
     Browser {
         provider: String,
+        /// The address as it is drawn: the host, short. The whole one is `url`.
+        shown: String,
+        /// The whole address, for "Copy Link".
         url: String,
         copied: CopyState,
     },
@@ -125,14 +129,14 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
     let draft = &sheet.draft;
     Some(match &sheet.view {
         SheetView::Consent(ask) => Step::Consent(ConsentProps {
-            app: app_name(&ask.app),
+            app: clipped(&app_name(&ask.app, None), APP_NAME),
             request: request_phrase(ask.kind, ask.class, ask.usage),
             choices: ask
                 .accounts
                 .iter()
                 .map(|choice| AccountChoice {
                     key: ChoiceKey(choice.account.as_str().to_owned()),
-                    label: choice.label.0.clone(),
+                    label: clipped(&choice.label.0, ACCOUNT_LABEL),
                     provider: mark_of(choice.provider.as_str()),
                 })
                 .collect(),
@@ -144,17 +148,19 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
         }),
         SheetView::Providers(rows) => Step::Providers(ProvidersProps {
             // The generic row is ProviderList's own "Other…", so it is not listed twice.
-            providers: rows
-                .iter()
-                .filter(|row| row.kind != RowKind::Generic)
-                .map(|row| {
-                    ProviderEntry::new(
-                        ProviderKey(row.id.as_str().to_owned()),
-                        row.label.clone(),
-                        mark_of(&row.mark),
-                    )
-                })
-                .collect(),
+            providers: ranked(
+                rows.iter()
+                    .filter(|row| row.kind != RowKind::Generic)
+                    .map(|row| {
+                        ProviderEntry::new(
+                            ProviderKey(row.id.as_str().to_owned()),
+                            row.label.clone(),
+                            mark_of(&row.mark),
+                        )
+                    })
+                    .collect(),
+                &draft.query,
+            ),
             query: draft.query.clone(),
             cursor: draft.cursor.as_ref().map(|key| match key {
                 ListKey::Provider(id) => {
@@ -191,6 +197,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
         }),
         SheetView::BrowserWait { provider, row, url } => Step::Browser {
             provider: provider_name(provider, row.as_ref()),
+            shown: short_link(url),
             url: url.as_str().to_owned(),
             copied: copy_state(draft),
         },
@@ -206,7 +213,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
             copied: copy_state(draft),
         },
         SheetView::Review(review) => Step::Review(ReviewProps {
-            account: review.review.label.0.clone(),
+            account: clipped(&review.review.label.0, ACCOUNT_LABEL),
             services: review
                 .review
                 .services
@@ -223,7 +230,10 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                     limit: row.limit.map(limit_of),
                 })
                 .collect(),
-            allow: review.allow.as_ref().map(app_name),
+            allow: review
+                .allow
+                .as_ref()
+                .map(|app| clipped(&app_name(app, None), APP_NAME)),
         }),
         SheetView::Working { provider, row } => Step::Working {
             provider: provider_name(provider, row.as_ref()),

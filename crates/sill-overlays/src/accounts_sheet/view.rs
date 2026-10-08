@@ -130,16 +130,19 @@ fn body(step: Step, io: Io) -> Element {
         },
         Step::Browser {
             provider,
+            shown,
             url,
             copied,
         } => {
             rsx! {
                 BrowserWait {
                     provider,
-                    url,
+                    // The page prints what it is given and offers the same text to "Copy Link":
+                    // it is given the short form, and the copy is of the whole address.
+                    url: shown,
                     copied,
                     on_open_again: move |()| io.act.call(SheetAction::OpenAgain),
-                    on_copy: move |text| io.copy.call(text),
+                    on_copy: move |_short: String| io.copy.call(url.clone()),
                     on_cancel: cancel,
                     title: StepTitle::Host,
                 }

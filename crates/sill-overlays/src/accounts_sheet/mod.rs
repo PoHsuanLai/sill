@@ -14,6 +14,7 @@ mod events;
 mod io;
 mod layer;
 mod props;
+mod ranking;
 mod stage;
 mod surface;
 #[cfg(test)]

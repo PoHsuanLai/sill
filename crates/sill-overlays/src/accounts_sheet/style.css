@@ -7,3 +7,11 @@
 .sill-accounts-window{ position:relative; display:flex; flex-direction:column; box-sizing:border-box; width:min(560px, 88%); max-height:100%; overflow:hidden; background:var(--f-grad); border-radius:var(--r-window); box-shadow:var(--shadow-window); color:var(--ink); pointer-events:auto; }
 .sill-accounts-window[data-step=consent]{ width:min(380px, 88%); }
 .sill-accounts-body{ display:flex; flex-direction:column; min-height:0; overflow-y:auto; scrollbar-width:none; }
+
+/* The provider list can be longer than the window: the step's column shrinks to the window and its
+   first part (the search and the rows) scrolls, while the last (the Cancel button) stays where it
+   is. The step is quire's, so it is reached by position from the body that is ours. */
+.sill-accounts-window[data-step=providers] .sill-accounts-body{ overflow:hidden; }
+.sill-accounts-window[data-step=providers] .sill-accounts-body > *{ min-height:0; }
+.sill-accounts-window[data-step=providers] .sill-accounts-body > * > :first-child{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none; }
+.sill-accounts-window[data-step=providers] .sill-accounts-body > * > :last-child{ flex:none; }

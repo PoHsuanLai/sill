@@ -2,6 +2,7 @@
 //! app, a provider, a kind of service and a reason a service is limited. Pure, table-tested in
 //! `props.rs`'s tests.
 
+use ds::base::text::clip::clip_chars;
 use ds::components::content::provider_mark::MarkProvider;
 use ds_shell::accounts::model::{Limitation, SignInFault};
 use ds_shell::prelude::WorkingFor;
@@ -9,49 +10,53 @@ use porter_core::LimitReason;
 use porter_core::consent::Usage;
 use porter_core::sheet::SignInFault as PorterFault;
 use porter_core::sheet::{ProviderKind, ProviderRow};
-use porter_core::{AbsentReason, AppId, CapabilityKind, DataClass, ProviderId};
+use porter_core::{AbsentReason, AppId, CapabilityKind, DataClass, ProviderId, WebUrl};
 
-/// What the person reads for an app: the last element of its reverse-DNS name (`org.quire.Photos`
-/// is "Photos"; `com.example.my_app-2` is "my app 2").
-pub(super) fn app_name(app: &AppId) -> String {
-    let last = app.name.as_str().rsplit('.').next().unwrap_or_default();
-    last.replace(['_', '-'], " ")
-}
-
-/// What a provider is called, for the titles of the steps after the list (the list carries its own
-/// labels): the shipped provider files' labels, and the id itself for any other.
-pub(super) fn provider_label(id: &ProviderId) -> String {
-    match id.as_str() {
-        "anthropic" => "Anthropic",
-        "fastmail" => "Fastmail",
-        "generic-dav" => "your calendar and contacts server",
-        "generic-imap" => "your email server",
-        "generic-jmap" => "your email server",
-        "gmx" => "GMX",
-        "google" => "Google",
-        "google-ai" => "Google (Gemini)",
-        "icloud" => "iCloud",
-        "llama-cpp" => "llama.cpp",
-        "lm-studio" => "LM Studio",
-        "local" => "this computer",
-        "microsoft" => "Microsoft",
-        "moonshot" => "Moonshot (Kimi)",
-        "nextcloud" => "Nextcloud",
-        "ollama" => "Ollama",
-        "openai" => "OpenAI",
-        "openrouter" => "OpenRouter",
-        "yahoo" => "Yahoo Mail",
-        other => other,
+/// What the person reads for an app. `resolved` is the label the app's own entry gives it (porter
+/// will send one with the ask: this is where it plugs in); without one the last element of its
+/// reverse-DNS name is shown as it is written (`org.quire.Photos` is "Photos",
+/// `org.quire.Agent.claude-code` is "claude-code"), never lowercased or re-spelled.
+pub(super) fn app_name(app: &AppId, resolved: Option<&str>) -> String {
+    match resolved {
+        Some(label) => label.to_owned(),
+        None => app
+            .name
+            .as_str()
+            .rsplit('.')
+            .next()
+            .unwrap_or_default()
+            .to_owned(),
     }
-    .to_owned()
 }
 
-/// What the steps call the provider: the row's own label for a coding agent (its provider file's
-/// display name), else `provider_label`.
+/// What the steps call the provider: the label of its row, which porter sends with every view
+/// after the list; the provider's id as written for a view that carries no row.
 pub(super) fn provider_name(id: &ProviderId, row: Option<&ProviderRow>) -> String {
-    match row {
-        Some(row) if row.auth == ProviderKind::AgentLogin => row.label.clone(),
-        Some(_) | None => provider_label(id),
+    row.map_or_else(|| id.as_str().to_owned(), |row| row.label.clone())
+}
+
+/// `text` cut to `limit` characters with an ellipsis at the end when it is longer: an address or
+/// an app id that would run out of the window is shown short, never clipped on both edges.
+pub(super) fn clipped(text: &str, limit: TextLimit) -> String {
+    clip_chars(text, limit.0)
+}
+
+/// How many characters a line of the sheet may hold before it is cut short.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct TextLimit(usize);
+
+/// The app's name in the consent heading and the review's last button.
+pub(super) const APP_NAME: TextLimit = TextLimit(28);
+/// An account's address on a single line of the review and the consent line.
+pub(super) const ACCOUNT_LABEL: TextLimit = TextLimit(48);
+
+/// The page a browser step opened, short: its host, and an ellipsis when there is more to the
+/// address. The whole address is for "Copy Link" and never printed.
+pub(super) fn short_link(url: &WebUrl) -> String {
+    let host = url.origin().host;
+    match (url.path(), url.query()) {
+        ("/", None) => host,
+        _ => format!("{host}/\u{2026}"),
     }
 }
 

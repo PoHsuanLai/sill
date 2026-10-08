@@ -23,6 +23,8 @@ use sill_model::accounts::sheet::{
     AccountsSheets, CopyMark, ListKey, SheetAction, SheetEvent, SheetHandle, step,
 };
 
+mod long_text;
+
 use super::events;
 use super::props::{ConsentProps, ProvidersProps, ReviewProps, SignInProps, Step, step_of};
 use super::stage::{Here, drawn};
@@ -74,6 +76,22 @@ fn line(key: &str, name: &str, offer: ServiceOffer, limit: Option<Limitation>) -
         name: name.to_owned(),
         offer,
         limit,
+    }
+}
+
+/// The row porter sends for the provider `id`: its label is the id with a capital.
+fn named(id: &str) -> ProviderRow {
+    let mut chars = id.chars();
+    let label: String = chars
+        .next()
+        .map(|first| first.to_uppercase().chain(chars).collect())
+        .unwrap_or_default();
+    ProviderRow {
+        id: provider(id),
+        label,
+        mark: id.to_owned(),
+        kind: RowKind::Provider,
+        auth: ProviderKind::Service,
     }
 }
 
@@ -135,7 +153,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
     ]);
     let form = SheetView::SignIn(SignInView {
         provider: provider("nextcloud"),
-        row: None,
+        row: Some(named("nextcloud")),
         fields: vec![
             spec(FieldKind::Address, Entry::Plain, Presence::Required),
             spec(FieldKind::Password, Entry::Secret, Presence::Required),
@@ -148,7 +166,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
     });
     let review = SheetView::Review(ReviewView {
         provider: provider("microsoft"),
-        row: None,
+        row: Some(named("microsoft")),
         review: Review {
             label: AccountLabel("ada@work.example".to_owned()),
             services: vec![
@@ -251,11 +269,12 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "browser",
             SheetView::BrowserWait {
                 provider: provider("google"),
-                row: None,
+                row: Some(named("google")),
                 url,
             },
             Some(Step::Browser {
                 provider: "Google".to_owned(),
+                shown: "login.example.org/\u{2026}".to_owned(),
                 url: "https://login.example.org/auth?x=1".to_owned(),
                 copied: CopyState::Idle,
             }),
@@ -264,7 +283,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "code",
             SheetView::ShowCode {
                 provider: provider("microsoft"),
-                row: None,
+                row: Some(named("microsoft")),
                 user_code: UserCode("ABCD-EFGH".to_owned()),
                 url: device,
             },
@@ -302,7 +321,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "working",
             SheetView::Working {
                 provider: provider("nextcloud"),
-                row: None,
+                row: Some(named("nextcloud")),
             },
             Some(Step::Working {
                 provider: "Nextcloud".to_owned(),
@@ -324,7 +343,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "failed",
             SheetView::Failed {
                 provider: provider("nextcloud"),
-                row: None,
+                row: Some(named("nextcloud")),
                 fault: PorterFault::NeedsClientId,
             },
             Some(Step::Failed {
@@ -337,7 +356,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             "failed on Google, which names its client id",
             SheetView::Failed {
                 provider: provider("google"),
-                row: None,
+                row: Some(named("google")),
                 fault: PorterFault::NeedsClientId,
             },
             Some(Step::Failed {
@@ -371,7 +390,7 @@ fn the_draft_reaches_the_props() {
     let form = || {
         SheetView::SignIn(SignInView {
             provider: provider("nextcloud"),
-            row: None,
+            row: Some(named("nextcloud")),
             fields: vec![
                 spec(FieldKind::Address, Entry::Plain, Presence::Required),
                 spec(FieldKind::Password, Entry::Secret, Presence::Required),
@@ -410,7 +429,7 @@ fn the_draft_reaches_the_props() {
     let url = WebUrl::parse("https://login.example.org/").unwrap_or_else(|e| panic!("{e}"));
     let browser = SheetView::BrowserWait {
         provider: provider("google"),
-        row: None,
+        row: Some(named("google")),
         url,
     };
     let Some(Step::Browser { copied, .. }) = shown(browser, vec![SheetAction::Copied]) else {
@@ -424,7 +443,7 @@ fn the_draft_reaches_the_props() {
 fn a_review_switch_shows_what_the_person_chose() {
     let review = SheetView::Review(ReviewView {
         provider: provider("nextcloud"),
-        row: None,
+        row: Some(named("nextcloud")),
         review: Review {
             label: AccountLabel("ada".to_owned()),
             services: vec![row(
@@ -460,14 +479,14 @@ fn the_title_area_carries_the_steps_own_title() {
         (
             SheetView::Working {
                 provider: provider("nextcloud"),
-                row: None,
+                row: Some(named("nextcloud")),
             },
             "Signing in to Nextcloud",
         ),
         (
             SheetView::Failed {
                 provider: provider("google"),
-                row: None,
+                row: Some(named("google")),
                 fault: PorterFault::Refused,
             },
             "Could not add Google",
@@ -490,7 +509,7 @@ fn only_the_banners_output_draws_and_a_finished_add_draws_nothing() {
             handle,
             SheetView::Working {
                 provider: provider("nextcloud"),
-                row: None,
+                row: Some(named("nextcloud")),
             },
         ),
     );
@@ -567,8 +586,18 @@ fn events_become_what_the_person_did() {
 #[test]
 fn the_words_follow_the_table() {
     use super::words::{app_name, mark_of, request_phrase, service_key, service_of};
-    assert_eq!(app_name(&app("org.quire.Photos")), "Photos");
-    assert_eq!(app_name(&app("com.example.my_app-2")), "my app 2");
+    assert_eq!(app_name(&app("org.quire.Photos"), None), "Photos");
+    // The segment is shown as written: no lowercasing, no swapped separators.
+    assert_eq!(
+        app_name(&app("org.quire.Agent.claude-code"), None),
+        "claude-code"
+    );
+    assert_eq!(app_name(&app("com.example.my_App-2"), None), "my_App-2");
+    // A label the app's entry gives wins.
+    assert_eq!(
+        app_name(&app("org.quire.Agent.claude-code"), Some("Claude Code")),
+        "Claude Code"
+    );
     assert_eq!(mark_of("gemini"), MarkProvider::Google);
     assert_eq!(mark_of("lm-studio"), MarkProvider::Imap);
     assert_eq!(mark_of("local"), MarkProvider::Local);
@@ -592,7 +621,7 @@ fn the_server_form_becomes_choices_hints_and_parts() {
     let view = |protocol| {
         SheetView::SignIn(SignInView {
             provider: provider("generic-imap"),
-            row: None,
+            row: Some(named("generic-imap")),
             fields: manual_form(protocol, Some("example.org")),
             problem: None,
         })

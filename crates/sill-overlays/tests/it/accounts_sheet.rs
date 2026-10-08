@@ -32,7 +32,7 @@ const PROVIDERS: &str = r#"{"kind":"providers","v":[
   {"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"},
   {"id":"google","label":"Google","mark":"google"},
   {"id":"generic-imap","label":"Email (IMAP)","mark":"mail"}]}"#;
-const FORM: &str = r#"{"kind":"sign_in","v":{"provider":"nextcloud","fields":[
+const FORM: &str = r#"{"kind":"sign_in","v":{"provider":"nextcloud","row":{"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"},"fields":[
   {"kind":"address","entry":"plain","presence":"required","prefill":null},
   {"kind":"password","entry":"secret","presence":"required","prefill":null}],"problem":null}}"#;
 /// The hand-typed server form of a mail account: the protocol is a pop-up, then the server.
@@ -46,14 +46,14 @@ const MANUAL: &str = r#"{"kind":"sign_in","v":{"provider":"generic-imap","fields
   {"kind":"outgoing_security","entry":"plain","presence":"required","prefill":"tls"},
   {"kind":"outgoing_port","entry":"plain","presence":"optional","prefill":"465"},
   {"kind":"username","entry":"plain","presence":"optional","prefill":null}],"problem":null}}"#;
-const REFUSED: &str = r#"{"kind":"sign_in","v":{"provider":"nextcloud","fields":[
+const REFUSED: &str = r#"{"kind":"sign_in","v":{"provider":"nextcloud","row":{"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"},"fields":[
   {"kind":"address","entry":"plain","presence":"required","prefill":null},
   {"kind":"password","entry":"secret","presence":"required","prefill":null}],
   "problem":{"field":"password","problem":"refused"}}}"#;
 const BROWSER: &str = r#"{"kind":"browser_wait","v":{"provider":"google","url":"https://accounts.example.org/auth?c=1"}}"#;
 const CODE: &str = r#"{"kind":"show_code","v":{"provider":"microsoft","user_code":"ABCD-EFGH","url":"https://example.org/device"}}"#;
-const WORKING: &str = r#"{"kind":"working","v":{"provider":"nextcloud"}}"#;
-const FAILED: &str = r#"{"kind":"failed","v":{"provider":"nextcloud","fault":"unreachable"}}"#;
+const WORKING: &str = r#"{"kind":"working","v":{"provider":"nextcloud","row":{"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"}}}"#;
+const FAILED: &str = r#"{"kind":"failed","v":{"provider":"nextcloud","row":{"id":"nextcloud","label":"Nextcloud","mark":"nextcloud"},"fault":"unreachable"}}"#;
 const DONE: &str = r#"{"kind":"done"}"#;
 const REVIEW: &str = r#"{"kind":"review","v":{"provider":"nextcloud","allow":{"name":"org.quire.Mail","isolation":"flatpak"}
   ,"review":{"label":"ada@example.org","endpoints":[],"services":[
@@ -554,4 +554,43 @@ fn the_steps_render() {
                 .unwrap_or_else(|e| panic!("{e}")); // test-only
         }
     }
+}
+
+/// `count` provider rows, then Cancel: a list far longer than the window.
+fn many_providers(count: usize) -> String {
+    let rows: Vec<String> = (0..count)
+        .map(|n| format!(r#"{{"id":"mail-{n}","label":"Mail Provider {n}","mark":"mail"}}"#))
+        .collect();
+    format!(r#"{{"kind":"providers","v":[{}]}}"#, rows.join(","))
+}
+
+#[test]
+fn a_long_provider_list_scrolls_inside_the_window_and_keeps_cancel_in_view() {
+    let mut run = start();
+    run.open(&many_providers(25));
+    let h = &run.running.harness;
+    let window = h.rect(".sill-accounts-window").expect("laid out"); // test-only
+    let cancel = h
+        .rect(".ds-acc-actions button")
+        .expect("Cancel is laid out"); // test-only
+    let bottom = |r: &ds::base::geometry::units::Rect| r.origin.y.0 + r.size.height.0;
+    assert!(
+        bottom(&window) <= f32::from(VIEWPORT.height as u16),
+        "the window ends at {} on a screen {} high",
+        bottom(&window),
+        VIEWPORT.height
+    );
+    assert!(
+        bottom(&cancel) <= bottom(&window) + 0.5 && cancel.origin.y.0 >= window.origin.y.0,
+        "Cancel at {}..{} is outside the window {}..{}",
+        cancel.origin.y.0,
+        bottom(&cancel),
+        window.origin.y.0,
+        bottom(&window)
+    );
+    let list = h.rect(".ds-acc-body").expect("laid out"); // test-only
+    assert!(
+        bottom(&list) <= cancel.origin.y.0 + 0.5,
+        "the list runs under the buttons"
+    );
 }
