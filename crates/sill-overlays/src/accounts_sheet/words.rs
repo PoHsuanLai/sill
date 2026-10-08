@@ -9,7 +9,7 @@ use ds_shell::prelude::{Recovery, WorkingFor};
 use porter_core::LimitReason;
 use porter_core::consent::Usage;
 use porter_core::sheet::SignInFault as PorterFault;
-use porter_core::sheet::{ProviderKind, ProviderRow};
+use porter_core::sheet::{ProviderKind, ProviderRow, RowKind};
 use porter_core::{AbsentReason, AppId, CapabilityKind, DataClass, ProviderId, WebUrl};
 
 /// What the person reads for an app. `resolved` is the label the app's own entry gives it (porter
@@ -62,6 +62,8 @@ pub(super) fn short_link(url: &WebUrl) -> String {
 
 /// The mark a provider row wears, from the provider file's `mark` word. Providers without a mark
 /// of their own wear the neutral one.
+// gap(quire): ds_shell's ProviderEntry carries no face, so porter's `mark_face` (letter and
+// colour) cannot reach the list; ProviderEntry::faced in quire v0.2.31 is the way in.
 pub(super) fn mark_of(mark: &str) -> MarkProvider {
     match mark {
         "google" | "gemini" | "google-ai" => MarkProvider::Google,
@@ -72,6 +74,13 @@ pub(super) fn mark_of(mark: &str) -> MarkProvider {
         "local" => MarkProvider::Local,
         _ => MarkProvider::Imap,
     }
+}
+
+/// Whether the list's "Other…" row (the hand-typed mail server form, which also takes the newer
+/// protocol from its pop-up) stands for `row`, so the row is not listed by name. A generic row
+/// for anything else (calendar and contacts) is only reachable by its own name.
+pub(super) fn reached_by_other(row: &ProviderRow) -> bool {
+    row.kind == RowKind::Generic && matches!(row.id.as_str(), "generic-imap" | "generic-jmap")
 }
 
 /// What a sign-in is waiting on: the agent that logs itself in for a row whose provider file says

@@ -73,6 +73,10 @@ fn window_item(text: &str) -> Option<OwnItem> {
 pub enum Identity {
     /// Not proven: the name was claimed, which proves nothing.
     Unverified,
+    /// The owner is a Flatpak app, but this process may not read the sandbox's metadata
+    /// (`/proc/<pid>/root/.flatpak-info`, which a Landlock-confined reader is refused), so it
+    /// cannot say which app it is: shown as an unknown app, and never proven.
+    Unreadable,
     /// Porter's caller identity names the owner as this app, and the name is the menu name of
     /// that app.
     Verified(AppName),

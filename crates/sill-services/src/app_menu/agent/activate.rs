@@ -164,7 +164,7 @@ impl<T: Transport> MenuAgent<T> {
         command: Option<&MenuCommand>,
         identity: &Identity,
     ) -> Result<ActionIndex, MenuFault> {
-        if command.is_none() || *identity == Identity::Unverified {
+        if command.is_none() || !matches!(identity, Identity::Verified(_)) {
             return Ok(ActionIndex::default());
         }
         let manifests = self

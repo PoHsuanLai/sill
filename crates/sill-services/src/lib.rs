@@ -48,6 +48,7 @@ pub mod seat;
 pub mod service;
 pub mod session;
 mod stream;
+pub mod sync_hold;
 pub mod tray;
 pub mod voice;
 pub mod volume;

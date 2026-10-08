@@ -4,8 +4,8 @@
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, DbusActivation};
 use sill_model::launch::{
-    LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit, launch_argv,
-    scope_unit, step,
+    LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, SETTINGS_BUS_NAME,
+    ScopeUnit, SettingsAccount, launch_argv, scope_unit, step,
 };
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
@@ -35,6 +35,7 @@ pub(crate) async fn run(
             }
             LaunchCommand::ForceQuit(app_id) => force_quit(&tx, &app_id).await,
             LaunchCommand::Open(request) => super::open::open(&setup, request).await,
+            LaunchCommand::OpenSettings(account) => open_settings(&setup.session, &account).await,
         }
     }
 }
@@ -53,7 +54,7 @@ async fn launch_one(
         record(tx, failed(app_id, "not in the app index"));
         return;
     };
-    if app.activation == DbusActivation::DBus {
+    if app.activation == DbusActivation::DBus || app.id.0 == SETTINGS_BUS_NAME {
         record(
             tx,
             activate_over_dbus(&setup.session, &app, &request, app_id).await,
@@ -273,5 +274,18 @@ mod tests {
             let status = child.wait().await.unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(status.success(), succeeds, "{manager:?}");
         }
+    }
+}
+
+/// Settings at `account`, started by the bus when it is not running.
+async fn open_settings(session: &Bus, account: &SettingsAccount) {
+    match session.connect().await {
+        Ok(Some(connection)) => {
+            if let Err(error) = dbus::open_settings(&connection, account).await {
+                eprintln!("sill: launch: opening Settings: {error}");
+            }
+        }
+        Ok(None) => {}
+        Err(error) => eprintln!("sill: launch: opening Settings: {error}"),
     }
 }

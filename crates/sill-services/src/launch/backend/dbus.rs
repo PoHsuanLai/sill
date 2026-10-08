@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use sill_model::apps::App;
-use sill_model::launch::LaunchRequest;
+use sill_model::launch::{LaunchRequest, SETTINGS_BUS_NAME, SettingsAccount};
 use zbus::Connection;
 use zbus::zvariant::Value;
 
@@ -30,6 +30,26 @@ pub async fn activate(
             Some("org.freedesktop.Application"),
             "Activate",
             &(platform_data,),
+        )
+        .await?;
+    Ok(())
+}
+
+/// `org.freedesktop.Application.ActivateAction("open-account", [path])` on `org.quire.Settings`:
+/// the bus starts it as its own unit when it is not running, and Settings opens at the account.
+pub async fn open_settings(connection: &Connection, account: &SettingsAccount) -> zbus::Result<()> {
+    let platform_data: HashMap<&str, Value<'_>> = HashMap::new();
+    connection
+        .call_method(
+            Some(SETTINGS_BUS_NAME),
+            object_path(SETTINGS_BUS_NAME).as_str(),
+            Some("org.freedesktop.Application"),
+            "ActivateAction",
+            &(
+                "open-account",
+                vec![Value::from(account.0.as_str())],
+                platform_data,
+            ),
         )
         .await?;
     Ok(())

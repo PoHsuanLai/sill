@@ -559,6 +559,8 @@ A settled item is deleted, not marked closed.
 
 ## Open items
 
+- **Accounts: what waits on other repos.** (1) A provider's `mark_face` cannot reach the add list: `ds_shell::ProviderEntry` has no face (`gap(quire)` at `mark_of`); quire v0.2.31's `ProviderEntry::faced` is the way in. (2) Settings is opened by activating `org.quire.Settings` (`ActivateAction("open-account", [account path])` at `/org/quire/Settings`), so it runs as `org.quire.Settings.service`; detent must serve `org.freedesktop.Application` with that action, and its desktop entry should say `DBusActivatable=true` (the launch service already activates any such entry over the bus, and Settings by name whatever its entry says). (3) The app-password hint under an iCloud, Fastmail or Yahoo password is the empty entry's hint, shortened: quire has no help line under a field for porter's full sentence.
+
 ### sill
 
 - **anyview is taken by path.** The root `Cargo.toml` names `anyview-core`, `anyview-image`, `anyview-peek`,

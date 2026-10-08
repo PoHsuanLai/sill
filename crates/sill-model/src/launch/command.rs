@@ -55,4 +55,14 @@ pub enum LaunchCommand {
     ForceQuit(AppId),
     /// Open a file, reveal it, or open an address with the default handler (the launcher's rows).
     Open(OpenRequest),
+    /// Open the quire Settings app at an account, by bus activation of `org.quire.Settings`.
+    OpenSettings(SettingsAccount),
 }
+
+/// The bus name Settings runs under: the only name porter trusts for the Settings role, so it is
+/// always started by activation (as `org.quire.Settings.service`), never as an app scope.
+pub const SETTINGS_BUS_NAME: &str = "org.quire.Settings";
+
+/// An account's object path (`/org/quire/Accounts1/account/<segment>`), the place Settings opens at.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SettingsAccount(pub String);

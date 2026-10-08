@@ -5,7 +5,7 @@
 //! `dbus-daemon`. Never the person's session bus.
 
 #[path = "accounts_support/mod.rs"]
-mod accounts_support;
+pub(crate) mod accounts_support;
 
 use std::time::Duration;
 

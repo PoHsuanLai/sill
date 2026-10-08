@@ -804,6 +804,26 @@ fn the_port_hints_are_porters_usual_ports() {
 }
 
 #[test]
+fn the_calendar_and_contacts_row_is_listed_and_the_mail_rows_are_left_to_other() {
+    let generic = |id: &str, label: &str| ProviderRow {
+        kind: RowKind::Generic,
+        label: label.to_owned(),
+        ..named(id)
+    };
+    let view = SheetView::Providers(vec![
+        named("nextcloud"),
+        generic("generic-imap", "Other email account"),
+        generic("generic-jmap", "Other email account (newer servers)"),
+        generic("generic-dav", "Other calendar and contacts"),
+    ]);
+    let Some(Step::Providers(props)) = shown(view, vec![]) else {
+        panic!("no provider list");
+    };
+    let labels: Vec<&str> = props.providers.iter().map(|e| e.label.as_str()).collect();
+    assert_eq!(labels, ["Nextcloud", "Other calendar and contacts"]);
+}
+
+#[test]
 fn an_app_password_field_says_where_the_provider_makes_one() {
     const CASES: &[(&str, Option<&str>)] = &[
         (

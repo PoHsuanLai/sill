@@ -244,7 +244,7 @@ pub struct NotificationsSettings {
     pub banner_material: BannerMaterial,
     #[settings(
         label = "Serve notifications",
-        help = "Show other apps' notifications. Off leaves them to another notification daemon.",
+        help = "Show other apps' notifications. Off leaves them to another notifications app.",
         section = "Notifications",
         advanced
     )]

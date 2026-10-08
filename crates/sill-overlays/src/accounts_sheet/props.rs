@@ -26,8 +26,7 @@ use ds_shell::accounts::model::{
 };
 use ds_shell::prelude::{Recovery, WorkingFor};
 use porter_core::sheet::{
-    Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, RowKind, ServiceState,
-    SheetView,
+    Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, ServiceState, SheetView,
 };
 use porter_core::{AccountId, LauncherSession, ProviderId, Toggle};
 use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
@@ -35,8 +34,8 @@ use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 use super::ranking::ranked;
 use super::words::{
     ACCOUNT_LABEL, APP_NAME, absence_of, app_name, app_password_hint, choice_label, clipped,
-    fault_of, limit_of, mark_of, provider_name, recovery_of, request_phrase, service_key,
-    short_link, usual_port, waiting_on,
+    fault_of, limit_of, mark_of, provider_name, reached_by_other, recovery_of, request_phrase,
+    service_key, short_link, usual_port, waiting_on,
 };
 
 /// What the consent alert is given.
@@ -155,10 +154,11 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
             session: ask.session.clone(),
         }),
         SheetView::Providers(rows) => Step::Providers(ProvidersProps {
-            // The generic row is ProviderList's own "Other…", so it is not listed twice.
+            // The generic mail rows are ProviderList's own "Other…" (and the server form's
+            // protocol pop-up), so they are not listed twice; the other generic rows are.
             providers: ranked(
                 rows.iter()
-                    .filter(|row| row.kind != RowKind::Generic)
+                    .filter(|row| !reached_by_other(row))
                     .map(|row| {
                         ProviderEntry::new(
                             ProviderKey(row.id.as_str().to_owned()),

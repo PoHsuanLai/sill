@@ -35,6 +35,7 @@ use sill_services::power_profile::PowerProfileService;
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::service::{Handle, Service};
 use sill_services::session::SessionService;
+use sill_services::sync_hold::SyncHoldService;
 use sill_services::tray::TrayService;
 use sill_services::voice::VoiceService;
 use sill_services::volume::VolumeService;
@@ -95,6 +96,8 @@ pub struct Services {
     /// The accounts sheet accountd opens on `org.quire.AccountsSheet1`; passive until the daemon
     /// says to serve.
     pub accounts_sheet: Handle<AccountsSheetService>,
+    /// Datasets whose removal syncd holds back, and the notices that say so.
+    pub sync_hold: Handle<SyncHoldService>,
     /// Each output's work area and scale, served on `org.quire.Outputs1`; passive until the daemon
     /// says to serve.
     pub work_areas: Handle<WorkAreaService>,
@@ -164,6 +167,7 @@ members! {
     keycap: KeycapService,
     accounts: AccountsService,
     accounts_sheet: AccountsSheetService,
+    sync_hold: SyncHoldService,
     work_areas: WorkAreaService,
     intents: IntentsService,
     companion: CompanionService,

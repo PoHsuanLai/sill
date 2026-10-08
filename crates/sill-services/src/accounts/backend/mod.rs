@@ -1,11 +1,11 @@
 //! The service's effects: accountd's bus, the notice and the notifications server's answers.
 
-mod actions;
+pub(crate) mod actions;
 mod links;
 mod notice;
 mod retry;
 mod run;
-mod wire;
+pub(crate) mod wire;
 
 pub(crate) use run::run;
 

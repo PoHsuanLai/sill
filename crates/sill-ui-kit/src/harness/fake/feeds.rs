@@ -182,6 +182,7 @@ pub fn services() -> (Services, Feeds) {
         keycap: fixed(sill_model::keycap::KeycapState::default(), &mut keep),
         accounts: fixed(sill_model::accounts::AccountsState::default(), &mut keep),
         accounts_sheet,
+        sync_hold: fixed(sill_model::sync_hold::SyncHoldState::default(), &mut keep),
         work_areas: fixed(sill_model::work_areas::WorkAreas::default(), &mut keep),
         intents,
         companion,

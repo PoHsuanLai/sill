@@ -180,6 +180,12 @@ fn what_the_person_does_is_what_accountd_is_told() {
             vec![SheetInput::Pick(provider("generic-imap"))],
         ),
         case(
+            "the calendar and contacts row is picked by its own id",
+            rows(&["nextcloud", "generic-imap", "generic-dav"]),
+            vec![Do::Pick(ListKey::Provider(provider("generic-dav")))],
+            vec![SheetInput::Pick(provider("generic-dav"))],
+        ),
+        case(
             "Other with only the calendar form listed picks nothing",
             rows(&["nextcloud", "generic-dav"]),
             vec![Do::Pick(ListKey::Other)],

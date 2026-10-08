@@ -29,6 +29,7 @@ use sill_services::notifications::NotificationsService;
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::seat::seat;
 use sill_services::service::spawn;
+use sill_services::sync_hold::{SyncHoldLinks, SyncHoldService};
 use sill_services::voice::{VoiceLinks, VoiceService};
 use sill_services::volume::VolumeService;
 use sill_services::work_areas::WorkAreaService;
@@ -139,6 +140,15 @@ pub(crate) fn start(
             launch: launch.control.clone(),
         },
     );
+    let sync_hold = spawn::<SyncHoldService>(
+        rt,
+        env,
+        SyncHoldLinks {
+            notifications: notifications.control.clone(),
+            notes: notifications.state.clone(),
+            launch: launch.control.clone(),
+        },
+    );
     Services {
         clock: spawn(rt, env, ()),
         network: spawn(rt, env, ()),
@@ -193,6 +203,7 @@ pub(crate) fn start(
         keycap,
         accounts,
         accounts_sheet,
+        sync_hold,
         work_areas: spawn::<WorkAreaService>(rt, env, ()),
         dirs: env.dirs.clone(),
         session_actions: Arc::clone(&env.session_actions),

@@ -35,6 +35,7 @@ pub mod power_profile;
 pub mod results;
 pub mod screenshots;
 pub mod session;
+pub mod sync_hold;
 pub mod tray;
 pub mod units;
 pub mod voice;

@@ -27,6 +27,7 @@ mod scan;
 mod screenshots_live;
 mod shell_manifest;
 mod spawn_sites;
+mod sync_hold_bus;
 mod tray_bus;
 mod voice_bus;
 mod voice_support;
