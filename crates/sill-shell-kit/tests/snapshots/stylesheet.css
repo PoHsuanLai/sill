@@ -1946,7 +1946,7 @@ html,body{margin:0;padding:0;background:transparent}
    is not honoured. Static: no hover, focus or motion. */
 
 .ds-provider{
-  --pc:var(--ink);
+  --pc:var(--ink); --pi:var(--surface);
   display:inline-grid; place-items:center; width:13px; height:13px; box-sizing:border-box;
   border-radius:var(--r-tiny); background:var(--mark-ground); color:var(--pc);
   font-family:var(--font-display); font-weight:800; font-size:var(--fs-nano); line-height:1;
@@ -1964,6 +1964,11 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-provider[*|data-kind=local] .ds-ic{ display:block; }
 .ds-provider[*|data-kind=image]{ padding:var(--s-1-5); }
 .ds-provider[*|data-kind=image] img{ width:100%; height:100%; display:block; object-fit:contain; }
+/* A face supplied as data: the colour is the ground and the letter takes `--pi`, the ink quire
+   chose for it (white or dark, whichever contrasts more). Two letters are set smaller to fit. */
+.ds-provider[*|data-kind=face]{ background:var(--pc); color:var(--pi); letter-spacing:-0.02em; }
+.ds-provider[*|data-kind=face][*|data-letters="2"]{ font-size:var(--fs-pico); }
+.ds-provider[*|data-kind=face][*|data-size=mini][*|data-letters="2"]{ letter-spacing:-0.06em; }
 /* -- row -- */
 /* Row (design/30 section 2.6, `NSTableCellView`): a leading element, the words, an accessory. Rows
    are 24 tall (Compact; 28 in a table) or 44 (Settings); a row under a highlight fills with the accent and takes
