@@ -836,3 +836,8 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
 - **Older companiond.** An object without the property keeps `[]`: no footer, nothing logged.
 - **Declined.** A named model that cannot serve arrives as `RefusalWire::Failed(reason)`; the card shows that reason.
 - Test: `companion_routing_bus.rs`, `launcher_companion.rs`.
+
+## Space removal: not a shell path
+
+- sill has no Space-removal path. Settings (detent) owns the removal sheet and calls
+  `org.quire.Memory1 Control.RemoveSpace` before `Spaces1.Remove`. The shell neither removes Spaces nor shows the sheet.
