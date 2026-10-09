@@ -11,6 +11,7 @@
 
 use dioxus::prelude::{Key, Modifiers};
 
+use ds::prelude::command_keys;
 use ds_behaviour::switcher::SwKey;
 
 /// Whether the chord's modifier is still down.
@@ -43,6 +44,7 @@ pub fn sw_key(key: &Key, modifiers: Modifiers) -> Option<SwKey> {
 /// them): an `Alt` or `Meta` (`Super`) key-up releases it unless the other of the two is still
 /// in `modifiers`; any other key-up leaves it as `modifiers` say.
 pub fn chord_after_keyup(key: &Key, modifiers: Modifiers) -> Chord {
+    let modifiers = command_keys(modifiers);
     match key {
         Key::Alt => held_while(Modifiers::META, modifiers),
         Key::Meta | Key::Super => held_while(Modifiers::ALT, modifiers),
@@ -95,6 +97,8 @@ mod tests {
             (Key::Meta, Modifiers::META, Chord::Released),
             (Key::Super, Modifiers::META, Chord::Released),
             (Key::Alt, Modifiers::ALT | Modifiers::META, Chord::Held),
+            (Key::Alt, Modifiers::ALT | Modifiers::SUPER, Chord::Held),
+            (Key::Tab, Modifiers::SUPER, Chord::Held),
             (Key::Tab, Modifiers::ALT, Chord::Held),
             (Key::Shift, Modifiers::ALT | Modifiers::SHIFT, Chord::Held),
             (Key::Tab, Modifiers::empty(), Chord::Released),

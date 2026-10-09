@@ -3,13 +3,14 @@
 //! surface may not get Toshy's remap, so Alt+K is accepted too, plan "shell risks"). Pure.
 
 use dioxus::prelude::{Key, Modifiers};
+use ds::prelude::is_command;
 
 use crate::launcher::companion::CompanionKey;
 use crate::launcher::keys::LauncherKey;
 
 /// `key` with `modifiers` held, when the panel handles it.
 pub fn launcher_key(key: &Key, modifiers: Modifiers) -> Option<LauncherKey> {
-    let chord = modifiers.intersects(Modifiers::CONTROL | Modifiers::ALT);
+    let chord = is_command(modifiers) || modifiers.contains(Modifiers::ALT);
     match key {
         Key::ArrowUp => Some(LauncherKey::Up),
         Key::ArrowDown => Some(LauncherKey::Down),
@@ -28,7 +29,7 @@ pub fn launcher_key(key: &Key, modifiers: Modifiers) -> Option<LauncherKey> {
 /// Escape, command-Enter and command-period (Toshy maps Cmd to Ctrl, so Ctrl and Meta both
 /// count).
 pub fn companion_key(key: &Key, modifiers: Modifiers) -> Option<CompanionKey> {
-    let command = modifiers.intersects(Modifiers::CONTROL | Modifiers::META);
+    let command = is_command(modifiers);
     match key {
         Key::Escape if modifiers.is_empty() => Some(CompanionKey::Escape),
         Key::Enter if command => Some(CompanionKey::CommandEnter),
@@ -86,6 +87,8 @@ mod tests {
             (Key::Enter, Modifiers::ALT, None),
             (k("."), Modifiers::CONTROL, Some(K::CommandPeriod)),
             (k("."), Modifiers::META, Some(K::CommandPeriod)),
+            (k("."), Modifiers::SUPER, Some(K::CommandPeriod)),
+            (Key::Enter, Modifiers::SUPER, Some(K::CommandEnter)),
             (k("."), none, None),
             (k(","), Modifiers::CONTROL, None),
         ];
