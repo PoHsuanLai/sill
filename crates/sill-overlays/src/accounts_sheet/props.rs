@@ -34,8 +34,8 @@ use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 use super::ranking::ranked;
 use super::words::{
     ACCOUNT_LABEL, APP_NAME, absence_of, app_name, app_password_hint, choice_label, clipped,
-    fault_of, limit_of, mark_of, provider_name, reached_by_other, recovery_of, request_phrase,
-    service_key, short_link, usual_port, waiting_on,
+    face_of, fault_of, limit_of, mark_of, provider_name, reached_by_other, recovery_of,
+    request_phrase, service_key, short_link, usual_port, waiting_on,
 };
 
 /// What the consent alert is given.
@@ -160,11 +160,15 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                 rows.iter()
                     .filter(|row| !reached_by_other(row))
                     .map(|row| {
-                        ProviderEntry::new(
+                        let entry = ProviderEntry::new(
                             ProviderKey(row.id.as_str().to_owned()),
                             row.label.clone(),
                             mark_of(&row.mark),
-                        )
+                        );
+                        match face_of(row) {
+                            Some(face) => entry.faced(face),
+                            None => entry,
+                        }
                     })
                     .collect(),
                 &draft.query,

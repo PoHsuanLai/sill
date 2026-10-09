@@ -3,6 +3,7 @@
 //! `props.rs`'s tests.
 
 use ds::base::text::clip::clip_chars;
+use ds::components::content::mark_face::MarkFace;
 use ds::components::content::provider_mark::MarkProvider;
 use ds_shell::accounts::model::{Limitation, SignInFault};
 use ds_shell::prelude::{Recovery, WorkingFor};
@@ -62,8 +63,6 @@ pub(super) fn short_link(url: &WebUrl) -> String {
 
 /// The mark a provider row wears, from the provider file's `mark` word. Providers without a mark
 /// of their own wear the neutral one.
-// gap(quire): ds_shell's ProviderEntry carries no face, so porter's `mark_face` (letter and
-// colour) cannot reach the list; ProviderEntry::faced in quire v0.2.31 is the way in.
 pub(super) fn mark_of(mark: &str) -> MarkProvider {
     match mark {
         "google" | "gemini" | "google-ai" => MarkProvider::Google,
@@ -74,6 +73,14 @@ pub(super) fn mark_of(mark: &str) -> MarkProvider {
         "local" => MarkProvider::Local,
         _ => MarkProvider::Imap,
     }
+}
+
+/// The face the provider file gives `row`'s mark (a letter on a colour), in quire's type; `None`
+/// when the file gives none, and the named mark is worn.
+pub(super) fn face_of(row: &ProviderRow) -> Option<MarkFace> {
+    row.mark_face
+        .as_ref()
+        .map(|face| MarkFace::new(face.letter.as_str(), face.colour.as_str()))
 }
 
 /// Whether the list's "Other…" row (the hand-typed mail server form, which also takes the newer
