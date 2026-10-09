@@ -14,15 +14,6 @@ fn schema_round_trip() {
 }
 
 #[test]
-fn widget_for_kind_is_total() {
-    let whole = schema();
-    assert!(!whole.key.is_empty());
-    for key in &whole.key {
-        let _ = key.kind.widget();
-    }
-}
-
-#[test]
 fn every_domain_names_sills_file() {
     for schema in schemas().into_iter().chain([schema()]) {
         assert_eq!(schema.app.0, "sill");

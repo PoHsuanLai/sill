@@ -5,7 +5,7 @@
 use crate::cc_support;
 
 use cc_support::{fake, render};
-use ds_lint::{LintConfig, Profile, Rule, assert_clean, markup};
+use ds_lint::{LintConfig, Profile, assert_clean, markup};
 use sill_settings::ShellFile;
 
 const CONTROL_CENTER_CSS: &str = include_str!("../../src/control_center/style.css");
@@ -40,13 +40,4 @@ fn the_control_center_stylesheet_is_clean_under_strict() {
 fn the_control_center_markup_lint_is_clean() {
     let offences = markup(&html(), &full_css(), &strict());
     assert!(offences.is_empty(), "{offences:#?}");
-}
-
-#[test]
-fn the_control_center_renders_no_raw_markup() {
-    let offences = markup(&html(), &full_css(), &strict());
-    assert!(
-        offences.iter().all(|o| o.rule != Rule::RawMarkup),
-        "{offences:#?}"
-    );
 }

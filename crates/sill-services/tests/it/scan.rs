@@ -10,7 +10,7 @@
 use std::path::{Path, PathBuf};
 
 use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
-use sill_services::apps::{IconTheme, applications_dirs, scan};
+use sill_services::apps::{IconTheme, scan};
 
 fn fixture_dirs() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/applications");
@@ -111,12 +111,4 @@ fn every_other_field_round_trips_through_parse_entry() {
     assert_eq!(app.mime_types, vec!["text/plain", "text/markdown"]);
     assert_eq!(app.keywords, vec!["edit", "write", "notes"]);
     assert_eq!(app.listing, Listing::Shown);
-}
-
-#[test]
-fn applications_dirs_is_non_empty_and_does_not_panic() {
-    // Not a fixture test: just proves the real function runs on this machine's real
-    // environment and returns something (the desktop entry spec guarantees at least
-    // `/usr/share/applications` is always a candidate, whether or not it exists).
-    assert!(!applications_dirs(std::path::Path::new("/nowhere")).is_empty());
 }

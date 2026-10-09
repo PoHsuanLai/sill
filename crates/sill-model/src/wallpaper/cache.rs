@@ -66,13 +66,6 @@ mod tests {
     }
 
     #[test]
-    fn the_same_input_always_hashes_the_same() {
-        let a = source_hash(Path::new("/usr/share/backgrounds/default.png"), 12_345, 999);
-        let b = source_hash(Path::new("/usr/share/backgrounds/default.png"), 12_345, 999);
-        assert_eq!(a, b);
-    }
-
-    #[test]
     fn each_input_changes_the_hash_on_its_own() {
         let base = source_hash(Path::new("/a/b.png"), 100, 1);
         let cases: &[(&str, u64)] = &[

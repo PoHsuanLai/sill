@@ -9,7 +9,7 @@ use ds_harness::Driver;
 use launcher_harness::launcher_support;
 
 use dioxus::prelude::*;
-use ds_lint::{LintConfig, Profile, Rule, markup};
+use ds_lint::{LintConfig, Profile, markup};
 use sill_launcher_ui::Launcher;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::LauncherLink;
@@ -80,15 +80,6 @@ fn the_panel_renders_the_palette() {
 fn the_panel_markup_lint_is_clean() {
     let offences = markup(&panel_html(), &full_css(), &strict());
     assert!(offences.is_empty(), "{offences:#?}");
-}
-
-#[test]
-fn the_panel_renders_no_raw_markup() {
-    let offences = markup(&panel_html(), &full_css(), &strict());
-    assert!(
-        offences.iter().all(|o| o.rule != Rule::RawMarkup),
-        "{offences:#?}"
-    );
 }
 
 #[test]
