@@ -135,9 +135,14 @@ fn TrayButtonView(
     onwheel: EventHandler<WheelEvent>,
 ) -> Element {
     let title = item.title.clone();
-    let tooltip = match item.status {
-        TrayStatus::NeedsAttention => format!("{title} (needs attention)"),
-        TrayStatus::Passive | TrayStatus::Active => title.clone(),
+    // The tip is the name alone (quire's tip house style); the accessible name keeps the status.
+    let spoken = match item.status {
+        TrayStatus::NeedsAttention => Some(format!("{title}, needs attention")),
+        TrayStatus::Passive | TrayStatus::Active => None,
+    };
+    let common = Common {
+        aria_label: spoken.or(common.aria_label.clone()),
+        ..common
     };
     rsx! {
         // `data-wheel="capture"`: shell-host's scroll engine hands the raw wheel event only to
@@ -148,8 +153,8 @@ fn TrayButtonView(
                 common: Common { id: Some(popup_element_id(index)), ..common },
                 image: ImagePosition::Only,
                 icon,
+                title: Some(title.clone()),
                 label: title,
-                title: Some(tooltip),
                 shown,
                 pointer,
                 onclick,
@@ -197,6 +202,29 @@ mod tests {
 
     fn full_css() -> &'static str {
         sill_shell_kit::stylesheet()
+    }
+
+    /// The tip is the name alone; only the accessible name says the item needs attention.
+    #[test]
+    fn a_tip_is_the_name_and_the_accessible_name_keeps_the_status() {
+        const CASES: [(TrayStatus, &str); 2] = [
+            (TrayStatus::Active, "aria-label=\"Sync\""),
+            (
+                TrayStatus::NeedsAttention,
+                "aria-label=\"Sync, needs attention\"",
+            ),
+        ];
+        for (status, aria) in CASES {
+            let item = TrayItem {
+                status,
+                ..fake_item("Sync")
+            };
+            let mut dom = VirtualDom::new_with_props(two_fake_entries, (item.clone(), item));
+            dom.rebuild_in_place();
+            let html = dioxus_ssr::render(&dom);
+            assert!(html.contains(aria), "{status:?}: {html}");
+            assert!(html.contains("title=\"Sync\""), "{status:?}: {html}");
+        }
     }
 
     #[test]
