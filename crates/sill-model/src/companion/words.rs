@@ -114,13 +114,11 @@ pub fn memory_line(entry: &TimelineEntry, programs: &ProgramLabels) -> (String, 
     let who = match &entry.actor {
         Actor::User { .. } => "You".to_owned(),
         Actor::Companion { .. } => "Companion".to_owned(),
-        Actor::Mcp { client } => client.as_str().to_owned(),
-        Actor::Acp { program, label } => {
-            format!(
-                "{} (assistant)",
-                programs.name_of(program.as_str(), label.as_ref())
-            )
-        }
+        Actor::Mcp { .. } => "An outside assistant".to_owned(),
+        Actor::Acp { program, label } => match programs.name_of(program.as_str(), label.as_ref()) {
+            Some(name) => format!("{name} (assistant)"),
+            None => "An assistant".to_owned(),
+        },
         Actor::Cli => "A terminal".to_owned(),
         Actor::App { app } | Actor::ThirdParty { app, .. } => last_element(app.as_str()),
         Actor::System { .. } => "The system".to_owned(),

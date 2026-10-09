@@ -22,20 +22,23 @@ impl ProgramLabels {
     }
 
     /// How a coding agent reads: the name the person gave it in agents.toml (the actor's own
-    /// label), else the provider row's label for its program, else the program as written. No
-    /// other text names it: the agent's own handshake title is never read.
-    pub fn name_of(&self, program: &str, label: Option<&AgentLabel>) -> String {
+    /// label), else the provider row's label for its program; `None` when neither names it (the
+    /// program id is a developer word and is never shown). The agent's own handshake title is
+    /// never read.
+    pub fn name_of(&self, program: &str, label: Option<&AgentLabel>) -> Option<String> {
         label
             .map(|label| label.0.as_str())
             .or_else(|| self.0.get(program).map(String::as_str))
-            .unwrap_or(program)
-            .to_owned()
+            .map(str::to_owned)
     }
 
     /// The name of `actor` when it is a coding agent.
     pub fn name_of_actor(&self, actor: &Actor) -> Option<String> {
         match actor {
-            Actor::Acp { program, label } => Some(self.name_of(program.as_str(), label.as_ref())),
+            Actor::Acp { program, label } => Some(
+                self.name_of(program.as_str(), label.as_ref())
+                    .unwrap_or_else(|| "Assistant".to_owned()),
+            ),
             _ => None,
         }
     }

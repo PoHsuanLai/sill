@@ -70,14 +70,14 @@ fn the_provider_rows_label_comes_second() {
 }
 
 #[test]
-fn the_raw_program_comes_last() {
+fn an_unnamed_program_is_never_shown_as_written() {
     assert_eq!(
         who(acp("codex", None), &rows()),
-        "codex (assistant) archived"
+        "An assistant archived"
     );
     assert_eq!(
         who(acp("claude-code", None), &ProgramLabels::default()),
-        "claude-code (assistant) archived"
+        "An assistant archived"
     );
 }
 
@@ -87,8 +87,11 @@ fn a_label_is_never_taken_from_anywhere_else() {
     // swapped for a row's label.
     assert_eq!(
         who(acp("nextcloud", None), &rows()),
-        "nextcloud (assistant) archived"
+        "An assistant archived"
     );
     let client = ClientName::parse("claude-code").unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(who(Actor::Mcp { client }, &rows()), "claude-code archived");
+    assert_eq!(
+        who(Actor::Mcp { client }, &rows()),
+        "An outside assistant archived"
+    );
 }
