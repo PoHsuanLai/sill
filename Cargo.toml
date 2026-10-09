@@ -210,6 +210,9 @@ porter-infer = { path = "../porter/crates/porter-infer" }
 # proves whose menu a name serves before an agent's activation trusts a command id it names.
 # MIT OR Apache-2.0, a sibling checkout already in the tree through docket-dbus.
 porter-dbus = { path = "../porter/crates/porter-dbus" }
+# The typed calls on inferd and accountd (guests, answers, the change stream) over the session bus.
+# MIT OR Apache-2.0, a sibling checkout; no inference stack and no in-process host.
+porter-client = { path = "../porter/crates/porter-client", default-features = false, features = ["dbus"] }
 # The companion's wire (the bodies of `org.quire.Companion1`: asks, answers, cards, plans, forms),
 # cuad's bus bodies and D-Bus proxies (run states, outcomes, `Cua1.Manager`/`Run`) and memoryd's
 # vocabulary and proxies (`MemoryItem`, the timeline): serde data and zbus declarations only, the
@@ -289,6 +292,7 @@ docket-core = { path = "../docket/crates/docket-core" }
 docket-dbus = { path = "../docket/crates/docket-dbus" }
 
 [patch."https://github.com/PoHsuanLai/porter"]
+porter-client = { path = "../porter/crates/porter-client" }
 porter-core = { path = "../porter/crates/porter-core" }
 porter-dbus = { path = "../porter/crates/porter-dbus" }
 porter-infer = { path = "../porter/crates/porter-infer" }

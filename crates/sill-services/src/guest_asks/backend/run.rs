@@ -2,7 +2,9 @@
 //! server's answers and the commands, stepping [`GuestAsksState`], posting its notices and
 //! giving inferd the person's answers.
 
-use porter_dbus::{COMPUTER_ERROR_PREFIX, InferenceProxy};
+use porter_client::{
+    Accounts, ClientError, ComputerReason, DbusTransport, GuestChange, NodeId, TransportError,
+};
 use sill_model::guest_asks::{
     Ask, Computer, GuestAsksCommand, GuestAsksEffect, GuestAsksEvent, GuestAsksState, Posted,
     Verdict, shown_for, step,
@@ -22,10 +24,9 @@ use crate::error::ServiceError;
 use crate::guest_asks::GuestAsksService;
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
-use crate::stream::next;
 
-/// The error inferd answers when someone else (Settings) already answered the question.
-const NOT_ASKING: &str = "NotAsking";
+/// The shell's seat at inferd's guests.
+type Guests = Accounts<DbusTransport>;
 
 /// Everything the loop owns.
 struct Live {
@@ -81,14 +82,9 @@ impl Live {
         commands: &mut UnboundedReceiver<GuestAsksCommand>,
         answers: &mut MessageStream,
     ) -> Ended {
-        let Ok(proxy) = InferenceProxy::new(&self.connection).await else {
-            return Ended::Unreadable;
-        };
+        let proxy = Accounts::over(DbusTransport::over(self.connection.clone()));
         // Open before reading, so a question asked in between is not lost.
-        let Ok(mut asks) = proxy.receive_guest_asks().await else {
-            return Ended::Unreadable;
-        };
-        let Ok(mut changes) = proxy.receive_guests_changed().await else {
+        let Ok(mut changes) = proxy.watch_guests().await else {
             return Ended::Unreadable;
         };
         if !self.reread(&proxy).await {
@@ -96,18 +92,16 @@ impl Live {
         }
         loop {
             tokio::select! {
-                Some(signal) = next(&mut asks) => {
-                    let ask = signal
-                        .args()
-                        .ok()
-                        .and_then(|args| wire::asked(args.node(), args.details()));
-                    if let Some(ask) = ask {
-                        self.apply(GuestAsksEvent::Asked(ask), &proxy).await;
+                Some(change) = changes.next() => match change {
+                    GuestChange::Asks { node, ask } => {
+                        if let Some(ask) = wire::asked(&node, ask) {
+                            self.apply(GuestAsksEvent::Asked(ask), &proxy).await;
+                        }
                     }
-                }
-                Some(_) = next(&mut changes) => {
-                    self.reread(&proxy).await;
-                }
+                    _ => {
+                        self.reread(&proxy).await;
+                    }
+                },
                 Some(Ok(message)) = next(answers) => {
                     if let Some(said) = actions::said(&self.connection, &message).await {
                         self.heard_server(said, &proxy).await;
@@ -125,10 +119,10 @@ impl Live {
     }
 
     /// Read `Guests` and take the questions waiting from it; whether inferd answered.
-    async fn reread(&mut self, proxy: &InferenceProxy<'_>) -> bool {
+    async fn reread(&mut self, proxy: &Guests) -> bool {
         match proxy.guests().await {
             Ok(rows) => {
-                self.apply(GuestAsksEvent::Waiting(wire::waiting(&rows)), proxy)
+                self.apply(GuestAsksEvent::Waiting(wire::waiting(rows)), proxy)
                     .await;
                 true
             }
@@ -147,7 +141,7 @@ impl Live {
 
     /// The server's word: a press of a notice sill posted answers the question; a close ends the
     /// notice's claim.
-    async fn heard_server(&mut self, said: actions::Said, proxy: &InferenceProxy<'_>) {
+    async fn heard_server(&mut self, said: actions::Said, proxy: &Guests) {
         // The notes may already have let go of a notice just pressed.
         self.learn();
         match said {
@@ -177,7 +171,7 @@ impl Live {
     }
 
     /// Step the state by `event`, publish it, and carry out what the step asks.
-    async fn apply(&mut self, event: GuestAsksEvent, proxy: &InferenceProxy<'_>) {
+    async fn apply(&mut self, event: GuestAsksEvent, proxy: &Guests) {
         let (next, effects) = step(std::mem::take(&mut self.state), event);
         self.publish(next);
         for effect in effects {
@@ -219,15 +213,22 @@ impl Live {
     }
 }
 
-/// Give inferd the person's answer. Someone else having answered first is not worth a word.
-async fn answer(proxy: &InferenceProxy<'_>, node: &Computer, verdict: Verdict) {
-    let Err(error) = proxy.answer_guest(node.as_str(), wire::word(verdict)).await else {
+/// Give inferd the person's answer. Someone else having answered first is not worth a word; any
+/// other refusal is printed in inferd's own words.
+async fn answer(proxy: &Guests, node: &Computer, verdict: Verdict) {
+    let Ok(id) = NodeId::parse(node.as_str()) else {
+        eprintln!("sill: guest asks: {} is not a computer id", node.as_str());
+        return;
+    };
+    let Err(error) = proxy.answer_guest(&id, wire::answer(verdict)).await else {
         return;
     };
     let already = matches!(
         &error,
-        zbus::Error::MethodError(name, _, _)
-            if name.as_str() == format!("{COMPUTER_ERROR_PREFIX}{NOT_ASKING}")
+        ClientError::Transport(TransportError::Computer {
+            reason: ComputerReason::NotAsking,
+            ..
+        })
     );
     if !already {
         eprintln!("sill: guest asks: answering {}: {error}", node.as_str());

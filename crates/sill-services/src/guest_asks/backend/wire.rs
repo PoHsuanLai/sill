@@ -1,45 +1,33 @@
-//! inferd's `GuestAsks` signal and `Guests` rows, as questions; the words of the answer.
+//! porter-client's guest rows and asks, as questions; the verdict as its answer.
 
-use porter_dbus::{
-    Details, GUEST_ANSWER_ALLOW, GUEST_ANSWER_DENY, GUEST_KEY_NAME, GUEST_KEY_STATE,
-};
+use porter_client::lending::{GuestAsk, RowState};
+use porter_client::{GuestAnswer, GuestRow, NodeId};
 use sill_model::guest_asks::{Ask, Computer, Verdict};
-use zbus::zvariant::OwnedValue;
 
 /// inferd's well-known name.
 pub(crate) const INFERD: &str = porter_dbus::INFERENCE_BUS;
 
-/// The state word of a computer still waiting for the person.
-const ASKING: &str = "asking";
-
-fn text(details: &Details, key: &str) -> Option<String> {
-    details
-        .get(key)
-        .and_then(|value: &OwnedValue| String::try_from(value.clone()).ok())
-}
-
-/// The question a `GuestAsks` signal carries. A signal without a node or a name is not one the
-/// person can answer, so it says nothing.
-pub(crate) fn asked(node: &str, details: &Details) -> Option<Ask> {
-    let name = text(details, GUEST_KEY_NAME).filter(|name| !name.is_empty())?;
-    (!node.is_empty()).then(|| Ask {
-        node: Computer::new(node),
-        name,
+/// The question a `GuestAsks` signal carries. A computer without a name is not one the person
+/// can answer, so it says nothing.
+pub(crate) fn asked(node: &NodeId, ask: GuestAsk) -> Option<Ask> {
+    (!ask.name.is_empty()).then(|| Ask {
+        node: Computer::new(node.as_str()),
+        name: ask.name,
     })
 }
 
-/// The questions waiting in a `Guests` listing: the rows in state `asking`.
-pub(crate) fn waiting(rows: &[(String, Details)]) -> Vec<Ask> {
-    rows.iter()
-        .filter(|(_, details)| text(details, GUEST_KEY_STATE).as_deref() == Some(ASKING))
-        .filter_map(|(node, details)| asked(node, details))
+/// The questions waiting in a `Guests` listing: the rows still asking.
+pub(crate) fn waiting(rows: Vec<GuestRow>) -> Vec<Ask> {
+    rows.into_iter()
+        .filter(|row| row.state == RowState::Asking)
+        .filter_map(|row| asked(&row.node, GuestAsk::new(row.name, row.since)))
         .collect()
 }
 
-/// The word `AnswerGuest` takes for `verdict`.
-pub(crate) fn word(verdict: Verdict) -> &'static str {
+/// The answer porter-client takes for `verdict`.
+pub(crate) fn answer(verdict: Verdict) -> GuestAnswer {
     match verdict {
-        Verdict::Allow => GUEST_ANSWER_ALLOW,
-        Verdict::Deny => GUEST_ANSWER_DENY,
+        Verdict::Allow => GuestAnswer::Allow,
+        Verdict::Deny => GuestAnswer::Deny,
     }
 }

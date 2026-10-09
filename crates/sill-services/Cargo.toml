@@ -28,6 +28,7 @@ almanac-dbus = { workspace = true }
 prov = { workspace = true }
 porter-core = { workspace = true }
 porter-dbus = { workspace = true }
+porter-client = { workspace = true }
 toml = { workspace = true }
 rustix = { workspace = true }
 tokio = { workspace = true }
