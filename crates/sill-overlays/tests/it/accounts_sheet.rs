@@ -244,7 +244,7 @@ fn every_step_is_a_centred_window_with_its_title_in_a_titlebar_and_never_an_atta
             "{title}: the step draws no title of its own"
         );
         assert_eq!(
-            h.text_of(".ds-titlebar").as_deref().map(str::trim),
+            h.text_of(".ds-titlebar-name").as_deref().map(str::trim),
             Some(title)
         );
         assert_eq!(

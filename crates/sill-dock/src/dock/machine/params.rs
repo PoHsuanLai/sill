@@ -3,6 +3,7 @@
 
 use ds::motion::hover_intent::HoverProfile;
 use ds::prelude::*;
+use ds::style::tokens::delay::TipDelay;
 use ds::style::tokens::easing::{CubicBezier, EasingToken};
 use sill_model::units::{Cpx, Permille};
 use sill_settings::{
@@ -13,7 +14,7 @@ use sill_settings::{
 /// The label's first delay: quire's `HoverProfile::Label` (100 ms; design/30 section 1.2), where
 /// it was 350 ms (`--d-fly`) before the dock followed `DockLabel`.
 fn fly_delay_ms() -> u64 {
-    u64::try_from(HoverProfile::Label.open().as_millis()).unwrap_or(100)
+    u64::try_from(HoverProfile::Label.open(TipDelay::default()).as_millis()).unwrap_or(100)
 }
 
 /// Every parameter [`super::step`] reads.

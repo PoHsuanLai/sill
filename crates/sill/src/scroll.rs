@@ -41,6 +41,7 @@ fn scroll(s: &ScrollSettings) -> host::ScrollSettings {
         momentum_boost_threshold_px_s: scalar(s.momentum_boost_threshold_px_s),
         double_scroll_grace_ms: ms(s.double_scroll_grace_ms),
         scrollbars: scrollbar_visibility(s.scrollbars),
+        ..host::ScrollSettings::default()
     }
 }
 
