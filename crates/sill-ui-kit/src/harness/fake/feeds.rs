@@ -183,6 +183,7 @@ pub fn services() -> (Services, Feeds) {
         accounts: fixed(sill_model::accounts::AccountsState::default(), &mut keep),
         accounts_sheet,
         sync_hold: fixed(sill_model::sync_hold::SyncHoldState::default(), &mut keep),
+        guest_asks: fixed(sill_model::guest_asks::GuestAsksState::default(), &mut keep),
         work_areas: fixed(sill_model::work_areas::WorkAreas::default(), &mut keep),
         intents,
         companion,

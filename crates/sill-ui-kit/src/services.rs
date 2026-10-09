@@ -20,6 +20,7 @@ use sill_services::cosmic_wl::CosmicWlService;
 use sill_services::displays::DisplaysService;
 use sill_services::env::{Dirs, SessionActions};
 use sill_services::events::EventsService;
+use sill_services::guest_asks::GuestAsksService;
 use sill_services::idle::IdleService;
 use sill_services::intents::IntentsService;
 use sill_services::kbd_backlight::KbdBacklightService;
@@ -98,6 +99,8 @@ pub struct Services {
     pub accounts_sheet: Handle<AccountsSheetService>,
     /// Datasets whose removal syncd holds back, and the notices that say so.
     pub sync_hold: Handle<SyncHoldService>,
+    /// Computers of the person's asking to borrow this one's models, and the notices that ask.
+    pub guest_asks: Handle<GuestAsksService>,
     /// Each output's work area and scale, served on `org.quire.Outputs1`; passive until the daemon
     /// says to serve.
     pub work_areas: Handle<WorkAreaService>,
@@ -168,6 +171,7 @@ members! {
     accounts: AccountsService,
     accounts_sheet: AccountsSheetService,
     sync_hold: SyncHoldService,
+    guest_asks: GuestAsksService,
     work_areas: WorkAreaService,
     intents: IntentsService,
     companion: CompanionService,

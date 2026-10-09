@@ -20,6 +20,7 @@ use sill_services::clipboard::ClipboardService;
 use sill_services::companion::{CompanionLinks, CompanionService};
 use sill_services::cosmic_wl::CosmicWlService;
 use sill_services::env::Env;
+use sill_services::guest_asks::{GuestAsksLinks, GuestAsksService};
 use sill_services::idle::{IdleLinks, IdleService};
 use sill_services::intents::{IntentsLinks, IntentsService, ShellCall};
 use sill_services::keycap::{KeycapLinks, KeycapService};
@@ -149,6 +150,14 @@ pub(crate) fn start(
             launch: launch.control.clone(),
         },
     );
+    let guest_asks = spawn::<GuestAsksService>(
+        rt,
+        env,
+        GuestAsksLinks {
+            notifications: notifications.control.clone(),
+            notes: notifications.state.clone(),
+        },
+    );
     Services {
         clock: spawn(rt, env, ()),
         network: spawn(rt, env, ()),
@@ -204,6 +213,7 @@ pub(crate) fn start(
         accounts,
         accounts_sheet,
         sync_hold,
+        guest_asks,
         work_areas: spawn::<WorkAreaService>(rt, env, ()),
         dirs: env.dirs.clone(),
         session_actions: Arc::clone(&env.session_actions),
