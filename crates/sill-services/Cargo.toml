@@ -20,6 +20,7 @@ docket-dbus = { workspace = true }
 docket-client = { workspace = true }
 companion-wire = { workspace = true }
 voice-wire = { workspace = true }
+voice-dbus = { workspace = true }
 cua-bus = { workspace = true }
 cua-dbus = { workspace = true }
 almanac-core = { workspace = true }

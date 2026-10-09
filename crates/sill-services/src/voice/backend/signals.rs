@@ -8,7 +8,7 @@ use zbus::fdo::DBusProxy;
 use zbus::message::Type;
 use zbus::{Connection, MatchRule, MessageStream};
 
-use super::proxy::{UTTERANCE_PREFIX, VOICE_BUS};
+use voice_dbus::{UTTERANCE_PREFIX, VOICE_BUS};
 use super::run::Inbound;
 use crate::stream::next;
 

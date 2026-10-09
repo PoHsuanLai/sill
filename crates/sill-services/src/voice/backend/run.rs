@@ -18,19 +18,23 @@ use sill_model::voice::{
 use tokio::net::UnixStream;
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
+use voice_dbus::{UtteranceProxy, VoiceProxy};
 use voice_wire::{
     CancelCause, UtteranceEnd, VoiceBegin, VoiceEvent as Frame, VoiceRefusal, VoiceTrigger, seal,
 };
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
-use super::proxy::{MALFORMED, UtteranceProxy, VoiceProxy};
 use super::{reader, signals};
 use crate::control::Control;
 use crate::env::{Env, WallClock};
 use crate::seat::SeatView;
 use crate::service::ServiceIo;
 use crate::voice::{VoiceLinks, VoiceService};
+
+/// The error voiced answers a `Cancel` whose cause it will not take (superseded, too long, empty,
+/// bad JSON): the microphone stays open.
+const MALFORMED: &str = "org.quire.Voice1.Error.Malformed";
 
 /// Which utterance a frame belongs to: a stale reader's frames are not the new hold's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

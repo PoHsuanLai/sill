@@ -222,6 +222,8 @@ policy-point = { path = "../docket/crates/policy-point" }
 companion-wire = { path = "../docket/crates/companion-wire" }
 # The bodies of `org.quire.Voice1` (begin, the fd's events, ends, refusals): serde data only.
 voice-wire = { path = "../docket/crates/voice-wire" }
+# The caller's side of `org.quire.Voice1`: zbus proxies and the bus names, no audio stack.
+voice-dbus = { path = "../docket/crates/voice-dbus" }
 cua-bus = { path = "../cua/crates/cua-bus" }
 cua-dbus = { path = "../cua/crates/cua-dbus" }
 almanac-core = { path = "../almanac/crates/almanac-core" }
