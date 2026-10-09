@@ -71,10 +71,7 @@ fn the_provider_rows_label_comes_second() {
 
 #[test]
 fn an_unnamed_program_is_never_shown_as_written() {
-    assert_eq!(
-        who(acp("codex", None), &rows()),
-        "An assistant archived"
-    );
+    assert_eq!(who(acp("codex", None), &rows()), "An assistant archived");
     assert_eq!(
         who(acp("claude-code", None), &ProgramLabels::default()),
         "An assistant archived"
