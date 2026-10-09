@@ -78,7 +78,7 @@ fn tint_of(tint: MonochromeTint, space: &SpaceLook, accent: Accent) -> Tint {
         MonochromeTint::Accent => {
             Tint::from_hex(&card_accent(space, accent)).unwrap_or(Tint::NEUTRAL)
         }
-        MonochromeTint::Neutral => Tint::NEUTRAL,
+        _ => Tint::NEUTRAL,
     }
 }
 
@@ -102,11 +102,10 @@ mod tests {
     use ds_settings::{IconsSettings, MonochromeTint};
 
     fn icons(style: ds_settings::IconStyle, tint: MonochromeTint) -> IconsSettings {
-        IconsSettings {
-            style,
-            monochrome_tint: tint,
-            ..IconsSettings::default()
-        }
+        let mut icons = IconsSettings::default();
+        icons.style = style;
+        icons.monochrome_tint = tint;
+        icons
     }
 
     fn hue_near(tint: Tint, hue: f32) -> bool {

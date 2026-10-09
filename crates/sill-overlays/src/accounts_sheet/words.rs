@@ -168,6 +168,9 @@ pub(super) fn fault_of(fault: PorterFault) -> SignInFault {
         PorterFault::NotInstalled => SignInFault::NotInstalled,
         PorterFault::Expired => SignInFault::TimedOut,
         PorterFault::AlreadyAdded => SignInFault::AlreadyAdded,
+        PorterFault::NotRunning => SignInFault::NotRunning,
+        PorterFault::SignedOut => SignInFault::SignedOut,
+        PorterFault::NotAllowed => SignInFault::NotAllowed,
     }
 }
 
@@ -188,7 +191,10 @@ pub(super) fn recovery_of(fault: PorterFault) -> Option<Recovery> {
         | PorterFault::TimedOut
         | PorterFault::Cancelled
         | PorterFault::StoreFailed
-        | PorterFault::Expired => Some(Recovery::Retry),
+        | PorterFault::Expired
+        | PorterFault::NotRunning
+        | PorterFault::SignedOut
+        | PorterFault::NotAllowed => Some(Recovery::Retry),
     }
 }
 

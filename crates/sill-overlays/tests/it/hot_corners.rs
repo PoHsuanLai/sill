@@ -18,12 +18,11 @@ const DWELL_MS: u16 = 40;
 const REARM_MS: u16 = 60;
 
 fn settings() -> HotCornerSettings {
-    HotCornerSettings {
-        top_left: CornerAction::Launcher,
-        dwell_ms: Ms(DWELL_MS),
-        rearm_ms: Ms(REARM_MS),
-        ..HotCornerSettings::default()
-    }
+    let mut settings = HotCornerSettings::default();
+    settings.top_left = CornerAction::Launcher;
+    settings.dwell_ms = Ms(DWELL_MS);
+    settings.rearm_ms = Ms(REARM_MS);
+    settings
 }
 
 /// The top left corner mounted on `hot_corners`, in a small viewport (the real surface is

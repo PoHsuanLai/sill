@@ -57,6 +57,7 @@ pub fn corner_effect(action: CornerAction, command: &str) -> CornerEffect {
             program: "/bin/sh".to_owned(),
             args: vec!["-c".to_owned(), command.to_owned()],
         },
+        _ => CornerEffect::Nothing,
     }
 }
 

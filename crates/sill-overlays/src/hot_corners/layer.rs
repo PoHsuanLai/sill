@@ -50,11 +50,10 @@ mod tests {
     use sill_ui_kit::links::Corner;
 
     fn sized(px: u16) -> ShellFile {
+        let mut hot_corners = HotCornerSettings::default();
+        hot_corners.size_px = Px(px);
         ShellFile {
-            hot_corners: HotCornerSettings {
-                size_px: Px(px),
-                ..HotCornerSettings::default()
-            },
+            hot_corners,
             ..ShellFile::default()
         }
     }

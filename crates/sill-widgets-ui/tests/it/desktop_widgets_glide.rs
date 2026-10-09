@@ -60,10 +60,7 @@ fn start(name: &str, motion: Motion) -> Running {
         Motion::Reduced => ReducedMotion::Reduce,
     };
     let appearance = PinnedAppearance(Environment {
-        system: SystemPrefs {
-            motion: reduce,
-            ..SystemPrefs::default()
-        },
+        system: SystemPrefs::default().with_motion(reduce),
         ..Environment::default()
     });
     let SurfaceHarness {
