@@ -64,7 +64,7 @@ shell-host = { path = "../shell-host/crates/shell-host" }
 # `docs/workspace-deps.toml` like pdfrum (FINDINGS: "anyview is taken by path").
 anyview-core = { path = "../anyview/crates/anyview-core" }
 anyview-image = { path = "../anyview/crates/anyview-image" }
-anyview-peek = { path = "../anyview/crates/anyview-peek", default-features = false }
+anyview-peek = { path = "../anyview/crates/anyview-peek", default-features = false, features = ["pane"] }
 anyview-platform = { path = "../anyview/crates/anyview-platform" }
 anyview-store = { path = "../anyview/crates/anyview-store" }
 

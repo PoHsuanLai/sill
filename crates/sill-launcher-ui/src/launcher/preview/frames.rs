@@ -10,7 +10,7 @@
 
 use std::path::Path;
 
-use anyview_core::Source;
+use anyview_core::Input;
 use anyview_image::Rgba8;
 use anyview_peek::VideoFrames;
 use anyview_platform::linux::FreedesktopThumbnails;
@@ -39,14 +39,12 @@ impl ThumbnailFrames {
 }
 
 impl VideoFrames for ThumbnailFrames {
-    fn frame(&self, source: &Source) -> Option<Rgba8> {
+    fn frame(&self, source: &Input) -> Option<Rgba8> {
+        // A thumbnail is keyed by the file's location: bytes handed in have none.
+        let path = source.path()?;
         let stamp = source.stamp();
         SIZES.iter().find_map(|size| {
-            let found = self
-                .cache
-                .lookup(source.path(), &stamp, *size)
-                .ok()
-                .flatten()?;
+            let found = self.cache.lookup(path, &stamp, *size).ok().flatten()?;
             Rgba8::new(found.size(), found.rgba().to_vec()).ok()
         })
     }

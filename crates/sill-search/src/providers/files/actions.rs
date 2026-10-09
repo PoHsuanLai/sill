@@ -48,8 +48,7 @@ pub fn carried(action: FileAction, file: &FileFacts) -> Option<Carried> {
                 target: OpenTarget::Play(path),
             },
         ),
-        FileAction::OpenWith
-        | FileAction::CopyFile
+        FileAction::CopyFile
         | FileAction::Share
         | FileAction::Rename
         | FileAction::Duplicate
