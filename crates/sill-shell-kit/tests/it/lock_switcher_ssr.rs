@@ -164,9 +164,9 @@ fn switcher(count: usize, selected: &str, output: f32) -> Element {
     }
 }
 
-type Specimen = (&'static str, fn() -> Element);
+type Case = (&'static str, fn() -> Element);
 
-const SPECIMENS: &[Specimen] = &[
+const SPECIMENS: &[Case] = &[
     ("clock-clear", || clock(LockLook::Clear)),
     ("clock-space", || clock(LockLook::Space)),
     ("prompt-idle", || {

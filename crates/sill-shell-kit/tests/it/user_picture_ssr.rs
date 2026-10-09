@@ -40,9 +40,9 @@ fn root(body: Element) -> Element {
 }
 
 /// A named specimen and how to build it.
-type Specimen = (&'static str, fn() -> Element);
+type Case = (&'static str, fn() -> Element);
 
-const SPECIMENS: &[Specimen] = &[("picker", || {
+const SPECIMENS: &[Case] = &[("picker", || {
     root(rsx! {
         UserPicturePicker {
             letter: letter(),

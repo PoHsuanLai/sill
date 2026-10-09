@@ -24,6 +24,7 @@ use crate::error::ServiceError;
 use crate::guest_asks::GuestAsksService;
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
+use crate::stream::next;
 
 /// The shell's seat at inferd's guests.
 type Guests = Accounts<DbusTransport>;

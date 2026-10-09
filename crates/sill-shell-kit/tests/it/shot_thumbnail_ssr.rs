@@ -99,9 +99,9 @@ fn ghost() -> Element {
 }
 
 /// A specimen: its golden name and how it is made.
-type Specimen = (&'static str, fn() -> Element);
+type Case = (&'static str, fn() -> Element);
 
-const SPECIMENS: &[Specimen] = &[
+const SPECIMENS: &[Case] = &[
     ("shown", shown),
     ("with-actions", with_actions),
     ("portrait-dark", portrait_dark),
