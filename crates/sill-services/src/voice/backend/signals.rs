@@ -8,9 +8,9 @@ use zbus::fdo::DBusProxy;
 use zbus::message::Type;
 use zbus::{Connection, MatchRule, MessageStream};
 
-use voice_dbus::{UTTERANCE_PREFIX, VOICE_BUS};
 use super::run::Inbound;
 use crate::stream::next;
+use voice_dbus::{UTTERANCE_PREFIX, VOICE_BUS};
 
 /// The body of an `Ended` envelope, `None` when it is another vocabulary or malformed.
 fn open(text: &str) -> Option<UtteranceEnd> {
