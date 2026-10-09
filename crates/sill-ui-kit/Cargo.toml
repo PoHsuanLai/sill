@@ -48,6 +48,7 @@ serde_json = { workspace = true }
 harness = ["dep:ds-harness"]
 
 [dev-dependencies]
+sill-testkit = { workspace = true }
 # The crate's own tests drive surfaces through `harness`.
 sill-ui-kit = { workspace = true, features = ["harness"] }
 # `lint` is off by default: only test builds need `ds::lint::markup`.

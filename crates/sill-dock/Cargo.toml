@@ -22,6 +22,7 @@ sill-ui-kit = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
+sill-testkit = { workspace = true }
 ds-harness = { workspace = true }
 sill-ui-kit = { workspace = true, features = ["harness"] }
 ds-lint = { workspace = true }

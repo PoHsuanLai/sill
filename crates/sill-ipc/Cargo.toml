@@ -16,6 +16,7 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+sill-testkit = { workspace = true }
 keycap-protocol = { workspace = true }
 
 [lints]

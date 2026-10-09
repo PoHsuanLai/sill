@@ -7,3 +7,9 @@ mod cancelled_animation;
 mod host_faces;
 mod notification_card_render;
 mod widgets_render;
+
+/// A file in `tests/it` that `main.rs` does not list would compile to nothing.
+#[test]
+fn every_test_file_is_included() {
+    sill_testkit::assert_all_modules_included(env!("CARGO_MANIFEST_DIR"));
+}

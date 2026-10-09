@@ -19,6 +19,7 @@ thiserror = { workspace = true }
 image = { workspace = true }
 
 [dev-dependencies]
+sill-testkit = { workspace = true }
 dioxus-ssr = { workspace = true }
 ds-blitz = { workspace = true }
 ds-core = { workspace = true, features = ["testing"] }

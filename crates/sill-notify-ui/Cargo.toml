@@ -21,6 +21,7 @@ sill-settings = { workspace = true }
 sill-ui-kit = { workspace = true }
 
 [dev-dependencies]
+sill-testkit = { workspace = true }
 ds-harness = { workspace = true }
 sill-ui-kit = { workspace = true, features = ["harness"] }
 image = { workspace = true }
