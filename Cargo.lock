@@ -380,6 +380,7 @@ version = "0.1.0-beta.1"
 dependencies = [
  "ds-core",
  "infer",
+ "jiff",
  "serde",
  "thiserror 2.0.21",
 ]
@@ -2426,6 +2427,7 @@ dependencies = [
  "docket-core",
  "docket-session",
  "docket-skills",
+ "futures-channel",
  "futures-util",
  "policy-point",
  "porter-core",
