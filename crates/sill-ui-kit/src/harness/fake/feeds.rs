@@ -185,6 +185,10 @@ pub fn services() -> (Services, Feeds) {
         sync_hold: fixed(sill_model::sync_hold::SyncHoldState::default(), &mut keep),
         guest_asks: fixed(sill_model::guest_asks::GuestAsksState::default(), &mut keep),
         work_areas: fixed(sill_model::work_areas::WorkAreas::default(), &mut keep),
+        workspace_looks: fixed(
+            sill_model::workspace_looks::WorkspaceLooks::default(),
+            &mut keep,
+        ),
         intents,
         companion,
         voice,

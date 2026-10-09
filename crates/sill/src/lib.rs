@@ -19,3 +19,4 @@ pub mod run_args;
 pub mod scroll;
 pub mod voice;
 pub mod work_areas;
+pub mod workspace_looks;

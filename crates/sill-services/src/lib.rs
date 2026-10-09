@@ -55,6 +55,7 @@ pub mod voice;
 pub mod volume;
 pub mod wallpaper;
 pub mod wifi;
+pub mod workspace_looks;
 pub mod work_areas;
 
 pub use accounts::{AccountsLinks, AccountsService};
@@ -92,4 +93,5 @@ pub use voice::{VoiceLinks, VoiceService};
 pub use volume::VolumeService;
 pub use wallpaper::WallpaperService;
 pub use wifi::WifiService;
+pub use workspace_looks::WorkspaceLooksService;
 pub use work_areas::WorkAreaService;

@@ -43,6 +43,7 @@ use sill_services::volume::VolumeService;
 use sill_services::wallpaper::WallpaperService;
 use sill_services::wifi::WifiService;
 use sill_services::work_areas::WorkAreaService;
+use sill_services::workspace_looks::WorkspaceLooksService;
 
 /// Every running service, each field named after its module. Surfaces read a service through
 /// `sill-ui-kit::hooks::use_service` and command it through `use_control`; nothing here is a
@@ -104,6 +105,9 @@ pub struct Services {
     /// Each output's work area and scale, served on `org.quire.Outputs1`; passive until the daemon
     /// says to serve.
     pub work_areas: Handle<WorkAreaService>,
+    /// Each workspace's name, output and `SpaceLook`, served on `org.quire.Workspaces1`; passive
+    /// until the daemon says to serve.
+    pub workspace_looks: Handle<WorkspaceLooksService>,
     /// sill's seat at intentd: the confirmation sheet it serves, the terminal's grants, the shell's
     /// own actions as `org.quire.Shell`; passive until the daemon says to serve.
     pub intents: Handle<IntentsService>,
@@ -173,6 +177,7 @@ members! {
     sync_hold: SyncHoldService,
     guest_asks: GuestAsksService,
     work_areas: WorkAreaService,
+    workspace_looks: WorkspaceLooksService,
     intents: IntentsService,
     companion: CompanionService,
     voice: VoiceService,

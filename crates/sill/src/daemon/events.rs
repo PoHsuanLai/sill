@@ -136,6 +136,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     on_event(ctx, &mut shell.outputs, event);
     spawn_missing(shell, ctx);
     crate::work_areas::publish(&shell.services, &shell.outputs, &shell.settings.borrow());
+    crate::workspace_looks::publish(&shell.services, &shell.settings.borrow());
 }
 
 /// A keyboard focus change of the launcher's or the power menu's surface goes to its link: a

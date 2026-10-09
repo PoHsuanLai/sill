@@ -10,6 +10,7 @@ use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_model::voice::VoiceConsent;
 use sill_model::work_areas::WorkAreaCommand;
+use sill_model::workspace_looks::WorkspaceLooksCommand;
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
 use sill_services::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
 use sill_services::accounts::{AccountsLinks, AccountsService};
@@ -34,6 +35,7 @@ use sill_services::sync_hold::{SyncHoldLinks, SyncHoldService};
 use sill_services::voice::{VoiceLinks, VoiceService};
 use sill_services::volume::VolumeService;
 use sill_services::work_areas::WorkAreaService;
+use sill_services::workspace_looks::WorkspaceLooksService;
 use sill_services::{AppMenuDeps, AppMenuService, MenuLinks};
 use sill_ui_kit::app_menu::menu_name_of;
 use sill_ui_kit::links::Links;
@@ -215,6 +217,7 @@ pub(crate) fn start(
         sync_hold,
         guest_asks,
         work_areas: spawn::<WorkAreaService>(rt, env, ()),
+        workspace_looks: spawn::<WorkspaceLooksService>(rt, env, ()),
         dirs: env.dirs.clone(),
         session_actions: Arc::clone(&env.session_actions),
     }
@@ -251,6 +254,12 @@ pub(crate) fn follow_settings(
         .send(AccountsSheetCommand::Serve);
     // The outputs' work areas answer on `org.quire.Outputs1`; `crate::work_areas` feeds them.
     let _ = services.work_areas.control.send(WorkAreaCommand::Serve);
+    // The workspaces and their looks answer on `org.quire.Workspaces1`; `crate::workspace_looks`
+    // feeds them.
+    let _ = services
+        .workspace_looks
+        .control
+        .send(WorkspaceLooksCommand::Serve);
     let _ = services
         .polkit_agent
         .control
@@ -415,6 +424,11 @@ mod tests {
         assert_eq!(
             services.work_areas.state.borrow().link,
             sill_model::work_areas::WorkAreaLink::Passive,
+            "no bus name claimed until the daemon says to serve"
+        );
+        assert_eq!(
+            services.workspace_looks.state.borrow().link,
+            sill_model::workspace_looks::WorkspaceLooksLink::Passive,
             "no bus name claimed until the daemon says to serve"
         );
         assert_eq!(
