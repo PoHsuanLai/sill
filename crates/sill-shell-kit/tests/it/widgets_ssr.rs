@@ -6,7 +6,7 @@
 //!
 //! `DS_BLESS=1 cargo test -p ds --features lint --test it widgets_ssr` rewrites the goldens.
 
-use crate::support::golden;
+use crate::support::specimens::Specimen;
 
 use dioxus::prelude::*;
 use ds::assembly::ds::Inject;
@@ -14,7 +14,6 @@ use ds::components::content::status::battery_state::{BatteryPower, BatteryState,
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::style::icon::render::Glyph;
-use ds_lint::{LintConfig, markup};
 use sill_shell_kit::battery::ring::percent_text;
 use sill_shell_kit::clock::face::ClockFace;
 use sill_shell_kit::clock::kind::{ClockLook, ClockTime, DayPhase, Seconds};
@@ -213,45 +212,11 @@ fn html(name: &str) -> String {
     render(*make)
 }
 
-#[test]
-fn every_widget_part_matches_its_golden() {
-    let failures: Vec<String> = CASES
+pub(crate) fn specimens() -> Vec<Specimen> {
+    CASES
         .iter()
-        .filter_map(|(name, make)| {
-            golden::check(&format!("widgets/{name}.html"), &render(*make)).err()
-        })
-        .collect();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-}
-
-#[test]
-fn every_part_lints_clean_and_every_class_is_styled() {
-    let sheet = sill_shell_kit::stylesheet();
-    let mut failures = Vec::new();
-    for (name, make) in CASES {
-        let html = render(*make);
-        for offence in markup(&html, sheet, &LintConfig::new(&sill_shell_kit::kits())) {
-            failures.push(format!("{name}: {:?} {}", offence.rule, offence.text));
-        }
-        for class in html
-            .split("class=\"")
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .flat_map(str::split_whitespace)
-            .filter(|class| class.starts_with("ds-"))
-        {
-            let needle = format!(".{class}");
-            let styled = sheet.match_indices(&needle).any(|(at, _)| {
-                !sheet[at + needle.len()..]
-                    .starts_with(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-            });
-            if !styled {
-                failures.push(format!("{name}: .{class} is not styled"));
-            }
-        }
-    }
-    failures.dedup();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+        .map(|(name, make)| Specimen::of(&format!("widgets/{name}.html"), render(*make)))
+        .collect()
 }
 
 /// The desktop card is in a Widget scope and the tile in none of its own; both say their size

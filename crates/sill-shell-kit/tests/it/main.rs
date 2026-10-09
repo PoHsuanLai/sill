@@ -51,6 +51,7 @@ mod segmented_thumb;
 mod self_lint;
 mod shot_thumbnail;
 mod shot_thumbnail_ssr;
+mod ssr_specimens;
 mod status_slots;
 mod stylesheet;
 mod support;

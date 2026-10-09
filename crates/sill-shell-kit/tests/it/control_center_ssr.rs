@@ -4,7 +4,7 @@
 //!
 //! `DS_BLESS=1 cargo test -p ds --features lint --test it control_center_ssr` rewrites the goldens.
 
-use crate::support::golden;
+use crate::support::specimens::Specimen;
 #[path = "control_center/panels.rs"]
 mod panels;
 #[path = "control_center/panes.rs"]
@@ -71,7 +71,7 @@ fn tile_markup(case: tiles::TileCase) -> String {
 }
 
 /// Every specimen, rendered.
-fn specimens() -> Vec<Rendered> {
+fn rendered() -> Vec<Rendered> {
     let tiles = tiles::grid()
         .into_iter()
         .chain(tiles::chevrons())
@@ -86,6 +86,14 @@ fn specimens() -> Vec<Rendered> {
         .into_iter()
         .map(|(case, name)| (name.to_owned(), part_markup(case)));
     tiles.chain(rows).chain(panes).chain(parts).collect()
+}
+
+/// Every specimen with its golden.
+pub(crate) fn specimens() -> Vec<Specimen> {
+    rendered()
+        .into_iter()
+        .map(|(name, html)| Specimen::of(&format!("control_center/{name}.html"), html))
+        .collect()
 }
 
 fn part_markup(case: panels::PartCase) -> String {
@@ -104,46 +112,6 @@ fn row_markup(case: rows::RowCase) -> String {
     let mut dom = VirtualDom::new_with_props(rows::row, rows::RowProps { case });
     dom.rebuild_in_place();
     dioxus_ssr::render(&dom)
-}
-
-#[test]
-fn every_specimen_matches_its_golden() {
-    let failures: Vec<String> = specimens()
-        .iter()
-        .filter_map(|(name, html)| {
-            golden::check(&format!("control_center/{name}.html"), html).err()
-        })
-        .collect();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-}
-
-#[test]
-fn every_specimen_lints_clean_and_every_class_is_styled() {
-    let sheet = sill_shell_kit::stylesheet();
-    let mut failures = Vec::new();
-    for (name, html) in specimens() {
-        for offence in markup(&html, sheet, &LintConfig::new(&sill_shell_kit::kits())) {
-            failures.push(format!("{name}: {:?} {}", offence.rule, offence.text));
-        }
-        for class in html
-            .split("class=\"")
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .flat_map(str::split_whitespace)
-            .filter(|class| class.starts_with("ds-"))
-        {
-            let needle = format!(".{class}");
-            let styled = sheet.match_indices(&needle).any(|(at, _)| {
-                !sheet[at + needle.len()..]
-                    .starts_with(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-            });
-            if !styled {
-                failures.push(format!("{name}: .{class} is not styled"));
-            }
-        }
-    }
-    failures.dedup();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 /// A tile says what it is in its attributes: the value as `data-state` and `aria-pressed`

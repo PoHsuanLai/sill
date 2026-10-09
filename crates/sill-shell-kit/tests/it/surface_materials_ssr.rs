@@ -5,7 +5,7 @@
 //!
 //! `DS_BLESS=1 cargo test -p sill-shell-kit --test it surface_materials_ssr` rewrites the goldens.
 
-use crate::support::golden;
+use crate::support::specimens::{Checks, Specimen};
 
 use dioxus::prelude::*;
 use ds::assembly::ds::Inject;
@@ -218,35 +218,11 @@ const CASES: &[Case] = &[
     }),
 ];
 
-#[test]
-fn every_material_specimen_matches_its_golden() {
-    let failures: Vec<String> = CASES
+pub(crate) fn specimens() -> Vec<Specimen> {
+    CASES
         .iter()
-        .filter_map(|(name, make)| {
-            golden::check(&format!("materials/{name}.html"), &render(*make)).err()
+        .map(|(name, make)| {
+            Specimen::of(&format!("materials/{name}.html"), render(*make)).checked(Checks::Styled)
         })
-        .collect();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-}
-
-#[test]
-fn every_class_is_styled() {
-    let sheet = sill_shell_kit::stylesheet();
-    for (name, make) in CASES {
-        let html = render(*make);
-        for class in html
-            .split("class=\"")
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .flat_map(str::split_whitespace)
-            .filter(|class| class.starts_with("ds-"))
-        {
-            let needle = format!(".{class}");
-            let styled = sheet.match_indices(&needle).any(|(at, _)| {
-                !sheet[at + needle.len()..]
-                    .starts_with(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-            });
-            assert!(styled, "{name}: .{class} is not styled");
-        }
-    }
+        .collect()
 }

@@ -4,13 +4,12 @@
 //!
 //! `DS_BLESS=1 cargo test -p ds --features lint --test it month_grid_ssr` rewrites the goldens.
 
-use crate::support::golden;
 use crate::support::month_sample;
+use crate::support::specimens::Specimen;
 
 use dioxus::prelude::*;
 use ds::assembly::ds::Inject;
 use ds::prelude::*;
-use ds_lint::{LintConfig, markup};
 use month_sample::{First, SEPTEMBER, sample};
 use sill_shell_kit::month_grid::data::DayMark;
 use sill_shell_kit::month_grid::data::DayPlace;
@@ -71,45 +70,11 @@ fn render(case: Case) -> String {
     dioxus_ssr::render(&dom)
 }
 
-#[test]
-fn every_specimen_matches_its_golden() {
-    let failures: Vec<String> = CASES
+pub(crate) fn specimens() -> Vec<Specimen> {
+    CASES
         .iter()
-        .filter_map(|&(case, name)| {
-            golden::check(&format!("month_grid/{name}.html"), &render(case)).err()
-        })
-        .collect();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-}
-
-#[test]
-fn every_specimen_lints_clean_and_every_class_is_styled() {
-    let sheet = sill_shell_kit::stylesheet();
-    let mut failures = Vec::new();
-    for (case, name) in CASES {
-        let html = render(case);
-        for offence in markup(&html, sheet, &LintConfig::new(&sill_shell_kit::kits())) {
-            failures.push(format!("{name}: {:?} {}", offence.rule, offence.text));
-        }
-        for class in html
-            .split("class=\"")
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .flat_map(str::split_whitespace)
-            .filter(|class| class.starts_with("ds-"))
-        {
-            let needle = format!(".{class}");
-            let styled = sheet.match_indices(&needle).any(|(at, _)| {
-                !sheet[at + needle.len()..]
-                    .starts_with(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-            });
-            if !styled {
-                failures.push(format!("{name}: .{class} is not styled"));
-            }
-        }
-    }
-    failures.dedup();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+        .map(|&(case, name)| Specimen::of(&format!("month_grid/{name}.html"), render(case)))
+        .collect()
 }
 
 /// The sample is the month sill's own test pins: September 2026 from Monday is five rows from

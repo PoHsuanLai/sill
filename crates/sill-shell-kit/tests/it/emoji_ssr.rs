@@ -5,12 +5,11 @@
 //!
 //! `DS_BLESS=1 cargo test -p ds --features lint --test it emoji_ssr` rewrites the goldens.
 
-use crate::support::golden;
+use crate::support::specimens::Specimen;
 
 use dioxus::prelude::*;
 use ds::assembly::ds::Inject;
 use ds::prelude::*;
-use ds_lint::{LintConfig, markup};
 use sill_shell_kit::emoji::disc::{DiscHue, EmojiDisc};
 use sill_shell_kit::emoji::id::EmojiId;
 use sill_shell_kit::prelude::*;
@@ -63,7 +62,7 @@ fn large(emoji: EmojiId) -> SpecimenProps {
     }
 }
 
-fn specimens() -> Vec<(String, SpecimenProps)> {
+fn cases() -> Vec<(String, SpecimenProps)> {
     let mut all: Vec<(String, SpecimenProps)> =
         vec![("default-large".into(), large(EmojiId::default()))];
     all.push((
@@ -92,45 +91,15 @@ fn specimens() -> Vec<(String, SpecimenProps)> {
     all
 }
 
-#[test]
-fn every_specimen_matches_its_golden() {
-    let failures: Vec<String> = specimens()
+pub(crate) fn specimens() -> Vec<Specimen> {
+    cases()
         .into_iter()
-        .filter_map(|(name, props)| {
-            golden::check(&format!("emoji/{name}.html"), &redacted(&render(props))).err()
+        .map(|(name, props)| {
+            let html = render(props);
+            let stored = redacted(&html);
+            Specimen::of(&format!("emoji/{name}.html"), html).stored_as(stored)
         })
-        .collect();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-}
-
-#[test]
-fn every_specimen_lints_clean_and_every_class_is_styled() {
-    let sheet = sill_shell_kit::stylesheet();
-    let mut failures = Vec::new();
-    for (name, props) in specimens() {
-        let html = render(props);
-        for offence in markup(&html, sheet, &LintConfig::new(&sill_shell_kit::kits())) {
-            failures.push(format!("{name}: {:?} {}", offence.rule, offence.text));
-        }
-        for class in html
-            .split("class=\"")
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .flat_map(str::split_whitespace)
-            .filter(|class| class.starts_with("ds-"))
-        {
-            let needle = format!(".{class}");
-            let styled = sheet.match_indices(&needle).any(|(at, _)| {
-                !sheet[at + needle.len()..]
-                    .starts_with(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-            });
-            if !styled {
-                failures.push(format!("{name}: .{class} is not styled"));
-            }
-        }
-    }
-    failures.dedup();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+        .collect()
 }
 
 /// The first render, before any timer, draws the pick at its rest frame.

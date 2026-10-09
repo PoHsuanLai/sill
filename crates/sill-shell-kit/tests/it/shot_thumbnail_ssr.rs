@@ -5,14 +5,13 @@
 //!
 //! `DS_BLESS=1 cargo test -p ds --features lint --test it shot_thumbnail_ssr` rewrites the goldens.
 
-use crate::support::golden;
+use crate::support::specimens::Specimen;
 
 use dioxus::prelude::*;
 use ds::assembly::ds::Inject;
 use ds::components::content::image_source::ImageSize;
 use ds::prelude::*;
 use ds::root::common::Common;
-use ds_lint::{LintConfig, markup};
 use sill_shell_kit::notifications::banner_stack::{Banner, BannerKey, BannerPosition};
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
 use sill_shell_kit::prelude::*;
@@ -117,45 +116,11 @@ fn render(make: fn() -> Element) -> String {
     dioxus_ssr::render(&dom)
 }
 
-#[test]
-fn every_specimen_matches_its_golden() {
-    let failures: Vec<String> = SPECIMENS
+pub(crate) fn specimens() -> Vec<Specimen> {
+    SPECIMENS
         .iter()
-        .filter_map(|(name, make)| {
-            golden::check(&format!("shot_thumbnail/{name}.html"), &render(*make)).err()
-        })
-        .collect();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-}
-
-#[test]
-fn every_specimen_lints_clean_and_every_class_is_styled() {
-    let sheet = sill_shell_kit::stylesheet();
-    let mut failures = Vec::new();
-    for (name, make) in SPECIMENS {
-        let html = render(*make);
-        for offence in markup(&html, sheet, &LintConfig::new(&sill_shell_kit::kits())) {
-            failures.push(format!("{name}: {:?} {}", offence.rule, offence.text));
-        }
-        for class in html
-            .split("class=\"")
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .flat_map(str::split_whitespace)
-            .filter(|class| class.starts_with("ds-"))
-        {
-            let needle = format!(".{class}");
-            let styled = sheet.match_indices(&needle).any(|(at, _)| {
-                !sheet[at + needle.len()..]
-                    .starts_with(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-            });
-            if !styled {
-                failures.push(format!("{name}: .{class} is not styled"));
-            }
-        }
-    }
-    failures.dedup();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+        .map(|(name, make)| Specimen::of(&format!("shot_thumbnail/{name}.html"), render(*make)))
+        .collect()
 }
 
 /// The card draws what its props say: entering, its picture letterboxed at its width, and one

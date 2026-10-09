@@ -4,12 +4,11 @@
 //!
 //! `DS_BLESS=1 cargo test -p sill-shell-kit --test it date_picker_ssr` rewrites the goldens.
 
-use crate::support::golden;
+use crate::support::specimens::{Checks, Specimen};
 
 use dioxus::prelude::*;
 use ds::assembly::ds::Inject;
 use ds::prelude::*;
-use ds_lint::{LintConfig, markup};
 use sill_shell_kit::date_picker::model::{DateValue, Elements, PickerStyle, TimeOfDay};
 use sill_shell_kit::month_grid::data::DayKey;
 use sill_shell_kit::prelude::*;
@@ -75,27 +74,21 @@ fn render(case: Case) -> String {
     dioxus_ssr::render(&dom)
 }
 
-#[test]
-fn every_state_matches_its_golden() {
-    let failures: Vec<String> = CASES
+pub(crate) fn specimens() -> Vec<Specimen> {
+    CASES
         .iter()
-        .filter_map(|&(case, name)| {
-            golden::check(&format!("date_picker/{name}.html"), &render(case)).err()
+        .map(|&(case, name)| {
+            Specimen::of(&format!("date_picker/{name}.html"), render(case)).checked(Checks::Lint)
         })
-        .collect();
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+        .collect()
 }
 
+/// Every `ds-date-picker` class a state uses is in the picker's own sheet.
 #[test]
-fn every_state_lints_clean_and_its_picker_classes_are_styled() {
-    let config = LintConfig::new(&sill_shell_kit::kits());
-    let css = sill_shell_kit::stylesheet();
+fn every_picker_class_is_in_the_pickers_sheet() {
     let mut failures = Vec::new();
     for (case, name) in CASES {
         let html = render(case);
-        for offence in markup(&html, css, &config) {
-            failures.push(format!("{name}: {:?} {}", offence.rule, offence.text));
-        }
         for class in html
             .split("class=\"")
             .skip(1)
