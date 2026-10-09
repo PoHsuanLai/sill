@@ -2413,7 +2413,9 @@ dependencies = [
  "docket-router",
  "docket-session",
  "policy-point",
+ "porter-client",
  "porter-core",
+ "porter-infer",
  "prov",
  "thiserror 2.0.21",
 ]
@@ -6053,6 +6055,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "porter-client"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/porter?rev=b12886e4d047d9763a4dccfa9fa3ce92084483ca#b12886e4d047d9763a4dccfa9fa3ce92084483ca"
+dependencies = [
+ "porter-core",
+ "porter-infer",
+ "porter-provider",
+ "porter-secrets",
+ "porter-service",
+ "thiserror 2.0.21",
+ "zeroize",
+]
+
+[[package]]
 name = "porter-core"
 version = "0.1.0"
 dependencies = [
@@ -6074,6 +6090,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "porter-fs"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/porter?rev=b12886e4d047d9763a4dccfa9fa3ce92084483ca#b12886e4d047d9763a4dccfa9fa3ce92084483ca"
+
+[[package]]
 name = "porter-infer"
 version = "0.1.0"
 dependencies = [
@@ -6083,6 +6104,38 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "porter-provider"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/porter?rev=b12886e4d047d9763a4dccfa9fa3ce92084483ca#b12886e4d047d9763a4dccfa9fa3ce92084483ca"
+dependencies = [
+ "porter-core",
+ "serde",
+ "thiserror 2.0.21",
+ "toml",
+]
+
+[[package]]
+name = "porter-secrets"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/porter?rev=b12886e4d047d9763a4dccfa9fa3ce92084483ca#b12886e4d047d9763a4dccfa9fa3ce92084483ca"
+dependencies = [
+ "porter-core",
+ "porter-fs",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "porter-service"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/porter?rev=b12886e4d047d9763a4dccfa9fa3ce92084483ca#b12886e4d047d9763a4dccfa9fa3ce92084483ca"
+dependencies = [
+ "porter-core",
+ "porter-provider",
+ "porter-secrets",
 ]
 
 [[package]]
