@@ -416,6 +416,21 @@ the real daemons or a real keyboard.
 - [ ] **Memory filter**: Tab to Memory: the newest events read "You archived ...", newest first, each
   row's app below.
 
+## Keys as shared actions (keycap's keymap)
+
+- [ ] **Launcher keys on a live session**: with a window focused whose keycap profile is `default`
+  (Cmd written as Ctrl), open the launcher and press Cmd+K, Cmd+R, Cmd+Y, Cmd+Shift+B and Cmd+Backspace
+  on rows that carry them. The launcher resolves Super (Command) through the keymap only, so each
+  must work; if they arrive as Ctrl the launcher surface needs the `keymap-aware` profile while it
+  holds the keyboard.
+- [ ] **Dock Cmd/Alt+click**: Cmd+click on a running tile raises it with the other windows hidden as
+  before; Alt+click hides the current one. The dock reads Command as the keymap's primary modifier,
+  which is Super on our desktop; if keycap rewrites Cmd to Ctrl for the focused window the click
+  reads as plain.
+- [ ] **temor** (profile `keymap-aware`): Cmd+H reaches temor as Super+H (hide), not Ctrl+H.
+- [ ] **Companion answer text**: a handle that holds mail or web text shows between curly quotes; one
+  the person typed shows plain; against an older intentd every handle is quoted.
+
 ## Owned by another repository
 
 - [ ] shell-host spike item f at a fractional output (1.5): run on the nested compositor at
