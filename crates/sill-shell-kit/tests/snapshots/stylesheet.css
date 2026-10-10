@@ -851,6 +851,14 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-clock-moon{ display:block; flex:none; width:12px; height:12px; }
 .ds-clock-sun{ color:var(--warn); }
 .ds-clock-moon{ color:var(--ink-faint); }
+/* -- column -- */
+/* Column: children stacked with a token gap (`--column-gap`, set by the component from a spacing
+   step) and aligned across the width. Attribute selectors carry `*|` (spike S2). */
+
+.ds-column{ --column-gap:var(--s-8); display:flex; flex-direction:column; gap:var(--column-gap); min-width:0; }
+.ds-column[*|data-align=start]{ align-items:flex-start; }
+.ds-column[*|data-align=center]{ align-items:center; }
+.ds-column[*|data-align=end]{ align-items:flex-end; }
 /* -- command_palette -- */
 /* CommandPalette (design/04-COMPONENTS.md section 25), `S:230-234` with the overrides
    `S:793-799`: a scrim that centres the panel near the top, the panel entering with
@@ -3070,6 +3078,12 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-toast .ds-toast-action{ display:flex; align-items:center; gap:var(--s-6); background:var(--paper); color:var(--ink); border:0; border-radius:var(--r-pill);
   padding:var(--s-5) var(--s-12) var(--s-5) var(--s-9); font-size:var(--fs-small); font-weight:700; cursor:default;
   transition:background-color var(--t-quick) var(--e-out); }
+/* -- texture_layer -- */
+/* TextureLayer (the `ds-blitz` component that shows a GPU texture): an `object` that fills the box
+   its parent gives it. Blitz sets this size inline on the element too; the rule is here so the
+   class is styled by the sheet and a consumer's own rule can override it. */
+
+.ds-texture-layer{ display:block; width:100%; height:100%; }
 /* -- toggle -- */
 /* Toggle (design/30 section 2.3, `NSSwitch`; sized by design/29-SIZING.md): the switch on the
    size ladder. The button is the focus and press target; the track is `round_even(1.73 h)` wide
