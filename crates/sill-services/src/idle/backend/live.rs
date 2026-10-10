@@ -374,7 +374,8 @@ impl Live {
 async fn resolved(config: IdleConfig, reach: &Reach) -> sill_model::idle::IdlePolicy {
     let dir = reach.config.clone();
     let processes = reach.processes.clone();
-    tokio::task::spawn_blocking(move || resolve(&config, &dir, processes.as_ref()))
+    let desktop = reach.current_desktop.clone();
+    tokio::task::spawn_blocking(move || resolve(&config, &dir, processes.as_ref(), &desktop))
         .await
         .unwrap_or(sill_model::idle::IdlePolicy {
             mode: IdleMode::Off(sill_model::idle::OffReason::NoPolicy),

@@ -38,6 +38,8 @@ pub(crate) struct Reach {
     pub(crate) config: PathBuf,
     /// Which processes run (a cosmic-idle already there decides who owns idle).
     pub(crate) processes: std::sync::Arc<dyn crate::env::Processes>,
+    /// The session's desktop names (`XDG_CURRENT_DESKTOP`), which say whose session this is.
+    pub(crate) current_desktop: String,
 }
 
 impl Reach {
@@ -49,6 +51,7 @@ impl Reach {
             session: env.buses.session.clone(),
             config: env.dirs.config.clone(),
             processes: env.processes.clone(),
+            current_desktop: env.current_desktop.clone(),
         }
     }
 }

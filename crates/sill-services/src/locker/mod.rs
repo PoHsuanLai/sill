@@ -37,8 +37,9 @@ impl Service for LockerService {
         let bus = env.buses.system.clone();
         let runtime = env.dirs.runtime.clone();
         let processes = env.processes.clone();
+        let desktop = env.current_desktop.clone();
         async move {
-            backend::run(bus, runtime, processes, io.state, io.commands).await;
+            backend::run(bus, runtime, processes, desktop, io.state, io.commands).await;
             Ok(())
         }
     }

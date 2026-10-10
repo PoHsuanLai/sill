@@ -69,6 +69,9 @@ pub struct Env {
     /// (porter's caller identity): `/proc`, or a fixture tree in a test, or a folder with
     /// nothing in it, where no process is proven to be any app.
     pub proc_root: PathBuf,
+    /// `XDG_CURRENT_DESKTOP` as the process was started with it (colon-separated names): read
+    /// once at the edge, so a library never reads the environment.
+    pub current_desktop: String,
 }
 
 /// When the keycap service asks systemd about its unit.
@@ -120,6 +123,7 @@ impl Env {
             keycap_socket: Some(PathBuf::from(keycap_protocol::SOCKET_PATH)),
             keycap_unit_wait: UnitWait::default(),
             proc_root: PathBuf::from("/proc"),
+            current_desktop: std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
         }
     }
 
@@ -154,6 +158,7 @@ impl Env {
             keycap_socket: None,
             keycap_unit_wait: UnitWait::default(),
             proc_root: scratch.join("no-proc"),
+            current_desktop: String::new(),
         }
     }
 }

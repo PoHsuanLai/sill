@@ -36,6 +36,8 @@ struct Live {
     /// The crash marker in this session's runtime directory; none without one.
     marker: Option<PathBuf>,
     processes: Arc<dyn Processes>,
+    /// `XDG_CURRENT_DESKTOP`, from the environment at the process edge.
+    desktop: String,
 }
 
 /// Runs until `commands` closes. Inert (`LockerMode::Off`) until the first `Configure`/`Use`.
@@ -43,6 +45,7 @@ pub(crate) async fn run(
     bus: Bus,
     runtime: Option<PathBuf>,
     processes: Arc<dyn Processes>,
+    desktop: String,
     tx: watch::Sender<Lock>,
     mut commands: mpsc::UnboundedReceiver<LockerCommand>,
 ) {
@@ -56,6 +59,7 @@ pub(crate) async fn run(
         cause: None,
         marker: runtime.as_deref().map(marker_path),
         processes,
+        desktop,
     };
     loop {
         let deadline = next_deadline(&live.machine).map(|at| live.instant(at));
@@ -104,9 +108,11 @@ impl Live {
         match command {
             LockerCommand::Configure => {
                 let processes = self.processes.clone();
-                let mode = tokio::task::spawn_blocking(move || detect(processes.as_ref()))
-                    .await
-                    .unwrap_or(LockerMode::Off);
+                let desktop = self.desktop.clone();
+                let mode =
+                    tokio::task::spawn_blocking(move || detect(processes.as_ref(), &desktop))
+                        .await
+                        .unwrap_or(LockerMode::Off);
                 self.use_mode(mode).await;
             }
             LockerCommand::Use(mode) => self.use_mode(mode).await,
@@ -226,12 +232,11 @@ impl Live {
 }
 
 /// Resolves the mode against this session (blocking: `/proc`).
-fn detect(processes: &dyn Processes) -> LockerMode {
+fn detect(processes: &dyn Processes, desktop: &str) -> LockerMode {
     let manager = if processes.running("cosmic-session").is_empty() {
         SessionManager::Other
     } else {
         SessionManager::CosmicSession
     };
-    let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
-    LockerMode::for_host(Host::of(manager, &desktop))
+    LockerMode::for_host(Host::of(manager, desktop))
 }

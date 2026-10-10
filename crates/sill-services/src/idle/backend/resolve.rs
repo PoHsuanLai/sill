@@ -23,12 +23,12 @@ pub(crate) fn resolve(
     config: &IdleConfig,
     config_dir: &Path,
     processes: &dyn Processes,
+    desktop: &str,
 ) -> IdlePolicy {
     let manager = processes
         .running("cosmic-session")
         .first()
         .map_or(SessionManager::Other, |_| SessionManager::CosmicSession);
-    let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
     let cosmic_idle = processes
         .running("cosmic-idle")
         .first()
@@ -38,7 +38,7 @@ pub(crate) fn resolve(
         TimesChoice::Own(_) => cosmic_times(|_| None),
     };
     IdlePolicy {
-        mode: resolve_mode(Host::of(manager, &desktop), cosmic_idle),
+        mode: resolve_mode(Host::of(manager, desktop), cosmic_idle),
         times: effective_times(config.times, cosmic),
         dim: config.dim,
         lock: config.lock,

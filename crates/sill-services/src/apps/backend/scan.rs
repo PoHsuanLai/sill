@@ -10,11 +10,11 @@ use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing
 
 use super::icons::{IconTheme, resolve_icon};
 
-/// The desktop this scan targets. sill only ever runs as the COSMIC session, so
-/// `OnlyShowIn`/`NotShowIn` are matched against this constant rather than the live
-/// `XDG_CURRENT_DESKTOP`, which keeps the result deterministic under a nested test compositor
-/// too.
-const CURRENT_DESKTOP: &str = "COSMIC";
+/// The desktop names this scan targets. sill runs as the COSMIC session or the desktop's own
+/// (`quire`), so `OnlyShowIn`/`NotShowIn` are matched against these constants rather than the
+/// live `XDG_CURRENT_DESKTOP`, which keeps the result deterministic under a nested test
+/// compositor too. An entry shown in either is shown here.
+const CURRENT_DESKTOPS: [&str; 2] = ["COSMIC", "quire"];
 
 /// `$XDG_DATA_HOME/applications` then each `$XDG_DATA_DIRS/applications`, in precedence order
 /// (`freedesktop_desktop_entry::default_paths`), with Flatpak's own export directories added at
@@ -189,7 +189,7 @@ fn on_path(try_exec: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// `NoDisplay`, `Hidden` and an `OnlyShowIn`/`NotShowIn` mismatch against [`CURRENT_DESKTOP`]
+/// `NoDisplay`, `Hidden` and an `OnlyShowIn`/`NotShowIn` mismatch against [`CURRENT_DESKTOPS`]
 /// all fold into the same [`Listing::Hidden`] (the frozen `App::listing`'s own doc: "hidden
 /// entries still match windows, never list"); this scan never excludes an entry outright for
 /// any of them; the whole record is still yielded and dedupes, so a `Hidden=true` entry in a
@@ -199,16 +199,21 @@ fn is_listed(entry: &DesktopEntry) -> bool {
         return false;
     }
     if let Some(only) = entry.only_show_in()
-        && !only.contains(&CURRENT_DESKTOP)
+        && !only.iter().any(|name| is_ours(name))
     {
         return false;
     }
     if let Some(not) = entry.not_show_in()
-        && not.contains(&CURRENT_DESKTOP)
+        && not.iter().any(|name| is_ours(name))
     {
         return false;
     }
     true
+}
+
+/// Whether `name` (an `OnlyShowIn`/`NotShowIn` item) names a desktop this scan targets.
+fn is_ours(name: &str) -> bool {
+    CURRENT_DESKTOPS.iter().any(|own| *own == name)
 }
 
 fn actions(entry: &DesktopEntry, locales: &[String]) -> Vec<DesktopActionEntry> {
@@ -290,6 +295,21 @@ mod tests {
                 "only cosmic",
                 "[Desktop Entry]\nType=Application\nOnlyShowIn=COSMIC;\n",
                 true,
+            ),
+            (
+                "only quire",
+                "[Desktop Entry]\nType=Application\nOnlyShowIn=quire;\n",
+                true,
+            ),
+            (
+                "cosmic or gnome",
+                "[Desktop Entry]\nType=Application\nOnlyShowIn=GNOME;COSMIC;\n",
+                true,
+            ),
+            (
+                "not quire",
+                "[Desktop Entry]\nType=Application\nNotShowIn=quire;\n",
+                false,
             ),
             (
                 "only gnome",

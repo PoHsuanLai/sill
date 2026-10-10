@@ -8,8 +8,8 @@ use super::{Runner, Triggers};
 pub enum Host {
     /// cosmic-session is running for this user: its own components answer logind.
     CosmicSession,
-    /// sill's own session (`dist/sill-session`: `XDG_CURRENT_DESKTOP` names COSMIC, no
-    /// cosmic-session).
+    /// sill's own session (`dist/sill-session`, or the desktop's own: `XDG_CURRENT_DESKTOP`
+    /// names COSMIC or quire, no cosmic-session).
     SillSession,
     /// Another desktop's session, e.g. sill on a nested compositor during development:
     /// logind's signals belong to that desktop.
@@ -21,11 +21,7 @@ impl Host {
     pub fn of(cosmic_session: SessionManager, current_desktop: &str) -> Host {
         match cosmic_session {
             SessionManager::CosmicSession => Host::CosmicSession,
-            SessionManager::Other
-                if current_desktop
-                    .split(':')
-                    .any(|d| d.eq_ignore_ascii_case("COSMIC")) =>
-            {
+            SessionManager::Other if current_desktop.split(':').any(is_own_desktop) => {
                 Host::SillSession
             }
             SessionManager::Other => Host::Guest,
@@ -38,6 +34,15 @@ impl Host {
             Host::CosmicSession | Host::Guest => Triggers::IgnoreLogind,
         }
     }
+}
+
+/// The desktop names a sill session carries in `XDG_CURRENT_DESKTOP`.
+const OWN_DESKTOPS: [&str; 2] = ["COSMIC", "quire"];
+
+fn is_own_desktop(name: &str) -> bool {
+    OWN_DESKTOPS
+        .iter()
+        .any(|own| own.eq_ignore_ascii_case(name))
 }
 
 /// Whether a cosmic-session process runs for this user.
@@ -85,6 +90,11 @@ mod tests {
             (SessionManager::CosmicSession, "COSMIC", Host::CosmicSession),
             (SessionManager::Other, "COSMIC", Host::SillSession),
             (SessionManager::Other, "sill:COSMIC", Host::SillSession),
+            (SessionManager::Other, "quire", Host::SillSession),
+            (SessionManager::Other, "Quire", Host::SillSession),
+            (SessionManager::Other, "GNOME:quire", Host::SillSession),
+            (SessionManager::Other, "quirey", Host::Guest),
+            (SessionManager::CosmicSession, "quire", Host::CosmicSession),
             (SessionManager::Other, "KDE", Host::Guest),
             (SessionManager::Other, "", Host::Guest),
         ];
