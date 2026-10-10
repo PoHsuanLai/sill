@@ -366,6 +366,7 @@ dependencies = [
 name = "anyview-core"
 version = "0.1.0-beta.1"
 dependencies = [
+ "chordkit",
  "ds-core",
  "infer",
  "jiff",
@@ -502,6 +503,7 @@ dependencies = [
  "serde_json",
  "syntect",
  "thiserror 2.0.21",
+ "unicode-segmentation",
 ]
 
 [[package]]
