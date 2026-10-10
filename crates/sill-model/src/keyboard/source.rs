@@ -36,12 +36,16 @@ fn terminal_profile() -> ProfileName {
 
 impl OwnProfiles {
     /// The apps keycap's built-in config has a profile for: Ghostty (`com.mitchellh.ghostty`),
-    /// whose split and clear chords differ from the other terminals'.
+    /// whose split and clear chords differ from the other terminals', and temor, which resolves
+    /// Command itself and so must receive Super (`keymap-aware`).
     pub fn standard() -> Self {
-        Self(vec![(
-            "ghostty".to_owned(),
-            ProfileName::parse("ghostty").unwrap_or_else(|_| ProfileName::default_profile()),
-        )])
+        let named = |name: &str| {
+            ProfileName::parse(name).unwrap_or_else(|_| ProfileName::default_profile())
+        };
+        Self(vec![
+            ("ghostty".to_owned(), named("ghostty")),
+            ("org.quire.temor".to_owned(), named("keymap-aware")),
+        ])
     }
 }
 

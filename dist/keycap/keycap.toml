@@ -33,3 +33,11 @@ rules = [
 rules = [
   { when = "command+h", then = "ctrl+shift+h" },
 ]
+
+# An app that resolves Command itself through the shared keymap (temor) gets Super, not Ctrl. The
+# profile inherits `default` and a rule cannot be deleted down that chain, so Cmd+H, which the
+# default above writes as Ctrl+H, is restated as Super+H.
+[profile.keymap-aware]
+rules = [
+  { when = "command+h", then = "super+h" },
+]

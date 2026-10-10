@@ -120,6 +120,12 @@ fn each_source_answers_alone() {
             "com.mitchellh.ghostty",
             Some("ghostty"),
         ),
+        (
+            "temor resolves Command itself",
+            &own,
+            "org.quire.Temor",
+            Some("keymap-aware"),
+        ),
         ("another terminal has none", &own, "foot", None),
     ];
     for &(case, source, id, want) in cases {
