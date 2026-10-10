@@ -59,6 +59,11 @@ pub struct StandInOlderSession(pub Log);
 
 #[interface(name = "org.quire.Intents1.Session")]
 impl StandInOlderSession {
+    async fn turn(&self, session: String, turn: String, _options: Details) -> fdo::Result<u64> {
+        self.0.push(format!("turn {session} {turn}"));
+        Ok(41)
+    }
+
     async fn display(&self, session: String, handle: u64) -> fdo::Result<String> {
         self.0.push(format!("display {session} {handle}"));
         Ok(format!("the text of handle {handle}"))
