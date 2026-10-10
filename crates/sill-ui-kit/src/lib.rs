@@ -15,6 +15,7 @@
 pub mod app_icons;
 pub mod app_menu;
 pub mod companion;
+pub mod dock_rects;
 #[cfg(feature = "harness")]
 pub mod harness;
 pub mod hooks;

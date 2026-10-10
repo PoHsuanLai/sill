@@ -14,5 +14,6 @@ pub(crate) mod services;
 pub(crate) mod settings;
 pub(crate) mod spawn;
 pub(crate) mod surfaces;
+mod targets;
 
 pub use run::run;

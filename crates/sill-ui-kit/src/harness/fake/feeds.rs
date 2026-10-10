@@ -192,6 +192,7 @@ pub fn services() -> (Services, Feeds) {
         intents,
         companion,
         voice,
+        dock_rects: crate::dock_rects::DockRects::default(),
         // Nowhere real: a surface that reads a file under these finds nothing.
         dirs: sill_services::env::Dirs::under(std::path::Path::new(
             "/nonexistent/sill-ui-kit-test",

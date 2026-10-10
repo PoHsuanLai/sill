@@ -219,6 +219,7 @@ pub(crate) fn start(
         work_areas: spawn::<WorkAreaService>(rt, env, ()),
         workspace_looks: spawn::<WorkspaceLooksService>(rt, env, ()),
         dirs: env.dirs.clone(),
+        dock_rects: sill_ui_kit::dock_rects::DockRects::default(),
         session_actions: Arc::clone(&env.session_actions),
     }
 }

@@ -29,4 +29,8 @@ pub enum ShellMsg {
     /// One note of the desktop's own compositor's shell protocol (`compositor::ShellSeat`'s
     /// forwarder sends it).
     Note(sill_model::desktop::ShellNote),
+    /// Where the docks' icons rest now (`targets::forward` sends it).
+    DockRects(sill_model::desktop::target::OutputRects),
+    /// The desktop as the compositor's arm sees it now (`targets::forward` sends it).
+    Desktop(Box<sill_model::desktop::DesktopView>),
 }

@@ -8,6 +8,9 @@ mod backend;
 mod command;
 mod model;
 mod note;
+pub mod target;
+#[cfg(test)]
+mod target_tests;
 #[cfg(test)]
 mod tests;
 

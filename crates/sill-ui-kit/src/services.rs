@@ -120,6 +120,8 @@ pub struct Services {
     /// The person's directories the services were started with (the icon theme's config, the
     /// widget placements' state folder).
     pub dirs: Dirs,
+    /// Where the docks' icons rest, for the compositor's minimise targets.
+    pub dock_rects: crate::dock_rects::DockRects,
     /// Where the session service sends chosen actions (logind, or a dry run's record), for the
     /// surfaces' log lines.
     pub session_actions: Arc<dyn SessionActions>,

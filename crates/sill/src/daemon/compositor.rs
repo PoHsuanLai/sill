@@ -14,13 +14,18 @@ use std::os::fd::OwnedFd;
 
 use shell_host::{HostCtx, HostEvent, HostHandle, SurfaceId, WaylandRoute};
 use sill_model::companion::CompanionCommand;
-use sill_model::desktop::{Corner as ProtocolCorner, KeyGesture, ShellNote, ShellRole};
+use sill_model::desktop::target::{MinimiseTargets, OutputRects};
+use sill_model::desktop::{
+    Corner as ProtocolCorner, DesktopCommand, DesktopView, KeyGesture, ShellNote, ShellRole,
+};
 use sill_services::desktop_wl::quire::{ShellArm, WlSurface, role_of_surface, spawn_shell_arm};
 use sill_ui_kit::links::Corner;
 use tokio::runtime::Handle;
+use tokio::sync::watch;
 
 use super::events::Shell;
 use super::msg::ShellMsg;
+use super::targets::forward;
 use crate::outputs::Outputs;
 
 /// The route the host connects by: the socket the compositor handed over, else the environment.
@@ -39,6 +44,16 @@ struct Link {
 pub struct ShellSeat {
     link: Option<Link>,
     arm: Option<ShellArm>,
+    /// The docks' icons, the desktop's windows and the targets the compositor holds for them.
+    targets: Targets,
+}
+
+/// What the minimise targets are worked out from, and what was last sent.
+#[derive(Default)]
+struct Targets {
+    rects: OutputRects,
+    view: DesktopView,
+    sent: MinimiseTargets,
 }
 
 impl std::fmt::Debug for ShellSeat {
@@ -58,10 +73,56 @@ impl ShellSeat {
 
     /// The host is on the connection the compositor handed over: the arm starts at the first
     /// mapped surface that has a role, and its notes reach `host`.
-    pub fn linked(runtime: Handle, host: HostHandle<ShellMsg>) -> ShellSeat {
+    pub fn linked(
+        runtime: Handle,
+        host: HostHandle<ShellMsg>,
+        rects: watch::Receiver<OutputRects>,
+    ) -> ShellSeat {
+        forward(&runtime, host.clone(), rects, ShellMsg::DockRects);
         ShellSeat {
             link: Some(Link { runtime, host }),
             arm: None,
+            targets: Targets::default(),
+        }
+    }
+
+    /// Carry out `command` on the arm; false when there is none running (the commands of a
+    /// session without the desktop's compositor have nowhere to go).
+    pub fn command(&mut self, command: DesktopCommand) -> bool {
+        let Some(arm) = &self.arm else {
+            return false;
+        };
+        let sent = arm.command(command).is_ok();
+        if !sent {
+            eprintln!("sill: desktop: the desktop arm has stopped");
+            self.arm = None;
+        }
+        sent
+    }
+
+    /// The docks' icons rest somewhere new.
+    pub fn set_rects(&mut self, rects: OutputRects) {
+        self.targets.rects = rects;
+        self.retarget();
+    }
+
+    /// The desktop's windows changed.
+    pub fn set_view(&mut self, view: DesktopView) {
+        self.targets.view = view;
+        self.retarget();
+    }
+
+    /// Send the minimise targets that differ from the ones last sent. Nothing without a
+    /// running arm; a command that failed is sent again at the next change.
+    fn retarget(&mut self) {
+        if self.arm.is_none() {
+            return;
+        }
+        let wanted = MinimiseTargets::of(&self.targets.rects, &self.targets.view);
+        let commands = wanted.since(&self.targets.sent);
+        let all_sent = commands.into_iter().all(|command| self.command(command));
+        if all_sent {
+            self.targets.sent = wanted;
         }
     }
 
@@ -84,7 +145,11 @@ impl ShellSeat {
                             }
                         });
                     }
+                    let view = arm.view.clone();
                     self.arm = Some(arm);
+                    forward(&link.runtime, link.host.clone(), view, |view| {
+                        ShellMsg::Desktop(Box::new(view))
+                    });
                 }
                 Err(error) => {
                     eprintln!("sill: desktop: {error}; the shell protocol is not followed");
@@ -99,7 +164,11 @@ impl ShellSeat {
         if gone {
             eprintln!("sill: desktop: the desktop arm has stopped");
             self.arm = None;
+            return;
         }
+        // A surface registered: the compositor may now accept targets it refused before.
+        self.targets.sent = MinimiseTargets::default();
+        self.retarget();
     }
 }
 

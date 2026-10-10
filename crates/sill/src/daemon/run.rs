@@ -77,7 +77,11 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     };
     let host_handle = host.handle();
     let seat = match handed_by_compositor {
-        true => super::compositor::ShellSeat::linked(runtime.handle().clone(), host_handle.clone()),
+        true => super::compositor::ShellSeat::linked(
+            runtime.handle().clone(),
+            host_handle.clone(),
+            services.dock_rects.subscribe(),
+        ),
         false => super::compositor::ShellSeat::absent(),
     };
     // Detached: it accepts connections until the process exits with the host (doc on

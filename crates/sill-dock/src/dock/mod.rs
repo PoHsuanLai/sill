@@ -19,6 +19,7 @@ mod menu_geometry;
 mod menu_popup;
 mod pick;
 mod pointer;
+mod rest_rects;
 mod surface;
 mod tile;
 mod view;

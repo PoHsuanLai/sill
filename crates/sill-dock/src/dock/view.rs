@@ -29,10 +29,13 @@ use crate::dock::items::dock_items;
 use crate::dock::layer::layer;
 use crate::dock::machine::{DockParams, DockState, Label, Reveal, displayed, lift, slide_offset};
 use crate::dock::pointer::{DockInput, PointerInput, button, modifier, point};
+use crate::dock::rest_rects::app_rects;
 use crate::dock::tile::{LabelShown, Tile, TileLook};
 use sill_services::{AppsService, BadgesService, CosmicWlService, PinsService};
 use sill_ui_kit::app_icons::icon_look;
-use sill_ui_kit::hooks::{use_appearance, use_service, use_service_part, use_settings};
+use sill_ui_kit::hooks::{
+    use_appearance, use_service, use_service_part, use_services, use_settings,
+};
 use sill_ui_kit::look::{active_workspace, use_active_look};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::root::use_root_style;
@@ -73,6 +76,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         AutoHide::On => Reveal::Hidden,
     });
     let session = use_dock(initial);
+    let services = use_services();
     follow_layer(layer(&output, &file));
     let machine = session.machine.read().clone();
     let label = LabelShown(match machine.label {
@@ -117,6 +121,12 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         sill_model::units::Permille::ZERO,
         x,
     );
+    if let Some(name) = &output.name {
+        services.dock_rects.publish(
+            name,
+            app_rects(&items, &rest.tiles, &world.toplevels, &world.index),
+        );
+    }
     session.update(SessionDeps {
         items: items.clone(),
         frame: shown.clone(),

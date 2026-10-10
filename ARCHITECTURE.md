@@ -258,6 +258,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Which accounts need signing in again, the notice that says so and its "Sign in again" button | `sill_model::accounts::{step, notice_text, sign_in_key, account_of, shown_for}` (the button's action key carries the account); `sill_services::accounts` follows accountd, posts and withdraws the notice, and answers the button's `ActionInvoked` (only from the notifications server's own connection) with the account's `Reauthenticate` |
 | Each output's work area (the output less the bar's and dock's exclusive zones) and scale, for apps | `sill_model::work_areas::{work_area, work_rect, Zone}` (pure reduction); `sill::work_areas` derives the zones from the bar's and dock's own layer configurations and publishes; `sill_services::work_areas` serves `org.quire.Outputs1` (property `WorkAreas`, `a(us(iiuu)(iiuu)u)`: id, name, frame, work, scale in 120ths; read-only; `PropertiesChanged` on change); quire's `ds-desktop::Outputs` reads it |
 | Each workspace's id, name, output, `SpaceLook` and activity, for apps that keep their Spaces from the desktop (`SpacesSource::Desktop`) | `sill_model::workspace_looks::published` (pure: the compositor's workspaces with a look per position); `sill::workspace_looks` gives each the look every surface draws (`sill_ui_kit::look`) as quire's JSON and publishes; `sill_services::workspace_looks` serves `org.quire.Workspaces1` (property `Workspaces`, `a(ssssb)`: id, name, output, look JSON, active; read-only; `PropertiesChanged` on change) |
+| Where a minimised window flies to (the dock icon of its app, resting size, not magnified) | `sill_model::desktop::target::{OutputRects, MinimiseTargets}` (pure: `of` maps icons and windows to targets, `since` is the diff into `SetMinimiseTarget`/`ClearMinimiseTarget`); `sill_dock::dock::rest_rects::app_rects` computes the icons' rectangles; `sill_ui_kit::dock_rects::DockRects` carries them; `sill::daemon::compositor::ShellSeat::retarget` sends the diff, on the Quire arm only |
 | The accounts sheet (accountd's consent question and add-account steps): what is open, what is typed, what is sent back | `sill_model::accounts::sheet::{AccountsSheets, step, SheetAction}` (the draft holds a typed secret until the reply that carries it); `sill_services::accounts::sheet` serves `org.quire.AccountsSheet1` (only the owner of `org.quire.Accounts1` may open, update or close; `Input` goes to the opener alone); `sill_overlays::accounts_sheet` draws it (`props.rs` maps `SheetView` to quire's `ds-shell::accounts` props) |
 | Where the double tap and a summon go: the two machines, the Ask, the answers, the runs, the journal, the lookups | `sill_model::companion::{Tap, Summon, step}` (quire's `Machine`, stepped by `sill_services::companion`, which publishes `Companion`); the daemon's half (what is focused, the launcher's open, switch and close, the four `sill companion` verbs) is `sill::companion` |
 | The companion's presence (the orb and the glow) | `sill_model::companion::presence_of`, the only derivation (`ds_core::vocab::CompanionPresence`) |
@@ -726,6 +727,15 @@ and `sill.service`. `sill-session` seeds the COSMIC files into `~/.config/cosmic
 is on, when there are several; a person's own value wins), sets the fcitx5 environment when fcitx5
 is installed and starts the wallet's Secret Service; `~/.config/sill/session.env` overrides its settings. `dev/session-smoke.sh`
 runs the script itself nested. `docs/first-login.md` is the user's checklist.
+
+The desktop's own compositor (`daemon/compositor.rs`, `daemon/targets.rs`): `ShellSeat` holds the
+Quire arm when the compositor handed the shell a connection, and `ShellSeat::command` is its one
+way to send a `DesktopCommand`. The docks publish their icons' resting rectangles into
+`Services::dock_rects`; `targets::forward` turns that watch and the arm's `DesktopView` into host
+messages (`ShellMsg::DockRects`, `ShellMsg::Desktop`); the seat keeps the compositor's minimise
+targets equal to the icons by sending only the diff (`MinimiseTargets::since`), and sends them
+all again when a shell surface registers. On the Wlr and Cosmic arms the seat is absent and
+nothing is sent.
 
 ## 9. Test harness
 

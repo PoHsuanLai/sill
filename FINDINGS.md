@@ -925,3 +925,29 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
 - **Left.** `deny.toml` keeps its MPL allowance (freedesktop-desktop-entry and others still
   arrive under it). `Cargo.lock` was edited by hand to drop the crate; the first cargo run may
   prune its now-unused dependencies.
+
+## dock-minimise-rect
+
+- **What changed.** The dock publishes, per output, the resting rectangle of each app's icon
+  (`rest_rects::app_rects`, from the frame at no magnification, whole logical px in the dock
+  surface's coordinates; the Trash has none) into `Services::dock_rects` (`DockRects`, a watch, written
+  only on change). The daemon's `ShellSeat` (Quire arm only) reads it with the arm's `DesktopView`
+  and sends `SetMinimiseTarget` for each window whose app has an icon on the window's output,
+  `ClearMinimiseTarget` for each that had one and has none (`MinimiseTargets::of` / `since`, pure,
+  table-tested in `sill-model`). `ShellSeat::command` is the smallest command method. Every shell
+  surface registration clears the "sent" record and sends all targets again, so a target the
+  compositor refused with `NoSurface(Dock)` before the dock was registered arrives after it.
+- **Matching is by app name.** The dock groups windows from the environment connection
+  (`cosmic_wl` keys), the arm names them by identifier, and the two key spaces do not meet.
+  A window therefore takes the rectangle of the icon filed under its `WindowView::app`: the icon's
+  desktop-entry id and the raw app id of each of the icon's windows. If Quire's app key differs
+  from both (a proven name unlike the entry id), that app's windows get no target.
+- **Only a live casement run proves.** That the rectangle is in the coordinates
+  `quire_shell_v1.set_minimise_target` expects (surface-local logical px, top-left origin) and
+  that the genie lands on the icon rather than offset by the pill's gutter or the autohide slide
+  (the rectangle ignores the slide); that a target sent before the dock's `SetShellRole` is
+  refused and the resend after registration fixes it; that a dock restarted or an output hot-plugged
+  re-sends; that a window on an output with no dock falls back to the compositor's own default.
+- **Not done.** The `minimise to application` setting (one tile per app is the only mode); a
+  stale entry stays in `DockRects` when an output goes (its windows have no output then, so no
+  target is sent); the `DockEffect::SetMinimizeRects` placeholder in `io.rs` stays a no-op.

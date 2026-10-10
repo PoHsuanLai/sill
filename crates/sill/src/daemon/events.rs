@@ -65,6 +65,8 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
             crate::companion::apply(&shell.outputs, &shell.services, &shell.links.launcher, out)
         }
         HostEvent::App(ShellMsg::Note(note)) => super::compositor::apply(shell, note),
+        HostEvent::App(ShellMsg::DockRects(rects)) => shell.seat.set_rects(rects),
+        HostEvent::App(ShellMsg::Desktop(view)) => shell.seat.set_view(*view),
         other => host_event(shell, ctx, other),
     }
 }
@@ -262,6 +264,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         HostEvent::App(ShellMsg::Summon(_)) => {}
         // Answered by `handle`, which holds the links and the services.
         HostEvent::App(ShellMsg::Note(_)) => {}
+        // Answered by `handle`, which holds the seat.
+        HostEvent::App(ShellMsg::DockRects(_) | ShellMsg::Desktop(_)) => {}
         HostEvent::App(ShellMsg::Ipc { reply, .. }) => {
             // Never reached through `handle`, which answers `Ipc` itself; answered rather
             // than dropped in case another caller ever delivers one here directly.
