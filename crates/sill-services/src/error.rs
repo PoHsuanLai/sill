@@ -27,6 +27,9 @@ pub enum ServiceError {
     /// The compositor lacks a protocol this service needs: the service stays at its default.
     #[error("the compositor does not offer {0}")]
     Unsupported(&'static str),
+    /// The compositor's output management refused or did not answer a change.
+    #[error("outputs: {0}")]
+    Outputs(String),
     /// A service's own thread could not be started.
     #[error("no thread: {0}")]
     Thread(std::io::Error),

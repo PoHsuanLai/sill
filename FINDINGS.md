@@ -19,6 +19,20 @@ A settled item is deleted, not marked closed.
   `ext_workspace_manager_v1` (or with no socket at all) both receivers keep their empty
   defaults and commands are dropped; the watch senders stay held, so receivers read empty
   values, not a closed channel.
+- **One binary, the arm from the globals.** `cosmic_wl`'s thread lists the registry and
+  `sill_model::desktop::backend_for` picks: `quire_desktop_manager_v1` is Quire (no arm yet: the
+  lists stay empty and one line goes to stderr), `zwlr_foreign_toplevel_manager_v1` is Wlr (the
+  `desktop_wl` arm over `desktop-client`), anything else is Cosmic. Never a compositor's name or
+  the environment. It is unverified that cosmic-comp does not also offer the wlr manager; if it
+  does, the choice needs a COSMIC check before the wlr one. The displays pick the same way
+  (`OutputsRoute`): the native output management on Wlr, `cosmic-randr` otherwise.
+- **The standard protocols do not say which workspace a window is on, or which window was last
+  active.** The Wlr arm keeps recency itself (the projection steps each window into the same
+  `toplevels::step` COSMIC's uses) and puts a window on the active workspaces of the groups that
+  show its outputs; `WindowView::space` is `Unknown`. It cannot place a window, move one to a
+  Space, reorder or pin a workspace, or send a minimise target (the sill command carries no
+  `wl_surface`): `supports(Wlr, ..)` is `No` for those and the arm drops the old commands that
+  mean them. A Space's id is the compositor's workspace id as a slug, else `ws-<key>`.
 - **Commands are gated on what the compositor advertised.** A command for an unknown key or a
   missing capability is dropped. Two protocol quirks: COSMIC's workspace XML gives `pin` the
   bitfield value 3 (`rename | set_tiling_state`), so capabilities are compared whole; and
@@ -181,7 +195,7 @@ A settled item is deleted, not marked closed.
   `FileManager1.ShowItems` when the name is owned or activatable. URIs are percent-encoded as
   GLib writes them. Unit names escape as `systemd-escape` does (a literal `-` included).
   `Terminal=true` runs `$TERMINAL`, else ghostty, wezterm, foot, cosmic-term, wrapped `-e`.
-- **Desktop entries**: `OnlyShowIn`/`NotShowIn` are matched against `COSMIC`, not the live
+- **Desktop entries**: `OnlyShowIn`/`NotShowIn` are matched against `COSMIC` and `quire`, not the live
   `XDG_CURRENT_DESKTOP`. `TryExec` that resolves nowhere drops the entry. Flatpak's export
   directories are added even when `XDG_DATA_DIRS` lacks them. An absolute `Icon=` is taken on
   trust. The SVG-over-largest-PNG preference is a heuristic over `freedesktop_icons`' first
@@ -558,6 +572,19 @@ A settled item is deleted, not marked closed.
   document order.
 
 ## Open items
+
+- **Surfaces read `CosmicWl`, not `DesktopView`.** The Wlr arm publishes through the compositor
+  service's existing state (`CosmicWl`), so the dock, switcher, bar, corners and keycap's focus
+  feed run on casement unchanged; `desktop_wl::desktop_view` builds the frozen `DesktopView` from
+  the same state and nothing reads it yet. Ends when the surfaces take `DesktopView` and
+  `DesktopCommand` and `cosmic_wl`'s model is deleted with the Cosmic arm.
+- **The Quire arm.** `backend_for` returns `Quire` when `quire_desktop_manager_v1` is offered and
+  the thread declines it (the windows and workspaces stay empty). Ends when the arm over ext and
+  `quire_desktop_v1` exists.
+- **The dock's minimise target on Wlr.** `DesktopCommand::SetMinimiseTarget` carries no surface and
+  the wlr request needs the dock's own `wl_surface` on shell-host's connection, so minimise
+  animates to the compositor's default place. Ends when shell-host exports the surface to a client
+  that can register it with `DesktopClient::register_surface`.
 
 - **Accounts: what waits on other repos.** (1) A provider's `mark_face` cannot reach the add list: `ds_shell::ProviderEntry` has no face (`gap(quire)` at `mark_of`); quire v0.2.31's `ProviderEntry::faced` is the way in. (2) Settings is opened by activating `org.quire.Settings` (`ActivateAction("open-account", [account path])` at `/org/quire/Settings`), so it runs as `org.quire.Settings.service`; detent must serve `org.freedesktop.Application` with that action, and its desktop entry should say `DBusActivatable=true` (the launch service already activates any such entry over the bus, and Settings by name whatever its entry says). (3) The app-password hint under an iCloud, Fastmail or Yahoo password is the empty entry's hint, shortened: quire has no help line under a field for porter's full sentence.
 

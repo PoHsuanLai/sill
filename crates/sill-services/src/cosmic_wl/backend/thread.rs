@@ -1,7 +1,8 @@
 //! The `cosmic_wl` thread: its own Wayland connection (a protocol object cannot cross
 //! connections, and shell-host's connection is the host's), a calloop loop over it, and the
-//! command channel. On a compositor without the COSMIC protocols it parks on the command
-//! channel instead, dropping commands, until every `Control` is gone.
+//! command channel. The compositor's globals pick the arm (`backend_for`): the standard
+//! protocols run on `desktop_wl`; COSMIC's own run here. On a compositor with neither it parks
+//! on the command channel instead, dropping commands, until every `Control` is gone.
 
 use cosmic_client_toolkit::sctk::reexports::calloop;
 use cosmic_client_toolkit::sctk::reexports::calloop::channel::Event;
@@ -12,11 +13,14 @@ use cosmic_client_toolkit::wayland_client::globals::{
 };
 use cosmic_client_toolkit::wayland_client::{Connection, EventQueue};
 use sill_model::cosmic_wl::WlCommand;
+use sill_model::desktop::{DesktopBackend, backend_for};
 use tokio::sync::mpsc::UnboundedReceiver;
 
+use super::commands::{forward_commands, park_commands};
 use super::execute::execute;
 use super::publish::Publish;
 use super::state::{Offer, WlState};
+use crate::desktop_wl;
 use crate::env::{WaylandRoute, WaylandUnreached};
 
 /// Why the thread is not following a compositor.
@@ -28,6 +32,8 @@ enum Refusal {
     Registry(#[from] GlobalError),
     #[error("the compositor offers neither ext-foreign-toplevel-list nor ext-workspace")]
     NoCosmic,
+    #[error("the desktop's own compositor protocol has no arm in this build")]
+    NoQuireArm,
     #[error("the event loop: {0}")]
     Loop(#[from] calloop::Error),
 }
@@ -39,10 +45,11 @@ pub(crate) fn run(
     commands: UnboundedReceiver<WlCommand>,
 ) {
     match open(&endpoint, publish) {
-        Ok(session) => follow(session, commands),
+        Ok(Opened::Cosmic(session)) => follow(session, commands),
+        Ok(Opened::Wlr(connection, publish)) => desktop_wl::run(connection, publish, commands),
         Err((refusal, publish)) => {
             eprintln!("sill: cosmic_wl: {refusal}; toplevels and workspaces stay empty");
-            park(commands);
+            park_commands(commands);
             // Held until now so the receivers read empty values, not a closed channel.
             drop(publish);
         }
@@ -55,11 +62,31 @@ struct Session {
     state: WlState,
 }
 
-fn open(endpoint: &WaylandRoute, publish: Publish) -> Result<Session, (Refusal, Publish)> {
+/// The arm the compositor's globals select, ready to run.
+enum Opened {
+    Cosmic(Session),
+    /// The standard protocols: the connection, which the arm binds itself.
+    Wlr(Connection, Publish),
+}
+
+fn open(endpoint: &WaylandRoute, publish: Publish) -> Result<Opened, (Refusal, Publish)> {
     let (conn, globals, queue) = match connect(endpoint) {
         Ok(parts) => parts,
         Err(refusal) => return Err((refusal, publish)),
     };
+    match backend_for(&desktop_wl::offer_of_registry(&globals)) {
+        DesktopBackend::Quire => Err((Refusal::NoQuireArm, publish)),
+        DesktopBackend::Wlr => Ok(Opened::Wlr(conn, publish)),
+        DesktopBackend::Cosmic => open_cosmic(conn, globals, queue, publish).map(Opened::Cosmic),
+    }
+}
+
+fn open_cosmic(
+    conn: Connection,
+    globals: GlobalList,
+    queue: EventQueue<WlState>,
+    publish: Publish,
+) -> Result<Session, (Refusal, Publish)> {
     let state = WlState::bind(&globals, &queue.handle(), publish);
     if state.offer() == Offer::Nothing {
         return Err((Refusal::NoCosmic, state.into_publish()));
@@ -93,7 +120,7 @@ fn follow(session: Session, commands: UnboundedReceiver<WlCommand>) {
     let (to_loop, from_forwarder) = channel::channel();
     let forwarder = match std::thread::Builder::new()
         .name("cosmic_wl-commands".to_owned())
-        .spawn(move || forward(commands, to_loop))
+        .spawn(move || forward_commands(commands, to_loop))
     {
         Ok(forwarder) => forwarder,
         Err(error) => {
@@ -120,16 +147,4 @@ fn follow(session: Session, commands: UnboundedReceiver<WlCommand>) {
     // The watch senders live in `state`: keep them until the forwarder has seen every Control
     // go, so receivers read empty values rather than a closed channel.
     let _finished = forwarder.join();
-}
-
-/// Hand every command to the loop; once the loop has stopped, drop them.
-fn forward(mut commands: UnboundedReceiver<WlCommand>, to_loop: channel::Sender<WlCommand>) {
-    while let Some(command) = commands.blocking_recv() {
-        let _dropped_after_the_loop_stopped = to_loop.send(command);
-    }
-}
-
-/// Sleep on the command channel, dropping commands, until every `Control` is gone.
-fn park(mut commands: UnboundedReceiver<WlCommand>) {
-    while commands.blocking_recv().is_some() {}
 }

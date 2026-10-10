@@ -25,6 +25,7 @@ pub mod clock;
 pub mod companion;
 pub mod control;
 pub mod cosmic_wl;
+pub mod desktop_wl;
 pub mod displays;
 pub mod env;
 pub mod error;

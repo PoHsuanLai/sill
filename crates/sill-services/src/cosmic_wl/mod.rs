@@ -8,7 +8,7 @@
 
 mod backend;
 
-use backend::Publish;
+pub(crate) use backend::{Publish, forward_commands, park_commands};
 use sill_model::cosmic_wl::{CosmicWl, WlCommand};
 
 use crate::env::Env;

@@ -3,6 +3,7 @@
 
 mod dark_contrast;
 mod dock;
+mod dock_wlr;
 mod magnification;
 
 /// A file in `tests/it` that `main.rs` does not list would compile to nothing.

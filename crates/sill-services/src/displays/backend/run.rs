@@ -1,5 +1,5 @@
 //! The displays service task: commands in, [`Displays`] out. The DDC worker runs on a thread
-//! of its own; output passes (a `cosmic-randr` round trip and a few sysfs reads) run on the
+//! of its own; output passes (an output-management round trip and a few sysfs reads) run on the
 //! blocking pool; everything else here is quick.
 
 use std::collections::BTreeSet;
@@ -27,10 +27,10 @@ use super::ddc::worker;
 use super::ddc::worker::DdcJob;
 use super::scale_pass::scale_pass;
 use super::seen_file::{load, path_in, save};
-use super::sink::CosmicRandr;
+use super::sink_wlr::OutputsRoute;
 use super::{backlight, fontconfig_file};
 use crate::env::ddc::{DdcBus, connected};
-use crate::env::{Bus, Dirs};
+use crate::env::{Bus, Dirs, WaylandRoute};
 
 /// Where the service looks and writes.
 #[derive(Debug, Clone)]
@@ -47,11 +47,13 @@ pub struct Paths {
     pub ddc: Arc<dyn DdcBus>,
     /// logind, which sets a backlight as this session.
     pub system: Bus,
+    /// The compositor whose outputs are read and scaled.
+    pub wayland: WaylandRoute,
 }
 
 impl Paths {
     /// The kernel's usual places, the files in `dirs`, logind on `system`, DDC on `ddc`.
-    pub fn of(system: Bus, dirs: &Dirs, ddc: Arc<dyn DdcBus>) -> Self {
+    pub fn of(system: Bus, dirs: &Dirs, ddc: Arc<dyn DdcBus>, wayland: WaylandRoute) -> Self {
         Paths {
             drm: PathBuf::from("/sys/class/drm"),
             backlight: PathBuf::from("/sys/class/backlight"),
@@ -59,6 +61,7 @@ impl Paths {
             fontconfig: Some(fontconfig_file::dir_in(dirs)),
             ddc,
             system,
+            wayland,
         }
     }
 }
@@ -343,7 +346,12 @@ fn outputs_pass(
 ) -> (Vec<DisplayOutput>, Vec<Backlight>, Vec<String>) {
     let connectors = connected(&paths.drm);
     let before = paths.seen.as_deref().map(load).unwrap_or_default();
-    let pass = scale_pass(&mut CosmicRandr, &connectors, before.clone(), policy);
+    let pass = scale_pass(
+        &mut OutputsRoute::pick(&paths.wayland),
+        &connectors,
+        before.clone(),
+        policy,
+    );
     let mut failures: Vec<String> = pass
         .failures
         .iter()

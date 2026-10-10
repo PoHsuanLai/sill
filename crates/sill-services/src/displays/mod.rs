@@ -3,8 +3,9 @@
 //!
 //! - **Scale.** Every output's EDID (size, native mode) gives its density; `default_scale`
 //!   aims it at 109 points per inch, and the first time sill sees a display it sets that scale
-//!   through `cosmic-randr` ([`ScaleSink`]), then never again (`decide_scale`,
-//!   `$XDG_STATE_HOME/sill/displays.json`).
+//!   through the compositor's own output management, or `cosmic-randr` on COSMIC
+//!   ([`OutputsRoute`], picked from the compositor's globals), then never again
+//!   (`decide_scale`, `$XDG_STATE_HOME/sill/displays.json`).
 //! - **Gamut.** The EDID primaries classified as sRGB, Display P3 or wide (`classify`); stored
 //!   for colour management, which cosmic-comp 1.8 does not offer yet.
 //! - **DDC/CI.** External monitors' brightness, contrast, speaker volume, mute, input and RGB
@@ -19,7 +20,7 @@
 
 mod backend;
 
-pub use backend::{CosmicRandr, ScaleSink};
+pub use backend::{CosmicRandr, OutputsRoute, ScaleSink, WlrOutputs};
 
 use std::sync::Arc;
 
@@ -48,7 +49,12 @@ impl Service for DisplaysService {
         deps: Self::Deps,
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        let paths = backend::Paths::of(env.buses.system.clone(), &env.dirs, Arc::clone(&env.ddc));
+        let paths = backend::Paths::of(
+            env.buses.system.clone(),
+            &env.dirs,
+            Arc::clone(&env.ddc),
+            env.wayland.clone(),
+        );
         async move {
             backend::run(io.state, io.commands, deps, paths).await;
             Ok(())

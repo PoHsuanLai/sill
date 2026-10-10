@@ -10,6 +10,7 @@ mod osd;
 mod polkit_prompt;
 mod power_menu;
 mod switcher;
+mod switcher_wlr;
 mod user_style;
 mod voice_consent;
 mod wallpaper;

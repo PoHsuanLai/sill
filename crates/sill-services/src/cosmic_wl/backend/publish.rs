@@ -28,8 +28,15 @@ impl Publish {
         });
     }
 
+    /// Publish `next` whole, as the standard-protocol arm does after every dispatch: it
+    /// projects the full state, so there is no event to step.
+    pub(crate) fn replace(&self, next: CosmicWl) {
+        self.tx
+            .send_if_modified(|now| replace_if_changed(now, |_| next));
+    }
+
     /// Back to empty: the compositor has gone, and its windows and workspaces with it.
-    pub(super) fn clear(&self) {
+    pub(crate) fn clear(&self) {
         self.tx
             .send_if_modified(|now| replace_if_changed(now, |_| CosmicWl::default()));
     }

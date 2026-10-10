@@ -13,6 +13,7 @@ mod companion_routing_bus;
 mod companion_session_bus;
 mod companion_support;
 mod cosmic_wl_nested;
+mod desktop_wl;
 mod events_live;
 mod guest_asks_bus;
 mod icons;
