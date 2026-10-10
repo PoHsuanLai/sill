@@ -162,7 +162,6 @@ proc-macro2 = "1"
 # Shell-only (COSMIC).
 cosmic-client-toolkit = { git = "https://github.com/pop-os/cosmic-protocols", rev = "c0cff4db14c37ed954983158e4055aa94c7741d9" }
 upower_dbus = { git = "https://github.com/pop-os/dbus-settings-bindings", rev = "eed01dd3609e90e3c8cd043656734c500956c793" }
-cosmic-dbus-networkmanager = { git = "https://github.com/pop-os/dbus-settings-bindings", rev = "eed01dd3609e90e3c8cd043656734c500956c793" }
 logind-zbus = "5"
 libpulse-binding = "2.30"
 system-tray = "0.8.9"

@@ -23,6 +23,7 @@ mod intents_bus;
 mod keycap_socket;
 mod keycap_systemd_bus;
 mod launch_viewer_bus;
+mod nm_bus;
 mod notifications_bus;
 mod polkit_bus;
 mod scale_live;

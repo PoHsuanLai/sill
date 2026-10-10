@@ -39,6 +39,7 @@ pub mod keycap;
 pub mod launch;
 pub mod locker;
 pub mod network;
+mod nm;
 pub mod notifications;
 pub mod now_playing;
 mod owner;

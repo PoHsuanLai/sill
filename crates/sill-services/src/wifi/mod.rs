@@ -3,8 +3,7 @@
 //!
 //! A service of its own beside [`super::NetworkService`] rather than more fields on `Network`: the
 //! bar draws `Network` and would repaint on every scan otherwise, and the two share nothing but the
-//! bus. Same crate as the rest of the network (`cosmic-dbus-networkmanager`, MPL-2.0, linked, never
-//! pasted from).
+//! bus. Same proxies as the rest of the network (sill's own, in `nm`).
 
 mod backend;
 

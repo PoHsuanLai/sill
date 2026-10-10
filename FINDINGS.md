@@ -903,3 +903,25 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
   `Connection` accessor.
 - **Not touched.** `cosmic_wl` (removed at S4), the old `desktop_wl` protocol code (kept: the environment
   route serves COSMIC, KWin and tests).
+
+## nm-proxies
+
+- **What changed.** `cosmic-dbus-networkmanager` (MPL) is gone from the workspace and from
+  `sill-services`. The network and Wi-Fi backends use sill's own `zbus` proxies in
+  `crates/sill-services/src/nm/`, one file per interface, written from the NetworkManager D-Bus
+  documentation and carrying only the members sill uses: `NetworkManager` (`GetAllDevices`,
+  `ActivateConnection`, `PrimaryConnection`, `ActivatingConnection`, `Connectivity`,
+  `WirelessEnabled` read and write, `WirelessHardwareEnabled`), `Connection.Active` (`State`,
+  `Type`, `Devices`), `Device` (`Disconnect`, `DeviceType`, `State`), `Device.Wireless`
+  (`RequestScan`, `AccessPoints`, `ActiveAccessPoint`, `LastScan`, `AccessPointAdded` and
+  `AccessPointRemoved`), `AccessPoint` (`Ssid`, `Strength`, `Flags`, `WpaFlags`, `RsnFlags`),
+  `Settings` (`Connections`, `NewConnection`, `ConnectionRemoved`) and `Settings.Connection`
+  (`GetSettings`). `DeviceType` and `DeviceState` are two small enums over the numbers sill
+  tells apart; every other value reads as `Other`.
+- **Behaviour.** Unchanged: the same reads, the same fallbacks. The one edit in a body is that
+  `saved_ssid_of` takes the SSID out of the settings map instead of cloning it.
+- **Test.** `tests/it/nm_bus.rs` serves a stand-in NetworkManager on a private bus and drives
+  both services through it, including the four Wi-Fi commands.
+- **Left.** `deny.toml` keeps its MPL allowance (freedesktop-desktop-entry and others still
+  arrive under it). `Cargo.lock` was edited by hand to drop the crate; the first cargo run may
+  prune its now-unused dependencies.

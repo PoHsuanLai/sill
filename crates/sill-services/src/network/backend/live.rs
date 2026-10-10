@@ -1,10 +1,6 @@
 //! NetworkManager's primary connection over the system bus: seeds a real first value, then
 //! feeds every property change through [`step`].
 
-use cosmic_dbus_networkmanager::interface::NetworkManagerProxy;
-use cosmic_dbus_networkmanager::interface::access_point::AccessPointProxy;
-use cosmic_dbus_networkmanager::interface::active_connection::ActiveConnectionProxy;
-use cosmic_dbus_networkmanager::interface::device::wireless::WirelessDeviceProxy;
 use sill_model::network::{
     Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, step,
 };
@@ -15,6 +11,9 @@ use zbus::zvariant::OwnedObjectPath;
 
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::nm::{
+    AccessPointProxy, ActiveConnectionProxy, NetworkManagerProxy, WirelessDeviceProxy,
+};
 use crate::owner::{self, Ended};
 use crate::stream::next;
 
@@ -118,7 +117,7 @@ async fn primary_link(connection: &Connection, nm: &NetworkManagerProxy<'_>) -> 
     };
 
     let state = active.state().await.unwrap_or(0);
-    let kind = active.type_().await.unwrap_or_default();
+    let kind = active.kind().await.unwrap_or_default();
     match state {
         1 => Link::Connecting,
         2 => link_of(connection, &active, &kind).await,
@@ -144,7 +143,7 @@ async fn activating_status(connection: &Connection, nm: &NetworkManagerProxy<'_>
         return Activating::Idle;
     };
     let state = active.state().await.unwrap_or(0);
-    let kind = active.type_().await.unwrap_or_default();
+    let kind = active.kind().await.unwrap_or_default();
     match (state, kind.as_str()) {
         (1, "802-11-wireless") => Activating::Joining,
         _ => Activating::Idle,

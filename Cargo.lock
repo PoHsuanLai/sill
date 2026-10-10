@@ -1547,19 +1547,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cosmic-dbus-networkmanager"
-version = "0.1.0"
-source = "git+https://github.com/pop-os/dbus-settings-bindings?rev=eed01dd3609e90e3c8cd043656734c500956c793#eed01dd3609e90e3c8cd043656734c500956c793"
-dependencies = [
- "bitflags 2.13.2",
- "derive_builder",
- "jiff",
- "procfs",
- "zbus",
- "zvariant",
-]
-
-[[package]]
 name = "cosmic-protocols"
 version = "0.2.0"
 source = "git+https://github.com/pop-os/cosmic-protocols?rev=c0cff4db14c37ed954983158e4055aa94c7741d9#c0cff4db14c37ed954983158e4055aa94c7741d9"
@@ -7324,7 +7311,6 @@ dependencies = [
  "casement-protocols",
  "companion-wire",
  "cosmic-client-toolkit",
- "cosmic-dbus-networkmanager",
  "cua-bus",
  "cua-dbus",
  "ddc",

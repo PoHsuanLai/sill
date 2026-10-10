@@ -37,7 +37,6 @@ tokio = { workspace = true }
 zbus = { workspace = true }
 cosmic-client-toolkit = { workspace = true }
 upower_dbus = { workspace = true }
-cosmic-dbus-networkmanager = { workspace = true }
 libpulse-binding = { workspace = true }
 system-tray = { workspace = true }
 freedesktop-desktop-entry = { workspace = true }

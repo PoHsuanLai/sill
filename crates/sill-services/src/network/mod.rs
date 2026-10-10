@@ -1,5 +1,5 @@
 //! The network: NetworkManager's primary connection over the system bus
-//! (cosmic-dbus-networkmanager; MPL, link only).
+//! (sill's own proxies, `crate::nm`).
 
 mod backend;
 

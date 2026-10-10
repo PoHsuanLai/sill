@@ -3,19 +3,12 @@
 //! connections' SSIDs, and the active access point; every change through
 //! [`sill_model::wifi::step`]; [`WifiCommand`]s carried out.
 //!
-//! Same crate and bus as the network service (`cosmic_dbus_networkmanager`); the wireless
+//! Same bus and proxies as the network service (`crate::nm`); the wireless
 //! device is found once by its `DeviceType` and kept for the life of the task (a device that
 //! disappears mid-run is not re-found — `Refresh` is a later milestone's, per [`WifiCommand`]).
 
 use std::collections::HashMap;
 
-use cosmic_dbus_networkmanager::interface::NetworkManagerProxy;
-use cosmic_dbus_networkmanager::interface::access_point::AccessPointProxy;
-use cosmic_dbus_networkmanager::interface::device::DeviceProxy;
-use cosmic_dbus_networkmanager::interface::device::wireless::WirelessDeviceProxy;
-use cosmic_dbus_networkmanager::interface::enums::{DeviceState, DeviceType};
-use cosmic_dbus_networkmanager::interface::settings::SettingsProxy;
-use cosmic_dbus_networkmanager::interface::settings::connection::ConnectionSettingsProxy;
 use sill_model::units::{Percent, Presence};
 use sill_model::wifi::{
     AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiCommand, WifiEvent, step,
@@ -26,6 +19,10 @@ use zbus::zvariant::{ObjectPath, OwnedObjectPath};
 
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::nm::{
+    AccessPointProxy, ConnectionSettingsProxy, DeviceProxy, DeviceState, DeviceType,
+    NetworkManagerProxy, SettingsProxy, WirelessDeviceProxy,
+};
 use crate::stream::next;
 
 /// Runs until `commands` closes. Without a bus, NetworkManager or a wireless device, `tx` stays
@@ -256,10 +253,9 @@ async fn saved_ssid_of(connection: &Connection, path: &OwnedObjectPath) -> Optio
         .build()
         .await
         .ok()?;
-    let all = settings.get_settings().await.ok()?;
-    let wireless = all.get("802-11-wireless")?;
-    let ssid = wireless.get("ssid")?;
-    let bytes = Vec::<u8>::try_from(ssid.clone()).ok()?;
+    let mut all = settings.get_settings().await.ok()?;
+    let ssid = all.remove("802-11-wireless")?.remove("ssid")?;
+    let bytes = Vec::<u8>::try_from(ssid).ok()?;
     Some(Ssid(String::from_utf8_lossy(&bytes).into_owned()))
 }
 
