@@ -19,6 +19,7 @@ cua-bus = { workspace = true }
 almanac-core = { workspace = true }
 prov = { workspace = true }
 porter-core = { workspace = true }
+casement-protocols = { workspace = true }
 jiff = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

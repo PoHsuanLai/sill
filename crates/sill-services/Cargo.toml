@@ -27,6 +27,8 @@ almanac-core = { workspace = true }
 almanac-dbus = { workspace = true }
 prov = { workspace = true }
 porter-core = { workspace = true }
+casement-protocols = { workspace = true }
+desktop-client = { workspace = true, features = ["client"] }
 porter-dbus = { workspace = true }
 porter-client = { workspace = true }
 toml = { workspace = true }
@@ -54,6 +56,7 @@ nonstick = { workspace = true }
 percent-encoding = { workspace = true }
 
 [dev-dependencies]
+desktop-client = { workspace = true, features = ["fake"] }
 sill-testkit = { workspace = true }
 porter-infer = { workspace = true }
 docket-router = { workspace = true }

@@ -16,6 +16,7 @@ pub mod clipboard;
 pub mod clock;
 pub mod companion;
 pub mod cosmic_wl;
+pub mod desktop;
 pub mod displays;
 pub mod events;
 pub mod guest_asks;

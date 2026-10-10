@@ -212,6 +212,14 @@ keycap-client = { path = "../keycap/crates/keycap-client" }
 docket-core = { path = "../docket/crates/docket-core" }
 docket-dbus = { path = "../docket/crates/docket-dbus" }
 docket-client = { path = "../docket/crates/docket-client", features = ["dbus"] }
+# The desktop's private protocols: sill-model takes only the pure vocabulary (`vocab`, serde and
+# thiserror, no Wayland), for the views of apps, windows and Spaces; MIT OR Apache-2.0, a sibling
+# checkout.
+casement-protocols = { path = "../casement-protocols" }
+# The typed desktop client for wlroots-style compositors (toplevels, workspaces, outputs over
+# wayland-client; its wire layer behind the `client` feature, its fake behind `fake`): the
+# `desktop_wl` arm of sill-services is built on it. MIT OR Apache-2.0, a sibling checkout.
+desktop-client = { path = "../casement-protocols/desktop-client" }
 prov = { path = "../porter/crates/prov" }
 porter-core = { path = "../porter/crates/porter-core" }
 # Test-only: the `ServedBy` a stand-in voiced stamps on a transcript.
