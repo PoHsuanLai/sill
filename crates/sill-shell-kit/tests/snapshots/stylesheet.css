@@ -2847,6 +2847,22 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-table-cell[*|data-align=trailing]{ text-align:end; }
 .ds-table .ds-row{ min-height:var(--row-compact-h); padding:0; }
 .ds-table .ds-row-words{ display:flex; flex-direction:row; }
+
+/* Column rules (`ColumnRules::Hairline`, Numbers): a hairline between each cell and the next, the
+   full row high, and the header's drag-edge line drawn the header's whole height. */
+.ds-table[*|data-rules=hairline] .ds-row{ align-items:stretch; }
+.ds-table[*|data-rules=hairline] .ds-row-words{ align-self:stretch; }
+.ds-table[*|data-rules=hairline] .ds-table-cells{ align-items:stretch; }
+.ds-table[*|data-rules=hairline] .ds-table-cell{ display:flex; align-items:center; }
+.ds-table[*|data-rules=hairline] .ds-table-cell > *{ min-width:0; overflow:hidden; white-space:nowrap; }
+.ds-table[*|data-rules=hairline] .ds-table-cell[*|data-align=trailing]{ justify-content:flex-end; }
+.ds-table[*|data-rules=hairline] .ds-table-cell + .ds-table-cell{ border-left:var(--hair) solid var(--line); }
+.ds-table[*|data-rules=hairline] .ds-table-resize::after{ top:0; bottom:0; }
+
+/* Header rule (`HeaderRule::WhenScrolled`, Finder): a hairline under the header once the rows have
+   scrolled beneath it. */
+.ds-table-header::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:var(--hair); background:var(--line); opacity:0; pointer-events:none; }
+.ds-table[*|data-scrolled=yes] .ds-table-header::after{ opacity:1; }
 /* -- text_field -- */
 /* TextField (design/30 section 2.2, `NSTextField`, `NSSecureTextField`, `NSSearchField`).
    Attribute selectors carry `*|` (spike S2). The root holds the field and the notes under it; the
