@@ -3,18 +3,6 @@
 version = 4
 
 [[package]]
-name = "a11y-tree"
-version = "0.1.0"
-dependencies = [
- "cua-action",
- "cua-desktop",
- "porter-core",
- "prov",
- "serde",
- "thiserror 2.0.21",
-]
-
-[[package]]
 name = "ab_glyph"
 version = "0.2.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -854,19 +842,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "blake3"
-version = "1.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d9e454fc11f76977dc803893aff6304ed33d6a26efae8696573bea74baa27ae"
-dependencies = [
- "arrayvec 0.7.8",
- "cc",
- "cfg-if",
- "constant_time_eq",
- "cpufeatures 0.3.1",
-]
-
-[[package]]
 name = "blitz-dom"
 version = "0.3.0-beta.2"
 source = "git+https://github.com/PoHsuanLai/blitz?rev=70aa1bd8c9e489dd4294dabc58e3157cd718c770#70aa1bd8c9e489dd4294dabc58e3157cd718c770"
@@ -1310,6 +1285,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
+name = "chordkit"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=ba094c62006c280ac53c4c5df5c0e639c1226c07#ba094c62006c280ac53c4c5df5c0e639c1226c07"
+dependencies = [
+ "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "chordkit-gnome"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=ba094c62006c280ac53c4c5df5c0e639c1226c07#ba094c62006c280ac53c4c5df5c0e639c1226c07"
+dependencies = [
+ "chordkit",
+]
+
+[[package]]
+name = "chordkit-kde"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=ba094c62006c280ac53c4c5df5c0e639c1226c07#ba094c62006c280ac53c4c5df5c0e639c1226c07"
+dependencies = [
+ "chordkit",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1478,12 +1478,6 @@ dependencies = [
  "quote",
  "unicode-xid",
 ]
-
-[[package]]
-name = "constant_time_eq"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 
 [[package]]
 name = "convert_case"
@@ -1714,16 +1708,14 @@ dependencies = [
 name = "cua-bus"
 version = "0.1.0"
 dependencies = [
- "a11y-tree",
  "almanac-core",
  "cua-action",
  "cua-desktop",
+ "cua-types",
  "docket-core",
- "maskcap",
  "porter-core",
  "porter-infer",
  "prov",
- "seat-input",
  "serde",
  "serde_json",
 ]
@@ -1746,6 +1738,16 @@ dependencies = [
  "docket-core",
  "porter-core",
  "prov",
+ "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "cua-types"
+version = "0.1.0"
+dependencies = [
+ "cua-desktop",
+ "porter-core",
  "serde",
  "thiserror 2.0.21",
 ]
@@ -2506,6 +2508,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 name = "ds"
 version = "0.1.0"
 dependencies = [
+ "chordkit",
  "dioxus",
  "ds-core",
  "ds-intents",
@@ -2536,6 +2539,9 @@ dependencies = [
  "blitz-paint",
  "blitz-shell",
  "blitz-traits",
+ "chordkit",
+ "chordkit-gnome",
+ "chordkit-kde",
  "dioxus",
  "dioxus-asset-resolver",
  "dioxus-native",
@@ -2563,6 +2569,7 @@ dependencies = [
 name = "ds-core"
 version = "0.1.0"
 dependencies = [
+ "chordkit",
  "ds-core-derive",
  "futures-timer",
  "keyboard-types 0.7.0",
@@ -2597,6 +2604,7 @@ dependencies = [
  "blitz-kit",
  "blitz-paint",
  "blitz-traits",
+ "chordkit",
  "dioxus",
  "dioxus-native-dom",
  "ds",
@@ -4280,6 +4288,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "keycap-client"
+version = "0.1.0"
+dependencies = [
+ "chordkit",
+ "keycap-protocol",
+ "rustix",
+]
+
+[[package]]
 name = "keycap-protocol"
 version = "0.1.0"
 dependencies = [
@@ -4728,18 +4745,6 @@ dependencies = [
  "log",
  "tendril",
  "web_atoms",
-]
-
-[[package]]
-name = "maskcap"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "blake3",
- "cua-action",
- "cua-desktop",
- "serde",
- "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -6783,19 +6788,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "seat-input"
-version = "0.1.0"
-dependencies = [
- "cua-action",
- "cua-desktop",
- "keyboard-types 0.7.0",
- "porter-core",
- "serde",
- "thiserror 2.0.21",
- "xkbcommon",
-]
-
-[[package]]
 name = "selectors"
 version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7096,6 +7088,7 @@ dependencies = [
 name = "sill-dock"
 version = "0.1.0"
 dependencies = [
+ "chordkit",
  "dioxus",
  "ds",
  "ds-blitz",
@@ -7131,6 +7124,7 @@ name = "sill-launcher"
 version = "0.1.0"
 dependencies = [
  "almanac-core",
+ "chordkit",
  "docket-core",
  "ds-core",
  "nucleo-matcher",
@@ -7149,6 +7143,7 @@ dependencies = [
  "anyview-image",
  "anyview-peek",
  "anyview-platform",
+ "chordkit",
  "companion-wire",
  "dioxus",
  "dioxus-ssr",
@@ -7221,6 +7216,7 @@ dependencies = [
 name = "sill-overlays"
 version = "0.1.0"
 dependencies = [
+ "chordkit",
  "dioxus",
  "ds",
  "ds-behaviour",
@@ -7385,6 +7381,7 @@ dependencies = [
 name = "sill-ui-kit"
 version = "0.1.0"
 dependencies = [
+ "chordkit",
  "companion-wire",
  "dioxus",
  "dioxus-ssr",
@@ -7398,6 +7395,7 @@ dependencies = [
  "ds-settings",
  "image",
  "jiff",
+ "keycap-client",
  "porter-core",
  "prov",
  "resvg",

@@ -341,6 +341,8 @@ fn handle(
             }
             Turn::Continue
         }
+        // The keymap's own answers go to apps that asked for them; this connection never does.
+        ToClient::Keymap(_) | ToClient::Registered(_) => Turn::Continue,
     }
 }
 

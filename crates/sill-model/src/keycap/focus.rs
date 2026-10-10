@@ -36,7 +36,12 @@ impl Wants {
                 config: Some(toml.clone()),
                 ..self
             },
-            ToDaemon::Resume => self,
+            // The keymap messages (watching it, registering actions) change nothing the shell
+            // must tell a new connection: they belong to the app that sent them.
+            ToDaemon::Resume
+            | ToDaemon::WatchKeymap
+            | ToDaemon::Register(_)
+            | ToDaemon::ListRegistered => self,
         }
     }
 
