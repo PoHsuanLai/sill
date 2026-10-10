@@ -8,6 +8,7 @@ use super::{
     CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, ProfileSource, UserOverrides,
     choose, focused, wanted,
 };
+use super::{Grip, ShellFocus, ShellKeys, under_shell};
 use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, step};
 use crate::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 
@@ -324,4 +325,88 @@ fn the_wanted_profile_follows_the_active_window() {
         name("mine"),
         "the user's override beats keycap's own profile for the app"
     );
+}
+
+/// The keyboard moving between app windows and the shell's surfaces: what keycap is told at each
+/// step, with the profile of the window underneath as the toplevels give it.
+#[test]
+fn the_shell_holding_the_keyboard_is_keymap_aware_over_any_window() {
+    let index = index();
+    let standard = CategoryTable::standard();
+    let own = OwnProfiles::standard();
+    let none = UserOverrides::default();
+    let under = |app: &str| {
+        let windows = vec![toplevel(1, app, Activity::Active)];
+        wanted(&none, &own, &standard, &Toplevels { windows }, &index)
+    };
+    let launcher = 10;
+    let menu = 11;
+    type Step = (
+        &'static str,
+        Option<(u64, Grip)>,
+        &'static str,
+        &'static str,
+    );
+    // (what happened, the surface and what it did, the window underneath, the profile sent)
+    let steps: Vec<Step> = vec![
+        ("firefox alone", None, "plain", "default"),
+        (
+            "the launcher opens over it",
+            Some((launcher, Grip::Gained)),
+            "plain",
+            "keymap-aware",
+        ),
+        (
+            "a menu takes over before the launcher lets go",
+            Some((menu, Grip::Gained)),
+            "plain",
+            "keymap-aware",
+        ),
+        (
+            "the launcher lets go, the menu still has it",
+            Some((launcher, Grip::Lost)),
+            "plain",
+            "keymap-aware",
+        ),
+        (
+            "the menu lets go: the window's own profile again",
+            Some((menu, Grip::Lost)),
+            "plain",
+            "default",
+        ),
+        (
+            "over a terminal it opens keymap-aware too",
+            Some((launcher, Grip::Gained)),
+            "foot",
+            "keymap-aware",
+        ),
+        (
+            "and closes back to the terminal's profile",
+            Some((launcher, Grip::Lost)),
+            "foot",
+            "terminal",
+        ),
+        (
+            "over temor it stays keymap-aware, held or not",
+            None,
+            "org.quire.temor",
+            "keymap-aware",
+        ),
+    ];
+    let mut keys = ShellKeys::default();
+    for (case, change, app, want) in steps {
+        if let Some((surface, grip)) = change {
+            keys = keys.after(surface, grip);
+        }
+        assert_eq!(under_shell(keys.focus(), under(app)), name(want), "{case}");
+    }
+}
+
+#[test]
+fn a_surface_that_closes_holding_the_keyboard_lets_go_of_it() {
+    let held = ShellKeys::default().after(7, Grip::Gained);
+    assert_eq!(held.focus(), ShellFocus::Held);
+    assert_eq!(held.closed(7).focus(), ShellFocus::Elsewhere);
+    let other = ShellKeys::default().after(7, Grip::Gained).closed(8);
+    assert_eq!(other.focus(), ShellFocus::Held, "another surface's close");
 }

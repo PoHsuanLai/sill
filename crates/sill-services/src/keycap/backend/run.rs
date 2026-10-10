@@ -4,7 +4,9 @@
 use keycap_protocol::{ProfileName, ToDaemon};
 use sill_model::apps::AppIndex;
 use sill_model::cosmic_wl::CosmicWl;
-use sill_model::keyboard::{CategoryTable, OwnProfiles, UserOverrides, wanted};
+use sill_model::keyboard::{
+    CategoryTable, OwnProfiles, ShellFocus, UserOverrides, under_shell, wanted,
+};
 use sill_model::keycap::{
     Attention, KeycapCommand, KeycapEvent, KeycapState, NoticeChange, attention, focus_to_send,
     notice_for, step, user_config, watching_unit,
@@ -44,6 +46,8 @@ struct Live {
     /// The profile keycap was last sent.
     chosen: Option<ProfileName>,
     overrides: UserOverrides,
+    /// Whether the shell's own surfaces hold the keyboard.
+    shell: ShellFocus,
     own: OwnProfiles,
     categories: CategoryTable,
     /// When the unit is read next; `None` while it is not worth reading.
@@ -84,6 +88,7 @@ pub(crate) async fn run(
         shown: None,
         chosen: None,
         overrides: UserOverrides::default(),
+        shell: ShellFocus::default(),
         own: OwnProfiles::standard(),
         categories: CategoryTable::standard(),
         check_at: None,
@@ -139,6 +144,10 @@ impl Live {
                 self.overrides = overrides;
                 self.refocus();
             }
+            KeycapCommand::ShellFocus(shell) => {
+                self.shell = shell;
+                self.refocus();
+            }
         }
     }
 
@@ -156,15 +165,16 @@ impl Live {
         self.check_at = Some(Instant::now() + AFTER_RETRY);
     }
 
-    /// Send the profile the focused window wants, when it is not the one keycap has.
+    /// Send the profile the keyboard's place wants (the shell's surface, else the focused window), when it is not the one keycap has.
     fn refocus(&mut self) {
-        let next = wanted(
+        let window = wanted(
             &self.overrides,
             &self.own,
             &self.categories,
             &self.cosmic_wl.borrow().toplevels,
             &self.apps.borrow(),
         );
+        let next = under_shell(self.shell, window);
         if let Some(profile) = focus_to_send(self.chosen.as_ref(), next) {
             self.chosen = Some(profile.clone());
             self.link.send(ToDaemon::Focus { profile });

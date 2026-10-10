@@ -98,6 +98,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         settings,
         user_style,
         links,
+        keys: sill_model::keyboard::ShellKeys::default(),
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 

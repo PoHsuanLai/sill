@@ -3,7 +3,7 @@
 use keycap_protocol::Status;
 use serde::{Deserialize, Serialize};
 
-use crate::keyboard::UserOverrides;
+use crate::keyboard::{ShellFocus, UserOverrides};
 
 /// What a person can ask of keycap from outside the daemon (`sill keycap retry` and `resume`):
 /// the part of [`KeycapCommand`] that crosses the IPC wire.
@@ -27,6 +27,9 @@ pub enum KeycapCommand {
     /// The person's per-app profiles from the settings; replaces the ones the service has and
     /// sends the focus again when the window's profile changes.
     Overrides(UserOverrides),
+    /// Whether the shell's own surfaces hold the keyboard: they do not appear as toplevels, so
+    /// the daemon says so, and the profile is `keymap-aware` while they do.
+    ShellFocus(ShellFocus),
 }
 
 impl From<KeycapAsk> for KeycapCommand {

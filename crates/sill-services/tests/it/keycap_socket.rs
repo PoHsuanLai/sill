@@ -20,7 +20,7 @@ use sill_model::apps::{
     App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, step as apps_step,
 };
 use sill_model::cosmic_wl::{Activity, CosmicWl, Sizing, Toplevel, Toplevels, WindowState};
-use sill_model::keyboard::UserOverrides;
+use sill_model::keyboard::{ShellFocus, UserOverrides};
 use sill_model::keycap::{Attention, KeycapCommand, KeycapState, notice_text};
 use sill_model::notifications::{
     BannerLife, LiveBanner, NotesState, Notification, NotificationId, NotificationsCommand, UnixMs,
@@ -297,6 +297,32 @@ async fn a_focus_change_to_a_terminal_is_told_once_per_profile_change() {
         peer.next(LONG),
         Some(focus("default")),
         "the next thing keycap hears is the change back"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_shell_holding_the_keyboard_is_told_as_keymap_aware_and_let_go_back() {
+    let mut rig = rig(None);
+    let peer = connected(&mut rig).await;
+    assert_eq!(peer.next(LONG), Some(focus("default")));
+    let send = |command| {
+        rig.control
+            .send(command)
+            .unwrap_or_else(|_| panic!("the service is gone"))
+    };
+    send(KeycapCommand::ShellFocus(ShellFocus::Held));
+    assert_eq!(peer.next(LONG), Some(focus("keymap-aware")), "the launcher");
+    rig.wl.send_replace(focused(Some("foot")));
+    assert_eq!(
+        peer.next(SHORT),
+        None,
+        "a window change under the shell changes nothing"
+    );
+    send(KeycapCommand::ShellFocus(ShellFocus::Elsewhere));
+    assert_eq!(
+        peer.next(LONG),
+        Some(focus("terminal")),
+        "it lets go: the window's own profile"
     );
 }
 

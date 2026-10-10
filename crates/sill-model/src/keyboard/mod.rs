@@ -4,10 +4,12 @@
 
 mod choose;
 mod model;
+mod shell;
 mod source;
 #[cfg(test)]
 mod tests;
 
 pub use choose::{choose, focused, wanted};
 pub use model::{CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, UserOverrides};
-pub use source::ProfileSource;
+pub use shell::{Grip, ShellFocus, ShellKeys, under_shell};
+pub use source::{ProfileSource, keymap_aware_profile};

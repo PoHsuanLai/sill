@@ -12,6 +12,8 @@ use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_launcher_ui::Launcher;
 use sill_model::displays::DisplaysCommand;
+use sill_model::keyboard::{Grip, ShellKeys};
+use sill_model::keycap::KeycapCommand;
 use sill_notify_ui::{Banners, ScreenshotThumb};
 use sill_overlays::PowerMenu;
 use sill_settings::ShellFile;
@@ -43,6 +45,8 @@ pub struct Shell {
     pub user_style: watch::Sender<UserStyle>,
     /// The links every surface root is given and the requests write.
     pub links: Links,
+    /// Which of the shell's surfaces hold the keyboard, told to the keycap service.
+    pub keys: ShellKeys,
 }
 
 /// Every event, handled: an IPC request (needs the services and the settings), the lock's and the
@@ -123,6 +127,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
         &shell.services,
     );
     follow_keyboard_focus(shell, &event);
+    tell_keycap_the_holders(shell, &event);
     // The engine has no config until told one; the watcher's and the reload's changes land through
     // `HostEvent::App(ShellMsg::Settings(_))` and `Request::Reload`.
     if matches!(event, HostEvent::Started) {
@@ -166,6 +171,33 @@ fn follow_keyboard_focus(shell: &Shell, event: &HostEvent<ShellMsg>) {
         if on(|surfaces| surfaces.surface_of::<Banners>()) {
             shell.links.banners.keyboard_lost(Transient::Banner);
         }
+    }
+}
+
+/// Which of the shell's surfaces hold the keyboard, kept from the host's focus and close events;
+/// when whether any does changes, the keycap service hears it (it then sends `keymap-aware`, or
+/// the window's profile again).
+fn tell_keycap_the_holders(shell: &mut Shell, event: &HostEvent<ShellMsg>) {
+    let before = shell.keys.focus();
+    let keys = std::mem::take(&mut shell.keys);
+    shell.keys = match event {
+        HostEvent::KeyboardFocus { id, focus } => keys.after(
+            id.0,
+            match focus {
+                KeyboardFocus::Gained => Grip::Gained,
+                KeyboardFocus::Lost => Grip::Lost,
+            },
+        ),
+        HostEvent::SurfaceClosed { id, .. } => keys.closed(id.0),
+        _ => keys,
+    };
+    let after = shell.keys.focus();
+    if after != before {
+        let _ = shell
+            .services
+            .keycap
+            .control
+            .send(KeycapCommand::ShellFocus(after));
     }
 }
 

@@ -421,8 +421,9 @@ the real daemons or a real keyboard.
 - [ ] **Launcher keys on a live session**: with a window focused whose keycap profile is `default`
   (Cmd written as Ctrl), open the launcher and press Cmd+K, Cmd+R, Cmd+Y, Cmd+Shift+B and Cmd+Backspace
   on rows that carry them. The launcher resolves Super (Command) through the keymap only, so each
-  must work; if they arrive as Ctrl the launcher surface needs the `keymap-aware` profile while it
-  holds the keyboard.
+  must work. While a sill surface holds the keyboard sill tells keycap `keymap-aware` (and the
+  window's profile again when it lets go): check in keycap's log that the
+  profile flips on open and back on close, and that Cmd+Tab still switches apps while the launcher is up.
 - [ ] **Dock Cmd/Alt+click**: Cmd+click on a running tile raises it with the other windows hidden as
   before; Alt+click hides the current one. The dock reads Command as the keymap's primary modifier,
   which is Super on our desktop; if keycap rewrites Cmd to Ctrl for the focused window the click
