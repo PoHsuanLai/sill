@@ -67,6 +67,8 @@ pub fn run_state_of(slug: RunStateSlug, outcome: Option<CuaOutcome>) -> RunState
             Some(CuaOutcome::Failed(_) | CuaOutcome::Blocked(_)) => RunState::Failed,
             Some(CuaOutcome::Cancelled(_)) | None => RunState::Stopped,
             Some(CuaOutcome::BudgetOut(_)) => RunState::BudgetOut,
+            // An outcome this build does not know: nothing says it succeeded.
+            Some(_) => RunState::Stopped,
         },
     }
 }
