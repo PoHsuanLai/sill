@@ -2376,6 +2376,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "docket-checkpoint"
+version = "0.1.0"
+dependencies = [
+ "docket-core",
+ "porter-core",
+ "prov",
+ "sha2",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "docket-client"
 version = "0.1.0"
 dependencies = [
@@ -2421,6 +2432,7 @@ version = "0.1.0"
 dependencies = [
  "action-review",
  "almanac-core",
+ "docket-checkpoint",
  "docket-client",
  "docket-core",
  "docket-router",
@@ -2439,6 +2451,7 @@ version = "0.1.0"
 dependencies = [
  "action-review",
  "almanac-core",
+ "docket-checkpoint",
  "docket-core",
  "docket-session",
  "docket-skills",
@@ -7287,6 +7300,7 @@ dependencies = [
  "ddc",
  "ddc-i2c",
  "dirs 6.0.0",
+ "docket-checkpoint",
  "docket-client",
  "docket-core",
  "docket-dbus",
