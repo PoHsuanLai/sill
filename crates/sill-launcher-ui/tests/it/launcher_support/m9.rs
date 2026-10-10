@@ -10,10 +10,11 @@ use anyview_peek::AnyPeeked;
 use sill_launcher_ui::launcher::preview::load::{Look, PreviewFault, ViewerLook};
 use sill_search::providers::files::actions::{activation_of, row_actions};
 
+use chordkit::StandardAction;
 use sill_launcher::{
     Action, ActionId, ActionKeys, Activation, CharCount, Choice, ClipFacts, ClipKey, ClipKind,
-    EmojiFacts, Excerpt, FileFacts, IconRef, Item, ItemId, Mime, OpenTarget, ProviderKind, Score,
-    SkinTone, Subject, UnixTime, WebFacts, chords,
+    EmojiFacts, Excerpt, FileFacts, IconRef, Item, ItemId, Mime, OpenTarget, OwnAction,
+    ProviderKind, Score, SkinTone, Subject, UnixTime, WebFacts,
 };
 
 /// The scratch folder the documents are written to, once per test binary.
@@ -198,7 +199,7 @@ pub fn rows() -> Vec<Item> {
         actions: vec![action(
             "forget",
             "Forget",
-            ActionKeys::Chord(chords::forget()),
+            ActionKeys::own(OwnAction::ForgetEntry),
         )],
         subject: Subject::Clip(ClipFacts {
             key: ClipKey(7),
@@ -217,7 +218,11 @@ pub fn rows() -> Vec<Item> {
             subtitle: name.to_owned(),
             icon: IconRef::None,
             score: Score(300),
-            actions: vec![action("copy", "Copy", ActionKeys::Chord(chords::copy()))],
+            actions: vec![action(
+                "copy",
+                "Copy",
+                ActionKeys::standard(StandardAction::Copy),
+            )],
             subject: Subject::Emoji(EmojiFacts {
                 glyph: glyph.to_owned(),
                 name: name.to_owned(),

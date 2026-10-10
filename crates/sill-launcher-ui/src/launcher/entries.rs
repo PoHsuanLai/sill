@@ -1,6 +1,6 @@
 //! A launcher row's parts as quire's palette and menus take them (design/13 §13.3.9: a 34 px
 //! tile, the title, the subtitle as its detail, a trailing hint). Each row carries its chord
-//! ([`row_chord`]: its first action's, `⌃K` for actions without one, else `↵`) as quire's
+//! ([`row_chord`]: its first action's, `⌘K` for actions without one, else `↵`) as quire's
 //! `RowChord::on_selected`, so only the selected row shows it and quire moves it with the
 //! selection, as Spotlight's hint does; a row in a mixed section trails its kind. Pure.
 //!
@@ -12,9 +12,9 @@ use std::path::Path;
 
 use ds::prelude::*;
 use ds::style::icon::url::IconUrl;
-use sill_launcher::{Action, ActionId, IconRef, Item, ItemId, ProviderKind};
+use sill_launcher::{Action, ActionId, ActionKeys, IconRef, Item, ItemId, OwnAction, ProviderKind};
 
-use crate::launcher::chord_keys::action_shortcut;
+use crate::launcher::action_keys::action_shortcut;
 use crate::launcher::groups::Mix;
 
 /// What a palette row picks: the row's identity, looked up again when it is chosen so a
@@ -57,7 +57,8 @@ pub fn action_entries(actions: &[Action]) -> Vec<MenuItem<ActionId>> {
 }
 
 /// A row's chord, shown by quire only while the row is the selection (Spotlight's hint): its
-/// first action's chord, `⌃K` when it has actions but none has a chord, else `↵` (Enter runs it).
+/// first action's chord, `⌘K` (the shared show-actions key) when it has actions but none has a
+/// chord, else `↵` (Enter runs it).
 pub(crate) fn row_chord(item: &Item) -> RowChord {
     let first = item
         .actions
@@ -65,10 +66,15 @@ pub(crate) fn row_chord(item: &Item) -> RowChord {
         .find_map(|action| action_shortcut(&action.keys));
     let keys = match (first, item.actions.is_empty()) {
         (Some(chord), _) => chord,
-        (None, false) => Shortcut(vec![ShortcutKey::Ctrl, ShortcutKey::Char('k')]),
+        (None, false) => show_actions_key(),
         (None, true) => Shortcut(vec![ShortcutKey::Enter]),
     };
     RowChord::on_selected(keys)
+}
+
+/// The key that opens a row's actions.
+fn show_actions_key() -> Shortcut {
+    action_shortcut(&ActionKeys::own(OwnAction::ShowActions)).unwrap_or_default()
 }
 
 /// Only data trails a row: its kind in a mixed group, else nothing.
@@ -177,13 +183,11 @@ fn kebab(camel: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{RowRef, glyph, kebab, kind_trail, named, row_chord, tile};
-    use crate::launcher::chord_keys::shortcut;
     use crate::launcher::groups::Mix;
+    use chordkit::StandardAction;
     use ds::components::lists::row::chord::ChordShown;
     use ds::prelude::*;
-    use sill_launcher::{
-        Action, ActionId, ActionKeys, IconRef, Item, ItemId, ProviderKind, Score, chords,
-    };
+    use sill_launcher::{Action, ActionId, ActionKeys, IconRef, Item, ItemId, ProviderKind, Score};
 
     fn item(provider: ProviderKind, title: &str, actions: usize) -> Item {
         Item {
@@ -205,16 +209,16 @@ mod tests {
     }
 
     /// Every row carries its chord for quire to show on the selected row only (the first
-    /// action's, `⌃K` for actions without one, `↵` for none); the trail keeps only data, a kind
+    /// action's, `⌘K` for actions without one, `↵` for none); the trail keeps only data, a kind
     /// in a mixed section.
     #[test]
     fn rows_carry_their_chord_for_the_selection_and_only_data_trails() {
         let enter = RowChord::on_selected(Shortcut(vec![ShortcutKey::Enter]));
-        let ctrl_k =
-            RowChord::on_selected(Shortcut(vec![ShortcutKey::Ctrl, ShortcutKey::Char('k')]));
+        let command_k =
+            RowChord::on_selected(Shortcut(vec![ShortcutKey::Super, ShortcutKey::Char('k')]));
         let firefox = item(ProviderKind::Apps, "Firefox", 2);
         let mail = item(ProviderKind::Windows, "Mail", 0);
-        assert_eq!(row_chord(&firefox), ctrl_k);
+        assert_eq!(row_chord(&firefox), command_k);
         assert_eq!(row_chord(&mail), enter);
         assert_eq!(
             row_chord(&mail).shown,
@@ -235,10 +239,10 @@ mod tests {
     #[test]
     fn an_actions_own_chord_leads() {
         let mut firefox = item(ProviderKind::Apps, "Firefox", 2);
-        firefox.actions[1].keys = ActionKeys::Chord(chords::reveal());
+        firefox.actions[1].keys = ActionKeys::standard(StandardAction::Reveal);
         assert_eq!(
             row_chord(&firefox),
-            RowChord::on_selected(shortcut(&chords::reveal()))
+            RowChord::on_selected(Shortcut::standard(StandardAction::Reveal))
         );
     }
 

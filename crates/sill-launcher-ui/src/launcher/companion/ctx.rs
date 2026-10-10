@@ -67,11 +67,16 @@ impl PanelCtx {
 
     /// A key before the palette reads it, in companion mode: what [`companion_step`] makes of it,
     /// or `None` when it is not one of its keys or the mode is not the companion's.
-    pub(crate) fn companion_claim(&self, key: &Key, modifiers: Modifiers) -> Option<Claim> {
+    pub(crate) fn companion_claim(
+        &self,
+        key: &Key,
+        modifiers: Modifiers,
+        action: Option<&chordkit::Action>,
+    ) -> Option<Claim> {
         if !self.in_companion_mode() {
             return None;
         }
-        let key = companion_key(key, modifiers)?;
+        let key = companion_key(key, modifiers, action)?;
         let (session, pane) = (self.current()?, self.current_pane()?);
         let shown = self.view_of(&session, &pane.expanded);
         let selected = selected_of(shown.row(session.keys.selected).as_ref());

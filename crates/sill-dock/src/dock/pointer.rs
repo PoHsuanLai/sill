@@ -1,11 +1,13 @@
 //! Pointer input as the dock's handlers see it, and its resolution into machine events against
 //! the frame on screen: the hit test, and the drop zone while a tile is pressed or dragged.
 
+use chordkit::Platform;
 use dioxus::html::input_data::MouseButton;
 use dioxus::html::point_interaction::{
     InteractionLocation, ModifiersInteraction, PointerInteraction,
 };
 use dioxus::prelude::{Modifiers, MouseData};
+use ds::base::command::holds_primary;
 use sill_model::units::Cpx;
 
 use crate::dock::frame::Frame;
@@ -92,10 +94,11 @@ pub(crate) fn button(event: &MouseData) -> Option<Button> {
     }
 }
 
-/// design/10 §10.3.6: Super or Ctrl is Cmd, Alt is Option.
-pub(crate) fn modifier(event: &MouseData) -> Modifier {
+/// design/10 §10.3.6: the platform's primary modifier is Cmd (quire's `holds_primary`: Command
+/// on our desktop), Alt is Option.
+pub(crate) fn modifier(event: &MouseData, platform: Platform) -> Modifier {
     let held = event.modifiers();
-    let cmd = held.intersects(Modifiers::SUPER | Modifiers::CONTROL | Modifiers::META);
+    let cmd = holds_primary(platform, held);
     match (cmd, held.contains(Modifiers::ALT)) {
         (true, true) => Modifier::CmdAlt,
         (true, false) => Modifier::Cmd,

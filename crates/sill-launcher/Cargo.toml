@@ -11,6 +11,7 @@ publish.workspace = true
 [dependencies]
 nucleo-matcher = { workspace = true }
 ds-core = { workspace = true }
+chordkit = { workspace = true, features = ["serde"] }
 docket-core = { workspace = true }
 almanac-core = { workspace = true }
 prov = { workspace = true }

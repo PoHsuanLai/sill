@@ -20,6 +20,7 @@ use crate::launcher::companion::{Way, ask_input, companion_filter};
 use crate::launcher::entries::RowRef;
 use crate::launcher::follow::{use_follow_visibility, use_shown};
 use crate::launcher::groups::fresh;
+use crate::launcher::keymap::launcher_key;
 use crate::launcher::keys::{
     ActionsMenu, Filter, LauncherKey, LauncherOut, LauncherState, next_filter, previous_filter,
     step,
@@ -79,6 +80,8 @@ pub(crate) struct PanelCtx {
     pub(crate) palette: PaletteHandle,
     /// The answer the selection is to move to once the rows have it (after an ask).
     pub(crate) wanted: Signal<Option<prov::TaskId>>,
+    /// The window's keymap: a key is resolved to its shared action here, never by modifier.
+    pub(crate) keys: Keys,
 }
 
 /// The panel's state and handlers on `output`, following the shared launcher state.
@@ -92,6 +95,9 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
     let surface = try_use_context::<SurfaceHandle>();
     let shown = use_shown(&link);
     use_follow_visibility(shown, output);
+    // The panel is the parent of its `Ds` (`SurfaceRoot`): it makes the window's keymap, which
+    // the `Ds` below then finds and shares.
+    let keys = ds::keys::use_keys_provider();
     let ctx = PanelCtx {
         output,
         link,
@@ -109,7 +115,9 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         left: use_signal(|| 0),
         palette: use_palette_handle(),
         wanted: use_signal(|| None),
+        keys,
     };
+    use_hook(|| register_own_actions(keys));
     use_openings(ctx.clone());
     // The companion's rows come from its own state, which the search does not watch: ask again
     // whenever an answer, a run or the journal moves, in companion mode.
@@ -130,6 +138,17 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         }
     });
     ctx
+}
+
+/// Declare the launcher's own actions with the keymap, once per window. A conflict is told, not
+/// fatal: the actions then have no key and the rows draw none.
+fn register_own_actions(keys: Keys) {
+    let Ok(app) = chordkit::AppId::new(sill_launcher::APP) else {
+        return;
+    };
+    if let Err(conflict) = keys.register_actions(&app, &sill_launcher::own_rows()) {
+        eprintln!("sill: launcher keys: {conflict}");
+    }
 }
 
 /// Start a session on every opening on this output; cancel the search on a close.
@@ -231,13 +250,25 @@ impl PanelCtx {
 
     /// A key reached the surface's root: the keys the machine reads from the field must not
     /// take Blitz's default (Tab moves the focus off the field), as they bubble past.
-    pub fn root_key(event: &KeyboardEvent) {
+    pub fn root_key(&self, event: &KeyboardEvent) {
         if matches!(
-            crate::launcher::keymap::launcher_key(&event.key(), event.modifiers()),
+            self.launcher_key_of(event),
             Some(LauncherKey::Tab | LauncherKey::ShiftTab | LauncherKey::Actions)
         ) {
             event.prevent_default();
         }
+    }
+
+    /// The panel's key `event` is, when it handles it.
+    pub(crate) fn launcher_key_of(&self, event: &KeyboardEvent) -> Option<LauncherKey> {
+        let (key, modifiers) = (event.key(), event.modifiers());
+        launcher_key(&key, modifiers, self.resolved(&key, modifiers).as_ref())
+    }
+
+    /// The shared action the keymap makes of `key` with `modifiers` held in the palette's field.
+    pub(crate) fn resolved(&self, key: &Key, modifiers: Modifiers) -> Option<chordkit::Action> {
+        self.keys
+            .resolve(key, modifiers, chordkit::Context::TextEntry)
     }
 
     /// The palette asked for row `index` (Up, Down, the pointer): it becomes the selection.

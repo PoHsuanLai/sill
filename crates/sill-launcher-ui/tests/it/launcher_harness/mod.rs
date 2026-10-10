@@ -63,20 +63,20 @@ pub enum Press {
     /// read until it is placed).
     Right,
     ShiftTab,
-    /// Ctrl+K.
+    /// ⌘K.
     Actions,
-    /// Ctrl+Y (⌘Y).
+    /// ⌘Y.
     QuickLook,
-    /// Ctrl+Enter (⌘Enter).
+    /// ⌘Enter.
     CommandEnter,
-    /// Ctrl+. (⌘.).
+    /// ⌘.
     CommandPeriod,
 }
 
 impl Open {
     /// The real key event `key` is, through the harness's keyboard.
     pub fn press(&mut self, key: Press) {
-        let ctrl = [ShortcutKey::Ctrl];
+        let command = [ShortcutKey::Super];
         let h = &mut self.harness;
         match key {
             Press::Up => h.send(Input::key(ShortcutKey::Up)),
@@ -89,10 +89,10 @@ impl Open {
                 h.send(Input::key(ShortcutKey::Right));
             }
             Press::ShiftTab => h.send(Input::chord(&[ShortcutKey::Shift], ShortcutKey::Tab)),
-            Press::Actions => h.send(Input::chord(&ctrl, ShortcutKey::Char('k'))),
-            Press::QuickLook => h.send(Input::chord(&ctrl, ShortcutKey::Char('y'))),
-            Press::CommandEnter => h.send(Input::chord(&ctrl, ShortcutKey::Enter)),
-            Press::CommandPeriod => h.send(Input::chord(&ctrl, ShortcutKey::Char('.'))),
+            Press::Actions => h.send(Input::chord(&command, ShortcutKey::Char('k'))),
+            Press::QuickLook => h.send(Input::chord(&command, ShortcutKey::Char('y'))),
+            Press::CommandEnter => h.send(Input::chord(&command, ShortcutKey::Enter)),
+            Press::CommandPeriod => h.send(Input::chord(&command, ShortcutKey::Char('.'))),
         }
     }
 }

@@ -4,8 +4,8 @@
 use nucleo_matcher::Matcher;
 use sill_launcher::{
     Action, ActionId, ActionKeys, CharCount, ClipFacts, ClipKind, Excerpt, ExcerptLimit,
-    FrecencyScore, IconRef, Item, ItemId, Needle, Prefix, ProviderKind, RankWeights, Subject,
-    UnixTime, chords, rank,
+    FrecencyScore, IconRef, Item, ItemId, Needle, OwnAction, Prefix, ProviderKind, RankWeights,
+    Subject, UnixTime, rank,
 };
 
 use super::FORGET_ACTION;
@@ -76,7 +76,7 @@ fn row(entry: &ClipEntry, needle: &Needle, matcher: &mut Matcher, now: UnixTime)
         actions: vec![Action {
             id: ActionId(FORGET_ACTION.to_owned()),
             label: "Forget".to_owned(),
-            keys: ActionKeys::Chord(chords::forget()),
+            keys: ActionKeys::own(OwnAction::ForgetEntry),
         }],
         subject: Subject::Clip(ClipFacts {
             key: entry.key,

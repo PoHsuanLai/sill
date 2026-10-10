@@ -98,7 +98,7 @@ fn only_the_selected_row_shows_its_chord() {
     );
     assert_eq!(
         h.text_of(".ds-key-equivalent").as_deref(),
-        Some("⌃K"),
+        Some("⌘K"),
         "Files has actions without a chord of their own"
     );
 }

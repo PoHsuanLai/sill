@@ -1,6 +1,7 @@
 use ds::components::lists::emoji_grid::grid::EMOJI_COLUMNS;
 use std::path::PathBuf;
 
+use chordkit::StandardAction;
 use dioxus::prelude::*;
 use ds::components::lists::row::chord::ChordShown;
 use ds::components::lists::row::shape::{ClipBody, RowShape};
@@ -9,11 +10,10 @@ use ds::prelude::*;
 use sill_launcher::{
     Action, ActionId, ActionKeys, CharCount, ClipFacts, ClipKey, ClipKind, EmojiFacts, Excerpt,
     FileFacts, IconRef, Item, ItemId, Mime, More, ProviderKind, Score, Section, ShownSection,
-    SkinTone, Subject, UnixTime, chords,
+    SkinTone, Subject, UnixTime,
 };
 
 use super::{Draw, HeaderAction, palette_groups};
-use crate::launcher::chord_keys::shortcut;
 use crate::launcher::entries::tile;
 
 const NOW: UnixTime = UnixTime(1_790_000_000);
@@ -36,7 +36,7 @@ fn item(provider: ProviderKind, title: &str, subject: Subject) -> Item {
         actions: vec![Action {
             id: ActionId("reveal".to_owned()),
             label: "Reveal in Files".to_owned(),
-            keys: ActionKeys::Chord(chords::reveal()),
+            keys: ActionKeys::standard(StandardAction::Reveal),
         }],
         subject,
     }
@@ -168,7 +168,7 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
 /// shows it on the selected row only and moves it with the selection; the trail keeps only data.
 #[test]
 fn each_row_carries_its_chord_for_the_selection() {
-    let reveal = RowChord::on_selected(shortcut(&chords::reveal()));
+    let reveal = RowChord::on_selected(Shortcut::standard(StandardAction::Reveal));
     let draw = Draw {
         tile_of: &tile,
         clip_image: &|_| None,

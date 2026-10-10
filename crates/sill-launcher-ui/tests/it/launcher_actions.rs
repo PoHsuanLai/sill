@@ -27,7 +27,7 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
         selected_title(h).as_deref() == Some("Files")
     });
     // quire's palette reports an already laid-out row's rect in the frame it was selected,
-    // so Ctrl+K right after the selection hangs the menu from that row.
+    // so ⌘K right after the selection hangs the menu from that row.
     let row = open.harness.rect(SELECTED).expect("the selected row");
     open.press(Press::Actions);
     settle(&mut open.harness, |h| h.count(".ds-popover") == 1);

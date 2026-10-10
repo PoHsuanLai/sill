@@ -6,11 +6,11 @@
 //! argument ([`UnixTime`]).
 
 pub mod activation;
-pub mod chord;
 pub mod companion;
 pub mod frecency;
 pub mod ids;
 pub mod item;
+pub mod keys;
 pub mod matching;
 pub mod preview;
 pub mod provider;
@@ -23,11 +23,11 @@ pub mod time;
 pub use activation::{
     Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, ViewerOpen, WindowKey,
 };
-pub use chord::{ActionKeys, Chord, ChordKey, Modifier, action_for_chord, chords};
 pub use companion::{CompanionAct, LauncherMode, RunControl};
 pub use frecency::{Counting, Frecency, FrecencyScore, ItemKey, Use, age_bucket, counting};
 pub use ids::{ActionId, AppId, ClipKey, ItemId, ProviderKind};
 pub use item::{Action, Choice, IconRef, Item};
+pub use keys::{APP, ActionKeys, OwnAction, action_for_key, own_rows};
 pub use matching::{MatchScore, Needle};
 pub use preview::{ExcerptLimit, Preview, PreviewKind, excerpt_of, preview_for};
 pub use provider::Provider;

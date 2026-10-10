@@ -8,8 +8,8 @@
 //! unmaps itself from. The panel also writes there which part of it takes presses
 //! ([`sill_ui_kit::links::PanelHit`]: its content-sized card), which the catcher's input leaves out.
 
+pub mod action_keys;
 pub mod activate;
-pub mod chord_keys;
 pub mod companion;
 pub mod entries;
 pub mod groups;

@@ -7,13 +7,13 @@
 //! does it and what it asks for, so the row's menu and `Provider::activate` cannot disagree.
 
 use anyview_core::{
-    FileAction, FormatKind, Mime as CoreMime, Reach, actions_for, kind_of_mime, reach, shortcut,
+    FileAction, FormatKind, Mime as CoreMime, Reach, actions_for, kind_of_mime, reach,
 };
-use ds_core::vocab::{Shortcut, ShortcutKey};
+use ds_core::standard_action::StandardAction;
 use ds_core::word::Word;
 use sill_launcher::{
-    Action, ActionId, ActionKeys, Activation, Chord, ChordKey, FileFacts, Generation, Mime,
-    Modifier, OpenTarget, ViewerOpen,
+    Action, ActionId, ActionKeys, Activation, FileFacts, Generation, Mime, OpenTarget, OwnAction,
+    ViewerOpen,
 };
 
 /// What the launcher does for one action on one file.
@@ -99,9 +99,7 @@ pub fn row_actions(file: &FileFacts) -> Vec<Action> {
             Some(Action {
                 id: ActionId(action.slug().to_owned()),
                 label: carried.label.to_owned(),
-                keys: shortcut(action)
-                    .and_then(|keys| chord_of(&keys))
-                    .map_or(ActionKeys::None, ActionKeys::Chord),
+                keys: keys_of(action),
             })
         })
         .collect()
@@ -123,46 +121,24 @@ pub fn activation_of(id: &ActionId, file: &FileFacts) -> Activation {
         .map_or(Activation::Nothing, |carried| carried.activation)
 }
 
-/// `keys` as a chord of the launcher's, in Mac terms; `None` when it ends on a key a chord has
-/// no word for.
-pub fn chord_of(keys: &Shortcut) -> Option<Chord> {
-    let mut mods = Vec::new();
-    let mut key = None;
-    for pressed in keys.keys() {
-        match pressed {
-            ShortcutKey::Ctrl => mods.push(Modifier::Control),
-            ShortcutKey::Alt => mods.push(Modifier::Option),
-            ShortcutKey::Shift => mods.push(Modifier::Shift),
-            ShortcutKey::Super => mods.push(Modifier::Command),
-            ShortcutKey::Char(c) => key = Some(ChordKey::Char(c.to_ascii_lowercase())),
-            ShortcutKey::Space => key = Some(ChordKey::Space),
-            ShortcutKey::Enter => key = Some(ChordKey::Enter),
-            ShortcutKey::Left => key = Some(ChordKey::Left),
-            ShortcutKey::Right => key = Some(ChordKey::Right),
-            ShortcutKey::Backspace => key = Some(ChordKey::Backspace),
-            ShortcutKey::Escape
-            | ShortcutKey::Tab
-            | ShortcutKey::Up
-            | ShortcutKey::Down
-            | ShortcutKey::Home
-            | ShortcutKey::End
-            | ShortcutKey::Delete
-            | ShortcutKey::PageUp
-            | ShortcutKey::PageDown
-            | ShortcutKey::Insert
-            | ShortcutKey::ContextMenu => return None,
-        }
+/// The shared action `action` is bound to on a row: Open and Reveal are standard ones, Copy Path
+/// is the launcher's own, and the rest have no key of their own on a row.
+fn keys_of(action: FileAction) -> ActionKeys {
+    match action {
+        FileAction::Open => ActionKeys::standard(StandardAction::Open),
+        FileAction::RevealInFolder => ActionKeys::standard(StandardAction::Reveal),
+        FileAction::CopyPath => ActionKeys::own(OwnAction::CopyPath),
+        _ => ActionKeys::None,
     }
-    key.map(|key| Chord::new(mods, key))
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
 
-    use anyview_core::FileAction;
-    use ds_core::standard_action::StandardAction;
-    use sill_launcher::{ActionKeys, Activation, Mime, OpenTarget, UnixTime, chords};
+    use anyview_core::{FileAction, shortcut};
+    use ds_core::vocab::Shortcut;
+    use sill_launcher::{ActionKeys, Activation, Mime, OpenTarget, UnixTime};
 
     use super::*;
 
@@ -260,26 +236,30 @@ mod tests {
             [
                 (
                     "open".to_owned(),
-                    ActionKeys::Chord(Chord::command(ChordKey::Char('o')))
+                    ActionKeys::standard(StandardAction::Open)
                 ),
                 (
                     "reveal_in_folder".to_owned(),
-                    ActionKeys::Chord(chords::reveal())
+                    ActionKeys::standard(StandardAction::Reveal)
                 ),
-                (
-                    "copy_path".to_owned(),
-                    ActionKeys::Chord(Chord::new(
-                        vec![Modifier::Option, Modifier::Command],
-                        ChordKey::Char('c')
-                    ))
-                ),
+                ("copy_path".to_owned(), ActionKeys::own(OwnAction::CopyPath)),
                 ("play_in_background".to_owned(), ActionKeys::None),
             ]
         );
-        // The row's chords are the table's: ask it for the standard ones.
+        // The viewer's table and the launcher's agree on the chords.
         assert_eq!(
             shortcut(FileAction::Open),
             Some(Shortcut::standard(StandardAction::Open))
+        );
+        assert_eq!(
+            shortcut(FileAction::RevealInFolder),
+            Some(Shortcut::standard(StandardAction::Reveal))
+        );
+        assert_eq!(
+            shortcut(FileAction::CopyPath),
+            OwnAction::CopyPath
+                .default_chord()
+                .and_then(Shortcut::from_default_chord)
         );
     }
 
@@ -340,32 +320,6 @@ mod tests {
         ];
         for (name, action, file, want) in cases {
             assert_eq!(activation_of(&action, file), want, "{name}");
-        }
-    }
-
-    #[test]
-    fn a_shortcut_becomes_a_chord_in_the_macs_order() {
-        let cases = [
-            (
-                vec![ShortcutKey::Super, ShortcutKey::Char('R')],
-                Some(chords::reveal()),
-            ),
-            (
-                vec![ShortcutKey::Char('c'), ShortcutKey::Super, ShortcutKey::Alt],
-                Some(Chord::new(
-                    vec![Modifier::Command, Modifier::Option],
-                    ChordKey::Char('c'),
-                )),
-            ),
-            (
-                vec![ShortcutKey::Super, ShortcutKey::Backspace],
-                Some(chords::forget()),
-            ),
-            (vec![ShortcutKey::Super, ShortcutKey::Up], None),
-            (vec![ShortcutKey::Super], None),
-        ];
-        for (keys, want) in cases {
-            assert_eq!(chord_of(&Shortcut(keys.clone())), want, "{keys:?}");
         }
     }
 }

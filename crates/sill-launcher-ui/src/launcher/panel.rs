@@ -3,12 +3,12 @@
 //! surface (no scrim; the card is as tall as its content, its corner a squircle, and it is the
 //! blur and input region; `card.rs` measures it) over the fresh results in the runner's
 //! sections, the selected row's actions as a quire `Menu{Rich}` hung from that row
-//! (Ctrl+K / Alt+K), and the preview pane beside the results while it is shown. The box
+//! (⌘K), and the preview pane beside the results while it is shown. The box
 //! around the root carries the shell type scale (the 22/500 query, 14 and 12 px rows), and the
 //! root hands the card the material stack. A palette mounts with each opening and unmounts when
 //! the launcher hides. The palette's selection is the session's; Space while browsing, → at the
 //! field's end, the pane's keys and the row chords come from its `claim` (before it reads a
-//! key), Tab, Shift+Tab, Ctrl+K and Alt+K from its `onkey` (after).
+//! key), Tab, Shift+Tab and ⌘K from its `onkey` (after).
 
 use dioxus::prelude::*;
 use ds::components::menus::palette::palette_claim::FieldKey;
@@ -119,6 +119,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let voice_line =
         use_service_part::<VoiceService, _>(|voice| listening_line(&voice.phase, voice.notice));
     let panel = use_panel(output.id, results);
+    let root = panel.clone();
     let shown = panel.opening_tracked().map(|opening| {
         let session = panel.session.read().for_opening(&opening);
         let pane = panel.pane.read().for_serial(opening.serial);
@@ -156,7 +157,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             style: shell_metrics(&file).style_attr(),
             onkeydown: move |event| {
                 contacts.heard(&event);
-                PanelCtx::root_key(&event);
+                root.root_key(&event);
             },
             onmousedown: move |event| contacts.heard(&event),
             SurfaceRoot {

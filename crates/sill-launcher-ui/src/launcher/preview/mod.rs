@@ -24,7 +24,7 @@ use ds::motion::detail::use_operation::use_operation;
 use ds::prelude::*;
 use sill_launcher::{Action, Preview};
 
-use crate::launcher::chord_keys::action_shortcut;
+use crate::launcher::action_keys::action_shortcut;
 use crate::launcher::preview::content::Load;
 use crate::launcher::preview::moment::{PaneState, use_pane_detail};
 

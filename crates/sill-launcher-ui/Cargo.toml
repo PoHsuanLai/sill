@@ -22,6 +22,7 @@ anyview-fs = { workspace = true }
 anyview-image = { workspace = true }
 anyview-peek = { workspace = true }
 anyview-platform = { workspace = true }
+chordkit = { workspace = true }
 dioxus = { workspace = true }
 dirs = { workspace = true }
 docket-core = { workspace = true }

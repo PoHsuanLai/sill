@@ -134,6 +134,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         remove: Cpx::px(i32::from(file.dock.remove_threshold_px.0)),
     });
     let feed = session.feed;
+    let platform = use_platform();
     let send = move |input: PointerInput| feed.call(DockInput::Pointer(input));
     let rows = Rows::new(&file.dock);
     let strip = strip_area(
@@ -179,7 +180,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                     },
                     onmouseup: move |event| {
                         if let Some(b) = button(&event) {
-                            send(PointerInput::Release(b, point(&event), modifier(&event)));
+                            send(PointerInput::Release(b, point(&event), modifier(&event, platform)));
                         }
                     },
                     div { id: "dock-hit", class: "sill-dock-hit", style: area_style(&shown.hit) }

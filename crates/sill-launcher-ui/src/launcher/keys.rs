@@ -1,5 +1,5 @@
 //! The panel's keyboard (design/06 §20.2): Up/Down move the selection (clamped), Enter runs
-//! it, Tab cycles the provider filter, Ctrl+K / Alt+K open the selected row's actions, Escape
+//! it, Tab cycles the provider filter, ⌘K opens the selected row's actions, Escape
 //! closes one level. Pure.
 //!
 //! [`step`] knows counts, not ids, so an Enter inside the actions menu cannot name
@@ -44,7 +44,7 @@ pub enum LauncherKey {
     Enter,
     Tab,
     ShiftTab,
-    /// Ctrl+K or Alt+K.
+    /// ⌘K.
     Actions,
     Escape,
 }
@@ -111,7 +111,7 @@ fn in_results(
 }
 
 /// A key while the actions menu is open: it moves in the menu, Enter picks there (the menu's
-/// own pick names the action), Escape or Ctrl+K again close only the menu, Tab is ignored.
+/// own pick names the action), Escape or ⌘K again close only the menu, Tab is ignored.
 fn in_actions(
     state: LauncherState,
     key: LauncherKey,
@@ -262,7 +262,7 @@ mod tests {
         );
         assert_eq!(state.selected, 1, "the row does not move under the menu");
         let (state, _) = keys(&[Actions, Actions], 4, 3);
-        assert_eq!(state.actions, ActionsMenu::Closed, "Ctrl+K again closes");
+        assert_eq!(state.actions, ActionsMenu::Closed, "⌘K again closes");
         let (state, _) = keys(&[Actions], 4, 0);
         assert_eq!(state.actions, ActionsMenu::Closed, "a row without actions");
         let (state, _) = keys(&[Actions], 0, 3);

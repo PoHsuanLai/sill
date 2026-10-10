@@ -135,9 +135,11 @@ fn glyph_of(mime: &Mime) -> &'static str {
 mod tests {
     use std::path::{Path, PathBuf};
 
+    use ds_core::standard_action::StandardAction;
+
     use sill_launcher::{
         ActionKeys, Frecency, IconRef, ItemId, ItemKey, Mime, Needle, ProviderKind, RankWeights,
-        Subject, UnixTime, chords, matching::matcher,
+        Subject, UnixTime, matching::matcher,
     };
 
     use super::{file_items, recency_boost, tilde};
@@ -247,7 +249,7 @@ mod tests {
             .iter()
             .find(|a| a.id.0 == "reveal_in_folder")
             .map(|a| &a.keys);
-        assert_eq!(reveal, Some(&ActionKeys::Chord(chords::reveal())));
+        assert_eq!(reveal, Some(&ActionKeys::standard(StandardAction::Reveal)));
     }
 
     #[test]

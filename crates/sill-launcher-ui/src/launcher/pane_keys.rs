@@ -1,24 +1,22 @@
 //! The pane keys: the preview pane's machine (`preview::keys::step_preview`) fed
 //! from the palette's field, row chords run from the results
-//! (`action_for_chord`), and Enter on the pane's focused control.
+//! (`action_for_key`), and Enter on the pane's focused control.
 //!
 //! The field keeps the keyboard: the pane's focus is the machine's `PaneFocus::Pane(n)`, drawn by
 //! quire's `PreviewPane` as `focused`. Keys reach the machine through quire's key claim:
 //! [`PanelCtx::claim`] hears every key before the palette with the caret's place, and takes Space
 //! while browsing, → at the field's end (not on an emoji cell, where ← and → are the grid's:
 //! `claim_keys.rs`), and the pane's own keys, so the field never types that Space nor moves its
-//! caret. The keys the palette leaves (Tab's filter, Ctrl+K, Up and Down
+//! caret. The keys the palette leaves (Tab's filter, ⌘K, Up and Down
 //! having moved the selection) come after it, to [`PanelCtx::field_key`].
 
 use dioxus::prelude::*;
 use ds::components::menus::palette::palette_claim::{Claim, FieldKey};
-use sill_launcher::{Choice, Item, Preview, action_for_chord, chords, preview_for};
+use sill_launcher::{Choice, Item, OwnAction, Preview, action_for_key, preview_for};
 
-use crate::launcher::chord_keys::chord_of;
 use crate::launcher::claim_keys::{KeyPlace, pane_key};
 use crate::launcher::entries::RowRef;
 use crate::launcher::events::PanelCtx;
-use crate::launcher::keymap::launcher_key;
 use crate::launcher::keys::LauncherKey;
 use crate::launcher::pane_session::PaneSession;
 use crate::launcher::preview::keys::{
@@ -31,14 +29,15 @@ impl PanelCtx {
     /// quire's key claim: a key the field got, before the palette, the field or `onkey`.
     pub fn claim(&self, key: &FieldKey) -> Claim {
         let (pressed, modifiers) = (key.event.key(), key.event.modifiers());
-        if launcher_key(&pressed, modifiers) == Some(LauncherKey::Actions) {
+        let action = self.resolved(&pressed, modifiers);
+        if self.launcher_key_of(&key.event) == Some(LauncherKey::Actions) {
             return Claim::Pass;
         }
-        if let Some(claim) = self.companion_claim(&pressed, modifiers) {
+        if let Some(claim) = self.companion_claim(&pressed, modifiers, action.as_ref()) {
             return claim;
         }
-        if let Some(chord) = chord_of(&pressed, modifiers) {
-            return self.chord(&chord);
+        if let Some(action) = action {
+            return self.run_action(&action);
         }
         let Some(pane) = self.current_pane() else {
             return Claim::Pass;
@@ -59,10 +58,10 @@ impl PanelCtx {
     }
 
     /// A key the palette's field got and nobody claimed, after the palette read it (it has moved
-    /// the selection on Up and Down): Tab's filter, Ctrl+K, and the moves that make Space Quick
+    /// the selection on Up and Down): Tab's filter, ⌘K, and the moves that make Space Quick
     /// Look.
     pub fn field_key(&self, event: &KeyboardEvent) {
-        match launcher_key(&event.key(), event.modifiers()) {
+        match self.launcher_key_of(event) {
             Some(key @ (LauncherKey::Tab | LauncherKey::ShiftTab | LauncherKey::Actions)) => {
                 event.prevent_default();
                 self.press(key);
@@ -151,23 +150,23 @@ impl PanelCtx {
             .row(session.keys.selected)
     }
 
-    /// A chord from the results: ⌘Y and ⌘→ are the pane's; any other runs the selected row's
-    /// action that carries it (H5), and nothing else hears it.
-    fn chord(&self, chord: &sill_launcher::Chord) -> Claim {
-        if *chord == chords::quick_look() {
+    /// An action the keymap made of a key: Quick Look and `sill.focus-pane` are the pane's; any
+    /// other runs the selected row's action bound to it (H5), and nothing else hears it.
+    fn run_action(&self, action: &chordkit::Action) -> Claim {
+        if *action == chordkit::Action::Standard(chordkit::StandardAction::QuickLook) {
             self.preview_key(PreviewKey::QuickLook);
             return Claim::Take;
         }
-        if *chord == sill_launcher::Chord::command(sill_launcher::ChordKey::Right) {
+        if OwnAction::of(action) == Some(OwnAction::FocusPane) {
             self.preview_key(PreviewKey::CommandRight);
             return Claim::Take;
         }
         let Some(item) = self.selected_row() else {
             return Claim::Pass;
         };
-        match action_for_chord(&item, chord) {
-            Some(action) => {
-                self.pick(RowRef::of(&item), Choice::Action(action.clone()));
+        match action_for_key(&item, action) {
+            Some(id) => {
+                self.pick(RowRef::of(&item), Choice::Action(id.clone()));
                 Claim::Take
             }
             None => Claim::Pass,

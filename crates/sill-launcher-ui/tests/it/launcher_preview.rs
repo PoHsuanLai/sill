@@ -106,7 +106,7 @@ fn space_while_browsing_shows_the_pdf_and_then_the_image() {
 fn a_file_is_drawn_by_the_viewers_pane_in_quires_slot_whatever_it_is() {
     let mut open = open("m9");
     open.harness
-        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
+        .send(Input::chord(&[ShortcutKey::Super], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     // (the kind the viewer's pane says it shows, how far down the file is from the Top Hit)
     let cases = [("pdf", 0), ("raster", 1), ("markdown", 2)];
@@ -180,7 +180,7 @@ fn enter_on_a_file_row_opens_it_in_the_viewer_with_the_results_shown() {
 fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
     let mut open = open("m9");
     open.harness
-        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
+        .send(Input::chord(&[ShortcutKey::Super], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(
         rows(&open).preview,
@@ -232,7 +232,7 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
 fn a_real_right_enters_the_pane_only_from_the_fields_end() {
     let mut open = open("m9");
     open.harness
-        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
+        .send(Input::chord(&[ShortcutKey::Super], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     // The field opens with its caret at the end (as Spotlight); Home puts it at the
     // start, where → moves the caret rather than entering the pane.
@@ -278,7 +278,7 @@ fn a_real_space_after_a_real_down_is_quick_look() {
 fn a_real_escape_in_the_field_hides_the_pane_before_it_closes() {
     let mut open = open("m9");
     open.harness
-        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
+        .send(Input::chord(&[ShortcutKey::Super], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(rows(&open).preview, Some(PreviewKind::File));
     open.harness.send(Input::key(ShortcutKey::Escape));
@@ -295,7 +295,7 @@ fn a_real_escape_in_the_field_hides_the_pane_before_it_closes() {
 fn command_r_reveals_the_selected_file() {
     let mut open = open("m9");
     open.harness
-        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('r')));
+        .send(Input::chord(&[ShortcutKey::Super], ShortcutKey::Char('r')));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     match open.feeds.bar.launch.try_recv() {
@@ -376,15 +376,15 @@ fn real_left_and_right_move_the_emoji_grid_and_command_y_previews() {
     assert_eq!(shown.selected, 2, "→ still moves with the pane shown");
     assert_eq!(shown.preview, Some(PreviewKind::Emoji), "the pane follows");
     open.harness
-        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
+        .send(Input::chord(&[ShortcutKey::Super], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(rows(&open).preview, None, "⌘Y hides it");
     open.harness
-        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
+        .send(Input::chord(&[ShortcutKey::Super], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(rows(&open).preview, Some(PreviewKind::Emoji), "⌘Y shows it");
     open.harness
-        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Right));
+        .send(Input::chord(&[ShortcutKey::Super], ShortcutKey::Right));
     open.harness.advance(Duration::from_millis(40));
     assert!(
         open.harness.html().contains("data-focused=\"true\""),

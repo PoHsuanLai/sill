@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::chord::ActionKeys;
 use crate::ids::{ActionId, ItemId, ProviderKind};
+use crate::keys::ActionKeys;
 use crate::rank::Score;
 use crate::subject::Subject;
 
@@ -45,7 +45,7 @@ pub enum IconRef {
 pub struct Action {
     pub id: ActionId,
     pub label: String,
-    /// The chord that runs it straight from the results, shown beside it (quire design/09 H5: every
+    /// The shared action that runs it straight from the results, drawn beside it (quire design/09 H5: every
     /// action has a key).
     #[serde(default)]
     pub keys: ActionKeys,

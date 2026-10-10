@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 dioxus = { workspace = true }
+chordkit = { workspace = true }
 ds = { workspace = true }
 ds-blitz = { workspace = true }
 sill-shell-kit = { workspace = true }
