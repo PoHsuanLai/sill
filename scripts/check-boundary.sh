@@ -90,7 +90,7 @@ EDGES=(
   "sill-ui-kit: companion-wire docket-core ds ds-blitz ds-core ds-harness ds-settings porter-core prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-shell-kit"
   "sill-bar: ds ds-blitz ds-settings shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill-dock: ds ds-blitz shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
-  "sill-launcher-ui: almanac-core anyview-core anyview-image anyview-peek anyview-platform companion-wire docket-core ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
+  "sill-launcher-ui: almanac-core anyview-core anyview-fs anyview-image anyview-peek anyview-platform companion-wire docket-core ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
   "sill-notify-ui: ds ds-blitz ds-settings shell-host sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill-widgets-ui: ds shell-host sill-launcher sill-model sill-settings sill-shell-kit sill-ui-kit"
   "sill-overlays: ds ds-behaviour ds-settings ds-shell porter-core shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
