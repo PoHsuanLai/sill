@@ -73,7 +73,7 @@ fn open(endpoint: &WaylandRoute, publish: Publish) -> Result<Opened, (Refusal, P
         Ok(parts) => parts,
         Err(refusal) => return Err((refusal, publish)),
     };
-    match backend_for(&desktop_wl::offer_of_registry(&globals)) {
+    match backend_of(&desktop_wl::offer_of_registry(&globals)) {
         // The desktop's own compositor serves the toplevels and workspaces on this connection
         // as the standard arm reads them (the client projects the Quire window state onto the
         // toplevels' flags); its shell role lives on the shell host's connection
