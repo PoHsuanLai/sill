@@ -20,12 +20,12 @@ A settled item is deleted, not marked closed.
   defaults and commands are dropped; the watch senders stay held, so receivers read empty
   values, not a closed channel.
 - **One binary, the arm from the globals.** `cosmic_wl`'s thread lists the registry and
-  `sill_model::desktop::backend_for` picks: `quire_desktop_manager_v1` is Quire (no arm yet: the
-  lists stay empty and one line goes to stderr), `zwlr_foreign_toplevel_manager_v1` is Wlr (the
-  `desktop_wl` arm over `desktop-client`), anything else is Cosmic. Never a compositor's name or
-  the environment. It is unverified that cosmic-comp does not also offer the wlr manager; if it
-  does, the choice needs a COSMIC check before the wlr one. The displays pick the same way
-  (`OutputsRoute`): the native output management on Wlr, `cosmic-randr` otherwise.
+  `sill_services::desktop_wl::backend_of` picks, by asking `desktop_client::backend_for` of the
+  offered globals: Quire (`quire_desktop_manager_v1` and the ext list) and Wlr (the wlr manager,
+  or the ext list alone when COSMIC's own `zcosmic_toplevel_info_v1` is not also there) run the
+  `desktop_wl` arm over `desktop-client`; anything else is Cosmic. Never a compositor's name or
+  the environment. The displays use the native output management when `desktop_client::backend_for`
+  says Wlr or Quire (`OutputsRoute`), `cosmic-randr` otherwise.
 - **The standard protocols do not say which workspace a window is on, or which window was last
   active.** The Wlr arm keeps recency itself (the projection steps each window into the same
   `toplevels::step` COSMIC's uses) and puts a window on the active workspaces of the groups that
@@ -868,3 +868,38 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
 
 - sill has no Space-removal path. Settings (detent) owns the removal sheet and calls
   `org.quire.Memory1 Control.RemoveSpace` before `Spaces1.Remove`. The shell neither removes Spaces nor shows the sheet.
+
+## p2-sq: the Quire arm
+
+- **Wired.** `desktop_wl::backend_of` (replaces `sill_model::desktop::backend_for`; `GlobalOffer::names`).
+  The model grew the commands the Quire arm carries (`AssignSpaces`, `ClearMinimiseTarget`, the app
+  verbs, Space create/remove/move, `Overview`, `ShowDesktop`, `PickSwitcher`, `CancelSwitcher`),
+  `ShellNote` (the shell protocol in the shell's words) and the fields `AppView::visibility` and
+  `WindowView::{role, modality, geometry, responsiveness, lease, sensitivity}` (the wlr arm fills defaults).
+  `desktop_wl::quire` holds the pure mappings (`quire_view`, `quire_wire_of`, `note_of`), the handout seam
+  (`ZbusHandout` calls `org.quire.Compositor1.Connect("shell")`, `FakeHandout`), `QuireArm` over any
+  `Desktop`, and the thread that runs it on the host's connection. The daemon asks the compositor for the
+  shell connection before `Host::connect`, gives it to the host as `WaylandRoute::Handed`, and starts the
+  arm at the first mapped surface that has a role. Notes: hot corner -> the corner link (first output, the
+  protocol names none), summon gesture -> the companion's tap, kill chord -> the companion's stop-all.
+  Tests: `tests/it/desktop_quire.rs` (fake desktop with `holding_shell`, scripted `QuireEvent`s, a stand-in
+  `Compositor1` on a private bus).
+- **Waits for P3-SILL.** No-ops with a doc naming the lane, in `compositor.rs`: modifiers over shell
+  surfaces (Option variants), the switcher panel and `PickSwitcher`/`CancelSwitcher` answers, Mission
+  Control chrome, edge reveals, menu flash, bell, reopen and the hold overlay. Nothing in the UI reads
+  the arm's `DesktopView` or sends it commands yet (`ShellSeat` has no `command` method until a surface
+  needs one); the toplevels and workspaces the dock and switcher draw still come from `cosmic_wl`'s
+  environment connection (which on a Quire offer is the standard arm over the projected flags).
+- **Waits for casement's server lanes.** The whole path is unrun against a compositor: the handed
+  connection, `quire_shell_v1` on it, `SetShellRole`, the notes. Activation sends serial 0 (desktop-client's
+  decision). A window with no ext handle is invisible.
+- **Deviations to confirm.** (1) `supports(Wlr, SetMinimiseTarget)` stays `No`: the Wlr arm runs on its
+  own connection, which holds no dock surface; on the Quire arm the command names the dock's registered
+  surface for the window's output. (2) The ext list alone is the Wlr arm unless COSMIC's own toplevel info
+  is also offered, so COSMIC stays Cosmic. (3) A second queue on the host's connection gets no wake-up
+  when the host's thread reads the socket first, so the arm thread also dispatches on a 20 ms tick; a
+  waker from shell-host (or the host exposing its `Connection`) would remove it. (4) The arm's
+  connection comes from `wl_surface.backend()` of the first mapped surface; shell-host exposes no
+  `Connection` accessor.
+- **Not touched.** `cosmic_wl` (removed at S4), the old `desktop_wl` protocol code (kept: the environment
+  route serves COSMIC, KWin and tests).

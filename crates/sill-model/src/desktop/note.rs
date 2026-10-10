@@ -1,0 +1,85 @@
+//! What the compositor's shell protocol tells the shell, in the shell's words: the modifiers
+//! held over its surfaces, the key gestures, the switcher, the overview, the hot corners, the
+//! edge reveals and the moments (a menu flash, a bell, a reopen, the kill chord).
+//!
+//! Pure data. `sill-services` turns the wire's events into these and hands them to whatever
+//! draws or acts; the desktop's picture itself (Spaces, windows, the overview's layout) is the
+//! [`super::DesktopView`], not a note.
+
+use casement_protocols::vocab::{
+    Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown,
+};
+
+/// One thing the shell protocol said.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ShellNote {
+    /// The modifiers held while the pointer is over a shell surface (keycap stays the source of
+    /// truth for chords; this is the pointer-over-shell view, for hot corners and the Option
+    /// variants of the dock and bar).
+    Modifiers(MacMods),
+    /// A key gesture the desktop recognised (the companion's summon, the hold overlay).
+    Gesture(KeyGesture),
+    /// The app switcher.
+    Switcher(SwitcherNote),
+    /// An overview (Mission Control, App Exposé, Show Desktop).
+    Overview(OverviewNote),
+    /// The pointer pushed into a screen corner.
+    HotCorner(Corner),
+    /// The desktop wants an edge's bar or dock shown or hidden (in full screen).
+    Reveal {
+        /// Which edge.
+        edge: ScreenEdge,
+        /// Show or hide.
+        shown: Shown,
+    },
+    /// A menu item of an app was activated by a key: flash it.
+    MenuFlash {
+        /// The app's key.
+        app: String,
+        /// The item.
+        item: u32,
+    },
+    /// An app rang the bell.
+    Bell(String),
+    /// The desktop asks the dock to reopen an app that has no windows.
+    Reopen(String),
+    /// The kill chord was pressed.
+    Killed,
+}
+
+/// The switcher's part of the shell protocol.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SwitcherNote {
+    /// The app at `index` of the list the switcher will show.
+    App {
+        /// Its place in the list.
+        index: u32,
+        /// The app's key.
+        app: String,
+    },
+    /// The switcher opened with `selected` chosen.
+    Shown {
+        /// The chosen index.
+        selected: u32,
+    },
+    /// The selection moved.
+    Selected(u32),
+    /// The switcher closed.
+    Hidden,
+}
+
+/// The overview's part of the shell protocol; the layout itself is read from the desktop's state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OverviewNote {
+    /// The overview's mode, state and progress (thousandths) changed.
+    Moved {
+        /// Which overview.
+        mode: OverviewMode,
+        /// Closed, entering, open, leaving or tracking a gesture.
+        state: OverviewState,
+        /// How far along, in the protocol's units.
+        progress: u32,
+    },
+    /// A complete layout arrived.
+    Laid,
+}

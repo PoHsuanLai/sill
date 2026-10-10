@@ -23,14 +23,14 @@ use sill_launcher::WindowKey;
 use sill_model::apps::AppIndex;
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevels, WindowState, WlCommand};
 use sill_model::desktop::{
-    DesktopBackend, DesktopCommand, SpacePlaceView, Supports, backend_for, supports,
+    DesktopBackend, DesktopCommand, GlobalOffer, SpacePlaceView, Supports, supports,
 };
 use sill_model::displays::randr::Enablement;
 use sill_model::displays::scale::DisplayScale;
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::keyboard::focused;
 use sill_services::desktop_wl::{
-    Refusal, ScaleRefusal, config_for_scale, desktop_of, desktop_view, heads_of,
+    Refusal, ScaleRefusal, backend_of, config_for_scale, desktop_of, desktop_view, heads_of,
     offer_of_protocols, project_toplevels, project_workspaces, space_id, wire_of,
 };
 
@@ -544,24 +544,42 @@ fn what_sill_says_a_backend_supports_is_what_the_wire_client_accepts() {
 
 #[test]
 fn the_offered_protocols_choose_the_arm() {
+    let named = |names: &[&str]| GlobalOffer::from_globals(names.iter().map(|name| (*name, 1)));
+    let list_and_workspaces = ["ext_foreign_toplevel_list_v1", "ext_workspace_manager_v1"];
     let cases = [
-        ("all four", full_offer(), DesktopBackend::Wlr),
+        (
+            "all four",
+            offer_of_protocols(&full_offer()),
+            DesktopBackend::Wlr,
+        ),
         (
             "the list and workspaces alone",
-            ProtocolSet::empty()
-                .with(Protocol::ExtForeignToplevelList)
-                .with(Protocol::ExtWorkspace),
+            named(&list_and_workspaces),
+            DesktopBackend::Wlr,
+        ),
+        (
+            "the list beside COSMIC's own toplevel info",
+            named(&[
+                list_and_workspaces[0],
+                list_and_workspaces[1],
+                "zcosmic_toplevel_info_v1",
+            ]),
             DesktopBackend::Cosmic,
         ),
         (
             "the desktop's own manager",
-            full_offer().with(Protocol::QuireDesktop),
+            offer_of_protocols(&full_offer().with(Protocol::QuireDesktop)),
             DesktopBackend::Quire,
         ),
-        ("nothing", ProtocolSet::empty(), DesktopBackend::Cosmic),
+        (
+            "the desktop's own manager without the list",
+            named(&["quire_desktop_manager_v1"]),
+            DesktopBackend::Cosmic,
+        ),
+        ("nothing", GlobalOffer::default(), DesktopBackend::Cosmic),
     ];
-    for (name, offered, want) in cases {
-        assert_eq!(backend_for(&offer_of_protocols(&offered)), want, "{name}");
+    for (name, offer, want) in cases {
+        assert_eq!(backend_of(&offer), want, "{name}");
     }
 }
 

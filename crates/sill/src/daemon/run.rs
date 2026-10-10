@@ -64,11 +64,22 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     services::follow_settings(runtime.handle(), &settings_feed, &links, &services, &env);
     crate::voice::spawn_consent_writer(runtime.handle(), consents, store.clone(), settings.clone());
 
-    let host = match Host::<ShellMsg>::connect(host_config(&first)) {
+    // The desktop's own compositor hands the shell a connection; any other session is reached
+    // through the environment.
+    let handed = runtime.block_on(sill_services::desktop_wl::quire::shell_connection(
+        &env.buses.session,
+    ));
+    let handed_by_compositor = handed.is_some();
+    let route = super::compositor::host_route(handed);
+    let host = match Host::<ShellMsg>::connect(host_config(&first, route)) {
         Ok(host) => host,
         Err(error) => return fatal(&format!("connecting to the compositor: {error}")),
     };
     let host_handle = host.handle();
+    let seat = match handed_by_compositor {
+        true => super::compositor::ShellSeat::linked(runtime.handle().clone(), host_handle.clone()),
+        false => super::compositor::ShellSeat::absent(),
+    };
     // Detached: it accepts connections until the process exits with the host (doc on
     // `ipc::server::spawn`).
     let _ipc_thread = server::spawn(door, host_handle.clone());
@@ -99,6 +110,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         user_style,
         links,
         keys: sill_model::keyboard::ShellKeys::default(),
+        seat,
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 
@@ -120,10 +132,12 @@ fn take_door() -> Result<latchkey::Listening, ExitCode> {
     })
 }
 
-/// The host's configuration: shell-host's, with the first-mouse window from `first`'s settings.
-fn host_config(first: &ShellFile) -> HostConfig {
+/// The host's configuration: shell-host's, with the first-mouse window from `first`'s settings
+/// and the connection `route` names.
+fn host_config(first: &ShellFile, route: shell_host::WaylandRoute) -> HostConfig {
     HostConfig {
         first_mouse_window_ms: shell_host::Ms(u32::from(first.menus.first_mouse_window_ms.0)),
+        route,
         ..sill_ui_kit::root::host_config()
     }
 }

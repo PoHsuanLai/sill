@@ -1,11 +1,12 @@
 //! What the shell asks of the desktop, and which backend can carry it.
 
-use casement_protocols::vocab::PlaceTarget;
+use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, Toggle};
 use porter_core::SpaceId;
 
 use super::DesktopBackend;
 
-/// A request to the desktop. A window is named by its [`super::WindowView::identifier`].
+/// A request to the desktop. A window is named by its [`super::WindowView::identifier`], an app
+/// by its [`super::AppView::key`], a Space by its id and an output by its name.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DesktopCommand {
     /// Bring a window to the front and give it the keyboard (restoring it when minimised).
@@ -30,6 +31,49 @@ pub enum DesktopCommand {
         /// The tile.
         rect: (i32, i32, u32, u32),
     },
+    /// Forget where a minimised window's tile was.
+    ClearMinimiseTarget(String),
+    /// Show a window on every Space, the one it is on, or leave it where it opens.
+    AssignSpaces(String, Assign),
+    /// Bring an app forward and raise its windows.
+    ActivateApp(String),
+    /// Hide an app.
+    HideApp(String),
+    /// Show a hidden app.
+    UnhideApp(String),
+    /// Hide every app but this one.
+    HideOtherApps(String),
+    /// Ask an app to quit; it may refuse or ask the person first.
+    QuitApp(String),
+    /// End an app's processes.
+    ForceQuitApp(String),
+    /// Activate an app that has no windows; the desktop answers with
+    /// [`super::ShellNote::Reopen`], and the dock decides what reopening means.
+    ReopenApp(String),
+    /// Add a Space on the output with this name.
+    CreateSpace(String),
+    /// Remove a Space; its windows move to the neighbouring desktop Space.
+    RemoveSpace(SpaceId),
+    /// Move a Space to a position on its output (0 is leftmost).
+    MoveSpace {
+        /// The Space.
+        space: SpaceId,
+        /// Where; 0 is leftmost.
+        position: u32,
+    },
+    /// Open or close an overview.
+    Overview {
+        /// Which overview.
+        mode: OverviewMode,
+        /// Open (`On`) or close (`Off`).
+        toggle: Toggle,
+    },
+    /// Move every window aside, or back.
+    ShowDesktop(Toggle),
+    /// The person picked an app in the switcher, by the index the desktop listed it at.
+    PickSwitcher(u32),
+    /// The person dismissed the switcher.
+    CancelSwitcher,
 }
 
 /// Whether a backend can carry a command.
@@ -43,39 +87,35 @@ pub enum Supports {
 
 /// Whether `backend` can carry `command`.
 ///
-/// Wlr cannot place a window or move it between Spaces (no standard protocol does), and cannot
-/// take a minimise target (the protocol needs the dock's own `wl_surface`, which lives on the
-/// shell host's connection, so the command carries no surface to name). Cosmic has no
-/// placement or minimise target either; it moves windows between workspaces.
+/// Quire carries every command (the shell ones only on a connection that holds the shell role;
+/// the arm refuses them otherwise). Wlr cannot place a window or move it between Spaces (no
+/// standard protocol does), cannot hide or quit an app, and cannot take a minimise target on the
+/// connection the arm runs on: the protocol needs the dock's own `wl_surface`, which lives on
+/// the shell host's connection. Cosmic has no placement or minimise target either; it moves
+/// windows between workspaces.
 pub fn supports(backend: DesktopBackend, command: &DesktopCommand) -> Supports {
-    match backend {
-        DesktopBackend::Quire => Supports::Yes,
-        DesktopBackend::Wlr => wlr_supports(command),
-        DesktopBackend::Cosmic => cosmic_supports(command),
+    let carried = match backend {
+        DesktopBackend::Quire => true,
+        DesktopBackend::Wlr => wlr_carries(command),
+        DesktopBackend::Cosmic => cosmic_carries(command),
+    };
+    match carried {
+        true => Supports::Yes,
+        false => Supports::No,
     }
 }
 
-fn wlr_supports(command: &DesktopCommand) -> Supports {
-    match command {
+fn wlr_carries(command: &DesktopCommand) -> bool {
+    matches!(
+        command,
         DesktopCommand::Activate(_)
-        | DesktopCommand::Close(_)
-        | DesktopCommand::Minimise(_)
-        | DesktopCommand::Unminimise(_)
-        | DesktopCommand::SwitchSpace(_) => Supports::Yes,
-        DesktopCommand::Place(..)
-        | DesktopCommand::ToSpace(..)
-        | DesktopCommand::SetMinimiseTarget { .. } => Supports::No,
-    }
+            | DesktopCommand::Close(_)
+            | DesktopCommand::Minimise(_)
+            | DesktopCommand::Unminimise(_)
+            | DesktopCommand::SwitchSpace(_)
+    )
 }
 
-fn cosmic_supports(command: &DesktopCommand) -> Supports {
-    match command {
-        DesktopCommand::Activate(_)
-        | DesktopCommand::Close(_)
-        | DesktopCommand::Minimise(_)
-        | DesktopCommand::Unminimise(_)
-        | DesktopCommand::ToSpace(..)
-        | DesktopCommand::SwitchSpace(_) => Supports::Yes,
-        DesktopCommand::Place(..) | DesktopCommand::SetMinimiseTarget { .. } => Supports::No,
-    }
+fn cosmic_carries(command: &DesktopCommand) -> bool {
+    wlr_carries(command) || matches!(command, DesktopCommand::ToSpace(..))
 }

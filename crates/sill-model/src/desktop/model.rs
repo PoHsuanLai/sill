@@ -2,7 +2,8 @@
 //! backend's state; nothing here knows which backend it came from.
 
 use casement_protocols::vocab::{
-    AppLifeKind, Attention, Emphasis, PlacementMark, ProofKind, Shown, SpaceKind, WindowStateKind,
+    AppLifeKind, AppVisibility, Attention, Emphasis, LeaseState, Modality, PlacementMark,
+    ProofKind, Responsiveness, SensitivityLevel, Shown, SpaceKind, WindowRole, WindowStateKind,
 };
 use porter_core::SpaceId;
 
@@ -32,6 +33,8 @@ pub struct AppView {
     pub attention: Attention,
     /// Recency rank: 0 is the most recently used app.
     pub mru: u32,
+    /// Shown, or hidden by the person.
+    pub visibility: AppVisibility,
 }
 
 /// An open window.
@@ -53,6 +56,19 @@ pub struct WindowView {
     pub emphasis: Emphasis,
     /// How it is placed, as its zoom control shows.
     pub placement: PlacementMark,
+    /// What the window is for: a document, a panel, a sheet.
+    pub role: WindowRole,
+    /// Whether it blocks its parent or the app.
+    pub modality: Modality,
+    /// Where it is, as `(x, y, width, height)` in logical pixels; `None` when the desktop does
+    /// not say.
+    pub geometry: Option<(i32, i32, u32, u32)>,
+    /// Whether the app answers.
+    pub responsiveness: Responsiveness,
+    /// Whether an agent holds the window.
+    pub lease: LeaseState,
+    /// How sensitive its content is.
+    pub sensitivity: SensitivityLevel,
 }
 
 /// Which Spaces show a window.

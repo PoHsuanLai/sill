@@ -47,6 +47,8 @@ pub struct Shell {
     pub links: Links,
     /// Which of the shell's surfaces hold the keyboard, told to the keycap service.
     pub keys: ShellKeys,
+    /// The desktop's own compositor's arm, when the host is on the connection it handed over.
+    pub seat: super::compositor::ShellSeat,
 }
 
 /// Every event, handled: an IPC request (needs the services and the settings), the lock's and the
@@ -62,6 +64,7 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
         HostEvent::App(ShellMsg::Summon(out)) => {
             crate::companion::apply(&shell.outputs, &shell.services, &shell.links.launcher, out)
         }
+        HostEvent::App(ShellMsg::Note(note)) => super::compositor::apply(shell, note),
         other => host_event(shell, ctx, other),
     }
 }
@@ -128,6 +131,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     );
     follow_keyboard_focus(shell, &event);
     tell_keycap_the_holders(shell, &event);
+    super::compositor::follow_mapped(&mut shell.seat, &shell.outputs, ctx, &event);
     // The engine has no config until told one; the watcher's and the reload's changes land through
     // `HostEvent::App(ShellMsg::Settings(_))` and `Request::Reload`.
     if matches!(event, HostEvent::Started) {
@@ -256,6 +260,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         HostEvent::App(ShellMsg::Dim(_)) => {}
         // Answered by `handle`, which holds the launcher link and the outputs.
         HostEvent::App(ShellMsg::Summon(_)) => {}
+        // Answered by `handle`, which holds the links and the services.
+        HostEvent::App(ShellMsg::Note(_)) => {}
         HostEvent::App(ShellMsg::Ipc { reply, .. }) => {
             // Never reached through `handle`, which answers `Ipc` itself; answered rather
             // than dropped in case another caller ever delivers one here directly.

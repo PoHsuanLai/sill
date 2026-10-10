@@ -1,62 +1,9 @@
-//! The backend choice and the support table.
+//! The offer and the support table.
 
-use casement_protocols::vocab::PlaceTarget;
+use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, Toggle};
 use porter_core::SpaceId;
 
-use super::{DesktopBackend, DesktopCommand, GlobalOffer, Supports, backend_for, supports};
-
-fn offer(interfaces: &[&str]) -> GlobalOffer {
-    GlobalOffer::from_globals(interfaces.iter().map(|name| (*name, 1)))
-}
-
-#[test]
-fn the_globals_choose_the_backend() {
-    let cases: &[(&str, &[&str], DesktopBackend)] = &[
-        ("nothing offered", &[], DesktopBackend::Cosmic),
-        (
-            "cosmic's own protocols",
-            &[
-                "zcosmic_toplevel_info_v1",
-                "ext_workspace_manager_v1",
-                "ext_foreign_toplevel_list_v1",
-            ],
-            DesktopBackend::Cosmic,
-        ),
-        (
-            "standard toplevel management",
-            &[
-                "ext_foreign_toplevel_list_v1",
-                "zwlr_foreign_toplevel_manager_v1",
-                "ext_workspace_manager_v1",
-            ],
-            DesktopBackend::Wlr,
-        ),
-        (
-            "wlr beats cosmic when both are offered",
-            &[
-                "zwlr_foreign_toplevel_manager_v1",
-                "zcosmic_toplevel_info_v1",
-            ],
-            DesktopBackend::Wlr,
-        ),
-        (
-            "quire beats wlr",
-            &[
-                "quire_desktop_manager_v1",
-                "zwlr_foreign_toplevel_manager_v1",
-            ],
-            DesktopBackend::Quire,
-        ),
-        (
-            "only the list and workspaces are not enough for wlr",
-            &["ext_foreign_toplevel_list_v1", "ext_workspace_manager_v1"],
-            DesktopBackend::Cosmic,
-        ),
-    ];
-    for (name, globals, want) in cases {
-        assert_eq!(backend_for(&offer(globals)), *want, "{name}");
-    }
-}
+use super::{DesktopBackend, DesktopCommand, GlobalOffer, Supports, supports};
 
 #[test]
 fn a_repeated_global_keeps_its_highest_version() {
@@ -66,6 +13,7 @@ fn a_repeated_global_keeps_its_highest_version() {
     assert_eq!(both.version("wl_shm"), None);
     assert!(both.offers("wl_seat"));
     assert!(!both.offers("wl_shm"));
+    assert_eq!(both.names().collect::<Vec<_>>(), ["wl_output", "wl_seat"]);
 }
 
 #[test]
@@ -105,5 +53,41 @@ fn each_backend_carries_what_its_protocols_can() {
         for ((name, command), want) in commands.iter().zip(row) {
             assert_eq!(supports(*backend, command), *want, "{backend:?} {name}");
         }
+    }
+}
+
+#[test]
+fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
+    let window = || "w1".to_owned();
+    let app = || "org.example.app".to_owned();
+    let space = || SpaceId::parse("ws-1").unwrap_or_else(|e| panic!("{e}"));
+    let commands = [
+        DesktopCommand::ClearMinimiseTarget(window()),
+        DesktopCommand::AssignSpaces(window(), Assign::AllSpaces),
+        DesktopCommand::ActivateApp(app()),
+        DesktopCommand::HideApp(app()),
+        DesktopCommand::UnhideApp(app()),
+        DesktopCommand::HideOtherApps(app()),
+        DesktopCommand::QuitApp(app()),
+        DesktopCommand::ForceQuitApp(app()),
+        DesktopCommand::ReopenApp(app()),
+        DesktopCommand::CreateSpace("DP-1".to_owned()),
+        DesktopCommand::RemoveSpace(space()),
+        DesktopCommand::MoveSpace {
+            space: space(),
+            position: 1,
+        },
+        DesktopCommand::Overview {
+            mode: OverviewMode::MissionControl,
+            toggle: Toggle::On,
+        },
+        DesktopCommand::ShowDesktop(Toggle::On),
+        DesktopCommand::PickSwitcher(2),
+        DesktopCommand::CancelSwitcher,
+    ];
+    for command in &commands {
+        assert_eq!(supports(DesktopBackend::Quire, command), Supports::Yes);
+        assert_eq!(supports(DesktopBackend::Wlr, command), Supports::No);
+        assert_eq!(supports(DesktopBackend::Cosmic, command), Supports::No);
     }
 }

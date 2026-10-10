@@ -2,7 +2,8 @@
 //! what is active. Grouping and recency are sill's: the protocols give windows, not apps.
 
 use casement_protocols::vocab::{
-    AppLifeKind, Attention, Emphasis, PlacementMark, ProofKind, Shown, SpaceKind, WindowStateKind,
+    AppLifeKind, AppVisibility, Attention, Emphasis, LeaseState, Modality, PlacementMark,
+    ProofKind, Responsiveness, SensitivityLevel, Shown, SpaceKind, WindowRole, WindowStateKind,
 };
 use desktop_client::toplevel::{Toplevel as WireToplevel, ToplevelFlag};
 use desktop_client::workspace::WorkspaceFlag;
@@ -59,6 +60,12 @@ fn window(toplevel: &WireToplevel) -> WindowView {
             .unwrap_or_default(),
         emphasis: emphasis(toplevel),
         placement: placement(toplevel),
+        role: WindowRole::Document,
+        modality: Modality::None,
+        geometry: None,
+        responsiveness: Responsiveness::Responding,
+        lease: LeaseState::Free,
+        sensitivity: SensitivityLevel::Normal,
     }
 }
 
@@ -110,6 +117,7 @@ fn apps(windows: &[WindowView]) -> Vec<AppView> {
             life: AppLifeKind::Running,
             attention: Attention::None,
             mru,
+            visibility: AppVisibility::Shown,
         })
         .collect()
 }

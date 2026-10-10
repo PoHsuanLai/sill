@@ -4,17 +4,20 @@
 //!
 //! The wire client is `desktop-client`; this module holds sill's part: recency (the protocols
 //! give none), apps, Spaces and the commands' mapping. The thread runs from `cosmic_wl`, which
-//! picks the arm from the compositor's globals ([`sill_model::desktop::backend_for`]).
+//! picks the arm from the compositor's globals ([`backend_of`]).
 
+mod choose;
 mod command;
 mod ids;
 mod offer;
 mod outputs;
+pub mod quire;
 mod run;
 mod toplevels;
 mod view;
 mod workspaces;
 
+pub use choose::backend_of;
 pub use command::{Refusal, desktop_of, wire_of};
 pub use ids::space_id;
 pub use offer::{offer_of_protocols, offer_of_registry};

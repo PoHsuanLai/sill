@@ -1,6 +1,7 @@
 //! The shell's commands as the wire client's: a [`WlCommand`] first in the desktop's words
 //! ([`DesktopCommand`]), then in the protocols'.
 
+use casement_protocols::vocab::ShellRole;
 use desktop_client::toplevel::ToplevelFlag;
 use desktop_client::workspace::WorkspaceAbility;
 use desktop_client::{DesktopCommand as Wire, DesktopState};
@@ -23,6 +24,12 @@ pub enum Refusal {
     /// No workspace has this Space id.
     #[error("no Space {0}")]
     UnknownSpace(SpaceId),
+    /// No running app has this key.
+    #[error("no app {0}")]
+    UnknownApp(String),
+    /// No surface is registered for this role, so there is nothing to name.
+    #[error("no surface for the {0:?}")]
+    NoSurface(ShellRole),
 }
 
 /// `command` as the desktop's command. `None` for the requests only COSMIC takes (reordering,
@@ -65,13 +72,33 @@ pub fn wire_of(command: &DesktopCommand, state: &DesktopState) -> Result<Vec<Wir
         DesktopCommand::Minimise(id) => Ok(vec![Wire::Minimise(find_window(state, id)?)]),
         DesktopCommand::Unminimise(id) => Ok(vec![Wire::Unminimise(find_window(state, id)?)]),
         DesktopCommand::SwitchSpace(space) => switch(state, space),
+        // The Quire arm carries these: `quire::quire_wire_of`.
         DesktopCommand::Place(..)
         | DesktopCommand::ToSpace(..)
-        | DesktopCommand::SetMinimiseTarget { .. } => Err(Refusal::Unsupported),
+        | DesktopCommand::SetMinimiseTarget { .. }
+        | DesktopCommand::ClearMinimiseTarget(_)
+        | DesktopCommand::AssignSpaces(..)
+        | DesktopCommand::ActivateApp(_)
+        | DesktopCommand::HideApp(_)
+        | DesktopCommand::UnhideApp(_)
+        | DesktopCommand::HideOtherApps(_)
+        | DesktopCommand::QuitApp(_)
+        | DesktopCommand::ForceQuitApp(_)
+        | DesktopCommand::ReopenApp(_)
+        | DesktopCommand::CreateSpace(_)
+        | DesktopCommand::RemoveSpace(_)
+        | DesktopCommand::MoveSpace { .. }
+        | DesktopCommand::Overview { .. }
+        | DesktopCommand::ShowDesktop(_)
+        | DesktopCommand::PickSwitcher(_)
+        | DesktopCommand::CancelSwitcher => Err(Refusal::Unsupported),
     }
 }
 
-fn find_window(state: &DesktopState, id: &str) -> Result<desktop_client::ToplevelKey, Refusal> {
+pub(super) fn find_window(
+    state: &DesktopState,
+    id: &str,
+) -> Result<desktop_client::ToplevelKey, Refusal> {
     state
         .toplevels
         .announced()

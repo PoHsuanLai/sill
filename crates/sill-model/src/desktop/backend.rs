@@ -1,14 +1,7 @@
-//! Which desktop arm runs, chosen from what the compositor offers and nothing else.
+//! Which desktop arm runs, and the globals a compositor offers. The choice itself is
+//! `sill-services`' (`desktop_wl::backend_of`): it asks `desktop-client` what the offer carries.
 
 use std::collections::BTreeMap;
-
-/// `quire_desktop_manager_v1`: the compositor that tells the shell apps, windows and Spaces
-/// itself.
-const QUIRE_DESKTOP: &str = "quire_desktop_manager_v1";
-
-/// `zwlr_foreign_toplevel_manager_v1`: toplevel state and actions on a wlroots-style
-/// compositor.
-const WLR_TOPLEVELS: &str = "zwlr_foreign_toplevel_manager_v1";
 
 /// The arm of the desktop client the shell runs on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -42,22 +35,13 @@ impl GlobalOffer {
         self.0.contains_key(interface)
     }
 
+    /// Every interface the compositor lists, in name order.
+    pub fn names(&self) -> impl Iterator<Item = &str> {
+        self.0.keys().map(String::as_str)
+    }
+
     /// The version it lists `interface` at.
     pub fn version(&self, interface: &str) -> Option<u32> {
         self.0.get(interface).copied()
-    }
-}
-
-/// The arm for `offer`: Quire when the compositor offers its desktop manager, else Wlr when it
-/// offers wlr toplevel management, else Cosmic (which degrades to an empty desktop on a
-/// compositor with none of the three). Never chosen from a compositor's name or the
-/// environment.
-pub fn backend_for(offer: &GlobalOffer) -> DesktopBackend {
-    if offer.offers(QUIRE_DESKTOP) {
-        DesktopBackend::Quire
-    } else if offer.offers(WLR_TOPLEVELS) {
-        DesktopBackend::Wlr
-    } else {
-        DesktopBackend::Cosmic
     }
 }

@@ -6,12 +6,11 @@
 use desktop_client::client::DesktopClient;
 use desktop_client::output::{ConfigOutcome, OutputEvent};
 use desktop_client::{ConfigId, Desktop, DesktopCommand, DesktopEvent, Ticket};
-use sill_model::desktop::{DesktopBackend, backend_for};
 use sill_model::displays::randr::Head;
 use sill_model::displays::scale::DisplayScale;
 
 use super::sink::{CosmicRandr, ScaleSink};
-use crate::desktop_wl::{config_for_scale, heads_of, offer_of_protocols};
+use crate::desktop_wl::{config_for_scale, heads_of};
 use crate::env::WaylandRoute;
 use crate::error::ServiceError;
 
@@ -93,7 +92,14 @@ impl OutputsRoute {
             .ok()
             .and_then(|connection| DesktopClient::new(&connection).ok())
             .filter(|client| {
-                backend_for(&offer_of_protocols(&client.state().protocols)) == DesktopBackend::Wlr
+                // The standard arm or the desktop's own: both list the wlr toplevel manager or the
+                // Quire manager; COSMIC's ext list alone is not enough.
+                matches!(
+                    desktop_client::backend_for(&client.state().protocols),
+                    Some(
+                        desktop_client::DesktopBackend::Wlr | desktop_client::DesktopBackend::Quire
+                    )
+                )
             });
         match client {
             Some(client) => OutputsRoute::Wlr(Box::new(WlrOutputs { client })),

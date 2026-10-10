@@ -26,4 +26,7 @@ pub enum ShellMsg {
     /// Open, switch or close the launcher for a summon (`crate::companion::spawn_follower`
     /// sends it).
     Summon(sill_model::companion::SummonOut),
+    /// One note of the desktop's own compositor's shell protocol (`compositor::ShellSeat`'s
+    /// forwarder sends it).
+    Note(sill_model::desktop::ShellNote),
 }

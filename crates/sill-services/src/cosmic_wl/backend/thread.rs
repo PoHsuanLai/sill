@@ -1,8 +1,9 @@
 //! The `cosmic_wl` thread: its own Wayland connection (a protocol object cannot cross
 //! connections, and shell-host's connection is the host's), a calloop loop over it, and the
-//! command channel. The compositor's globals pick the arm (`backend_for`): the standard
-//! protocols run on `desktop_wl`; COSMIC's own run here. On a compositor with neither it parks
-//! on the command channel instead, dropping commands, until every `Control` is gone.
+//! command channel. The compositor's globals pick the arm (`backend_of`): the standard
+//! protocols and the desktop's own run on `desktop_wl`; COSMIC's own run here. On a compositor
+//! with none of them it parks on the command channel instead, dropping commands, until every
+//! `Control` is gone.
 
 use cosmic_client_toolkit::sctk::reexports::calloop;
 use cosmic_client_toolkit::sctk::reexports::calloop::channel::Event;
@@ -13,14 +14,14 @@ use cosmic_client_toolkit::wayland_client::globals::{
 };
 use cosmic_client_toolkit::wayland_client::{Connection, EventQueue};
 use sill_model::cosmic_wl::WlCommand;
-use sill_model::desktop::{DesktopBackend, backend_for};
+use sill_model::desktop::DesktopBackend;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::commands::{forward_commands, park_commands};
 use super::execute::execute;
 use super::publish::Publish;
 use super::state::{Offer, WlState};
-use crate::desktop_wl;
+use crate::desktop_wl::{self, backend_of};
 use crate::env::{WaylandRoute, WaylandUnreached};
 
 /// Why the thread is not following a compositor.
@@ -32,8 +33,6 @@ enum Refusal {
     Registry(#[from] GlobalError),
     #[error("the compositor offers neither ext-foreign-toplevel-list nor ext-workspace")]
     NoCosmic,
-    #[error("the desktop's own compositor protocol has no arm in this build")]
-    NoQuireArm,
     #[error("the event loop: {0}")]
     Loop(#[from] calloop::Error),
 }
@@ -65,7 +64,7 @@ struct Session {
 /// The arm the compositor's globals select, ready to run.
 enum Opened {
     Cosmic(Box<Session>),
-    /// The standard protocols: the connection, which the arm binds itself.
+    /// The standard protocols or the desktop's own: the connection, which the arm binds itself.
     Wlr(Connection, Publish),
 }
 
@@ -75,8 +74,11 @@ fn open(endpoint: &WaylandRoute, publish: Publish) -> Result<Opened, (Refusal, P
         Err(refusal) => return Err((refusal, publish)),
     };
     match backend_for(&desktop_wl::offer_of_registry(&globals)) {
-        DesktopBackend::Quire => Err((Refusal::NoQuireArm, publish)),
-        DesktopBackend::Wlr => Ok(Opened::Wlr(conn, publish)),
+        // The desktop's own compositor serves the toplevels and workspaces on this connection
+        // as the standard arm reads them (the client projects the Quire window state onto the
+        // toplevels' flags); its shell role lives on the shell host's connection
+        // (`desktop_wl::quire`).
+        DesktopBackend::Quire | DesktopBackend::Wlr => Ok(Opened::Wlr(conn, publish)),
         DesktopBackend::Cosmic => open_cosmic(conn, globals, queue, publish)
             .map(|session| Opened::Cosmic(Box::new(session))),
     }
