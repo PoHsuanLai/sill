@@ -1,7 +1,7 @@
 //! Loading what a preview names off the UI thread.
 //!
-//! A file is looked at by the viewer's own parts: [`anyview_peek::probe`] says what it is (its
-//! size, its date, its first bytes: the `Sniffed` that every peek takes) and [`anyview_peek::peek_with`]
+//! A file is looked at by the viewer's own parts: [`anyview_peek::look`] says what it is (its
+//! size, its date, its first bytes: the `Sniffed` that every peek takes) and makes
 //! makes what the pane draws. That blocks, so it runs on the pane's one worker, which is the
 //! viewer's own ([`anyview_peek::PeekWorker`]): a thread started with the pane and ended with it,
 //! fed by a slot that holds the latest request only. The arrow keys ask for a new file on every
@@ -19,9 +19,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyview_core::{ByteLen, FilePath, Input, PeekBudget, PixelArea};
+use anyview_fs::OnDisk;
 use anyview_peek::{
-    AnyPeeked, NoFrames, PeekError, PeekFailure, PeekWork, PeekWorker, VideoFrames, WorkerConfig,
-    peek_with, probe,
+    AnyPeeked, Body, NoStills, PeekFailure, PeekWork, PeekWorker, StillSource, Unavailable,
+    WorkerConfig, look,
 };
 use dioxus::prelude::*;
 use sill_launcher::ClipKey;
@@ -66,35 +67,38 @@ pub trait Look: Send + Sync + 'static {
     fn at(&self, path: &Path) -> Result<Arc<AnyPeeked>, PreviewFault>;
 }
 
-/// The viewer's parts: probe the file, then peek at it as sniffed. A video's frame, which the
+/// The viewer's parts: look at the file (probe, then peek as sniffed). A video's frame, which the
 /// peek does not decode, comes from `frames`.
 #[derive(Debug, Clone)]
 pub struct ViewerLook {
-    frames: Arc<dyn VideoFrames>,
+    frames: Arc<dyn StillSource>,
 }
 
 impl ViewerLook {
     /// A look that takes a video's picture from `frames`.
-    pub fn new(frames: Arc<dyn VideoFrames>) -> ViewerLook {
+    pub fn new(frames: Arc<dyn StillSource>) -> ViewerLook {
         ViewerLook { frames }
     }
 
     /// A look with no source of video frames: a video without a cover shows its facts.
     pub fn without_frames() -> ViewerLook {
-        ViewerLook::new(Arc::new(NoFrames))
+        ViewerLook::new(Arc::new(NoStills))
     }
 }
 
 impl Look for ViewerLook {
     fn at(&self, path: &Path) -> Result<Arc<AnyPeeked>, PreviewFault> {
         let file = FilePath::new(path).map_err(|_| PreviewFault::Unreadable)?;
-        let probed = probe(&file).map_err(fault_of)?;
-        Ok(Arc::new(peek_with(
-            &probed.input,
-            &probed.sniffed,
-            &PANE_BUDGET,
-            self.frames.as_ref(),
-        )))
+        let peeking = anyview_peek::Peeking::pane()
+            .with_budget(PANE_BUDGET)
+            .with_stills(Arc::clone(&self.frames));
+        let card = look(file.on_disk(), &peeking);
+        // A path that is not there is a fault of its own; every other failure is a card that says
+        // why, beside the file's facts.
+        match card.body {
+            Body::Unavailable(Unavailable::Missing) => Err(PreviewFault::Missing),
+            _ => Ok(Arc::new(card)),
+        }
     }
 }
 
@@ -116,24 +120,6 @@ fn cached_look() -> Arc<dyn Look> {
         ViewerLook::new(Arc::new(ThumbnailFrames::in_cache(&s.dirs.cache)))
     });
     Arc::new(look)
-}
-
-/// Probing fails only for a path that is not there or cannot be read; the other errors are the
-/// peek's, which `peek` turns into a pane that says so.
-fn fault_of(error: PeekError) -> PreviewFault {
-    match error {
-        PeekError::Missing { .. } => PreviewFault::Missing,
-        PeekError::Unreadable { .. }
-        | PeekError::Image(_)
-        | PeekError::Text(_)
-        | PeekError::Media { .. }
-        | PeekError::Archive(_)
-        | PeekError::Font(_)
-        | PeekError::Pdf(_)
-        | PeekError::Folder { .. }
-        | PeekError::OverBudget { .. }
-        | PeekError::WrongKind { .. } => PreviewFault::Unreadable,
-    }
 }
 
 /// What a look comes to for the pane.
@@ -160,7 +146,7 @@ fn start_worker(look: Arc<dyn Look>) -> PeekWorker<Looked> {
 fn ask(worker: &PeekWorker<Looked>, path: &Path) -> oneshot::Receiver<Looked> {
     let (reply, answer) = oneshot::channel();
     match FilePath::new(path) {
-        Ok(file) => worker.ask(Input::from(&file), move |looked| {
+        Ok(file) => worker.ask(file.on_disk(), move |looked| {
             let _ = reply.send(looked);
         }),
         Err(_) => {

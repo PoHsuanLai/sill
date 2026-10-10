@@ -18,6 +18,7 @@ media = ["anyview-peek/media"]
 almanac-core = { workspace = true }
 companion-wire = { workspace = true }
 anyview-core = { workspace = true }
+anyview-fs = { workspace = true }
 anyview-image = { workspace = true }
 anyview-peek = { workspace = true }
 anyview-platform = { workspace = true }

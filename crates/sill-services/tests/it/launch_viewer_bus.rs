@@ -93,9 +93,8 @@ async fn a_file_chosen_in_the_launcher_reaches_the_viewer_with_the_results_it_ca
         })))
         .unwrap_or_else(|e| panic!("{e}"));
 
-    let heard = tokio::time::timeout(WAIT, viewer.next())
-        .await
-        .unwrap_or_else(|_| panic!("the viewer heard nothing within {WAIT:?}"));
+    let heard = viewer.next_within(WAIT);
+    assert!(heard.is_some(), "the viewer heard nothing within {WAIT:?}");
     let Some(Request::Handoff(handoff)) = heard else {
         panic!("not a handoff: {heard:?}");
     };
@@ -139,9 +138,8 @@ async fn the_play_control_asks_the_viewer_to_play_the_file() {
         .send(open(OpenTarget::Play(PathBuf::from("/m/song.flac"))))
         .unwrap_or_else(|e| panic!("{e}"));
 
-    let heard = tokio::time::timeout(WAIT, viewer.next())
-        .await
-        .unwrap_or_else(|_| panic!("the viewer heard nothing within {WAIT:?}"));
+    let heard = viewer.next_within(WAIT);
+    assert!(heard.is_some(), "the viewer heard nothing within {WAIT:?}");
     assert_eq!(heard, Some(Request::Play(file("/m/song.flac"))));
 }
 

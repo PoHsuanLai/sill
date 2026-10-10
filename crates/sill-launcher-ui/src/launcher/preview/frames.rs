@@ -1,6 +1,6 @@
 //! A video's picture in the pane, from the freedesktop thumbnail cache.
 //!
-//! The viewer's peek decodes no video (`anyview_peek::VideoFrames` is the seam it leaves). The
+//! The viewer's peek decodes no video (`anyview_peek::StillSource` is the seam it leaves). The
 //! file manager or a thumbnailer usually made a small picture of the file already, under
 //! `<cache>/thumbnails/<size>/<md5 of the file URI>.png`; this reads it through the viewer's
 //! platform crate, the same cache and the same lookup as the viewer's own first frame. The cache
@@ -12,7 +12,7 @@ use std::path::Path;
 
 use anyview_core::Input;
 use anyview_image::Rgba8;
-use anyview_peek::VideoFrames;
+use anyview_peek::StillSource;
 use anyview_platform::linux::FreedesktopThumbnails;
 use anyview_platform::{Env, ThumbSize, ThumbnailCache};
 
@@ -38,8 +38,8 @@ impl ThumbnailFrames {
     }
 }
 
-impl VideoFrames for ThumbnailFrames {
-    fn frame(&self, source: &Input) -> Option<Rgba8> {
+impl StillSource for ThumbnailFrames {
+    fn still(&self, source: &Input) -> Option<Rgba8> {
         // A thumbnail is keyed by the file's location: bytes handed in have none.
         let path = source.path()?;
         let stamp = source.stamp();

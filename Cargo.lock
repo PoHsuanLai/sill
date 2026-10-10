@@ -396,6 +396,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyview-fs"
+version = "0.1.0-beta.1"
+dependencies = [
+ "anyview-core",
+]
+
+[[package]]
 name = "anyview-image"
 version = "0.1.0-beta.1"
 dependencies = [
@@ -420,11 +427,13 @@ dependencies = [
  "anyview-book",
  "anyview-core",
  "anyview-font",
+ "anyview-fs",
  "anyview-image",
  "anyview-text",
  "dioxus",
  "ds",
  "ds-blitz",
+ "ds-core",
  "matroska-demuxer",
  "mp4parse",
  "symphonia",
@@ -495,6 +504,7 @@ name = "anyview-text"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
+ "anyview-fs",
  "calamine",
  "csv",
  "ds-core",
@@ -764,8 +774,8 @@ checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "bayonet"
-version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/bayonet.git?rev=592eea9b69aea9bb9e4d6694d09322595f8e8e0a#592eea9b69aea9bb9e4d6694d09322595f8e8e0a"
+version = "0.2.0"
+source = "git+https://github.com/PoHsuanLai/bayonet.git?rev=a295145be669417e01ba8e501b89de5a5a160dcf#a295145be669417e01ba8e501b89de5a5a160dcf"
 dependencies = [
  "rustix",
  "serde",
@@ -6106,6 +6116,7 @@ dependencies = [
  "porter-core",
  "serde",
  "serde_json",
+ "thiserror 2.0.21",
  "tokio",
  "zbus",
 ]
@@ -6153,6 +6164,7 @@ dependencies = [
  "porter-core",
  "porter-provider",
  "porter-secrets",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -6258,6 +6270,7 @@ version = "0.1.0"
 dependencies = [
  "porter-core",
  "serde",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -7132,6 +7145,7 @@ version = "0.1.0"
 dependencies = [
  "almanac-core",
  "anyview-core",
+ "anyview-fs",
  "anyview-image",
  "anyview-peek",
  "anyview-platform",
