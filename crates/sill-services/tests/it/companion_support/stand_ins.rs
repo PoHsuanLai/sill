@@ -5,9 +5,9 @@
 use std::sync::{Arc, Mutex};
 
 use almanac_core::{TimelineEntry, TimelinePage};
-use docket_core::{Hit, SessionOpened, SummonAnswer, UndoEntry, UndoFault};
+use docket_core::{Displayed, Hit, SessionOpened, SummonAnswer, UndoEntry, UndoFault};
 use docket_dbus::answer_path;
-use prov::SessionId;
+use prov::{DataClass, Label, SessionId, Source, SpaceId};
 use zbus::fdo;
 use zbus::message::Header;
 use zbus::object_server::SignalEmitter;
@@ -31,11 +31,36 @@ impl StandInSession {
         Ok(41)
     }
 
-    async fn display(&self, session: String, handle: u64) -> fdo::Result<String> {
+    /// The labelled reading the shell asks for first. Handle [`MAIL_HANDLE`] holds somebody
+    /// else's words (mail); every other handle is the person's own.
+    async fn display_labelled(&self, session: String, handle: u64) -> fdo::Result<String> {
         self.0.push(format!("display {session} {handle}"));
         if self.0.lines().contains(&format!("close {session}")) {
             return Err(fdo::Error::Failed("NoSuchSession".to_owned()));
         }
+        let label = match handle {
+            MAIL_HANDLE => Label::untrusted(Source::Mail, DataClass::Mail, SpaceId::desktop()),
+            _ => Label::trusted_user(),
+        };
+        let shown = Displayed {
+            text: format!("the text of handle {handle}"),
+            label,
+        };
+        Ok(json(&shown))
+    }
+}
+
+/// The handle whose words are somebody else's.
+pub const MAIL_HANDLE: u64 = 9;
+
+/// A router from before the labelled reading: it has `Display` alone, so a `DisplayLabelled`
+/// call is an unknown method.
+pub struct StandInOlderSession(pub Log);
+
+#[interface(name = "org.quire.Intents1.Session")]
+impl StandInOlderSession {
+    async fn display(&self, session: String, handle: u64) -> fdo::Result<String> {
+        self.0.push(format!("display {session} {handle}"));
         Ok(format!("the text of handle {handle}"))
     }
 }

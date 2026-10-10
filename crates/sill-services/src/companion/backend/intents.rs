@@ -16,6 +16,7 @@ use sill_model::companion::{CompanionEvent, Opener, openers_of};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
+use super::shown;
 use super::text::{from_json, text};
 use crate::stream::next;
 
@@ -147,14 +148,26 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
 }
 
 /// The text the router shows for `handle` of `session`, for the screen alone: it goes into the
-/// answer's card and nowhere else, never back to a model.
+/// answer's card and nowhere else, never back to a model. The router labels each handle, and
+/// what is not the person's own words comes back quoted ([`shown`]); a router without the
+/// labelled reading, or one that does not give it to the shell, is read the old way and all of
+/// it is quoted.
 pub(super) async fn display(
     connection: &Connection,
     session: SessionId,
     handle: Handle,
 ) -> Result<String, String> {
-    intents(connection)
-        .session_display(session, handle)
+    let client = intents(connection);
+    match client
+        .session_display_labelled(session.clone(), handle)
         .await
-        .map_err(text)
+    {
+        Ok(labelled) => Ok(shown::text_of(labelled)),
+        Err(error) if shown::lacks_labels(&error) => client
+            .session_display(session, handle)
+            .await
+            .map(|plain| shown::quoted(&plain))
+            .map_err(text),
+        Err(error) => Err(text(error)),
+    }
 }

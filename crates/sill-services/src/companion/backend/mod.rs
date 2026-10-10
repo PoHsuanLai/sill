@@ -6,6 +6,7 @@ mod intents;
 mod memory;
 mod probe;
 mod run;
+mod shown;
 mod tell;
 mod text;
 

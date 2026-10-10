@@ -133,7 +133,8 @@ pub fn memory_line(entry: &TimelineEntry, programs: &ProgramLabels) -> (String, 
         .replace('_', " ");
     let thing = match entry.body {
         EntryBody::Present => entry.things.first(),
-        EntryBody::Erased { .. } => None,
+        // Erased, or a body kind this build does not know: no thing to name.
+        _ => None,
     };
     let title = match thing {
         Some(thing) => format!("{who} {verb} {}", thing.title.as_str()),

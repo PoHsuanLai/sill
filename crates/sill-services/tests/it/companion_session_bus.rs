@@ -8,7 +8,9 @@ use crate::companion_support;
 
 use std::sync::{Arc, Mutex};
 
-use companion_support::stand_ins::{ActsAs, StandInAnswer, StandInCompanion, StandInSession};
+use companion_support::stand_ins::{
+    ActsAs, MAIL_HANDLE, StandInAnswer, StandInCompanion, StandInOlderSession, StandInSession,
+};
 use companion_support::{Desk, json, task, wire};
 use companion_wire::{AnswerBody, AnswerPhase, AnswerWire};
 use docket_core::{ContextKeep, Handle, Keep, Reveal};
@@ -21,9 +23,14 @@ use zbus::zvariant::ObjectPath;
 const HANDLE: Handle = Handle(7);
 
 fn with_handle() -> AnswerWire {
+    holding(HANDLE)
+}
+
+/// An answer whose one line is `handle`.
+fn holding(handle: Handle) -> AnswerWire {
     AnswerWire {
         body: AnswerBody::Text {
-            lines: vec![Reveal::Handle(HANDLE)],
+            lines: vec![Reveal::Handle(handle)],
         },
         ..wire(AnswerPhase::Done, "")
     }
@@ -36,11 +43,25 @@ struct Bench {
     _intentd: Connection,
 }
 
+/// The router the stand-in intentd is.
+#[derive(Clone, Copy)]
+enum Router {
+    /// Knows the labelled reading of a handle.
+    Labelled,
+    /// Has the plain reading only.
+    Older,
+}
+
 /// The stand-ins are up and the shell holds its seat. The answers companiond makes name `session`
 /// (`None`: an older companion, no such property).
 async fn bench(session: Option<&str>) -> Option<Bench> {
+    bench_on(session, Router::Labelled, HANDLE).await
+}
+
+/// `bench`, on `router`, with an answer that holds `handle`.
+async fn bench_on(session: Option<&str>, router: Router, handle: Handle) -> Option<Bench> {
     let mut desk = companion_support::desk().await?;
-    let view = Arc::new(Mutex::new(json(&with_handle())));
+    let view = Arc::new(Mutex::new(json(&holding(handle))));
     let companiond = desk.peer(COMPANION_BUS).await;
     companiond
         .object_server()
@@ -57,11 +78,17 @@ async fn bench(session: Option<&str>) -> Option<Bench> {
         .await
         .unwrap_or_else(|e| panic!("{e}"));
     let intentd = desk.peer(INTENTS_BUS).await;
-    intentd
-        .object_server()
-        .at("/org/quire/Intents1", StandInSession(desk.log.clone()))
-        .await
-        .unwrap_or_else(|e| panic!("{e}"));
+    let served = intentd.object_server();
+    match router {
+        Router::Labelled => served
+            .at("/org/quire/Intents1", StandInSession(desk.log.clone()))
+            .await
+            .unwrap_or_else(|e| panic!("{e}")),
+        Router::Older => served
+            .at("/org/quire/Intents1", StandInOlderSession(desk.log.clone()))
+            .await
+            .unwrap_or_else(|e| panic!("{e}")),
+    };
     desk.seated().await;
     Some(Bench {
         desk,
@@ -141,12 +168,17 @@ impl Bench {
 
     /// What the answer's first line reads, once the handle has a text.
     async fn line(&self) -> String {
+        self.line_of(HANDLE).await
+    }
+
+    /// What the answer's first line reads, once `handle` has a text.
+    async fn line_of(&self, handle: Handle) -> String {
         self.desk
             .state(|c| {
                 let answer = c.answers.get(&task())?;
                 answer
                     .shown
-                    .contains_key(&HANDLE)
+                    .contains_key(&handle)
                     .then(|| answer_line(answer).1)
             })
             .await
@@ -212,4 +244,39 @@ async fn a_handle_refused_after_close_reads_plainly_and_is_not_asked_again() {
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(bench.line().await, "#7");
     assert_eq!(bench.displays(), vec!["display s-9 7"]);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn somebody_elses_words_are_quoted_and_the_persons_own_are_not() {
+    let mail = Handle(MAIL_HANDLE);
+    let bench = match bench_on(Some("s-9"), Router::Labelled, mail).await {
+        Some(bench) => bench,
+        None => return,
+    };
+    bench.ask();
+    assert_eq!(
+        bench.line_of(mail).await,
+        "\u{201c}the text of handle 9\u{201d}",
+        "mail is quoted"
+    );
+    assert_eq!(bench.displays(), vec!["display s-9 9"]);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_router_without_labels_is_read_plainly_and_everything_is_quoted() {
+    let bench = match bench_on(Some("s-9"), Router::Older, HANDLE).await {
+        Some(bench) => bench,
+        None => return,
+    };
+    bench.ask();
+    assert_eq!(
+        bench.line().await,
+        "\u{201c}the text of handle 7\u{201d}",
+        "nothing says whose words they are"
+    );
+    assert_eq!(
+        bench.displays(),
+        vec!["display s-9 7"],
+        "the plain reading, once, after the labelled one was an unknown method"
+    );
 }

@@ -33,7 +33,7 @@ listed except where noted.
 
 | # | Crate | What it is | May depend on (sill crates, then key externals) |
 | --- | --- | --- | --- |
-| 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, chords, preview facts. Pure; a future repo | `almanac-core`, `docket-core`, `ds-core` (`MemoryVerb`), `prov`; nucleo-matcher, serde |
+| 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, the shared actions a row's keys are (`keys.rs`), preview facts. Pure; a future repo | `almanac-core`, `docket-core`, `ds-core` (`MemoryVerb`), `prov`; nucleo-matcher, serde |
 | 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
 | 0 | `sill-shell-kit` | The shell-only parts over `ds`, moved here from quire's `ds-shell` (2026-10-07): bar, dock, control center, lock, switcher, OSD, idle dim, notifications, thumbnails, battery, clock, now playing, user picture, emoji, month grid, date picker, widget contract, registry, catalog and the widgets, with the shell's tokens (`tokens/`), sheets (`sheets.rs`), `KIT`, `kits()` and `stylesheet()` (the whole shell stylesheet: quire's plus these) and their SSR goldens and behaviour tests | none of ours; quire's `ds`, `ds-core`, `ds-shell` (its `KIT` and sheets). Dev: `ds-blitz`, `ds-harness`, `ds-lint`, `ds-settings` |
 | 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`, `Machine`), `docket-core`, `almanac-core`, `companion-wire`, `cua-bus`, `prov`, `porter-core` (the accounts sheet's `SheetView`/`SheetInput`, serde data); serde, jiff, thiserror |
@@ -316,7 +316,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Switcher app derivation | `sill_overlays::switcher::apps` |
 | Easing and springs | `ds-motion` |
 | Colour, tint, material | `ds-core`, `ds-style`; sill never computes colour |
-| Keymaps | `<surface>/keys.rs` table; key claims are `ds`'s |
+| Keymaps | `<surface>/keys.rs` table; key claims are `ds`'s; a shortcut is a chordkit action resolved by quire's keymap (`sill_ui_kit::root::provide_keymap` gives every root keycap's source), never a modifier test or a chord type of our own |
 | Stylesheets | `<concept>/style.css` |
 | Session lock: service, surface, host half | `sill_services::locker`, `sill_overlays::lock`, `sill::daemon::followers::lock` |
 | Errors | `sill_services::ServiceError`, `sill_ipc::error::IpcError`, one `thiserror` enum per crate |
