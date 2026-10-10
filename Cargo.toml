@@ -172,7 +172,7 @@ nucleo-matcher = "0.3.1"
 fend-core = "1.5.8"
 clap = { version = "4", features = ["derive"] }
 # latchkey: its own repo since 2026-10-07 (split out of mailo with its history).
-latchkey = { git = "https://github.com/PoHsuanLai/latchkey", rev = "335d7a7c65bc7d196d5f19dfb305896ff3a55958" }
+latchkey = { git = "https://github.com/PoHsuanLai/latchkey", rev = "ef0117ada46854702057c79515516da43b271455" }
 # ---- END PINNED BLOCK ----
 
 # sill-only, outside the pinned block (they are not shared with quire or shell-host).
