@@ -242,6 +242,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         HostEvent::SurfaceClosed { id, reason } => on_surface_closed(outputs, id, reason),
         // Answered by `host_event` (`crate::lock::on_host_event`), which holds the lock.
         HostEvent::KeyboardFocus { .. } | HostEvent::Lock { .. } => {}
+        // A surface's first frame after a map; nothing here waits on it yet.
+        HostEvent::SurfaceMapped { .. } => {}
         HostEvent::App(ShellMsg::Settings(file)) => {
             resize_bars(ctx, outputs, &file);
             ctx.set_scroll_config(crate::scroll::config(&file));
