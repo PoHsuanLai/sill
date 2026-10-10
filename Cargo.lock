@@ -1735,7 +1735,6 @@ name = "cua-desktop"
 version = "0.1.0"
 dependencies = [
  "cua-action",
- "docket-core",
  "porter-core",
  "prov",
  "serde",
