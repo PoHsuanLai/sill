@@ -4,7 +4,7 @@
 //! the panel registers once. The launcher never reads a modifier and never draws a chord of its
 //! own: the keymap resolves the key and quire draws the shortcut. Pure.
 
-use chordkit::{Action, AppAction, DefaultChord, StandardAction};
+use chordkit::{Action, AppAction, AppId, DefaultChord, Registration, StandardAction};
 use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
@@ -58,10 +58,11 @@ impl OwnAction {
     }
 
     /// The portable chord it starts with. `Primary` is Command on our desktop. None of these is
-    /// a standard action's chord, which the keymap would refuse.
+    /// a standard action's chord, which the keymap would refuse: the launcher offers no bold, so
+    /// [`registration`] forgoes it and Search the web keeps Spotlight's ⌘B.
     pub fn default_chord(self) -> Option<DefaultChord> {
         let text = match self {
-            OwnAction::SearchWeb => "Primary+Shift+B",
+            OwnAction::SearchWeb => "Primary+B",
             OwnAction::ForgetEntry => "Primary+Backspace",
             OwnAction::CopyPath => "Primary+Alt+C",
             OwnAction::ShowActions => "Primary+K",
@@ -86,12 +87,16 @@ impl OwnAction {
 /// The app name the launcher's own actions are registered under.
 pub const APP: &str = "sill";
 
-/// Every own action with its default chord: what the panel registers.
-pub fn own_rows() -> Vec<(AppAction, DefaultChord)> {
-    OwnAction::ALL
+/// What the panel registers for `app`: every own action with its default chord, and the standard
+/// action the launcher does not offer (Bold, whose ⌘B Search the web takes).
+pub fn registration(app: &AppId) -> Registration {
+    let rows = OwnAction::ALL
         .iter()
-        .filter_map(|own| Some((own.action()?, own.default_chord()?)))
-        .collect()
+        .filter_map(|own| Some((own.action()?, own.default_chord()?)));
+    rows.fold(
+        Registration::new(app).forgo(StandardAction::Bold),
+        |registration, (action, chord)| registration.action(action, chord),
+    )
 }
 
 /// The action of `item` bound to `action`, if any.
@@ -104,7 +109,7 @@ pub fn action_for_key<'a>(item: &'a Item, action: &Action) -> Option<&'a ActionI
 
 #[cfg(test)]
 mod tests {
-    use super::{ActionKeys, OwnAction, action_for_key, own_rows};
+    use super::{ActionKeys, OwnAction, action_for_key, registration};
     use crate::ids::{ActionId, ItemId, ProviderKind};
     use crate::item::{Action, IconRef, Item};
     use crate::rank::Score;
@@ -117,11 +122,14 @@ mod tests {
         let ours = Platform::Linux {
             desktop: chordkit::Desktop::Ours,
         };
-        let rows = own_rows();
-        assert_eq!(rows.len(), OwnAction::ALL.len());
         let app = AppId::new(super::APP).unwrap_or_else(|e| panic!("{e}"));
-        let registered = Keymap::conventional(ours).register(&app, &rows);
-        assert_eq!(registered, Ok(()));
+        let mut keymap = Keymap::conventional(ours);
+        assert_eq!(keymap.register_with(&registration(&app)), Ok(()));
+        for own in OwnAction::ALL {
+            let action = own.action().map(Bound::App);
+            let bound = action.is_some_and(|action| !keymap.chords_of(&action).is_empty());
+            assert!(bound, "{own:?} has a chord");
+        }
     }
 
     #[test]

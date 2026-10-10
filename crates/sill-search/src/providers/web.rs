@@ -3,7 +3,7 @@
 //! Suggestions from the engine are later and off.
 //!
 //! The row's id is fixed (`web:search`), never the query, so frecency counts the fallback's
-//! use without writing what was searched to disk. Enter and ⇧⌘B open the address
+//! use without writing what was searched to disk. Enter and ⌘B open the address
 //! (`Activation::Open { Url }`).
 
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
@@ -106,7 +106,7 @@ pub fn search_url(template: &str, text: &str) -> Result<String, TemplateFault> {
 }
 
 /// The row for `text` with `template` (title `Search the web for “text”`, subtitle the
-/// engine's host, subject `Subject::Web`, glyph `search`, one action “Search the web” on ⇧⌘B).
+/// engine's host, subject `Subject::Web`, glyph `search`, one action “Search the web” on ⌘B).
 pub fn web_item(text: &str, template: &str) -> Result<Item, TemplateFault> {
     let url = search_url(template, text)?;
     let engine = host_of(template);

@@ -146,7 +146,7 @@ fn register_own_actions(keys: Keys) {
     let Ok(app) = chordkit::AppId::new(sill_launcher::APP) else {
         return;
     };
-    if let Err(conflict) = keys.register_actions(&app, &sill_launcher::own_rows()) {
+    if let Err(conflict) = keys.register(&app, &sill_launcher::registration(&app)) {
         eprintln!("sill: launcher keys: {conflict}");
     }
 }

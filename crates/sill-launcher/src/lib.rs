@@ -27,7 +27,7 @@ pub use companion::{CompanionAct, LauncherMode, RunControl};
 pub use frecency::{Counting, Frecency, FrecencyScore, ItemKey, Use, age_bucket, counting};
 pub use ids::{ActionId, AppId, ClipKey, ItemId, ProviderKind};
 pub use item::{Action, Choice, IconRef, Item};
-pub use keys::{APP, ActionKeys, OwnAction, action_for_key, own_rows};
+pub use keys::{APP, ActionKeys, OwnAction, action_for_key, registration};
 pub use matching::{MatchScore, Needle};
 pub use preview::{ExcerptLimit, Preview, PreviewKind, excerpt_of, preview_for};
 pub use provider::Provider;

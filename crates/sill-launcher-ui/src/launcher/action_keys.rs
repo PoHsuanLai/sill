@@ -35,7 +35,7 @@ mod tests {
             (ActionKeys::standard(StandardAction::Copy), Some("⌘C")),
             (ActionKeys::own(OwnAction::ForgetEntry), Some("⌘⌫")),
             (ActionKeys::own(OwnAction::CopyPath), Some("⌥⌘C")),
-            (ActionKeys::own(OwnAction::SearchWeb), Some("⇧⌘B")),
+            (ActionKeys::own(OwnAction::SearchWeb), Some("⌘B")),
             (ActionKeys::None, None),
         ];
         for (keys, want) in cases {

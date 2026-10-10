@@ -419,7 +419,7 @@ the real daemons or a real keyboard.
 ## Keys as shared actions (keycap's keymap)
 
 - [ ] **Launcher keys on a live session**: with a window focused whose keycap profile is `default`
-  (Cmd written as Ctrl), open the launcher and press Cmd+K, Cmd+R, Cmd+Y, Cmd+Shift+B and Cmd+Backspace
+  (Cmd written as Ctrl), open the launcher and press Cmd+K, Cmd+R, Cmd+Y, Cmd+B and Cmd+Backspace
   on rows that carry them. The launcher resolves Super (Command) through the keymap only, so each
   must work. While a sill surface holds the keyboard sill tells keycap `keymap-aware` (and the
   window's profile again when it lets go): check in keycap's log that the
