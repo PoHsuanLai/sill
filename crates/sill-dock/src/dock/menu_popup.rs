@@ -37,6 +37,7 @@ pub(crate) struct MenuLink {
 #[component]
 pub(crate) fn DockMenuPopup() -> Element {
     ds_blitz::provide_host();
+    sill_ui_kit::root::provide_keymap();
     let link = use_context::<MenuLink>();
     let surface = use_surface();
     let gone = link.reports.clone();

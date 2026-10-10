@@ -49,6 +49,7 @@ impl<S: Surface> fmt::Debug for MountProps<S> {
 /// the component's scope.
 pub fn mount<S: Surface>(props: MountProps<S>) -> Element {
     ds_blitz::provide_host();
+    crate::root::provide_keymap();
     use_context_provider(|| SurfaceName(S::NAME));
     use_host_signals();
     S::root(props.output, props.slot)

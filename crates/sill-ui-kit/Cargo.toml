@@ -12,6 +12,8 @@ publish.workspace = true
 sill-model = { workspace = true }
 dioxus = { workspace = true }
 ds = { workspace = true }
+chordkit = { workspace = true }
+keycap-client = { workspace = true }
 sill-shell-kit = { workspace = true }
 ds-blitz = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }

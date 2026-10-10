@@ -66,6 +66,7 @@ const GAP: Px = Px(7.0);
 #[component]
 pub(crate) fn BarPopup() -> Element {
     ds_blitz::provide_host();
+    sill_ui_kit::root::provide_keymap();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
     let view = use_watch(link.view.clone());

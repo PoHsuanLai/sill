@@ -58,6 +58,7 @@ impl<S: LockSurface> fmt::Debug for MountLockProps<S> {
 /// its `root`, in the component's scope.
 pub fn mount_lock<S: LockSurface>(props: MountLockProps<S>) -> Element {
     ds_blitz::provide_host();
+    crate::root::provide_keymap();
     use_context_provider(|| SurfaceName(S::NAME));
     use_host_signals();
     S::root(props.output)

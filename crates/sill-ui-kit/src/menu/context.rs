@@ -34,6 +34,7 @@ pub struct ContextMenuLink<Model: MenuModel> {
 /// The root of `Model`'s popup (`HostRoot::new(context_menu_popup::<Model>)`).
 pub fn context_menu_popup<Model: MenuModel>() -> Element {
     ds_blitz::provide_host();
+    crate::root::provide_keymap();
     let link = use_context::<ContextMenuLink<Model>>();
     let surface = use_surface();
     let gone = link.reports.clone();
