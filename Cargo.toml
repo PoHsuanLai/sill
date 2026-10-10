@@ -310,6 +310,11 @@ docket-client = { path = "../docket/crates/docket-client" }
 docket-core = { path = "../docket/crates/docket-core" }
 docket-dbus = { path = "../docket/crates/docket-dbus" }
 
+# shell-host pins casement-protocols by git (its quire_window client, P2-Z-sh); sill builds the
+# sibling checkout it already names by path, so the graph holds one casement-protocols.
+[patch."https://github.com/PoHsuanLai/casement-protocols.git"]
+casement-protocols = { path = "../casement-protocols" }
+
 [patch."https://github.com/PoHsuanLai/porter"]
 porter-client = { path = "../porter/crates/porter-client" }
 porter-core = { path = "../porter/crates/porter-core" }

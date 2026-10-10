@@ -1176,8 +1176,13 @@ dependencies = [
 name = "casement-protocols"
 version = "0.1.0"
 dependencies = [
+ "bitflags 2.13.2",
  "serde",
  "thiserror 2.0.21",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
+ "wayland-scanner",
 ]
 
 [[package]]
@@ -7011,6 +7016,7 @@ dependencies = [
  "blitz-traits",
  "calloop",
  "calloop-wayland-source",
+ "casement-protocols",
  "cursor-icon",
  "dioxus",
  "dioxus-document",
