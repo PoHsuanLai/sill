@@ -956,6 +956,7 @@ mod routed {
         writer: ScriptedWriter,
         reader: ScriptedReader,
         log: NoLog,
+        checkpoints: docket_checkpoint::MemoryStore,
     }
 
     impl Seams for Fakes {
@@ -969,6 +970,7 @@ mod routed {
         type Writer = ScriptedWriter;
         type Reading = ScriptedReader;
         type Log = NoLog;
+        type Checkpoints = docket_checkpoint::MemoryStore;
         fn link(&self) -> &Link {
             &self.link
         }
@@ -998,6 +1000,9 @@ mod routed {
         }
         fn log(&self) -> &NoLog {
             &self.log
+        }
+        fn checkpoints(&self) -> &docket_checkpoint::MemoryStore {
+            &self.checkpoints
         }
     }
 
@@ -1080,6 +1085,7 @@ mod routed {
             writer: ScriptedWriter::failing(),
             reader: ScriptedReader::default(),
             log: NoLog,
+            checkpoints: docket_checkpoint::MemoryStore::default(),
         };
         for (owner, n) in [
             (shell_app(), 0),

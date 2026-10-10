@@ -231,6 +231,7 @@ porter-client = { path = "../porter/crates/porter-client", default-features = fa
 # real gate (`crates/sill-services/tests/menu_router.rs`); MIT OR Apache-2.0, sibling checkouts.
 docket-router = { path = "../docket/crates/docket-router" }
 docket-fake = { path = "../docket/crates/docket-fake" }
+docket-checkpoint = { path = "../docket/crates/docket-checkpoint" }
 policy-point = { path = "../docket/crates/policy-point" }
 companion-wire = { path = "../docket/crates/companion-wire" }
 # The bodies of `org.quire.Voice1` (begin, the fd's events, ends, refusals): serde data only.

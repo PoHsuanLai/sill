@@ -58,6 +58,7 @@ sill-testkit = { workspace = true }
 porter-infer = { workspace = true }
 docket-router = { workspace = true }
 docket-fake = { workspace = true }
+docket-checkpoint = { workspace = true }
 policy-point = { workspace = true }
 
 [lints]
