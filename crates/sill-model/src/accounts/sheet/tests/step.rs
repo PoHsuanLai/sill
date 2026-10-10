@@ -52,23 +52,23 @@ fn account(id: &str) -> AccountId {
 }
 
 fn consent() -> SheetView {
-    let choice = |id: &str| AccountChoice {
-        account: account(id),
-        label: AccountLabel(id.to_owned()),
-        provider: provider("nextcloud"),
+    let choice = |id: &str| {
+        AccountChoice::new(
+            account(id),
+            AccountLabel(id.to_owned()),
+            provider("nextcloud"),
+        )
     };
-    SheetView::Consent(ConsentAsk {
-        app: AppId {
+    SheetView::Consent(ConsentAsk::new(
+        AppId {
             name: AppName::parse("org.quire.Photos").unwrap_or_else(|e| panic!("{e}")),
             isolation: Isolation::Flatpak,
         },
-        kind: CapabilityKind::Storage,
-        class: DataClass::AppOwn,
-        usage: Usage::Interactive,
-        accounts: vec![choice("home"), choice("work")],
-        session: None,
-        app_label: None,
-    })
+        CapabilityKind::Storage,
+        DataClass::AppOwn,
+        Usage::Interactive,
+        vec![choice("home"), choice("work")],
+    ))
 }
 
 fn browser() -> SheetView {

@@ -112,26 +112,24 @@ fn agent_row() -> ProviderRow {
 
 #[test]
 fn every_sheet_view_becomes_the_props_of_its_part() {
-    let consent = SheetView::Consent(ConsentAsk {
-        app_label: None,
-        app: app("org.quire.Photos"),
-        kind: CapabilityKind::Storage,
-        class: DataClass::AppOwn,
-        usage: Usage::Interactive,
-        accounts: vec![
-            AskChoice {
-                account: account("home"),
-                label: AccountLabel("ada@home.example".to_owned()),
-                provider: provider("nextcloud"),
-            },
-            AskChoice {
-                account: account("work"),
-                label: AccountLabel("ada@work.example".to_owned()),
-                provider: provider("microsoft"),
-            },
+    let consent = SheetView::Consent(ConsentAsk::new(
+        app("org.quire.Photos"),
+        CapabilityKind::Storage,
+        DataClass::AppOwn,
+        Usage::Interactive,
+        vec![
+            AskChoice::new(
+                account("home"),
+                AccountLabel("ada@home.example".to_owned()),
+                provider("nextcloud"),
+            ),
+            AskChoice::new(
+                account("work"),
+                AccountLabel("ada@work.example".to_owned()),
+                provider("microsoft"),
+            ),
         ],
-        session: None,
-    });
+    ));
     let providers = SheetView::Providers(vec![
         ProviderRow {
             id: provider("nextcloud"),
@@ -911,15 +909,16 @@ fn the_microsoft_failure_without_a_client_id_has_no_try_again() {
 #[test]
 fn consent_and_review_name_the_app_as_porter_resolved_it() {
     let agent = app("org.quire.Agent.claude-code");
-    let consent = SheetView::Consent(ConsentAsk {
-        app: agent.clone(),
-        app_label: Some(porter_core::AppLabel("Claude Code".to_owned())),
-        kind: CapabilityKind::Mail,
-        class: DataClass::Mail,
-        usage: Usage::Interactive,
-        accounts: Vec::new(),
-        session: None,
-    });
+    let consent = SheetView::Consent(
+        ConsentAsk::new(
+            agent.clone(),
+            CapabilityKind::Mail,
+            DataClass::Mail,
+            Usage::Interactive,
+            Vec::new(),
+        )
+        .with_app_label(porter_core::AppLabel("Claude Code".to_owned())),
+    );
     let Some(Step::Consent(props)) = shown(consent, vec![]) else {
         panic!("no consent");
     };

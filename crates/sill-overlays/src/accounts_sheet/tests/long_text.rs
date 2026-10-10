@@ -98,19 +98,17 @@ fn the_cursor_keeps_its_row_whatever_the_order() {
 }
 
 fn consent_for(id: &str, label: &str) -> SheetView {
-    SheetView::Consent(ConsentAsk {
-        app_label: None,
-        app: app(id),
-        kind: CapabilityKind::Mail,
-        class: DataClass::Mail,
-        usage: Usage::Interactive,
-        accounts: vec![AskChoice {
-            account: account("home"),
-            label: AccountLabel(label.to_owned()),
-            provider: provider("nextcloud"),
-        }],
-        session: None,
-    })
+    SheetView::Consent(ConsentAsk::new(
+        app(id),
+        CapabilityKind::Mail,
+        DataClass::Mail,
+        Usage::Interactive,
+        vec![AskChoice::new(
+            account("home"),
+            AccountLabel(label.to_owned()),
+            provider("nextcloud"),
+        )],
+    ))
 }
 
 #[test]
