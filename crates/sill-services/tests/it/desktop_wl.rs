@@ -163,6 +163,9 @@ fn order(toplevels: &Toplevels) -> Vec<u64> {
 
 use ToplevelFlag::{Activated, Fullscreen, Maximized, Minimized};
 
+/// A shell command, what it should become on the wire, and its name.
+type WireCase = (&'static str, WlCommand, Result<Vec<Wire>, Refusal>);
+
 #[test]
 fn windows_follow_recency_as_they_activate_and_close() {
     let mut session = Session::new();
@@ -435,7 +438,7 @@ fn the_shells_commands_become_the_wire_requests_the_protocols_carry() {
             .ok_or(Refusal::Unsupported)
             .and_then(|command| wire_of(&command, state))
     };
-    let cases: Vec<(&str, WlCommand, Result<Vec<Wire>, Refusal>)> = vec![
+    let cases: Vec<WireCase> = vec![
         (
             "activate",
             WlCommand::Activate(WindowKey(1)),

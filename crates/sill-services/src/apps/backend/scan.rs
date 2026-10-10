@@ -213,7 +213,7 @@ fn is_listed(entry: &DesktopEntry) -> bool {
 
 /// Whether `name` (an `OnlyShowIn`/`NotShowIn` item) names a desktop this scan targets.
 fn is_ours(name: &str) -> bool {
-    CURRENT_DESKTOPS.iter().any(|own| *own == name)
+    CURRENT_DESKTOPS.contains(&name)
 }
 
 fn actions(entry: &DesktopEntry, locales: &[String]) -> Vec<DesktopActionEntry> {

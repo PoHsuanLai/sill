@@ -1173,6 +1173,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "casement-protocols"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "cbc"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1998,6 +2006,17 @@ dependencies = [
  "rustc_version",
  "syn 2.0.119",
  "unicode-xid",
+]
+
+[[package]]
+name = "desktop-client"
+version = "0.1.0"
+dependencies = [
+ "rustix",
+ "thiserror 2.0.21",
+ "wayland-client",
+ "wayland-protocols",
+ "wayland-protocols-wlr",
 ]
 
 [[package]]
@@ -7103,6 +7122,7 @@ name = "sill-dock"
 version = "0.1.0"
 dependencies = [
  "chordkit",
+ "desktop-client",
  "dioxus",
  "ds",
  "ds-blitz",
@@ -7190,6 +7210,7 @@ name = "sill-model"
 version = "0.1.0"
 dependencies = [
  "almanac-core",
+ "casement-protocols",
  "companion-wire",
  "cua-bus",
  "docket-core",
@@ -7231,6 +7252,7 @@ name = "sill-overlays"
 version = "0.1.0"
 dependencies = [
  "chordkit",
+ "desktop-client",
  "dioxus",
  "ds",
  "ds-behaviour",
@@ -7292,6 +7314,7 @@ dependencies = [
  "almanac-dbus",
  "anyview-core",
  "anyview-platform",
+ "casement-protocols",
  "companion-wire",
  "cosmic-client-toolkit",
  "cosmic-dbus-networkmanager",
@@ -7299,6 +7322,7 @@ dependencies = [
  "cua-dbus",
  "ddc",
  "ddc-i2c",
+ "desktop-client",
  "dirs 6.0.0",
  "docket-checkpoint",
  "docket-client",

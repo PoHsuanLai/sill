@@ -69,7 +69,7 @@ impl ScaleSink for WlrOutputs {
             .map_err(refused)?
         {
             Ticket::Config(id) => self.answer(id),
-            Ticket::Sent | Ticket::Capture(_) => Err(refused("no configuration was started")),
+            _ => Err(refused("no configuration was started")),
         }
     }
 }
@@ -79,7 +79,7 @@ impl ScaleSink for WlrOutputs {
 #[derive(Debug)]
 pub enum OutputsRoute {
     /// The standard output management.
-    Wlr(WlrOutputs),
+    Wlr(Box<WlrOutputs>),
     /// COSMIC's tool.
     Cosmic(CosmicRandr),
 }
@@ -96,7 +96,7 @@ impl OutputsRoute {
                 backend_for(&offer_of_protocols(&client.state().protocols)) == DesktopBackend::Wlr
             });
         match client {
-            Some(client) => OutputsRoute::Wlr(WlrOutputs { client }),
+            Some(client) => OutputsRoute::Wlr(Box::new(WlrOutputs { client })),
             None => OutputsRoute::Cosmic(CosmicRandr),
         }
     }

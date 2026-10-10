@@ -45,7 +45,7 @@ pub(crate) fn run(
     commands: UnboundedReceiver<WlCommand>,
 ) {
     match open(&endpoint, publish) {
-        Ok(Opened::Cosmic(session)) => follow(session, commands),
+        Ok(Opened::Cosmic(session)) => follow(*session, commands),
         Ok(Opened::Wlr(connection, publish)) => desktop_wl::run(connection, publish, commands),
         Err((refusal, publish)) => {
             eprintln!("sill: cosmic_wl: {refusal}; toplevels and workspaces stay empty");
@@ -64,7 +64,7 @@ struct Session {
 
 /// The arm the compositor's globals select, ready to run.
 enum Opened {
-    Cosmic(Session),
+    Cosmic(Box<Session>),
     /// The standard protocols: the connection, which the arm binds itself.
     Wlr(Connection, Publish),
 }
@@ -77,7 +77,8 @@ fn open(endpoint: &WaylandRoute, publish: Publish) -> Result<Opened, (Refusal, P
     match backend_for(&desktop_wl::offer_of_registry(&globals)) {
         DesktopBackend::Quire => Err((Refusal::NoQuireArm, publish)),
         DesktopBackend::Wlr => Ok(Opened::Wlr(conn, publish)),
-        DesktopBackend::Cosmic => open_cosmic(conn, globals, queue, publish).map(Opened::Cosmic),
+        DesktopBackend::Cosmic => open_cosmic(conn, globals, queue, publish)
+            .map(|session| Opened::Cosmic(Box::new(session))),
     }
 }
 
