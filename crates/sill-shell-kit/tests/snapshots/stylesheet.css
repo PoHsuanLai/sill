@@ -3162,6 +3162,19 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-virtual-list > .ds-scroller{ flex:1 1 0; }
 .ds-virtual-list .ds-list-item{ box-sizing:border-box; }
 .ds-virtual-spacer{ flex:none; }
+/* -- virtual_table -- */
+/* VirtualTable (design/30 section 2.6): the `Table`'s header and cells over rows of one height that
+   are mounted only near the viewport. It also carries `ds-table` and `ds-list`, so the header, the
+   cells, the selected row and its grey when the keyboard is elsewhere are those sheets'. The box is
+   the consumer's to size; the body is as wide as the columns, and the table scrolls sideways when it
+   is narrower, header and rows together. The header is above the scroller, so it stays put. */
+
+.ds-vtable{ flex:1 1 0; height:100%; min-height:0; overflow-x:auto; overflow-y:hidden; }
+.ds-vtable-body{ display:flex; flex-direction:column; flex:1 1 0; min-height:0; }
+.ds-vtable-body > .ds-scroller{ flex:1 1 0; }
+.ds-vtable-item{ box-sizing:border-box; overflow:hidden; }
+.ds-vtable-item > .ds-row{ height:100%; box-sizing:border-box; }
+.ds-vtable-spacer{ flex:none; }
 /* -- voice_orb -- */
 /* The voice orb (design/30 section 2.9). Three glows, six conic gradients turning at different
    speeds and directions about their own centres, behind a fine dot grid. The turn `--orb-turn`
