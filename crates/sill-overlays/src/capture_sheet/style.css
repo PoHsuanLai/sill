@@ -1,0 +1,12 @@
+/* The screen-sharing picker. The sheet, the segmented controls, the list and the buttons are
+   quire's; this lays out what sill puts in the sheet. Tokens only. */
+
+.sill-capture{ display:flex; flex-direction:column; gap:var(--s-10); padding:var(--s-16); color:var(--ink); outline:none; }
+.sill-capture-title{ font-size:var(--fs-title); font-weight:700; }
+.sill-capture-byline{ font-size:var(--fs-body); color:var(--ink-soft); }
+.sill-capture-tabs{ display:flex; justify-content:center; }
+.sill-capture-list{ display:flex; flex-direction:column; max-height:320px; overflow-y:auto; }
+.sill-capture-empty{ font-size:var(--fs-body); color:var(--ink-faint); text-align:center; padding:var(--s-16); }
+.sill-capture-pointer{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8); }
+.sill-capture-pointer-label{ font-size:var(--fs-small); color:var(--ink-soft); }
+.sill-capture-footer{ display:flex; justify-content:flex-end; gap:var(--s-8); }

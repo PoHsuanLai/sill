@@ -27,8 +27,8 @@ use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher,
-    VoiceConsentSheet, Wallpaper,
+    AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
+    PowerMenu, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
@@ -171,6 +171,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <AccountsSheet as Surface>::NAME,
         css: sill_overlays::accounts_sheet::ACCOUNTS_SHEET_CSS,
         states: accounts_sheet_states,
+    },
+    SurfaceCase {
+        name: "capture_sheet",
+        surface: <CaptureSheet as Surface>::NAME,
+        css: sill_overlays::capture_sheet::CAPTURE_SHEET_CSS,
+        states: capture_sheet_states,
     },
 ];
 
@@ -394,6 +400,54 @@ fn polkit_prompt_states() -> Vec<(&'static str, String)> {
 }
 
 /// The sheet hidden, then asking a press (arming, then armed), the terminal's offer, and a hold.
+/// The screen-sharing picker: hidden, then asking for a screen or a window (both tabs), and for
+/// several screens with a choice of pointer.
+fn capture_sheet_states() -> Vec<(&'static str, String)> {
+    use sill_model::capture_pick::{
+        Ask, AskId, Asking, Candidates, CaptureLink, CapturePicker, OutputCandidate,
+        WindowCandidate,
+    };
+    let candidates = Candidates {
+        outputs: vec![OutputCandidate {
+            name: "DP-1".to_owned(),
+            title: "Studio Display".to_owned(),
+        }],
+        windows: vec![WindowCandidate {
+            identifier: "w-1".to_owned(),
+            title: "Notes".to_owned(),
+            app: "Notes".to_owned(),
+        }],
+    };
+    let asking = |id: u64, kinds: u32, multiple: u32, cursors: &[u32]| CapturePicker {
+        link: CaptureLink::Serving,
+        candidates: candidates.clone(),
+        asking: Some(Asking {
+            id: AskId(id),
+            ask: Ask::from_wire("Meet", kinds, multiple, cursors).expect("a valid ask"), // test-only
+        }),
+    };
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    let mut sheet = SurfaceHarness::<CaptureSheet>::setup(link, ()).start();
+    sheet.harness.advance(Duration::from_millis(40));
+    let mut states = vec![("hidden", sheet.harness.html())];
+    for (name, id, kinds, multiple, cursors) in [
+        ("both", 1, 3, 0, &[1][..]),
+        ("several_with_pointer", 2, 1, 1, &[1, 2][..]),
+    ] {
+        sheet
+            .feeds
+            .capture
+            .send_replace(asking(id, kinds, multiple, cursors));
+        sheet.harness.advance(Duration::from_millis(700));
+        states.push((name, sheet.harness.html()));
+        sheet.feeds.capture.send_replace(CapturePicker::default());
+        sheet.harness.advance(Duration::from_millis(700));
+    }
+    assert!(states[1].1.contains("sill-capture"), "{}", states[1].1);
+    states
+}
+
 fn confirm_sheet_states() -> Vec<(&'static str, String)> {
     use sill_model::intents::sheet::{Pending, Serial, Sheets};
     use sill_model::intents::{Intents, IntentsLink};

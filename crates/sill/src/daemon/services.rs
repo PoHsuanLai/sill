@@ -4,6 +4,7 @@
 use std::sync::Arc;
 
 use sill_model::accounts::sheet::AccountsSheetCommand;
+use sill_model::capture_pick::CaptureCommand;
 use sill_model::companion::SummonOut;
 use sill_model::intents::IntentsCommand;
 use sill_model::locker::LockerCommand;
@@ -17,9 +18,11 @@ use sill_services::accounts::{AccountsLinks, AccountsService};
 use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
 use sill_services::battery::BatteryService;
+use sill_services::capture_pick::{CaptureLinks, CaptureService};
 use sill_services::clipboard::ClipboardService;
 use sill_services::companion::{CompanionLinks, CompanionService};
 use sill_services::cosmic_wl::CosmicWlService;
+use sill_services::displays::DisplaysService;
 use sill_services::env::Env;
 use sill_services::guest_asks::{GuestAsksLinks, GuestAsksService};
 use sill_services::idle::{IdleLinks, IdleService};
@@ -78,12 +81,22 @@ pub(crate) fn start(
         rt,
         env,
         VoiceLinks {
-            seat: seat_view,
+            seat: seat_view.clone(),
             companion: companion.control.clone(),
             consents,
         },
     );
     let volume = spawn::<VolumeService>(rt, env, ());
+    let displays = spawn::<DisplaysService>(rt, env, volume.state.clone());
+    // The screen-sharing picker: exported on the seat's connection once the daemon says to serve.
+    let capture = spawn::<CaptureService>(
+        rt,
+        env,
+        CaptureLinks {
+            seat: seat_view,
+            displays: displays.state.clone(),
+        },
+    );
     let battery = spawn::<BatteryService>(rt, env, ());
     let apps = spawn::<AppsService>(rt, env, ());
     let cosmic_wl = spawn::<CosmicWlService>(rt, env, ());
@@ -164,7 +177,7 @@ pub(crate) fn start(
         clock: spawn(rt, env, ()),
         network: spawn(rt, env, ()),
         wifi: spawn(rt, env, ()),
-        displays: spawn(rt, env, volume.state.clone()),
+        displays,
         bluetooth: spawn(rt, env, ()),
         kbd_backlight: spawn(rt, env, ()),
         power_profile: spawn(rt, env, ()),
@@ -199,6 +212,7 @@ pub(crate) fn start(
                 seat: seat_publisher,
             },
         ),
+        capture,
         companion,
         voice,
         volume,
@@ -248,6 +262,8 @@ pub(crate) fn follow_settings(
     // grants, `org.quire.Shell`) are sill's own.
     let _ = services.locker.control.send(LockerCommand::Configure);
     let _ = services.intents.control.send(IntentsCommand::Serve);
+    // The screen-sharing picker answers on `org.quire.Shell1`, on the same connection.
+    let _ = services.capture.control.send(CaptureCommand::Serve);
     // The accounts sheet is sill's too: accountd draws its consent and add-account steps here.
     let _ = services
         .accounts_sheet

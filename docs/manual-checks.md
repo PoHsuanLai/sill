@@ -431,6 +431,11 @@ the real daemons or a real keyboard.
 - [ ] **temor** (profile `keymap-aware`): Cmd+H reaches temor as Super+H (hide), not Ctrl+H.
 - [ ] **Companion answer text**: a handle that holds mail or web text shows between curly quotes; one
   the person typed shows plain; against an older intentd every handle is quoted.
+- [ ] **Screen-sharing picker**: from an app that shares (a browser's "share screen"), the sheet
+  appears centred on the main display with Screens and Windows when both are allowed; arrows move,
+  Space picks, Return shares, Escape cancels; Share stays dim until something is picked; a second
+  request while one is open is refused; the window list matches the open windows (needs casement's
+  identifiers).
 
 ## Owned by another repository
 

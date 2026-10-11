@@ -13,6 +13,7 @@ use sill_services::auth::AuthService;
 use sill_services::badges::BadgesService;
 use sill_services::battery::BatteryService;
 use sill_services::bluetooth::BluetoothService;
+use sill_services::capture_pick::CaptureService;
 use sill_services::clipboard::ClipboardService;
 use sill_services::clock::ClockService;
 use sill_services::companion::CompanionService;
@@ -108,6 +109,9 @@ pub struct Services {
     /// Each workspace's name, output and `SpaceLook`, served on `org.quire.Workspaces1`; passive
     /// until the daemon says to serve.
     pub workspace_looks: Handle<WorkspaceLooksService>,
+    /// The screen-sharing picker transom asks (`org.quire.Shell1.PickCaptureSource`); served on
+    /// the connection `intents` holds, passive until the daemon says to serve.
+    pub capture: Handle<CaptureService>,
     /// sill's seat at intentd: the confirmation sheet it serves, the terminal's grants, the shell's
     /// own actions as `org.quire.Shell`; passive until the daemon says to serve.
     pub intents: Handle<IntentsService>,
@@ -180,6 +184,7 @@ members! {
     guest_asks: GuestAsksService,
     work_areas: WorkAreaService,
     workspace_looks: WorkspaceLooksService,
+    capture: CaptureService,
     intents: IntentsService,
     companion: CompanionService,
     voice: VoiceService,

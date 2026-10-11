@@ -1,0 +1,220 @@
+//! The loop: passive until `Serve`, then the calls from transom and the person's answers, each a
+//! [`CaptureEvent`] fed to the pure step; what the step asks (a reply) is carried out here.
+
+use std::collections::HashMap;
+
+use sill_model::capture_pick::{
+    Admit, AskId, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut, CapturePicker,
+    OutputCandidate, Reply, admits, step,
+};
+use sill_model::displays::Displays;
+use tokio::sync::{mpsc, oneshot, watch};
+use zbus::Connection;
+use zbus::fdo;
+
+use super::objects::{Call, PATH, PORTAL_BUS, PickerObject};
+use crate::capture_pick::{CaptureLinks, CaptureService};
+use crate::owner;
+use crate::seat::SeatView;
+use crate::service::ServiceIo;
+
+pub(crate) async fn run(links: CaptureLinks, io: ServiceIo<CaptureService>) {
+    let ServiceIo {
+        state: tx,
+        mut commands,
+    } = io;
+    let CaptureLinks { seat, displays } = links;
+    let (calls_tx, mut calls) = mpsc::unbounded_channel();
+    let (left_tx, mut left) = mpsc::unbounded_channel();
+    let mut seat = Some(seat);
+    let mut displays = Some(displays);
+    let mut live = Live {
+        state: CapturePicker::default(),
+        tx,
+        calls: calls_tx,
+        left: left_tx,
+        exported: None,
+        waiters: HashMap::new(),
+        next: 0,
+    };
+    if let Some(displays) = &displays {
+        live.screens(&displays.borrow());
+    }
+    loop {
+        tokio::select! {
+            command = commands.recv() => match command {
+                Some(command) => live.command(command, seat.as_ref()),
+                None => break,
+            },
+            Some(call) = calls.recv() => live.call(call),
+            Some(()) = left.recv() => live.caller_gone(),
+            changed = async {
+                match seat.as_mut() {
+                    Some(seat) => seat.changed().await,
+                    None => std::future::pending().await,
+                }
+            } => {
+                if changed.is_err() {
+                    seat = None;
+                } else {
+                    live.export(seat.as_ref());
+                }
+            }
+            changed = async {
+                match displays.as_mut() {
+                    Some(displays) => displays.changed().await,
+                    None => std::future::pending().await,
+                }
+            } => {
+                if changed.is_err() {
+                    displays = None;
+                } else if let Some(displays) = &mut displays {
+                    live.screens(&displays.borrow_and_update());
+                }
+            }
+        }
+    }
+}
+
+struct Live {
+    state: CapturePicker,
+    tx: watch::Sender<CapturePicker>,
+    calls: mpsc::UnboundedSender<Call>,
+    left: mpsc::UnboundedSender<()>,
+    /// The connection the object is exported on.
+    exported: Option<Connection>,
+    /// Who waits for each open request's answer.
+    waiters: HashMap<AskId, oneshot::Sender<fdo::Result<Reply>>>,
+    next: u64,
+}
+
+impl Live {
+    fn feed(&mut self, event: CaptureEvent) {
+        let (next, out) = step(std::mem::take(&mut self.state), event);
+        self.tx.send_if_modified(|published| {
+            let changed = *published != next;
+            if changed {
+                published.clone_from(&next);
+            }
+            changed
+        });
+        self.state = next;
+        for effect in out {
+            match effect {
+                CaptureOut::Reply(id, reply) => {
+                    if let Some(waiter) = self.waiters.remove(&id) {
+                        // The caller may have given up; nobody is left to hear it.
+                        let _ = waiter.send(Ok(reply));
+                    }
+                }
+            }
+        }
+    }
+
+    fn command(&mut self, command: CaptureCommand, seat: Option<&SeatView>) {
+        match command {
+            CaptureCommand::Serve => {
+                self.feed(CaptureEvent::Link(CaptureLink::Serving));
+
+                let connection = seat.and_then(SeatView::current);
+                self.export_on(connection);
+            }
+            CaptureCommand::Windows(windows) => {
+                let mut candidates = self.state.candidates.clone();
+                candidates.windows = windows;
+                self.feed(CaptureEvent::Candidates(candidates));
+            }
+            CaptureCommand::Outputs(outputs) => {
+                let mut candidates = self.state.candidates.clone();
+                candidates.outputs = outputs;
+                self.feed(CaptureEvent::Candidates(candidates));
+            }
+            CaptureCommand::Answer(id, outcome) => self.feed(CaptureEvent::Answered(id, outcome)),
+        }
+    }
+
+    /// The displays as screens.
+    fn screens(&mut self, displays: &Displays) {
+        let outputs = displays
+            .outputs
+            .iter()
+            .map(|output| OutputCandidate {
+                name: output.name.0.clone(),
+                title: if output.product.is_empty() {
+                    output.name.0.clone()
+                } else {
+                    output.product.clone()
+                },
+            })
+            .collect();
+        self.command(CaptureCommand::Outputs(outputs), None);
+    }
+
+    /// The seat changed: serve on its new connection when serving.
+    fn export(&mut self, seat: Option<&SeatView>) {
+        if self.state.link == CaptureLink::Serving {
+            self.export_on(seat.and_then(SeatView::current));
+        }
+    }
+
+    fn export_on(&mut self, connection: Option<Connection>) {
+        let Some(connection) = connection else {
+            return;
+        };
+        if self
+            .exported
+            .as_ref()
+            .is_some_and(|held| held.unique_name() == connection.unique_name())
+        {
+            return;
+        }
+        self.exported = Some(connection.clone());
+        let calls = self.calls.clone();
+        let left = self.left.clone();
+        tokio::spawn(async move {
+            let exported = connection
+                .object_server()
+                .at(PATH, PickerObject { calls })
+                .await;
+            if let Err(error) = exported {
+                eprintln!("sill: capture picker: serving {PATH} failed: {error}");
+                return;
+            }
+            watch_caller(connection, left).await;
+        });
+    }
+
+    fn call(&mut self, call: Call) {
+        let Call { ask, answer } = call;
+        match admits(&self.state) {
+            Admit::Busy => {
+                let _ = answer.send(Err(fdo::Error::LimitsExceeded(
+                    "a sharing question is already open".to_owned(),
+                )));
+            }
+            Admit::Yes => {
+                self.next += 1;
+                let id = AskId(self.next);
+                self.waiters.insert(id, answer);
+                self.feed(CaptureEvent::Opened(Asking { id, ask }));
+            }
+        }
+    }
+
+    /// The caller left the bus or was replaced: nobody waits any more.
+    fn caller_gone(&mut self) {
+        self.waiters.clear();
+        self.feed(CaptureEvent::CallerGone);
+    }
+}
+
+/// Tell the loop each time the portal backend leaves or is replaced.
+async fn watch_caller(connection: Connection, left: mpsc::UnboundedSender<()>) {
+    loop {
+        owner::appeared(&connection, PORTAL_BUS).await;
+        owner::changed(&connection, PORTAL_BUS).await;
+        if left.send(()).is_err() {
+            return;
+        }
+    }
+}

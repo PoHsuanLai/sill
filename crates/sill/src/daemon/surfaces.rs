@@ -12,8 +12,8 @@ use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher,
-    VoiceConsentSheet, Wallpaper,
+    AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
+    PowerMenu, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
@@ -64,6 +64,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<VoiceConsentSheet>(ctx, outputs, spawn, &links.banners);
     // accountd's consent question and add-account steps, a window of their own on the same output.
     spawn_surface::<AccountsSheet>(ctx, outputs, spawn, &links.banners);
+    // The screen-sharing picker, on the same output, when an app asks what to share.
+    spawn_surface::<CaptureSheet>(ctx, outputs, spawn, &links.banners);
     spawn_surface::<Switcher>(ctx, outputs, spawn, &links.switcher);
     // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
     spawn_surface::<Banners>(ctx, outputs, spawn, &links.banners);

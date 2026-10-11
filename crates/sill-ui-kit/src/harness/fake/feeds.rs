@@ -74,6 +74,8 @@ pub struct Feeds {
     pub accounts_sheet: watch::Sender<sill_model::accounts::sheet::AccountsSheets>,
     pub accounts_sheet_commands:
         mpsc::UnboundedReceiver<sill_model::accounts::sheet::AccountsSheetCommand>,
+    pub capture: watch::Sender<sill_model::capture_pick::CapturePicker>,
+    pub capture_commands: mpsc::UnboundedReceiver<sill_model::capture_pick::CaptureCommand>,
     pub intents: watch::Sender<sill_model::intents::Intents>,
     pub intents_commands: mpsc::UnboundedReceiver<sill_model::intents::IntentsCommand>,
     /// The companion's answers, runs and journal (none until a test feeds them), and what the
@@ -135,6 +137,7 @@ pub fn services() -> (Services, Feeds) {
     let (polkit_agent, polkit_io) = Handle::channel(sill_model::polkit_agent::Polkit::default());
     let (accounts_sheet, accounts_sheet_io) =
         Handle::channel(sill_model::accounts::sheet::AccountsSheets::default());
+    let (capture, capture_io) = Handle::channel(sill_model::capture_pick::CapturePicker::default());
     let (intents, intents_io) = Handle::channel(sill_model::intents::Intents::default());
     let (companion, companion_io) = Handle::channel(sill_model::companion::Companion::default());
     let (voice, voice_io) = Handle::channel(sill_model::voice::Voice::default());
@@ -189,6 +192,7 @@ pub fn services() -> (Services, Feeds) {
             sill_model::workspace_looks::WorkspaceLooks::default(),
             &mut keep,
         ),
+        capture,
         intents,
         companion,
         voice,
@@ -238,6 +242,8 @@ pub fn services() -> (Services, Feeds) {
         polkit_commands: polkit_io.commands,
         accounts_sheet: accounts_sheet_io.state,
         accounts_sheet_commands: accounts_sheet_io.commands,
+        capture: capture_io.state,
+        capture_commands: capture_io.commands,
         intents: intents_io.state,
         intents_commands: intents_io.commands,
         companion: companion_io.state,
