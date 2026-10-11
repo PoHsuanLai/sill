@@ -16,7 +16,7 @@ pub enum CaptureLink {
 }
 
 /// A request's number: the sheet answers by it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct AskId(pub u64);
 
 /// The request on screen.

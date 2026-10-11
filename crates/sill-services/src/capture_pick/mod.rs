@@ -43,6 +43,10 @@ impl Service for CaptureService {
     type Command = CaptureCommand;
     type Deps = CaptureLinks;
 
+    #[expect(
+        clippy::manual_async_fn,
+        reason = "an async fn would capture the borrowed env; the trait wants an owned future"
+    )]
     fn run(
         _env: &Env,
         deps: CaptureLinks,

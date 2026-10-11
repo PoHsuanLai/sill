@@ -1,13 +1,16 @@
 use super::super::*;
 
+/// One row: kinds bits, multiple, cursor modes, and what they parse to.
+type Row = (
+    u32,
+    u32,
+    &'static [u32],
+    Result<(Kinds, Plurality, Vec<Pointer>), AskError>,
+);
+
 #[test]
 fn kinds_and_cursors_parse_from_the_wire() {
-    let rows: [(
-        u32,
-        u32,
-        &[u32],
-        Result<(Kinds, Plurality, Vec<Pointer>), AskError>,
-    ); 7] = [
+    let rows: [Row; 7] = [
         (
             1,
             0,
