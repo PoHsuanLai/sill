@@ -29,8 +29,8 @@ html,body{margin:0;padding:0;background:transparent}
 /* Highlight is the element's own fill (menu rows), never a ring. */
 .ds[*|data-modality=keyboard] [*|data-focus=highlight]:focus{outline:none}
 /* == tokens == */
-.ds{--paper:#ececec;--surface:#ffffff;--surface-2:#f5f5f5;--raise:#ffffff;--ink:#202020;--ink-soft:#5c5c5c;--ink-faint:#858585;--line:#d9d9d9;--fill-quaternary:rgba(0,0,0,.06);--fill-btn:rgba(0,0,0,.06);--fill:rgba(0,0,0,.1);--grp:#ffffff;--line-soft:#e6e6e6;--accent:#007aff;--accent-ink:#ffffff;--accent-soft:rgba(0,122,255,.18);--accent-text:#0058bd;--accent-text-material:#004394;--seal:#007aff;--ok:#2c7a57;--warn:#a5761a;--danger:#b03a2a;--scrim:rgba(0,0,0,.22);--foreign-ground:#ffffff;--ok-wash:rgba(44,122,87,.16);--warn-wash:#f2ebe1;--danger-wash:rgba(176,58,42,.16);--accent-ring:rgba(0,88,189,.7);--danger-ink:#ffffff;--mark-ground:#ffffff;--handle-ring:rgba(0,0,0,.25);--on-hue:#ffffff;--ok-ink:#ffffff;--warn-ink:#140d03;--scrim-modal:rgba(0,0,0,.4);--scroll-thumb:rgba(0,0,0,.4);--lock-ink:#ffffff;--lock-ink-soft:rgba(255,255,255,.78);--lock-glass:rgba(255,255,255,.24);--lock-glass-strong:rgba(255,255,255,.38);--lock-veil:rgba(0,0,0,.12);--spell-mark:#b03a2a;--scrim-idle:#000000;--knob-fill:#ffffff;--orb-bg:#e8effc;--orb-c1:#f383bb;--orb-c2:#43d5dc;--orb-c3:#a9affe;--c-red:#e8483c;--c-red-deep:#b7352b;--c-red-soft:#fbe3e1;--c-amber:#f0a81e;--c-amber-deep:#8e5a05;--c-amber-soft:#faebd2;--c-green:#28b24a;--c-green-deep:#1a7a33;--c-green-soft:#dcf1e1;--c-blue:#2b7cff;--c-blue-deep:#0b5fe0;--c-blue-soft:#e2ebff;--c-violet:#8b5cf0;--c-violet-deep:#6b3fcc;--c-violet-soft:#ece4fb;--sel-bg:var(--accent);--sel-bg-quiet:rgba(128,128,128,.25);--sel-ink:var(--accent-ink);--term-fg:#202020;--term-bg:#ffffff;--term-cursor:var(--accent-text);--term-selection:var(--accent-soft);--term-ansi-0:#303030;--term-ansi-1:#b3261e;--term-ansi-2:#1b7a3e;--term-ansi-3:#8a6100;--term-ansi-4:#1f5fbf;--term-ansi-5:#a23b9c;--term-ansi-6:#0b7a85;--term-ansi-7:#5c5c5c;--term-ansi-8:#6b6b6b;--term-ansi-9:#c7382d;--term-ansi-10:#187a3f;--term-ansi-11:#946a00;--term-ansi-12:#2f6fd1;--term-ansi-13:#b14aaa;--term-ansi-14:#0a7983;--term-ansi-15:#4a4a4a;--shadow-1:0 var(--hair) 0 rgba(255,255,255,.7) inset,0 1px 2px rgba(26,30,26,.1);--shadow-2:0 var(--hair) 0 rgba(255,255,255,.7) inset,0 6px 16px -6px rgba(26,30,26,.3);--shadow-edge:0 0 0 var(--hairline) rgba(0,0,0,.12);--shadow-pop:0 0 0 var(--hairline) rgba(0,0,0,.12),0 10px 30px -8px rgba(0,0,0,.28);--shadow-sheet:0 0 0 var(--hairline) rgba(0,0,0,.14),0 24px 60px -12px rgba(0,0,0,.35);--shadow-drag:0 18px 30px -12px rgba(26,30,26,.4);--shadow-current:0 var(--hair) 0 rgba(255,255,255,.4) inset,0 2px 6px -3px rgba(0,0,0,.25);--shadow-pill-inset:0 var(--hair) 0 rgba(255,255,255,.35) inset;--shadow-window:0 1px 3px rgba(0,0,0,.12),0 24px 64px -16px rgba(0,0,0,.4);--shadow-card:0 0 0 var(--hair) rgba(0,0,0,.06),0 10px 30px -14px rgba(0,0,0,.45);--shadow-handle:0 0 0 var(--hair) rgba(0,0,0,.25),0 3px 8px rgba(0,0,0,.35);--shadow-mark:0 0 0 var(--hair) rgba(0,0,0,.08);--shadow-mark-tile:0 0 0 1.5px var(--f-pill),0 1px 2px rgba(0,0,0,.2);--battery-fill:#28cd41;--battery-low:#ff3b30;--battery-track:rgba(0,0,0,.12);--clock-face-day:#ffffff;--clock-face-night:#343436;--clock-ink-day:#1c1c1e;--clock-ink-night:#ffffff;--clock-seconds:#ff9500;--r-panel:20px;--r-card:12px;--r-btn:8px;--r-chip:8px;--r-pill:999px;--r-field:8px;--r-menu:14px;--r-item:8px;--r-tile:12px;--r-window:26px;--r-window-plain:16px;--r-menu-item:8px;--r-small:8px;--r-kbd:5px;--r-tiny:6px;--r-micro:5px;--r-media:12px;--r-icon-tile:7px;--r-group:12px;--ctl-h-xs:20px;--ctl-r-xs:6px;--ctl-cap-r-xs:10px;--ctl-glyph-xs:12px;--ctl-pad-xs:8px;--ctl-fs-xs:10px;--ctl-fw-xs:600;--knob-xs:18px;--switch-w-xs:32px;--switch-h-xs:18px;--switch-r-xs:9px;--switch-knob-xs:16px;--slider-track-xs:3px;--slider-knob-xs:14px;--check-xs:12px;--spinner-xs:10px;--progress-xs:4px;--seg-well-r-xs:6px;--seg-h-xs:18px;--seg-r-xs:5px;--ctl-h-s:24px;--ctl-r-s:7px;--ctl-cap-r-s:12px;--ctl-glyph-s:14px;--ctl-pad-s:10px;--ctl-fs-s:11px;--ctl-fw-s:500;--knob-s:22px;--switch-w-s:38px;--switch-h-s:22px;--switch-r-s:11px;--switch-knob-s:20px;--slider-track-s:4px;--slider-knob-s:16px;--check-s:14px;--spinner-s:16px;--progress-s:6px;--seg-well-r-s:7px;--seg-h-s:22px;--seg-r-s:6px;--ctl-h-m:28px;--ctl-r-m:8px;--ctl-cap-r-m:14px;--ctl-glyph-m:16px;--ctl-pad-m:12px;--ctl-fs-m:13px;--ctl-fw-m:500;--knob-m:26px;--switch-w-m:44px;--switch-h-m:26px;--switch-r-m:13px;--switch-knob-m:24px;--slider-track-m:4px;--slider-knob-m:22px;--check-m:16px;--spinner-m:32px;--progress-m:6px;--seg-well-r-m:8px;--seg-h-m:26px;--seg-r-m:7px;--ctl-h-l:32px;--ctl-r-l:16px;--ctl-cap-r-l:16px;--ctl-glyph-l:18px;--ctl-pad-l:16px;--ctl-fs-l:15px;--ctl-fw-l:600;--knob-l:30px;--switch-w-l:44px;--switch-h-l:26px;--switch-r-l:13px;--switch-knob-l:24px;--slider-track-l:4px;--slider-knob-l:22px;--check-l:16px;--spinner-l:32px;--progress-l:6px;--seg-well-r-l:16px;--seg-h-l:30px;--seg-r-l:15px;--ctl-h-xl:40px;--ctl-r-xl:20px;--ctl-cap-r-xl:20px;--ctl-glyph-xl:20px;--ctl-pad-xl:20px;--ctl-fs-xl:17px;--ctl-fw-xl:600;--knob-xl:38px;--switch-w-xl:44px;--switch-h-xl:26px;--switch-r-xl:13px;--switch-knob-xl:24px;--slider-track-xl:4px;--slider-knob-xl:22px;--check-xl:16px;--spinner-xl:32px;--progress-xl:6px;--seg-well-r-xl:20px;--seg-h-xl:38px;--seg-r-xl:19px;--knob-inset:1px;--shell-bar-h:24px;--bar-status-w:30px;--r-shell-menu:14px;--shell-menu-inset:6px;--row-settings-h:48px;--row-avatar:32px;--row-compact-h:32px;--row-icon-tile:28px;--row-tile-gap:12px;--sidebar-row-h-s:28px;--sidebar-row-h-m:32px;--sidebar-row-h-l:36px;--sidebar-tile-s:20px;--sidebar-tile-m:24px;--sidebar-tile-l:28px;--cc-width:320px;--cc-pad:10px;--cc-gap:10px;--cc-module-r:8px;--cc-panel-r:18px;--cc-tile-h:64px;--cc-head:16px;--cc-head-gap:6px;--cc-level-h:70px;--c-person-1:#5b4fc4;--c-person-2:#2f7f6e;--c-person-3:#b0662e;--c-person-4:#3c8a5b;--c-person-5:#7a4a9e;--c-person-6:#c0782e;--c-person-7:#2e7f8c;--c-person-8:#6d7a3a;--s-1:1px;--s-1-5:1.5px;--s-2:2px;--s-3:3px;--s-4:4px;--s-5:5px;--s-6:6px;--s-7:7px;--s-8:8px;--s-9:9px;--s-10:10px;--s-11:11px;--s-12:12px;--s-13:13px;--s-14:14px;--s-15:15px;--s-16:16px;--s-18:18px;--s-20:20px;--s-22:22px;--s-24:24px;--s-26:26px;--s-28:28px;--s-32:32px;--s-36:36px;--s-40:40px;--s-48:48px;--chrome-titlebar-height:28px;--chrome-light-size:12px;--chrome-light-gap:8px;--chrome-light-inset:13px;--chrome-title-inset:84px;--chrome-edge:4px;--chrome-edge-corner:12px;--fs-pico:7.5px;--fs-caption:10px;--fs-note:10.5px;--fs-eyebrow:11px;--fs-help:11.5px;--fs-small:12px;--fs-meta:12.5px;--fs-control:13px;--fs-body:13.5px;--fs-reading:14px;--fs-compose:14.5px;--fs-base:15px;--fs-subhead:15.5px;--fs-title:16px;--fs-title-2:17px;--fs-heading-3:16.5px;--fs-subject:20px;--fs-heading:21px;--fs-amount:22px;--fs-day:24px;--fs-display:26px;--fs-emoji-cell:30px;--fs-emoji-preview:96px;--z-scene:-2;--z-grain:-1;--z-raise:1;--z-link-pill:7;--z-toast:8;--z-send-pill:9;--z-scrim:10;--z-peek:11;--z-focus-page:12;--z-edge:14;--z-side-peek:15;--z-palette:20;--z-card:30;--z-menu:40;--z-drag:50;--veil:.16;--pane-dim:.6;--term-font:monospace;--term-lh:1.2;--fs-shell-bar:var(--shell-bar-font,13px);--fw-shell-bar:var(--shell-bar-weight,500);--shell-bar-item:var(--shell-bar-item-h,22px);--shell-bar-pad:var(--shell-bar-pad-x,8px);--r-shell-bar-item:var(--shell-bar-radius,5px);--fs-shell-menu:var(--shell-menu-font,13px);--shell-menu-row:var(--shell-menu-row-h,28px);--shell-menu-sep:var(--shell-menu-sep-m,5px);--r-shell-highlight:var(--shell-highlight-radius,8px);--fs-shell-field:var(--shell-field-font,22px);--fw-shell-field:var(--shell-field-weight,500);--shell-field-glyph:var(--shell-field-glyph-px,20px);--fs-shell-row:var(--shell-row-font,14px);--fs-shell-detail:var(--shell-detail-font,12px);--fs-shell-tip:var(--shell-tip-font,12px);--dock-floor:var(--dock-floor-on,0);--dock-tile:var(--dock-tile-px,48px);--dock-gap:var(--dock-gap-px,8px);--dock-pad:var(--dock-pad-px,6px);--dock-dot:var(--dock-dot-px,4px);--dock-dot-gap:var(--dock-dot-gap-px,3px);--osd-margin:var(--osd-margin-px,24px);--notifications-banner-width:var(--notifications-banner-width-px,360px);--notifications-banner-min-height:var(--notifications-banner-min-height-px,64px);--notifications-banner-padding:var(--notifications-banner-padding-px,12px);--notifications-icon:var(--notifications-icon-px,32px);--notifications-close:var(--notifications-close-px,18px);--notifications-stack-gap:var(--notifications-stack-gap-px,8px);--notifications-group-offset:var(--notifications-group-offset-px,4px);--notifications-center-width:var(--notifications-center-width-px,384px);--widget-cell:var(--widget-cell-px,164px);--widget-gap:var(--widget-gap-px,16px);--plate-glyph:var(--icons-glyph-share,56%);--plate-inset:var(--icons-inset-share,72%);--dpr:var(--scale-dpr,1);--px:var(--scale-px,1px);--hair:var(--scale-hair,1px);--hairline:var(--scale-hairline,.5px);--ring:var(--scale-ring,3px);--focus-ring:var(--scale-focus-ring,2.5px);--caret-w:var(--scale-caret-w,1px);--focus-gap:var(--scale-focus-gap,1px);--font-emoji:"Inter","Noto Color Emoji",system-ui,sans-serif;--font-display:"Inter Display","Inter",system-ui,sans-serif;--font-ui:"Inter",system-ui,sans-serif;--font-data:"Inter",system-ui,sans-serif;--font-serif:"Noto Serif",Georgia,"Times New Roman",serif;--font-code:"Space Mono","Inter",ui-monospace,"SFMono-Regular",Menlo,monospace;--tracking-heading:-.02em;--tracking-lock-clock:-.02em;--tracking-lock-date:-.01em;--fw-caps:600;--tracking-mono:0;--fs-mono:.86em;--fs-dial:10px;--fs-nano:10px;--fs-micro:10px;--fs-dial-large:16.5px;--fs-widget-figure:18px;--fs-widget-hero:42.5px;--fs-lock-clock:127px;--t-quick:120ms;--t-move:200ms;--t-big:280ms;--t-spin-step:83ms;--t-turn:1000ms;--t-shake:420ms;--t-send-ring:5000ms;--t-awake:20000ms;--t-idle-dim:2000ms;--t-orb-listen:12000ms;--t-orb-work:8000ms;--t-orb-act:5000ms;--e-out:cubic-bezier(.22,.9,.3,1);--e-exit:cubic-bezier(.4,0,1,1);--e-shake:cubic-bezier(.36,.07,.19,.97);--e-linear:linear;--e-in-out:cubic-bezier(.42,0,.58,1);color-scheme:light;}
-.ds[*|data-theme=dark]{--paper:#1e1e1e;--surface:#2a2a2a;--surface-2:#242424;--raise:#323232;--ink:#e8e8e8;--ink-soft:#a3a3a3;--line:#444444;--fill-quaternary:rgba(255,255,255,.1);--fill-btn:rgba(255,255,255,.1);--fill:rgba(255,255,255,.14);--grp:#2c2c2e;--line-soft:#383838;--accent:#0a84ff;--accent-soft:rgba(10,132,255,.2);--accent-text:#7bb4fe;--accent-text-material:#cae0fe;--seal:#0a84ff;--ok:#5eb489;--warn:#d2a249;--danger:#e0705a;--ok-wash:rgba(94,180,137,.16);--warn-wash:#3f3930;--danger-wash:rgba(224,112,90,.16);--accent-ring:rgba(123,180,254,.6);--danger-ink:#1a0b08;--handle-ring:rgba(255,255,255,.25);--ok-ink:#0b1a12;--scrim-modal:rgba(0,0,0,.55);--scroll-thumb:rgba(255,255,255,.4);--lock-glass:rgba(255,255,255,.18);--lock-glass-strong:rgba(255,255,255,.3);--lock-veil:rgba(0,0,0,.28);--spell-mark:#e0705a;--orb-bg:#1b1f29;--orb-c1:#df6aa6;--orb-c2:#04bbc3;--orb-c3:#8d92f9;--c-red:#ff6b60;--c-red-deep:#ff8a80;--c-red-soft:#3a1e1c;--c-amber:#f5bc4e;--c-amber-deep:#f0b84a;--c-amber-soft:#3a2c12;--c-green:#4fd06a;--c-green-deep:#6edb86;--c-green-soft:#153520;--c-blue:#4c9bff;--c-blue-deep:#6fb0ff;--c-blue-soft:#14263f;--c-violet:#a98bff;--c-violet-deep:#b69bff;--c-violet-soft:#271c42;--term-fg:#e8e8e8;--term-bg:#1e1e1e;--term-ansi-0:#8a8a8a;--term-ansi-1:#f0786c;--term-ansi-2:#5ec27f;--term-ansi-3:#d9b04a;--term-ansi-4:#6ea3f2;--term-ansi-5:#d98bd3;--term-ansi-6:#4fc3cf;--term-ansi-7:#c8c8c8;--term-ansi-8:#9a9a9a;--term-ansi-9:#ff8f84;--term-ansi-10:#7adb98;--term-ansi-11:#ebc866;--term-ansi-12:#8db8f8;--term-ansi-13:#e8a3e2;--term-ansi-14:#6fd6e0;--term-ansi-15:#f5f5f5;--shadow-1:0 var(--hair) 0 rgba(255,255,255,.05) inset,0 2px 4px rgba(0,0,0,.45);--shadow-2:0 var(--hair) 0 rgba(255,255,255,.05) inset,0 10px 22px -8px rgba(0,0,0,.7);--shadow-edge:0 0 0 var(--hairline) rgba(255,255,255,.12);--shadow-pop:0 0 0 var(--hairline) rgba(255,255,255,.14),0 10px 30px -8px rgba(0,0,0,.55);--shadow-sheet:0 0 0 var(--hairline) rgba(255,255,255,.14),0 24px 60px -12px rgba(0,0,0,.6);--shadow-drag:0 22px 34px -14px rgba(0,0,0,.8);--shadow-window:0 1px 3px rgba(0,0,0,.4),0 24px 64px -16px rgba(0,0,0,.66);--battery-fill:#32d74b;--battery-low:#ff453a;--battery-track:rgba(255,255,255,.14);--clock-seconds:#ff9f0a;color-scheme:dark;}
+.ds{--paper:#ececec;--surface:#ffffff;--surface-2:#f5f5f5;--raise:#ffffff;--ink:#202020;--ink-soft:#5c5c5c;--ink-faint:#858585;--line:#d9d9d9;--fill-quaternary:rgba(0,0,0,.06);--fill-btn:rgba(0,0,0,.06);--fill:rgba(0,0,0,.1);--sel-neutral:rgba(0,0,0,.08);--grp:#ffffff;--line-soft:#e6e6e6;--accent:#007aff;--accent-ink:#ffffff;--accent-soft:rgba(0,122,255,.18);--accent-text:#0058bd;--accent-text-material:#004394;--seal:#007aff;--ok:#2c7a57;--warn:#a5761a;--danger:#b03a2a;--scrim:rgba(0,0,0,.22);--foreign-ground:#ffffff;--ok-wash:rgba(44,122,87,.16);--warn-wash:#f2ebe1;--danger-wash:rgba(176,58,42,.16);--accent-ring:rgba(0,88,189,.7);--danger-ink:#ffffff;--mark-ground:#ffffff;--handle-ring:rgba(0,0,0,.25);--on-hue:#ffffff;--ok-ink:#ffffff;--warn-ink:#140d03;--scrim-modal:rgba(0,0,0,.4);--scroll-thumb:rgba(0,0,0,.4);--lock-ink:#ffffff;--lock-ink-soft:rgba(255,255,255,.78);--lock-glass:rgba(255,255,255,.24);--lock-glass-strong:rgba(255,255,255,.38);--lock-veil:rgba(0,0,0,.12);--spell-mark:#b03a2a;--scrim-idle:#000000;--knob-fill:#ffffff;--orb-bg:#e8effc;--orb-c1:#f383bb;--orb-c2:#43d5dc;--orb-c3:#a9affe;--c-red:#e8483c;--c-red-deep:#b7352b;--c-red-soft:#fbe3e1;--c-amber:#f0a81e;--c-amber-deep:#8e5a05;--c-amber-soft:#faebd2;--c-green:#28b24a;--c-green-deep:#1a7a33;--c-green-soft:#dcf1e1;--c-blue:#2b7cff;--c-blue-deep:#0b5fe0;--c-blue-soft:#e2ebff;--c-violet:#8b5cf0;--c-violet-deep:#6b3fcc;--c-violet-soft:#ece4fb;--sel-bg:var(--accent);--sel-bg-quiet:rgba(128,128,128,.25);--sel-ink:var(--accent-ink);--term-fg:#202020;--term-bg:#ffffff;--term-cursor:var(--accent-text);--term-selection:var(--accent-soft);--term-ansi-0:#303030;--term-ansi-1:#b3261e;--term-ansi-2:#1b7a3e;--term-ansi-3:#8a6100;--term-ansi-4:#1f5fbf;--term-ansi-5:#a23b9c;--term-ansi-6:#0b7a85;--term-ansi-7:#5c5c5c;--term-ansi-8:#6b6b6b;--term-ansi-9:#c7382d;--term-ansi-10:#187a3f;--term-ansi-11:#946a00;--term-ansi-12:#2f6fd1;--term-ansi-13:#b14aaa;--term-ansi-14:#0a7983;--term-ansi-15:#4a4a4a;--shadow-1:0 var(--hair) 0 rgba(255,255,255,.7) inset,0 1px 2px rgba(26,30,26,.1);--shadow-2:0 var(--hair) 0 rgba(255,255,255,.7) inset,0 6px 16px -6px rgba(26,30,26,.3);--shadow-edge:0 0 0 var(--hairline) rgba(0,0,0,.12);--shadow-pop:0 0 0 var(--hairline) rgba(0,0,0,.12),0 10px 30px -8px rgba(0,0,0,.28);--shadow-sheet:0 0 0 var(--hairline) rgba(0,0,0,.14),0 24px 60px -12px rgba(0,0,0,.35);--shadow-drag:0 18px 30px -12px rgba(26,30,26,.4);--shadow-current:0 var(--hair) 0 rgba(255,255,255,.4) inset,0 2px 6px -3px rgba(0,0,0,.25);--shadow-pill-inset:0 var(--hair) 0 rgba(255,255,255,.35) inset;--shadow-window:0 1px 3px rgba(0,0,0,.12),0 24px 64px -16px rgba(0,0,0,.4);--shadow-card:0 0 0 var(--hair) rgba(0,0,0,.06),0 10px 30px -14px rgba(0,0,0,.45);--shadow-handle:0 0 0 var(--hair) rgba(0,0,0,.25),0 3px 8px rgba(0,0,0,.35);--shadow-mark:0 0 0 var(--hair) rgba(0,0,0,.08);--shadow-mark-tile:0 0 0 1.5px var(--f-pill),0 1px 2px rgba(0,0,0,.2);--battery-fill:#28cd41;--battery-low:#ff3b30;--battery-track:rgba(0,0,0,.12);--clock-face-day:#ffffff;--clock-face-night:#343436;--clock-ink-day:#1c1c1e;--clock-ink-night:#ffffff;--clock-seconds:#ff9500;--r-panel:20px;--r-card:12px;--r-btn:8px;--r-chip:8px;--r-pill:999px;--r-field:8px;--r-menu:14px;--r-item:8px;--r-tile:12px;--r-window:26px;--r-window-plain:16px;--r-menu-item:8px;--r-small:8px;--r-kbd:5px;--r-tiny:6px;--r-micro:5px;--r-media:12px;--r-icon-tile:7px;--r-group:12px;--ctl-h-xs:20px;--ctl-r-xs:6px;--ctl-cap-r-xs:10px;--ctl-glyph-xs:12px;--ctl-pad-xs:8px;--ctl-fs-xs:10px;--ctl-fw-xs:600;--knob-xs:18px;--switch-w-xs:32px;--switch-h-xs:18px;--switch-r-xs:9px;--switch-knob-xs:16px;--slider-track-xs:3px;--slider-knob-xs:14px;--check-xs:12px;--spinner-xs:10px;--progress-xs:4px;--seg-well-r-xs:6px;--seg-h-xs:18px;--seg-r-xs:5px;--ctl-h-s:24px;--ctl-r-s:7px;--ctl-cap-r-s:12px;--ctl-glyph-s:14px;--ctl-pad-s:10px;--ctl-fs-s:11px;--ctl-fw-s:500;--knob-s:22px;--switch-w-s:38px;--switch-h-s:22px;--switch-r-s:11px;--switch-knob-s:20px;--slider-track-s:4px;--slider-knob-s:16px;--check-s:14px;--spinner-s:16px;--progress-s:6px;--seg-well-r-s:7px;--seg-h-s:22px;--seg-r-s:6px;--ctl-h-m:28px;--ctl-r-m:8px;--ctl-cap-r-m:14px;--ctl-glyph-m:16px;--ctl-pad-m:12px;--ctl-fs-m:13px;--ctl-fw-m:500;--knob-m:26px;--switch-w-m:44px;--switch-h-m:26px;--switch-r-m:13px;--switch-knob-m:24px;--slider-track-m:4px;--slider-knob-m:22px;--check-m:16px;--spinner-m:32px;--progress-m:6px;--seg-well-r-m:8px;--seg-h-m:26px;--seg-r-m:7px;--ctl-h-l:32px;--ctl-r-l:16px;--ctl-cap-r-l:16px;--ctl-glyph-l:18px;--ctl-pad-l:16px;--ctl-fs-l:15px;--ctl-fw-l:600;--knob-l:30px;--switch-w-l:44px;--switch-h-l:26px;--switch-r-l:13px;--switch-knob-l:24px;--slider-track-l:4px;--slider-knob-l:22px;--check-l:16px;--spinner-l:32px;--progress-l:6px;--seg-well-r-l:16px;--seg-h-l:30px;--seg-r-l:15px;--ctl-h-xl:40px;--ctl-r-xl:20px;--ctl-cap-r-xl:20px;--ctl-glyph-xl:20px;--ctl-pad-xl:20px;--ctl-fs-xl:17px;--ctl-fw-xl:600;--knob-xl:38px;--switch-w-xl:44px;--switch-h-xl:26px;--switch-r-xl:13px;--switch-knob-xl:24px;--slider-track-xl:4px;--slider-knob-xl:22px;--check-xl:16px;--spinner-xl:32px;--progress-xl:6px;--seg-well-r-xl:20px;--seg-h-xl:38px;--seg-r-xl:19px;--knob-inset:1px;--shell-bar-h:24px;--bar-status-w:30px;--r-shell-menu:14px;--shell-menu-inset:6px;--shell-palette-inset:12px;--row-settings-h:48px;--row-avatar:32px;--row-compact-h:32px;--row-icon-tile:28px;--row-tile-gap:12px;--sidebar-row-h-s:28px;--sidebar-row-h-m:32px;--sidebar-row-h-l:36px;--sidebar-tile-s:20px;--sidebar-tile-m:24px;--sidebar-tile-l:28px;--cc-width:320px;--cc-pad:10px;--cc-gap:10px;--cc-module-r:8px;--cc-panel-r:18px;--cc-tile-h:64px;--cc-head:16px;--cc-head-gap:6px;--cc-level-h:70px;--c-person-1:#5b4fc4;--c-person-2:#2f7f6e;--c-person-3:#b0662e;--c-person-4:#3c8a5b;--c-person-5:#7a4a9e;--c-person-6:#c0782e;--c-person-7:#2e7f8c;--c-person-8:#6d7a3a;--s-1:1px;--s-1-5:1.5px;--s-2:2px;--s-3:3px;--s-4:4px;--s-5:5px;--s-6:6px;--s-7:7px;--s-8:8px;--s-9:9px;--s-10:10px;--s-11:11px;--s-12:12px;--s-13:13px;--s-14:14px;--s-15:15px;--s-16:16px;--s-18:18px;--s-20:20px;--s-22:22px;--s-24:24px;--s-26:26px;--s-28:28px;--s-32:32px;--s-36:36px;--s-40:40px;--s-48:48px;--chrome-titlebar-height:28px;--chrome-light-size:12px;--chrome-light-gap:8px;--chrome-light-inset:13px;--chrome-title-inset:84px;--chrome-edge:4px;--chrome-edge-corner:12px;--fs-pico:7.5px;--fs-caption:10px;--fs-note:10.5px;--fs-eyebrow:11px;--fs-help:11.5px;--fs-small:12px;--fs-meta:12.5px;--fs-control:13px;--fs-body:13.5px;--fs-reading:14px;--fs-compose:14.5px;--fs-base:15px;--fs-subhead:15.5px;--fs-title:16px;--fs-title-2:17px;--fs-heading-3:16.5px;--fs-subject:20px;--fs-heading:21px;--fs-amount:22px;--fs-day:24px;--fs-display:26px;--fs-emoji-cell:30px;--fs-emoji-preview:96px;--z-scene:-2;--z-grain:-1;--z-raise:1;--z-link-pill:7;--z-toast:8;--z-send-pill:9;--z-scrim:10;--z-peek:11;--z-focus-page:12;--z-edge:14;--z-side-peek:15;--z-palette:20;--z-card:30;--z-menu:40;--z-drag:50;--veil:.16;--pane-dim:.6;--term-font:monospace;--term-lh:1.2;--fs-shell-bar:var(--shell-bar-font,13px);--fw-shell-bar:var(--shell-bar-weight,500);--shell-bar-item:var(--shell-bar-item-h,22px);--shell-bar-pad:var(--shell-bar-pad-x,8px);--r-shell-bar-item:var(--shell-bar-radius,5px);--fs-shell-menu:var(--shell-menu-font,13px);--shell-menu-row:var(--shell-menu-row-h,28px);--shell-menu-sep:var(--shell-menu-sep-m,5px);--r-shell-highlight:var(--shell-highlight-radius,8px);--fs-shell-field:var(--shell-field-font,22px);--fw-shell-field:var(--shell-field-weight,500);--shell-field-glyph:var(--shell-field-glyph-px,20px);--fs-shell-row:var(--shell-row-font,14px);--fs-shell-detail:var(--shell-detail-font,12px);--fs-shell-tip:var(--shell-tip-font,12px);--dock-floor:var(--dock-floor-on,0);--dock-tile:var(--dock-tile-px,48px);--dock-gap:var(--dock-gap-px,8px);--dock-pad:var(--dock-pad-px,6px);--dock-dot:var(--dock-dot-px,4px);--dock-dot-gap:var(--dock-dot-gap-px,3px);--osd-margin:var(--osd-margin-px,24px);--notifications-banner-width:var(--notifications-banner-width-px,360px);--notifications-banner-min-height:var(--notifications-banner-min-height-px,64px);--notifications-banner-padding:var(--notifications-banner-padding-px,12px);--notifications-icon:var(--notifications-icon-px,32px);--notifications-close:var(--notifications-close-px,18px);--notifications-stack-gap:var(--notifications-stack-gap-px,8px);--notifications-group-offset:var(--notifications-group-offset-px,4px);--notifications-center-width:var(--notifications-center-width-px,384px);--widget-cell:var(--widget-cell-px,164px);--widget-gap:var(--widget-gap-px,16px);--plate-glyph:var(--icons-glyph-share,56%);--plate-inset:var(--icons-inset-share,72%);--dpr:var(--scale-dpr,1);--px:var(--scale-px,1px);--hair:var(--scale-hair,1px);--hairline:var(--scale-hairline,.5px);--ring:var(--scale-ring,3px);--focus-ring:var(--scale-focus-ring,2.5px);--caret-w:var(--scale-caret-w,1px);--focus-gap:var(--scale-focus-gap,1px);--font-emoji:"Inter","Noto Color Emoji",system-ui,sans-serif;--font-display:"Inter Display","Inter",system-ui,sans-serif;--font-ui:"Inter",system-ui,sans-serif;--font-data:"Inter",system-ui,sans-serif;--font-serif:"Noto Serif",Georgia,"Times New Roman",serif;--font-code:"Space Mono","Inter",ui-monospace,"SFMono-Regular",Menlo,monospace;--tracking-heading:-.02em;--tracking-lock-clock:-.02em;--tracking-lock-date:-.01em;--fw-caps:600;--tracking-mono:0;--fs-mono:.86em;--fs-dial:10px;--fs-nano:10px;--fs-micro:10px;--fs-dial-large:16.5px;--fs-widget-figure:18px;--fs-widget-hero:42.5px;--fs-lock-clock:127px;--t-quick:120ms;--t-move:200ms;--t-big:280ms;--t-spin-step:83ms;--t-turn:1000ms;--t-shake:420ms;--t-send-ring:5000ms;--t-awake:20000ms;--t-idle-dim:2000ms;--t-orb-listen:12000ms;--t-orb-work:8000ms;--t-orb-act:5000ms;--e-out:cubic-bezier(.22,.9,.3,1);--e-exit:cubic-bezier(.4,0,1,1);--e-shake:cubic-bezier(.36,.07,.19,.97);--e-linear:linear;--e-in-out:cubic-bezier(.42,0,.58,1);color-scheme:light;}
+.ds[*|data-theme=dark]{--paper:#1e1e1e;--surface:#2a2a2a;--surface-2:#242424;--raise:#323232;--ink:#e8e8e8;--ink-soft:#a3a3a3;--line:#444444;--fill-quaternary:rgba(255,255,255,.1);--fill-btn:rgba(255,255,255,.1);--fill:rgba(255,255,255,.14);--sel-neutral:rgba(255,255,255,.08);--grp:#2c2c2e;--line-soft:#383838;--accent:#0a84ff;--accent-soft:rgba(10,132,255,.2);--accent-text:#7bb4fe;--accent-text-material:#cae0fe;--seal:#0a84ff;--ok:#5eb489;--warn:#d2a249;--danger:#e0705a;--ok-wash:rgba(94,180,137,.16);--warn-wash:#3f3930;--danger-wash:rgba(224,112,90,.16);--accent-ring:rgba(123,180,254,.6);--danger-ink:#1a0b08;--handle-ring:rgba(255,255,255,.25);--ok-ink:#0b1a12;--scrim-modal:rgba(0,0,0,.55);--scroll-thumb:rgba(255,255,255,.4);--lock-glass:rgba(255,255,255,.18);--lock-glass-strong:rgba(255,255,255,.3);--lock-veil:rgba(0,0,0,.28);--spell-mark:#e0705a;--orb-bg:#1b1f29;--orb-c1:#df6aa6;--orb-c2:#04bbc3;--orb-c3:#8d92f9;--c-red:#ff6b60;--c-red-deep:#ff8a80;--c-red-soft:#3a1e1c;--c-amber:#f5bc4e;--c-amber-deep:#f0b84a;--c-amber-soft:#3a2c12;--c-green:#4fd06a;--c-green-deep:#6edb86;--c-green-soft:#153520;--c-blue:#4c9bff;--c-blue-deep:#6fb0ff;--c-blue-soft:#14263f;--c-violet:#a98bff;--c-violet-deep:#b69bff;--c-violet-soft:#271c42;--term-fg:#e8e8e8;--term-bg:#1e1e1e;--term-ansi-0:#8a8a8a;--term-ansi-1:#f0786c;--term-ansi-2:#5ec27f;--term-ansi-3:#d9b04a;--term-ansi-4:#6ea3f2;--term-ansi-5:#d98bd3;--term-ansi-6:#4fc3cf;--term-ansi-7:#c8c8c8;--term-ansi-8:#9a9a9a;--term-ansi-9:#ff8f84;--term-ansi-10:#7adb98;--term-ansi-11:#ebc866;--term-ansi-12:#8db8f8;--term-ansi-13:#e8a3e2;--term-ansi-14:#6fd6e0;--term-ansi-15:#f5f5f5;--shadow-1:0 var(--hair) 0 rgba(255,255,255,.05) inset,0 2px 4px rgba(0,0,0,.45);--shadow-2:0 var(--hair) 0 rgba(255,255,255,.05) inset,0 10px 22px -8px rgba(0,0,0,.7);--shadow-edge:0 0 0 var(--hairline) rgba(255,255,255,.12);--shadow-pop:0 0 0 var(--hairline) rgba(255,255,255,.14),0 10px 30px -8px rgba(0,0,0,.55);--shadow-sheet:0 0 0 var(--hairline) rgba(255,255,255,.14),0 24px 60px -12px rgba(0,0,0,.6);--shadow-drag:0 22px 34px -14px rgba(0,0,0,.8);--shadow-window:0 1px 3px rgba(0,0,0,.4),0 24px 64px -16px rgba(0,0,0,.66);--battery-fill:#32d74b;--battery-low:#ff453a;--battery-track:rgba(255,255,255,.14);--clock-seconds:#ff9f0a;color-scheme:dark;}
 .ds[*|data-typeface=editorial]{--font-display:"Bricolage Grotesque","Inter","Trebuchet MS",system-ui,sans-serif;--font-ui:"Karla","Inter","Segoe UI",system-ui,sans-serif;--font-data:"Space Mono","Inter",ui-monospace,"SFMono-Regular",Menlo,monospace;--tracking-heading:-.015em;--tracking-lock-clock:-.035em;--tracking-lock-date:.01em;--fw-caps:400;--tracking-mono:-.02em;--fs-mono:.78em;--fs-dial:9px;--fs-nano:9px;--fs-micro:9.5px;--fs-dial-large:18px;--fs-widget-figure:20px;--fs-widget-hero:47px;--fs-lock-clock:140px;}
 .ds[*|data-motion=reduced]{--t-move:120ms;--t-big:120ms;--t-turn:120ms;--t-shake:120ms;--t-awake:120ms;--t-idle-dim:120ms;}
 /* == accents == */
@@ -619,6 +619,14 @@ html,body{margin:0;padding:0;background:transparent}
 /* The dot has no number: a circle of the badge's height, less the label's inset. */
 .ds-badge[*|data-content=dot]{ min-width:0; width:calc(var(--bd-h) / 2); height:calc(var(--bd-h) / 2); padding:0; }
 .ds-badge-label{ line-height:1; white-space:nowrap; }
+/* -- banner_action_row -- */
+/* BannerActionRow (a banner's text field and its buttons in one line). The field takes the width
+   left and may shrink to nothing; the buttons keep their size, and the row wraps them under the
+   field when the pane is too narrow for both. */
+
+.ds-banner-action-row{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--s-6) var(--s-8); box-sizing:border-box; width:100%; min-width:0; }
+.ds-banner-action-row-field{ display:flex; flex:1 1 12em; min-width:0; }
+.ds-banner-action-row-buttons{ display:flex; flex:none; align-items:center; gap:var(--s-6); }
 /* -- button -- */
 /* Button (design/30 section 2.1, `NSButton`). Attribute selectors carry `*|` (spike S2). The
    focus ring is the global `.ds[*|data-modality=keyboard] :focus` rule (spike S12).
@@ -859,6 +867,13 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-column[*|data-align=start]{ align-items:flex-start; }
 .ds-column[*|data-align=center]{ align-items:center; }
 .ds-column[*|data-align=end]{ align-items:flex-end; }
+.ds-column[*|data-gap=none]{ gap:0; }
+.ds-column[*|data-extent=fill]{ width:100%; height:100%; box-sizing:border-box; }
+.ds-column[*|data-extent=fixed]{ --column-extent:var(--ctl-h-m); height:var(--column-extent); flex:none; }
+.ds-column[*|data-extent=fixed][*|data-size=mini]{ --column-extent:var(--ctl-h-xs); }
+.ds-column[*|data-extent=fixed][*|data-size=small]{ --column-extent:var(--ctl-h-s); }
+.ds-column[*|data-extent=fixed][*|data-size=large]{ --column-extent:var(--ctl-h-l); }
+.ds-column[*|data-extent=fixed][*|data-size=extra-large]{ --column-extent:var(--ctl-h-xl); }
 /* -- command_palette -- */
 /* CommandPalette (design/04-COMPONENTS.md section 25), `S:230-234` with the overrides
    `S:793-799`: a scrim that centres the panel near the top, the panel entering with
@@ -879,7 +894,7 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-palette[*|data-host=surface]{ width:100%; height:auto; max-height:100%; box-sizing:border-box; display:flex; flex-direction:column;
   background:var(--m-tint-solid); border-color:transparent; box-shadow:var(--m-box); }
 .ds[*|data-blur=on] .ds-palette[*|data-host=surface]{ background:var(--m-tint); }
-.ds-palette-list{ flex:0 1 auto; min-height:0; padding:var(--shell-menu-inset); overflow-y:auto; scrollbar-width:none; max-height:360px; outline:none; }
+.ds-palette-list{ flex:0 1 auto; min-height:0; padding:var(--shell-palette-inset); overflow-y:auto; scrollbar-width:none; max-height:360px; outline:none; }
 .ds-palette-empty{ padding:var(--s-10); font-size:var(--fs-meta); color:var(--ink-faint); }
 .ds-palette[*|data-host=surface] > .ds-palette-list{ flex:0 1 auto; min-height:0; max-height:none; }
 
@@ -1231,6 +1246,16 @@ html,body{margin:0;padding:0;background:transparent}
   border-radius:var(--r-icon-tile); background-color:var(--tile-bg); background-image:linear-gradient(180deg, var(--tile-top), var(--tile-bg));
   color:var(--on-hue);
 }
+/* -- icon_button_group -- */
+/* IconButtonGroup: small icon buttons on one rounded plate. The plate's radius follows the control
+   size's ladder (`--ctl-r-*`); the quiet fill is the banner's. Attribute selectors carry `*|`
+   (spike S2). */
+
+.ds-icon-button-group{ --group-r:var(--ctl-r-s); display:inline-flex; align-items:center; gap:var(--s-1); padding:var(--s-2); box-sizing:border-box; border-radius:var(--group-r); background:var(--fill-quaternary); }
+.ds-icon-button-group[*|data-size=mini]{ --group-r:var(--ctl-r-xs); }
+.ds-icon-button-group[*|data-size=regular]{ --group-r:var(--ctl-r-m); }
+.ds-icon-button-group[*|data-size=large]{ --group-r:var(--ctl-r-l); }
+.ds-icon-button-group[*|data-size=extra-large]{ --group-r:var(--ctl-r-xl); }
 /* -- icon_view -- */
 /* IconView (design/08-ICONS.md section 1.5): an external icon in any icon slot. The size and the
    URL arrive inline (`--ic-size`, and `mask-image` or `background-image`), so this sheet only
@@ -1551,8 +1576,11 @@ html,body{margin:0;padding:0;background:transparent}
 
 .ds-menu-item{
   display:flex; align-items:center; gap:var(--s-4); min-height:var(--shell-menu-row); padding:0 var(--s-8) 0 var(--s-2); border-radius:var(--r-shell-highlight);
-  font-size:var(--fs-shell-menu); font-weight:400; color:var(--ink); cursor:default; white-space:nowrap;
+  font-size:var(--fs-shell-menu); font-weight:400; color:var(--ink); cursor:default; white-space:nowrap; position:relative;
 }
+/* A row's tooltip zone: transparent, over the whole row, so a disabled row still has a pointer
+   target; the row's own handlers hear the events that bubble from it. */
+.ds-menu-tip{ position:absolute; top:0; right:0; bottom:0; left:0; }
 /* A menu with no state column: the title starts as far from the highlight's edge as the key
    equivalent ends, rather than 2 px in (the 2 px assumes the 22 px check column beside it). */
 .ds-menu-item[*|data-state-column=absent]{ padding-left:var(--s-8); }
@@ -1825,6 +1853,18 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-picture-picker{ display:grid; gap:0; outline:none; cursor:default; }
 .ds-picture-cell{ display:grid; place-items:center; min-width:0; box-sizing:border-box; border-radius:var(--r-menu-item); cursor:default; }
 .ds-picture-cell[*|aria-checked=true]{ background:var(--accent-soft); }
+/* -- pinned_bar -- */
+/* PinnedBar: a bar laid over the top or bottom edge of a scroll container. Blitz has no
+   `position: sticky`, so the container is positioned and the bar is absolute within it, outside
+   the scroller. The bar is a raised card inset from the edge. Attribute selectors carry `*|`
+   (spike S2). */
+
+.ds-pinned{ position:relative; display:flex; flex-direction:column; min-width:0; min-height:0; }
+.ds-pinned-bar{
+  position:absolute; top:var(--s-8); left:var(--s-8); right:var(--s-8); z-index:var(--z-raise); box-sizing:border-box;
+  padding:var(--s-6) var(--s-10); border-radius:var(--r-menu); background:var(--raise); box-shadow:var(--shadow-pop); color:var(--ink);
+}
+.ds-pinned[*|data-edge=bottom] .ds-pinned-bar{ top:auto; bottom:var(--s-8); }
 /* -- popover -- */
 /* Popover (design/04-COMPONENTS.md section 21): the surface under menus, hover cards, the tip
    card, and the overlay wrapper every floating component renders into at the end
@@ -1996,7 +2036,7 @@ html,body{margin:0;padding:0;background:transparent}
 /* -- row -- */
 /* Row (design/30 section 2.6, `NSTableCellView`): a leading element, the words, an accessory. Rows
    are 24 tall (Compact; 28 in a table) or 44 (Settings); a row under a highlight fills with the accent and takes
-   the accent's ink (`FocusStyle::Highlight`, section 1.4), grey when its window is inactive or its
+   the accent's ink (a source list's row fills neutral instead, below) (`FocusStyle::Highlight`, section 1.4), grey when its window is inactive or its
    list has lost the keyboard. No hover: a pointer over a row changes nothing (section 1.4).
    Attribute selectors carry `*|` (spike S2). */
 
@@ -2025,15 +2065,19 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-list[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-detail,
 .ds-list[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing,
 .ds-list[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-leading{ color:var(--ink-soft); }
-/* A source list is a sidebar: its selection stays the accent while the window is active, whether
-   or not the list holds the keyboard, and goes grey only with the window (macOS). */
-.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true]{ background:var(--sel-bg); color:var(--sel-ink); }
+/* A source list is a sidebar, selected the Mac way (design/27 section 5.12): while the list holds
+   the keyboard its selection is emphasized (the accent with white ink, the plain row rule above);
+   when focus is elsewhere, or the window is inactive, it is a neutral rounded wash that keeps the
+   row's ink, and the selected symbol takes the accent (grey with an inactive window). */
+.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true],
+.ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true]{ background:var(--sel-neutral); color:var(--ink); }
 .ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-detail,
 .ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing,
-.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-leading{ color:var(--sel-ink); }
-.ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true]{ background:var(--sel-bg-quiet); color:var(--ink); }
+.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-disclosure,
+.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing .ds-ic,
 .ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-detail,
-.ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing,
+.ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing{ color:var(--ink-soft); }
+.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-leading{ color:var(--accent-text); }
 .ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-leading{ color:var(--ink-soft); }
 
 /* The words: the title over its detail. Emphasis Strong is an unread row. */
@@ -2380,6 +2424,9 @@ html,body{margin:0;padding:0;background:transparent}
 
 .ds-sidebar{ display:flex; flex-direction:column; box-sizing:border-box; height:100%; min-height:0; background:var(--surface); color:var(--ink); }
 .ds-sidebar[*|data-fill=clear]{ background:transparent; }
+/* A flat sidebar (`data-fill=flat`) is one tone, `--surface-2`: the first lightness rung above
+   `--paper`, where a content-first app's content sits. No gradient, no Space hue. */
+.ds-sidebar[*|data-fill=flat]{ background:var(--surface-2); }
 .ds-sidebar-header{ flex:none; padding:var(--s-12) var(--s-10) var(--s-8); }
 .ds-sidebar-body{ flex:1 1 0; min-height:0; overflow-y:auto; scrollbar-width:none; display:flex; flex-direction:column; gap:var(--s-4); padding:0 var(--s-10) var(--s-10); }
 .ds-sidebar-header + .ds-sidebar-body{ padding-top:0; }
@@ -2599,6 +2646,21 @@ html,body{margin:0;padding:0;background:transparent}
 }
 .ds-space-dot[*|aria-pressed=true]{ border-color:var(--f-ink); transform:scale(1.08); }
 
+/* The foot face (`DotFace::Foot`): a 22px hit target around a small pip. The current Space's pip
+   is larger and `--f-ink`, the others `--f-ink-faint`; no fill, ring or scale. The target takes a
+   quiet wash under the pointer. */
+.ds-space-dot[*|data-face=foot]{
+  display:flex; align-items:center; justify-content:center; border:0; background:transparent;
+  transition:background-color var(--t-quick) var(--e-out);
+}
+.ds-space-dot[*|data-face=foot]:hover{ background:var(--f-pill-hover); }
+.ds-space-dot[*|data-face=foot][*|aria-pressed=true]{ transform:none; }
+.ds-space-pip{
+  width:5px; height:5px; border-radius:var(--r-pill); background:var(--f-ink-faint);
+  transition:width var(--t-quick) var(--e-out), height var(--t-quick) var(--e-out), background-color var(--t-quick) var(--e-out);
+}
+.ds-space-dot[*|aria-pressed=true] > .ds-space-pip{ width:7px; height:7px; background:var(--f-ink); }
+
 /* The title as a name field (`on_rename`): the plain TextField takes the title's
    display face and size, not the field's body size. The per-scheme readout (`EachScheme`): each
    scheme's rows under a heading in the data face, upper case, as the field headers are. */
@@ -2628,10 +2690,9 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-spaces-foot > *{ flex:none; }
 /* The dots take the foot's free width, so the buttons sit at its end. */
 .ds-spaces-foot > .ds-spaces-dots{ display:flex; gap:var(--s-5); align-items:center; flex:1 1 auto; min-width:0; }
-/* The hold a dot's right click is caught on: it lays out as the dot. The Spaces not on screen are
-   drawn quieter. */
+/* The hold a dot's right click is caught on: it lays out as the dot. Which Space is current is
+   the dot's own brightness and size (space_editor.css), not the hold's. */
 .ds-spaces-dot-hold{ display:flex; }
-.ds-spaces-dot-hold[*|data-current=false]{ opacity:.62; }
 
 .ds-space-part{ display:grid; gap:var(--s-10); padding:var(--s-12); }
 .ds-space-rename{ width:240px; }
@@ -3003,6 +3064,30 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-text-field[*|data-kind=search][*|data-variant=plain] .ds-text-field-frame{ padding:var(--s-12) var(--s-14); gap:var(--s-9); border-bottom:var(--hair) solid var(--line-soft); color:var(--ink-faint); }
 .ds-text-field[*|data-kind=search][*|data-variant=plain] .ds-input{ font-size:var(--fs-title); color:var(--ink); }
 .ds-text-field[*|data-kind=search][*|data-variant=plain] .ds-input-placeholder{ font-size:var(--fs-title); }
+/* -- shortcut_field -- */
+/* ShortcutField (System Settings' shortcut recorder). Attribute selectors carry `*|` (spike S2).
+   The well is a bezeled field's fill; while it listens it takes the accent ring (Blitz's
+   `:focus-within` is always false, so the component writes `data-recording`). A clash is told
+   under the well in the warning ink. */
+
+.ds-shortcut-field{ display:inline-flex; flex-direction:column; align-items:flex-start; gap:var(--s-2); min-width:0; }
+.ds-shortcut-field-well{
+  box-sizing:border-box; min-width:calc(var(--s-48) * 2); height:var(--ctl-h-m); padding:0 var(--ctl-pad-m); border:0; border-radius:var(--ctl-r-m);
+  background:linear-gradient(var(--fill-btn), var(--fill-btn)), var(--surface); color:var(--ink);
+  font-size:var(--ctl-fs-m); text-align:center; cursor:default;
+  transition:box-shadow var(--t-quick) var(--e-out);
+}
+.ds-shortcut-field[*|data-recording=idle] .ds-shortcut-field-well{ font-variant-numeric:tabular-nums; }
+.ds-shortcut-field[*|data-recording=listening] .ds-shortcut-field-well{
+  color:var(--ink-soft); box-shadow:inset 0 0 0 var(--hair) var(--accent-text), 0 0 0 var(--ring) var(--accent-soft);
+}
+.ds-shortcut-field-clash{ font-size:var(--fs-help); color:var(--warn); }
+.ds-shortcut-field[*|data-availability=disabled] .ds-shortcut-field-well{ opacity:.35; }
+/* The caps take no pointer: Blitz moves focus off a focused button when its non-focusable child
+   is clicked, which would cancel the recording the click starts; the well hears the click.
+   With extra keys the well holds key caps (KeyEquivalent's `cap` style: `.ds-key-equivalent-key`):
+   the value's and each further key's. */
+.ds-shortcut-field-caps{ pointer-events:none; display:inline-flex; align-items:center; justify-content:center; gap:var(--s-4); }
 /* -- text_runs -- */
 /* Text runs: a caller's search hit is `mark.ds-mark`, a soft accent ground under
    the line's own ink (mailo's `.row mark.hit`); a stronger or quieter run is `span.ds-run` with
