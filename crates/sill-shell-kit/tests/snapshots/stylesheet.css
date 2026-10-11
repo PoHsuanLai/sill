@@ -1460,6 +1460,7 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-list[*|data-style=grouped] .ds-row[*|data-leading=disc],
 .ds-list[*|data-style=grouped] .ds-row[*|data-leading=source],
 .ds-list[*|data-style=grouped] .ds-row[*|data-leading=text],
+.ds-list[*|data-style=grouped] .ds-row[*|data-leading=element],
 .ds-list[*|data-style=grouped] .ds-row[*|data-leading=tile]{ --sep:calc(var(--s-14) + var(--row-icon-tile) + var(--row-tile-gap)); }
 .ds-list[*|data-style=grouped] .ds-row[*|data-leading=avatar],
 .ds-list[*|data-style=grouped] .ds-row[*|data-leading=image],
@@ -2094,6 +2095,7 @@ html,body{margin:0;padding:0;background:transparent}
 
 /* The leading element. */
 .ds-row-leading{ display:grid; place-items:center; flex:none; width:22px; color:var(--ink-soft); }
+.ds-row-leading[*|data-leading=element]{ pointer-events:none; }
 .ds-row-leading[*|data-leading=disc]{ width:26px; height:26px; border-radius:var(--r-pill); background:var(--paper); color:var(--ink); box-shadow:var(--shadow-1);
   transition:background-color var(--t-quick) var(--e-out), color var(--t-quick) var(--e-out); }
 .ds-row-leading[*|data-disc=on]{ background:var(--accent); color:var(--accent-ink); box-shadow:inset 0 0 0 var(--hair) var(--accent-text), var(--shadow-1); }
@@ -3110,6 +3112,9 @@ html,body{margin:0;padding:0;background:transparent}
 /* A code run: the fixed-pitch face (`--font-code`) at `--fs-mono`, relative to the line, on a quiet ground, so
    a command or an address reads as something to copy. */
 .ds-run[*|data-tone=code]{ font-family:var(--font-code); font-size:var(--fs-mono); background:var(--fill-quaternary); border-radius:var(--r-micro); padding:0 var(--s-3); }
+/* A mono run: the same face and step as a code run, with no chip: the line's own ground and ink,
+   no padding, the line's line-height. Shell data in a row (a folder, a branch name). */
+.ds-run[*|data-tone=mono]{ font-family:var(--font-code); font-size:var(--fs-mono); }
 /* -- thread_row -- */
 /* ThreadRow (design/30 section 2.11): a mail row's content inside a `Row` of the Card density,
    `S:175-199`, `S:293-307`. The row is a card with the dot, the words and the tail in a grid. The
