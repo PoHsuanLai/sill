@@ -16,9 +16,8 @@
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Duration;
 
-use anyview_core::{ByteLen, FilePath, Input, PeekBudget, PixelArea};
+use anyview_core::{FilePath, Input, PeekBudget};
 use anyview_fs::OnDisk;
 use anyview_peek::{
     AnyPeeked, Body, NoStills, PeekFailure, PeekWork, PeekWorker, StillSource, Unavailable,
@@ -37,11 +36,7 @@ use super::frames::ThumbnailFrames;
 /// What a peek of a file may spend: it reads a PDF whole, and a picture is fitted to a pane's
 /// worth of pixels (`PANE` is 328 by 220 px, drawn at up to twice that). Constants until quire's
 /// settings have `viewer.peek.*` keys (the viewer's FINDINGS).
-pub const PANE_BUDGET: PeekBudget = PeekBudget {
-    bytes: ByteLen(64 * 1024 * 1024),
-    pixels: PixelArea(1_000_000),
-    time: Duration::from_millis(500),
-};
+pub const PANE_BUDGET: PeekBudget = PeekBudget::DEFAULT;
 
 /// Why a file could not be previewed. Carries no path or content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
