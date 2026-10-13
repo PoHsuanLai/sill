@@ -1126,6 +1126,16 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-field-group{ display:flex; flex-direction:column; min-width:0; }
 .ds-field-group-rows{ border-radius:var(--r-card); background:var(--surface); box-shadow:inset 0 0 0 var(--hair) var(--line); overflow:hidden; }
 .ds-field-group-rows > .ds-field-row + .ds-field-row{ border-top:var(--hair) solid var(--line); }
+
+/* Help on request (`HelpShown::OnRequest`): the label is the title with a small ⓘ button at its
+   trailing end, and the help text stays in the tree, visually hidden, for `aria-describedby`.
+   The popover's card holds the label as a bold title above the help. */
+.ds-field-row[*|data-help=on-request] .ds-field-row-label{ flex-direction:row; align-items:center; gap:var(--s-4); }
+.ds-field-row[*|data-help=on-request] .ds-field-row-help{ position:absolute; width:var(--hair); height:var(--hair); overflow:hidden; white-space:nowrap; clip-path:inset(50%); pointer-events:none; }
+.ds-field-row-about{ display:flex; flex:none; align-items:center; }
+.ds-field-help-card{ display:flex; flex-direction:column; gap:var(--s-4); box-sizing:border-box; max-width:260px; padding:var(--s-12); }
+.ds-field-help-title{ font-size:var(--fs-control); font-weight:600; color:var(--ink); line-height:1.3; }
+.ds-field-help-text{ font-size:var(--fs-help); color:var(--ink-faint); line-height:1.3; }
 /* -- form -- */
 /* Form (design/34-MODERN-LOOK.md section 3.5): the page margin and the gap between sections. The
    sections draw themselves. Attribute selectors carry `*|` (spike S2). */
@@ -1511,17 +1521,24 @@ html,body{margin:0;padding:0;background:transparent}
    once; one closed by Escape, an outside click or a pick fades out before it goes (`menu-out`,
    `--t-quick --e-exit`), taking no pointer while it does. */
 
-.ds-menu{ width:auto; min-width:186px; max-height:min(320px, calc(100vh - 2 * var(--s-8))); overflow-y:auto; scrollbar-width:none; padding:var(--shell-menu-inset); outline:none; }
+.ds-menu{ width:auto; min-width:186px; max-height:calc(100vh - 2 * var(--s-8)); outline:none; }
 .ds[*|data-modality=keyboard] .ds-menu:focus{ outline:none; }
-.ds-popover.ds-menu{ border-radius:var(--r-shell-menu); box-shadow:var(--shadow-pop); }
+.ds-popover.ds-menu{ display:flex; flex-direction:column; overflow:hidden; border-radius:var(--r-shell-menu); box-shadow:var(--shadow-pop); }
 .ds-popover.ds-menu[*|data-presence=leaving]{ animation:menu-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }
+
+/* The rows scroll in their own list, between the arrow strips; the list is the part that scrolls. */
+.ds-menu-list{ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; padding:var(--shell-menu-inset); outline:none; }
 
 /* Drawn inline in its caller's card (`flow: Flow::Inline`): the same rows, with no surface (no
    `.ds-popover`) and no padding of its own; the card's box sizes it. */
 .ds-menu[*|data-flow=inline]{ width:auto; min-width:0; max-height:none; overflow:visible; padding:0; }
 
-/* A menu never stands taller than the window less its 8 px margins; past that it scrolls inside,
-   as an `NSMenu` does. */
+/* A menu grows to its rows until it meets the window edge it opens toward, less 8 px (the inline
+   `max-height` Rust sets from the place it landed; the window-high cap above holds until then).
+   Past that it scrolls inside, as an `NSMenu` does. An arrow strip, a band one row high with a
+   chevron, stands at each end that has more rows past it; resting the pointer on it scrolls the
+   list, and it goes once that end is reached. */
+.ds-menu-scroll{ flex:none; display:flex; align-items:center; justify-content:center; height:var(--shell-menu-row); color:var(--ink-soft); }
 
 /* A submenu (design/13 section 13.3.4) is a menu beside its parent row. */
 
