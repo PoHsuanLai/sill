@@ -3298,6 +3298,8 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-vtable-body > .ds-scroller{ flex:1 1 0; }
 .ds-vtable-item{ box-sizing:border-box; overflow:hidden; }
 .ds-vtable-item > .ds-row{ height:100%; box-sizing:border-box; }
+/* A table zoomed out has rows shorter than the compact row: the row is the item's height. */
+.ds-vtable .ds-vtable-item > .ds-row{ min-height:0; }
 .ds-vtable-spacer{ flex:none; }
 /* -- voice_orb -- */
 /* The voice orb (design/30 section 2.9). Three glows, six conic gradients turning at different
