@@ -106,8 +106,8 @@ fn row(harness: &Harness, title: &str) -> Point {
         .position(|t| *t == title)
         .unwrap_or_else(|| panic!("no row {title}"));
     harness
-        // The status line is the menu's first child.
-        .centre(&format!(".ds-menu > :nth-child({})", index + 2))
+        // The status line is the first row of the menu's list.
+        .centre(&format!(".ds-menu-list > :nth-child({})", index + 2))
         .unwrap_or_else(|| panic!("{title} is not drawn:\n{}", harness.html()))
 }
 
