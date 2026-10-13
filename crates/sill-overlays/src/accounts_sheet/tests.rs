@@ -26,7 +26,9 @@ use sill_model::accounts::sheet::{
 mod long_text;
 
 use super::events;
-use super::props::{ConsentProps, ProvidersProps, ReviewProps, SignInProps, Step, step_of};
+use super::props::{
+    ConsentProps, ProvidersProps, Purpose, ReviewProps, SignInProps, Step, step_of,
+};
 use super::stage::{Here, drawn};
 
 fn provider(id: &str) -> ProviderId {
@@ -223,6 +225,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
                 ],
                 chosen: None,
                 session: None,
+                purpose: Purpose::Use,
             })),
         ),
         (
@@ -938,4 +941,37 @@ fn consent_and_review_name_the_app_as_porter_resolved_it() {
         panic!("no review");
     };
     assert_eq!(props.allow.as_deref(), Some("Claude Code"));
+}
+
+#[test]
+fn continue_as_is_its_own_step_and_an_empty_one_is_the_ordinary_question() {
+    let choice = AskChoice::new(
+        account("ada"),
+        AccountLabel("ada@example.org".to_owned()),
+        provider("nextcloud"),
+    );
+    let ask = |accounts| {
+        SheetView::Consent(
+            ConsentAsk::new(
+                app("org.quire.Mail"),
+                CapabilityKind::Identity,
+                DataClass::AppOwn,
+                Usage::Interactive,
+                accounts,
+            )
+            .with_purpose(porter_core::consent::AskPurpose::ContinueAs),
+        )
+    };
+    let Some(step) = shown(ask(vec![choice]), vec![]) else {
+        panic!("nothing drawn");
+    };
+    assert_eq!(step.title(), "Continue as");
+    let Step::Consent(props) = step else {
+        panic!("no consent");
+    };
+    assert_eq!(props.purpose, Purpose::ContinueAs);
+    let Some(Step::Consent(props)) = shown(ask(Vec::new()), vec![]) else {
+        panic!("no consent");
+    };
+    assert_eq!(props.purpose, Purpose::Use);
 }

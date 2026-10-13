@@ -6152,6 +6152,7 @@ version = "0.1.0"
 dependencies = [
  "porter-core",
  "porter-fs",
+ "rustix",
  "serde_json",
  "thiserror 2.0.21",
 ]

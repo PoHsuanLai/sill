@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use porter_core::sheet::SheetInput;
-use porter_dbus::{ACCOUNTS_BUS, SHEET_PATH};
+use porter_dbus::SHEET_PATH;
 use sill_launcher::OpenTarget;
 use sill_model::accounts::sheet::{
     AccountsSheetCommand, AccountsSheets, Admit, SheetEvent, SheetHandle, SheetLink, SheetOut,
@@ -14,8 +14,8 @@ use sill_model::launch::{LaunchCommand, OpenRequest};
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 use zbus::fdo;
-use zbus::names::OwnedUniqueName;
 
+use super::callers::{Caller, Host};
 use super::objects::Call;
 use super::serve;
 use crate::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
@@ -48,7 +48,7 @@ pub(crate) async fn run(bus: Bus, links: AccountsSheetLinks, io: ServiceIo<Accou
         }
     };
     let (left_tx, mut left) = mpsc::unbounded_channel();
-    watch_accountd(&connection, left_tx);
+    watch_services(&connection, &left_tx);
     let mut live = Live {
         sheets: AccountsSheets::default(),
         tx,
@@ -67,10 +67,7 @@ pub(crate) async fn run(bus: Bus, links: AccountsSheetLinks, io: ServiceIo<Accou
                 None => break,
             },
             Some(call) = calls.recv() => live.call(call),
-            Some(()) = left.recv() => {
-                live.openers.clear();
-                live.feed(SheetEvent::Gone);
-            }
+            Some(host) = left.recv() => live.drop_sheets_of(host),
         }
     }
     live.feed(SheetEvent::Link(SheetLink::Passive));
@@ -82,10 +79,24 @@ struct Live {
     connection: Connection,
     launch: Control<LaunchCommand>,
     /// Who opened each handle: the connection `Input` goes to, and the only one that may change it.
-    openers: HashMap<SheetHandle, OwnedUniqueName>,
+    openers: HashMap<SheetHandle, Caller>,
 }
 
 impl Live {
+    /// A service left the bus or was replaced: its sheets come down, the others stay.
+    fn drop_sheets_of(&mut self, host: Host) {
+        let gone: Vec<SheetHandle> = self
+            .openers
+            .iter()
+            .filter(|(_, opener)| opener.host == host)
+            .map(|(handle, _)| handle.clone())
+            .collect();
+        for handle in gone {
+            self.openers.remove(&handle);
+            self.feed(SheetEvent::Closed(handle));
+        }
+    }
+
     fn feed(&mut self, event: SheetEvent) {
         let (next, out) = step(std::mem::take(&mut self.sheets), event);
         self.tx.send_if_modified(|published| {
@@ -122,7 +133,7 @@ impl Live {
             let Some(json) = encode(&input) else { return };
             let sent = connection
                 .emit_signal(
-                    Some(opener.as_str()),
+                    Some(opener.name.as_str()),
                     SHEET_PATH,
                     "org.quire.AccountsSheet1",
                     "Input",
@@ -130,7 +141,7 @@ impl Live {
                 )
                 .await;
             if sent.is_err() {
-                eprintln!("sill: accounts sheet: telling accountd what the person did failed");
+                eprintln!("sill: accounts sheet: telling the service what the person did failed");
             }
         });
     }
@@ -183,9 +194,9 @@ impl Live {
     }
 
     /// Whether `from` opened `handle`.
-    fn owned(&self, handle: &SheetHandle, from: &OwnedUniqueName) -> fdo::Result<()> {
+    fn owned(&self, handle: &SheetHandle, from: &Caller) -> fdo::Result<()> {
         match self.openers.get(handle) {
-            Some(opener) if opener == from => Ok(()),
+            Some(opener) if opener.name == from.name => Ok(()),
             Some(_) => Err(fdo::Error::AccessDenied(
                 "only the connection that opened a sheet drives it".to_owned(),
             )),
@@ -198,16 +209,19 @@ fn encode(input: &SheetInput) -> Option<String> {
     serde_json::to_string(input).ok()
 }
 
-/// Tell the loop each time accountd leaves or is replaced.
-fn watch_accountd(connection: &Connection, left: mpsc::UnboundedSender<()>) {
-    let connection = connection.clone();
-    tokio::spawn(async move {
-        loop {
-            owner::appeared(&connection, ACCOUNTS_BUS).await;
-            owner::changed(&connection, ACCOUNTS_BUS).await;
-            if left.send(()).is_err() {
-                return;
+/// Tell the loop each time one of the services leaves or is replaced.
+fn watch_services(connection: &Connection, left: &mpsc::UnboundedSender<Host>) {
+    for host in Host::ALL {
+        let connection = connection.clone();
+        let left = left.clone();
+        tokio::spawn(async move {
+            loop {
+                owner::appeared(&connection, host.bus()).await;
+                owner::changed(&connection, host.bus()).await;
+                if left.send(host).is_err() {
+                    return;
+                }
             }
-        }
-    });
+        });
+    }
 }

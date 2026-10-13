@@ -19,9 +19,10 @@ use sill_ui_kit::links::BannerLink;
 use sill_ui_kit::root::SurfaceRoot;
 
 use super::ACCOUNTS_SHEET_CSS;
+use super::continue_as::ContinueBody;
 use super::events;
 use super::io::{Io, use_io};
-use super::props::Step;
+use super::props::{Purpose, Step};
 use super::stage::{Drawn, Here, Mapped, drawn};
 
 pub(super) fn accounts_sheet(output: OutputInfo) -> Element {
@@ -89,6 +90,15 @@ fn body(step: Step, io: Io) -> Element {
         _ => None,
     };
     match step {
+        Step::Consent(props) if props.purpose == Purpose::ContinueAs => rsx! {
+            ContinueBody {
+                app: props.app,
+                choices: props.choices,
+                chosen: props.chosen,
+                on_choose: move |key| act(events::chosen(&key)),
+                on_answer: move |answer| act(events::consent(answer, session.as_ref())),
+            }
+        },
         Step::Consent(props) => rsx! {
             ConsentBody {
                 session: match props.session {

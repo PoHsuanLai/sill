@@ -473,3 +473,66 @@ async fn the_name_is_claimed_only_when_told_to_serve_and_never_taken_from_anothe
         shell.sheet.state.borrow().link
     );
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn each_account_service_is_served_and_its_sheets_go_when_it_leaves() {
+    let Some(bus) = PrivateBus::start() else {
+        eprintln!("skipped: no dbus-daemon");
+        return;
+    };
+    let mut shell = shell(&bus);
+    serving(&mut shell).await;
+    let owners = [
+        ("org.quire.Accounts1", "accounts-0"),
+        ("org.quire.Inference1", "inference-0"),
+        ("org.quire.Sync1", "sync-0"),
+    ];
+    let mut held = Vec::new();
+    for (name, handle) in owners {
+        let owner = connect(&bus, Some(name)).await;
+        host(&owner)
+            .await
+            .open(handle, "", &providers())
+            .await
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        held.push(owner);
+    }
+    assert!(
+        wait_for(&mut shell.sheet.state, |s: &AccountsSheets| s.open.len()
+            == 3)
+        .await,
+        "not every service's sheet was drawn"
+    );
+    // One service leaving takes down its sheet only.
+    drop(held.remove(1));
+    assert!(
+        wait_for(&mut shell.sheet.state, |s: &AccountsSheets| s.open.len()
+            == 2)
+        .await,
+        "inferd's sheet outlived it"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_caller_that_owns_none_of_the_service_names_is_refused() {
+    let Some(bus) = PrivateBus::start() else {
+        eprintln!("skipped: no dbus-daemon");
+        return;
+    };
+    let mut shell = shell(&bus);
+    serving(&mut shell).await;
+    let _syncd = connect(&bus, Some("org.quire.Sync1")).await;
+    for name in ["org.quire.Inference2", "org.quire.Sync10"] {
+        let other = connect(&bus, Some(name)).await;
+        let refused = host(&other).await.open("evil", "", &providers()).await;
+        assert!(
+            matches!(&refused, Err(zbus::Error::MethodError(n, ..))
+                if n.as_str() == "org.freedesktop.DBus.Error.AccessDenied")
+                || matches!(&refused, Err(zbus::Error::FDO(e))
+                    if matches!(**e, zbus::fdo::Error::AccessDenied(_))),
+            "{name}: {refused:?}"
+        );
+    }
+    tokio::time::sleep(QUIET).await;
+    assert!(shell.sheet.state.borrow().open.is_empty());
+}

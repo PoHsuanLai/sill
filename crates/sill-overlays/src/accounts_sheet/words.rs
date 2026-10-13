@@ -253,3 +253,17 @@ pub(super) fn app_password_hint(provider: &ProviderId) -> Option<&'static str> {
         _ => None,
     }
 }
+
+/// The headline of the "Continue as" question: what the app asks, in the alert's own voice.
+pub(super) fn continue_title(app: &str) -> String {
+    format!("{app} wants to know who you are")
+}
+
+/// The line under it: which account it would continue as, or to choose one.
+pub(super) fn continue_message(accounts: &[ds_shell::accounts::model::AccountChoice]) -> String {
+    match accounts {
+        [] => String::new(),
+        [only] => format!("You would continue as {}.", only.label),
+        _ => "Choose the account to continue as.".to_owned(),
+    }
+}

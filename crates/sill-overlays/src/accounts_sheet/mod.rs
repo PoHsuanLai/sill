@@ -10,6 +10,7 @@
 //! Like the polkit prompt and the confirmation sheet this is phase A: a layer surface on a stock
 //! compositor, not unforgeable. Phase B moves it to casement-agent's trusted surface.
 
+mod continue_as;
 mod events;
 mod io;
 mod layer;

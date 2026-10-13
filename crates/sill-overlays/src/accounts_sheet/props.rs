@@ -25,6 +25,7 @@ use ds_shell::accounts::model::{
     ServiceKey, ServiceLine, ServiceOffer, SignInFault,
 };
 use ds_shell::prelude::{Recovery, WorkingFor};
+use porter_core::consent::{AskPurpose, ConsentAsk};
 use porter_core::sheet::{
     Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, ServiceState, SheetView,
 };
@@ -47,6 +48,28 @@ pub(super) struct ConsentProps {
     pub chosen: Option<ChoiceKey>,
     /// The launcher session the ask was made inside: when present, "This Session Only" is offered.
     pub session: Option<LauncherSession>,
+    /// What the answer is for: a use of the account, or the person picking who to continue as.
+    pub purpose: Purpose,
+}
+
+/// What a consent step asks, as the sheet draws it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Purpose {
+    /// An app wants to use an account: Allow Once, Always Allow, Don't Allow.
+    Use,
+    /// An app offers "Continue as": pick the identity, then Continue. Nothing is granted.
+    ContinueAs,
+}
+
+impl Purpose {
+    /// The purpose of `ask`; a step with no account to pick from is the ordinary question, which
+    /// offers "Add Account\u{2026}".
+    fn of(ask: &ConsentAsk) -> Self {
+        match ask.purpose {
+            AskPurpose::ContinueAs if !ask.accounts.is_empty() => Self::ContinueAs,
+            _ => Self::Use,
+        }
+    }
 }
 
 /// What the provider list is given.
@@ -113,7 +136,10 @@ impl Step {
         match self {
             // The alert's own headline says what the app wants; the window is named for the kind
             // of question.
-            Step::Consent(_) => "Account Access".to_owned(),
+            Step::Consent(props) => match props.purpose {
+                Purpose::Use => "Account Access".to_owned(),
+                Purpose::ContinueAs => "Continue as".to_owned(),
+            },
             Step::Providers(_) => "Add Account".to_owned(),
             Step::SignIn(props) => format!("Sign in to {}", props.provider),
             Step::Browser { .. } => "Continue in your browser".to_owned(),
@@ -152,6 +178,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                 .as_ref()
                 .map(|account| ChoiceKey(account.as_str().to_owned())),
             session: ask.session.clone(),
+            purpose: Purpose::of(ask),
         }),
         SheetView::Providers(rows) => Step::Providers(ProvidersProps {
             // The generic mail rows are ProviderList's own "Other…" (and the server form's

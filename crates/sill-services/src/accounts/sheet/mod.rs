@@ -7,15 +7,16 @@
 //! ([`AccountsSheets`]) for the accounts-sheet surface to draw, and sends what the person does
 //! (an [`AccountsSheetCommand::Act`]) back through the pure step.
 //!
-//! - **Only accountd.** Every call is checked against the owner of `org.quire.Accounts1`: a call
-//!   from any other connection is refused (`AccessDenied`) and draws nothing. `Update` and `Close`
+//! - **Only the account services.** Every call is checked against the current owners of
+//!   `org.quire.Accounts1` (accountd), `org.quire.Inference1` (inferd: AI keys, the AI permit and
+//!   agent key sheets) and `org.quire.Sync1` (syncd's own sign-in): a call from any other connection is refused (`AccessDenied`) and draws nothing. `Update` and `Close`
 //!   also must come from the connection that opened the handle.
 //! - **`Input` goes to accountd alone.** It is sent to the opener's unique name, never broadcast,
 //!   because it may carry a typed password; nothing here logs it or keeps it after it is sent.
 //! - **Passive until [`AccountsSheetCommand::Serve`]**: a test's `start` never claims a name.
 //! - **The host opens the page** a browser step shows (accountd opens none); showing the same page
 //!   again (accountd's answer to `OpenAgain`) opens it again, through the launch service.
-//! - accountd leaving the bus (or being replaced) takes every sheet down.
+//! - A service leaving the bus (or being replaced) takes down its own sheets, and only those.
 
 mod backend;
 
