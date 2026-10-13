@@ -1,12 +1,12 @@
 //! A [`Preview`] as quire's `PaneContent`, with what it names on disk loaded off the UI thread: a
-//! file's peek through `load.rs` (the viewer's `anyview_peek`, drawn by its `Pane` in quire's
+//! file's peek through `load.rs` (the viewer's `anyview_peek`, drawn by its `Card` in quire's
 //! slot so one `PreviewPane` keeps its actions, its cue, its pending look and its entrance
 //! whatever it shows), a clipboard image's bytes from the clipboard service.
 
 use std::path::Path;
 use std::sync::Arc;
 
-use anyview_peek::{AnyPeeked, Pane};
+use anyview_peek::{AnyPeeked, Card};
 use companion_wire::footer_line;
 use dioxus::prelude::*;
 use ds::components::companion::answer::view::AnswerCard;
@@ -224,7 +224,7 @@ fn peeked_slot(peeked: &Arc<AnyPeeked>) -> PaneContent {
     PaneContent::Slot {
         label: peeked.name.clone(),
         element: rsx! {
-            Pane { peeked: Arc::clone(peeked), page_room: PAGE_ROOM }
+            Card { peeked: Arc::clone(peeked), page_room: PAGE_ROOM }
         },
     }
 }

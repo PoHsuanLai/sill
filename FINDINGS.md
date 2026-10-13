@@ -621,7 +621,7 @@ A settled item is deleted, not marked closed.
   renderer must hand its device to quire's `Gpu` for the texture to draw. Ends when
   `docs/manual-checks.md` "A file from the launcher in the viewer" is ticked on COSMIC; if the picture is
   blank there, the pane needs the PNG fallback its FINDINGS names.
-- **Each file peek writes the pane's stylesheet.** `anyview_peek::Pane` draws its own `AppStyle`, one
+- **Each file peek writes the pane's stylesheet.** `anyview_peek::Card` draws its own `AppStyle`, one
   `<style>` per pane. Ends when the launcher draws `anyview_peek::STYLE` once at its root.
 - **A file row's glyph and actions come from its media type, the pane from its bytes.** A row built from
   the viewer's history has its kind's commonest type (`image/png` for any raster); a file whose name lies
