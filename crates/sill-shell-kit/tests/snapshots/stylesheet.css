@@ -3501,8 +3501,75 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-effect-tag[*|data-effect=destructive]{ background:var(--danger-wash); }
 .ds-effect-tag-words{ line-height:1.25; }
 /* -- answer_card -- */
-/* The answer card (design/32 section 4). Placeholder root until its fill. */
-.ds-answer-card { display:block; }
+/* The answer card (design/32 section 4): the variant's body, its actions, the footer. A column
+   on the pane's own ground; the pane draws the card, so there is no box of its own. Attribute
+   selectors carry `*|` (spike S2). */
+.ds-answer-card{ display:flex; flex-direction:column; gap:var(--s-12); min-width:0; color:var(--ink); font-size:var(--fs-control); }
+.ds-card-label{ font-size:var(--fs-help); color:var(--ink-faint); }
+.ds-card-line{ margin:0; line-height:1.4; }
+.ds-card-optional{ color:var(--ink-faint); }
+
+/* Text: paragraphs, with a gap between. */
+.ds-card-text{ display:flex; flex-direction:column; gap:var(--s-8); }
+
+/* A draft: the header lines, the quoted message in a quiet rule, then the editable body. */
+.ds-card-draft{ display:flex; flex-direction:column; gap:var(--s-8); }
+.ds-card-draft-to, .ds-card-draft-subject{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-8); }
+.ds-card-quote{ margin:0; padding-inline-start:var(--s-10); border-inline-start:var(--s-2) solid var(--line); color:var(--ink-soft); font-size:var(--fs-help); }
+.ds-card-person{ display:inline-flex; align-items:center; gap:var(--s-6); }
+.ds-card-person-name{ color:var(--ink); }
+.ds-card-person-address{ color:var(--ink-faint); font-size:var(--fs-help); }
+
+/* A proposed event: the facts, then a strip of the day. A slot sits at `--from` for `--span`,
+   both percent of the strip, written by the component. */
+.ds-card-event{ display:flex; flex-direction:column; gap:var(--s-6); }
+.ds-card-event-title{ font-size:var(--fs-title); font-weight:600; }
+.ds-card-event-when, .ds-card-event-place{ color:var(--ink-soft); }
+.ds-day-strip{ --from:0%; --span:0%; position:relative; height:var(--s-26); margin-top:var(--s-6); border-radius:var(--r-small); background:var(--fill-quaternary); overflow:hidden; }
+.ds-day-slot{ position:absolute; top:0; bottom:0; left:var(--from); width:var(--span); box-sizing:border-box; padding:0 var(--s-4); overflow:hidden; white-space:nowrap; font-size:var(--fs-caption); line-height:var(--s-26); background:var(--fill); border-inline-start:var(--s-2) solid var(--line); }
+.ds-day-slot[*|data-kind=proposed]{ background:var(--accent-soft); border-inline-start-color:var(--accent); }
+.ds-day-slot[*|data-kind=conflict]{ background:var(--danger-wash); border-inline-start-color:var(--danger); }
+
+/* A plan: groups under their effect, a step per line, its state at the end. */
+.ds-card-plan{ display:flex; flex-direction:column; gap:var(--s-10); }
+.ds-card-plan-head, .ds-card-plan-group-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8); }
+.ds-card-plan-title{ font-size:var(--fs-title); font-weight:600; }
+.ds-card-plan-phase{ color:var(--ink-faint); font-size:var(--fs-help); }
+.ds-card-plan-group{ display:flex; flex-direction:column; gap:var(--s-4); }
+.ds-card-plan-steps{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+.ds-card-plan-step{ display:flex; align-items:center; gap:var(--s-8); padding:var(--s-4) 0; border-top:var(--hair) solid var(--line-soft); }
+.ds-card-plan-step[*|data-inclusion=excluded]{ opacity:.35; text-decoration:line-through; }
+.ds-card-plan-step-label{ flex:1; min-width:0; }
+.ds-card-plan-step-detail, .ds-card-plan-step-state{ color:var(--ink-faint); font-size:var(--fs-help); }
+.ds-card-plan-step[*|data-state=failed] .ds-card-plan-step-state{ color:var(--danger-ink); }
+
+/* A replacement: the text as it is above the text as it would become. */
+.ds-card-replace{ display:flex; flex-direction:column; gap:var(--s-6); }
+.ds-card-replace-side{ display:flex; flex-direction:column; gap:var(--s-2); padding:var(--s-8) var(--s-10); border-radius:var(--r-small); background:var(--fill-quaternary); }
+.ds-card-replace-side[*|data-side=proposed]{ background:var(--accent-soft); }
+.ds-card-replace-phase{ color:var(--ink-faint); font-size:var(--fs-help); }
+
+/* A form: a label over its input. */
+.ds-card-form{ display:flex; flex-direction:column; gap:var(--s-10); }
+.ds-card-form-title{ font-size:var(--fs-title); font-weight:600; }
+.ds-card-form-field{ display:flex; flex-direction:column; gap:var(--s-4); }
+.ds-card-form-picks{ display:flex; flex-wrap:wrap; gap:var(--s-6); }
+
+/* A refusal: the headline, then what to do about it. */
+.ds-card-refused{ display:flex; flex-direction:column; gap:var(--s-4); padding:var(--s-10) var(--s-12); border-radius:var(--r-small); background:var(--fill-quaternary); }
+.ds-card-refused[*|data-why=failed]{ background:var(--danger-wash); }
+.ds-card-refused-head{ font-weight:600; }
+
+/* Actions: a row, each button with its effect tag beside it. The one with the keyboard shows
+   the button's own focus ring. */
+.ds-card-actions{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-8); }
+.ds-card-action{ display:inline-flex; align-items:center; gap:var(--s-6); }
+
+/* The footer: quiet, one wrapped line. */
+.ds-card-footer{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-4) var(--s-8); color:var(--ink-faint); font-size:var(--fs-help); }
+.ds-card-served{ white-space:nowrap; }
+.ds-card-source{ display:inline-flex; align-items:center; gap:var(--s-4); }
+.ds-card-scope{ padding:var(--s-1) var(--s-6); border-radius:var(--r-pill); background:var(--fill-quaternary); }
 /* -- plan_list -- */
 /* The plan list (design/32 section 4). Placeholder root until its fill. */
 .ds-plan-list { display:block; }
