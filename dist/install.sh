@@ -77,4 +77,4 @@ fi
 run systemctl --user daemon-reload
 
 step "done"
-note "Next: install the "sill (casement)" login from the desktop repo, then docs/first-login.md. Plasma is untouched and stays in the session list."
+note "Next: install the \"sill (casement)\" login from the desktop repo, then docs/first-login.md. Plasma is untouched and stays in the session list."
