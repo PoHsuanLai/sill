@@ -1534,33 +1534,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cosmic-client-toolkit"
-version = "0.2.0"
-source = "git+https://github.com/pop-os/cosmic-protocols?rev=c0cff4db14c37ed954983158e4055aa94c7741d9#c0cff4db14c37ed954983158e4055aa94c7741d9"
-dependencies = [
- "bitflags 2.13.2",
- "cosmic-protocols",
- "libc",
- "smithay-client-toolkit 0.20.0",
- "wayland-client",
- "wayland-protocols",
-]
-
-[[package]]
-name = "cosmic-protocols"
-version = "0.2.0"
-source = "git+https://github.com/pop-os/cosmic-protocols?rev=c0cff4db14c37ed954983158e4055aa94c7741d9#c0cff4db14c37ed954983158e4055aa94c7741d9"
-dependencies = [
- "bitflags 2.13.2",
- "wayland-backend",
- "wayland-client",
- "wayland-protocols",
- "wayland-protocols-wlr",
- "wayland-scanner",
- "wayland-server",
-]
-
-[[package]]
 name = "cpubits"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6605,20 +6578,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ron"
-version = "0.12.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81116b9531d61eabc41aeb228e4b6b2435bcca3233b98cf3b3077d4e6e9debb3"
-dependencies = [
- "bitflags 2.13.2",
- "once_cell",
- "serde",
- "serde_derive",
- "typeid",
- "unicode-ident",
-]
-
-[[package]]
 name = "roxmltree"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7009,7 +6968,6 @@ dependencies = [
  "keyboard-types 0.7.0",
  "latchkey",
  "prov",
- "ron",
  "serde",
  "serde_json",
  "shell-host",
@@ -7258,7 +7216,6 @@ dependencies = [
  "anyview-platform",
  "casement-protocols",
  "companion-wire",
- "cosmic-client-toolkit",
  "cua-bus",
  "cua-dbus",
  "ddc",
@@ -7294,6 +7251,7 @@ dependencies = [
  "sill-launcher",
  "sill-model",
  "sill-testkit",
+ "smithay-client-toolkit 0.20.0",
  "system-tray",
  "thiserror 2.0.21",
  "tokio",
@@ -7301,6 +7259,8 @@ dependencies = [
  "upower_dbus",
  "voice-dbus",
  "voice-wire",
+ "wayland-client",
+ "wayland-protocols",
  "zbus",
 ]
 
@@ -7343,7 +7303,6 @@ dependencies = [
 name = "sill-testkit"
 version = "0.1.0"
 dependencies = [
- "cosmic-client-toolkit",
  "porter-core",
  "porter-dbus",
  "rustix",
@@ -7354,6 +7313,8 @@ dependencies = [
  "sill-search",
  "sill-services",
  "tokio",
+ "wayland-client",
+ "wayland-protocols",
  "zbus",
 ]
 
@@ -8508,12 +8469,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e28f89b80c87b8fb0cf04ab448d5dd0dd0ade2f8891bae878de66a75a28600e"
 
 [[package]]
-name = "typeid"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
-
-[[package]]
 name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8984,7 +8939,6 @@ dependencies = [
  "wayland-backend",
  "wayland-client",
  "wayland-scanner",
- "wayland-server",
 ]
 
 [[package]]
@@ -9050,7 +9004,6 @@ dependencies = [
  "wayland-client",
  "wayland-protocols",
  "wayland-scanner",
- "wayland-server",
 ]
 
 [[package]]
@@ -9062,19 +9015,6 @@ dependencies = [
  "proc-macro2",
  "quick-xml",
  "quote",
-]
-
-[[package]]
-name = "wayland-server"
-version = "0.31.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dde9c29be0f723a573977de51ee455bf3dfa03652730a74f9dd3b337e374d75"
-dependencies = [
- "bitflags 2.13.2",
- "downcast-rs",
- "rustix",
- "wayland-backend",
- "wayland-scanner",
 ]
 
 [[package]]
