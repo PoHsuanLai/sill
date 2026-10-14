@@ -170,16 +170,23 @@ fn a_commit_inside_the_delay_switches_with_no_panel() {
     assert_eq!(sent(&mut running), vec![WlCommand::Activate(WindowKey(2))]);
 }
 
+/// Before the modifiers are read (the focus lands 50 to 90 ms after the chord), a second chord
+/// is Tab pressed again with Cmd still down: no one releases and presses the chord again that
+/// fast. It steps; the release then activates the third app.
 #[test]
-fn a_second_chord_inside_the_delay_is_a_second_quick_tap() {
+fn a_second_chord_before_the_modifiers_are_read_is_a_step() {
     let mut running = running();
     wait(&mut running, 40);
     ask(&mut running, SwitcherAsk::Chord(Dir::Next));
     wait(&mut running, 30);
     ask(&mut running, SwitcherAsk::Chord(Dir::Next));
     wait(&mut running, 300);
+    assert_eq!(panels(&running), 1);
+    assert_eq!(tiles(&running.harness).1.as_deref(), Some("edit"));
+    ask(&mut running, SwitcherAsk::Commit);
+    wait(&mut running, 60);
     assert_eq!(panels(&running), 0);
-    assert_eq!(sent(&mut running), vec![WlCommand::Activate(WindowKey(2))]);
+    assert_eq!(sent(&mut running), vec![WlCommand::Activate(WindowKey(3))]);
 }
 
 #[test]
