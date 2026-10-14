@@ -93,7 +93,6 @@ mod tests {
         let spaces = SpacesSettings {
             default_grain: Count(20),
             default_card_accent: DefaultCardAccent::SpaceHue,
-            ..SpacesSettings::default()
         };
         // (index, preset, grain): every preset takes the key.
         const CASES: &[(usize, usize, u8)] = &[(0, 0, 20), (1, 1, 20), (2, 2, 20), (9, 1, 20)];
