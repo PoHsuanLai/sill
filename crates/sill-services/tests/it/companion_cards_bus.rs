@@ -394,8 +394,8 @@ async fn a_handle_in_an_answer_is_shown_through_session_display_once() {
     );
     assert_eq!(
         answer_line(&state.answers[&task()]).1,
-        "Found",
-        "the row's line is the text the router showed"
+        "the text of handle 7",
+        "the row's latest line is the text the router showed for the handle"
     );
     // The answer changes again with the same handle: the router is not asked a second time.
     bench.updates(&with_handle(AnswerPhase::Done)).await;
