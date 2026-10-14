@@ -10,13 +10,13 @@ use std::os::fd::{AsFd, OwnedFd};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use smithay_client_toolkit::reexports::calloop::{LoopHandle, LoopSignal};
-use wayland_client::backend::ObjectId;
-use wayland_client::{Connection, QueueHandle};
 use sill_launcher::UnixTime;
 use sill_model::clipboard::{
     ClipContent, ClipEvent, ImageCap, ImagesKept, MimePick, OfferVerdict, Skipped, offer_verdict,
 };
+use smithay_client_toolkit::reexports::calloop::{LoopHandle, LoopSignal};
+use wayland_client::backend::ObjectId;
+use wayland_client::{Connection, QueueHandle};
 
 use super::content::{content_of, limit_for};
 use super::pipes::{ReadEnd, ReadId, ReadOwner, Reading, read_whole, write_whole};

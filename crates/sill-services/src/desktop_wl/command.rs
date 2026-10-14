@@ -6,8 +6,8 @@ use desktop_client::toplevel::ToplevelFlag;
 use desktop_client::workspace::WorkspaceAbility;
 use desktop_client::{DesktopCommand as Wire, DesktopState};
 use porter_core::SpaceId;
-use sill_model::windows::WlCommand;
 use sill_model::desktop::{DesktopBackend, DesktopCommand, Supports, supports};
+use sill_model::windows::WlCommand;
 
 use super::ids::{space_id, toplevel_key, wire_workspace_key};
 use super::view::identifier;

@@ -56,10 +56,7 @@ mod tests {
 
     #[test]
     fn candidates_put_the_env_terminal_first_and_drop_blanks_and_duplicates() {
-        assert_eq!(
-            candidates(None),
-            vec!["ghostty", "wezterm", "foot"]
-        );
+        assert_eq!(candidates(None), vec!["ghostty", "wezterm", "foot"]);
         assert_eq!(
             candidates(Some("  ")),
             vec!["ghostty", "wezterm", "foot"],

@@ -166,8 +166,16 @@ mod tests {
             Path::new("/c/gtk-3.0/settings.ini")
         );
         let cases = [
-            ("named", "[Settings]\ngtk-icon-theme-name=Papirus\n", Some("Papirus")),
-            ("spaced", "gtk-icon-theme-name = Adwaita \n", Some("Adwaita")),
+            (
+                "named",
+                "[Settings]\ngtk-icon-theme-name=Papirus\n",
+                Some("Papirus"),
+            ),
+            (
+                "spaced",
+                "gtk-icon-theme-name = Adwaita \n",
+                Some("Adwaita"),
+            ),
             ("empty", "gtk-icon-theme-name=\n", None),
             ("absent", "[Settings]\ngtk-theme-name=Foo\n", None),
         ];

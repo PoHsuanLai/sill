@@ -4,22 +4,20 @@
 
 use std::io;
 
-use smithay_client_toolkit::reexports::calloop;
-use smithay_client_toolkit::reexports::calloop::generic::Generic;
-use smithay_client_toolkit::reexports::calloop::{
-    EventLoop, Interest, Mode, PostAction, channel,
-};
-use wayland_client::Connection;
-use wayland_client::backend::WaylandError;
 use desktop_client::Desktop;
 use desktop_client::client::DesktopClient;
-use sill_model::windows::{WindowModel, Toplevels, WlCommand};
+use sill_model::windows::{Toplevels, WindowModel, WlCommand};
+use smithay_client_toolkit::reexports::calloop;
+use smithay_client_toolkit::reexports::calloop::generic::Generic;
+use smithay_client_toolkit::reexports::calloop::{EventLoop, Interest, Mode, PostAction, channel};
 use tokio::sync::mpsc::UnboundedReceiver;
+use wayland_client::Connection;
+use wayland_client::backend::WaylandError;
 
 use super::command::{Refusal, desktop_of, wire_of};
-use super::{toplevels, workspaces};
 use super::commands::{forward_commands, park_commands};
 use super::publish::Publish;
+use super::{toplevels, workspaces};
 
 /// The thread's body: follow the compositor until every `Control` is dropped or the connection
 /// ends, then publish empty values.

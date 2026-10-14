@@ -5,14 +5,14 @@
 
 use std::io;
 
+use sill_model::clipboard::{ClipContent, ClipEvent, ClipProtocol, ImageCap};
 use smithay_client_toolkit::reexports::calloop;
 use smithay_client_toolkit::reexports::calloop::channel::Event;
 use smithay_client_toolkit::reexports::calloop::{EventLoop, channel};
 use smithay_client_toolkit::reexports::calloop_wayland_source::WaylandSource;
+use tokio::sync::mpsc::UnboundedSender;
 use wayland_client::globals::{GlobalError, registry_queue_init};
 use wayland_client::protocol::wl_seat::WlSeat;
-use sill_model::clipboard::{ClipContent, ClipEvent, ClipProtocol, ImageCap};
-use tokio::sync::mpsc::UnboundedSender;
 
 use super::wire_state::{Binding, WireState};
 use super::wl::{bind_manager, manager_interfaces};

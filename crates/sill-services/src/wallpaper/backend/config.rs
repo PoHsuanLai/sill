@@ -46,8 +46,16 @@ mod tests {
     #[test]
     fn every_case_extracts_or_refuses_the_path() {
         let cases: &[(&str, &str, Option<&str>)] = &[
-            ("a bare path", "/usr/share/backgrounds/dark.png\n", Some("/usr/share/backgrounds/dark.png")),
-            ("surrounding space", "  /a/b.png  \nignored\n", Some("/a/b.png")),
+            (
+                "a bare path",
+                "/usr/share/backgrounds/dark.png\n",
+                Some("/usr/share/backgrounds/dark.png"),
+            ),
+            (
+                "surrounding space",
+                "  /a/b.png  \nignored\n",
+                Some("/a/b.png"),
+            ),
             ("blank first line", "\n/a/b.png\n", None),
             ("empty text", "", None),
         ];

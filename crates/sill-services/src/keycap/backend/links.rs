@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 
 use sill_model::apps::AppIndex;
-use sill_model::windows::WindowModel;
 use sill_model::notifications::{NotesState, NotificationsCommand};
+use sill_model::windows::WindowModel;
 use tokio::sync::watch;
 
 use crate::control::Control;

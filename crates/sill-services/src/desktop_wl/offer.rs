@@ -1,8 +1,8 @@
 //! What the compositor offers, read from its registry or from the wire client's bound set.
 
-use wayland_client::globals::GlobalList;
 use desktop_client::ProtocolSet;
 use sill_model::desktop::GlobalOffer;
+use wayland_client::globals::GlobalList;
 
 /// The globals the registry listed, with their versions.
 pub fn offer_of_registry(globals: &GlobalList) -> GlobalOffer {

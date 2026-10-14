@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 use docket_client::{DbusTransport, Intents, Transport};
 use sill_model::app_menu::MenuApp;
-use sill_model::windows::{WindowModel, Toplevels, WlCommand};
+use sill_model::windows::{Toplevels, WindowModel, WlCommand};
 use tokio::sync::watch;
 use zbus::Connection;
 

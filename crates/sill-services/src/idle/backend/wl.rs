@@ -7,13 +7,13 @@
 
 use std::io;
 
+use sill_model::idle::{DisplayPower, Threshold, Watch};
 use smithay_client_toolkit::reexports::calloop;
 use smithay_client_toolkit::reexports::calloop::channel::Event;
 use smithay_client_toolkit::reexports::calloop::{EventLoop, channel};
 use smithay_client_toolkit::reexports::calloop_wayland_source::WaylandSource;
-use wayland_client::globals::{GlobalError, registry_queue_init};
-use sill_model::idle::{DisplayPower, Threshold, Watch};
 use tokio::sync::mpsc::UnboundedSender;
+use wayland_client::globals::{GlobalError, registry_queue_init};
 
 use super::wl_state::WlState;
 use crate::env::{WaylandRoute, WaylandUnreached};

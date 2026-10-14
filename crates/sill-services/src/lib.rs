@@ -25,7 +25,6 @@ pub mod clipboard;
 pub mod clock;
 pub mod companion;
 pub mod control;
-pub mod windows;
 pub mod desktop_wl;
 pub mod displays;
 pub mod env;

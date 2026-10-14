@@ -1,8 +1,8 @@
 //! The command channel between the service's `Control`s and the thread's loop, shared by both
 //! arms of the windows service.
 
-use smithay_client_toolkit::reexports::calloop::channel;
 use sill_model::windows::WlCommand;
+use smithay_client_toolkit::reexports::calloop::channel;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 /// Hand every command to the loop; once the loop has stopped, drop them.

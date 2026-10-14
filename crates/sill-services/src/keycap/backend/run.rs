@@ -3,7 +3,6 @@
 
 use keycap_protocol::{ProfileName, ToDaemon};
 use sill_model::apps::AppIndex;
-use sill_model::windows::WindowModel;
 use sill_model::keyboard::{
     CategoryTable, OwnProfiles, ShellFocus, UserOverrides, under_shell, wanted,
 };
@@ -12,6 +11,7 @@ use sill_model::keycap::{
     notice_for, step, user_config, watching_unit,
 };
 use sill_model::notifications::{NotesState, NotificationsCommand};
+use sill_model::windows::WindowModel;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 use tokio::sync::watch;

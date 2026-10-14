@@ -83,12 +83,8 @@ mod tests {
         let target = dir.join("sill/wallpaper-source");
         assert_eq!(nearest_existing_ancestor(&target), Some(dir.clone()));
 
-        std::fs::create_dir_all(dir.join("sill"))
-            .unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(
-            nearest_existing_ancestor(&target),
-            Some(dir.join("sill"))
-        );
+        std::fs::create_dir_all(dir.join("sill")).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(nearest_existing_ancestor(&target), Some(dir.join("sill")));
 
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -8,9 +8,7 @@ use smithay_client_toolkit::reexports::protocols_wlr::data_control::v1::client::
 use wayland_client::globals::GlobalListContents;
 use wayland_client::protocol::wl_registry::WlRegistry;
 use wayland_client::protocol::wl_seat::WlSeat;
-use wayland_client::{
-    Connection, Dispatch, Proxy, QueueHandle, event_created_child,
-};
+use wayland_client::{Connection, Dispatch, Proxy, QueueHandle, event_created_child};
 use wayland_protocols::ext::data_control::v1::client::{
     ext_data_control_device_v1 as ext_device, ext_data_control_manager_v1 as ext_manager,
     ext_data_control_offer_v1 as ext_offer, ext_data_control_source_v1 as ext_source,
