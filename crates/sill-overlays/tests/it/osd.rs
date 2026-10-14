@@ -161,9 +161,10 @@ fn a_faked_change_shows_its_own_level_and_another_outputs_does_not_show() {
     );
 }
 
-/// The user's pick: the OSD's level is the capsule.
+/// The Mac's volume and brightness keys draw sixteen squares, not the iOS pill (quire design/29
+/// section 16).
 #[test]
-fn the_level_is_the_capsule() {
+fn the_level_is_sixteen_squares() {
     let mut running = start(file());
     show(&mut running, OsdKind::Volume, LevelSource::Live);
     running.harness.advance(Duration::from_millis(40));
@@ -173,7 +174,7 @@ fn the_level_is_the_capsule() {
         .expect("a level control");
     let tag = &html[at..];
     let tag = &tag[..tag.find('>').unwrap_or(tag.len())];
-    assert!(tag.contains("data-style=\"continuous\""), "{tag}");
+    assert!(tag.contains("data-style=\"discrete\""), "{tag}");
 }
 
 /// The card's presence: quire's `Osd` (`#osd`) is `"hidden"` while `data-shown="hidden"`, else

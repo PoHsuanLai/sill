@@ -428,6 +428,12 @@ the real daemons or a real keyboard.
   Space picks, Return shares, Escape cancels; Share stays dim until something is picked; a second
   request while one is open is refused; the window list matches the open windows (needs casement's
   identifiers).
+- [ ] **Mac level sliders** (quire design/29 section 16): in the control center the Display, Sound and
+  Keyboard Brightness sliders are a 22 high well under a round white knob that holds the glyph
+  (sun, speaker with waves, keys); a click on the well jumps the knob, a drag moves it, the arrows
+  step a sixteenth (Shift a sixty-fourth); disabled keeps the knob, dimmed. The volume and
+  brightness OSD shows sixteen squares under the title (the card is still 296 x 80; check the squares
+  are not cramped or the card too tall).
 
 ## Owned by another repository
 

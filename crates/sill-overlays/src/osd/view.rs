@@ -24,9 +24,10 @@ use sill_ui_kit::root::SurfaceRoot;
 /// The indicator's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
 pub const OSD_CSS: &str = include_str!("style.css");
 
-/// The level's style: the capsule, the user's pick. Not a setting: the OSD has no look key, and
-/// this is the one place.
-const LOOK: LevelStyle = LevelStyle::Continuous;
+/// The level's style: the bezel's sixteen squares, as the Mac's volume and brightness keys draw
+/// them (quire design/29 section 16); the capsule was the iOS pill. Not a setting: the OSD has no
+/// look key, and this is the one place.
+const LOOK: LevelStyle = LevelStyle::Discrete;
 
 /// `sill_settings::OsdPosition` as quire's `sill_shell_kit::osd::OsdPosition`.
 fn position_of(position: sill_settings::OsdPosition) -> OsdPosition {

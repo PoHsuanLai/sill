@@ -18,7 +18,7 @@ use sill_settings::{OsdPosition, OsdSettings, ShellFile};
 use sill_ui_kit::surface::namespace;
 
 /// The card's size: quire's `Osd` fixes the width at 296 (a control-center module spanning both
-/// columns); the height is the title line over the Capsule level, at the card's own padding and
+/// columns); the height is the title line over the level, at the card's own padding and
 /// gap (design/20 §1.7 leaves it open; 01-LAYOUT "OSD: position, size: not specified").
 pub const CARD_WIDTH: u32 = 296;
 pub const CARD_HEIGHT: u32 = 80;
