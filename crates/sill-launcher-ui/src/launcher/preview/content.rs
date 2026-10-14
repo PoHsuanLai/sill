@@ -150,17 +150,26 @@ fn answer_card(task: &prov::TaskId, companion: &Companion) -> PaneContent {
         zone: &zone,
         display: &display,
     };
-    let body = match &answer.wire.body {
-        AnswerBody::Text { .. } => Some(answer_text(answer)),
-        _ => None,
+    // A text answer is drawn here, its marks read as emphasis; quire's card draws every other kind.
+    let (body, card) = match &answer.wire.body {
+        AnswerBody::Text { .. } => (Some(answer_text(answer)), None),
+        _ => (
+            None,
+            Some(without_actions(answer_view(
+                &answer.wire,
+                &answer.prompt,
+                &cx,
+            ))),
+        ),
     };
-    let view = without_actions(answer_view(&answer.wire, &answer.prompt, &cx));
     // How the answer was reached, in the words the companion's wire crate prints; no stage, no line.
     let route = footer_line(&answer.routing);
     PaneContent::Slot {
         label: answer.prompt.clone(),
         element: rsx! {
-            AnswerCard { view, on_action: move |_| {} }
+            if let Some(view) = card {
+                AnswerCard { view, on_action: move |_| {} }
+            }
             if let Some(body) = body {
                 {body}
             }
