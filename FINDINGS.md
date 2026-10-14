@@ -1,96 +1,62 @@
 # Findings
 
-Reference, not history: the facts sill's code rests on (what COSMIC, the system services and the
+Reference, not history: the facts sill's code rests on (what the compositors, the system services and the
 libraries were found to do), the decisions that depart from quire's design docs and why, and the
 items still open. "Q" marks something wanted from quire, "G" from shell-host or from sill itself.
 A settled item is deleted, not marked closed.
 
 ## Standing facts: compositors
 
-- **COSMIC is the product target; KWin is a test compositor only.** Headless KWin (shell-host's
-  `kwin-virtual.sh` plus `fake-input.sh`) is where real pointer and keyboard input is scripted,
-  since the nested cosmic-comp takes no synthetic input (below). Nothing in sill is specific to
+- **casement is the product target; KWin is a test compositor only.** Headless KWin (shell-host's
+  `kwin-virtual.sh` plus `fake-input.sh`) is where real pointer and keyboard input is scripted
+  where casement cannot yet. Nothing in sill is specific to
   KWin: on any compositor that lacks a protocol sill asks for, the matching service stays at its
   default ("protocol absent") and one line goes to stderr.
-- **`cosmic_wl` has its own Wayland connection** (a protocol object cannot cross connections, and
-  the host's connection is the host's), a calloop loop over it and a forwarding thread for its
-  `Control`. Toplevels publish on each handle's `done`, workspaces on the manager's `done` and
-  when an output is added or renamed. Without `ext_foreign_toplevel_list_v1` or
+- **The window service has its own Wayland connection** (a protocol object cannot cross
+  connections, and the host's connection is the host's), a calloop loop over it and a forwarding
+  thread for its `Control`. Toplevels publish on each handle's `done`, workspaces on the manager's
+  `done` and when an output is added or renamed. Without `ext_foreign_toplevel_list_v1` or
   `ext_workspace_manager_v1` (or with no socket at all) both receivers keep their empty
   defaults and commands are dropped; the watch senders stay held, so receivers read empty
   values, not a closed channel.
-- **One binary, the arm from the globals.** `cosmic_wl`'s thread lists the registry and
+- **One binary, the arm from the globals.** The thread lists the registry and
   `sill_services::desktop_wl::backend_of` picks, by asking `desktop_client::backend_for` of the
-  offered globals: Quire (`quire_desktop_manager_v1` and the ext list) and Wlr (the wlr manager,
-  or the ext list alone when COSMIC's own `zcosmic_toplevel_info_v1` is not also there) run the
-  `desktop_wl` arm over `desktop-client`; anything else is Cosmic. Never a compositor's name or
-  the environment. The displays use the native output management when `desktop_client::backend_for`
-  says Wlr or Quire (`OutputsRoute`), `cosmic-randr` otherwise.
+  offered globals: Quire (`quire_desktop_manager_v1` and the ext list) or Wlr (the wlr manager,
+  or the ext list alone), both over `desktop-client`. Never a compositor's name or
+  the environment. The displays use the native output management.
 - **The standard protocols do not say which workspace a window is on, or which window was last
-  active.** The Wlr arm keeps recency itself (the projection steps each window into the same
-  `toplevels::step` COSMIC's uses) and puts a window on the active workspaces of the groups that
-  show its outputs; `WindowView::space` is `Unknown`. It cannot place a window, move one to a
-  Space, reorder or pin a workspace, or send a minimise target (the sill command carries no
-  `wl_surface`): `supports(Wlr, ..)` is `No` for those and the arm drops the old commands that
+  active.** The Wlr arm keeps recency itself and puts a window on the active workspaces of the
+  groups that show its outputs; `WindowView::space` is `Unknown`. It cannot place a window, move
+  one to a Space, reorder or pin a workspace, or send a minimise target (the sill command carries
+  no `wl_surface`): `supports(Wlr, ..)` is `No` for those and the arm drops the old commands that
   mean them. A Space's id is the compositor's workspace id as a slug, else `ws-<key>`.
 - **Commands are gated on what the compositor advertised.** A command for an unknown key or a
-  missing capability is dropped. Two protocol quirks: COSMIC's workspace XML gives `pin` the
-  bitfield value 3 (`rename | set_tiling_state`), so capabilities are compared whole; and
-  cosmic-comp 1.8 carries out `move_to_ext_workspace` at toplevel-manager v4 while its
-  `capabilities` event lists only the older `move_to_workspace`, so the move is gated on either.
-- **ext-workspace sends no `id`** (`stable_id` is empty) on cosmic-comp 1.8.
-- **A locked session outlives its locker.** cosmic-comp keeps the session locked when the lock
-  client dies, until another client locks and unlocks. sill never kills a locker; on the nested
-  compositor `examples/session_locker.rs 0` recovers a leftover lock. cosmic-comp grants
-  `ext-session-lock-v1` at once, with no condition on outputs or DPMS.
-- **The nested cosmic-comp (winit) counts no synthetic input as activity**: `wtype` keys never
-  produce `ext_idle_notification_v1.resumed` (it calls `notify_activity` only for backend input
-  and on unlock), so `sill debug idle-wake` stands in. Its `zwlr_output_power_v1` answers
-  `failed` at once (DPMS exists only for KMS). An `Exclusive` layer gets no `wl_keyboard.enter`
-  while the nested window is unfocused on the host, and a popup opened without a real input
-  serial gets no keyboard. Its seat can report Alt held from the host session.
-- **Nested harness facts.** With the host display in DPMS off, the nested compositor on the
-  NVIDIA EGL path blocks in buffer swap (`__GL_SYNC_TO_VBLANK=0` unblocks it; Mesa is the
-  default). One nested instance grew to 64 GB in an EGL retry loop; `nested.sh` watches RSS. A
-  daemon's `agent.sock` path must fit 108 bytes, so scratch `XDG_RUNTIME_DIR`s live under `/tmp`.
+  missing capability is dropped.
+- **A locked session outlives its locker.** A compositor keeps the session locked when the lock
+  client dies, until another client locks and unlocks. sill never kills a locker; on a test
+  compositor `examples/session_locker.rs 0` recovers a leftover lock.
+- **A headless compositor counts no synthetic input as activity**: virtual-keyboard keys never
+  produce `ext_idle_notification_v1.resumed`, so `sill debug idle-wake` stands in. An `Exclusive`
+  layer gets no `wl_keyboard.enter` while its window is unfocused on a host, and a popup opened
+  without a real input serial gets no keyboard.
+- **Harness facts.** A daemon's `agent.sock` path must fit 108 bytes, so scratch
+  `XDG_RUNTIME_DIR`s live under `/tmp`.
 - **Headless KWin facts.** It offers `ext_data_control_manager_v1` v1 (no wlr data control), no
   `ext-session-lock-v1` (a lock there is `Refused`), and no `zwlr_output_power_manager_v1`. Each
   `fake-input.sh` client is a new input device and the seat's capabilities are re-announced for
   it; scripts keep one client for the whole run. `kwin-virtual.sh stop` kills every process
   whose environment names its private bus, so a script reads `.kwin-env` without sourcing it.
 - **Layer ordering.** An all-anchored Overlay with exclusive zone `Auto` sits below the bar's
-  reserve and above the dock's on cosmic-comp and KWin alike (the notification center relies on
-  it). Layer-shell does not order two surfaces on one layer, so the desktop widgets are on
-  `Bottom`, not a second `Background`.
-- **`cosmic-randr` hangs** (never exits) on a compositor without `zwlr_output_manager_v1`. The
-  displays sink waits at most 2 s for it and kills it; the daemon shuts its runtime down with a
-  bound (`runtime.shutdown_timeout`) so one stuck blocking task cannot keep the process alive
-  after `sill quit`.
-- **Colour.** cosmic-comp 1.8 has no `wp_color_manager_v1`, `frog_color_management_factory_v1`,
-  `wp_color_representation_manager_v1` or `zwlr_gamma_control_manager_v1`, and writes no
-  GAMMA_LUT, DEGAMMA_LUT or CTM: a P3 panel shows sRGB content oversaturated. What it offers for
-  outputs: `zwlr_output_manager_v1` v4, `zcosmic_output_manager_v1` v3, `wl_output` v4,
-  `wp_fractional_scale_manager_v1`, `zxdg_output_manager_v1` v3.
-- **Shortcuts.** COSMIC binds Alt+Tab and Super+Tab to `System(WindowSwitcher)` (Shift for
-  previous); `dist/cosmic`'s `system_actions` sends them to `sill switcher next|prev`. Toshy maps
+  reserve and above the dock's (the notification center relies on it). Layer-shell does not order
+  two surfaces on one layer, so the desktop widgets are on `Bottom`, not a second `Background`.
+- **Shortcuts.** The window-switch chord is `sill switcher next|prev`. The keyboard remapper maps
   physical Cmd+Tab to Alt+Tab with `bind`, so Alt stays held for as long as Cmd is and the
-  release reads as Alt going up. Super+Escape is `System(LockScreen)`, `loginctl lock-session`.
-- **Screenshots are not announced.** cosmic-screenshot goes through the portal, whose response
-  reaches only its caller; sill sees every screenshot, whoever takes it, by an inotify watch of
-  the screenshot folders (a file closed after writing or renamed into place, named as a
-  screenshot).
-- **COSMIC's config is read by hand**, one key per file (`cosmic-config` is not a dependency):
-  the icon theme (`com.system76.CosmicTk/v1/icon_theme`, "Cosmic" when absent), the idle times
-  (`com.system76.CosmicIdle/v1/*`, RON `Some(ms)`/`None`, the user's file over `/usr/share`),
-  and the wallpaper (`com.system76.CosmicBackground/v1/all`, the `source: Path(..)` field only).
-  COSMIC's default wallpapers are JPEG XL, which the pinned `image` cannot decode; an
-  undecodable source falls back to `--paper`.
-- **cosmic-idle 1.8** (read for facts only, GPL): at `screen_off_time` it fades a black layer in
-  over 5 s, sets every output off, and 0.5 s later runs `loginctl lock-session`, so its locks
-  reach a locker as a plain logind `Lock`. One screen-off time for both power sources; suspend
-  times per source; serves `org.freedesktop.ScreenSaver`. sill replaces it in a sill session
-  (see "Lock and idle" below). cosmic-session hard-codes its component list: see
-  `docs/cosmic-gaps.md`.
+  release reads as Alt going up. Super+Escape is the lock chord, `loginctl lock-session`.
+- **Screenshots are not announced.** A screenshot portal's response reaches only its caller; sill
+  sees every screenshot, whoever takes it, by an inotify watch of the screenshot folders (a file
+  closed after writing or renamed into place, named as a screenshot).
+- **The wallpaper source** is a path read by hand from one file; a source the pinned `image`
+  cannot decode (JPEG XL, say) falls back to `--paper`.
 
 ## Standing facts: system services and libraries
 
@@ -194,8 +160,8 @@ A settled item is deleted, not marked closed.
   token goes in `XDG_ACTIVATION_TOKEN` and `DESKTOP_STARTUP_ID`. A reveal calls
   `FileManager1.ShowItems` when the name is owned or activatable. URIs are percent-encoded as
   GLib writes them. Unit names escape as `systemd-escape` does (a literal `-` included).
-  `Terminal=true` runs `$TERMINAL`, else ghostty, wezterm, foot, cosmic-term, wrapped `-e`.
-- **Desktop entries**: `OnlyShowIn`/`NotShowIn` are matched against `COSMIC` and `quire`, not the live
+  `Terminal=true` runs `$TERMINAL`, else ghostty, wezterm, foot, wrapped `-e`.
+- **Desktop entries**: `OnlyShowIn`/`NotShowIn` are matched against `quire`, not the live
   `XDG_CURRENT_DESKTOP`. `TryExec` that resolves nowhere drops the entry. Flatpak's export
   directories are added even when `XDG_DATA_DIRS` lacks them. An absolute `Icon=` is taken on
   trust. The SVG-over-largest-PNG preference is a heuristic over `freedesktop_icons`' first
@@ -277,12 +243,12 @@ A settled item is deleted, not marked closed.
   1.25, a 13.5" 2256 x 1504 1.75.
 - **Applied once per identity**, on first sight (`$XDG_STATE_HOME/sill/displays.json`, the key an
   FNV-1a of make, product and serial; the serial is never stored in clear), through
-  `cosmic-randr mode ... --scale`. cosmic-comp persists it in its own `outputs.ron`. A recorded
+  the native output management. A recorded
   display is never rescaled; `display.scale_overrides` applies a row when it is added or edited.
   A failed set records nothing.
 - **EDID** is parsed by hand (a fixed layout). Gamut: Display P3 when the panel covers 90 % of P3
   and is at most 1.15 x its area; Wide at 1.2 x sRGB or more; else sRGB.
-  `display.color_management` has nothing to hand the gamut to until cosmic-comp has
+  `display.color_management` has nothing to hand the gamut to until the compositor has
   `wp_color_manager_v1`.
 - **DDC/CI** (`ddc` 0.2, `ddc-i2c` with `with-linux`, no libudev): monitors are joined to
   connectors by EDID over every `/dev/i2c-N` whose adapter hangs off a PCI display controller
@@ -387,7 +353,7 @@ A settled item is deleted, not marked closed.
 - **Phase A, not unforgeable.** The sheet is a layer surface on a stock compositor; its receipt says
   `InputProof::SheetFallback`, never `HardwareSeat`. Anything that can type into the session
   (uinput, an injected key) can answer it. Phase B is the same surface on the compositor's
-  trusted surface (docs/cosmic-gaps.md).
+  trusted surface ("What casement still has to provide" below).
 - **The answer is a signal to the asker alone.** `Confirm` returns `/org/quire/Confirm1/request/<n>`
   and the person's answer goes back as `org.quire.Intents1.Request.Response(0, <ConfirmAnswer
   JSON>)` to the caller's unique name (a withdrawn question: code 1). Only the owner of
@@ -533,13 +499,11 @@ A settled item is deleted, not marked closed.
   restarted sill lock again at once. Nested in another desktop sill follows no logind signal
   (so it never locks the host's session); in a sill session it follows `Lock` and
   `PrepareForSleep`.
-- **sill owns idle in a sill session** (no cosmic-idle in `dist/sill-session`): the dim, displays
+- **sill owns idle in a sill session**: the dim, displays
   off through `zwlr_output_power_v1`, the lock as the displays go off (not 0.5 s after, so a
   quick wake cannot show the desktop), the lock screen dark again after
-  `idle.locked_screen_off_s`, and idle suspend through logind. Times come from COSMIC's config
-  by default (COSMIC Settings' Power page keeps working) or sill's own keys (`idle.times =
-  "sill"`, which adds a screen-off time per power source). Idle is `Off` under cosmic-session,
-  nested in another desktop, or when a cosmic-idle of this user runs.
+  `idle.locked_screen_off_s`, and idle suspend through logind. Times come from sill's own keys
+  (a screen-off time per power source). Idle is `Off` when nested in another desktop.
 - **Inhibitors**: Wayland idle inhibitors are the compositor's (sill asks
   `get_idle_notification`, which honours them); sill serves `org.freedesktop.ScreenSaver` and
   honours logind's idle inhibitors. While any is held no idle watch is held.
@@ -573,11 +537,38 @@ A settled item is deleted, not marked closed.
 
 ## Open items
 
-- **Surfaces read `CosmicWl`, not `DesktopView`.** The Wlr arm publishes through the compositor
-  service's existing state (`CosmicWl`), so the dock, switcher, bar, corners and keycap's focus
+### What casement still has to provide
+
+Wants for the compositor, kept so casement's lanes see them. `verified` means observed or read from
+a source; `assumed` means not yet checked.
+
+| Want | Why sill needs it | Status |
+| --- | --- | --- |
+| Colour management: `wp_color_manager_v1`, surfaces tagged sRGB or Display P3, mapped to the panel | P3 monitors show sRGB content oversaturated; `display.color_management` has nothing to hand the gamut to | verified absent on the stock compositors tried |
+| Gamma control (`zwlr_gamma_control_manager_v1`) or a colour-transform matrix | Night light in software for panels without DDC/CI (sill does it in hardware over DDC today) | verified absent on the stock compositors tried |
+| A placement request for a client's own window (Left half, Right half, Centre, Fill) | The green-button menu ships Fill only; no protocol lets a client ask for a tile | verified: protocol listings |
+| Tiled states sent only when a window is really tiled | A floating window marked tiled on all edges never shows its client-side resize margin | verified on a stock compositor |
+| Option-drag resize, symmetric about the centre; quarter tiling by dragging to a corner | macOS behaviour sill's windows should match | assumed |
+| A minimise rectangle for the dock tile, and a genie or scale animation toward it | `set_rectangle` needs the dock's `wl_surface` on shell-host's connection (G2); the animation is compositor-side | verified (G2); animation assumed |
+| Toplevel urgency | A window asking for attention cannot bounce its dock tile; `LauncherEntry` `urgent` is the workaround | verified: protocol read |
+| Stable workspace ids (`ext-workspace` `id`) | Spaces keep their identity across restarts | verified: stock compositors send none |
+| Modifier state for an unfocused layer surface | Hot corners that need a held key, as macOS offers; asking for keyboard focus would steal it from the window | KWin sends it; others assumed not to |
+| A confirmation only the person can answer: hardware input only, nothing drawn over it, no synthetic or agent input | The sheet is a layer surface any injected input can answer (`SheetFallback`); the design is `quire_trusted_surface_v1` (spec 4.2) | assumed absent elsewhere |
+| A layer surface under a still pointer gets `enter` | Hover state is wrong until the pointer moves | verified on a stock compositor |
+| A press on a layer surface while a popup of that layer holds the grab ends the grab (`popup_done`) and is delivered | A second popup opened with the grab still up is a protocol error (`not_the_topmost_popup`) that ends sill's connection (G368) | assumed for a real press |
+| A lone modifier tap as a shortcut | Double-tap Cmd summons the companion; today a unique chord (`Ctrl+Alt+Shift+Super F19`) is sent by the keyboard remapper, and the `Tap` machine in the companion service decides which tap is the second | assumed: the remap's effect on Cmd-click and Cmd-drag is the open spike (docs/manual-checks.md "The companion") |
+| Timely frame callbacks for fullscreen layer surfaces | Delayed callbacks stall the lock screen; shell-host has a watchdog | upstream reports on stock compositors |
+| Background blur that also boosts saturation (about x1.8) with a tunable sigma (22 logical px for widget cards) | macOS vibrancy behind widgets and panels (quire design/23) | blur only elsewhere |
+| A locker that dies while locked: policy | A compositor that keeps the lock until another client locks and unlocks is secure but strands the person; sill relocks from its crash marker | design choice for casement |
+| An Inhibit portal | Flatpak apps' "keep the screen on" | casement's portal at P2 |
+| Synthetic input that counts as idle activity | So an idle test can wake the seat (`sill debug idle-wake` stands in) | test harness only |
+| A virtual-keyboard path that reaches clients in a headless session | Key tests on the headless compositor | test harness only |
+
+- **Surfaces read the windows model, not `DesktopView`.** The Wlr arm publishes through the compositor
+  service's existing state (`sill_model::windows`), so the dock, switcher, bar, corners and keycap's focus
   feed run on casement unchanged; `desktop_wl::desktop_view` builds the frozen `DesktopView` from
   the same state and nothing reads it yet. Ends when the surfaces take `DesktopView` and
-  `DesktopCommand` and `cosmic_wl`'s model is deleted with the Cosmic arm.
+  `DesktopCommand`.
 - **The Quire arm.** `backend_for` returns `Quire` when `quire_desktop_manager_v1` is offered and
   the thread declines it (the windows and workspaces stay empty). Ends when the arm over ext and
   `quire_desktop_v1` exists.
@@ -619,7 +610,7 @@ A settled item is deleted, not marked closed.
 - **The pane's picture is a `TextureLayer`, unseen on a real surface.** The harness's CPU painter draws
   none (a picture's pane is blank there), and no one has looked at it on a shell-host surface, whose
   renderer must hand its device to quire's `Gpu` for the texture to draw. Ends when
-  `docs/manual-checks.md` "A file from the launcher in the viewer" is ticked on COSMIC; if the picture is
+  `docs/manual-checks.md` "A file from the launcher in the viewer" is ticked on casement; if the picture is
   blank there, the pane needs the PNG fallback its FINDINGS names.
 - **Each file peek writes the pane's stylesheet.** `anyview_peek::Card` draws its own `AppStyle`, one
   `<style>` per pane. Ends when the launcher draws `anyview_peek::STYLE` once at its root.
@@ -636,7 +627,7 @@ A settled item is deleted, not marked closed.
   and `menu/submenu.css`, see the tray fact); the dock's `Options` and the desktop menu's Show View
   Options still open below. Ends when their popups pass a room, or when quire places a popup's
   submenu against the card's overlay.
-- **G366** Change Wallpaper... opens COSMIC Settings (its Wallpaper page when the machine has
+- **G366** Change Wallpaper... opens Settings (its Wallpaper page when the machine has
   that desktop entry): sill has no wallpaper picker of its own, and the choice of app is not a
   setting (`PICKERS` in `sill-widgets-ui/src/desktop/menu/model.rs`; design/22 has no row for
   one).
@@ -651,14 +642,14 @@ A settled item is deleted, not marked closed.
   by its place in the tray, so one registered before it going away while its menu is open swaps the
   open menu to the next item's; `ItemIsMenu` is not read (an item with a dbusmenu always opens it
   on the primary press); a dbusmenu row's disposition (informative, warning, alert) is not drawn.
-- **G370** App menus: the foreign Qt and GTK menus are not shown, because cosmic-comp has no
+- **G370** App menus: the foreign Qt and GTK menus are not shown, because the compositor has no
   appmenu protocol (`org_kde_kwin_appmenu`) to hand a toplevel's address over; casement P3-MN
   (`menu_source`) adds the server side, then sill reads the address it gives per toplevel instead of
   deriving it from the `app_id`, which also makes the menu per window. Until then only apps that serve
   `org.quire.AppMenu.<app_id>` (quire apps) have menus in the bar.
 - **G371** App menus: `shell.menu.activate`'s Zoom and full-screen items are not provided: the shell
   has no `WlCommand` for maximise or fullscreen, so the Read set is Minimise, Hide, Hide Others, Show
-  All and raising a window. Ends when `cosmic_wl` gains those commands (then two `OwnItem`s).
+  All and raising a window. Ends when the windows model gains those commands (then two `OwnItem`s).
 - **G372** (resolved) App menus: `shell.menu.activate` is declared `destructive`, now the ceiling,
   with `per_call = "classified"`, so the router asks `Classify` first (`MenuAgent::classify`, over the
   pure `route_of` and `effect_of`). The answers: `{"kind":"effect","v":"read"}` for the shell's own
@@ -672,7 +663,7 @@ A settled item is deleted, not marked closed.
   (no click, no `Run.Perform`). Tests: `tests/app_menu_bus.rs` (classify table, changed-layout,
   destructive-accepted, and the real router with a cross-app delegate).
 - **G373** App menus: the verified path needs the app launched in a systemd scope
-  (`app-<id>-<n>.scope`, which COSMIC's launcher and `sill`'s own start); an app started from a
+  (`app-<id>-<n>.scope`, which the launcher and `sill`'s own start); an app started from a
   terminal has no scope, so its command ids are claims and its items are clicks. The app's
   `AboutToShow` is sent for each menu's own id, not for lazily filled submenus.
 
@@ -735,7 +726,7 @@ A settled item is deleted, not marked closed.
   A plan card has no Stop or Undo All button: the plan's own step machine is quire's (`plan_step`,
   unfilled).
 - **The summon's origin is always the double tap**; a voice summon waits for voice.
-- **No Toshy snippet ships for route B.** `dist/cosmic` binds `Ctrl+Alt+Shift+Super F19` to `sill companion tap`
+- **No Toshy snippet ships for route B.** The session's shortcuts bind `Ctrl+Alt+Shift+Super F19` to `sill companion tap`
   (and `F20` to `summon`, route A); the remap of a lone Cmd tap to that chord is written in the keyboard
   remapper's own config until spike T says tap-versus-hold is safe on Cmd.
 
@@ -795,7 +786,7 @@ A settled item is deleted, not marked closed.
 ### shell-host
 
 - **G2** Minimize rectangles: `set_rectangle` needs the dock's `wl_surface`, which lives on
-  shell-host's connection, while the toplevel manager lives on `cosmic_wl`'s.
+  shell-host's connection, while the toplevel manager lives on the windows thread's.
 - **G4** No drag and drop into shell surfaces (file drops on dock tiles, spring-loading).
 - **G11** `sill debug` cannot inject a wheel event, so the tray scroll is proved by tables only.
 - **G20** `sill debug key` sends a key event to a surface but no modifier state to the seat, so
@@ -888,25 +879,23 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
   surfaces (Option variants), the switcher panel and `PickSwitcher`/`CancelSwitcher` answers, Mission
   Control chrome, edge reveals, menu flash, bell, reopen and the hold overlay. Nothing in the UI reads
   the arm's `DesktopView` or sends it commands yet (`ShellSeat` has no `command` method until a surface
-  needs one); the toplevels and workspaces the dock and switcher draw still come from `cosmic_wl`'s
+  needs one); the toplevels and workspaces the dock and switcher draw still come from the windows thread's
   environment connection (which on a Quire offer is the standard arm over the projected flags).
 - **Waits for casement's server lanes.** The whole path is unrun against a compositor: the handed
   connection, `quire_shell_v1` on it, `SetShellRole`, the notes. Activation sends serial 0 (desktop-client's
   decision). A window with no ext handle is invisible.
 - **Deviations to confirm.** (1) `supports(Wlr, SetMinimiseTarget)` stays `No`: the Wlr arm runs on its
   own connection, which holds no dock surface; on the Quire arm the command names the dock's registered
-  surface for the window's output. (2) The ext list alone is the Wlr arm unless COSMIC's own toplevel info
-  is also offered, so COSMIC stays Cosmic. (3) A second queue on the host's connection gets no wake-up
+  surface for the window's output. (2) The ext list alone is the Wlr arm. (3) A second queue on the host's connection gets no wake-up
   when the host's thread reads the socket first, so the arm thread also dispatches on a 20 ms tick; a
   waker from shell-host (or the host exposing its `Connection`) would remove it. (4) The arm's
   connection comes from `wl_surface.backend()` of the first mapped surface; shell-host exposes no
   `Connection` accessor.
-- **Not touched.** `cosmic_wl` (removed at S4), the old `desktop_wl` protocol code (kept: the environment
-  route serves COSMIC, KWin and tests).
+- **Not touched.** The old `desktop_wl` protocol code (kept: the environment route serves KWin and tests).
 
 ## nm-proxies
 
-- **What changed.** `cosmic-dbus-networkmanager` (MPL) is gone from the workspace and from
+- **What changed.** An MPL NetworkManager crate is gone from the workspace and from
   `sill-services`. The network and Wi-Fi backends use sill's own `zbus` proxies in
   `crates/sill-services/src/nm/`, one file per interface, written from the NetworkManager D-Bus
   documentation and carrying only the members sill uses: `NetworkManager` (`GetAllDevices`,
@@ -938,7 +927,7 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
   surface registration clears the "sent" record and sends all targets again, so a target the
   compositor refused with `NoSurface(Dock)` before the dock was registered arrives after it.
 - **Matching is by app name.** The dock groups windows from the environment connection
-  (`cosmic_wl` keys), the arm names them by identifier, and the two key spaces do not meet.
+  (the windows model's keys), the arm names them by identifier, and the two key spaces do not meet.
   A window therefore takes the rectangle of the icon filed under its `WindowView::app`: the icon's
   desktop-entry id and the raw app id of each of the icon's windows. If Quire's app key differs
   from both (a proven name unlike the entry id), that app's windows get no target.
@@ -969,10 +958,10 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
 - **Candidates.** Screens: the displays service's outputs, quoted by connector name (`DP-1`).
   Windows: the Quire arm's `DesktopView` pushed by the daemon on every `ShellMsg::Desktop`
   (documents that are not minimised and not `CaptureHidden`), quoted by the identifier casement
-  publishes. **No fallback on the other arms**: the COSMIC/wlr toplevels carry no ext
+  publishes. **No fallback on the other arms**: the wlr toplevels carry no ext
   identifier (`desktop_wl::identifier` would make one up, `toplevel-N`, which casement would not
   know), so the Windows tab is empty there rather than wrong. Reading the ext identifier on
-  `cosmic_wl` would fix it.
+  the windows thread would fix it.
 - **UI.** A centred quire `Sheet` over an Overlay layer (keyboard exclusive) on the banners'
   output, like the confirmation sheet. Screens/Windows `SegmentedControl` only when both kinds
   are accepted; a `List` of `Row`s (monitor/window glyph, title, detail, check); a pointer
