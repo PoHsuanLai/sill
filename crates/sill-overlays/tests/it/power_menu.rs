@@ -130,7 +130,7 @@ fn open_it_draws_the_alert_and_its_buttons() {
     );
     assert_eq!(
         h.text_of(".ds-alert-body").as_deref(),
-        Some("Your apps will quit and the computer will turn off.")
+        Some("Apps quit and the computer turns off.")
     );
     assert_eq!(
         h.attr(".ds-alert-footer", "data-layout").as_deref(),

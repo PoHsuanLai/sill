@@ -108,17 +108,17 @@ fn theme_symbolic_and_glyph_art_draw_their_word_exactly() {
         (
             TileArt::Themed("/i/firefox.svg".into()),
             IconStyle::Colour,
-            "image file:///i/firefox.svg Px(IconPx(28))",
+            "image file:///i/firefox.svg Px(IconPx(35))",
         ),
         (
             TileArt::Themed("/i/firefox.svg".into()),
             IconStyle::Monochrome,
-            "image file:///i/firefox.svg Px(IconPx(28))",
+            "image file:///i/firefox.svg Px(IconPx(35))",
         ),
         (
             TileArt::Symbolic("/i/a-symbolic.svg".into()),
             IconStyle::Monochrome,
-            "symbolic file:///i/a-symbolic.svg Px(IconPx(28))",
+            "symbolic file:///i/a-symbolic.svg Px(IconPx(35))",
         ),
         (
             TileArt::Glyph(Icon::Trash),
@@ -163,5 +163,5 @@ fn without_magnification_the_rest_size_still_shows_the_file() {
         sizes,
         &cx(IconStyle::Colour, 120),
     );
-    assert_eq!(word(&got), "image file:///i/photos.svg Px(IconPx(28))");
+    assert_eq!(word(&got), "image file:///i/photos.svg Px(IconPx(35))");
 }

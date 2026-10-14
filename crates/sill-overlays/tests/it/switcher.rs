@@ -146,7 +146,7 @@ fn a_chord_shows_the_apps_after_the_delay_with_the_previous_selected() {
     wait(&mut running, 110);
     assert_eq!(
         tiles(&running.harness),
-        (names(&["term", "calc", "edit"]), Some("calc".to_owned()))
+        (names(&["Term", "Calc", "Edit"]), Some("Calc".to_owned()))
     );
     assert_eq!(
         running.harness.focus_of(".sill-switcher"),
@@ -182,7 +182,7 @@ fn a_second_chord_before_the_modifiers_are_read_is_a_step() {
     ask(&mut running, SwitcherAsk::Chord(Dir::Next));
     wait(&mut running, 300);
     assert_eq!(panels(&running), 1);
-    assert_eq!(tiles(&running.harness).1.as_deref(), Some("edit"));
+    assert_eq!(tiles(&running.harness).1.as_deref(), Some("Edit"));
     ask(&mut running, SwitcherAsk::Commit);
     wait(&mut running, 60);
     assert_eq!(panels(&running), 0);
@@ -196,7 +196,7 @@ fn keys_and_chords_step_and_the_release_activates() {
         .harness
         .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Tab));
     wait(&mut running, 20);
-    assert_eq!(tiles(&running.harness).1.as_deref(), Some("edit"));
+    assert_eq!(tiles(&running.harness).1.as_deref(), Some("Edit"));
     running.harness.send(Input::chord(
         &[ShortcutKey::Alt, ShortcutKey::Shift],
         ShortcutKey::Tab,
@@ -205,10 +205,10 @@ fn keys_and_chords_step_and_the_release_activates() {
         .harness
         .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Char('`')));
     wait(&mut running, 20);
-    assert_eq!(tiles(&running.harness).1.as_deref(), Some("term"));
+    assert_eq!(tiles(&running.harness).1.as_deref(), Some("Term"));
     ask(&mut running, SwitcherAsk::Chord(Dir::Prev));
     wait(&mut running, 20);
-    assert_eq!(tiles(&running.harness).1.as_deref(), Some("edit"));
+    assert_eq!(tiles(&running.harness).1.as_deref(), Some("Edit"));
     assert_eq!(sent(&mut running), vec![], "stepping touches no window");
     running
         .harness
@@ -254,14 +254,14 @@ fn q_quits_the_selected_app_and_its_tile_folds_away() {
         ]
     );
     assert_eq!(
-        presence(&running.harness, "calc").as_deref(),
+        presence(&running.harness, "Calc").as_deref(),
         Some("leaving")
     );
     wait(&mut running, 700);
     assert_eq!(panels(&running), 1, "the panel stays");
     assert_eq!(
         tiles(&running.harness),
-        (names(&["term", "edit"]), Some("edit".to_owned())),
+        (names(&["Term", "Edit"]), Some("Edit".to_owned())),
         "the tile went; the selection stays in place"
     );
 }
@@ -305,14 +305,14 @@ fn hover_selects_and_a_click_activates() {
     let before = tiles(&running.harness).1;
     assert_ne!(
         before.as_deref(),
-        Some("edit"),
+        Some("Edit"),
         "a tile under a resting pointer is not chosen"
     );
     running.harness.send(Input::pointer_move(at));
     wait(&mut running, 20);
     assert_eq!(
         tiles(&running.harness).1.as_deref(),
-        Some("edit"),
+        Some("Edit"),
         "hover selects once the pointer moves"
     );
     running.harness.send(Input::click(at));
@@ -334,7 +334,7 @@ fn made_up_apps_show_at_once_and_touch_no_window() {
     wait(&mut running, 0);
     assert_eq!(
         tiles(&running.harness),
-        (names(&["files", "mail", "notes"]), Some("mail".to_owned()))
+        (names(&["Files", "Mail", "Notes"]), Some("Mail".to_owned()))
     );
     assert_eq!(
         running.harness.focus_of(".sill-switcher"),

@@ -109,7 +109,7 @@ fn the_list_is_the_apps_of_the_reported_windows_most_recently_active_first() {
     let names = |list: &[&str]| list.iter().map(|&s| s.to_owned()).collect::<Vec<_>>();
     assert_eq!(
         tiles(&running.harness.html()),
-        (names(&["calc", "term", "edit"]), Some("term".to_owned())),
+        (names(&["Calc", "Term", "Edit"]), Some("Term".to_owned())),
         "calc first, and the chord selects the previous app"
     );
 }
