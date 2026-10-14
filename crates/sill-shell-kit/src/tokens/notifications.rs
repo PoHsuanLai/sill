@@ -63,11 +63,11 @@ pub enum NotificationToken {
         value = "4px"
     )]
     GroupOffset,
-    /// `--notifications-center-width` (`notifications.center_width_px`, 384).
+    /// `--notifications-center-width` (`notifications.center_width_px`, 360).
     #[token(
         name = "notifications-center-width",
         input = "--notifications-center-width-px",
-        value = "384px"
+        value = "360px"
     )]
     CenterWidth,
 }
@@ -90,7 +90,7 @@ pub struct NotificationMetrics {
     pub stack_gap: Px,
     /// Each group layer's offset below the one above it, 4.
     pub group_offset: Px,
-    /// The notification center's width, 384 (the key's range is 280 to 600).
+    /// The notification center's width, 360 (the key's range is 280 to 600).
     pub center_width: Px,
 }
 
@@ -105,7 +105,7 @@ impl Default for NotificationMetrics {
             close: Px(18.0),
             stack_gap: Px(8.0),
             group_offset: Px(4.0),
-            center_width: Px(384.0),
+            center_width: Px(360.0),
         }
     }
 }
