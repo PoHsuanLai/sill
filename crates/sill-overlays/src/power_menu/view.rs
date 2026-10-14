@@ -15,9 +15,7 @@ use sill_model::session::{Session, SessionAction};
 
 use super::choice::answers;
 use super::io::{MenuCtx, use_menu};
-use super::labels::{
-    NONE_OFFERED_MESSAGE, NONE_OFFERED_TITLE, action_label, consequence, prompt,
-};
+use super::labels::{NONE_OFFERED_MESSAGE, NONE_OFFERED_TITLE, action_label, consequence, prompt};
 use super::layer::PANEL_ID;
 use super::sheet::{MenuSession, SheetInput};
 use sill_ui_kit::hooks::use_settings;
