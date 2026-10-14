@@ -10,6 +10,7 @@
 
 mod card;
 mod command;
+mod emphasis;
 #[cfg(test)]
 mod memory_line_tests;
 mod model;
@@ -29,6 +30,7 @@ pub use card::{card_call, cards_of, openers_of, promote_card, unresolved_handles
 pub use command::{
     AskInput, CompanionCommand, CompanionEffect, CompanionEvent, CompanionParams, FocusInput,
 };
+pub use emphasis::{Emphasis, Span, plain_of, spans};
 pub use model::{
     AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,
 };
@@ -41,4 +43,4 @@ pub use summon::{
     SummonIn, SummonOut, SummonParams,
 };
 pub use tap::{Tap, TapIn, TapOut, TapParams};
-pub use words::{activity_line, answer_line, memory_line};
+pub use words::{activity_line, answer_line, body_lines, memory_line};

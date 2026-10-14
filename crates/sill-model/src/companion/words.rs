@@ -6,6 +6,7 @@ use companion_wire::{AnswerBody, AnswerPhase, NeedsYou, RefusalWire, StepWireSta
 use docket_core::{Reveal, UndoEntry, UndoState};
 use prov::Actor;
 
+use super::emphasis::plain_of;
 use super::model::{AnswerFacts, Busy};
 use super::program_labels::ProgramLabels;
 
@@ -18,17 +19,17 @@ pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
     (title, standing(answer))
 }
 
-/// Where the answer stands: what it waits for, how it failed, or its first line. A pressed
+/// Where the answer stands: what it waits for, how it failed, or its latest line. A pressed
 /// button's step that is still going, or that failed, is said even when the task itself is
 /// done.
 fn standing(answer: &AnswerFacts) -> String {
     match &answer.wire.phase {
         AnswerPhase::Thinking => "Thinking".to_owned(),
-        AnswerPhase::Streaming => first_line(answer).unwrap_or_else(|| "Writing".to_owned()),
+        AnswerPhase::Streaming => last_plain_line(answer).unwrap_or_else(|| "Writing".to_owned()),
         AnswerPhase::NeedsYou(needs) => match needs {
             NeedsYou::Confirm(_) => "Needs your confirmation".to_owned(),
             NeedsYou::Form(_) => "Needs a few details".to_owned(),
-            NeedsYou::Question { text, .. } => text.clone(),
+            NeedsYou::Question { text, .. } => plain_of(text),
         },
         AnswerPhase::Done => done_words(answer),
         AnswerPhase::Failed => refusal_words(&answer.wire.body),
@@ -52,22 +53,32 @@ fn done_words(answer: &AnswerFacts) -> String {
         (_, true, _) => "A step failed".to_owned(),
         (Busy::Refused(_), false, _) => "Could not do that".to_owned(),
         (Busy::Acting { .. }, false, _) | (Busy::Idle, false, true) => "Working on it".to_owned(),
-        (Busy::Idle, false, false) => first_line(answer).unwrap_or_else(|| "Done".to_owned()),
+        (Busy::Idle, false, false) => last_plain_line(answer).unwrap_or_else(|| "Done".to_owned()),
     }
 }
 
-/// The first plain line of a text answer; a handle's line is the text the router showed for it.
-fn first_line(answer: &AnswerFacts) -> Option<String> {
+/// The lines of a text answer, trimmed and with the empty ones left out, marks and all; a
+/// handle's line is the text the router showed for it. Other bodies have none.
+pub fn body_lines(answer: &AnswerFacts) -> Vec<String> {
     match &answer.wire.body {
-        AnswerBody::Text { lines } => lines.iter().find_map(|line| {
-            let text = match line {
+        AnswerBody::Text { lines } => lines
+            .iter()
+            .filter_map(|line| match line {
                 Reveal::Plain(text) => Some(text.as_str()),
                 Reveal::Handle(handle) => answer.shown.get(handle).map(String::as_str),
-            }?;
-            (!text.trim().is_empty()).then(|| text.trim().to_owned())
-        }),
-        _ => None,
+            })
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(str::to_owned)
+            .collect(),
+        _ => Vec::new(),
     }
+}
+
+/// The last line of a text answer as words alone: the answer itself once finished (the lines
+/// before it say what the companion was doing), the latest progress while it is written.
+fn last_plain_line(answer: &AnswerFacts) -> Option<String> {
+    body_lines(answer).last().map(|line| plain_of(line))
 }
 
 /// Why an answer failed, in the person's terms.

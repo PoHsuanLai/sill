@@ -814,3 +814,62 @@ fn stop_all_pauses_the_runs_that_are_going_and_no_other() {
         "paused and finished runs are left alone"
     );
 }
+
+#[test]
+fn a_rows_second_line_is_the_answer_by_phase_in_plain_words() {
+    const CHECKING: &str = "I'll check my memory to see what I've remembered.";
+    const ANSWER: &str = "The capital of Taiwan is **Taipei**. Remember it?";
+    let said = |phase: AnswerPhase, lines: &[&str]| AnswerFacts {
+        wire: AnswerWire {
+            body: AnswerBody::Text {
+                lines: lines
+                    .iter()
+                    .map(|line| Reveal::Plain((*line).to_owned()))
+                    .collect(),
+            },
+            ..wire("t-1", phase)
+        },
+        ..facts("t-1", AnswerPhase::Done)
+    };
+    let question = AnswerPhase::NeedsYou(NeedsYou::Question {
+        text: "Remember *this*?".to_owned(),
+        choices: Vec::new(),
+    });
+    type Case = (&'static str, AnswerFacts, &'static str);
+    let cases: Vec<Case> = vec![
+        (
+            "done: the last line, not the first",
+            said(AnswerPhase::Done, &[CHECKING, "", ANSWER]),
+            "The capital of Taiwan is Taipei. Remember it?",
+        ),
+        (
+            "done with one line",
+            said(AnswerPhase::Done, &["`ls` lists files"]),
+            "ls lists files",
+        ),
+        ("done with no line", said(AnswerPhase::Done, &[]), "Done"),
+        (
+            "running: the latest progress",
+            said(AnswerPhase::Streaming, &[CHECKING, "Looking it up"]),
+            "Looking it up",
+        ),
+        (
+            "running with none yet",
+            said(AnswerPhase::Streaming, &[]),
+            "Writing",
+        ),
+        (
+            "needs you: the question",
+            said(question, &[CHECKING, ANSWER]),
+            "Remember this?",
+        ),
+        (
+            "failed keeps its words",
+            said(AnswerPhase::Failed, &[ANSWER]),
+            "Could not finish",
+        ),
+    ];
+    for (name, answer, want) in cases {
+        assert_eq!(answer_line(&answer).1, want, "{name}");
+    }
+}

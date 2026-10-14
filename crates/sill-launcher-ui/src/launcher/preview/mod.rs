@@ -11,6 +11,7 @@
 //! names no format. The pane never takes the keyboard: `focused` draws the ring on the action
 //! the panel's Tab reached. The pane is the future Quick Look app's shared part (design/20 §2.4).
 
+mod answer_text;
 mod content;
 pub mod frames;
 pub mod keys;

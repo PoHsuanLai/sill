@@ -302,3 +302,44 @@ fn tab_in_a_prompt_goes_round_the_companions_rows_runs_and_memory() {
         "Tab never leaves the companion's own rows"
     );
 }
+
+fn taipei() -> sill_model::companion::AnswerFacts {
+    use companion_wire::{AnswerBody, AnswerPhase};
+    use docket_core::Reveal;
+    let lines = [
+        "I'll check my memory to see what I've remembered about this question.",
+        "The capital of Taiwan is **Taipei**.",
+    ];
+    launcher_harness::launcher_support::companion::answer(
+        "t-5",
+        "capital of Taiwan",
+        AnswerPhase::Done,
+        AnswerBody::Text {
+            lines: lines.map(|line| Reveal::Plain(line.to_owned())).to_vec(),
+        },
+    )
+}
+
+#[test]
+fn a_finished_text_answer_shows_the_answer_in_its_row_and_every_line_in_the_pane() {
+    let open = open_in("", LauncherMode::Companion, |bar| {
+        bar.companion
+            .send_replace(companion(vec![taipei()], fresh()));
+    });
+    let h = &open.harness;
+    let html = h.html();
+    assert!(
+        html.contains("The capital of Taiwan is Taipei."),
+        "the row says the answer: {html}"
+    );
+    assert_eq!(h.count(".ds-palette-aside .sill-answer-title"), 1);
+    assert_eq!(h.count(".ds-palette-aside .sill-answer-line"), 2, "{html}");
+    assert!(html.contains("I&#x27;ll check my memory") || html.contains("I'll check my memory"));
+    assert_eq!(
+        h.text_of(".ds-palette-aside .ds-run").as_deref(),
+        Some("Taipei"),
+        "the bold words are a strong run, not asterisks"
+    );
+    assert!(html.contains(r#"data-tone="strong""#), "{html}");
+    assert!(!html.contains("**"), "no marks show: {html}");
+}
