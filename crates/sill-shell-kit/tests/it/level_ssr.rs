@@ -92,6 +92,11 @@ const CASES: &[Case] = &[
             Osd { shown: Shown::Hidden, label: "Sound", level: OsdLevel { value: Fraction(500), glyph: HEARD } }
         })
     }),
+    ("slider-mac-volume-40", || {
+        osd_root(
+            rsx! { Slider { label: "Volume", value: Fraction(400), glyph: HEARD, look: SliderLook::Mac } },
+        )
+    }),
 ];
 
 pub(crate) fn specimens() -> Vec<Specimen> {
@@ -119,6 +124,16 @@ fn an_indicator_takes_no_input_and_a_slider_does() {
 
 #[test]
 fn the_capsule_draws_its_glyph_twice_and_the_other_looks_once() {
+    let mac = render(CASES.last().expect("the Mac look is last").1);
+    assert_eq!(
+        mac.matches("data-part=\"body\"").count(),
+        1,
+        "in the knob, once"
+    );
+    assert!(
+        mac.contains("class=\"ds-slider-thumb\"><span class=\"ds-slider-icon\">"),
+        "{mac}"
+    );
     let parts = |html: &str| html.matches("data-part=\"body\"").count();
     assert_eq!(parts(&render(CASES[0].1)), 2, "on the well and in the fill");
     assert_eq!(parts(&render(CASES[1].1)), 1);
