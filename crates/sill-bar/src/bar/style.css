@@ -20,7 +20,8 @@
 
 /* The workspace group (ds WorkspacePills). */
 .sill-bar-spaces{ display:flex; align-items:center; margin-left:var(--s-6); }
-/* Mac-quiet: quire's pills are a segmented track with a raised current pill; the bar shows the
-   workspaces as plain text, the current one in full ink and semibold, with no track or ring. */
-.sill-bar-spaces .ds-ws-pills{ background:transparent; padding:0; gap:0; }
-.sill-bar-spaces .ds-ws-pill[*|data-selected=selected]{ background:transparent; box-shadow:none; font-weight:600; }
+/* Mac-quiet: quire's pills are a segmented track with a raised current pill. The bar shows the
+   workspaces as plain text: the track and the current pill's grounds are clear and the raise
+   has no shadow (tokens only), so the current one is told by its full ink against the others'
+   soft ink. */
+.sill-bar-spaces{ --surface:transparent; --surface-2:transparent; --shadow-current:none; }

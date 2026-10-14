@@ -49,14 +49,14 @@ use sill_ui_kit::shell_style::{material, shell_metrics};
 pub const LAUNCHER_CSS: &str = include_str!("style.css");
 
 /// Where the actions menu hangs while the palette has reported no usable rect: under the first
-/// row (its rect in the embedded palette is 6, 80.5, 668 x 45.1 in the card, which starts
+/// row (its rect in the embedded palette is 6, 80.5, 668 x 38 in the card, which starts
 /// `SHADOW_SIDE` and `CARD_INSET` in; the menu hangs 6 px below).
 /// quire reads a new palette's first row before the freshly mapped surface has laid it out and
 /// reports 0 x 0, then nothing more until the selection moves, and the selection
 /// is always the first row then.
 pub const FIRST_ROW_FOOT: Point = Point {
     x: Px(48.0 + CARD_INSET as f32),
-    y: Px(125.6),
+    y: Px(118.5),
 };
 
 /// A reported row rect, unless it is the empty one quire reports before layout.

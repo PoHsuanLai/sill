@@ -31,5 +31,5 @@
    panel padding either side and centred under the selected cell (it follows the selection's
    `--switcher-at`), set in the UI face at 13/600. */
 .ds-switcher-name{ position:absolute; bottom:var(--s-10); left:calc(var(--switcher-at) * (var(--switcher-cell) + var(--switcher-gap)) - var(--switcher-shift));
-  width:calc(var(--switcher-cell) + 2 * var(--s-16)); box-sizing:border-box; padding:0 var(--s-8); overflow:hidden; text-align:center; white-space:nowrap; text-overflow:ellipsis;
+  width:calc(var(--switcher-cell) + 2 * var(--s-16)); box-sizing:border-box; padding:0 var(--s-8); overflow:hidden; text-align:center; white-space:nowrap;
   color:var(--f-ink); font-family:var(--font-ui); font-size:var(--fs-control); font-weight:600; line-height:1.3; pointer-events:none; }
