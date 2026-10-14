@@ -6,11 +6,12 @@
    `ShellMetrics`), so the root's tuned tokens read the settings. */
 .sill-bar-root{ display:block; }
 
-/* The strip: the layer's full size, title groups at either end. The Ds root under it draws the
+/* The strip: the layer's full size, title groups at either end. The trailing edge keeps 2 pt, and
+   the last item its own 8 pt: the clock's text ends 10 pt from the screen's edge (a Mac's 8 to 10). The Ds root under it draws the
    Space gradient at the Bar's tint alpha and cross-fades it on a workspace switch (design/21
    §3 and §5); the strip paints nothing of its own. */
 .sill-bar{ position:relative; display:flex; align-items:center; justify-content:space-between;
-  padding:0 var(--s-8); color:var(--f-ink-soft); transition:color var(--t-big) var(--e-out); }
+  padding:0 var(--s-2) 0 var(--s-8); color:var(--f-ink-soft); transition:color var(--t-big) var(--e-out); }
 
 .sill-bar-group{ position:relative; display:flex; align-items:center; height:100%; gap:var(--s-4); }
 
@@ -19,3 +20,7 @@
 
 /* The workspace group (ds WorkspacePills). */
 .sill-bar-spaces{ display:flex; align-items:center; margin-left:var(--s-6); }
+/* Mac-quiet: quire's pills are a segmented track with a raised current pill; the bar shows the
+   workspaces as plain text, the current one in full ink and semibold, with no track or ring. */
+.sill-bar-spaces .ds-ws-pills{ background:transparent; padding:0; gap:0; }
+.sill-bar-spaces .ds-ws-pill[*|data-selected=selected]{ background:transparent; box-shadow:none; font-weight:600; }
