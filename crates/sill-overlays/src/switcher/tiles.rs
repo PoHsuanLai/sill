@@ -145,11 +145,9 @@ mod tests {
                 ..SwitcherMetrics::default()
             }
         );
-        let set = SwitcherSettings {
-            icon_size_px: ds_settings::Px(96),
-            cell_size_px: ds_settings::Px(100),
-            ..SwitcherSettings::default()
-        };
+        let mut set = SwitcherSettings::default();
+        set.icon_size_px = ds_settings::Px(96);
+        set.cell_size_px = ds_settings::Px(100);
         assert_eq!(metrics_of(&set).icon, Px(96.0), "a set size is kept");
         assert_eq!(output_width(1920), Some(Px(1920.0)));
         assert_eq!(output_width(0), None);
