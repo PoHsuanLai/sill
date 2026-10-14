@@ -20,6 +20,7 @@ mod guest_asks_bus;
 mod icons;
 mod idle_bus;
 mod intents_bus;
+mod keycap_layer;
 mod keycap_socket;
 mod keycap_systemd_bus;
 mod launch_viewer_bus;

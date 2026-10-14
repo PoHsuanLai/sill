@@ -14,18 +14,17 @@ mod backend;
 mod tests;
 
 use backend::Reach;
-use sill_model::apps::AppIndex;
 use sill_model::launch::{LaunchCommand, Launches};
-use tokio::sync::watch;
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-pub use backend::{file_uri, open_argv, reveal_folder};
+pub use backend::{LaunchLinks, file_uri, open_argv, reveal_folder};
 
 /// App launching as a [`Service`]: scopes, activation tokens, opening files. Its `Deps` is the
-/// app index, which resolves ids to entries.
+/// app index, which resolves ids to entries, and the notifications service that tells the person
+/// an app did not open.
 #[derive(Debug)]
 pub enum LaunchService {}
 
@@ -33,7 +32,7 @@ impl Service for LaunchService {
     const NAME: &'static str = "launch";
     type State = Launches;
     type Command = LaunchCommand;
-    type Deps = watch::Receiver<AppIndex>;
+    type Deps = LaunchLinks;
 
     fn run(
         env: &Env,

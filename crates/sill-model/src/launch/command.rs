@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, DesktopAction, OpenTarget};
 
-use super::{LaunchedScope, ScopeUnit};
+use super::{FailureCause, LaunchedScope, ScopeUnit};
 
 /// What became of a launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,10 +13,10 @@ use super::{LaunchedScope, ScopeUnit};
 pub enum LaunchOutcome {
     Started(LaunchedScope),
     Exited(ScopeUnit),
-    /// The launch did not happen; the dock stops its bounce.
+    /// The launch did not happen, or the app closed at once; the person is told (`failure_text`).
     Failed {
         app: AppId,
-        reason: String,
+        cause: FailureCause,
     },
     /// D-Bus activation: no scope of ours to track.
     Activated(AppId),

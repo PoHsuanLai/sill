@@ -63,7 +63,17 @@ step "6/7 the keycap layer for the sill session (copied when missing; never over
 if [ -f "$KEYCAP_LAYER_DEST" ] && cmp -s "$KEYCAP_LAYER_SRC" "$KEYCAP_LAYER_DEST"; then
   note "unchanged: $KEYCAP_LAYER_DEST"
 elif [ -e "$KEYCAP_LAYER_DEST" ]; then
-  note "kept (yours): $KEYCAP_LAYER_DEST; compare with $KEYCAP_LAYER_SRC"
+  note "kept (yours): $KEYCAP_LAYER_DEST"
+  note "YOUR KEYBOARD FILE IS OLDER THAN THIS ONE ($KEYCAP_LAYER_SRC). Install never changes your file."
+  lacking="$(keycap_rules_lacking)"
+  if [ -n "$lacking" ]; then
+    note "These rules are in the new file and not in yours (a missing one can send a shortcut to the wrong place, such as Cmd+Tab; the app switcher rules keep Super down while Cmd is held):"
+    while IFS= read -r rule; do note "  $rule"; done <<<"$lacking"
+  else
+    note "Your file has every rule of the new one; it differs only in comments or extra rules of yours."
+  fi
+  note "To see every difference:  diff $KEYCAP_LAYER_DEST $KEYCAP_LAYER_SRC"
+  note "To use the new file (keeps yours as keycap.toml.bak):  cp $KEYCAP_LAYER_DEST $KEYCAP_LAYER_DEST.bak && cp $KEYCAP_LAYER_SRC $KEYCAP_LAYER_DEST"
 else
   run install -D -m 644 "$KEYCAP_LAYER_SRC" "$KEYCAP_LAYER_DEST"
 fi

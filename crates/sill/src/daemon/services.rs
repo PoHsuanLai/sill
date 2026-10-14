@@ -28,7 +28,7 @@ use sill_services::guest_asks::{GuestAsksLinks, GuestAsksService};
 use sill_services::idle::{IdleLinks, IdleService};
 use sill_services::intents::{IntentsLinks, IntentsService, ShellCall};
 use sill_services::keycap::{KeycapLinks, KeycapService};
-use sill_services::launch::LaunchService;
+use sill_services::launch::{LaunchLinks, LaunchService};
 use sill_services::locker::LockerService;
 use sill_services::notifications::NotificationsService;
 use sill_services::screenshots::ScreenshotsService;
@@ -100,7 +100,16 @@ pub(crate) fn start(
     let battery = spawn::<BatteryService>(rt, env, ());
     let apps = spawn::<AppsService>(rt, env, ());
     let windows = spawn::<WindowsService>(rt, env, ());
-    let launch = spawn::<LaunchService>(rt, env, apps.state.clone());
+    // Passive (never asks for the bus name) until the daemon sends its first policy.
+    let notifications = spawn::<NotificationsService>(rt, env, ());
+    let launch = spawn::<LaunchService>(
+        rt,
+        env,
+        LaunchLinks {
+            apps: apps.state.clone(),
+            notifications: notifications.control.clone(),
+        },
+    );
     let clipboard = spawn::<ClipboardService>(rt, env, ());
     let results = spawn::<ResultsService>(
         rt,
@@ -115,8 +124,6 @@ pub(crate) fn start(
             launch: launch.control.clone(),
         }),
     );
-    // Passive (never asks for the bus name) until the daemon sends its first policy.
-    let notifications = spawn::<NotificationsService>(rt, env, ());
     let locker = spawn::<LockerService>(rt, env, ());
     let auth = spawn::<AuthService>(rt, env, ());
     let idle = spawn::<IdleService>(

@@ -1,6 +1,6 @@
 use sill_launcher::AppId;
 
-use super::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
+use super::{FailureCause, LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
 
 fn scope(app: &str, n: u32) -> LaunchedScope {
     LaunchedScope {
@@ -46,7 +46,7 @@ fn scopes_come_and_go() {
             two.clone(),
             LaunchOutcome::Failed {
                 app: AppId("x".to_owned()),
-                reason: "no exec".to_owned(),
+                cause: FailureCause::CannotRun,
             },
             two.clone(),
         ),

@@ -5,7 +5,8 @@ use sill_launcher::{AppId, DesktopAction};
 use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 
-use super::LaunchService;
+use super::{LaunchLinks, LaunchService};
+use crate::NotificationsService;
 use crate::service::spawn;
 
 fn index_with(id: &str, exec: &str) -> AppIndex {
@@ -44,7 +45,15 @@ async fn a_launch_runs_in_a_real_systemd_scope_and_exits() {
     let scratch = sill_testkit::TempDir::new("launch-scope");
     let mut env = crate::env::Env::isolated(scratch.path());
     env.dirs.runtime = std::env::var_os("XDG_RUNTIME_DIR").map(std::path::PathBuf::from);
-    let launch = spawn::<LaunchService>(&rt, &env, apps_rx);
+    let notifications = spawn::<NotificationsService>(&rt, &env, ()).control;
+    let launch = spawn::<LaunchService>(
+        &rt,
+        &env,
+        LaunchLinks {
+            apps: apps_rx,
+            notifications,
+        },
+    );
     let (mut launches, control) = (launch.state, launch.control);
 
     control
@@ -102,7 +111,13 @@ async fn opening_with_no_session_records_the_opener_and_starts_nothing() {
     let children = RecordedChildren::shared();
     let mut env = crate::env::Env::isolated(scratch.path());
     env.children = children.clone();
-    let control = spawn::<LaunchService>(&tokio::runtime::Handle::current(), &env, apps_rx).control;
+    let rt = tokio::runtime::Handle::current();
+    let notifications = spawn::<NotificationsService>(&rt, &env, ()).control;
+    let links = LaunchLinks {
+        apps: apps_rx,
+        notifications,
+    };
+    let control = spawn::<LaunchService>(&rt, &env, links).control;
 
     let targets = [
         OpenTarget::File(PathBuf::from("/h/a.pdf")),

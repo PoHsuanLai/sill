@@ -6,7 +6,8 @@ screen's session list the whole time. Nothing below changes Plasma's files.
 ## 1. Before you log out (about 30 minutes, in Plasma)
 
 1. **Save your work and know the way back.** The keycap emergency chord is both Shift keys + Esc
-   (`sudo systemctl stop keycap` also works). Keep a TTY in mind: Ctrl+Alt+F3. For anything before
+   (`sudo systemctl stop keycap` also works). Keep a text console in mind: Ctrl+Alt+F3. Ctrl+Alt+F1 to F12 switch text consoles; with the keyboard in
+   Mac mode the F-keys may need Fn, and `sudo chvt 3` from a terminal always works. For anything before
    the OS (MOK, BIOS) the K5 Max must be on Cable or 2.4G, not Bluetooth.
 2. **Bring the sibling checkouts up to date.** The install builds with `--locked`, and `Cargo.lock`
    was resolved against the current master of every repo next to `~/sill`: `almanac`, `anyview`,
@@ -54,6 +55,10 @@ screen's session list the whole time. Nothing below changes Plasma's files.
    `~/.config/keycap/keycap.toml` (copied from `dist/keycap/keycap.toml` by the install). sill forwards
    that file to keycap and keycap lays it over the machine file, so in sill Cmd+Space is Super+Space and
    Cmd+Shift+3/4/5 is Print (`sill screenshot area`); Plasma never forwards it and keeps `alt+space`.
+   It also sends Cmd+Tab and Shift+Cmd+Tab to the app switcher (Super+Tab, with Super held while Cmd is held, so the
+   panel stays up), Shift+Cmd+Q to the power menu and Option+Cmd+Esc to Force Quit. If you installed before these
+   were added, the install does not touch your file: it prints the rules yours lacks and the one command to
+   take the new file (your old one is kept as `keycap.toml.bak`).
    Check offline (`keycap replay` reads no device):
 
    ```sh
@@ -77,15 +82,9 @@ screen's session list the whole time. Nothing below changes Plasma's files.
    (the LINE and Teams wrappers in `~/.local/bin`, Chrome's launcher, Cursor); that reads the same
    wallet Plasma used. `--password-store=gnome-libsecret` also works through the Secret Service but
    is a different store (you sign in once more).
-8. **Mouse settings.** Plasma's per-mouse settings (natural scroll, acceleration) are not copied by themselves.
-   Import them before you log out; the first line prints what it would write and changes nothing:
-
-   ```sh
-   sill session import-input --from-plasma --dry-run
-   sill session import-input --from-plasma
-   ```
-
-   Every other pointer gets natural scroll by default.
+8. **Mouse settings.** Plasma's per-mouse settings are not copied. casement's settings
+   (`~/.config/casement/settings.toml`, `[pointer] natural_scroll`) hold the mouse options, and natural
+   scroll is on by default. Change it there if you want the other direction.
 9. Do not install `dist/sill.service`, `dist/udev` or `dist/modules-load.d`, and do not enable
    `voiced.service` (see "The agent stack" in section 3).
 10. Log out of Plasma.
@@ -158,7 +157,7 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 - `sill workspace overview` answers "unsupported" (no overview yet); `next` and `prev` work and
   stop at the first and last workspace (no wrap).
 - No sink list in the control centre (G352): switch audio in Settings > Sound or `wpctl set-default <id>`.
-- Mouse settings come from `sill session import-input --from-plasma` (section 1, item 8), or are per device in
+- Mouse settings are casement's (`~/.config/casement/settings.toml`, section 1, item 8), or per device in
   Settings > Mouse (the "palmrest" devices).
 - The dock and the launcher start empty on a fresh account and nothing is seeded: pin apps with `sill dock pin <id>`.
 - No colour management, no software night light (the monitor is dimmed and warmed over DDC/CI where it supports it), no
@@ -171,7 +170,7 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 
 - **Log out from sill**: power menu (power key or Super+Shift+Esc) > Log Out, then at the login
   screen pick **Plasma (Wayland)**. That is all; Plasma's config was never touched.
-- **Black screen, or the login screen comes straight back**: press **Ctrl+Alt+F3**, log in on the TTY
+- **Black screen, or the login screen comes straight back**: press **Ctrl+Alt+F3** (or `sudo chvt 3`), log in on the TTY
   (with the cable or 2.4G keyboard if keycap or Bluetooth is the problem), then either
   - `systemctl restart plasmalogin` and pick Plasma at the login screen (use `sudo`), or
   - remove the sill session: `~/sill/dist/uninstall.sh` (`--dry-run` first;

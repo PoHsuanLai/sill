@@ -27,6 +27,16 @@ KEYCAP_LAYER_DEST="${XDG_CONFIG_HOME:-$HOME/.config}/keycap/keycap.toml"
 
 DRY=0
 
+# keycap_rules FILE: each rule of a keycap layer as "[profile] rule", sorted, one per line.
+keycap_rules() {
+  awk '/^\[/ { profile = $0 } /^[[:space:]]*\{[[:space:]]*when/ { sub(/^[[:space:]]+/, ""); sub(/,[[:space:]]*$/, ""); print profile " " $0 }' "$1" | sort -u
+}
+
+# keycap_rules_lacking: the rules dist has and the person's layer lacks, one per line.
+keycap_rules_lacking() {
+  comm -23 <(keycap_rules "$KEYCAP_LAYER_SRC") <(keycap_rules "$KEYCAP_LAYER_DEST")
+}
+
 # parse_flags "$@": --dry-run, and the extra flags a script allows ($EXTRA_FLAGS, space-separated).
 parse_flags() {
   local arg name

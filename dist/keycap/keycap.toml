@@ -11,6 +11,13 @@
 rules = [
   # Cmd+Space is sill's launcher: Super+Space (the overlay says Alt+Space, KRunner's key).
   { when = "command+space", then = "super+space" },
+  # Cmd+Tab, Shift+Cmd+Tab: casement's app switcher (Super+Tab), with Super held while Cmd is held so the panel stays up; the built-in mapping would send Ctrl+Tab to the focused app.
+  { when = "command+tab", then = "super+tab", hold = "while_held" },
+  { when = "command+shift+tab", then = "super+shift+tab", hold = "while_held" },
+  # Shift+Cmd+Q: the power menu (Super+Shift+Q). Plain Cmd+Q stays Ctrl+Q: quit is the app's.
+  { when = "command+shift+q", then = "super+shift+q" },
+  # Option+Cmd+Esc: the force quit panel (Alt+Super+Esc).
+  { when = "option+command+esc", then = "alt+super+esc" },
   # Cmd+Shift+3/4/5 -> Print, which the session binds to the Screenshot action (`sill screenshot area`).
   { when = "command+shift+3", then = "print" },
   { when = "command+shift+4", then = "print" },

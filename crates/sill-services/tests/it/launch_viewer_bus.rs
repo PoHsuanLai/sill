@@ -17,8 +17,9 @@ use anyview_platform::{
 use sill_launcher::{Generation, OpenTarget, ViewerOpen};
 use sill_model::apps::AppIndex;
 use sill_model::launch::{LaunchCommand, OpenRequest};
+use sill_services::NotificationsService;
 use sill_services::env::{BusRoute, Buses, Env, RecordedChildren};
-use sill_services::launch::LaunchService;
+use sill_services::launch::{LaunchLinks, LaunchService};
 use sill_services::service::spawn;
 use sill_testkit::{PrivateBus, TempDir};
 use tokio::sync::watch;
@@ -50,7 +51,13 @@ fn launcher(
     env.buses = Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone()));
     env.children = children.clone();
     let (_apps, apps) = watch::channel(AppIndex::default());
-    let control = spawn::<LaunchService>(&tokio::runtime::Handle::current(), &env, apps).control;
+    let rt = tokio::runtime::Handle::current();
+    let notifications = spawn::<NotificationsService>(&rt, &env, ()).control;
+    let links = LaunchLinks {
+        apps,
+        notifications,
+    };
+    let control = spawn::<LaunchService>(&rt, &env, links).control;
     (control, children)
 }
 

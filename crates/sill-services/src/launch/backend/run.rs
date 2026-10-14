@@ -4,12 +4,16 @@
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, DbusActivation};
 use sill_model::launch::{
-    LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, SETTINGS_BUS_NAME,
-    ScopeUnit, SettingsAccount, launch_argv, scope_unit, step,
+    FailureCause, LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches,
+    SETTINGS_BUS_NAME, ScopeUnit, SettingsAccount, launch_argv, scope_unit, step,
 };
+use std::time::{Duration, Instant};
+
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
+use super::LaunchLinks;
+use super::notice::Tell;
 use super::open::{Manager, user_manager};
 use super::{Reach, dbus};
 use crate::env::Bus;
@@ -17,18 +21,35 @@ use crate::env::Bus;
 /// Run until `commands` closes (the `Control` was dropped).
 pub(crate) async fn run(
     setup: Reach,
-    apps: watch::Receiver<AppIndex>,
+    links: LaunchLinks,
     tx: watch::Sender<Launches>,
     mut commands: mpsc::UnboundedReceiver<LaunchCommand>,
 ) {
     let rt = Handle::current();
+    let LaunchLinks {
+        apps,
+        notifications,
+    } = links;
+    let tell = Tell(notifications);
     let terminal = super::terminal::detect();
     let mut nonce: u32 = 0;
     while let Some(command) = commands.recv().await {
         match command {
             LaunchCommand::Launch(request) => {
                 nonce += 1;
-                launch_one(&rt, &setup, &apps, &tx, &terminal, request, nonce).await;
+                launch_one(
+                    &rt,
+                    &setup,
+                    &Outcomes {
+                        tx: tx.clone(),
+                        tell: tell.clone(),
+                        apps: apps.clone(),
+                    },
+                    &terminal,
+                    request,
+                    nonce,
+                )
+                .await;
             }
             LaunchCommand::ShowInFiles(app_id) => {
                 show_in_files(&setup.session, &apps, &app_id).await
@@ -43,26 +64,27 @@ pub(crate) async fn run(
 async fn launch_one(
     rt: &Handle,
     setup: &Reach,
-    apps: &watch::Receiver<AppIndex>,
-    tx: &watch::Sender<Launches>,
+    outcomes: &Outcomes,
     terminal: &[String],
     request: LaunchRequest,
     nonce: u32,
 ) {
     let app_id = request.app.clone();
-    let Some(app) = apps.borrow().get(&app_id).cloned() else {
-        record(tx, failed(app_id, "not in the app index"));
+    let Some(app) = outcomes.apps.borrow().get(&app_id).cloned() else {
+        outcomes.record(failed(
+            app_id,
+            FailureCause::NotInstalled,
+            "not in the app index",
+        ));
         return;
     };
     if app.activation == DbusActivation::DBus || app.id.0 == SETTINGS_BUS_NAME {
-        record(
-            tx,
-            activate_over_dbus(&setup.session, &app, &request, app_id).await,
-        );
+        let outcome = activate_over_dbus(&setup.session, &app, &request, app_id).await;
+        outcomes.record(outcome);
         return;
     }
     let manager = user_manager(setup.runtime.as_deref());
-    spawn_scope(rt, tx, &app, terminal, &request, nonce, manager).await;
+    spawn_scope(rt, outcomes, &app, terminal, &request, nonce, manager).await;
 }
 
 async fn activate_over_dbus(
@@ -74,16 +96,16 @@ async fn activate_over_dbus(
     match session.connect().await {
         Ok(Some(connection)) => match dbus::activate(&connection, app, request).await {
             Ok(()) => LaunchOutcome::Activated(app_id),
-            Err(error) => failed(app_id, &error.to_string()),
+            Err(error) => failed(app_id, FailureCause::NoAnswer, &error.to_string()),
         },
-        Ok(None) => failed(app_id, "no session bus"),
-        Err(error) => failed(app_id, &error.to_string()),
+        Ok(None) => failed(app_id, FailureCause::NoStarter, "no session bus"),
+        Err(error) => failed(app_id, FailureCause::NoStarter, &error.to_string()),
     }
 }
 
 async fn spawn_scope(
     rt: &Handle,
-    tx: &watch::Sender<Launches>,
+    outcomes: &Outcomes,
     app: &App,
     terminal: &[String],
     request: &LaunchRequest,
@@ -95,22 +117,19 @@ async fn spawn_scope(
     let argv = match launch_argv(app, request, &unit, terminal) {
         Ok(argv) => argv,
         Err(error) => {
-            record(tx, failed(app_id, &error.to_string()));
+            outcomes.record(failed(app_id, FailureCause::CannotRun, &error.to_string()));
             return;
         }
     };
     match start_with(&argv, request.token.as_deref(), manager) {
         Ok(child) => {
-            record(
-                tx,
-                LaunchOutcome::Started(LaunchedScope {
-                    app: app_id,
-                    unit: unit.clone(),
-                }),
-            );
-            rt.spawn(wait_for_exit(tx.clone(), unit, child));
+            outcomes.record(LaunchOutcome::Started(LaunchedScope {
+                app: app_id.clone(),
+                unit: unit.clone(),
+            }));
+            rt.spawn(wait_for_exit(outcomes.clone(), app_id, unit, child));
         }
-        Err(error) => record(tx, failed(app_id, &error.to_string())),
+        Err(error) => outcomes.record(failed(app_id, FailureCause::CannotRun, &error.to_string())),
     }
 }
 
@@ -171,15 +190,32 @@ fn spawn_argv(
     command.spawn()
 }
 
+/// An app that ends with an error this soon after it started did not really open.
+const QUICK_EXIT: Duration = Duration::from_secs(10);
+
 /// `systemd-run --scope` execs the target in place of itself, so the spawned child's exit is
-/// the scope's exit.
+/// the scope's exit. An exit with an error code within [`QUICK_EXIT`] is a failed launch (a
+/// signal, as Force Quit sends, is not).
 async fn wait_for_exit(
-    tx: watch::Sender<Launches>,
+    outcomes: Outcomes,
+    app: AppId,
     unit: ScopeUnit,
     mut child: tokio::process::Child,
 ) {
-    let _ = child.wait().await;
-    record(&tx, LaunchOutcome::Exited(unit));
+    let started = Instant::now();
+    let status = child.wait().await;
+    let errored = status
+        .ok()
+        .and_then(|status| status.code())
+        .is_some_and(|code| code != 0);
+    if errored && started.elapsed() < QUICK_EXIT {
+        outcomes.record(failed(
+            app,
+            FailureCause::ClosedAtOnce,
+            "exited with an error at once",
+        ));
+    }
+    outcomes.record(LaunchOutcome::Exited(unit));
 }
 
 async fn show_in_files(session: &Bus, apps: &watch::Receiver<AppIndex>, app_id: &AppId) {
@@ -210,10 +246,31 @@ async fn force_quit(tx: &watch::Sender<Launches>, app_id: &AppId) {
     }
 }
 
-fn failed(app: AppId, reason: &str) -> LaunchOutcome {
-    LaunchOutcome::Failed {
-        app,
-        reason: reason.to_owned(),
+/// A failed launch of `app`: the person is told `cause`; `detail` goes to the journal.
+fn failed(app: AppId, cause: FailureCause, detail: &str) -> LaunchOutcome {
+    eprintln!("sill: launch: {}: {detail}", app.0);
+    LaunchOutcome::Failed { app, cause }
+}
+
+/// Where outcomes go: into the published state, and a failure also to the person.
+#[derive(Clone)]
+struct Outcomes {
+    tx: watch::Sender<Launches>,
+    tell: Tell,
+    apps: watch::Receiver<AppIndex>,
+}
+
+impl Outcomes {
+    fn record(&self, outcome: LaunchOutcome) {
+        if let LaunchOutcome::Failed { app, cause } = &outcome {
+            let name = self
+                .apps
+                .borrow()
+                .get(app)
+                .map_or_else(|| app.0.clone(), |found| found.name.clone());
+            self.tell.failed(&name, *cause);
+        }
+        record(&self.tx, outcome);
     }
 }
 
