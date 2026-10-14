@@ -151,8 +151,8 @@ for x in range(w - 1, w // 2, -1):
 print((run[0] + run[1]) // 2, h // 2)
 EOF
 }
+
 # Starts the daemon on the compositor, its wallpaper the backdrop.
-# the daemon does not.
 start_center_daemon() {
   backdrop_seed "$CONFIG" || return 1
   launch_daemon || return 1
