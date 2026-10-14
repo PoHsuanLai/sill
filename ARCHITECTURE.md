@@ -1,8 +1,8 @@
 # Architecture
 
-sill is a desktop shell for COSMIC: the bar, dock, launcher, wallpaper, notifications, control
+sill is a desktop shell: the bar, dock, launcher, wallpaper, notifications, control
 center, lock screen and the rest, drawn with quire's design system on shell-host (Blitz on
-Wayland layer surfaces). cosmic-comp is the compositor. KWin is a test compositor only.
+Wayland layer surfaces). casement is the compositor. KWin is a test compositor only.
 CONVENTIONS.md holds the rules every repo shares; this file is sill's map, its "one home" table,
 its traits, its recipes and its repo rules. Where they disagree, this file wins for sill.
 
@@ -40,7 +40,7 @@ listed except where noted.
 | 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`, `Machine`), `docket-core`, `almanac-core`, `companion-wire`, `cua-bus`, `prov`, `porter-core` (the accounts sheet's `SheetView`/`SheetInput`, serde data), `casement-protocols` (`vocab` only: the desktop views' enums); serde, jiff, thiserror |
 | 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `Section`, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
-| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`), `docket-core`, `docket-dbus`, `docket-client`, `companion-wire`, `cua-bus`, `cua-dbus`, `almanac-core`, `almanac-dbus`, `prov`, `porter-core`, `porter-dbus` (who owns a bus name: caller identity; accountd's `Manager` and `Account` proxies), `porter-client` (`dbus` feature only: the typed guest calls and change stream for the guest-asks service), `voice-dbus`, `anyview-core`, `anyview-platform` (the viewer's D-Bus request, for the launch service), `casement-protocols` (`vocab`), `desktop-client` (`client` feature: the wire behind `desktop_wl` and the native displays route); tokio, zbus, rustix, cctk, libpulse, notify, nonstick, ddc, image, toml |
+| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`), `docket-core`, `docket-dbus`, `docket-client`, `companion-wire`, `cua-bus`, `cua-dbus`, `almanac-core`, `almanac-dbus`, `prov`, `porter-core`, `porter-dbus` (who owns a bus name: caller identity; accountd's `Manager` and `Account` proxies), `porter-client` (`dbus` feature only: the typed guest calls and change stream for the guest-asks service), `voice-dbus`, `anyview-core`, `anyview-platform` (the viewer's D-Bus request, for the launch service), `casement-protocols` (`vocab`), `desktop-client` (`client` feature: the wire behind `desktop_wl` and the native displays route); tokio, zbus, rustix, libpulse, notify, nonstick, ddc, image, toml |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/` (the files provider reads the viewer's history and takes the shared file actions), clip images | `sill-services`, `sill-model`, `sill-launcher`, `anyview-core`, `anyview-store`, `ds-core`, `docket-core`, `almanac-core`, `companion-wire`, `prov`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
 | 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-shell-kit`, `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `companion-wire`, `docket-core`, `porter-core`, `prov`, `ds-core`, `ds`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
 | 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `sill-shell-kit`, `ds`, `ds-settings`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
@@ -136,19 +136,17 @@ code into `tests.rs`. Exceptions and renames:
 | `network/live.rs`, `network/wifi/live.rs` | `network/backend/`, `wifi/backend/`; Wi-Fi is its own dir |
 | `clipboard/{model,reduce,content,offer}.rs` | `sill-model/src/clipboard/` |
 | `clipboard/{pipes,wire,wire_state,wire_dispatch,wl,live}.rs` | `clipboard/backend/` |
-| `cosmic_wl/{ids,caps,command,describe,toplevels,workspaces}.rs` | `sill-model/src/cosmic_wl/` |
-| `cosmic_wl/{execute,handlers,keys,publish,state,thread}.rs` | `cosmic_wl/backend/` |
+| `windows/{ids,caps,command,toplevels,workspaces}.rs` | `sill-model/src/windows/` |
 | `desktop/{backend,command,model,note}.rs` | `sill-model/src/desktop/` (the arm names and the globals offer, the desktop's views and commands, `supports`, and `ShellNote`, the compositor's shell protocol in the shell's words) |
-| `desktop_wl/{choose,ids,toplevels,workspaces,view,command,outputs,offer,run}.rs` | `sill-services/src/desktop_wl/` (the standard-protocol arm over `desktop-client`; its thread is started by `cosmic_wl/backend/thread.rs`, which picks the arm with `desktop_wl::backend_of`: `desktop_client::backend_for` on the offered globals, Quire, else Wlr, else Cosmic; the ext list beside COSMIC's own toplevel info stays Cosmic). On a Quire offer the same thread serves the toplevels and workspaces on the environment connection |
+| `desktop_wl/{choose,ids,toplevels,workspaces,view,command,outputs,offer,run}.rs` | `sill-services/src/desktop_wl/` (the standard-protocol arm over `desktop-client`; its thread is `thread.rs`, which picks the arm with `desktop_client::backend_for` on the offered globals: Quire, else Wlr). On a Quire offer the same thread serves the toplevels and workspaces on the environment connection |
 | `desktop_wl/quire/{handout,surfaces,view,command,notes,arm,shell}.rs` | the Quire arm (P2-SQ): `handout` is the seam for `org.quire.Compositor1.Connect("shell")` (`Handout`, `ZbusHandout`, `FakeHandout`, `shell_connection`); `surfaces` records which registered surface has which `ShellRole` (and `role_of_surface`, the `Surface::NAME` table); `view` and `command` are the pure mappings (`quire_view`, `quire_wire_of`) between `DesktopState::quire` and the shell's `DesktopView` and `DesktopCommand`; `notes` is `note_of` (the shell protocol's events as `ShellNote`s); `arm` is `QuireArm<D: Desktop, S: NoteSink>` (sync: drain events, hand notes to the sink, return the view; execute: a command as requests; assign: `SetShellRole`), tested over `FakeDesktop::with_config`; `shell` runs the arm on the shell host's connection (`spawn_shell_arm(&wl_surface)` takes the connection from the surface, binds a second queue with `DesktopConfig::holding_shell()`, publishes a `watch` of `DesktopView` and an mpsc of notes). The daemon side is `sill/src/daemon/compositor.rs`: the host's route (`Handed(fd)` when the compositor handed one), the `ShellSeat` that starts the arm at the first mapped surface with a role and registers each mapped surface, and `apply`, which carries each `ShellNote` out (hot corner, the companion's tap, the kill chord) or names the P3 lane that will (`P3-SW`, `P3-MC`, `P3-MN`, `P3-SILL`) |
-| `cosmic_wl/nested.rs` | `crates/sill-services/tests/cosmic_wl_nested.rs` (`#[ignore]`, nested compositor) |
 | `displays/{model,policy,identity,scale,scale_pass,plan,brightness,hw_volume,seen,gamut,warmth}*`, `displays/edid/`, `displays/ddc/{vcp,matching,retry,debounce}.rs` | `sill-model/src/displays/` (`scale/`, `edid/`, `ddc/`) |
 | `displays/{backlight,drm,randr,output,sink,font,fontconfig_file,run}.rs`, `displays/ddc/{bus,i2c,worker}.rs` | `displays/backend/` |
 | `displays/ddc/file_bus.rs`, `displays/ddc/fake.rs` | `env/ddc.rs` (`DdcBus`, `I2cBuses`, `FileBus`, `FakeBus`); `displays/kscreen*` is already gone |
 | `events/{model,agenda,occur,rule,rule_expand,ics,ics_line,ics_value}.rs` | `sill-model/src/events/` |
 | `events/{read,live,live_watch,sources,provider}.rs` | `events/backend/` |
 | `idle/{model,policy,grace,reduce,reduce_rules}.rs` | `sill-model/src/idle/` (`reduce*` becomes `step.rs`) |
-| `idle/{cosmic,inhibit,resolve,screensaver,logind,wl,wl_state,wl_dispatch,live}.rs` | `idle/backend/` |
+| `idle/{inhibit,resolve,screensaver,logind,wl,wl_state,wl_dispatch,live}.rs` | `idle/backend/` |
 | `launch/{model,plan}.rs` | `sill-model/src/launch/` |
 | `launch/{dbus,open,run,terminal}.rs`, `launch/test_support.rs` | `launch/backend/`; `test_support.rs` goes to `sill-testkit::TempDir` |
 | `locker/{cause,machine,mode}.rs` | `sill-model/src/locker/` (`machine.rs` becomes `step.rs`) |
@@ -666,8 +664,8 @@ Each ends with its tests. Name the concept once and use it in every file name be
    their functions; a missing helper is added there.
 3. It starts the daemon with a private bus on both addresses, a fake DDC, scratch `HOME` and
    `XDG_*`, its own `XDG_RUNTIME_DIR`, on the compositor `start_compositor` brings up:
-   `SILL_COMPOSITOR=casement|cosmic|kwin` (the nested cosmic-comp, shell-host's headless KWin, or
-   a headless casement started in the jail through the casement checkout's `dev/up.sh`); a
+   `SILL_COMPOSITOR=casement|kwin` (a headless casement started in the jail through the casement
+   checkout's `dev/up.sh`, or shell-host's headless KWin); a
    script without that variable keeps its own `--default`. Compositor-specific work goes
    through the lib's helpers (`set_scale`, `output_size`, `shot`, `maximised_height`,
    `surface_click`, `input`), never a compositor's own tool; a step the compositor cannot prove
@@ -676,7 +674,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
    untracked, or the jail's scratch dir under `dev/accept.sh --compositor casement`, where
    nothing calls cargo: `build` only checks what `dev/accept.sh --build` built outside). What
    needs a person goes to `docs/manual-checks.md`.
-5. `dev/accept.sh [--compositor casement|cosmic|kwin] [--jobs N] [NAME...]` runs scripts and
+5. `dev/accept.sh [--compositor casement|kwin] [--jobs N] [NAME...]` runs scripts and
    prints one PASS, SKIP (and why) or FAIL line each; on casement each in its own jail.
 
 ---
@@ -719,15 +717,11 @@ The person's rules are unlayered and win over both cascade layers: quire's `@lay
 `@layer app`, where every sill surface's own CSS goes (`ds::prelude::AppStyle { css }`, never a
 bare `style { {CSS} }`). A user rule written `[data-surface=bar]` (plain, no `*|`) matches.
 
-`dist/` holds what a real login needs: `sill-session`, `sill-session.target`, `sill.desktop`,
-`sill.service`, `intents/org.quire.Shell.toml` (what `quire-do shell` lists and intentd gates), the COSMIC seed files (shortcuts, key repeat), the PAM service and the DDC/CI
+`dist/` holds what sill adds to a login: `sill.service`, `intents/org.quire.Shell.toml` (what `quire-do shell` lists and intentd gates), the PAM service, the keycap layer and the DDC/CI
 rules. `dist/install.sh` (`--dry-run` prints) and `dist/uninstall.sh` put them in place and take
 them out, sharing `dist/install-lib.sh`; they never touch Plasma or Toshy, and skip the DDC rules
-and `sill.service`. `sill-session` seeds the COSMIC files into `~/.config/cosmic` when missing
-(never overwriting), sets `COSMIC_RENDER_DEVICE` from `sill session detect-gpu` (the GPU the monitor
-is on, when there are several; a person's own value wins), sets the fcitx5 environment when fcitx5
-is installed and starts the wallet's Secret Service; `~/.config/sill/session.env` overrides its settings. `dev/session-smoke.sh`
-runs the script itself nested. `docs/first-login.md` is the user's checklist.
+and `sill.service`. The login itself, "sill (casement)", is the desktop repo's `session/`.
+`docs/first-login.md` is the user's checklist.
 
 The desktop's own compositor (`daemon/compositor.rs`, `daemon/targets.rs`): `ShellSeat` holds the
 Quire arm when the compositor handed the shell a connection, and `ShellSeat::command` is its one
@@ -735,7 +729,7 @@ way to send a `DesktopCommand`. The docks publish their icons' resting rectangle
 `Services::dock_rects`; `targets::forward` turns that watch and the arm's `DesktopView` into host
 messages (`ShellMsg::DockRects`, `ShellMsg::Desktop`); the seat keeps the compositor's minimise
 targets equal to the icons by sending only the diff (`MinimiseTargets::since`), and sends them
-all again when a shell surface registers. On the Wlr and Cosmic arms the seat is absent and
+all again when a shell surface registers. On the Wlr arm the seat is absent and
 nothing is sent.
 
 ## 9. Test harness
@@ -782,8 +776,7 @@ nothing is sent.
   the person's Wayland session. Scripts give the daemon a private bus on both addresses, a fake
   DDC, scratch XDG dirs and its own `XDG_RUNTIME_DIR`. No test locks a session it did not
   start, calls logind's `Suspend`, or registers a polkit agent outside a private bus.
-- **Strong copyleft sill reads for facts only:** cosmic-comp, cosmic-greeter, cosmic-idle,
-  cosmic-osd, systemd.
+- **Strong copyleft sill reads for facts only:** systemd.
 - **Gate** (`~/sill-wt/sill-gate.sh`, or by hand; check every exit code):
 
   ```bash
