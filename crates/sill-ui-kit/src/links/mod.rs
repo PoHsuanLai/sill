@@ -31,7 +31,7 @@ pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, O
 pub use places::PlacementFile;
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal};
-pub use switcher::{AskSerial, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};
+pub use switcher::{AskSerial, Asks, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};
 
 /// The daemon's links.
 #[derive(Debug, Clone)]

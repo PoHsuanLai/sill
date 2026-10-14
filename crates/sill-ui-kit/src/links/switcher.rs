@@ -1,6 +1,7 @@
 //! The daemon's asks to the switcher (`sill switcher next|prev|cancel|commit`, `sill debug
-//! switcher`): one shared channel of the latest ask, numbered so two chords in a row are two
-//! asks. Every output's switcher surface follows it and acts on asks for its own output.
+//! switcher`): one shared channel of the recent asks, numbered so two chords in a row are two
+//! asks, and kept so that a second Tab arriving before the surface has read the first is still
+//! a second step. Every output's switcher surface follows it and acts on asks for its own output.
 
 use shell_host::OutputId;
 use sill_launcher::AppId;
@@ -38,10 +39,41 @@ pub struct SwitcherAsked {
     pub ask: SwitcherAsk,
 }
 
+/// How many asks the channel keeps: far more than a held chord sends between two reads.
+const KEPT: usize = 16;
+
+/// The recent asks, oldest first.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct Asks {
+    recent: Vec<SwitcherAsked>,
+}
+
+impl Asks {
+    /// The asks after `seen` (all of them for `None`), oldest first.
+    pub fn since(&self, seen: Option<AskSerial>) -> Vec<SwitcherAsked> {
+        self.recent
+            .iter()
+            .filter(|asked| seen.is_none_or(|serial| asked.serial > serial))
+            .cloned()
+            .collect()
+    }
+
+    /// The latest ask.
+    pub fn latest(&self) -> Option<&SwitcherAsked> {
+        self.recent.last()
+    }
+
+    fn push(&mut self, asked: SwitcherAsked) {
+        self.recent.push(asked);
+        let over = self.recent.len().saturating_sub(KEPT);
+        self.recent.drain(..over);
+    }
+}
+
 /// The daemon's half and every switcher surface's receiver. Clone is cheap.
 #[derive(Debug, Clone)]
 pub struct SwitcherLink {
-    asked: watch::Sender<Option<SwitcherAsked>>,
+    asked: watch::Sender<Asks>,
 }
 
 impl Default for SwitcherLink {
@@ -53,16 +85,16 @@ impl Default for SwitcherLink {
 impl SwitcherLink {
     pub fn new() -> SwitcherLink {
         SwitcherLink {
-            asked: watch::Sender::new(None),
+            asked: watch::Sender::new(Asks::default()),
         }
     }
 
     /// Ask the switcher on `output`; every ask is new, even one equal to the last.
     pub fn ask(&self, output: OutputId, ask: SwitcherAsk) -> AskSerial {
         let mut serial = AskSerial::default();
-        self.asked.send_modify(|now| {
-            serial = AskSerial(now.as_ref().map_or(0, |last| last.serial.0) + 1);
-            *now = Some(SwitcherAsked {
+        self.asked.send_modify(|asks| {
+            serial = AskSerial(asks.latest().map_or(0, |last| last.serial.0) + 1);
+            asks.push(SwitcherAsked {
                 serial,
                 output,
                 ask,
@@ -73,10 +105,10 @@ impl SwitcherLink {
 
     /// The latest ask.
     pub fn latest(&self) -> Option<SwitcherAsked> {
-        self.asked.borrow().clone()
+        self.asked.borrow().latest().cloned()
     }
 
-    pub fn subscribe(&self) -> watch::Receiver<Option<SwitcherAsked>> {
+    pub fn subscribe(&self) -> watch::Receiver<Asks> {
         self.asked.subscribe()
     }
 }
@@ -102,5 +134,31 @@ mod tests {
                 .map(|asked| (asked.serial, asked.output, asked.ask)),
             Some((AskSerial(2), OutputId(1), SwitcherAsk::Chord(Dir::Next)))
         );
+    }
+
+    #[test]
+    fn asks_made_between_two_reads_are_all_kept_in_order() {
+        let link = SwitcherLink::new();
+        let seen = link.ask(OutputId(1), SwitcherAsk::Chord(Dir::Next));
+        link.ask(OutputId(1), SwitcherAsk::Chord(Dir::Next));
+        link.ask(OutputId(1), SwitcherAsk::Commit);
+        let fresh: Vec<_> = link
+            .subscribe()
+            .borrow()
+            .since(Some(seen))
+            .into_iter()
+            .map(|asked| (asked.serial, asked.ask))
+            .collect();
+        assert_eq!(
+            fresh,
+            vec![
+                (AskSerial(2), SwitcherAsk::Chord(Dir::Next)),
+                (AskSerial(3), SwitcherAsk::Commit),
+            ]
+        );
+        for _ in 0..40 {
+            link.ask(OutputId(1), SwitcherAsk::Cancel);
+        }
+        assert_eq!(link.subscribe().borrow().since(None).len(), 16);
     }
 }

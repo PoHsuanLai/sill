@@ -57,7 +57,7 @@ pub(super) fn use_switcher(
     params: SwitcherParams,
     level: MotionLevel,
 ) -> SwitcherCtx {
-    let latest = use_watch(link.subscribe());
+    let asks = use_watch(link.subscribe());
     // A surface respawned after a close does not replay the ask before it.
     let mut seen = use_hook(|| CopyValue::new(link.latest().map(|asked| asked.serial)));
     let services = sill_ui_kit::hooks::use_services();
@@ -96,16 +96,14 @@ pub(super) fn use_switcher(
         services,
         hold,
     };
+    // Every ask since the last read, in order: two Tabs before a read are two steps.
     use_effect(move || {
-        let Some(asked) = latest.read().clone() else {
-            return;
-        };
-        if seen.peek().is_some_and(|serial| asked.serial <= serial) {
-            return;
-        }
-        seen.set(Some(asked.serial));
-        if asked.output == output {
-            ctx.ask(asked.serial, asked.ask);
+        let fresh = asks.read().since(*seen.peek());
+        for asked in fresh {
+            seen.set(Some(asked.serial));
+            if asked.output == output {
+                ctx.ask(asked.serial, asked.ask);
+            }
         }
     });
     // The show delay's wake can end the opening with no input from here (a tap that was never
