@@ -1,20 +1,18 @@
 //! AppSwitcher: the Cmd+Tab panel (design/13-BEHAVIOUR-menus-windows.md section 13.3.5;
 //! design/20-SURFACES.md section 1.11; design/04-COMPONENTS.md section 43). One row of app
 //! icons on the Osd material with the Space gradient, as the OSD card draws it; the selection a rounded square of `--f-pill` that springs from
-//! cell to cell, the selected app's name under it. The component only draws and reports: the
+//! cell to cell, the selected app's name under it, inside the panel. The component only draws and reports: the
 //! show delay, the keys, the modifier's release and the MRU order are the shell's.
 
 use crate::kept::use_kept;
 use crate::switcher::switcher_fit::{SwitcherMetrics, fit};
 use dioxus::prelude::*;
 use ds::base::geometry::units::Px;
-use ds::base::vocab::{Selection, Shown};
+use ds::base::vocab::Selection;
 use ds::base::word::Word;
 use ds::components::content::icon_source::IconSource;
 use ds::components::content::icon_view::IconView;
-use ds::components::overlays::tooltip::{Hint, HintSide};
 use ds::motion::detail::touch::Touch;
-use ds::motion::hover_intent::HoverProfile;
 use ds::motion::presence::{Exit, Presence};
 use ds::motion::roster::{RowPitch, presence_slug};
 use ds::motion::use_roster::{LeaveBy, RosterSpec, use_roster};
@@ -115,6 +113,11 @@ pub fn AppSwitcher(
         row.shift.0,
         ring.css()
     );
+    let name = drawn
+        .iter()
+        .find(|(app, _)| app.key == selected)
+        .map(|(app, _)| app.name.clone())
+        .unwrap_or_default();
     let size = IconSize::Px(IconPx(row.icon.0.clamp(0.0, 255.0) as u8));
     let class = common.class("ds-switcher");
     let data = common.data_attributes();
@@ -142,11 +145,12 @@ pub fn AppSwitcher(
                     }
                 }
             }
+            span { class: "ds-switcher-name", "aria-hidden": "true", "{name}" }
         }
     }
 }
 
-/// One tile: its icon, and its name as a label above it, up while it is selected.
+/// One tile: its icon. The selected app's name is the panel's caption, under the row.
 fn tile(
     app: SwitcherApp,
     presence: Presence,
@@ -155,10 +159,6 @@ fn tile(
     onhover: EventHandler<AppKey>,
     onactivate: EventHandler<AppKey>,
 ) -> Element {
-    let shown = match selection {
-        Selection::Selected => Shown::Visible,
-        Selection::Unselected => Shown::Hidden,
-    };
     let hovered = app.key.clone();
     let activated = app.key.clone();
     let name = app.name.clone();
@@ -173,10 +173,8 @@ fn tile(
             "data-presence": presence_slug(presence, None),
             onpointerenter: move |_| onhover.call(hovered.clone()),
             onclick: move |_| onactivate.call(activated.clone()),
-            Hint { text: app.name, shown, profile: HoverProfile::Label, side: HintSide::Above, root: "ds-tooltip",
-                span { class: "ds-switcher-icon",
-                    IconView { source: app.icon, size, plate: app.plate }
-                }
+            span { class: "ds-switcher-icon",
+                IconView { source: app.icon, size, plate: app.plate }
             }
         }
     }

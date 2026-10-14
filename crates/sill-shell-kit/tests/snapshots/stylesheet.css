@@ -475,8 +475,8 @@ html,body{margin:0;padding:0;background:transparent}
    `SwitcherMetrics` and the output's width. The selection is one rounded square of `--f-pill`
    (`--r-tile`, 12) behind the row that moves to the selected cell by `--switcher-at`, a
    fractional cell index a spring in Rust writes (design/05 section 14, H1); nothing here
-   transitions it. The selected app's name is its Fly, drawn under the tile in
-   the UI face at 13/600 (not the Fly's usual dark label above). A row wider than its view is
+   transitions it. The selected app's name is a caption under the row, inside the panel,
+   in the UI face at 13/600. A row wider than its view is
    scrolled by `--switcher-shift`, at once (a transition there played on the panel's first
    frame on Blitz, sliding the row in as it appeared). It appears with `fade` at `--t-quick`, no pop; a quitting
    tile (`data-presence=leaving`) plays `row-out` at `--t-quick --e-exit`, held. Flat: no gloss on the panel or the selection. */
@@ -497,9 +497,12 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-switcher-icon{ display:grid; place-items:center; width:var(--switcher-icon); height:var(--switcher-icon); }
 .ds-switcher-icon .ds-ext-icon{ width:var(--switcher-icon); height:var(--switcher-icon); }
 
-/* The name under the selected tile: the Fly moved below its target and set in the UI face. */
-.ds-switcher-cell .ds-fly{ top:calc(100% + var(--s-14)); bottom:auto; padding:0; background:transparent; color:var(--f-ink);
-  font-family:var(--font-ui); font-size:var(--fs-control); font-weight:600; border-radius:0; }
+/* The selected app's name: a caption inside the panel, under the row, as wide as a cell and a
+   panel padding either side and centred under the selected cell (it follows the selection's
+   `--switcher-at`), set in the UI face at 13/600. */
+.ds-switcher-name{ position:absolute; bottom:var(--s-10); left:calc(var(--switcher-at) * (var(--switcher-cell) + var(--switcher-gap)) - var(--switcher-shift));
+  width:calc(var(--switcher-cell) + 2 * var(--s-16)); box-sizing:border-box; padding:0 var(--s-8); overflow:hidden; text-align:center; white-space:nowrap; text-overflow:ellipsis;
+  color:var(--f-ink); font-family:var(--font-ui); font-size:var(--fs-control); font-weight:600; line-height:1.3; pointer-events:none; }
 /* -- helper_sheet -- */
 /* The missing-helper sheet: an alert (`alert.css`) whose installing phase carries a spinner in
    place of its buttons. */
@@ -3749,7 +3752,7 @@ html,body{margin:0;padding:0;background:transparent}
 /* -- dock_tile -- */
 /* DockTile (design/30 section 2.10; design/08-ICONS.md section 2.2; design/10-BEHAVIOUR-dock.md
    section 10.3.2): a tile is a square of its side (written inline, the shell's magnification),
-   the plate centred in it at 80.5 % of it (its `left` and `top` inline, less the bounce's lift, so its label follows). The badge hangs off the plate's top right corner, the
+   the plate filling it (its `left` and `top` inline, less the bounce's lift, so its label follows). The badge hangs off the plate's top right corner, the
    progress bar sits inside its foot, both on the plate; the running dot is positioned against the
    tile's own box (`parts.css`), so a bouncing plate leaves it on the baseline. The tile draws
    no bezel of its own: no pressed fill, no lift, no hover state (the shell magnifies).

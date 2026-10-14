@@ -286,13 +286,13 @@ fn h_hides_the_selected_app_and_stays() {
 #[test]
 fn hover_selects_and_a_click_activates() {
     let mut running = shown();
-    // The third cell: the first's rect, two cells (112) and gaps (8) along.
+    // The third cell: the first's rect, two cells and gaps (8) along.
     let first = running
         .harness
         .rect(".ds-switcher-cell")
         .expect("the tiles are laid out"); // test-only
     let at = Point {
-        x: Px(first.origin.x.0 + 2.0 * 120.0 + first.size.width.0 / 2.0),
+        x: Px(first.origin.x.0 + 2.0 * (first.size.width.0 + 8.0) + first.size.width.0 / 2.0),
         y: Px(first.origin.y.0 + first.size.height.0 / 2.0),
     };
     // The pointer's first sighting is where it rests; the tile is chosen once it moves.

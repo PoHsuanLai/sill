@@ -23,21 +23,60 @@ pub fn tiles(
         .collect()
 }
 
-/// The entry's `Name`, else the id.
+/// The entry's `Name`, else the id made readable ([`readable`]).
 fn name_of(app: &AppId, index: &AppIndex) -> String {
     index
         .get(app)
         .map(|entry| entry.name.trim())
         .filter(|name| !name.is_empty())
-        .map_or_else(|| app.0.clone(), str::to_owned)
+        .map_or_else(|| readable(&app.0), str::to_owned)
+}
+
+/// An id with no desktop entry as a name: its last dotted part, with `-` and `_` as spaces and
+/// each word capitalised (`org.mozilla.firefox` is `Firefox`, `gnome-terminal` is `Gnome Terminal`).
+fn readable(id: &str) -> String {
+    let last = id.rsplit('.').find(|part| !part.is_empty()).unwrap_or(id);
+    last.split(['-', '_'])
+        .filter(|word| !word.is_empty())
+        .map(|word| {
+            let mut letters = word.chars();
+            letters
+                .next()
+                .map(|first| first.to_uppercase().chain(letters).collect::<String>())
+                .unwrap_or_default()
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// The icon and cell sizes sill draws when `switcher.*` leaves them at quire's defaults (96 and
+/// 112): design/20 section 1.11 plates the icons at 64, so the cell is 80. Until quire's
+/// `SwitcherSettings::default` moves there, a pair at quire's defaults reads as not set.
+const ICON: ds_settings::Px = ds_settings::Px(64);
+const CELL: ds_settings::Px = ds_settings::Px(80);
+
+/// The icon and cell sides to draw, in `switcher.*`'s units.
+fn sides(settings: &SwitcherSettings) -> (ds_settings::Px, ds_settings::Px) {
+    let quire = SwitcherSettings::default();
+    if settings.icon_size_px == quire.icon_size_px && settings.cell_size_px == quire.cell_size_px {
+        (ICON, CELL)
+    } else {
+        (settings.icon_size_px, settings.cell_size_px)
+    }
+}
+
+/// The icon's side to resolve art at (`switcher.icon_size_px`, [`sides`]).
+pub fn icon_side(settings: &SwitcherSettings) -> ds_settings::Px {
+    sides(settings).0
 }
 
 /// quire's metrics from `switcher.*` (`icon_size_px`, `cell_size_px`, `cell_gap_px`,
 /// `overflow_min_icon_px`).
 pub fn metrics_of(settings: &SwitcherSettings) -> SwitcherMetrics {
+    let (icon, cell) = sides(settings);
     SwitcherMetrics {
-        icon: px(settings.icon_size_px),
-        cell: px(settings.cell_size_px),
+        icon: px(icon),
+        cell: px(cell),
         gap: px(settings.cell_gap_px),
         min_icon: px(settings.overflow_min_icon_px),
     }
@@ -94,13 +133,24 @@ mod tests {
             row.iter().map(|t| t.key.clone()).collect::<Vec<_>>(),
             vec![key_of(&apps[0].app), key_of(&apps[1].app)]
         );
-        assert_eq!(row[1].name, "org.mozilla.firefox", "no entry: the id");
+        assert_eq!(row[0].name, "Foot", "no entry: the id, readable");
+        assert_eq!(row[1].name, "Firefox", "no entry: the id's last part");
         assert_eq!(index_of(&AppKey("foot".to_owned()), &apps), Some(0));
         assert_eq!(index_of(&AppKey("mail".to_owned()), &apps), None);
         assert_eq!(
             metrics_of(&SwitcherSettings::default()),
-            SwitcherMetrics::default()
+            SwitcherMetrics {
+                icon: Px(64.0),
+                cell: Px(80.0),
+                ..SwitcherMetrics::default()
+            }
         );
+        let set = SwitcherSettings {
+            icon_size_px: ds_settings::Px(96),
+            cell_size_px: ds_settings::Px(100),
+            ..SwitcherSettings::default()
+        };
+        assert_eq!(metrics_of(&set).icon, Px(96.0), "a set size is kept");
         assert_eq!(output_width(1920), Some(Px(1920.0)));
         assert_eq!(output_width(0), None);
     }

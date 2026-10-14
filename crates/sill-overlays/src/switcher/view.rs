@@ -22,7 +22,7 @@ use super::io::{SwitcherCtx, use_switcher};
 use super::layer::PANEL_ID;
 use super::pointer::At;
 use super::session::{Session, Windows};
-use super::tiles::{key_of, metrics_of, output_width, tiles};
+use super::tiles::{icon_side, key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
 use ds_behaviour::switcher::Phase;
 use sill_services::AppsService;
@@ -54,7 +54,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
             resolver: use_icon_resolver(),
         },
         index: use_service::<AppsService>()(),
-        side: LogicalPx(file.switcher.icon_size_px.0),
+        side: LogicalPx(icon_side(&file.switcher).0),
     };
     let link = use_context::<SwitcherLink>();
     let ctx = use_switcher(&link, output.id, file.switcher.params(), level);
