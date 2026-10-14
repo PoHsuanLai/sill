@@ -11,6 +11,7 @@ use ds::base::time::clock::sleep;
 
 use super::apps::{SwitcherApp, switcher_apps};
 use super::opening::{Facts, Opening};
+use super::pointer::{At, Pointer};
 use dioxus::prelude::*;
 use ds::machine::{MachineRef, MachineState, use_machine_in, use_machine_state};
 use ds::prelude::*;
@@ -39,6 +40,8 @@ pub(super) struct SwitcherCtx {
     services: CopyValue<Services>,
     /// What the modifiers have told this opening (`hold.rs`).
     hold: CopyValue<Hold>,
+    /// Whether the pointer has moved since it opened (`pointer.rs`).
+    pointer: CopyValue<Pointer>,
 }
 
 /// What carrying out the machine's outputs reads: the opening, the services and the motion level.
@@ -95,6 +98,7 @@ pub(super) fn use_switcher(
         surface: use_hook(|| CopyValue::new(surface)),
         services,
         hold,
+        pointer: use_hook(|| CopyValue::new(Pointer::default())),
     };
     // Every ask since the last read, in order: two Tabs before a read are two steps.
     use_effect(move || {
@@ -199,8 +203,9 @@ impl SwitcherCtx {
 
     /// Start an opening: its apps, and the surface mapped so it takes the keyboard.
     fn open(self, session: Session) {
-        let mut hold = self.hold;
+        let (mut hold, mut pointer) = (self.hold, self.pointer);
         hold.set(Hold::default());
+        pointer.set(Pointer::default());
         let mut stored = self.session;
         stored.set(Some(session));
         self.visibility(Visibility::Shown);
@@ -277,9 +282,25 @@ impl SwitcherCtx {
         }
     }
 
-    /// The pointer on a tile selects it; a click activates it.
+    /// The pointer on a tile selects it once the pointer has moved (`pointer.rs`); a click
+    /// activates it.
     pub fn hover(self, key: &AppKey) {
-        if let Some(index) = self.index(key) {
+        let mut pointer = self.pointer;
+        let (after, chosen) = pointer.peek().clone().entered(key.clone());
+        pointer.set(after);
+        self.choose(chosen);
+    }
+
+    /// The pointer seen at `at` on the surface.
+    pub fn pointer_moved(self, at: At) {
+        let mut pointer = self.pointer;
+        let (after, chosen) = pointer.peek().clone().moved(at);
+        pointer.set(after);
+        self.choose(chosen);
+    }
+
+    fn choose(self, chosen: Option<AppKey>) {
+        if let Some(index) = chosen.and_then(|key| self.index(&key)) {
             self.input(SwIn::Hover(index));
         }
     }

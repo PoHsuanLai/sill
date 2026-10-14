@@ -288,12 +288,25 @@ fn hover_selects_and_a_click_activates() {
         x: Px(first.origin.x.0 + 2.0 * 120.0 + first.size.width.0 / 2.0),
         y: Px(first.origin.y.0 + first.size.height.0 / 2.0),
     };
+    // The pointer's first sighting is where it rests; the tile is chosen once it moves.
+    let resting = Point {
+        x: Px(at.x.0 - 10.0),
+        y: at.y,
+    };
+    running.harness.send(Input::pointer_move(resting));
+    wait(&mut running, 20);
+    let before = tiles(&running.harness).1;
+    assert_ne!(
+        before.as_deref(),
+        Some("edit"),
+        "a tile under a resting pointer is not chosen"
+    );
     running.harness.send(Input::pointer_move(at));
     wait(&mut running, 20);
     assert_eq!(
         tiles(&running.harness).1.as_deref(),
         Some("edit"),
-        "hover selects"
+        "hover selects once the pointer moves"
     );
     running.harness.send(Input::click(at));
     wait(&mut running, 20);

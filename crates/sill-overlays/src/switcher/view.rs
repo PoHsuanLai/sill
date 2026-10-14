@@ -20,6 +20,7 @@ use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
 use super::icon::SwitcherIcons;
 use super::io::{SwitcherCtx, use_switcher};
 use super::layer::PANEL_ID;
+use super::pointer::At;
 use super::session::{Session, Windows};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
@@ -81,6 +82,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
                     onmounted: move |event: MountedEvent| focus_soon(event.data()),
                     onkeydown: move |event: KeyboardEvent| ctx.key_down(&event),
                     onkeyup: move |event: KeyboardEvent| ctx.key_up(&event),
+                    onpointermove: move |event: PointerEvent| ctx.pointer_moved(at_of(&event)),
                     {chord_watch(host.as_ref(), session, ctx)}
                     if let Some((apps, selected)) = row {
                         div { id: PANEL_ID, class: "sill-switcher-panel",
@@ -123,4 +125,10 @@ fn row(session: &Session, sel: usize, icons: &SwitcherIcons) -> (Vec<Tile>, AppK
         .get(sel.min(session.apps.len().saturating_sub(1)))
         .map_or(AppKey(String::new()), |app| key_of(&app.app));
     (row, selected)
+}
+
+/// Where `event` is on the surface.
+fn at_of(event: &PointerEvent) -> At {
+    let at = event.client_coordinates();
+    At { x: at.x, y: at.y }
 }

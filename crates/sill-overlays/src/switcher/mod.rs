@@ -21,6 +21,7 @@ mod keys;
 mod layer;
 mod model;
 mod opening;
+mod pointer;
 mod session;
 mod surface;
 mod tiles;
