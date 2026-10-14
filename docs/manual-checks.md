@@ -8,9 +8,9 @@ Add new ones at the end of their section.
 
 KWin is not a target, but a KWin session at the machine is the quickest place to try sill's
 surfaces with real devices: its own bar and dock over the desktop, BlueZ, MPRIS, the clipboard
-(`ext_data_control_manager_v1`) and real pointer and keyboard. KWin lacks the COSMIC protocols
+(`ext_data_control_manager_v1`) and real pointer and keyboard. KWin lacks casement's protocols
 (toplevels, workspaces, output management, session lock), so the services that need them stay
-at their defaults there; anything about those, or about displays and scale, is in the COSMIC
+at their defaults there; anything about those, or about displays and scale, is in the casement
 sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 
 - [ ] **CJK input in the launcher, a short real-keyboard spot check.** Automated by shell-host's
@@ -84,7 +84,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 - [ ] **Launcher with a Mac keyboard through keycap** (real typing, Down, Space, Ctrl+Y, → twice,
   Tab, Escape three times, Ctrl+R, Shift+Tab to Emoji and Enter on a clipboard row already pass
   under fake input through `dev/accept/launcher.sh --real-input`; this is the physical keys and
-  the look). Open the launcher with `sill launcher open` (Cmd+Space itself needs a COSMIC
+  the look). Open the launcher with `sill launcher open` (Cmd+Space itself needs a sill (casement)
   login) and type part of a document's name: ⌘Y shows the preview, Space after an arrow toggles
   it and never types a space, → at the end of the text shows it and a second → puts the focus
   ring on its first button, Tab walks the buttons, Escape leaves the pane, hides it, then closes.
@@ -98,7 +98,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   `org.quire.Anyview1.service` activation file, or already running). Type part of a document's
   name with other documents listed: the pane shows the viewer's own picture of it (a picture, a
   page, lines, a table, an archive's listing, a font's specimen); a picture and a PDF page must
-  show on COSMIC, where the pane's picture is a `TextureLayer` that the headless harness cannot
+  show on casement, where the pane's picture is a `TextureLayer` that the headless harness cannot
   draw (a blank plate there is a finding). Enter, or ⌘O, opens the viewer on that file, and ← and →
   there walk the rows the launcher listed, in its order. On an audio file the pane's "Play"
   starts it and the launcher closes. A file the viewer opened yesterday is found by its name
@@ -127,8 +127,8 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 - [ ] **The desktop's context menu with a real mouse**: with `sill widgets toggle-desktop` on,
   press the secondary button on the bare wallpaper: a menu opens with its corner at the pointer
   (and flips left or up near the right and bottom edges): Change Wallpaper..., Edit Widgets...,
-  Show View Options. Release without moving: nothing is picked. Change Wallpaper... opens COSMIC
-  Settings on its Wallpaper page (the desktop entry `com.system76.CosmicSettings.Wallpaper`; the
+  Show View Options. Release without moving: nothing is picked. Change Wallpaper... opens
+  Settings on its Wallpaper page (the desktop entry `org.quire.Settings.Wallpaper`; the
   entry is absent from the menu on a machine without it). Edit Widgets... rises the sheet on the
   monitor you pressed on, not the others. Rest on Show View Options: its submenu opens below the
   menu (G365) with the widget size and spacing in force checked; Large grows the widgets at
@@ -162,21 +162,21 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   `sill debug screenshot <a copy of a PNG>`), drag it onto a file manager window: the file
   copies there, the card leaves, the original stays; onto a terminal it inserts the path.
 
-## Needs a real COSMIC login (not the nested compositor)
+## Needs a real sill (casement) login (not the headless compositor)
 
 - [ ] **Cmd+Space through keycap** opens the launcher (keycap writes Super+Space from the sill layer
   `~/.config/keycap/keycap.toml`; Alt+Space means the layer is missing and only `/etc/keycap/keycap.toml`, the
   Plasma overlay, applies).
-- [ ] **Super shortcuts** reach the shell (the nested compositor never gets them).
-- [ ] **A compositor shortcut runs `sill launcher toggle`**: bind Ctrl+Alt+Space to
-  `Spawn("sill launcher toggle")` (or use Cmd+Space above) and press it: the launcher opens, and a
-  second press closes it. cosmic-comp must resolve `sill` on its own `PATH` and the spawned client
-  must reach the daemon's socket; no injected key reaches a compositor's shortcut matcher.
+- [ ] **Super shortcuts** reach the shell (the headless compositor never gets them).
+- [ ] **A compositor shortcut runs `sill launcher toggle`**: bind Ctrl+Alt+Space to run
+  `sill launcher toggle` (or use Cmd+Space above) and press it: the launcher opens, and a
+  second press closes it. The compositor must resolve `sill` on its own `PATH` and the spawned
+  client must reach the daemon's socket; no injected key reaches a compositor's shortcut matcher.
 - [ ] **Scale policy on first sight**: a display seen for the first time gets 2x (BenQ MA270U),
   and a scale set by hand afterwards is never changed back. The desktop at 2x reads
   comfortably; text and icons are sharp.
-- [ ] **Brightness keys on the external monitor** (DDC/CI, with `dist/cosmic/.../system_actions`
-  installed): the keys (or `sill display brightness up|down`) move the BenQ MA270U's backlight
+- [ ] **Brightness keys on the external monitor** (DDC/CI, with the brightness shortcuts bound to
+  `sill display brightness up|down`): the keys (or `sill display brightness up|down`) move the BenQ MA270U's backlight
   within about a quarter second, sill's OSD shows the level, no stuck value after fast repeats.
 - [ ] **The Display capsule on the BenQ MA270U** (the pointer path passes headlessly at scale 2
   in `dev/accept/control-center.sh --real-input`): open the control center from the bar: within 2 s the
@@ -185,8 +185,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   track: it jumps there. Change the brightness with the monitor's own buttons with the control
   center open: the capsule follows within 2 s. Put it back where it was afterwards.
 - [ ] **Screenshot thumbnail and notification banners from the keyboard**: bind a shortcut to
-  `sill focus-latest` in COSMIC Settings > Keyboard > Custom Shortcuts (or
-  `Spawn("sill focus-latest")` in the `custom` file), keep typing in an app, take a screenshot
+  run `sill focus-latest`, keep typing in an app, take a screenshot
   (`sill screenshot area`): the thumbnail slides in and typing still goes to the app. Press the
   shortcut: the thumbnail takes the keyboard (its focus ring shows on the picture, the hold stops
   running out). Enter or Space opens the file, Delete or Backspace trashes it, Escape slides it
@@ -203,7 +202,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   on a headless KWin through `dev/accept/power-menu.sh --real-input`): `sill power-menu open`, then Tab
   moves the ring between the buttons, Esc closes. Do NOT press Return or Space on Restart/Shut Down unless you mean it; the
   dry run (`sill run --session-dry-run <file>` on a debug build) records instead.
-- [ ] **Cmd+Tab** (with `dist/cosmic` system_actions installed): a quick Cmd+Tab tap switches to
+- [ ] **Cmd+Tab** (with the window-switch shortcut bound to `sill switcher next|prev`): a quick Cmd+Tab tap switches to
   the previous app with no panel; holding shows the panel after about 150 ms; Tab moves;
   releasing Cmd switches; Q quits the selected app; H hides it; Esc cancels.
 - [ ] **Control center details on real services, the rest**:
@@ -215,22 +214,17 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   - On a laptop with a keyboard backlight: the Keyboard Brightness module shows under Display,
     follows the laptop's own backlight keys, and a drag sets the nearest step.
 
-## Needs a sill login (`dist/sill-session`)
+## Needs a sill (casement) login
 
-Install with `dist/install.sh` (`--dry-run` first; it builds, installs the binary, the session
-script, the entry, the target, the PAM service and the COSMIC seed files, and never touches
-Plasma or Toshy). `docs/first-login.md` is the checklist for the first real login; the boxes
-below are what it proves. Then pick "COSMIC (sill)" at the login screen.
+Install with `dist/install.sh` (`--dry-run` first; it builds and installs the binary, the PAM
+service, the intents manifest, the skills and the settings schema, and never touches Plasma or
+Toshy), then the session from the desktop repo. `docs/first-login.md` is the checklist for the
+first real login; the boxes below are what it proves. Then pick "sill (casement)" at the login
+screen.
 
-- [ ] **The session script itself, nested** (`dev/session-smoke.sh`: the real `dist/sill-session`
-  on a nested cosmic-comp, scratch HOME, private bus): environment, seeds, `session.env`,
-  `sill workspace`. Passed 2026-10-03 at the commit that added it.
-- [ ] **GPU choice**: the session log (`journalctl -b | grep 'render device'`) says what
-  `sill session detect-gpu` chose and why (the GPU the monitor is on, when there are several);
-  `sill` is not at 100% CPU. `sill session detect-gpu` on this desktop prints `pci-0000:10:00.0`
-  (the iGPU the monitor is on).
-- [ ] **Key repeat** is 400 ms / 10 per second at once (hold a key); seeded through
-  `~/.config/cosmic/com.system76.CosmicComp/v1/xkb_config`.
+- [ ] **GPU choice**: the journal line `shell-host: adapter <name> ...` names the GPU the
+  compositor renders on, and `sill` is not at 100% CPU.
+- [ ] **Key repeat** is 400 ms / 10 per second at once (hold a key).
 - [ ] **Secrets**: `secret-tool search xdg:schema org.freedesktop.Secret.Generic` finds the
   Secret Service without a wallet prompt; Chrome and Electron apps stay signed in.
 - [ ] **Workspace gestures**: with two workspaces, `sill workspace next` and `prev` move between
@@ -239,7 +233,7 @@ below are what it proves. Then pick "COSMIC (sill)" at the login screen.
 - [ ] **The session comes up**: bar, dock, wallpaper; `systemctl --user is-active
   graphical-session.target` says `active`; `sill polkit status` says `registered`.
 - [ ] **The power key** opens sill's power menu and does not power off (`systemd-inhibit --list`
-  shows `sill-session` holding `handle-power-key`).
+  shows a `handle-power-key` block held for sill).
 - [ ] **Log out** from the power menu ends the session back to the login screen (nothing left
   running: `loginctl list-sessions`).
 
@@ -262,16 +256,15 @@ below are what it proves. Then pick "COSMIC (sill)" at the login screen.
   the field never closes, and the right password on the seventh try unlocks at once.
 - [ ] At a fractional scale (1.5x): the lock surfaces are crisp and fill every output.
 - [ ] Kill the shell while locked (`pkill -f "sill run"` from a TTY): the session stays locked,
-  the session script restarts sill, and sill re-locks at start so you can unlock normally.
+  sill is started again, and sill re-locks at start so you can unlock normally.
 
 ### Idle and the lock grace
 
-Set a short screen-off time in COSMIC Settings (Power) or
-`~/.config/cosmic/com.system76.CosmicIdle/v1/screen_off_time` (milliseconds, e.g. `60000`).
-`dev/accept/idle.sh` covers the rules on the nested compositor with made-up wakes, since the
-nested cosmic-comp counts no synthetic input as activity.
+Set a short screen-off time in sill's idle settings (e.g. 60 s).
+`dev/accept/idle.sh` covers the rules on casement with made-up wakes, since the
+headless compositor counts no synthetic input as activity.
 
-- [ ] `sill idle status` says `{"kind":"own"}` (`pgrep cosmic-idle` finds nothing). After that
+- [ ] `sill idle status` says `{"kind":"own"}`. After that
   long idle: `dimmed` 5 s before the screen-off time, every screen fading to half over about
   2 s (a key or the mouse during it brings them back at once, and a click during it lands on the
   window under it), then `displays_off`, and `sill lock status` says cause `idle_screen_off`.
@@ -285,8 +278,7 @@ nested cosmic-comp counts no synthetic input as activity.
 - [ ] Play a video in a browser (Firefox or Chromium): the screen never dims or goes off while
   it plays (`sill idle status` shows `"inhibition":"held"` for a ScreenSaver inhibit), and does
   once it is paused.
-- [ ] On battery, with a short suspend time (`idle.times = "sill"` and
-  `idle.suspend_battery_min = 1`, or COSMIC's Power page): the machine suspends; on resume the
+- [ ] On battery, with a short suspend time (`idle.suspend_battery_min = 1`): the machine suspends; on resume the
   password is asked, even at once.
 - [ ] Close the lid or suspend, resume at once: the password is asked.
 - [ ] With `session.lock_grace_s = 0`, sleep and wake at once: the password is asked.
@@ -315,7 +307,7 @@ sill layer `dist/keycap/keycap.toml` to `~/.config/keycap/keycap.toml` when miss
 - [ ] `sill keycap status` says `connected` with your keyboard listed and `grab` `active`.
 - [ ] Cmd+Space opens the launcher and again closes it (Super+Space, not Alt+Space), and Cmd+Shift+4 starts
   `sill screenshot area`.
-- [ ] Focus a terminal (foot, Alacritty, COSMIC Terminal): Cmd+C copies in it, and Ctrl+C still
+- [ ] Focus a terminal (foot, Alacritty): Cmd+C copies in it, and Ctrl+C still
   interrupts a running program. Focus a browser: Cmd+C copies there too. Moving between the two
   changes nothing visible and loses no keystroke.
 - [ ] Add an override in `~/.config/sill/settings.toml` (`[[keyboard.overrides]]` with `app = "<the
@@ -353,7 +345,7 @@ sill layer `dist/keycap/keycap.toml` to `~/.config/keycap/keycap.toml` when miss
   pick a row and detent runs it. A window that is not a quire app shows only its name's menu (Hide,
   Quit, its windows).
 
-## The confirmation sheet and `quire-do` on a real COSMIC login
+## The confirmation sheet and `quire-do` on a real sill (casement) login
 
 Needs docket's `intentd` running (`systemctl --user start intentd` from docket's `dist/`) and
 `quire-do` on the PATH; `dist/install.sh` has put `org.quire.Shell.toml` where intentd reads it.
@@ -439,5 +431,5 @@ the real daemons or a real keyboard.
 
 ## Owned by another repository
 
-- [ ] shell-host spike item f at a fractional output (1.5): run on the nested compositor at
-  `cosmic@1.5`; the KWin run at 2.0 left `screen_row_equals_buffer_row` false.
+- [ ] shell-host spike item f at a fractional output (1.5): run on casement at
+  1.5x; the KWin run at 2.0 left `screen_row_equals_buffer_row` false.
