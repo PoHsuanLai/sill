@@ -5,8 +5,8 @@
 //! and sets its place; the tile draws what it is at that size.
 //!
 //! Markup: `button.ds-dock-tile[data-running]` holding `span.ds-dock-plate` (the `IconView` plate,
-//! the badge and the bar) and the running dot. The plate is 80.5 % of the tile's side
-//! (design/08 section 2.2); the badge hangs off its top right corner and the bar sits inside its
+//! the badge and the bar) and the running dot. The plate fills the tile's side (the icon
+//! art carries its own margin, as on a Mac); the badge hangs off its top right corner and the bar sits inside its
 //! foot, both on the plate so they scale with it. The running dot sits in the tile's own box, so
 //! it stays on the baseline while the plate bounces. `label` names the tile for assistive
 //! technology and draws over the plate as a `DockLabel` while `label_shown` says so (`None`
@@ -31,8 +31,10 @@ use ds::style::icon::plate_tint::PlateTint;
 use ds::style::icon::render::{IconPx, IconSize};
 use ds::style::tokens::control_size::ControlSize;
 
-/// The plate's share of the tile's side (design/08 section 2.2).
-const PLATE_SHARE: f32 = 0.805;
+/// The plate's share of the tile's side: all of it. The 6 pt `dock.pill_padding_px` is the only
+/// margin around it, as on a Mac (a 48 pt icon in a 60 pt pill); design/08 section 2.2's 80.5 %
+/// left 5.5 pt of dead space on each side.
+const PLATE_SHARE: f32 = 1.0;
 
 /// The tile at rest, `dock.tile_size_px`'s default.
 const REST_SIDE: Px = Px(48.0);
@@ -121,8 +123,8 @@ mod tests {
     use ds::style::icon::render::IconPx;
 
     #[test]
-    fn the_plate_is_eighty_and_a_half_percent_of_the_tile_in_whole_pixels() {
-        const CASES: &[(f32, u8)] = &[(48.0, 39), (96.0, 77), (64.0, 52), (0.0, 1)];
+    fn the_plate_fills_the_tile_in_whole_pixels() {
+        const CASES: &[(f32, u8)] = &[(48.0, 48), (96.0, 96), (64.0, 64), (0.0, 1)];
         for &(side, plate) in CASES {
             assert_eq!(plate_side(Px(side)), IconPx(plate), "{side}");
         }

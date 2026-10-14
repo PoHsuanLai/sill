@@ -1,4 +1,4 @@
-//! A dock tile on a real Blitz document: its plate is centred in the tile at 80.5 % of it, its
+//! A dock tile on a real Blitz document: its plate fills the tile, its
 //! label hangs on the plate's own box (the label's anchor is the plate, not a zero-size box at the
 //! tile's corner), and a bounce's lift raises the plate while the running dot stays on the
 //! baseline.
@@ -58,8 +58,8 @@ fn the_label_hangs_on_the_plate_and_the_bounce_lifts_it_but_not_the_dot() {
     let target = rect(&rest, ".ds-hover-target");
     assert_eq!(
         (plate.size.width.0, plate.size.height.0),
-        (39.0, 39.0),
-        "the plate is 80.5 % of a 48 px tile in whole pixels"
+        (48.0, 48.0),
+        "the plate fills a 48 px tile"
     );
     assert!(
         (target.size.width.0 - plate.size.width.0).abs() < 1.0
