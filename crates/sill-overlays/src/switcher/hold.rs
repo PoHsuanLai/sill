@@ -6,7 +6,7 @@
 //! and activates); once the chord is known `Held`, a second chord inside the show delay is Tab
 //! held down, not a second tap, so it steps. shell-host publishes only a change, so an opening
 //! starts from the value it mounts on (`watch.rs`: its baseline) and a focus that finds the same
-//! state publishes nothing. The show delay then decides: an opening that reaches it without the
+//! state publishes nothing. A second chord before any publish steps too (`chord_input`). The show delay then decides: an opening that reaches it without the
 //! chord read held was a tap, and switches with no UI; one read held shows the panel. (The
 //! keyboard focus lands 50 to 90 ms after the chord on the nested compositor, inside the
 //! 150 ms delay; a focus later than the delay would read a held chord as a tap.)
@@ -54,12 +54,14 @@ pub fn chord_of(modifiers: &Modifiers) -> Chord {
 }
 
 /// The machine's input for a chord toward `dir` in `state`, `hold` being what the modifiers
-/// said since the opening (`None`: nothing yet). Armed with the chord known held, it is a step
-/// (the armed machine steps on a key); otherwise the chord itself.
+/// said since the opening (`None`: nothing yet). Armed with the chord held or not yet read, it is
+/// a step (the armed machine steps on a key): the focus that reads the modifiers lands 50 to
+/// 90 ms after the first chord, and no one releases and presses the chord again inside that, so a
+/// second chord before it is Tab pressed again with Cmd still down. Released, it is the chord.
 pub fn chord_input(state: Phase, hold: Option<Chord>, dir: Dir) -> SwIn {
     match (state, hold, dir) {
-        (Phase::Armed { .. }, Some(Chord::Held), Dir::Next) => SwIn::Key(SwKey::Tab),
-        (Phase::Armed { .. }, Some(Chord::Held), Dir::Prev) => SwIn::Key(SwKey::ShiftTab),
+        (Phase::Armed { .. }, None | Some(Chord::Held), Dir::Next) => SwIn::Key(SwKey::Tab),
+        (Phase::Armed { .. }, None | Some(Chord::Held), Dir::Prev) => SwIn::Key(SwKey::ShiftTab),
         _ => SwIn::Chord(heading(dir)),
     }
 }
@@ -137,7 +139,7 @@ mod tests {
                 Dir::Prev,
                 SwIn::Key(SwKey::ShiftTab),
             ),
-            (armed, None, Dir::Next, SwIn::Chord(heading(Dir::Next))),
+            (armed, None, Dir::Next, SwIn::Key(SwKey::Tab)),
             (
                 armed,
                 Some(Chord::Released),
