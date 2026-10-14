@@ -14,9 +14,9 @@ at their defaults there; anything about those, or about displays and scale, is i
 sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 
 - [ ] **CJK input in the launcher, a short real-keyboard spot check.** Automated by shell-host's
-  `SILL_DIR=~/sill ~/shell-host/scripts/dev/accept-ime.sh` (fcitx5 Chewing on a private headless
+  `SILL_DIR=~/sill ~/shell-host/scripts/dev/accept-ime.sh` (fcitx5 McBopomofo on a private headless
   KWin; the field reads 你好). By hand, once: `bash dev/manual/ime-live.sh start`, click into
-  the search field, switch fcitx5 to Chewing, type `su3cl3` and press **Return** to commit
+  the search field, switch fcitx5 to McBopomofo, type `su3cl3` and press **Return** to commit
   (Space opens the candidates): 你好 appears once, not doubled. Then `bash dev/manual/ime-live.sh
   capture` and `bash dev/manual/ime-live.sh stop`. Only one copy runs at a time.
 - [x] **Monitor speakers follow the volume**: switch the default sink to the BenQ MA270U's HDMI
