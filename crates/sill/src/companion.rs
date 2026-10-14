@@ -14,7 +14,7 @@ use sill_ipc::response::Response;
 use sill_ipc::show::CompanionRequest;
 use sill_launcher_ui::Launcher;
 use sill_model::companion::{CompanionCommand, FocusInput, LauncherFacts, SummonOut};
-use sill_model::cosmic_wl::Activity;
+use sill_model::windows::Activity;
 use sill_services::Control;
 use sill_ui_kit::links::{LauncherLink, Reveal};
 use sill_ui_kit::services::Services;
@@ -28,7 +28,7 @@ use crate::outputs::Outputs;
 /// What is focused now: the active window, its app when the Wayland app id is a bus name, and the
 /// panel.
 pub fn focus_of(services: &Services, launcher: &LauncherLink) -> FocusInput {
-    let toplevels = services.cosmic_wl.state.borrow();
+    let toplevels = services.windows.state.borrow();
     let active = toplevels
         .toplevels
         .windows
@@ -74,7 +74,7 @@ pub fn apply(outputs: &Outputs, services: &Services, launcher: &LauncherLink, ou
 /// The output the panel opens on: the active window's output when it has a launcher surface,
 /// else the first that has one.
 pub fn launcher_output(outputs: &Outputs, services: &Services) -> Option<OutputId> {
-    let focus = services.cosmic_wl.state.borrow().toplevels.focused_output();
+    let focus = services.windows.state.borrow().toplevels.focused_output();
     let with_surface: Vec<(OutputId, Option<String>)> = outputs
         .outputs
         .iter()

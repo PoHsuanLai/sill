@@ -7,11 +7,11 @@
 
 use std::io;
 
-use cosmic_client_toolkit::sctk::reexports::calloop;
-use cosmic_client_toolkit::sctk::reexports::calloop::channel::Event;
-use cosmic_client_toolkit::sctk::reexports::calloop::{EventLoop, channel};
-use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
-use cosmic_client_toolkit::wayland_client::globals::{GlobalError, registry_queue_init};
+use smithay_client_toolkit::reexports::calloop;
+use smithay_client_toolkit::reexports::calloop::channel::Event;
+use smithay_client_toolkit::reexports::calloop::{EventLoop, channel};
+use smithay_client_toolkit::reexports::calloop_wayland_source::WaylandSource;
+use wayland_client::globals::{GlobalError, registry_queue_init};
 use sill_model::idle::{DisplayPower, Threshold, Watch};
 use tokio::sync::mpsc::UnboundedSender;
 

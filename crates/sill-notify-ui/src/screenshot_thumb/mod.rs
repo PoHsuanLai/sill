@@ -7,7 +7,7 @@
 //! (`Moved`), a cancel leaves it.
 //!
 //! The card never takes the keyboard on appear. `sill focus-latest` (the launcher's kind of
-//! shortcut, bound in COSMIC) asks for it through the banners' link ([`sill_ui_kit::links::BannerLink`]);
+//! shortcut) asks for it through the banners' link ([`sill_ui_kit::links::BannerLink`]);
 //! the card then holds the keyboard and its hold pauses, Enter and Space open it, Delete and
 //! Backspace trash it, Escape dismisses it (the file kept), Tab moves between its buttons; every
 //! way out gives the keyboard back ([`step`], [`keys`]).

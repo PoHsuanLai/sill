@@ -11,7 +11,7 @@ use sill_ui_kit::services::Services;
 /// Tell the service the workspaces as they now are; nothing is sent when it already holds them.
 pub fn publish(services: &Services, settings: &ShellFile) {
     let now = {
-        let wl = services.cosmic_wl.state.borrow();
+        let wl = services.windows.state.borrow();
         published(&wl.workspaces, |index| {
             use_space_look(index, &settings.spaces).to_json()
         })

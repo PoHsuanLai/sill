@@ -1,4 +1,4 @@
-//! A detail pane's foot: "Wi-Fi Settings…" or "Bluetooth Settings…", which opens COSMIC
+//! A detail pane's foot: "Wi-Fi Settings…" or "Bluetooth Settings…", which opens
 //! Settings (joining a new network or pairing a device is done there) and closes
 //! the panel.
 
@@ -12,15 +12,15 @@ use sill_shell_kit::prelude::*;
 
 use sill_ui_kit::hooks::use_control;
 
-/// The app COSMIC's settings run as.
-const SETTINGS_APP: &str = "com.system76.CosmicSettings";
+/// The app the settings run as.
+const SETTINGS_APP: &str = "org.quire.Settings";
 
 /// How a pane closes the popup it is in: provided by the control center and by a module's bar
 /// dropdown.
 #[derive(Clone, Copy)]
 pub(crate) struct ClosePanel(pub Callback<()>);
 
-/// The foot: `label` opening COSMIC Settings.
+/// The foot: `label` opening Settings.
 #[component]
 pub(crate) fn SettingsFoot(label: String) -> Element {
     let launch = use_control::<LaunchService>();
@@ -42,7 +42,7 @@ pub(crate) fn SettingsFoot(label: String) -> Element {
     }
 }
 
-/// Launch COSMIC Settings.
+/// Launch Settings.
 pub(crate) fn open_settings() -> LaunchCommand {
     LaunchCommand::Launch(LaunchRequest {
         app: AppId(SETTINGS_APP.to_owned()),

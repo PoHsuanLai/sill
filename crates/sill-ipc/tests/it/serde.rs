@@ -583,7 +583,7 @@ fn responses() -> Vec<(Response, &'static str)> {
         ),
         (
             Response::Status(StatusReport::Idle(Idle {
-                mode: IdleMode::Off(OffReason::CosmicIdleRunning),
+                mode: IdleMode::Off(OffReason::Guest),
                 phase: IdlePhase::Dimmed,
                 dim: DimShown::Dimmed(DimLevel(50)),
                 power: PowerSource::Ac,
@@ -591,7 +591,7 @@ fn responses() -> Vec<(Response, &'static str)> {
                 inhibits: 0,
                 logind: LogindIdle::Blocked,
             })),
-            r#"{"kind":"status","v":{"kind":"idle","v":{"mode":{"kind":"off","v":"cosmic_idle_running"},"phase":"dimmed","dim":{"kind":"dimmed","v":50},"power":"ac","inhibition":"free","inhibits":0,"logind":"blocked"}}}"#,
+            r#"{"kind":"status","v":{"kind":"idle","v":{"mode":{"kind":"off","v":"guest"},"phase":"dimmed","dim":{"kind":"dimmed","v":50},"power":"ac","inhibition":"free","inhibits":0,"logind":"blocked"}}}"#,
         ),
         (
             Response::Status(StatusReport::Polkit(PolkitStatus {

@@ -1,4 +1,4 @@
-//! sill's own idle, live: the service on the nested cosmic-comp (`wayland-1`, or
+//! sill's own idle, live: the service on the nested compositor (`wayland-1`, or
 //! `SILL_NESTED_WAYLAND`; pinged by connecting, never stopped; never `wayland-0`) with
 //! `org.freedesktop.ScreenSaver` on a private bus and no logind at all (`BusRoute::Absent`), so
 //! nothing can suspend or hint. Run it with
@@ -76,7 +76,7 @@ async fn until(idle: &mut watch::Receiver<Idle>, want: impl Fn(&Idle) -> bool) -
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[ignore = "live: the nested cosmic-comp and a dbus-daemon"]
+#[ignore = "live: the nested compositor and a dbus-daemon"]
 async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
     let Some(socket) = nested() else {
         eprintln!("no nested compositor: skipped");

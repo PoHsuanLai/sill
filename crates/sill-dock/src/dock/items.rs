@@ -1,15 +1,15 @@
 //! Which tiles the dock shows, in order (design/10 §10.3.9): `[pinned (dock.json order)]
 //! [running, unpinned, in launch order] | [Trash]`, running windows grouped by `match_app`.
 //!
-//! "Launch order" is read from the window keys: the `cosmic_wl` thread numbers toplevels as it
+//! "Launch order" is read from the window keys: the `windows` thread numbers toplevels as it
 //! first sees them, so an app's smallest key is when it first had a window. A tile's
 //! [`TileId`] is a hash of what it stands for, not its position, so a bounce or a pressed tile
 //! stays on its app when another app's tile appears before it.
 
 use sill_launcher::AppId;
 use sill_model::apps::{AppIndex, match_app};
-use sill_model::cosmic_wl::{Activity, Toplevel, Toplevels, WindowState};
 use sill_model::pins::DockPins;
+use sill_model::windows::{Activity, Toplevel, Toplevels, WindowState};
 use sill_settings::TrashTile;
 
 use crate::dock::machine::{TileApp, TileId};
@@ -160,9 +160,9 @@ mod tests {
     use crate::dock::machine::TileApp;
     use sill_launcher::{AppId, WindowKey};
     use sill_model::apps::{App, AppIcon, AppIndex, DbusActivation, Listing, Terminal};
-    use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
     use sill_model::ids::OutputName;
     use sill_model::pins::DockPins;
+    use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
     use sill_settings::TrashTile;
     use std::path::PathBuf;
 
@@ -190,11 +190,7 @@ mod tests {
 
     fn index() -> AppIndex {
         AppIndex {
-            apps: vec![
-                app("com.system76.CosmicFiles"),
-                app("com.system76.CosmicTerm"),
-                app("firefox"),
-            ],
+            apps: vec![app("org.gnome.Nautilus"), app("foot"), app("firefox")],
         }
     }
 
@@ -240,15 +236,15 @@ mod tests {
         // MRU order: the active terminal first; firefox opened first (key 1).
         let toplevels = Toplevels {
             windows: vec![
-                window(5, "com.system76.CosmicTerm", Active, Normal),
+                window(5, "foot", Active, Normal),
                 window(1, "firefox", Inactive, Normal),
                 window(3, "org.example.Unknown", Inactive, Normal),
-                window(4, "com.system76.CosmicTerm", Inactive, Normal),
+                window(4, "foot", Inactive, Normal),
                 window(2, "Firefox", Inactive, Minimized),
             ],
         };
         let items = dock_items(
-            &pins(&["com.system76.CosmicFiles", "com.system76.CosmicTerm"]),
+            &pins(&["org.gnome.Nautilus", "foot"]),
             &toplevels,
             &index(),
             TrashTile::On,
@@ -256,14 +252,8 @@ mod tests {
         assert_eq!(
             shape(&items),
             vec![
-                (
-                    "pin com.system76.CosmicFiles".to_owned(),
-                    TileApp::NotRunning
-                ),
-                (
-                    "pin com.system76.CosmicTerm".to_owned(),
-                    TileApp::Active { windows: 2 }
-                ),
+                ("pin org.gnome.Nautilus".to_owned(), TileApp::NotRunning),
+                ("pin foot".to_owned(), TileApp::Active { windows: 2 }),
                 ("run firefox".to_owned(), TileApp::Inactive),
                 ("raw org.example.Unknown".to_owned(), TileApp::Inactive),
                 ("trash".to_owned(), TileApp::NotRunning),
@@ -291,12 +281,7 @@ mod tests {
 
     #[test]
     fn a_tile_keeps_its_id_when_another_tile_appears_before_it() {
-        let term = window(
-            9,
-            "com.system76.CosmicTerm",
-            Activity::Inactive,
-            WindowState::Normal,
-        );
+        let term = window(9, "foot", Activity::Inactive, WindowState::Normal);
         let before = dock_items(
             &pins(&[]),
             &Toplevels {
@@ -320,7 +305,7 @@ mod tests {
         assert_eq!(before[0].tile, after[1].tile);
         assert_ne!(after[0].tile, after[1].tile);
         let pinned = dock_items(
-            &pins(&["com.system76.CosmicTerm"]),
+            &pins(&["foot"]),
             &Toplevels::default(),
             &index(),
             TrashTile::Off,

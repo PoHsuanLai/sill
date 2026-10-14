@@ -3,9 +3,9 @@
 
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::apps::AppIndex;
-use sill_model::cosmic_wl::Toplevels;
 use sill_model::ids::WorkspaceKey;
 use sill_model::pins::{DockPins, PinAt, PinEvent};
+use sill_model::windows::Toplevels;
 
 use crate::dock::activate::activation;
 use crate::dock::items::{DockItem, ItemKind, item_windows};
@@ -13,7 +13,7 @@ use crate::dock::machine::{ActivateMode, DockEffect, Instance, TileId};
 use crate::dock::pick::{DockCommand, DockPick, pick_commands};
 
 /// The file manager the Trash tile opens `trash:///` in (design/10 §10.3.9).
-const FILES_APP: &str = "com.system76.CosmicFiles";
+const FILES_APP: &str = "org.gnome.Nautilus";
 
 /// The desktop action a middle click prefers (design/10 §10.3.6).
 const NEW_WINDOW: &str = "new-window";

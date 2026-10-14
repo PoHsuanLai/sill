@@ -1,16 +1,16 @@
 //! Idle inhibitors that are sill's to honour. Wayland's `zwp_idle_inhibit_manager_v1` is the
-//! compositor's: cosmic-comp stops sending `idled` for `get_idle_notification` while a visible
+//! compositor's: it stops sending `idled` for `get_idle_notification` while a visible
 //! surface inhibits, so sill sees nothing of it. Two other kinds are sill's:
 //!
 //! - **`org.freedesktop.ScreenSaver.Inhibit(app, reason) -> cookie`** and `UnInhibit(cookie)` on
 //!   the session bus (at `/org/freedesktop/ScreenSaver` and `/ScreenSaver`), which browsers and
-//!   video players call and which cosmic-idle served. An inhibit also ends when its caller's
+//!   video players call and which the desktop's idle daemon served. An inhibit also ends when its caller's
 //!   unique name leaves the bus.
 //! - **logind's idle inhibitors** (`systemd-inhibit --what=idle`), read from the Manager's
 //!   `BlockInhibited` property (a `:`-separated list that contains `idle`).
 //!
 //! While either holds, sill drops its idle notifications (no dim, no screen off, no idle
-//! suspend), as cosmic-idle did, and holds them again when both are free.
+//! suspend), as a desktop's idle daemon does, and holds them again when both are free.
 
 use serde::{Deserialize, Serialize};
 

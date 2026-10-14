@@ -8,12 +8,9 @@ use sill_settings::Px;
 use sill_ui_kit::links::DesktopView;
 use sill_ui_kit::menu::MenuModel;
 
-/// The apps that pick a wallpaper, best first: COSMIC Settings on its Wallpaper page, then on its
+/// The apps that pick a wallpaper, best first: Settings on its Wallpaper page, then on its
 /// first page. The menu offers Change Wallpaper only when the app index has one.
-pub(super) const PICKERS: [&str; 2] = [
-    "com.system76.CosmicSettings.Wallpaper",
-    "com.system76.CosmicSettings",
-];
+pub(super) const PICKERS: [&str; 2] = ["org.quire.Settings.Wallpaper", "org.quire.Settings"];
 
 /// How large a widget's cell is, one choice of the grid's `widgets.desktop_cell_px`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Word)]
@@ -296,7 +293,7 @@ mod tests {
         assert_eq!(
             picker_in(&settings),
             Some(AppId(PICKERS[1].to_owned())),
-            "COSMIC Settings alone"
+            "the settings app alone"
         );
         let mut both = settings.clone();
         let mut page = both.apps[both

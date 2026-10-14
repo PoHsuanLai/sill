@@ -113,7 +113,6 @@ fn every_command_line_sends_its_request() {
     let volume = |v| act(ActRequest::Display(DisplayRequest::Volume(v)));
     let cases: Vec<(&[&str], Option<Request>)> = vec![
         (&["run"], None),
-        (&["session", "detect-gpu"], None),
         (&["auth-check"], None),
         (&["style", "check"], None),
         (&["style", "check", "other.css"], None),

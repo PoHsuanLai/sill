@@ -464,7 +464,7 @@ impl PanelCtx {
             // The prompt goes with what this opening kept: the window it was summoned over.
             LauncherEffect::Companion(CompanionAct::Ask { prompt }) => {
                 let companion = self.services.companion.state.borrow();
-                let toplevels = self.services.cosmic_wl.state.borrow().toplevels.clone();
+                let toplevels = self.services.windows.state.borrow().toplevels.clone();
                 // sill has no Space store yet, so no workspace has a Space of its own and every
                 // ask is made on the desktop (FINDINGS: the Space store).
                 let space = prov::SpaceId::desktop();

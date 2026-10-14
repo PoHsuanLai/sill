@@ -15,7 +15,7 @@ use sill_overlays::{
     AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
     PowerMenu, Switcher, VoiceConsentSheet, Wallpaper,
 };
-use sill_settings::{ShellFile, WallpaperDrawer};
+use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::services::Services;
@@ -44,13 +44,10 @@ pub struct Spawn<'a> {
 /// above every layer surface anyway).
 pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: &Spawn) {
     let Spawn {
-        services,
-        settings,
-        links,
-        ..
+        services, links, ..
     } = *spawn;
     spawn_surface::<Bar>(ctx, outputs, spawn, &links.control_center);
-    prepare_wallpapers(outputs, services, &settings.borrow());
+    prepare_wallpapers(outputs, services);
     spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());
     spawn_surface::<Dock>(ctx, outputs, spawn, &());
     spawn_surface::<LauncherCatcher>(ctx, outputs, spawn, &links.launcher);
@@ -87,10 +84,7 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
 /// at `--paper` (design/20 §1.4). An unnamed output gets none (there is no
 /// `sill_model::ids::OutputName` to key it by), the same way the bar's own
 /// `on = output.name.clone().map(OutputName)` leaves an unnamed output at its default look.
-fn prepare_wallpapers(outputs: &Outputs, services: &Services, settings: &ShellFile) {
-    if settings.spaces.wallpaper_drawer != WallpaperDrawer::Shell {
-        return;
-    }
+fn prepare_wallpapers(outputs: &Outputs, services: &Services) {
     for (info, row) in &outputs.outputs {
         let held = row.surface_of::<Wallpaper>().is_some();
         let Some(name) = info.name.clone().filter(|_| !held) else {

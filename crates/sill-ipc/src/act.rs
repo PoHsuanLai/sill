@@ -15,9 +15,9 @@ pub enum ActRequest {
     /// Change what the dock keeps (`sill dock {pin,unpin} <desktop-id>`).
     Dock(DockRequest),
     /// The brightness and volume keys (`sill display {brightness,volume} ...`), bound to
-    /// XF86MonBrightness*/XF86Audio* in COSMIC's shortcuts (`dist/cosmic`).
+    /// XF86MonBrightness*/XF86Audio* in the compositor's shortcuts.
     Display(DisplayRequest),
-    /// Lock the screen now (`sill lock`; COSMIC's `LockScreen` system action in `dist/cosmic`).
+    /// Lock the screen now (`sill lock`).
     Lock,
     /// Take a screenshot with `screenshot.tool` (`sill screenshot [area|window|screen]`): the
     /// file it saves shows as the thumbnail through the folder watch.
@@ -32,7 +32,7 @@ pub enum ActRequest {
     /// Dismiss every banner on screen (each sender hears `NotificationClosed`, reason 2).
     DismissNotifications,
     /// Give the keyboard to the newest transient card: the screenshot thumbnail or the newest
-    /// banner, whichever appeared last (`sill focus-latest`; bound in COSMIC's shortcuts like the
+    /// banner, whichever appeared last (`sill focus-latest`; bound in the compositor's shortcuts like the
     /// launcher's). Nothing happens when none is showing.
     FocusLatest,
     /// Step the workspace, or open the overview (`sill workspace {next,prev,overview}`; palmrest's
@@ -88,8 +88,8 @@ pub enum VolumeRequest {
     ToggleMute,
 }
 
-/// `sill switcher ...`: COSMIC's `WindowSwitcher` / `WindowSwitcherPrevious` shortcuts run
-/// `next` / `prev` (`dist/cosmic`); `cancel` and `commit` are for scripts and for a compositor
+/// `sill switcher ...`: the window switcher shortcuts run
+/// `next` / `prev`; `cancel` and `commit` are for scripts and for a compositor
 /// that tells sill about the modifier's release some other way.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

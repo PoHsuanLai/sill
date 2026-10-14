@@ -24,9 +24,6 @@ use sill_services::env::Buses;
 use sill_ui_kit::services::Services;
 use tokio::sync::watch;
 
-/// The desktop entry `SettingsTarget::Cosmic` opens.
-pub const COSMIC_SETTINGS: &str = "com.system76.CosmicSettings";
-
 /// The providers the panel asks what a chosen row does. The daemon's search runner holds its
 /// own instances for querying; `activate` is pure, so separate instances answer the same.
 /// Provided as a root context by a demo or a test to stand in for the real five.
@@ -53,7 +50,7 @@ impl LauncherProviders {
                 frecency: Arc::new(Mutex::default()),
             }),
             Arc::new(WindowsProvider {
-                cosmic_wl: services.cosmic_wl.state.clone(),
+                windows: services.windows.state.clone(),
                 apps: services.apps.state.clone(),
             }),
             Arc::new(CalculatorProvider::default()),
@@ -180,8 +177,7 @@ impl LauncherEffect {
     }
 }
 
-/// The effect of `activation`. `SettingsTarget::Cosmic` opens COSMIC Settings on its default
-/// page: its desktop entry's `Exec` takes no page argument.
+/// The effect of `activation`.
 pub fn effect_of(activation: Activation) -> LauncherEffect {
     match activation {
         Activation::Launch { .. }
@@ -189,12 +185,6 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
         | Activation::CloseWindow { .. } => LauncherEffect::ByRunner,
         Activation::Copy { text } => LauncherEffect::Copy(text),
         Activation::Insert { text } => LauncherEffect::Insert(text),
-        Activation::OpenSettings {
-            target: SettingsTarget::Cosmic(_),
-        } => LauncherEffect::Launch {
-            app: AppId(COSMIC_SETTINGS.to_owned()),
-            action: DesktopAction::Default,
-        },
         Activation::OpenSettings {
             target: SettingsTarget::Key(key),
         } => LauncherEffect::Unreachable(Unreachable::SettingsKey(key)),
@@ -264,9 +254,7 @@ fn system_effect(command: SystemCommand) -> LauncherEffect {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        AfterEffect, COSMIC_SETTINGS, LauncherEffect, LauncherProviders, Unreachable, effect_of,
-    };
+    use super::{AfterEffect, LauncherEffect, LauncherProviders, Unreachable, effect_of};
     use sill_launcher::{
         Activation, AppId, Choice, DesktopAction, IconRef, Item, ItemId, Provider, ProviderKind,
         Query, ResultSink, Score, SettingsTarget, SystemCommand, WindowKey,
@@ -351,15 +339,6 @@ mod tests {
                     text: "42".to_owned(),
                 },
                 LauncherEffect::Copy("42".to_owned()),
-            ),
-            (
-                Activation::OpenSettings {
-                    target: SettingsTarget::Cosmic("display".to_owned()),
-                },
-                LauncherEffect::Launch {
-                    app: AppId(COSMIC_SETTINGS.to_owned()),
-                    action: DesktopAction::Default,
-                },
             ),
             (
                 Activation::OpenSettings {

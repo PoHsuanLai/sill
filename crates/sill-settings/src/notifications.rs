@@ -66,7 +66,7 @@ pub enum NotificationServer {
     /// Ask for the name, never replacing another daemon that holds it.
     #[default]
     Own,
-    /// Leave the name to another daemon (cosmic-notifications, mako); sill shows nothing a
+    /// Leave the name to another daemon (mako, dunst); sill shows nothing a
     /// sender posts.
     Passive,
 }

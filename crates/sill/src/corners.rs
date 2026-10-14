@@ -13,9 +13,9 @@ use std::process::Stdio;
 use shell_host::OutputId;
 use sill_ipc::debug::CornerName;
 use sill_launcher::WindowKey;
-use sill_model::cosmic_wl::{Activity, Toplevel, WindowState, WlCommand};
 use sill_model::ids::WorkspaceKey;
 use sill_model::locker::LockerCommand;
+use sill_model::windows::{Activity, Toplevel, WindowState, WlCommand};
 use sill_settings::{CornerAction, ShellFile};
 use sill_ui_kit::links::{Corner, Links};
 use sill_ui_kit::services::Services;
@@ -31,7 +31,7 @@ pub enum CornerEffect {
     ControlCenter,
     ShowDesktop,
     Lock,
-    /// A child process: `cosmic-workspaces` for `Workspaces`, `/bin/sh -c COMMAND` for `Command`.
+    /// A child process: `/bin/sh -c COMMAND` for `Command`.
     Run {
         program: String,
         args: Vec<String>,
@@ -48,10 +48,6 @@ pub fn corner_effect(action: CornerAction, command: &str) -> CornerEffect {
         CornerAction::ControlCenter => CornerEffect::ControlCenter,
         CornerAction::ShowDesktop => CornerEffect::ShowDesktop,
         CornerAction::Lock => CornerEffect::Lock,
-        CornerAction::Workspaces => CornerEffect::Run {
-            program: "cosmic-workspaces".to_owned(),
-            args: Vec::new(),
-        },
         CornerAction::Command if command.trim().is_empty() => CornerEffect::Nothing,
         CornerAction::Command => CornerEffect::Run {
             program: "/bin/sh".to_owned(),
@@ -138,7 +134,7 @@ pub fn spawn_hits(
 
 /// Carry out `effect` on `output`: toggle the launcher, notification center or control center;
 /// minimise (or restore) windows for Show Desktop; lock through the session's locker; spawn a
-/// detached child process for `Run` (the workspace overview, or a custom command).
+/// detached child process for `Run` (a custom command).
 async fn act(
     effect: CornerEffect,
     output: OutputId,
@@ -156,7 +152,7 @@ async fn act(
             links.control_center.toggle(output);
         }
         CornerEffect::ShowDesktop => {
-            let wl = services.cosmic_wl.state.borrow().clone();
+            let wl = services.windows.state.borrow().clone();
             let windows = wl.toplevels.windows;
             let active: Vec<WorkspaceKey> = wl
                 .workspaces
@@ -173,7 +169,7 @@ async fn act(
             let (commands, next) = show_desktop(&windows, &active, stash);
             *stash = next;
             for command in commands {
-                let _ = services.cosmic_wl.control.send(command);
+                let _ = services.windows.control.send(command);
             }
         }
         CornerEffect::Lock => {
@@ -196,9 +192,9 @@ mod tests {
     use sill_ui_kit::links::Corner;
 
     use sill_launcher::WindowKey;
-    use sill_model::cosmic_wl::{Activity, Sizing, WindowState};
-    use sill_model::cosmic_wl::{Toplevel, WlCommand};
     use sill_model::ids::WorkspaceKey;
+    use sill_model::windows::{Activity, Sizing, WindowState};
+    use sill_model::windows::{Toplevel, WlCommand};
 
     use super::{CornerEffect, Stash, corner_effect, corner_of, show_desktop};
 
@@ -282,7 +278,7 @@ mod tests {
             (CornerAction::ControlCenter, "", CornerEffect::ControlCenter),
             (CornerAction::ShowDesktop, "", CornerEffect::ShowDesktop),
             (CornerAction::Lock, "", CornerEffect::Lock),
-            (CornerAction::Workspaces, "", run("cosmic-workspaces", &[])),
+            (CornerAction::Workspaces, "", CornerEffect::Nothing),
             (
                 CornerAction::Command,
                 "foot -e htop",

@@ -2,8 +2,7 @@
 //! ([`seen::decide_scale`]), set it through the [`ScaleSink`], and return the new record. The
 //! only effects are the sink's; the caller loads and saves the record.
 //!
-//! When the sink has no answer (a compositor without `zwlr_output_manager_v1`, or no
-//! `cosmic-randr`), the pass describes nothing and changes nothing.
+//! When the sink has no answer (a compositor without `zwlr_output_manager_v1`), the pass describes nothing and changes nothing.
 
 use sill_model::displays::drm::Connector;
 use sill_model::displays::output::{DisplayOutput, describe};

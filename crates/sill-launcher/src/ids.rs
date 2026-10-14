@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub enum ProviderKind {
     /// Installed applications (desktop entries).
     Apps,
-    /// Open windows (COSMIC toplevels).
+    /// Open windows (toplevels).
     Windows,
     /// Arithmetic and unit conversion.
     Calculator,

@@ -12,9 +12,9 @@ use ds::prelude::*;
 use ds::style::space::look::CardAccent;
 use ds::style::space::presets::default_look;
 use shell_host::OutputInfo;
-use sill_model::cosmic_wl::{Activity, WorkspaceGroup, Workspaces};
 use sill_model::ids::{OutputName, WorkspaceKey};
-use sill_services::CosmicWlService;
+use sill_model::windows::{Activity, WorkspaceGroup, Workspaces};
+use sill_services::WindowsService;
 use sill_settings::{DefaultCardAccent, SpacesSettings};
 
 use crate::hooks::{use_service_part, use_settings};
@@ -55,7 +55,7 @@ pub fn active_look(
 
 /// The look of the active workspace on `output`, live.
 pub fn use_active_look(output: &OutputInfo) -> SpaceLook {
-    let workspaces = use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone());
+    let workspaces = use_service_part::<WindowsService, _>(|wl| wl.workspaces.clone());
     let settings = use_settings();
     let on = output.name.clone().map(OutputName);
     active_look(&workspaces(), on.as_ref(), &settings().spaces)

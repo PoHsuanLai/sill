@@ -52,7 +52,7 @@ pub struct ScreenshotSettings {
     /// `auto`, `off`, or a command line, parsed at load (`sill_model::screenshots::parse_tool`).
     #[settings(
         label = "Screenshot program",
-        help = "What `sill screenshot` runs: `auto` is COSMIC's (cosmic-screenshot), `off` runs nothing, or a command line run by `/bin/sh -c` with the kind (`area`, `window`, `screen`) as $1 and the folder as $2.",
+        help = "What `sill screenshot` runs: `auto` asks the desktop portal, `off` runs nothing, or a command line run by `/bin/sh -c` with the kind (`area`, `window`, `screen`) as $1 and the folder as $2.",
         section = "Screenshots",
         text,
         advanced
@@ -66,7 +66,7 @@ impl Default for ScreenshotSettings {
             thumbnail: ShotThumbnail::Show,
             thumbnail_hold_ms: Ms(5200),
             folders: "auto".to_owned(),
-            tool: ShotTool::Cosmic,
+            tool: ShotTool::Portal,
         }
     }
 }

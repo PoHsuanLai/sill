@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn rows_pick_their_art() {
-        let term = "com.system76.CosmicTerm";
+        let term = "foot";
         let cases = [
             (
                 row(ProviderKind::Apps, term, file("/i/term.svg")),

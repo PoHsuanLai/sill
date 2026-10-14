@@ -1,6 +1,6 @@
 //! What the compositor offers, read from its registry or from the wire client's bound set.
 
-use cosmic_client_toolkit::wayland_client::globals::GlobalList;
+use wayland_client::globals::GlobalList;
 use desktop_client::ProtocolSet;
 use sill_model::desktop::GlobalOffer;
 

@@ -1,9 +1,9 @@
 //! What `sill screenshot KIND` runs: `screenshot.tool`, parsed, and the command line per kind.
 //!
-//! COSMIC's tool cannot be told area or window: `cosmic-screenshot` opens the portal's picker
-//! (whose own buttons choose a rectangle, a window or an output, and where to save) unless
-//! `--interactive=false`, which saves the whole screen into `--save-dir` at once. So `screen`
-//! is exact and `area` and `window` both open the picker.
+//! The desktop portal's screenshot cannot be told area or window: it opens the portal's picker
+//! (whose own buttons choose a rectangle, a window or an output, and where to save) when asked
+//! to be interactive, and otherwise saves the whole screen where the portal keeps screenshots at
+//! once. So `screen` is exact and `area` and `window` both open the picker.
 
 use std::path::{Path, PathBuf};
 
@@ -38,8 +38,8 @@ pub enum ShotTool {
     /// Nothing: `off`, and the passive start.
     #[default]
     Off,
-    /// `cosmic-screenshot` (`auto`).
-    Cosmic,
+    /// The desktop portal's screenshot (`auto`).
+    Portal,
     /// A command line for `/bin/sh -c`, given the kind as `$1` and the folder as `$2`.
     Command(String),
 }
@@ -54,7 +54,7 @@ impl From<ShotTool> for String {
     fn from(tool: ShotTool) -> Self {
         match tool {
             ShotTool::Off => "off".to_owned(),
-            ShotTool::Cosmic => "auto".to_owned(),
+            ShotTool::Portal => "auto".to_owned(),
             ShotTool::Command(command) => command,
         }
     }
@@ -67,39 +67,27 @@ pub struct CommandLine {
     pub args: Vec<String>,
 }
 
-/// `screenshot.tool`: `auto` is [`ShotTool::Cosmic`], `off` (and empty) is `Off`, any case,
+/// `screenshot.tool`: `auto` is [`ShotTool::Portal`], `off` (and empty) is `Off`, any case,
 /// trimmed; anything else is a command.
 pub fn parse_tool(text: &str) -> ShotTool {
     let trimmed = text.trim();
     match trimmed.to_lowercase().as_str() {
-        "auto" => ShotTool::Cosmic,
+        "auto" => ShotTool::Portal,
         "off" | "" => ShotTool::Off,
         _ => ShotTool::Command(trimmed.to_owned()),
     }
 }
 
 /// The command `tool` runs for `kind`, saving into `folder` where the tool can be told (the
-/// first watched folder); `None` for `Off`. `Cosmic`: `screen` is `cosmic-screenshot
-/// --interactive=false --modal=false --notify=false --save-dir FOLDER`, `area` and `window`
-/// `cosmic-screenshot --interactive=true --notify=false`. `Command(c)`: `/bin/sh -c c
+/// first watched folder); `None` for `Off`. `Portal`: `gdbus call` of the portal's `Screenshot`,
+/// interactive for `area` and `window` and not for `screen`. `Command(c)`: `/bin/sh -c c
 /// sill-screenshot KIND FOLDER`.
 pub fn tool_command(tool: &ShotTool, kind: ShotKind, folder: &Path) -> Option<CommandLine> {
     let folder = folder.to_string_lossy();
     match (tool, kind) {
         (ShotTool::Off, _) => None,
-        (ShotTool::Cosmic, ShotKind::Screen) => Some(line(
-            COSMIC,
-            [
-                "--interactive=false",
-                "--modal=false",
-                "--notify=false",
-                "--save-dir",
-                &folder,
-            ],
-        )),
-        (ShotTool::Cosmic, ShotKind::Area | ShotKind::Window) => {
-            Some(line(COSMIC, ["--interactive=true", "--notify=false"]))
-        }
+        (ShotTool::Portal, ShotKind::Screen) => Some(portal("false")),
+        (ShotTool::Portal, ShotKind::Area | ShotKind::Window) => Some(portal("true")),
         (ShotTool::Command(command), _) => Some(line(
             "/bin/sh",
             ["-c", command, "sill-screenshot", kind.word(), &folder],
@@ -107,8 +95,25 @@ pub fn tool_command(tool: &ShotTool, kind: ShotKind, folder: &Path) -> Option<Co
     }
 }
 
-/// COSMIC's screenshot program.
-const COSMIC: &str = "cosmic-screenshot";
+/// The portal's `Screenshot` call, with the picker (`interactive` `true`) or without.
+fn portal(interactive: &str) -> CommandLine {
+    let options = format!("{{'interactive': <{interactive}>}}");
+    line(
+        "gdbus",
+        [
+            "call",
+            "--session",
+            "--dest",
+            "org.freedesktop.portal.Desktop",
+            "--object-path",
+            "/org/freedesktop/portal/desktop",
+            "--method",
+            "org.freedesktop.portal.Screenshot.Screenshot",
+            "",
+            &options,
+        ],
+    )
+}
 
 fn line<'a>(program: &str, args: impl IntoIterator<Item = &'a str>) -> CommandLine {
     CommandLine {
@@ -144,7 +149,7 @@ mod tests {
 
     #[test]
     fn the_tool_setting_parses() {
-        assert_eq!(parse_tool("auto"), ShotTool::Cosmic);
+        assert_eq!(parse_tool("auto"), ShotTool::Portal);
         assert_eq!(parse_tool(" OFF "), ShotTool::Off);
         assert_eq!(parse_tool(""), ShotTool::Off);
         assert_eq!(
@@ -157,7 +162,7 @@ mod tests {
     fn a_tool_is_stored_as_the_settings_text_and_reads_back() {
         const CASES: &[(&str, ShotTool, &str)] = &[
             ("off", ShotTool::Off, "\"off\""),
-            ("auto", ShotTool::Cosmic, "\"auto\""),
+            ("auto", ShotTool::Portal, "\"auto\""),
         ];
         for (name, tool, text) in CASES {
             assert_eq!(
@@ -181,40 +186,50 @@ mod tests {
         );
     }
 
+    const PORTAL_QUIET: [&str; 10] = [
+        "call",
+        "--session",
+        "--dest",
+        "org.freedesktop.portal.Desktop",
+        "--object-path",
+        "/org/freedesktop/portal/desktop",
+        "--method",
+        "org.freedesktop.portal.Screenshot.Screenshot",
+        "",
+        "{'interactive': <false>}",
+    ];
+    const PORTAL_PICKER: [&str; 10] = [
+        "call",
+        "--session",
+        "--dest",
+        "org.freedesktop.portal.Desktop",
+        "--object-path",
+        "/org/freedesktop/portal/desktop",
+        "--method",
+        "org.freedesktop.portal.Screenshot.Screenshot",
+        "",
+        "{'interactive': <true>}",
+    ];
+
     #[test]
     fn each_kind_runs_its_command() {
         let dir = Path::new("/home/ada/Pictures");
         let cases = [
             (ShotTool::Off, ShotKind::Area, None),
             (
-                ShotTool::Cosmic,
+                ShotTool::Portal,
                 ShotKind::Screen,
-                line(
-                    "cosmic-screenshot",
-                    &[
-                        "--interactive=false",
-                        "--modal=false",
-                        "--notify=false",
-                        "--save-dir",
-                        "/home/ada/Pictures",
-                    ],
-                ),
+                line("gdbus", &PORTAL_QUIET),
             ),
             (
-                ShotTool::Cosmic,
+                ShotTool::Portal,
                 ShotKind::Area,
-                line(
-                    "cosmic-screenshot",
-                    &["--interactive=true", "--notify=false"],
-                ),
+                line("gdbus", &PORTAL_PICKER),
             ),
             (
-                ShotTool::Cosmic,
+                ShotTool::Portal,
                 ShotKind::Window,
-                line(
-                    "cosmic-screenshot",
-                    &["--interactive=true", "--notify=false"],
-                ),
+                line("gdbus", &PORTAL_PICKER),
             ),
             (
                 ShotTool::Command("shoot \"$1\"".to_owned()),

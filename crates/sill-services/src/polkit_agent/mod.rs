@@ -9,7 +9,7 @@
 //! `/usr/lib/polkit-1/` on Fedora and Arch, `/usr/libexec/` on Debian), which runs PAM as the
 //! chosen identity and, on success, tells polkitd itself (`AuthenticationAgentResponse2`), so a
 //! lying agent cannot fake an answer. libpolkit-agent-1's `PolkitAgentSession` (under
-//! polkit-gnome, polkit-kde and lxqt-policykit) and cosmic-osd's own Rust version speak the
+//! polkit-gnome, polkit-kde and lxqt-policykit) speak the
 //! same line protocol: with polkit 124+'s socket-activated helper
 //! (`/run/polkit/agent-helper.socket`, `polkit-agent-helper.socket`) the agent connects and
 //! writes the user name and the cookie, a line each; otherwise it runs the setuid helper with
@@ -18,8 +18,8 @@
 //! `PAM_TEXT_INFO <text>`, and finally `SUCCESS` or `FAILURE`; the agent answers a prompt with
 //! one line. On this machine (Fedora 44, polkit 127) the socket unit is installed but disabled,
 //! so the setuid helper is the route. The identity asked for is the session's own user when
-//! polkit offers it, else root, else the first `unix-user` (what GNOME Shell and cosmic-osd
-//! pick). Registration: `RegisterAuthenticationAgent((unix-session, {session-id}), locale,
+//! polkit offers it, else root, else the first `unix-user` (what GNOME Shell
+//! picks). Registration: `RegisterAuthenticationAgent((unix-session, {session-id}), locale,
 //! object_path)` on `org.freedesktop.PolicyKit1.Authority`, the session id from logind.
 //!
 //! **Passive until the daemon's first [`PolkitCommand::Policy`]**: the daemon's `start` in a test

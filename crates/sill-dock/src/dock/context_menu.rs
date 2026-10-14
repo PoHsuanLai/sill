@@ -10,7 +10,7 @@
 use ds::prelude::*;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, match_app};
-use sill_model::cosmic_wl::{Activity, Toplevel, Toplevels, WindowState};
+use sill_model::windows::{Activity, Toplevel, Toplevels, WindowState};
 use sill_settings::DockMenuOrder;
 
 use crate::dock::items::{DockItem, ItemKind};

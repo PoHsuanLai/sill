@@ -91,13 +91,12 @@ pub enum Supports {
 /// the arm refuses them otherwise). Wlr cannot place a window or move it between Spaces (no
 /// standard protocol does), cannot hide or quit an app, and cannot take a minimise target on the
 /// connection the arm runs on: the protocol needs the dock's own `wl_surface`, which lives on
-/// the shell host's connection. Cosmic has no placement or minimise target either; it moves
-/// windows between workspaces.
+/// the shell host's connection. Bare has no windows to carry anything.
 pub fn supports(backend: DesktopBackend, command: &DesktopCommand) -> Supports {
     let carried = match backend {
         DesktopBackend::Quire => true,
         DesktopBackend::Wlr => wlr_carries(command),
-        DesktopBackend::Cosmic => cosmic_carries(command),
+        DesktopBackend::Bare => false,
     };
     match carried {
         true => Supports::Yes,
@@ -114,8 +113,4 @@ fn wlr_carries(command: &DesktopCommand) -> bool {
             | DesktopCommand::Unminimise(_)
             | DesktopCommand::SwitchSpace(_)
     )
-}
-
-fn cosmic_carries(command: &DesktopCommand) -> bool {
-    wlr_carries(command) || matches!(command, DesktopCommand::ToSpace(..))
 }

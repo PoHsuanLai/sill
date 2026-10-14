@@ -180,7 +180,7 @@ fn a_retired_key_is_reported_unknown() {
 fn the_screenshot_tool_is_typed_at_load_and_stored_as_its_text() {
     let dir = TempDir::new("tool");
     let cases: &[(&str, ShotTool)] = &[
-        ("auto", ShotTool::Cosmic),
+        ("auto", ShotTool::Portal),
         (" OFF ", ShotTool::Off),
         ("", ShotTool::Off),
         (
@@ -198,17 +198,16 @@ fn the_screenshot_tool_is_typed_at_load_and_stored_as_its_text() {
 /// only that key's default.
 #[test]
 fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
-    use sill_settings::{IdleTimesFrom, Mins, Secs};
+    use sill_settings::{Mins, Secs};
     let dir = TempDir::new("idle-units");
     let text = "[session]\nlock_grace_s = 12\n\
-                [idle]\ntimes = \"sill\"\nscreen_off_ac_min = 20\nscreen_off_battery_min = 3\n\
+                [idle]\nscreen_off_ac_min = 20\nscreen_off_battery_min = 3\n\
                 suspend_ac_min = 0\nsuspend_battery_min = 45\ndim_s = 9\n\
                 locked_screen_off_s = 120\n";
     write(&dir, text.as_bytes());
     let read = load(&dir);
     let want = with(|f| {
         f.session.lock_grace_s = Secs(12);
-        f.idle.times = IdleTimesFrom::Sill;
         f.idle.screen_off_ac_min = Mins(20);
         f.idle.screen_off_battery_min = Mins(3);
         f.idle.suspend_ac_min = Mins(0);

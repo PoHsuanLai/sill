@@ -19,17 +19,6 @@ pub enum DefaultCardAccent {
     SpaceHue,
 }
 
-/// `spaces.wallpaper_drawer`: who paints the desktop background. `Shell` (default) spawns sill's
-/// own wallpaper surface on every output; `Cosmic` leaves it to COSMIC's own `cosmic-bg`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum WallpaperDrawer {
-    Cosmic,
-    #[default]
-    Shell,
-}
-
 /// Space defaults.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
@@ -50,13 +39,6 @@ pub struct SpacesSettings {
         advanced
     )]
     pub default_card_accent: DefaultCardAccent,
-    #[settings(
-        label = "Wallpaper drawn by",
-        help = "COSMIC's own background service, or the shell's wallpaper, which cross-fades with light and dark.",
-        section = "Desktop",
-        advanced
-    )]
-    pub wallpaper_drawer: WallpaperDrawer,
 }
 
 impl Default for SpacesSettings {
@@ -64,7 +46,6 @@ impl Default for SpacesSettings {
         SpacesSettings {
             default_grain: Count(0),
             default_card_accent: DefaultCardAccent::Chosen,
-            wallpaper_drawer: WallpaperDrawer::Shell,
         }
     }
 }

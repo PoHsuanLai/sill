@@ -1,7 +1,7 @@
 //! The Wi-Fi page: the radio `Toggle` in its header, then `listed_networks` as rows (signal
 //! glyph by strength on a disc, the accent disc for the network in use, name,
 //! [`crate::control_center::network_detail`], a lock for a secured one); choosing a
-//! saved network sends `WifiCommand::Connect`, a new one opens COSMIC Settings' Wi-Fi page (no
+//! saved network sends `WifiCommand::Connect`, a new one opens Settings' Wi-Fi page (no
 //! password prompt yet), the connected one `Disconnect`. The join's stamp (`Network.join`) is
 //! the joining row's phase: a spinner where the lock was, the disc sealing when it lands, a
 //! shake when it fails ([`crate::control_center::item_phase`]). Sends
@@ -34,7 +34,7 @@ pub(crate) enum WifiPick {
     Join(Ssid),
     /// The connected network: leave it.
     Leave,
-    /// A new network: COSMIC Settings asks for its password.
+    /// A new network: Settings asks for its password.
     Setup,
 }
 

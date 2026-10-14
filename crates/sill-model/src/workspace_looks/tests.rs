@@ -1,7 +1,7 @@
 use super::*;
-use crate::cosmic_wl::{Activity, Pinning, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces};
 use crate::ids::{GroupKey, OutputName, WorkspaceKey};
 use crate::units::{Urgency, Visibility};
+use crate::windows::{Activity, Pinning, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces};
 
 fn ws(key: u64, stable: &str, activity: Activity) -> Workspace {
     Workspace {

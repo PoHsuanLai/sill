@@ -1,85 +1,35 @@
-//! The wallpaper's source: COSMIC's own background config, since design/22 has no settings key
-//! for it. `cosmic-bg` (the COSMIC session's own background daemon;
-//! `/usr/share/cosmic/com.system76.CosmicBackground/v1/all` on a system
-//! with it installed) writes one RON record per output plus an `all` fallback that applies to
-//! every output without one of its own; this reader only follows `all`
-//! (`$XDG_CONFIG_HOME/cosmic/com.system76.CosmicBackground/v1/all`), a record shaped like:
+//! The wallpaper's source: the file `sill/wallpaper-source` under the config directory, whose first
+//! line is the path of the picture (design/22 has no settings key for it).
 //!
-//! ```text
-//! (
-//!     output: "all",
-//!     source: Path("/usr/share/backgrounds/default-dark.jxl"),
-//!     filter_by_theme: true,
-//!     rotation_frequency: 3600,
-//!     filter_method: Lanczos,
-//!     scaling_mode: Zoom,
-//!     sampling_method: Alphanumeric,
-//! )
-//! ```
-//!
-//! `ron` is not in the pinned dependency block, so [`parse_source_path`] reads the one field it
-//! needs by hand rather than deserialising the record: the `source: Path("...")` value, RON's
-//! own string-escaping unquoted. A `source: Color(...)` (or any shape this does not recognise)
-//! answers `None`, which [`resolve_source`] turns into
-//! [`sill_model::wallpaper::WallpaperSource::None`].
+//! [`parse_source_path`] reads that line; a blank file, or a path that is not a file on disk,
+//! answers [`sill_model::wallpaper::WallpaperSource::None`] through [`resolve_source`].
 
 use std::path::{Path, PathBuf};
 
 use sill_model::wallpaper::WallpaperSource;
 
-/// The file this reads: `all`, cosmic-bg's fallback record for every output.
-const RELATIVE_PATH: &str = "cosmic/com.system76.CosmicBackground/v1/all";
+/// The file this reads, under the config directory.
+const RELATIVE_PATH: &str = "sill/wallpaper-source";
 
-/// Where COSMIC keeps its `all` background record under the config directory `config`.
+/// Where the wallpaper's path is kept under the config directory `config`.
 pub fn config_path(config: &Path) -> PathBuf {
     config.join(RELATIVE_PATH)
 }
 
-/// The `all` record's `source: Path("...")` field. `None` for a `source: Color(...)`, a record
-/// this does not recognise, or text with no `source:` field at all.
-pub fn parse_source_path(ron: &str) -> Option<PathBuf> {
-    let after_key = ron.split("source:").nth(1)?;
-    let after_variant = after_key.trim_start().strip_prefix("Path(")?;
-    let (literal, _rest) = ron_string(after_variant)?;
-    Some(PathBuf::from(literal))
+/// The path on the first line of `text`, trimmed. `None` for blank text.
+pub fn parse_source_path(text: &str) -> Option<PathBuf> {
+    let line = text.lines().next()?.trim();
+    (!line.is_empty()).then(|| PathBuf::from(line))
 }
 
-/// A RON string literal at the start of `text` (already past its opening `"`... no: `text`
-/// itself starts at or before the opening quote, leading whitespace allowed), and what follows
-/// its closing `"`. RON's escapes are the same as Rust's string escapes for the characters a
-/// path can contain (`\\`, `\"`, `\n`, `\t`, `\r`); anything else after a backslash passes
-/// through unescaped rather than failing the whole parse over a wallpaper path.
-fn ron_string(text: &str) -> Option<(String, &str)> {
-    let rest = text.trim_start().strip_prefix('"')?;
-    let mut out = String::with_capacity(rest.len());
-    let mut chars = rest.char_indices();
-    while let Some((index, ch)) = chars.next() {
-        match ch {
-            '"' => return Some((out, &rest[index + 1..])),
-            '\\' => {
-                let (_, escaped) = chars.next()?;
-                out.push(match escaped {
-                    'n' => '\n',
-                    't' => '\t',
-                    'r' => '\r',
-                    other => other,
-                });
-            }
-            other => out.push(other),
-        }
-    }
-    None
-}
-
-/// The wallpaper source right now: the path COSMIC's `all` record names, when the file exists
-/// on disk — otherwise [`WallpaperSource::None`], which the surface paints as `--paper`. A path
-/// [`image`] cannot decode (COSMIC's own default backgrounds are `.jxl`; this crate's `image`
-/// build carries only `png`/`jpeg`) is not distinguished here: it reaches the same fallback once
-/// the resize fails (`resize::ensure_cached`'s `Err`).
+/// The wallpaper source right now: the path the file names, when that is a file on disk
+/// otherwise [`WallpaperSource::None`], which the surface paints as `--paper`. A path [`image`]
+/// cannot decode (this crate's `image` build carries only `png`/`jpeg`) is not distinguished
+/// here: it reaches the same fallback once the resize fails (`resize::ensure_cached`'s `Err`).
 pub fn resolve_source(config: &Path) -> WallpaperSource {
     let path = std::fs::read_to_string(config_path(config))
         .ok()
-        .and_then(|ron| parse_source_path(&ron))
+        .and_then(|text| parse_source_path(&text))
         .filter(|path| path.is_file());
     match path {
         Some(path) => WallpaperSource::File(path),
@@ -93,42 +43,16 @@ mod tests {
 
     use super::parse_source_path;
 
-    /// The exact shape `cosmic-bg` 1.8 writes (`/usr/share/cosmic/com.system76.CosmicBackground/
-    /// v1/all` on a system with it installed), field order and all.
-    const COSMIC_BG_ALL: &str = "(
-    output: \"all\",
-    source: Path(\"/usr/share/backgrounds/default-dark.jxl\"),
-    filter_by_theme: true,
-    rotation_frequency: 3600,
-    filter_method: Lanczos,
-    scaling_mode: Zoom,
-    sampling_method: Alphanumeric,
-)
-";
-
     #[test]
     fn every_case_extracts_or_refuses_the_path() {
         let cases: &[(&str, &str, Option<&str>)] = &[
-            (
-                "cosmic-bg's own default record",
-                COSMIC_BG_ALL,
-                Some("/usr/share/backgrounds/default-dark.jxl"),
-            ),
-            (
-                "a solid colour source has no path",
-                "(output: \"all\", source: Color((r: 1.0, g: 0.0, b: 0.0)))",
-                None,
-            ),
-            ("no source field at all", "(output: \"all\")", None),
+            ("a bare path", "/usr/share/backgrounds/dark.png\n", Some("/usr/share/backgrounds/dark.png")),
+            ("surrounding space", "  /a/b.png  \nignored\n", Some("/a/b.png")),
+            ("blank first line", "\n/a/b.png\n", None),
             ("empty text", "", None),
-            (
-                "a backslash-escaped path",
-                r#"(source: Path("C:\\Users\\pop\\bg.png"))"#,
-                Some(r"C:\Users\pop\bg.png"),
-            ),
         ];
-        for (name, ron, want) in cases {
-            let got = parse_source_path(ron);
+        for (name, text, want) in cases {
+            let got = parse_source_path(text);
             assert_eq!(got, want.map(PathBuf::from), "{name}");
         }
     }

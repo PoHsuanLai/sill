@@ -1,7 +1,7 @@
 //! The reduction: the compositor's workspaces, each with the look the shell gives it.
 
 use super::model::PublishedWorkspace;
-use crate::cosmic_wl::{Activity, Workspaces};
+use crate::windows::{Activity, Workspaces};
 
 /// Every workspace of `workspaces`, in order, with `look_of(index)` for the workspace at position
 /// `index` in its group.

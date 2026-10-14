@@ -8,7 +8,7 @@
 //! starts from the value it mounts on (`watch.rs`: its baseline) and a focus that finds the same
 //! state publishes nothing. The show delay then decides: an opening that reaches it without the
 //! chord read held was a tap, and switches with no UI; one read held shows the panel. (The
-//! keyboard focus lands 50 to 90 ms after the chord on the nested cosmic-comp, inside the
+//! keyboard focus lands 50 to 90 ms after the chord on the nested compositor, inside the
 //! 150 ms delay; a focus later than the delay would read a held chord as a tap.)
 
 use shell_host::{Modifier, Modifiers};

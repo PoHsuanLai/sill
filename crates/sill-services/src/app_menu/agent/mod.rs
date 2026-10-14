@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 use docket_client::{DbusTransport, Intents, Transport};
 use sill_model::app_menu::MenuApp;
-use sill_model::cosmic_wl::{CosmicWl, Toplevels, WlCommand};
+use sill_model::windows::{WindowModel, Toplevels, WlCommand};
 use tokio::sync::watch;
 use zbus::Connection;
 
@@ -28,7 +28,7 @@ pub use read::MenuListed;
 #[derive(Debug, Clone)]
 pub struct MenuLinks {
     /// The compositor's windows, which say what is focused.
-    pub toplevels: watch::Receiver<CosmicWl>,
+    pub toplevels: watch::Receiver<WindowModel>,
     /// Where the shell's own rows (Hide, Quit, raising a window) go.
     pub wl: Control<WlCommand>,
     /// How an app's menu name is made.

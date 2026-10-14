@@ -1,7 +1,5 @@
 //! What the idle service reads and drives, and where it connects.
 
-use std::path::PathBuf;
-
 use sill_model::auth::AuthCommand;
 use sill_model::battery::Battery;
 use sill_model::locker::{Lock, LockerCommand};
@@ -34,23 +32,17 @@ pub(crate) struct Reach {
     pub(crate) system: Bus,
     /// `org.freedesktop.ScreenSaver`.
     pub(crate) session: Bus,
-    /// The config directory COSMIC's own idle times are read under.
-    pub(crate) config: PathBuf,
-    /// Which processes run (a cosmic-idle already there decides who owns idle).
-    pub(crate) processes: std::sync::Arc<dyn crate::env::Processes>,
     /// The session's desktop names (`XDG_CURRENT_DESKTOP`), which say whose session this is.
     pub(crate) current_desktop: String,
 }
 
 impl Reach {
-    /// `env`'s compositor, buses and config directory.
+    /// `env`'s compositor, buses and session.
     pub(crate) fn of(env: &Env) -> Reach {
         Reach {
             display: env.wayland.clone(),
             system: env.buses.system.clone(),
             session: env.buses.session.clone(),
-            config: env.dirs.config.clone(),
-            processes: env.processes.clone(),
             current_desktop: env.current_desktop.clone(),
         }
     }

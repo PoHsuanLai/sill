@@ -8,9 +8,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use sill_model::apps::AppIndex;
-use sill_model::cosmic_wl::CosmicWl;
 use sill_model::keycap::{Attention, KeycapCommand, KeycapState, notice_text};
 use sill_model::notifications::{NotesState, NotificationsCommand};
+use sill_model::windows::WindowModel;
 use sill_services::Control;
 use sill_services::env::{BusRoute, Buses, Env, UnitWait};
 use sill_services::keycap::{KeycapLinks, KeycapService};
@@ -115,7 +115,7 @@ struct Rig {
     notices: mpsc::UnboundedReceiver<NotificationsCommand>,
     /// Held so the other services' channels stay open.
     _held: (
-        watch::Sender<CosmicWl>,
+        watch::Sender<WindowModel>,
         watch::Sender<AppIndex>,
         watch::Sender<NotesState>,
         TempDir,
@@ -134,12 +134,12 @@ fn rig(system: BusRoute) -> Rig {
         },
         ..Env::isolated(scratch.path())
     };
-    let (wl, wl_rx) = watch::channel(CosmicWl::default());
+    let (wl, wl_rx) = watch::channel(WindowModel::default());
     let (apps, apps_rx) = watch::channel(AppIndex::default());
     let (notes, notes_rx) = watch::channel(NotesState::default());
     let (notifications, notices) = Control::channel();
     let links = KeycapLinks {
-        cosmic_wl: wl_rx,
+        windows: wl_rx,
         apps: apps_rx,
         notifications,
         notes: notes_rx,
@@ -209,7 +209,7 @@ async fn the_unit_is_not_asked_about_within_the_grace_period() {
         },
         ..Env::isolated(scratch.path())
     };
-    let (_wl, cosmic_wl) = watch::channel(CosmicWl::default());
+    let (_wl, windows) = watch::channel(WindowModel::default());
     let (_apps, apps) = watch::channel(AppIndex::default());
     let (_notes, notes) = watch::channel(NotesState::default());
     let (notifications, mut notices) = Control::channel();
@@ -217,7 +217,7 @@ async fn the_unit_is_not_asked_about_within_the_grace_period() {
         &tokio::runtime::Handle::current(),
         &env,
         KeycapLinks {
-            cosmic_wl,
+            windows,
             apps,
             notifications,
             notes,

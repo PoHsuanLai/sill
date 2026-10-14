@@ -2,9 +2,9 @@
 //! no magnification, so the target holds still while the pointer moves over the dock. Pure.
 
 use sill_model::apps::AppIndex;
-use sill_model::cosmic_wl::Toplevels;
 use sill_model::desktop::target::{AppRects, Rect};
 use sill_model::units::Cpx;
+use sill_model::windows::Toplevels;
 
 use crate::dock::frame::Area;
 use crate::dock::items::{DockItem, ItemKind, item_windows};
@@ -55,8 +55,8 @@ mod tests {
     use crate::dock::machine::{TileApp, TileId};
     use sill_launcher::AppId;
     use sill_model::apps::AppIndex;
-    use sill_model::cosmic_wl::Toplevels;
     use sill_model::units::Cpx;
+    use sill_model::windows::Toplevels;
 
     fn area(left: i32, top: i32, side: i32) -> Area {
         Area {

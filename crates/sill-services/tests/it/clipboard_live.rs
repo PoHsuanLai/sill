@@ -1,4 +1,4 @@
-//! The clipboard history against a compositor: the live test drives the nested cosmic-comp by
+//! The clipboard history against a compositor: the live test drives the nested compositor by
 //! socket path with made-up text and a made-up image; the other test needs no compositor. Nothing
 //! read back is printed: a mismatch says only that it differs.
 

@@ -1,6 +1,6 @@
 //! The switcher's keys and the chord's release: pure.
 //!
-//! Which modifier holds the chord: COSMIC binds `Alt+Tab` and `Super+Tab` to the switcher, and
+//! Which modifier holds the chord: The desktop binds `Alt+Tab` and `Super+Tab` to the switcher, and
 //! Toshy turns a physical Cmd+Tab into `Alt+Tab` with Alt held for as long as Cmd is
 //! (`C("RC-Tab"): [bind, C("Alt-Tab")]` in its config), so the chord is held while `ALT` or
 //! `META` is. A key-up event's modifiers are the state before it (shell-host applies

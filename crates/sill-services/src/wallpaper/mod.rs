@@ -2,8 +2,8 @@
 //! `$XDG_CACHE_HOME/sill/wallpaper/<hash>-<w>x<h>.png` (image 0.25 Lanczos3; light/dark cross-fade
 //! over t-big; renders only on change).
 //!
-//! design/22 has no key naming the wallpaper file; sill reads COSMIC's own background config
-//! (`com.system76.CosmicBackground`) until one is added.
+//! design/22 has no key naming the wallpaper file; sill reads the path from its own
+//! `sill/wallpaper-source` file in the config directory until one is added.
 //!
 //! `spawn`'s task owns everything effectful: `backend::config::resolve_source` reads the source
 //! path
@@ -20,7 +20,7 @@ use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
 /// The wallpapers as a [`Service`]: resized on the blocking pool, published as cached paths.
-/// COSMIC's record is read under `env`'s config directory, the resized copies kept in its cache.
+/// The source path is read under `env`'s config directory, the resized copies kept in its cache.
 #[derive(Debug)]
 pub enum WallpaperService {}
 

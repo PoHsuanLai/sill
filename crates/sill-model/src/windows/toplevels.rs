@@ -24,7 +24,7 @@ impl Toplevels {
     }
 }
 
-/// One toplevel, as cctk's `ToplevelInfo` describes it.
+/// One toplevel, as the protocol describes it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Toplevel {
     pub key: WindowKey,
@@ -92,8 +92,8 @@ pub fn step(toplevels: Toplevels, event: ToplevelEvent) -> Toplevels {
 #[cfg(test)]
 mod tests {
     use super::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, step};
-    use crate::cosmic_wl::Activity;
     use crate::ids::OutputName;
+    use crate::windows::Activity;
     use sill_launcher::WindowKey;
 
     fn window(key: u64, activity: Activity) -> Toplevel {

@@ -14,7 +14,7 @@ use crate::apps::{applications_dirs, icon_theme, scan};
 /// rescan.
 pub const RESCAN_DEBOUNCE: Duration = Duration::from_millis(500);
 
-/// Scan once, publish, then watch every applications directory and the CosmicTk file the icon
+/// Scan once, publish, then watch every applications directory and the settings file the icon
 /// theme lives in (all coalesced onto one signal), rescanning [`RESCAN_DEBOUNCE`] after the
 /// last one settles or on [`AppsCommand::Rescan`], until every receiver and control is gone.
 pub(crate) async fn run(
@@ -99,7 +99,7 @@ async fn settle(signals: &mut mpsc::UnboundedReceiver<()>) -> bool {
 }
 
 /// A `notify` watch on every applications directory that exists, plus the directory the
-/// CosmicTk icon-theme file lives in (a theme change rescans exactly like a new `.desktop`
+/// GTK settings file lives in (a theme change rescans exactly like a new `.desktop`
 /// file, since [`publish`] re-reads [`icon_theme`] every time), coalesced onto one `signal`. A
 /// directory whose watch fails to start (most often: it does not exist) is silently skipped —
 /// `sill reload` and the next daemon start both still find what it would have caught.
@@ -109,7 +109,7 @@ fn watch_dirs(
     signal: mpsc::UnboundedSender<()>,
 ) -> Option<RecommendedWatcher> {
     let mut targets: Vec<PathBuf> = dirs.iter().filter(|dir| dir.is_dir()).cloned().collect();
-    let theme_file = icons::cosmic_tk_icon_theme_path(config);
+    let theme_file = icons::icon_theme_path(config);
     if let Some(parent) = theme_file.parent()
         && parent.is_dir()
         && !targets.contains(&parent.to_path_buf())

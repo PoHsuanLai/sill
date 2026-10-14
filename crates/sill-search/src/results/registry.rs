@@ -31,7 +31,7 @@ pub(crate) fn providers(
             frecency: history.shared(),
         }),
         Arc::new(WindowsProvider {
-            cosmic_wl: links.cosmic_wl.clone(),
+            windows: links.windows.clone(),
             apps: links.apps.clone(),
         }),
         Arc::new(CalculatorProvider {

@@ -11,14 +11,14 @@ use std::io;
 use std::time::Duration;
 
 use casement_protocols::vocab::ShellRole;
-use cosmic_client_toolkit::sctk::reexports::calloop::generic::Generic;
-use cosmic_client_toolkit::sctk::reexports::calloop::timer::{TimeoutAction, Timer};
-use cosmic_client_toolkit::sctk::reexports::calloop::{
+use smithay_client_toolkit::reexports::calloop::generic::Generic;
+use smithay_client_toolkit::reexports::calloop::timer::{TimeoutAction, Timer};
+use smithay_client_toolkit::reexports::calloop::{
     self, EventLoop, Interest, Mode, PostAction, channel,
 };
-use cosmic_client_toolkit::wayland_client::backend::WaylandError;
-use cosmic_client_toolkit::wayland_client::protocol::wl_surface::WlSurface;
-use cosmic_client_toolkit::wayland_client::{Connection, Proxy};
+use wayland_client::backend::WaylandError;
+use wayland_client::protocol::wl_surface::WlSurface;
+use wayland_client::{Connection, Proxy};
 use desktop_client::DesktopConfig;
 use desktop_client::client::DesktopClient;
 use sill_model::desktop::{DesktopCommand, DesktopView, ShellNote};

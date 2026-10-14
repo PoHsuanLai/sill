@@ -15,7 +15,7 @@ use super::panel::{PanelCap, panel_style, use_keyboard_home};
 use sill_ui_kit::hooks::use_settings;
 
 /// `module`'s dropdown on the bar of `output`; `on_close` closes the popup (a pick that opens
-/// COSMIC Settings).
+/// Settings).
 #[component]
 pub fn ModuleDropdown(
     module: ControlCenterModule,

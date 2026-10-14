@@ -108,7 +108,7 @@ impl Handout for FakeHandout {
 }
 
 /// The shell's connection from the compositor on `bus`, or `None` when there is no session bus
-/// or no compositor of ours owns the name (the session is then COSMIC, KWin or a test, and the
+/// or no compositor of ours owns the name (the session is then another desktop's or a test, and the
 /// shell connects through the environment). Any other failure goes to stderr once.
 pub async fn shell_connection(bus: &Bus) -> Option<OwnedFd> {
     let connection = match bus.connect().await {

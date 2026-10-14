@@ -85,7 +85,7 @@ pub enum DesktopAction {
     Named(String),
 }
 
-/// A window, by the key the `cosmic_wl` thread gave its toplevel handle.
+/// A window, by the key the windows thread gave its toplevel handle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct WindowKey(pub u64);
@@ -94,8 +94,6 @@ pub struct WindowKey(pub u64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum SettingsTarget {
-    /// A `cosmic-settings` page id (`cosmic-settings <page>`), when that binary exists.
-    Cosmic(String),
     /// A quire settings key path (`appearance.theme`), resolved through the schemas
     /// (design/22-SETTINGS.md §9.3 "deep links").
     Key(String),

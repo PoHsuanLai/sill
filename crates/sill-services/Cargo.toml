@@ -1,6 +1,6 @@
 [package]
 name = "sill-services"
-description = "Effectful services behind watch channels: power, network, displays, sessions, notifications, launching and COSMIC Wayland state."
+description = "Effectful services behind watch channels: power, network, displays, sessions, notifications, launching and the compositor's windows."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -35,7 +35,9 @@ toml = { workspace = true }
 rustix = { workspace = true }
 tokio = { workspace = true }
 zbus = { workspace = true }
-cosmic-client-toolkit = { workspace = true }
+smithay-client-toolkit = { workspace = true }
+wayland-client = { workspace = true }
+wayland-protocols = { workspace = true }
 upower_dbus = { workspace = true }
 libpulse-binding = { workspace = true }
 system-tray = { workspace = true }

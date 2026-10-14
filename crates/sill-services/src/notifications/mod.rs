@@ -4,7 +4,7 @@
 //!
 //! **It never fights another daemon.** The service asks for the name only while the daemon's
 //! policy says `notifications.server = "own"` (the setting's default), with `AllowReplacement |
-//! DoNotQueue` and never `ReplaceExisting`: when cosmic-notifications, mako or plasmashell holds
+//! DoNotQueue` and never `ReplaceExisting`: when mako or plasmashell holds
 //! it, sill stays passive, reports the holder (`NameHolder::Other`), and asks again only when
 //! the name falls free. Until the daemon's first [`NotificationsCommand::Policy`] the service is
 //! passive, so a test or a headless render that spawns `crate::Services` never takes the name.

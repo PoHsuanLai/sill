@@ -1,4 +1,4 @@
-//! The displays' effects: sysfs, the backlight over logind, `cosmic-randr` or the native output
+//! The displays' effects: sysfs, the backlight over logind, the native output
 //! management (picked from the compositor's globals), the DDC worker, the
 //! record of seen displays and the fontconfig snippet.
 
@@ -12,5 +12,5 @@ pub(crate) mod sink;
 mod sink_wlr;
 
 pub(crate) use run::{Paths, run};
-pub use sink::{CosmicRandr, ScaleSink};
+pub use sink::ScaleSink;
 pub use sink_wlr::{OutputsRoute, WlrOutputs};

@@ -23,10 +23,10 @@ use sill_launcher::WindowKey;
 use sill_model::app_menu::{
     AppMenuCommand, AppMenus, Follower, MenuApp, MenuName, ServedMenu, titles,
 };
-use sill_model::cosmic_wl::{
-    Activity, CosmicWl, Sizing, Toplevel, Toplevels, WindowState, WlCommand,
-};
 use sill_model::ids::OutputName;
+use sill_model::windows::{
+    Activity, Sizing, Toplevel, Toplevels, WindowModel, WindowState, WlCommand,
+};
 use sill_services::app_menu::{
     Activated, AppMenuDeps, AppMenuService, MenuAgent, MenuFault, MenuLinks,
 };
@@ -371,7 +371,7 @@ struct Agent {
     agent: MenuAgent<RecordingIntentd>,
     intentd: RecordingIntentd,
     wl: tokio::sync::mpsc::UnboundedReceiver<WlCommand>,
-    _windows: watch::Sender<CosmicWl>,
+    _windows: watch::Sender<WindowModel>,
 }
 
 async fn agent(
@@ -392,7 +392,7 @@ async fn agent(
         let scope = format!("0::/user.slice/user@1000.service/app.slice/app-{app}-4242.scope\n");
         std::fs::write(dir.join("cgroup"), scope).unwrap_or_else(|e| panic!("{e}"));
     }
-    let windows = CosmicWl {
+    let windows = WindowModel {
         toplevels: Toplevels {
             windows: apps
                 .iter()
@@ -400,7 +400,7 @@ async fn agent(
                 .map(|(app, key)| window(key, app))
                 .collect(),
         },
-        ..CosmicWl::default()
+        ..WindowModel::default()
     };
     let (windows_tx, toplevels) = watch::channel(windows);
     let (wl, wl_commands) = Control::channel();

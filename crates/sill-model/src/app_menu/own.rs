@@ -7,7 +7,7 @@ use prov::Effect;
 use sill_launcher::WindowKey;
 
 use super::{ServedMenu, Titles, titles};
-use crate::cosmic_wl::{Toplevels, WindowState, WlCommand};
+use crate::windows::{Toplevels, WindowState, WlCommand};
 
 /// One thing the shell does for an app's windows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

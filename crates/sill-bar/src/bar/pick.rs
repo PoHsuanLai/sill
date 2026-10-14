@@ -3,9 +3,9 @@
 
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem, own_commands};
-use sill_model::cosmic_wl::{Toplevels, WlCommand};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_model::tray::{TrayCommand, TrayItemId};
+use sill_model::windows::{Toplevels, WlCommand};
 
 /// One bar menu action.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,7 +13,7 @@ pub(crate) enum BarPick {
     /// A row the shell makes of the frontmost app's windows (`own_commands`): raise one, Hide,
     /// Quit.
     Own { app_id: String, item: OwnItem },
-    /// Open COSMIC Settings.
+    /// Open Settings.
     Settings,
     /// Open the power menu on this bar's output (the app menu's "Shut Down…").
     PowerMenu,
@@ -23,8 +23,8 @@ pub(crate) enum BarPick {
     AppMenu { app: MenuApp, id: i32 },
 }
 
-/// The app COSMIC's settings run as.
-const SETTINGS_APP: &str = "com.system76.CosmicSettings";
+/// The app the settings run as.
+const SETTINGS_APP: &str = "org.quire.Settings";
 
 /// Where a pick goes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,10 +70,10 @@ mod tests {
     use super::{BarPick, Command, commands};
     use sill_launcher::WindowKey;
     use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem};
-    use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
     use sill_model::ids::OutputName;
     use sill_model::launch::LaunchCommand;
     use sill_model::tray::{TrayCommand, TrayItemId};
+    use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 
     fn window(key: u64, app: &str) -> Toplevel {
         Toplevel {
@@ -140,7 +140,7 @@ mod tests {
         }
         let settings = commands(&BarPick::Settings, &toplevels);
         assert!(
-            matches!(settings.as_slice(), [Command::Launch(LaunchCommand::Launch(r))] if r.app.0 == "com.system76.CosmicSettings"),
+            matches!(settings.as_slice(), [Command::Launch(LaunchCommand::Launch(r))] if r.app.0 == "org.quire.Settings"),
             "{settings:?}"
         );
     }

@@ -1,11 +1,11 @@
 //! Which terminal wraps a `Terminal=true` entry's `Exec`. `$TERMINAL`, if it names something on
-//! `PATH`, else the first of ghostty, wezterm, foot, cosmic-term found there (the user prefers
+//! `PATH`, else the first of ghostty, wezterm, foot found there (the user prefers
 //! ghostty, and it is what this machine has).
 
 use std::path::{Path, PathBuf};
 
 /// The binaries tried after `$TERMINAL`, in order.
-const FALLBACKS: [&str; 4] = ["ghostty", "wezterm", "foot", "cosmic-term"];
+const FALLBACKS: [&str; 3] = ["ghostty", "wezterm", "foot"];
 
 /// `env_terminal` (trimmed, if non-blank) then [`FALLBACKS`], first occurrence kept.
 fn candidates(env_terminal: Option<&str>) -> Vec<String> {
@@ -58,21 +58,21 @@ mod tests {
     fn candidates_put_the_env_terminal_first_and_drop_blanks_and_duplicates() {
         assert_eq!(
             candidates(None),
-            vec!["ghostty", "wezterm", "foot", "cosmic-term"]
+            vec!["ghostty", "wezterm", "foot"]
         );
         assert_eq!(
             candidates(Some("  ")),
-            vec!["ghostty", "wezterm", "foot", "cosmic-term"],
+            vec!["ghostty", "wezterm", "foot"],
             "a blank $TERMINAL is ignored"
         );
         assert_eq!(
             candidates(Some(" alacritty ")),
-            vec!["alacritty", "ghostty", "wezterm", "foot", "cosmic-term"],
+            vec!["alacritty", "ghostty", "wezterm", "foot"],
             "trimmed and first"
         );
         assert_eq!(
             candidates(Some("foot")),
-            vec!["foot", "ghostty", "wezterm", "cosmic-term"],
+            vec!["foot", "ghostty", "wezterm"],
             "a duplicate of a fallback is not repeated"
         );
     }
@@ -91,7 +91,7 @@ mod tests {
     fn resolve_picks_the_first_candidate_present_and_executable() {
         let dir = TempDir::new("terminal-resolve");
         make_executable(&dir, "foot");
-        std::fs::write(dir.path().join("cosmic-term"), b"not executable")
+        std::fs::write(dir.path().join("wezterm"), b"not executable")
             .unwrap_or_else(|e| panic!("{e}"));
 
         let path_dirs = vec![dir.path().to_path_buf()];
@@ -101,7 +101,7 @@ mod tests {
             "ghostty is missing, foot is present"
         );
         assert_eq!(
-            resolve(&["cosmic-term".to_owned()], &path_dirs),
+            resolve(&["wezterm".to_owned()], &path_dirs),
             Vec::<String>::new(),
             "present but not executable does not count"
         );

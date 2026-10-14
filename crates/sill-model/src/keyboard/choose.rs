@@ -5,7 +5,7 @@ use keycap_protocol::ProfileName;
 use super::model::{CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, UserOverrides};
 use super::source::ProfileSource;
 use crate::apps::{AppIndex, match_app};
-use crate::cosmic_wl::{Activity, Toplevels};
+use crate::windows::{Activity, Toplevels};
 
 /// The first source that has a profile for `window`, in the order given; the default profile
 /// when none does or nothing is focused.

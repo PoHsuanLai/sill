@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Not Quire
+Exec=not-quire
+NotShowIn=quire;

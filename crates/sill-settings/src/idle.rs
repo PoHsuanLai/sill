@@ -1,7 +1,5 @@
 //! `idle.*`: sill's own idle service: the dim, the screen off, the lock at screen off and the idle
-//! suspend that cosmic-idle did before. The screen-off and suspend times come from COSMIC's own
-//! config (`com.system76.CosmicIdle`, which COSMIC Settings' Power page edits) unless `idle.times`
-//! is `sill`; the rest has no COSMIC key and is sill's. design/22 §3.24 has the rows. Seconds are
+//! suspend. design/22 §3.24 has the rows. Seconds are
 //! `Secs` and minutes `Mins`, plain integers in the file as before; every key is on the Power page,
 //! Advanced, with `session.lock_grace_s` (`crate::schema` moves that one key).
 
@@ -12,25 +10,12 @@ use ds_settings::schema::Page;
 use ds_settings::{Mins, Percent, Secs};
 use serde::{Deserialize, Serialize};
 
-/// `idle.times`: where the screen-off and suspend times come from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum IdleTimesFrom {
-    /// COSMIC's `com.system76.CosmicIdle` (COSMIC Settings' Power page): one screen-off time for
-    /// both power sources, and suspend on AC and on battery.
-    #[default]
-    Cosmic,
-    /// The four `idle.*_min` keys below.
-    Sill,
-}
-
 /// `idle.lock`: whether turning the screens off for idleness locks the session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum IdleLockAt {
-    /// Lock as the screens go off (what cosmic-idle did; macOS's "require password").
+    /// Lock as the screens go off (macOS's "require password").
     #[default]
     ScreenOff,
     /// Never lock for idleness; a suspend still locks.
@@ -43,15 +28,8 @@ pub enum IdleLockAt {
 #[settings(file = "sill/settings.toml", domain = "idle", page = Page::Power)]
 pub struct IdleSettings {
     #[settings(
-        label = "Idle times from",
-        help = "`cosmic` uses the times COSMIC Settings' Power page sets (one screen-off time, suspend on AC and on battery); `sill` uses the four times below instead.",
-        section = "Idle",
-        advanced
-    )]
-    pub times: IdleTimesFrom,
-    #[settings(
         label = "Turn the display off on power after",
-        help = "Minutes without input before the displays go off while on AC power; 0 never. Only with `idle.times = \"sill\"`.",
+        help = "Minutes without input before the displays go off while on AC power; 0 never.",
         section = "Idle",
         range = "0..=240",
         unit = "min",
@@ -60,7 +38,7 @@ pub struct IdleSettings {
     pub screen_off_ac_min: Mins,
     #[settings(
         label = "Turn the display off on battery after",
-        help = "Minutes without input before the displays go off on battery; 0 never. Only with `idle.times = \"sill\"`.",
+        help = "Minutes without input before the displays go off on battery; 0 never.",
         section = "Idle",
         range = "0..=240",
         unit = "min",
@@ -69,7 +47,7 @@ pub struct IdleSettings {
     pub screen_off_battery_min: Mins,
     #[settings(
         label = "Sleep on power after",
-        help = "Minutes without input before the computer sleeps while on AC power; 0 never. Only with `idle.times = \"sill\"`.",
+        help = "Minutes without input before the computer sleeps while on AC power; 0 never.",
         section = "Idle",
         range = "0..=480",
         unit = "min",
@@ -78,7 +56,7 @@ pub struct IdleSettings {
     pub suspend_ac_min: Mins,
     #[settings(
         label = "Sleep on battery after",
-        help = "Minutes without input before the computer sleeps on battery; 0 never. Only with `idle.times = \"sill\"`.",
+        help = "Minutes without input before the computer sleeps on battery; 0 never.",
         section = "Idle",
         range = "0..=480",
         unit = "min",
@@ -124,9 +102,6 @@ pub struct IdleSettings {
 impl Default for IdleSettings {
     fn default() -> Self {
         IdleSettings {
-            times: IdleTimesFrom::Cosmic,
-            // COSMIC's own defaults (cosmic-idle-config at epoch-1.8.0), so switching
-            // `idle.times` to `sill` changes nothing until a time is edited.
             screen_off_ac_min: Mins(15),
             screen_off_battery_min: Mins(15),
             suspend_ac_min: Mins(30),

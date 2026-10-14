@@ -1,7 +1,6 @@
 //! sill's own idle on the daemon's side: the idle service's config from `idle.*` and
 //! `session.lock_grace_s` ([`policy_of`]), sent now and on every change ([`IdleBridge`]). The
-//! service resolves the kind of session itself and is `Off` anywhere but a sill session with no
-//! cosmic-idle running.
+//! service resolves the kind of session itself and is `Off` anywhere but a sill session.
 //!
 //! The daemon's [`IdleTimesSource`] can fix the times instead of the settings: a `debug` build's
 //! `sill run --idle-times <screen_off_s>,<suspend_s>` (0 never, [`test_times`]) uses those
@@ -10,15 +9,14 @@
 
 use sill_model::idle::{
     DimLevel, DimPlan, IdleCommand, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace,
-    LockedScreenOff, PowerPair, Timeout, TimesChoice,
+    LockedScreenOff, PowerPair, Timeout,
 };
 use sill_services::env::IdleTimesSource;
-use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Secs, ShellFile};
+use sill_settings::{IdleLockAt, Mins, Secs, ShellFile};
 
 use super::Policy;
 
-/// The idle config `file` makes: `idle.times` `cosmic` is `TimesChoice::Cosmic`, `sill` the
-/// four `*_min` keys times 60 (0 is `Never`); the dim lead and level, the lock, the lock
+/// The idle config `file` makes: the four `*_min` keys times 60 (0 is `Never`); the dim lead and level, the lock, the lock
 /// screen's own time and `session.lock_grace_s` in seconds. Each value is held to its key's
 /// range, so a hand-edited file cannot ask for an hour of grace.
 pub fn policy_of(file: &ShellFile) -> IdleConfig {
@@ -27,18 +25,15 @@ pub fn policy_of(file: &ShellFile) -> IdleConfig {
         0 => Timeout::Never,
         m => Timeout::After(IdleSecs(u32::from(m) * 60)),
     };
-    let times = match idle.times {
-        IdleTimesFrom::Cosmic => TimesChoice::Cosmic,
-        IdleTimesFrom::Sill => TimesChoice::Own(IdleTimes {
-            screen_off: PowerPair {
-                ac: minutes(idle.screen_off_ac_min, 240),
-                battery: minutes(idle.screen_off_battery_min, 240),
-            },
-            suspend: PowerPair {
-                ac: minutes(idle.suspend_ac_min, 480),
-                battery: minutes(idle.suspend_battery_min, 480),
-            },
-        }),
+    let times = IdleTimes {
+        screen_off: PowerPair {
+            ac: minutes(idle.screen_off_ac_min, 240),
+            battery: minutes(idle.screen_off_battery_min, 240),
+        },
+        suspend: PowerPair {
+            ac: minutes(idle.suspend_ac_min, 480),
+            battery: minutes(idle.suspend_battery_min, 480),
+        },
     };
     let secs = |count: Secs, max: u16| IdleSecs(u32::from(count.0.min(max)));
     IdleConfig {
@@ -89,7 +84,7 @@ impl Policy for IdleBridge {
         let config = policy_of(file);
         match self.times {
             IdleTimesSource::Fixed(fixed) => IdleConfig {
-                times: TimesChoice::Own(fixed),
+                times: fixed,
                 ..config
             },
             IdleTimesSource::Settings => config,
@@ -105,9 +100,9 @@ impl Policy for IdleBridge {
 mod tests {
     use sill_model::idle::{
         DimLevel, DimPlan, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace, LockedScreenOff,
-        PowerPair, Timeout, TimesChoice,
+        PowerPair, Timeout,
     };
-    use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Percent, Secs, ShellFile};
+    use sill_settings::{IdleLockAt, Mins, Percent, Secs, ShellFile};
 
     use super::policy_of;
 
@@ -115,7 +110,6 @@ mod tests {
     fn the_config_is_the_settings_in_seconds() {
         let defaults = ShellFile::default();
         let mut own = ShellFile::default();
-        own.idle.times = IdleTimesFrom::Sill;
         own.idle.screen_off_ac_min = Mins(10);
         own.idle.screen_off_battery_min = Mins(2);
         own.idle.suspend_ac_min = Mins(0);
@@ -130,7 +124,16 @@ mod tests {
             (
                 defaults,
                 IdleConfig {
-                    times: TimesChoice::Cosmic,
+                    times: IdleTimes {
+                        screen_off: PowerPair {
+                            ac: after(900),
+                            battery: after(900),
+                        },
+                        suspend: PowerPair {
+                            ac: after(1_800),
+                            battery: after(900),
+                        },
+                    },
                     dim: DimPlan {
                         lead: IdleSecs(5),
                         level: DimLevel(50),
@@ -143,7 +146,7 @@ mod tests {
             (
                 own,
                 IdleConfig {
-                    times: TimesChoice::Own(IdleTimes {
+                    times: IdleTimes {
                         screen_off: PowerPair {
                             ac: after(600),
                             battery: after(120),
@@ -152,7 +155,7 @@ mod tests {
                             ac: Timeout::Never,
                             battery: after(1_200),
                         },
-                    }),
+                    },
                     dim: DimPlan {
                         lead: IdleSecs(0),
                         level: DimLevel(30),
@@ -164,7 +167,7 @@ mod tests {
             ),
         ];
         for (file, want) in cases {
-            assert_eq!(policy_of(&file), want, "{:?}", file.idle.times);
+            assert_eq!(policy_of(&file), want, "{:?}", file.idle);
         }
     }
 

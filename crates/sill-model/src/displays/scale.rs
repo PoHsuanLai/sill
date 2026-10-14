@@ -23,7 +23,7 @@ impl DisplayScale {
     pub const ONE: DisplayScale = DisplayScale(100);
     pub const TWO: DisplayScale = DisplayScale(200);
 
-    /// `1.5`, `1.25`, `2`: how `cosmic-randr --scale` and a person write it.
+    /// `1.5`, `1.25`, `2`: how a person writes it.
     pub fn decimal(self) -> String {
         let (whole, cents) = (self.0 / 100, self.0 % 100);
         match cents {

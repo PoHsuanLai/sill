@@ -10,7 +10,7 @@ use super::{
 };
 use super::{Grip, ShellFocus, ShellKeys, under_shell};
 use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, step};
-use crate::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
+use crate::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 
 fn name(s: &str) -> ProfileName {
     ProfileName::parse(s).unwrap_or_else(|e| panic!("{s}: {e}"))

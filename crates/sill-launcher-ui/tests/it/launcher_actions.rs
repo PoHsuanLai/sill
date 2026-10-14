@@ -13,8 +13,8 @@ use ds_harness::{Driver, FocusState, Input, Query};
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{Press, is_open, open, selected_title, settle};
 use sill_launcher::WindowKey;
-use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::LaunchCommand;
+use sill_model::windows::WlCommand;
 
 /// The selected row (attribute selectors need the namespace wildcard on Blitz).
 const SELECTED: &str = ".ds-row[*|aria-selected=true]";

@@ -9,8 +9,8 @@
 //! root and runs the setuid `unix_chkpwd` helper, which checks the caller's
 //! own password against `/etc/shadow` and nobody else's. swaylock (MIT) runs PAM in a forked
 //! child that it talks to over a pipe (service `swaylock`, whose file is `auth include login`);
-//! hyprlock runs it on a thread (service `hyprlock`); cosmic-greeter's locker calls `pam-client`
-//! on tokio's blocking pool (service `cosmic-greeter`), then `acct_mgmt`. sill takes swaylock's
+//! hyprlock runs it on a thread (service `hyprlock`); a greeter's locker can call `pam-client`
+//! on tokio's blocking pool, then `acct_mgmt`. sill takes swaylock's
 //! shape: [`PamHelper`] runs `sill auth-check` as a child per attempt, which calls PAM through
 //! the safe `nonstick` crate ([`backend::pam::check`]), so a module that hangs (a network
 //! directory, a

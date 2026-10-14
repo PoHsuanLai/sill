@@ -1,8 +1,8 @@
 //! The command channel between the service's `Control`s and the thread's loop, shared by both
-//! arms of the compositor service.
+//! arms of the windows service.
 
-use cosmic_client_toolkit::sctk::reexports::calloop::channel;
-use sill_model::cosmic_wl::WlCommand;
+use smithay_client_toolkit::reexports::calloop::channel;
+use sill_model::windows::WlCommand;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 /// Hand every command to the loop; once the loop has stopped, drop them.

@@ -13,6 +13,7 @@ use sill_model::voice::VoiceConsent;
 use sill_model::work_areas::WorkAreaCommand;
 use sill_model::workspace_looks::WorkspaceLooksCommand;
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
+use sill_services::WindowsService;
 use sill_services::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
 use sill_services::accounts::{AccountsLinks, AccountsService};
 use sill_services::apps::AppsService;
@@ -21,7 +22,6 @@ use sill_services::battery::BatteryService;
 use sill_services::capture_pick::{CaptureLinks, CaptureService};
 use sill_services::clipboard::ClipboardService;
 use sill_services::companion::{CompanionLinks, CompanionService};
-use sill_services::cosmic_wl::CosmicWlService;
 use sill_services::displays::DisplaysService;
 use sill_services::env::Env;
 use sill_services::guest_asks::{GuestAsksLinks, GuestAsksService};
@@ -54,7 +54,7 @@ use crate::policy::{
     voice::VoiceBridge,
 };
 
-/// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
+/// Start every service on `rt` (the `windows` and volume threads on their own threads)
 /// against `env`'s seams, each after the ones it depends on. A service whose system half is
 /// missing still yields its receiver, at its default. `shell_calls` is where the shell's own
 /// actions go, `summons` where a summon's launcher effects go, `consents` where the answer to
@@ -99,7 +99,7 @@ pub(crate) fn start(
     );
     let battery = spawn::<BatteryService>(rt, env, ());
     let apps = spawn::<AppsService>(rt, env, ());
-    let cosmic_wl = spawn::<CosmicWlService>(rt, env, ());
+    let windows = spawn::<WindowsService>(rt, env, ());
     let launch = spawn::<LaunchService>(rt, env, apps.state.clone());
     let clipboard = spawn::<ClipboardService>(rt, env, ());
     let results = spawn::<ResultsService>(
@@ -107,11 +107,11 @@ pub(crate) fn start(
         env,
         Sources::Services(ResultsLinks {
             apps: apps.state.clone(),
-            cosmic_wl: cosmic_wl.state.clone(),
+            windows: windows.state.clone(),
             clipboard: clipboard.state.clone(),
             companion: companion.state.clone(),
             companion_control: companion.control.clone(),
-            wl: cosmic_wl.control.clone(),
+            wl: windows.control.clone(),
             launch: launch.control.clone(),
         }),
     );
@@ -135,7 +135,7 @@ pub(crate) fn start(
         rt,
         env,
         KeycapLinks {
-            cosmic_wl: cosmic_wl.state.clone(),
+            windows: windows.state.clone(),
             apps: apps.state.clone(),
             notifications: notifications.control.clone(),
             notes: notifications.state.clone(),
@@ -204,8 +204,8 @@ pub(crate) fn start(
             IntentsLinks {
                 calls: shell_calls,
                 menus: MenuLinks {
-                    toplevels: cosmic_wl.state.clone(),
-                    wl: cosmic_wl.control.clone(),
+                    toplevels: windows.state.clone(),
+                    wl: windows.control.clone(),
                     name_of: menu_name_of,
                 },
                 shots,
@@ -218,7 +218,7 @@ pub(crate) fn start(
         volume,
         battery,
         apps,
-        cosmic_wl,
+        windows,
         launch,
         clipboard,
         results,
@@ -282,7 +282,7 @@ pub(crate) fn follow_settings(
         .control
         .send(PolkitCommand::Policy(AgentPolicy::Own));
     // sill's own idle follows `idle.*` and `session.lock_grace_s`, and is `Off` anywhere but a
-    // sill session with no cosmic-idle.
+    // sill session.
     let idle = IdleBridge {
         times: env.idle_times,
     };

@@ -117,7 +117,7 @@ mod tests {
     fn object_paths_replace_dots_and_dashes() {
         const CASES: &[(&str, &str)] = &[
             ("org.mozilla.firefox", "/org/mozilla/firefox"),
-            ("com.system76.CosmicTerm", "/com/system76/CosmicTerm"),
+            ("foot", "/foot"),
             ("spotify-launcher", "/spotify_launcher"),
         ];
         for (id, want) in CASES {

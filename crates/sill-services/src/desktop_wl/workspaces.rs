@@ -4,8 +4,8 @@ use desktop_client::DesktopState;
 use desktop_client::workspace::{
     Group, Workspace as WireWorkspace, WorkspaceAbility, WorkspaceFlag,
 };
-use sill_model::cosmic_wl::workspaces::{Workspace, WorkspaceGroup, Workspaces};
-use sill_model::cosmic_wl::{Activity, Pinning, WorkspaceCap, WorkspaceCaps};
+use sill_model::windows::workspaces::{Workspace, WorkspaceGroup, Workspaces};
+use sill_model::windows::{Activity, Pinning, WorkspaceCap, WorkspaceCaps};
 use sill_model::ids::GroupKey;
 use sill_model::units::{Urgency, Visibility};
 

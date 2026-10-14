@@ -11,7 +11,7 @@ use desktop_client::{
     Desktop, DesktopEvent, Protocol, ProtocolSet, ToplevelIdentifier, ToplevelKey,
 };
 use sill_dock::Dock;
-use sill_model::cosmic_wl::{CosmicWl, Toplevels};
+use sill_model::windows::{Toplevels, WindowModel};
 use sill_services::desktop_wl::{project_toplevels, project_workspaces};
 use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
@@ -51,9 +51,9 @@ fn script(desktop: &mut FakeDesktop, events: Vec<DesktopEvent>) {
 }
 
 /// What the dock reads after `desktop` said its piece, windows kept in recency by `recency`.
-fn published(desktop: &FakeDesktop, recency: Toplevels) -> (CosmicWl, Toplevels) {
+fn published(desktop: &FakeDesktop, recency: Toplevels) -> (WindowModel, Toplevels) {
     let toplevels = project_toplevels(recency, desktop.state());
-    let wl = CosmicWl {
+    let wl = WindowModel {
         workspaces: project_workspaces(desktop.state()),
         toplevels: toplevels.clone(),
     };
@@ -85,7 +85,7 @@ fn windows_from_the_standard_protocols_draw_running_dots_and_closing_removes_the
         .start();
     run.feeds.apps.send_replace(fake::dock::index());
     run.feeds.pins.send_replace(fake::dock::pins());
-    run.feeds.cosmic_wl.send_replace(wl);
+    run.feeds.windows.send_replace(wl);
     run.harness.advance(Duration::from_millis(40));
     let running = run.harness.html();
     assert_eq!(
@@ -102,7 +102,7 @@ fn windows_from_the_standard_protocols_draw_running_dots_and_closing_removes_the
         ],
     );
     let (wl, _) = published(&desktop, recency);
-    run.feeds.cosmic_wl.send_replace(wl);
+    run.feeds.windows.send_replace(wl);
     run.harness.advance(Duration::from_millis(40));
     let after = run.harness.html();
     assert_eq!(dots(&after), 1, "only Firefox still runs: {after}");

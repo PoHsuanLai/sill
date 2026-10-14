@@ -10,9 +10,9 @@ use ds::prelude::*;
 use sill_launcher::WindowKey;
 use sill_model::app_menu::{AppMenus, MenuApp, OwnGroup, QuitRow, Titles, own_groups, titles};
 use sill_model::apps::{AppIndex, match_app};
-use sill_model::cosmic_wl::Toplevels;
 use sill_model::ids::OutputName;
 use sill_model::tray::Tray;
+use sill_model::windows::Toplevels;
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
@@ -246,13 +246,13 @@ mod tests {
     use sill_launcher::WindowKey;
     use sill_model::app_menu::{AppMenus, MenuApp, MenuName, OwnItem, ServedMenu};
     use sill_model::apps::AppIndex;
-    use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
     use sill_model::ids::OutputName;
     use sill_model::tray::{
         Check, Chord, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon,
         TrayMenuKind, TrayStatus,
     };
     use sill_model::units::{Availability as Enabled, Visibility};
+    use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
     use sill_settings::ControlCenterModule;
 
     fn window(key: u64, app: &str, output: &str) -> Toplevel {

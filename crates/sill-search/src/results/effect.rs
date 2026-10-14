@@ -1,17 +1,17 @@
 //! Where a chosen row's [`Activation`] goes. The runner carries out the ones a service it holds
-//! can do (windows through `cosmic_wl`, apps through `launch`); the rest belong to the
+//! can do (windows through `windows`, apps through `launch`); the rest belong to the
 //! launcher surface or the daemon. Pure mapping, table-tested; the sending is [`Outlets::carry`].
 
 use sill_launcher::Activation;
-use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
+use sill_model::windows::WlCommand;
 
 use sill_services::control::Control;
 
 /// What carrying out an activation takes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Effect {
-    /// A command to the `cosmic_wl` thread.
+    /// A command to the `windows` thread.
     Wl(WlCommand),
     /// A command to the launch service.
     Launch(LaunchCommand),
@@ -81,11 +81,11 @@ mod tests {
     use sill_launcher::{
         Activation, AppId, DesktopAction, SettingsTarget, SystemCommand, WindowKey,
     };
-    use sill_model::cosmic_wl::WlCommand;
     use sill_model::launch::{LaunchCommand, LaunchRequest};
+    use sill_model::windows::WlCommand;
 
     #[test]
-    fn windows_go_to_cosmic_wl_apps_to_launch_and_the_rest_elsewhere() {
+    fn windows_go_to_the_compositor_apps_to_launch_and_the_rest_elsewhere() {
         let launch = |action: DesktopAction| {
             Effect::Launch(LaunchCommand::Launch(LaunchRequest {
                 app: AppId("foot".to_owned()),
@@ -136,7 +136,7 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsTarget::Cosmic("display".to_owned()),
+                    target: SettingsTarget::Key("appearance.theme".to_owned()),
                 },
                 Effect::Elsewhere,
             ),

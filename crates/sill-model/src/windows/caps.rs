@@ -1,5 +1,5 @@
-//! What the compositor says a workspace accepts: the ext-workspace capabilities and COSMIC's
-//! own, merged into one typed set so a surface can grey out what it cannot ask for.
+//! What the compositor says a workspace accepts: the ext-workspace capabilities and the
+//! compositor's own, merged into one typed set so a surface can grey out what it cannot ask for.
 
 use serde::{Deserialize, Serialize};
 
@@ -18,13 +18,13 @@ pub enum WorkspaceCap {
     Remove,
     /// ext-workspace `assign` (to another group).
     Assign,
-    /// COSMIC `rename`.
+    /// `rename`.
     Rename,
-    /// COSMIC `set_tiling_state`.
+    /// `set_tiling_state`.
     SetTiling,
-    /// COSMIC `pin`/`unpin` (`WlCommand::PinWorkspace`, `UnpinWorkspace`).
+    /// `pin`/`unpin` (`WlCommand::PinWorkspace`, `UnpinWorkspace`).
     Pin,
-    /// COSMIC `move_before`/`move_after` (`WlCommand::MoveWorkspace`).
+    /// `move_before`/`move_after` (`WlCommand::MoveWorkspace`).
     Move,
 }
 

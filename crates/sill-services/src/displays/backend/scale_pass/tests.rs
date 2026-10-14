@@ -14,8 +14,7 @@ use crate::error::ServiceError;
 const MA270U: &[u8; 128] = include_bytes!("../../../../../sill-model/src/displays/edid/ma270u.bin");
 
 /// A compositor made of a list: `set_scale` changes the head's scale and is logged; `broken`
-/// makes every set fail; `listing` `Silent` makes the list itself fail, as `cosmic-randr list
-/// --kdl` does on a compositor without `zwlr_output_manager_v1` ("no answer in 2s").
+/// makes every set fail; `listing` `Silent` makes the list itself fail, as a compositor without `zwlr_output_manager_v1` does.
 #[derive(Debug, Default)]
 struct FakeSink {
     heads: Vec<Head>,
@@ -43,7 +42,7 @@ impl ScaleSink for FakeSink {
         match self.listing {
             Listing::Answers => Ok(self.heads.clone()),
             Listing::Silent => Err(ServiceError::Launch(
-                "cosmic-randr list --kdl: no answer in 2s".to_owned(),
+                "no output management: no answer in 2s".to_owned(),
             )),
         }
     }
@@ -100,7 +99,7 @@ fn first_sight_sets_the_default_and_never_again() {
     let record = first.seen.displays.get(&first.outputs[0].identity).cloned();
     assert_eq!(record.map(|r| r.applied), Some(Some(DisplayScale(200))));
 
-    // The person picks 1.75 in COSMIC Settings; the next pass leaves it.
+    // The person picks 1.75 in the settings app; the next pass leaves it.
     sink.heads = vec![hdmi(175)];
     let second = scale_pass(&mut sink, &connectors(), first.seen.clone(), &policy);
     assert_eq!(sink.sets.len(), 1, "no second set");
@@ -161,7 +160,7 @@ fn a_nested_window_without_edid_stays_at_one() {
     let mut sink = FakeSink {
         heads: vec![Head {
             name: OutputName("WINIT-0".to_owned()),
-            make: "COSMIC".to_owned(),
+            make: "Example".to_owned(),
             model: "WINIT-0".to_owned(),
             current: Some(Mode {
                 pixels: Pixels {

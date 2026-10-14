@@ -157,7 +157,7 @@ fn turning_off_undoes_what_idle_did() {
         IdleEvent::Policy(own()),
         IdleEvent::Idled(Threshold::Dim, Stamp(10)),
         IdleEvent::Policy(IdlePolicy {
-            mode: IdleMode::Off(OffReason::CosmicIdleRunning),
+            mode: IdleMode::Off(OffReason::Guest),
             ..own()
         }),
     ]);

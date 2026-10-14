@@ -8,9 +8,9 @@ use sill_launcher::{AppId, DesktopAction, WindowKey};
 use sill_model::apps::{
     App, AppIcon, AppIndex, DbusActivation, DesktopActionEntry, Listing, Terminal,
 };
-use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use sill_model::launch::LaunchCommand;
 use sill_model::pins::{DockPins, PinAt, PinEvent};
+use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use std::path::PathBuf;
 
 fn app(id: &str, actions: &[&str]) -> App {
@@ -179,7 +179,7 @@ fn every_outward_effect_becomes_its_commands() {
                 mode: ActivateMode::Raise,
             },
             vec![launch(
-                "com.system76.CosmicFiles",
+                "org.gnome.Nautilus",
                 DesktopAction::Default,
                 vec!["trash:///".to_owned()],
             )],

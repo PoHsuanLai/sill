@@ -1,6 +1,6 @@
 //! Which window an agent means.
 
-use crate::cosmic_wl::{Toplevel, Toplevels};
+use crate::windows::{Toplevel, Toplevels};
 
 /// The window `ask` names: its key, or an app id (the app's most recent window); the focused
 /// window (the most recently activated) when nothing is asked.

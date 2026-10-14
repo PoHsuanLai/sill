@@ -1,6 +1,6 @@
 //! The wallpaper on a real compositor with the *real* wallpaper service (everything else fake),
 //! for acceptance (`dev/accept/wallpaper.sh`): one `sill_overlays::Wallpaper` per output,
-//! prepared against whatever COSMIC background config the environment has — the acceptance
+//! prepared against whatever wallpaper config the environment has — the acceptance
 //! script writes one pointing at a marked test image before running this, so the real
 //! `sill_services::wallpaper::spawn` resizes and caches a real file the surface then shows.
 //! Driven by shell-host's `debug-inject` commands on stdin (`stats`, `<surface> capture PATH`,

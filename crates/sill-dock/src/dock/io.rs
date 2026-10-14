@@ -51,7 +51,7 @@ pub(crate) struct SessionDeps {
 /// What the services said, as the effects read it.
 #[derive(Clone)]
 pub(crate) struct World {
-    pub toplevels: sill_model::cosmic_wl::Toplevels,
+    pub toplevels: sill_model::windows::Toplevels,
     pub index: sill_model::apps::AppIndex,
     pub pins: sill_model::pins::DockPins,
     pub badges: Badges,
@@ -354,7 +354,7 @@ fn send_all(outward: &Outward, commands: Vec<DockCommand>) {
     let services = &outward.services;
     for command in commands {
         let _gone_is_dropped = match command {
-            DockCommand::Wl(c) => services.cosmic_wl.control.send(c),
+            DockCommand::Wl(c) => services.windows.control.send(c),
             DockCommand::Pins(c) => services.pins.control.send(c),
             DockCommand::Service(c) => services.launch.control.send(c),
             DockCommand::Launch { app, action, uris } => {

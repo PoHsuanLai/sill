@@ -78,10 +78,10 @@ fn every_subject_has_its_preview() {
                 ProviderKind::Apps,
                 "Files",
                 "File manager",
-                Subject::App(AppId("com.system76.CosmicFiles".to_owned())),
+                Subject::App(AppId("org.gnome.Nautilus".to_owned())),
             ),
             Preview::App {
-                app: AppId("com.system76.CosmicFiles".to_owned()),
+                app: AppId("org.gnome.Nautilus".to_owned()),
                 name: "Files".to_owned(),
                 detail: "File manager".to_owned(),
             },

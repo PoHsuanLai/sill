@@ -10,8 +10,8 @@ use ds_settings::{Environment, IconStyle};
 use sill_dock::Dock;
 use sill_launcher::AppId;
 use sill_model::badges::Badges;
-use sill_model::cosmic_wl::Toplevels;
 use sill_model::pins::DockPins;
+use sill_model::windows::Toplevels;
 use sill_settings::{AutoHide, ShellFile, TrashTile};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::hooks::PinnedAppearance;
@@ -28,7 +28,7 @@ fn start_with(file: ShellFile, appearance: PinnedAppearance) -> Running {
     run.feeds.pins.send_replace(fake::dock::pins());
     run.feeds.badges.send_replace(fake::dock::badges());
     run.feeds
-        .cosmic_wl
+        .windows
         .send_modify(|wl| wl.toplevels = fake::dock::toplevels_on("DP-1"));
     run.harness.advance(Duration::from_millis(40));
     run
@@ -58,7 +58,7 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
     let html = run.harness.html();
     assert_eq!(
         labels(&html),
-        ["COSMIC Files", "COSMIC Terminal", "Firefox", "Trash"],
+        ["Example Files", "Example Terminal", "Firefox", "Trash"],
         "{html}"
     );
     let cases = [
@@ -75,11 +75,7 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
             4,
         ),
         ("no bare art", "class=\"sill-dock-art\"", 0),
-        (
-            "the terminal draws its own hicolor icon",
-            "CosmicTerm.svg",
-            1,
-        ),
+        ("the terminal draws its own hicolor icon", "Term.svg", 1),
         ("quire's floor in the pill", "class=\"ds-dock-floor\"", 1),
         ("a squircle pill", "data-corner=\"squircle\"", 1),
         (
@@ -123,7 +119,7 @@ fn fed_values_replace_the_defaults() {
         pinned: vec![AppId(fake::dock::FIREFOX.to_owned())],
     });
     run.feeds
-        .cosmic_wl
+        .windows
         .send_modify(|wl| wl.toplevels = Toplevels::default());
     run.feeds.badges.send_replace(Badges::default());
     run.harness.advance(Duration::from_millis(40));
@@ -150,7 +146,7 @@ fn settings_drop_the_trash_and_add_the_strip() {
     let html = start(file).harness.html();
     assert_eq!(
         labels(&html),
-        ["COSMIC Files", "COSMIC Terminal", "Firefox"]
+        ["Example Files", "Example Terminal", "Firefox"]
     );
     assert_eq!(count(&html, "class=\"sill-dock-separator\""), 0);
     assert_eq!(count(&html, "id=\"dock-strip\""), 1);

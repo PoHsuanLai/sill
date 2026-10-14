@@ -10,7 +10,7 @@ use desktop_client::{
     Desktop, DesktopEvent, Protocol, ProtocolSet, ToplevelIdentifier, ToplevelKey,
 };
 use ds_harness::Viewport;
-use sill_model::cosmic_wl::Toplevels;
+use sill_model::windows::Toplevels;
 use sill_overlays::Switcher;
 use sill_services::desktop_wl::project_toplevels;
 use sill_settings::ShellFile;
@@ -98,7 +98,7 @@ fn the_list_is_the_apps_of_the_reported_windows_most_recently_active_first() {
         .start();
     running
         .feeds
-        .cosmic_wl
+        .windows
         .send_modify(|wl| wl.toplevels = toplevels);
     running.harness.advance(Duration::from_millis(40));
     running

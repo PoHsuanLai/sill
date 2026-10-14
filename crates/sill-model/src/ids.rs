@@ -1,4 +1,4 @@
-//! Identifiers more than one service shares. Protocol objects never leave the COSMIC Wayland
+//! Identifiers more than one service shares. Protocol objects never leave the windows
 //! thread: the thread gives each handle a key and publishes keys.
 
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ pub struct WorkspaceKey(pub u64);
 pub struct GroupKey(pub u64);
 
 /// An output by its connector name (`DP-1`), which is what both connections agree on:
-/// shell-host's `OutputInfo::name` and cctk's `wl_output` name.
+/// shell-host's `OutputInfo::name` and the Wayland `wl_output` name.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct OutputName(pub String);

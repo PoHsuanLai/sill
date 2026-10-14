@@ -44,10 +44,7 @@ fn each_backend_carries_what_its_protocols_can() {
             [Yes, Yes, Yes, Yes, Yes, Yes, Yes, Yes],
         ),
         (DesktopBackend::Wlr, [Yes, Yes, Yes, Yes, No, No, Yes, No]),
-        (
-            DesktopBackend::Cosmic,
-            [Yes, Yes, Yes, Yes, No, Yes, Yes, No],
-        ),
+        (DesktopBackend::Bare, [No, No, No, No, No, No, No, No]),
     ];
     for (backend, row) in table {
         for ((name, command), want) in commands.iter().zip(row) {
@@ -88,6 +85,6 @@ fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
     for command in &commands {
         assert_eq!(supports(DesktopBackend::Quire, command), Supports::Yes);
         assert_eq!(supports(DesktopBackend::Wlr, command), Supports::No);
-        assert_eq!(supports(DesktopBackend::Cosmic, command), Supports::No);
+        assert_eq!(supports(DesktopBackend::Bare, command), Supports::No);
     }
 }

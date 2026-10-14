@@ -29,7 +29,7 @@ pub enum WifiCommand {
     Scan,
     /// Activate the saved connection for `ssid` on the wireless device. A network with no saved
     /// connection is dropped: joining a new network needs a password prompt, which is a later
-    /// milestone's (it opens COSMIC Settings' Wi-Fi page meanwhile).
+    /// milestone's (it opens Settings' Wi-Fi page meanwhile).
     Connect(Ssid),
     /// Deactivate the wireless device's active connection.
     Disconnect,

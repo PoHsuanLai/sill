@@ -1,14 +1,11 @@
 //! Screenshots: noticing a new one, so the floating thumbnail can show it (design/20 §1.13), and
 //! taking one on `sill screenshot`.
 //!
-//! How sill learns a screenshot happened (researched): COSMIC's `cosmic-screenshot` (1.8.0) asks
-//! the portal (`org.freedesktop.portal.Screenshot`, served by
-//! xdg-desktop-portal-cosmic); the portal's picker saves the image as
-//! `Screenshot_%Y-%m-%d_%H-%M-%S.png` in the Pictures folder (its `save_location`: Pictures,
-//! Documents or the clipboard), or with `--interactive=false` cosmic-screenshot saves it into
-//! `--save-dir` itself. Neither announces the file on the bus: the portal's `Response` goes to
-//! the caller only, and `--notify` posts an ordinary notification. So the one route that sees
-//! every screenshot, whoever took it (COSMIC's Print key, `sill screenshot`, spectacle, grim), is
+//! How sill learns a screenshot happened (researched): the desktop portal
+//! (`org.freedesktop.portal.Screenshot`) saves the image as `Screenshot_%Y-%m-%d_%H-%M-%S.png`
+//! in the Pictures folder, or a tool is told a folder to save into. Neither announces the file
+//! on the bus: the portal's `Response` goes to the caller only. So the one route that sees
+//! every screenshot, whoever took it (the Print key, `sill screenshot`, spectacle, grim), is
 //! **an inotify watch of the screenshot folders** (`notify`, already a dependency): a new file
 //! whose name reads as a screenshot (`names::is_screenshot_name`), seen when it is closed after
 //! writing or renamed into place, becomes the current `Shot`. `sill screenshot

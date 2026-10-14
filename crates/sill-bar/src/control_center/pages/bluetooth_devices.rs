@@ -4,7 +4,7 @@
 //! end); choosing a paired device sends `BluetoothCommand::Connect` or `Disconnect`. The
 //! connect's stamp (`Bluetooth.connect`) is the connecting row's phase: its glyph breathes, its
 //! disc seals when it connects, it shakes when it fails
-//! ([`crate::control_center::item_phase`]). Pairing a new device is COSMIC Settings'
+//! ([`crate::control_center::item_phase`]). Pairing a new device is Settings'
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
@@ -114,7 +114,7 @@ fn phase_of(connect: Attempts, device: &BtDevice, aim: Aim) -> ItemPhase {
 }
 
 /// One device's row in `phase`: a connected one disconnects, a paired one connects, a stranger
-/// (paired in COSMIC Settings) is shown and cannot be chosen. The accent disc and the battery
+/// (paired in Settings) is shown and cannot be chosen. The accent disc and the battery
 /// at the end say it is connected (no check); the failure's words go in the detail line.
 pub(crate) fn device_row(device: &BtDevice, phase: ItemPhase) -> RowSpec<BluetoothCommand> {
     let address: BtAddress = device.address.clone();

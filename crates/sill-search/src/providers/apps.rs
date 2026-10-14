@@ -310,7 +310,7 @@ mod tests {
             app_with("org.gnome.Nautilus", "Files", |a| {
                 a.generic_name = "File Manager".to_owned();
             }),
-            app_with("cosmic-term", "Terminal", |_| {}),
+            app_with("foot", "Terminal", |_| {}),
         ];
         let provider = provider(apps);
         const CASES: &[(&str, &[&str])] = &[

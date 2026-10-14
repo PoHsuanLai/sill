@@ -1,5 +1,5 @@
 //! The dock on a real compositor with fake services, for acceptance (`dev/accept/dock.sh`):
-//! one `sill_dock::Dock` per output, fed by fixed `watch` channels (COSMIC Files and
+//! one `sill_dock::Dock` per output, fed by fixed `watch` channels (Files and
 //! Terminal pinned, Terminal active with two windows, Firefox running with a count of 7 and
 //! 40 % progress), driven by shell-host's `debug-inject` commands on stdin (`sill-dock-<output>
 //! hover X Y`, `click X Y [primary|secondary|middle]`, `leave`, `capture PATH`, `stats`,
@@ -42,7 +42,7 @@ fn run() -> Result<(), String> {
     print_commands("pins", feeds.pin_commands);
     print_commands("wl", feeds.wl);
     print_commands("launch", feeds.launch);
-    let cosmic_wl = feeds.cosmic_wl;
+    let windows = feeds.windows;
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
     let host =
@@ -53,7 +53,7 @@ fn run() -> Result<(), String> {
         HostEvent::Started => {
             // The fake windows live on the first real output.
             if let Some(name) = ctx.outputs().first().and_then(|o| o.name.clone()) {
-                cosmic_wl.send_modify(|wl| wl.toplevels = fake::dock::toplevels_on(&name));
+                windows.send_modify(|wl| wl.toplevels = fake::dock::toplevels_on(&name));
             }
             for output in ctx.outputs() {
                 spawn_dock(ctx, output, &services, &settings, clock, &mut docks);

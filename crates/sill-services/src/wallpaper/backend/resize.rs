@@ -13,7 +13,7 @@ use crate::error::ServiceError;
 /// `path`'s cache entry at `width` x `height` in `cache_dir`, resizing it there first if no
 /// entry by that name exists yet ("renders only on change": an unchanged source and size never
 /// re-encodes). `Err` when the source cannot be read or decoded (a format `image` was not built
-/// with — COSMIC's own default backgrounds are `.jxl`, `config.rs`'s module doc), or the cache
+/// with, such as `.jxl`), or the cache
 /// directory cannot be written.
 pub fn ensure_cached(
     path: &Path,

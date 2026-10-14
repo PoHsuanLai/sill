@@ -89,7 +89,7 @@ mod tests {
     fn head(name: &str, width: u32, height: u32) -> Head {
         Head {
             name: OutputName(name.to_owned()),
-            make: "COSMIC".to_owned(),
+            make: "Example".to_owned(),
             model: name.to_owned(),
             current: Some(Mode {
                 pixels: Pixels { width, height },

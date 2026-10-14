@@ -53,7 +53,7 @@ pub(crate) async fn run(
                 }
                 Some(SessionCommand::Run(SessionAction::Lock)) => {
                     // The locker service decides (its own locker, or logind's LockSession for
-                    // COSMIC's resident one); never logind here, so sill nested in another
+                    // the session's resident one); never logind here, so sill nested in another
                     // desktop's session cannot lock that desktop.
                     if actions.act(SessionAction::Lock) == ActionReach::Logind {
                         let _gone_is_inert = locker.send(LockerCommand::Lock);

@@ -4,25 +4,26 @@
 
 use std::io;
 
-use cosmic_client_toolkit::sctk::reexports::calloop;
-use cosmic_client_toolkit::sctk::reexports::calloop::generic::Generic;
-use cosmic_client_toolkit::sctk::reexports::calloop::{
+use smithay_client_toolkit::reexports::calloop;
+use smithay_client_toolkit::reexports::calloop::generic::Generic;
+use smithay_client_toolkit::reexports::calloop::{
     EventLoop, Interest, Mode, PostAction, channel,
 };
-use cosmic_client_toolkit::wayland_client::Connection;
-use cosmic_client_toolkit::wayland_client::backend::WaylandError;
+use wayland_client::Connection;
+use wayland_client::backend::WaylandError;
 use desktop_client::Desktop;
 use desktop_client::client::DesktopClient;
-use sill_model::cosmic_wl::{CosmicWl, Toplevels, WlCommand};
+use sill_model::windows::{WindowModel, Toplevels, WlCommand};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::command::{Refusal, desktop_of, wire_of};
 use super::{toplevels, workspaces};
-use crate::cosmic_wl::{Publish, forward_commands, park_commands};
+use super::commands::{forward_commands, park_commands};
+use super::publish::Publish;
 
 /// The thread's body: follow the compositor until every `Control` is dropped or the connection
 /// ends, then publish empty values.
-pub(crate) fn run(
+pub(super) fn run(
     connection: Connection,
     publish: Publish,
     commands: UnboundedReceiver<WlCommand>,
@@ -60,7 +61,7 @@ impl Wlr {
         let _events_are_reduced_into_the_state = self.client.drain_events();
         let state = self.client.state();
         let recency = toplevels::project(std::mem::take(&mut self.recency), state);
-        self.publish.replace(CosmicWl {
+        self.publish.replace(WindowModel {
             workspaces: workspaces::project(state),
             toplevels: recency.clone(),
         });

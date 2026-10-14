@@ -1,7 +1,7 @@
-//! Watching COSMIC's background config for edits: `notify` on the nearest directory that
+//! Watching the wallpaper's source file for edits: `notify` on the nearest directory that
 //! exists, 500 ms debounce (design/20 §1.4's own cache row names Lanczos3 and the cross-fade).
 //! Unlike `sill-settings::watch` (30 ms, a file `sill` itself always creates), this file may not
-//! exist at all outside a COSMIC session, so the watch starts on whichever ancestor of it is
+//! exist at all until a person writes it, so the watch starts on whichever ancestor of it is
 //! actually there and widens to catch the file being created later.
 
 use std::path::{Path, PathBuf};
@@ -11,9 +11,9 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::runtime::Handle;
 use tokio::sync::mpsc;
 
-/// The config watch's debounce (distinct from `sill-settings`'s 30 ms: a foreign config file is
-/// edited far less often than the shell's own, and cosmic-bg can touch it more than once per
-/// background change).
+/// The config watch's debounce (distinct from `sill-settings`'s 30 ms: this file is
+/// edited far less often than the shell's own, and an editor can touch it more than once per
+/// save).
 pub const DEBOUNCE: Duration = Duration::from_millis(500);
 
 /// The nearest existing ancestor of `path` — `path` itself excluded, since a watch's purpose
@@ -26,7 +26,7 @@ fn nearest_existing_ancestor(path: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
-/// Whether `event` touches `target` (COSMIC's `all` record): not an `Access` (a re-read is not
+/// Whether `event` touches `target` (the source file): not an `Access` (a re-read is not
 /// a change), and one of its paths is exactly `target`.
 fn touches(event: &notify::Event, target: &Path) -> bool {
     !event.kind.is_access() && event.paths.iter().any(|path| path == target)
@@ -50,7 +50,7 @@ pub fn watch(
         }
     })
     .ok()?;
-    // The file's own parent may not exist yet (COSMIC writes it lazily); recursing from the
+    // The file's own parent may not exist yet (it may be written lazily); recursing from the
     // nearest ancestor that does catches both "the file changed" and "the file was created".
     watcher.watch(&root, RecursiveMode::Recursive).ok()?;
     let (settled_tx, settled_rx) = mpsc::unbounded_channel::<()>();
@@ -80,14 +80,14 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("sill-wallpaper-watch-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));
-        let target = dir.join("cosmic/com.system76.CosmicBackground/v1/all");
+        let target = dir.join("sill/wallpaper-source");
         assert_eq!(nearest_existing_ancestor(&target), Some(dir.clone()));
 
-        std::fs::create_dir_all(dir.join("cosmic/com.system76.CosmicBackground/v1"))
+        std::fs::create_dir_all(dir.join("sill"))
             .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(
             nearest_existing_ancestor(&target),
-            Some(dir.join("cosmic/com.system76.CosmicBackground/v1"))
+            Some(dir.join("sill"))
         );
 
         let _ = std::fs::remove_dir_all(&dir);

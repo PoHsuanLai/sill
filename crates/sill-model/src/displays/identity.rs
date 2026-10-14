@@ -81,7 +81,7 @@ mod tests {
         assert_ne!(IdentityKey::of_edid(&other), key, "two panels of one model");
         assert_eq!(IdentityKey::of_edid(&edid), key, "stable");
 
-        let head = IdentityKey::of_head("COSMIC", "WINIT-0");
-        assert!(head.0.starts_with("COSMIC-0000-"), "{head:?}");
+        let head = IdentityKey::of_head("Example", "WINIT-0");
+        assert!(head.0.starts_with("Example-0000-"), "{head:?}");
     }
 }

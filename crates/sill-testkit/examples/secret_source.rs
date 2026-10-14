@@ -13,10 +13,10 @@ use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use cosmic_client_toolkit::wayland_client::globals::{GlobalListContents, registry_queue_init};
-use cosmic_client_toolkit::wayland_client::protocol::{wl_registry::WlRegistry, wl_seat::WlSeat};
-use cosmic_client_toolkit::wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
-use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::{
+use wayland_client::globals::{GlobalListContents, registry_queue_init};
+use wayland_client::protocol::{wl_registry::WlRegistry, wl_seat::WlSeat};
+use wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
+use wayland_protocols::ext::data_control::v1::client::{
     ext_data_control_device_v1::{self, ExtDataControlDeviceV1},
     ext_data_control_manager_v1::ExtDataControlManagerV1,
     ext_data_control_offer_v1::ExtDataControlOfferV1,
@@ -141,7 +141,7 @@ impl Dispatch<ExtDataControlDeviceV1, ()> for State {
         }
     }
 
-    cosmic_client_toolkit::wayland_client::event_created_child!(State, ExtDataControlDeviceV1, [
+    wayland_client::event_created_child!(State, ExtDataControlDeviceV1, [
         ext_data_control_device_v1::EVT_DATA_OFFER_OPCODE => (ExtDataControlOfferV1, ()),
     ]);
 }

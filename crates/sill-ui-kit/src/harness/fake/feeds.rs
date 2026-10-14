@@ -10,7 +10,6 @@ use sill_model::badges::Badges;
 use sill_model::battery::Battery;
 use sill_model::bluetooth::{Bluetooth, BluetoothCommand};
 use sill_model::clock::ClockText;
-use sill_model::cosmic_wl::CosmicWl;
 use sill_model::launch::Launches;
 use sill_model::network::Network;
 use sill_model::now_playing::{Media, MediaCommand};
@@ -21,6 +20,7 @@ use sill_model::tray::Tray;
 use sill_model::volume::Volume;
 use sill_model::wallpaper::Wallpapers;
 use sill_model::wifi::{Wifi, WifiCommand};
+use sill_model::windows::WindowModel;
 use sill_services::{Handle, Service};
 use tokio::sync::{mpsc, watch};
 
@@ -35,7 +35,7 @@ pub struct Feeds {
     /// The focused apps' menus (none until a test feeds some), and what the bar tells the service.
     pub app_menu: watch::Sender<sill_model::app_menu::AppMenus>,
     pub app_menu_commands: mpsc::UnboundedReceiver<sill_model::app_menu::AppMenuCommand>,
-    pub cosmic_wl: watch::Sender<CosmicWl>,
+    pub windows: watch::Sender<WindowModel>,
     pub wifi: watch::Sender<Wifi>,
     pub bluetooth: watch::Sender<Bluetooth>,
     pub power_profiles: watch::Sender<PowerProfiles>,
@@ -45,7 +45,7 @@ pub struct Feeds {
     pub kbd_commands: mpsc::UnboundedReceiver<sill_model::kbd_backlight::KbdCommand>,
     /// The live banners and the history (both empty until a test feeds them).
     pub notifications: watch::Sender<sill_model::notifications::NotesState>,
-    pub wl: mpsc::UnboundedReceiver<sill_model::cosmic_wl::WlCommand>,
+    pub wl: mpsc::UnboundedReceiver<sill_model::windows::WlCommand>,
     pub volume_commands: mpsc::UnboundedReceiver<sill_model::volume::VolumeCommand>,
     pub launch: mpsc::UnboundedReceiver<sill_model::launch::LaunchCommand>,
     pub wifi_commands: mpsc::UnboundedReceiver<WifiCommand>,
@@ -114,7 +114,7 @@ pub fn services() -> (Services, Feeds) {
     let (volume, volume_io) = Handle::channel(volume());
     let (tray, tray_io) = Handle::channel(Tray::default());
     let (app_menu, app_menu_io) = Handle::channel(sill_model::app_menu::AppMenus::default());
-    let (cosmic_wl, cosmic_wl_io) = Handle::channel(CosmicWl {
+    let (windows, windows_io) = Handle::channel(WindowModel {
         workspaces: workspaces(),
         toplevels: toplevels(),
     });
@@ -160,7 +160,7 @@ pub fn services() -> (Services, Feeds) {
         volume,
         tray,
         app_menu,
-        cosmic_wl,
+        windows,
         apps,
         badges,
         pins,
@@ -214,7 +214,7 @@ pub fn services() -> (Services, Feeds) {
         tray: tray_io.state,
         app_menu: app_menu_io.state,
         app_menu_commands: app_menu_io.commands,
-        cosmic_wl: cosmic_wl_io.state,
+        windows: windows_io.state,
         wifi: wifi_io.state,
         bluetooth: bluetooth_io.state,
         power_profiles: profile_io.state,
@@ -222,7 +222,7 @@ pub fn services() -> (Services, Feeds) {
         kbd_backlight: kbd_io.state,
         kbd_commands: kbd_io.commands,
         notifications: notifications_io.state,
-        wl: cosmic_wl_io.commands,
+        wl: windows_io.commands,
         volume_commands: volume_io.commands,
         launch: launch_io.commands,
         wifi_commands: wifi_io.commands,

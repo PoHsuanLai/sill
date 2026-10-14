@@ -6,13 +6,12 @@
 //! resolves to `Own`, locks at once when [`super::marker::restore_on_start`] says so.
 
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Instant;
 
 use ds_core::time::stamp::Stamp;
 use sill_model::locker::{
     Cause, Host, Lock, LockCause, Locker, LockerCommand, LockerEffect, LockerEvent, LockerMode,
-    SessionManager, ShellLockEvent, cause_after, cause_of, next_deadline, step,
+    ShellLockEvent, cause_after, cause_of, next_deadline, step,
 };
 use tokio::sync::{mpsc, watch};
 use zbus::zvariant::OwnedFd;
@@ -20,7 +19,7 @@ use zbus::zvariant::OwnedFd;
 use super::logind;
 use super::logind::Logind;
 use super::marker::{LockMarker, Restore, marker_path, restore_on_start};
-use crate::env::{Bus, Processes};
+use crate::env::Bus;
 use crate::stream::next_opt;
 
 /// Everything the loop owns besides the machine.
@@ -35,7 +34,6 @@ struct Live {
     cause: Option<LockCause>,
     /// The crash marker in this session's runtime directory; none without one.
     marker: Option<PathBuf>,
-    processes: Arc<dyn Processes>,
     /// `XDG_CURRENT_DESKTOP`, from the environment at the process edge.
     desktop: String,
 }
@@ -44,7 +42,6 @@ struct Live {
 pub(crate) async fn run(
     bus: Bus,
     runtime: Option<PathBuf>,
-    processes: Arc<dyn Processes>,
     desktop: String,
     tx: watch::Sender<Lock>,
     mut commands: mpsc::UnboundedReceiver<LockerCommand>,
@@ -58,7 +55,6 @@ pub(crate) async fn run(
         inhibitor: None,
         cause: None,
         marker: runtime.as_deref().map(marker_path),
-        processes,
         desktop,
     };
     loop {
@@ -107,12 +103,7 @@ impl Live {
     async fn command(&mut self, command: LockerCommand) {
         match command {
             LockerCommand::Configure => {
-                let processes = self.processes.clone();
-                let desktop = self.desktop.clone();
-                let mode =
-                    tokio::task::spawn_blocking(move || detect(processes.as_ref(), &desktop))
-                        .await
-                        .unwrap_or(LockerMode::Off);
+                let mode = LockerMode::for_host(Host::of(&self.desktop));
                 self.use_mode(mode).await;
             }
             LockerCommand::Use(mode) => self.use_mode(mode).await,
@@ -229,14 +220,4 @@ impl Live {
             changed
         });
     }
-}
-
-/// Resolves the mode against this session (blocking: `/proc`).
-fn detect(processes: &dyn Processes, desktop: &str) -> LockerMode {
-    let manager = if processes.running("cosmic-session").is_empty() {
-        SessionManager::Other
-    } else {
-        SessionManager::CosmicSession
-    };
-    LockerMode::for_host(Host::of(manager, desktop))
 }

@@ -32,7 +32,6 @@ sill-notify-ui = { workspace = true }
 sill-overlays = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
-ron = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]

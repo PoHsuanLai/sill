@@ -7,8 +7,8 @@ use sill_launcher::WindowKey;
 use super::listing::{windows_text, workspaces_text};
 use super::window_ask::{WindowAsk, WorkspaceRef};
 use crate::app_menu::{OwnItem, own_commands, window_of};
-use crate::cosmic_wl::{Activity, CosmicWl, Toplevel, WlCommand, Workspaces};
 use crate::ids::WorkspaceKey;
+use crate::windows::{Activity, Toplevel, WindowModel, WlCommand, Workspaces};
 
 /// Why an ask was not done. The words never carry the argument's own text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +31,7 @@ pub enum WindowAnswer {
 }
 
 /// The answer to `ask` against `wl`.
-pub fn plan(ask: &WindowAsk, wl: &CosmicWl) -> Result<WindowAnswer, WindowFault> {
+pub fn plan(ask: &WindowAsk, wl: &WindowModel) -> Result<WindowAnswer, WindowFault> {
     let toplevels = &wl.toplevels;
     let own = |item: OwnItem, app_id: &str| own_commands(item, app_id, toplevels);
     let commands = match ask {
@@ -60,12 +60,12 @@ pub fn plan(ask: &WindowAsk, wl: &CosmicWl) -> Result<WindowAnswer, WindowFault>
 }
 
 /// The window whose id is exactly `id`: the listing's id, never an app id or a title.
-pub fn window_by_id<'a>(wl: &'a CosmicWl, id: &str) -> Option<&'a Toplevel> {
+pub fn window_by_id<'a>(wl: &'a WindowModel, id: &str) -> Option<&'a Toplevel> {
     let key = id.trim().parse::<u64>().ok()?;
     wl.toplevels.windows.iter().find(|w| w.key.0 == key)
 }
 
-fn key_of(wl: &CosmicWl, id: &str) -> Result<WindowKey, WindowFault> {
+fn key_of(wl: &WindowModel, id: &str) -> Result<WindowKey, WindowFault> {
     window_by_id(wl, id)
         .map(|w| w.key)
         .ok_or(WindowFault::NoSuchWindow)
@@ -73,7 +73,7 @@ fn key_of(wl: &CosmicWl, id: &str) -> Result<WindowKey, WindowFault> {
 
 /// The app id an app ask is about: the one named when some window has it, else the focused
 /// window's.
-fn app_id(wl: &CosmicWl, named: Option<&str>) -> Result<String, WindowFault> {
+fn app_id(wl: &WindowModel, named: Option<&str>) -> Result<String, WindowFault> {
     match named {
         Some(named) => wl
             .toplevels
@@ -107,7 +107,7 @@ fn workspace_key(workspaces: &Workspaces, to: &WorkspaceRef) -> Result<Workspace
 
 /// The group an index counts in: the first with an active workspace (the main display's), else
 /// the first.
-pub(super) fn main_group(workspaces: &Workspaces) -> Option<&crate::cosmic_wl::WorkspaceGroup> {
+pub(super) fn main_group(workspaces: &Workspaces) -> Option<&crate::windows::WorkspaceGroup> {
     workspaces
         .groups
         .iter()

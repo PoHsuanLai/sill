@@ -17,9 +17,8 @@ pub enum LockCause {
     IdleScreenOff,
     /// sill's Lock: ⌃⌘Q or `sill lock`, the launcher row, the power menu.
     Action,
-    /// logind's `Lock` for this session: Super+Escape (COSMIC's `LockScreen` system action,
-    /// `loginctl lock-session`), a hand-typed `loginctl lock-session`, `HandleLidSwitch=lock`,
-    /// or a cosmic-idle someone started by hand.
+    /// logind's `Lock` for this session: a hand-typed `loginctl lock-session`,
+    /// `HandleLidSwitch=lock`, or an idle daemon someone started by hand.
     Logind,
     /// logind's `PrepareForSleep(true)`: a lid close set to suspend, sill's idle suspend,
     /// `systemctl suspend`, the power menu's Sleep.

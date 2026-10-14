@@ -1,5 +1,5 @@
 //! The app switcher (design/13 §13.3.5, design/20 §1.11): Cmd+Tab over applications, not windows.
-//! COSMIC's `WindowSwitcher` / `WindowSwitcherPrevious` shortcuts run `sill switcher next|prev`,
+//! The window switcher shortcuts run `sill switcher next|prev`,
 //! which the daemon writes to the [`sill_ui_kit::links::SwitcherLink`]; the switcher surface on the chosen output takes
 //! the keyboard (`Exclusive`) at once, so it sees the chord's modifier go up (Alt's or Super's
 //! key-up, or shell-host's modifiers on focus: `hold.rs`, `watch.rs`), and runs

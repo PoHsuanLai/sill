@@ -11,7 +11,7 @@ pub enum Activity {
     Inactive,
 }
 
-/// Whether a workspace is pinned (COSMIC keeps a pinned workspace when it empties).
+/// Whether a workspace is pinned (a pinned workspace stays when it empties).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Pinning {

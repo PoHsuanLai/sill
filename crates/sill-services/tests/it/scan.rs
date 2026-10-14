@@ -1,7 +1,7 @@
 //! `scan`/`parse_entry` against a fixture tree of `.desktop` files: two applications
 //! directories (`home` takes precedence over `system`, matching `$XDG_DATA_HOME` over
 //! `$XDG_DATA_DIRS`), visibility (`NoDisplay`, `Hidden`, `OnlyShowIn`/`NotShowIn` against
-//! `COSMIC`), a non-`Application` type, a `TryExec` that is not installed, a nested directory
+//! `quire`), a non-`Application` type, a `TryExec` that is not installed, a nested directory
 //! id, desktop actions and every other field `App` carries.
 //!
 //! No fixture sets `Icon=`, so every entry's icon resolves to `AppIcon::None` regardless of
@@ -67,8 +67,8 @@ fn visibility_rules_hide_but_do_not_exclude_except_a_non_application_type_and_a_
         ("hidden-app", Listing::Hidden),
         ("no-display-app", Listing::Hidden),
         ("only-gnome", Listing::Hidden),
-        ("not-cosmic", Listing::Hidden),
-        ("only-cosmic", Listing::Shown),
+        ("not-quire", Listing::Hidden),
+        ("only-quire", Listing::Shown),
         ("only-home", Listing::Shown),
     ];
     for (id, want) in cases {

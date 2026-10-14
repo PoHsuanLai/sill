@@ -59,8 +59,8 @@ fn each_entry_picks_its_art() {
         ),
         (None, TileArt::Glyph(Icon::Window)),
         (
-            // COSMIC's own apps take their own file, like any other app.
-            Some(file("com.system76.CosmicTerm", "/i/term.svg")),
+            // A desktop app takes its own file, like any other app.
+            Some(file("foot", "/i/term.svg")),
             TileArt::Themed("/i/term.svg".into()),
         ),
     ];

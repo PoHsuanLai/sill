@@ -3,7 +3,7 @@
 //! `use_machine`, and carry out what it says. A chord maps the surface (keyboard `Exclusive`, so
 //! it sees the release) and snapshots the apps; the machine reads the apps and the modifiers'
 //! state as its context at every step, and the show delay is its own deadline, so there is no
-//! timer here; `Activate`, `Quit` and `HideApp` go to `Services.cosmic_wl`; a quit tile folds and
+//! timer here; `Activate`, `Quit` and `HideApp` go to `Services.windows`; a quit tile folds and
 //! is dropped at `settle(Anim::Fold)`; the machine back at `Hidden` unmaps at once. Hidden, no
 //! task runs and nothing asks for a frame.
 
@@ -124,7 +124,7 @@ impl Effects {
         let session = self.session.peek().clone();
         if let Some(session) = &session {
             let live = live(self.services);
-            let wl = self.services.peek().cosmic_wl.control.clone();
+            let wl = self.services.peek().windows.control.clone();
             for command in session.commands(&out, &live) {
                 let _ = wl.send(command);
             }
@@ -161,7 +161,7 @@ impl Effects {
 /// The compositor's apps now.
 fn live(services: CopyValue<Services>) -> Vec<SwitcherApp> {
     let services = services.peek();
-    let toplevels = services.cosmic_wl.state.borrow().toplevels.clone();
+    let toplevels = services.windows.state.borrow().toplevels.clone();
     let index = services.apps.state.borrow().clone();
     switcher_apps(&toplevels, &index)
 }

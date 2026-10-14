@@ -1,15 +1,15 @@
 //! sill's own idle service: the dim, the displays off, the lock at screen off and the idle
-//! suspend that cosmic-idle did before (the user's pick). Owning idle is how sill knows why it
+//! suspend (the user's pick). Owning idle is how sill knows why it
 //! locked ([`sill_model::locker::LockCause`]), which the lock grace (`session.lock_grace_s`,
 //! `grace_verdict`) needs.
 //!
 //! **Passive until the daemon's first [`IdleCommand`]**, and `Off` (nothing held, nothing
-//! touched) anywhere but a sill session with no cosmic-idle running (`resolve_mode`), so no
+//! touched) anywhere but a sill session (`resolve_mode`), so no
 //! test and no nested run ever dims, powers off or suspends the real session's displays. Live
 //! tests name a nested compositor and private buses in their [`Env`](crate::env::Env).
 //!
-//! Pure parts: `resolve_mode`, `effective_times`, `power_source`, `watches`,
-//! `parse_cosmic_value`, `cosmic_times`, `inhibit_step`, `logind_idle`, `inhibition`,
+//! Pure parts: `resolve_mode`, `power_source`, `watches`,
+//! `inhibit_step`, `logind_idle`, `inhibition`,
 //! `grace_verdict` and the machine `step`.
 
 mod backend;

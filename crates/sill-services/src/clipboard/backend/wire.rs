@@ -1,16 +1,16 @@
-//! The clipboard's Wayland thread: its own connection (as `cosmic_wl` has; a protocol object
+//! The clipboard's Wayland thread: its own connection (as `windows` has; a protocol object
 //! cannot cross connections), the data-control manager bound on the first seat, and a calloop
 //! loop over the connection and the service's orders. Dropping the [`Wire`] ends the thread and
 //! with it the connection.
 
 use std::io;
 
-use cosmic_client_toolkit::sctk::reexports::calloop;
-use cosmic_client_toolkit::sctk::reexports::calloop::channel::Event;
-use cosmic_client_toolkit::sctk::reexports::calloop::{EventLoop, channel};
-use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
-use cosmic_client_toolkit::wayland_client::globals::{GlobalError, registry_queue_init};
-use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
+use smithay_client_toolkit::reexports::calloop;
+use smithay_client_toolkit::reexports::calloop::channel::Event;
+use smithay_client_toolkit::reexports::calloop::{EventLoop, channel};
+use smithay_client_toolkit::reexports::calloop_wayland_source::WaylandSource;
+use wayland_client::globals::{GlobalError, registry_queue_init};
+use wayland_client::protocol::wl_seat::WlSeat;
 use sill_model::clipboard::{ClipContent, ClipEvent, ClipProtocol, ImageCap};
 use tokio::sync::mpsc::UnboundedSender;
 

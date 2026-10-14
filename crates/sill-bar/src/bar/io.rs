@@ -29,7 +29,7 @@ use crate::control_center::{PanelCap, height_cap};
 use ds::base::time::stamp::FrameClock;
 use sill_model::app_menu::{AppMenuCommand, Follower, MenuApp};
 use sill_model::tray::TrayCommand;
-use sill_services::{AppMenuService, AppsService, CosmicWlService, TrayService};
+use sill_services::{AppMenuService, AppsService, TrayService, WindowsService};
 use sill_ui_kit::hooks::{
     use_appearance, use_control, use_service, use_service_part, use_services, use_settings,
 };
@@ -102,7 +102,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
     let file = use_settings()();
     let on = output.name.clone().map(OutputName);
     let app = front_app(
-        &use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
+        &use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone())(),
         &use_service::<AppsService>()(),
         on.as_ref(),
     );
@@ -471,10 +471,10 @@ fn refresh(slots: Slots, deps: &SessionDeps) {
 /// there is nobody left to tell.
 fn run(pick: &BarPick, deps: &SessionDeps) {
     let services = &deps.services;
-    let toplevels = services.cosmic_wl.state.borrow().toplevels.clone();
+    let toplevels = services.windows.state.borrow().toplevels.clone();
     for command in commands(pick, &toplevels) {
         let _gone_is_dropped = match command {
-            Command::Wl(c) => services.cosmic_wl.control.send(c),
+            Command::Wl(c) => services.windows.control.send(c),
             Command::Launch(c) => services.launch.control.send(c),
             Command::Tray(c) => services.tray.control.send(c),
             Command::AppMenu(c) => services.app_menu.control.send(c),

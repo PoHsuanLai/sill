@@ -185,13 +185,13 @@ pub(crate) mod tests {
                 app("foot", "Foot (user)"),
                 app("org.mozilla.firefox", "Firefox"),
                 app("foot", "Foot (system)"),
-                app("cosmic-term", "Terminal"),
+                app("alacritty", "Terminal"),
             ]),
         );
         assert_eq!(
             ids(&index),
             vec![
-                ("cosmic-term", "Terminal"),
+                ("alacritty", "Terminal"),
                 ("foot", "Foot (user)"),
                 ("org.mozilla.firefox", "Firefox"),
             ]

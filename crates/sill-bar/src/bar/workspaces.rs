@@ -9,9 +9,9 @@ use dioxus::prelude::*;
 use ds::base::press::{PointerButton, Press};
 use ds::prelude::*;
 use shell_host::OutputInfo;
-use sill_model::cosmic_wl::{Activity, WlCommand, Workspace};
 use sill_model::ids::OutputName;
-use sill_services::CosmicWlService;
+use sill_model::windows::{Activity, WlCommand, Workspace};
+use sill_services::WindowsService;
 use sill_shell_kit::bar::pointer::BarPointer;
 use sill_shell_kit::prelude::*;
 
@@ -32,9 +32,9 @@ fn label(workspace: &Workspace, index: usize) -> String {
 /// The workspace indicator: one pill per workspace of this output's group, active sealed, drag to reorder (`move_before`/`move_after`), right-click for Edit Space.
 #[component]
 pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
-    let workspaces = use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone());
+    let workspaces = use_service_part::<WindowsService, _>(|wl| wl.workspaces.clone());
     let settings = use_settings();
-    let wl = use_control::<CosmicWlService>();
+    let wl = use_control::<WindowsService>();
     let mut pressed = use_signal(|| None::<Pressed>);
     let threshold = settings().dock.hold_to_menu_move_px.0;
     let on = output.name.clone().map(OutputName);

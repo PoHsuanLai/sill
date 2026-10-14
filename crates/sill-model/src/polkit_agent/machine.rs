@@ -26,7 +26,7 @@ use super::{
 };
 use crate::auth::{PamNote, UserName};
 
-/// How many helper runs one request gets (cosmic-osd and libpolkit-agent's clients: three).
+/// How many helper runs one request gets (libpolkit-agent's clients: three).
 pub const MAX_TRIES: u32 = 3;
 
 /// Where a request came from.

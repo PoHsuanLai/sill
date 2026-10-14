@@ -3,8 +3,8 @@
 //! this workspace, and the Option-click hides. Pure over the toplevel list, whose order is
 //! most recently activated first.
 
-use sill_model::cosmic_wl::{Activity, Toplevel, Toplevels, WlCommand};
 use sill_model::ids::WorkspaceKey;
+use sill_model::windows::{Activity, Toplevel, Toplevels, WlCommand};
 
 use crate::dock::machine::ActivateMode;
 
@@ -73,8 +73,8 @@ mod tests {
     use super::activation;
     use crate::dock::machine::ActivateMode;
     use sill_launcher::WindowKey;
-    use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
     use sill_model::ids::WorkspaceKey;
+    use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 
     fn window(key: u64, app: &str, activity: Activity, workspace: u64) -> Toplevel {
         Toplevel {

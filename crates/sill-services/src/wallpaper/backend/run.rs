@@ -43,7 +43,7 @@ async fn next_reload(reload: &mut Option<mpsc::UnboundedReceiver<()>>) -> Option
     }
 }
 
-/// Where the service reads COSMIC's record and keeps its resized copies.
+/// Where the service reads the source path and keeps its resized copies.
 pub(crate) struct Places {
     pub(crate) config: PathBuf,
     pub(crate) cache: PathBuf,
@@ -164,7 +164,7 @@ mod tests {
     use sill_model::wallpaper::{WallpaperCommand, Wallpapers};
 
     /// Starting never panics (no compositor or config directory needed to start), and a
-    /// `Prepare` in a scratch home with no COSMIC background config settles to no entry at
+    /// `Prepare` in a scratch home with no wallpaper file settles to no entry at
     /// all — never a panic, a hang, or a half-written entry.
     #[tokio::test]
     async fn spawn_does_not_panic_and_prepare_settles_to_a_defined_state() {

@@ -13,7 +13,6 @@ use super::intents::IntentsAction;
 use super::keycap::KeycapAction;
 use super::launcher::{ClipboardAction, LauncherAction};
 use super::notifications::NotificationsAction;
-use super::render_gpu::SessionAction;
 use super::session::{IdleAction, LockVerb, PolkitAction, SwitcherAction, WorkspaceAction};
 use super::style::StyleAction;
 
@@ -68,15 +67,10 @@ pub enum Command {
         #[arg(value_enum, default_value_t = LockVerb::Now)]
         verb: LockVerb,
     },
-    /// The app switcher's chord (COSMIC's window switcher shortcuts run these).
+    /// The app switcher's chord (the window switcher shortcuts run these).
     Switcher {
         #[command(subcommand)]
         action: SwitcherAction,
-    },
-    /// Helpers for the login script (`dist/sill-session`).
-    Session {
-        #[command(subcommand)]
-        action: SessionAction,
     },
     /// Step the workspace (palmrest's swipes run these).
     Workspace {
@@ -119,7 +113,7 @@ pub enum Command {
     },
     /// Give the keyboard to the newest transient card, the screenshot thumbnail or a notification
     /// banner, whichever appeared last: Enter opens it, Delete trashes the shot or closes the
-    /// banner, Escape dismisses it, Up and Down move between banners. Bind it in COSMIC's shortcuts.
+    /// banner, Escape dismisses it, Up and Down move between banners. Bind it in the compositor's shortcuts.
     FocusLatest,
     /// The widgets.
     Widgets {

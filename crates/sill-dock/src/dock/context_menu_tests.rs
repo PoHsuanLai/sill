@@ -9,19 +9,19 @@ use crate::dock::pick::DockPick;
 use ds::prelude::*;
 use sill_launcher::{AppId, WindowKey};
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
-use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
+use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 use sill_settings::DockMenuOrder;
 use std::path::PathBuf;
 
-const TERM: &str = "com.system76.CosmicTerm";
+const TERM: &str = "foot";
 
 fn term() -> App {
     App {
         id: AppId(TERM.to_owned()),
-        name: "COSMIC Terminal".to_owned(),
+        name: "Example Terminal".to_owned(),
         generic_name: String::new(),
         comment: String::new(),
-        exec: "cosmic-term".to_owned(),
+        exec: "foot".to_owned(),
         icon: AppIcon::None,
         startup_wm_class: None,
         flatpak: None,
@@ -30,14 +30,14 @@ fn term() -> App {
         actions: vec![DesktopActionEntry {
             id: "new-window".to_owned(),
             name: "New Window".to_owned(),
-            exec: "cosmic-term".to_owned(),
+            exec: "foot".to_owned(),
         }],
         mime_types: Vec::new(),
         categories: Vec::new(),
         keyboard_profile: None,
         keywords: Vec::new(),
         listing: Listing::Shown,
-        path: PathBuf::from("/usr/share/applications/com.system76.CosmicTerm.desktop"),
+        path: PathBuf::from("/usr/share/applications/foot.desktop"),
     }
 }
 

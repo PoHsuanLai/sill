@@ -4,7 +4,7 @@
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
-use cosmic_client_toolkit::wayland_client::{ConnectError, Connection};
+use wayland_client::{ConnectError, Connection};
 
 /// How a service's Wayland connection is made.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]

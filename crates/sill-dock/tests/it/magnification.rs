@@ -43,7 +43,7 @@ fn dock() -> SurfaceHarness<Dock> {
     run.feeds.pins.send_replace(fake::dock::pins());
     run.feeds.badges.send_replace(fake::dock::badges());
     run.feeds
-        .cosmic_wl
+        .windows
         .send_modify(|wl| wl.toplevels = fake::dock::toplevels_on("DP-1"));
     run.harness.advance(Duration::from_millis(40));
     run

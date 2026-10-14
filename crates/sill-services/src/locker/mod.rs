@@ -5,7 +5,7 @@
 //! second lock while one holds.
 //!
 //! Which signals are sill's depends on the session (`sill_model::locker::Host`): in sill's own session every
-//! trigger is; under cosmic-session or nested in another desktop's session (development) only
+//! trigger is; nested in another desktop's session (development) only
 //! sill's own Lock action is, so sill never locks on another desktop's behalf.
 
 mod backend;
@@ -36,10 +36,9 @@ impl Service for LockerService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.system.clone();
         let runtime = env.dirs.runtime.clone();
-        let processes = env.processes.clone();
         let desktop = env.current_desktop.clone();
         async move {
-            backend::run(bus, runtime, processes, desktop, io.state, io.commands).await;
+            backend::run(bus, runtime, desktop, io.state, io.commands).await;
             Ok(())
         }
     }

@@ -31,7 +31,7 @@ use crate::dock::machine::{DockParams, DockState, Label, Reveal, displayed, lift
 use crate::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::dock::rest_rects::app_rects;
 use crate::dock::tile::{LabelShown, Tile, TileLook};
-use sill_services::{AppsService, BadgesService, CosmicWlService, PinsService};
+use sill_services::{AppsService, BadgesService, PinsService, WindowsService};
 use sill_ui_kit::app_icons::icon_look;
 use sill_ui_kit::hooks::{
     use_appearance, use_service, use_service_part, use_services, use_settings,
@@ -54,7 +54,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     let on = output.name.clone().map(OutputName);
     let look = use_active_look(&output);
     let workspace = active_workspace(
-        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        &use_service_part::<WindowsService, _>(|wl| wl.workspaces.clone())(),
         on.as_ref(),
     )
     .map(|(key, _)| key);
@@ -62,7 +62,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     let level = resolve(appearance, look.theme, environment.system).motion;
     let params = DockParams::new(&file.dock, level);
     let world = World {
-        toplevels: use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
+        toplevels: use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone())(),
         index: use_service::<AppsService>()(),
         pins: use_service::<PinsService>()(),
         badges: use_service::<BadgesService>()(),

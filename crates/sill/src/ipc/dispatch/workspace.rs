@@ -3,17 +3,17 @@
 
 use sill_ipc::act::WorkspaceRequest;
 use sill_ipc::response::Response;
-use sill_model::cosmic_wl::{Step, WlCommand, Workspaces};
+use sill_model::windows::{Step, WlCommand, Workspaces};
 
 use super::reach::Reach;
 use super::reply::{sent, unsupported};
 
 /// Carry out `request` against the compositor service's current workspaces.
 pub fn step(reach: &Reach, request: WorkspaceRequest) -> Response {
-    let handle = &reach.services.cosmic_wl;
+    let handle = &reach.services.windows;
     let plan = plan(&handle.state.borrow().workspaces, request);
     match plan {
-        Plan::Send(command) => sent(handle.control.send(command), "cosmic_wl"),
+        Plan::Send(command) => sent(handle.control.send(command), "windows"),
         Plan::Stay => Response::Done,
         Plan::Unsupported(why) => unsupported(why),
     }
@@ -44,11 +44,11 @@ fn plan(workspaces: &Workspaces, request: WorkspaceRequest) -> Plan {
 #[cfg(test)]
 mod tests {
     use sill_ipc::act::WorkspaceRequest;
-    use sill_model::cosmic_wl::{
-        Activity, Pinning, WlCommand, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
-    };
     use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
     use sill_model::units::{Urgency, Visibility};
+    use sill_model::windows::{
+        Activity, Pinning, WlCommand, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
+    };
 
     use super::{Plan, plan};
 

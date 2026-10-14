@@ -157,7 +157,7 @@ pub fn apply(
 }
 
 /// Where the prompt starts: the main display (the banners' output), else the first output. The
-/// compositor then gives one lock surface the keyboard (cosmic-comp: the active output's, where
+/// compositor then gives one lock surface the keyboard (some compositors: the active output's, where
 /// the pointer is) and [`on_host_event`] moves the prompt there.
 fn main_display(outputs: &Outputs) -> PromptOutput {
     match crate::notifications::banner_output(outputs) {

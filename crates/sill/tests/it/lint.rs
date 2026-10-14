@@ -12,7 +12,6 @@ use sill_dock::Dock;
 use sill_launcher::WindowKey;
 use sill_launcher_ui::{Launcher, LauncherCatcher};
 use sill_model::auth::UserName;
-use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, WindowState};
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::notifications::{
@@ -25,6 +24,7 @@ use sill_model::polkit_agent::{
 use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
+use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
     AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
@@ -213,7 +213,7 @@ fn dock_states() -> Vec<(&'static str, String)> {
         dock.feeds.pins.send_replace(fake::dock::pins());
         dock.feeds.badges.send_replace(fake::dock::badges());
         dock.feeds
-            .cosmic_wl
+            .windows
             .send_modify(|wl| wl.toplevels = fake::dock::toplevels_on("DP-1"));
         dock.harness.advance(Duration::from_millis(40));
         dock.harness.html()
@@ -355,7 +355,7 @@ fn switcher_states() -> Vec<(&'static str, String)> {
         workspaces: vec![WorkspaceKey(2)],
         outputs: vec![OutputName("DP-1".to_owned())],
     };
-    switcher.feeds.cosmic_wl.send_modify(|wl| {
+    switcher.feeds.windows.send_modify(|wl| {
         wl.toplevels.windows = vec![window(1, "term"), window(2, "calc"), window(3, "edit")];
     });
     switcher.harness.advance(Duration::from_millis(40));

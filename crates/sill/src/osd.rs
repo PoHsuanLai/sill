@@ -2,8 +2,8 @@
 //! The indicator per output is spawned like any `Surface` (`sill_overlays::Osd`).
 //!
 //! **Which changes show.** Only the ones sill makes itself: `sill display volume ...` and
-//! `sill display brightness ...`, which are what the volume and brightness keys run (`dist/
-//! cosmic`), so a key press always shows. A level another app sets (a player's own slider,
+//! `sill display brightness ...`, which are what the volume and brightness keys run (bound
+//! in the compositor's shortcuts), so a key press always shows. A level another app sets (a player's own slider,
 //! `pactl`, the monitor's buttons) never does: macOS shows its indicator for the keys only, and
 //! following every PipeWire change would flash it whenever an app ramps its stream. `sill debug
 //! osd` shows a made-up change and moves nothing real. `osd.enabled = "off"` silences all three.
@@ -91,7 +91,7 @@ fn show(
         return;
     }
     let infos: Vec<OutputInfo> = outputs.outputs.iter().map(|(i, _)| i.clone()).collect();
-    let focus = services.cosmic_wl.state.borrow().toplevels.focused_output();
+    let focus = services.windows.state.borrow().toplevels.focused_output();
     let keys = crate::policy::displays::policy_from(&file.display).keys_target;
     let ids = osd_outputs(
         kind,

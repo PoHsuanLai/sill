@@ -11,7 +11,7 @@ use sill_shell_kit::prelude::*;
 use super::content::front_app;
 use super::menus::BarMenu;
 use super::title::{shown_of, use_title_pointer};
-use sill_services::{AppsService, CosmicWlService};
+use sill_services::{AppsService, WindowsService};
 use sill_ui_kit::hooks::{use_service, use_service_part};
 
 /// What the title says with no window on the output.
@@ -20,7 +20,7 @@ const NO_APP: &str = "Desktop";
 /// The frontmost app's name, the first bar title (ui 13/700): its menu lists the app's windows and Quit.
 #[component]
 pub fn AppName(output: OutputInfo) -> Element {
-    let toplevels = use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone());
+    let toplevels = use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone());
     let apps = use_service::<AppsService>();
     let probe = use_rect();
     let on = output.name.clone().map(OutputName);

@@ -6,18 +6,18 @@
 
 use std::os::fd::BorrowedFd;
 
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_device_v1::ZwlrDataControlDeviceV1;
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_manager_v1::ZwlrDataControlManagerV1;
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_offer_v1::ZwlrDataControlOfferV1;
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_source_v1::ZwlrDataControlSourceV1;
-use cosmic_client_toolkit::wayland_client::{Dispatch, Proxy, QueueHandle};
-use cosmic_client_toolkit::wayland_client::backend::ObjectId;
-use cosmic_client_toolkit::wayland_client::globals::GlobalList;
-use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
-use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::ext_data_control_device_v1::ExtDataControlDeviceV1;
-use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::ext_data_control_manager_v1::ExtDataControlManagerV1;
-use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::ext_data_control_offer_v1::ExtDataControlOfferV1;
-use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::ext_data_control_source_v1::ExtDataControlSourceV1;
+use smithay_client_toolkit::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_device_v1::ZwlrDataControlDeviceV1;
+use smithay_client_toolkit::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_manager_v1::ZwlrDataControlManagerV1;
+use smithay_client_toolkit::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_offer_v1::ZwlrDataControlOfferV1;
+use smithay_client_toolkit::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_source_v1::ZwlrDataControlSourceV1;
+use wayland_client::{Dispatch, Proxy, QueueHandle};
+use wayland_client::backend::ObjectId;
+use wayland_client::globals::GlobalList;
+use wayland_client::protocol::wl_seat::WlSeat;
+use wayland_protocols::ext::data_control::v1::client::ext_data_control_device_v1::ExtDataControlDeviceV1;
+use wayland_protocols::ext::data_control::v1::client::ext_data_control_manager_v1::ExtDataControlManagerV1;
+use wayland_protocols::ext::data_control::v1::client::ext_data_control_offer_v1::ExtDataControlOfferV1;
+use wayland_protocols::ext::data_control::v1::client::ext_data_control_source_v1::ExtDataControlSourceV1;
 use sill_model::clipboard::ClipProtocol;
 
 /// The globals the service looks for, preferred first.

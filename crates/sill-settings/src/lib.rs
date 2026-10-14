@@ -55,7 +55,7 @@ pub use dock::{
 pub use file::{APP, ShellFile};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use hot_corners::{CornerAction, HotCornerSettings};
-pub use idle::{IdleLockAt, IdleSettings, IdleTimesFrom};
+pub use idle::{IdleLockAt, IdleSettings};
 pub use keyboard::{KeyboardOverride, KeyboardSettings, RejectedRow, overrides};
 pub use launcher::LauncherSettings;
 pub use launcher_kinds::{ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, WebSearch};
@@ -74,7 +74,7 @@ pub use scroll::{
 pub use scrollbar::{ScrollbarSettings, TrackClick};
 pub use section::Section;
 pub use session::{LockClock, SessionSettings};
-pub use spaces::{DefaultCardAccent, SpacesSettings, WallpaperDrawer};
+pub use spaces::{DefaultCardAccent, SpacesSettings};
 pub use switcher::SwitcherSettings;
 pub use voice::{HoldToTalk, VoiceConsent, VoiceSettings, params as voice_params};
 pub use widgets::{DesktopWidgets, WidgetKind, WidgetsSettings};

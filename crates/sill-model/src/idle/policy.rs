@@ -1,10 +1,8 @@
 //! What the settings ask of idle ([`IdleConfig`], from the daemon), what that resolves to in
 //! this session ([`IdlePolicy`]), and the pure functions between them: [`resolve_mode`] (who
-//! owns idle here), [`effective_times`] (COSMIC's times or sill's), [`power_source`] (AC or
-//! battery from the battery service) and [`watches`] (which `ext-idle-notify-v1` notifications
-//! to hold).
+//! owns idle here), [`power_source`] (AC or battery from the battery service) and [`watches`]
+//! (which `ext-idle-notify-v1` notifications to hold).
 
-use super::cosmic::{CosmicIdle, CosmicIdleTimes};
 use crate::battery::{Battery, Charge};
 use crate::locker::Host;
 use crate::units::Presence;
@@ -34,15 +32,6 @@ pub struct PowerPair {
 pub struct IdleTimes {
     pub screen_off: PowerPair,
     pub suspend: PowerPair,
-}
-
-/// `idle.times`: whose times apply.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TimesChoice {
-    /// COSMIC's `com.system76.CosmicIdle` (COSMIC Settings' Power page), read by the service.
-    Cosmic,
-    /// sill's own four keys.
-    Own(IdleTimes),
 }
 
 /// How bright a dimmed display stays, in percent of its brightness (`idle.dim_level_pct`).
@@ -79,7 +68,7 @@ pub struct LockedScreenOff(pub IdleSecs);
 /// Everything the daemon reads from the settings for idle (`crate::idle::IdleCommand::Configure`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdleConfig {
-    pub times: TimesChoice,
+    pub times: IdleTimes,
     pub dim: DimPlan,
     pub lock: IdleLock,
     pub locked_off: LockedScreenOff,
@@ -109,12 +98,8 @@ pub enum OffReason {
     /// No policy yet (the passive start).
     #[default]
     NoPolicy,
-    /// cosmic-session is running: its cosmic-idle owns idle.
-    CosmicSession,
     /// Nested in another desktop's session (development): never touch its displays.
     Guest,
-    /// A cosmic-idle process of this user is running in a sill session: sill defers to it.
-    CosmicIdleRunning,
 }
 
 /// The resolved policy the reducer works from.
@@ -165,31 +150,12 @@ pub enum LockView {
     Locked,
 }
 
-/// Who owns idle here: `Own` only in a sill session with no cosmic-idle running; else `Off`
-/// with the reason (cosmic-session first, then a guest session, then a running cosmic-idle).
-pub fn resolve_mode(host: Host, cosmic_idle: CosmicIdle) -> IdleMode {
-    match (host, cosmic_idle) {
-        (Host::CosmicSession, _) => IdleMode::Off(OffReason::CosmicSession),
-        (Host::Guest, _) => IdleMode::Off(OffReason::Guest),
-        (Host::SillSession, CosmicIdle::Running) => IdleMode::Off(OffReason::CosmicIdleRunning),
-        (Host::SillSession, CosmicIdle::Absent) => IdleMode::Own,
-    }
-}
-
-/// The times in force: sill's own, or COSMIC's (one screen-off time for both sources).
-pub fn effective_times(choice: TimesChoice, cosmic: CosmicIdleTimes) -> IdleTimes {
-    match choice {
-        TimesChoice::Own(times) => times,
-        TimesChoice::Cosmic => IdleTimes {
-            screen_off: PowerPair {
-                ac: cosmic.screen_off,
-                battery: cosmic.screen_off,
-            },
-            suspend: PowerPair {
-                ac: cosmic.suspend_ac,
-                battery: cosmic.suspend_battery,
-            },
-        },
+/// Who owns idle here: `Own` only in a sill session; else `Off` with the reason (a guest
+/// session: another desktop's, never touched).
+pub fn resolve_mode(host: Host) -> IdleMode {
+    match host {
+        Host::Guest => IdleMode::Off(OffReason::Guest),
+        Host::SillSession => IdleMode::Own,
     }
 }
 

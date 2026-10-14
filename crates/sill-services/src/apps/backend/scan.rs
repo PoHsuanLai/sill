@@ -10,11 +10,11 @@ use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing
 
 use super::icons::{IconTheme, resolve_icon};
 
-/// The desktop names this scan targets. sill runs as the COSMIC session or the desktop's own
+/// The desktop names this scan targets. sill runs as the desktop's own session
 /// (`quire`), so `OnlyShowIn`/`NotShowIn` are matched against these constants rather than the
 /// live `XDG_CURRENT_DESKTOP`, which keeps the result deterministic under a nested test
 /// compositor too. An entry shown in either is shown here.
-const CURRENT_DESKTOPS: [&str; 2] = ["COSMIC", "quire"];
+const CURRENT_DESKTOPS: [&str; 1] = ["quire"];
 
 /// `$XDG_DATA_HOME/applications` then each `$XDG_DATA_DIRS/applications`, in precedence order
 /// (`freedesktop_desktop_entry::default_paths`), with Flatpak's own export directories added at
@@ -292,18 +292,13 @@ mod tests {
                 false,
             ),
             (
-                "only cosmic",
-                "[Desktop Entry]\nType=Application\nOnlyShowIn=COSMIC;\n",
-                true,
-            ),
-            (
                 "only quire",
                 "[Desktop Entry]\nType=Application\nOnlyShowIn=quire;\n",
                 true,
             ),
             (
-                "cosmic or gnome",
-                "[Desktop Entry]\nType=Application\nOnlyShowIn=GNOME;COSMIC;\n",
+                "quire or gnome",
+                "[Desktop Entry]\nType=Application\nOnlyShowIn=GNOME;quire;\n",
                 true,
             ),
             (
@@ -317,18 +312,13 @@ mod tests {
                 false,
             ),
             (
-                "not cosmic",
-                "[Desktop Entry]\nType=Application\nNotShowIn=COSMIC;\n",
-                false,
-            ),
-            (
                 "not gnome",
                 "[Desktop Entry]\nType=Application\nNotShowIn=GNOME;\n",
                 true,
             ),
             (
-                "cosmic is not a substring match away",
-                "[Desktop Entry]\nType=Application\nOnlyShowIn=XCOSMIC;\n",
+                "quire is not a substring match away",
+                "[Desktop Entry]\nType=Application\nOnlyShowIn=Xquire;\n",
                 false,
             ),
         ];

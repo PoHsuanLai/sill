@@ -89,7 +89,7 @@ pub struct AppGroup {
 pub enum ServerMode {
     /// Ask for the name (never replacing a holder), and ask again whenever it falls free.
     Own,
-    /// Never ask: another daemon (cosmic-notifications, mako) serves notifications. The service
+    /// Never ask: another daemon (mako, dunst) serves notifications. The service
     /// still reports who holds the name, and `sill debug notify` still shows banners.
     #[default]
     Passive,
@@ -125,7 +125,7 @@ pub struct NameOwner {
     pub unique: String,
     /// `GetConnectionUnixProcessID`, when the bus answered.
     pub pid: Option<u32>,
-    /// `/proc/<pid>/comm` (`plasmashell`, `cosmic-notifica`), when readable.
+    /// `/proc/<pid>/comm` (`plasmashell`, `mako`), when readable.
     pub command: Option<String>,
 }
 

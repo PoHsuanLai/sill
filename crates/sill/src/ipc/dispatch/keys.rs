@@ -15,7 +15,7 @@ pub fn press(reach: &Reach, request: DisplayRequest) -> Response {
     let services = reach.services;
     let response = match request {
         DisplayRequest::Brightness(level) => {
-            let at = services.cosmic_wl.state.borrow().toplevels.focused_output();
+            let at = services.windows.state.borrow().toplevels.focused_output();
             sent(
                 services.displays.control.send(DisplaysCommand::Brightness {
                     at,

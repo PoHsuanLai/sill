@@ -21,7 +21,8 @@ sill-launcher = { workspace = true }
 sill-model = { workspace = true }
 sill-search = { workspace = true }
 sill-services = { workspace = true }
-cosmic-client-toolkit = { workspace = true }
+wayland-client = { workspace = true }
+wayland-protocols = { workspace = true }
 rustix = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

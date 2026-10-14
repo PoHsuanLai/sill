@@ -54,7 +54,7 @@ fn hover_transitions_follow_the_design_table() {
             vec![DockEffect::RequestFrames],
         ),
         (
-            "a first move enters too (cosmic-comp #2230)",
+            "a first move enters too",
             vec![(5, mv(100))],
             Hover::Entering {
                 from: Permille(0),

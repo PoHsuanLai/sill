@@ -1,17 +1,17 @@
 //! The protocol events, handed to [`WireState`]. The `ext` and `zwlr` families carry the same
 //! events under different types, so one macro writes both families' impls.
 
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::{
+use smithay_client_toolkit::reexports::protocols_wlr::data_control::v1::client::{
     zwlr_data_control_device_v1 as wlr_device, zwlr_data_control_manager_v1 as wlr_manager,
     zwlr_data_control_offer_v1 as wlr_offer, zwlr_data_control_source_v1 as wlr_source,
 };
-use cosmic_client_toolkit::wayland_client::globals::GlobalListContents;
-use cosmic_client_toolkit::wayland_client::protocol::wl_registry::WlRegistry;
-use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
-use cosmic_client_toolkit::wayland_client::{
+use wayland_client::globals::GlobalListContents;
+use wayland_client::protocol::wl_registry::WlRegistry;
+use wayland_client::protocol::wl_seat::WlSeat;
+use wayland_client::{
     Connection, Dispatch, Proxy, QueueHandle, event_created_child,
 };
-use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::{
+use wayland_protocols::ext::data_control::v1::client::{
     ext_data_control_device_v1 as ext_device, ext_data_control_manager_v1 as ext_manager,
     ext_data_control_offer_v1 as ext_offer, ext_data_control_source_v1 as ext_source,
 };

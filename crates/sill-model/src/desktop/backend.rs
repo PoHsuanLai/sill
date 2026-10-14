@@ -10,8 +10,8 @@ pub enum DesktopBackend {
     Quire,
     /// Standard protocols: ext toplevel list, wlr toplevel management, ext workspace.
     Wlr,
-    /// COSMIC's toplevel and workspace protocols.
-    Cosmic,
+    /// No window protocol at all: no window list, the empty desktop.
+    Bare,
 }
 
 /// The globals a compositor's registry listed: each interface name with its version.

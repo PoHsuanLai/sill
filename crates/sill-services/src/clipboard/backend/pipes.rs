@@ -11,10 +11,10 @@ use std::os::fd::OwnedFd;
 use std::sync::Arc;
 use std::time::Duration;
 
-use cosmic_client_toolkit::sctk::reexports::calloop;
-use cosmic_client_toolkit::sctk::reexports::calloop::generic::Generic;
-use cosmic_client_toolkit::sctk::reexports::calloop::timer::{TimeoutAction, Timer};
-use cosmic_client_toolkit::sctk::reexports::calloop::{
+use smithay_client_toolkit::reexports::calloop;
+use smithay_client_toolkit::reexports::calloop::generic::Generic;
+use smithay_client_toolkit::reexports::calloop::timer::{TimeoutAction, Timer};
+use smithay_client_toolkit::reexports::calloop::{
     Interest, LoopHandle, Mode, PostAction, RegistrationToken,
 };
 

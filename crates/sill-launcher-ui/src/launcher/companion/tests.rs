@@ -2,7 +2,7 @@ use docket_core::Keep;
 use prov::{RunId, SpaceId, TaskId};
 use sill_launcher::{ProviderKind, WindowKey};
 use sill_model::companion::{LauncherOrigin, Summon};
-use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
+use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 
 use super::*;
 use crate::launcher::keys::Filter;

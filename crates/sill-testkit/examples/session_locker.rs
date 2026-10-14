@@ -7,7 +7,7 @@
 //! Locks the compositor, gives every output a lock surface (one plain colour, as a real locker
 //! does: a compositor such as casement sends `locked` only once each output shows one), prints
 //! `locked` on stdout once the compositor says so, holds the lock for `hold-ms`, then unlocks and
-//! exits 0. `0` is the recovery form: a locker killed without unlocking leaves cosmic-comp
+//! exits 0. `0` is the recovery form: a locker killed without unlocking leaves the compositor
 //! locked until another client locks and unlocks (its session-lock handler accepts a new lock
 //! once the old client is gone), and this is that client. Exit 3 when the compositor refused the
 //! lock (`finished`: someone else holds it), 2 on a usage or connection error.
@@ -20,10 +20,9 @@ use std::os::fd::AsFd;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use cosmic_client_toolkit::wayland_client::globals::{
-    GlobalList, GlobalListContents, registry_queue_init,
-};
-use cosmic_client_toolkit::wayland_client::protocol::{
+use rustix::fs::{MemfdFlags, memfd_create};
+use wayland_client::globals::{GlobalList, GlobalListContents, registry_queue_init};
+use wayland_client::protocol::{
     wl_buffer::WlBuffer,
     wl_compositor::WlCompositor,
     wl_output::WlOutput,
@@ -32,13 +31,12 @@ use cosmic_client_toolkit::wayland_client::protocol::{
     wl_shm_pool::WlShmPool,
     wl_surface::WlSurface,
 };
-use cosmic_client_toolkit::wayland_client::{Connection, Dispatch, EventQueue, Proxy, QueueHandle};
-use cosmic_client_toolkit::wayland_protocols::ext::session_lock::v1::client::{
+use wayland_client::{Connection, Dispatch, EventQueue, Proxy, QueueHandle};
+use wayland_protocols::ext::session_lock::v1::client::{
     ext_session_lock_manager_v1::ExtSessionLockManagerV1,
     ext_session_lock_surface_v1::{self, ExtSessionLockSurfaceV1},
     ext_session_lock_v1::{self, ExtSessionLockV1},
 };
-use rustix::fs::{MemfdFlags, memfd_create};
 
 /// The lock surfaces' plain colour: opaque, dark grey (ARGB8888, little endian).
 const GROUND: [u8; 4] = [0x20, 0x20, 0x20, 0xFF];
@@ -194,7 +192,7 @@ impl Dispatch<ExtSessionLockManagerV1, ()> for State {
     fn event(
         _: &mut Self,
         _: &ExtSessionLockManagerV1,
-        _: <ExtSessionLockManagerV1 as cosmic_client_toolkit::wayland_client::Proxy>::Event,
+        _: <ExtSessionLockManagerV1 as wayland_client::Proxy>::Event,
         _: &(),
         _: &Connection,
         _: &QueueHandle<Self>,

@@ -1,5 +1,5 @@
 //! The one way a command prints its answer to stdout. Rust's `println!` panics when the reader
-//! has gone (`sill session detect-gpu | head -c0`: "failed printing to stdout: Broken pipe"); a
+//! has gone (`sill ping | head -c0`: "failed printing to stdout: Broken pipe"); a
 //! command line tool should end quietly instead, as the reader asked for no more. [`emit`] writes
 //! through any [`Write`] so the closed-pipe case is a unit test over a writer that fails.
 

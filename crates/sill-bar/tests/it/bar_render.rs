@@ -7,12 +7,12 @@ use std::time::Duration;
 use sill_bar::Bar;
 use sill_model::battery::Battery;
 use sill_model::clock::ClockText;
-use sill_model::cosmic_wl::Toplevels;
 use sill_model::tray::{
     Check, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
     TrayStatus,
 };
 use sill_model::units::{Availability, Presence, Visibility};
+use sill_model::windows::Toplevels;
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::ControlCenterLink;
 
@@ -89,7 +89,7 @@ fn fed_values_replace_the_defaults() {
         ..Battery::default()
     });
     feeds
-        .cosmic_wl
+        .windows
         .send_modify(|wl| wl.toplevels = Toplevels::default());
     bar.harness.advance(Duration::from_millis(40));
     let after = bar.harness.html();

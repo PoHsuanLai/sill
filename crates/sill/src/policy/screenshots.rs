@@ -42,12 +42,12 @@ mod tests {
     use super::policy_of;
 
     #[test]
-    fn the_default_settings_watch_pictures_with_cosmics_tool() {
+    fn the_default_settings_watch_pictures_with_the_portal() {
         assert_eq!(
             policy_of(&ShellFile::default(), std::path::Path::new("/home/p")),
             ShotPolicy {
                 folders: ShotFolders::Auto,
-                tool: ShotTool::Cosmic,
+                tool: ShotTool::Portal,
             }
         );
     }

@@ -1,10 +1,9 @@
 use super::{
     DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
-    LockedScreenOff, OffReason, PowerPair, PowerSource, Threshold, Timeout, TimesChoice, Watch,
-    effective_times, power_source, resolve_mode, watches,
+    LockedScreenOff, OffReason, PowerPair, PowerSource, Threshold, Timeout, Watch, power_source,
+    resolve_mode, watches,
 };
 use crate::battery::{Battery, Charge};
-use crate::idle::{CosmicIdle, CosmicIdleTimes};
 use crate::locker::Host;
 use crate::units::Presence;
 
@@ -38,52 +37,14 @@ fn watch(stage: Threshold, after: u32) -> Watch {
 }
 
 #[test]
-fn sill_owns_idle_only_in_its_own_session_with_no_cosmic_idle() {
-    use CosmicIdle::{Absent, Running};
+fn sill_owns_idle_only_in_its_own_session() {
     let cases = [
-        (Host::SillSession, Absent, IdleMode::Own),
-        (
-            Host::SillSession,
-            Running,
-            IdleMode::Off(OffReason::CosmicIdleRunning),
-        ),
-        (
-            Host::CosmicSession,
-            Absent,
-            IdleMode::Off(OffReason::CosmicSession),
-        ),
-        (
-            Host::CosmicSession,
-            Running,
-            IdleMode::Off(OffReason::CosmicSession),
-        ),
-        (Host::Guest, Absent, IdleMode::Off(OffReason::Guest)),
-        (Host::Guest, Running, IdleMode::Off(OffReason::Guest)),
+        (Host::SillSession, IdleMode::Own),
+        (Host::Guest, IdleMode::Off(OffReason::Guest)),
     ];
-    for (host, cosmic, want) in cases {
-        assert_eq!(resolve_mode(host, cosmic), want, "{host:?} {cosmic:?}");
+    for (host, want) in cases {
+        assert_eq!(resolve_mode(host), want, "{host:?}");
     }
-}
-
-#[test]
-fn cosmic_times_use_one_screen_off_time_for_both_sources() {
-    let cosmic = CosmicIdleTimes {
-        screen_off: after(600),
-        suspend_ac: Timeout::Never,
-        suspend_battery: after(900),
-    };
-    let own = IdleTimes {
-        screen_off: pair(after(120), after(60)),
-        suspend: pair(after(3_600), after(600)),
-    };
-    assert_eq!(
-        effective_times(TimesChoice::Cosmic, cosmic),
-        IdleTimes {
-            screen_off: pair(after(600), after(600)),
-            suspend: pair(Timeout::Never, after(900)),
-        }
-    );
-    assert_eq!(effective_times(TimesChoice::Own(own), cosmic), own);
 }
 
 #[test]

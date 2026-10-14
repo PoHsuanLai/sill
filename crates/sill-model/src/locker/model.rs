@@ -45,8 +45,7 @@ pub enum Runner {
 pub enum Triggers {
     /// A sill session: logind's signals are ours to act on.
     FollowLogind,
-    /// Another desktop owns this logind session (sill nested during development, or
-    /// cosmic-session): its signals are not ours.
+    /// Another desktop owns this logind session (sill nested during development): its signals are not ours.
     #[default]
     IgnoreLogind,
 }

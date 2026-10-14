@@ -1,6 +1,6 @@
 //! The application index: desktop entries from every XDG applications directory, their icons
 //! resolved once, rescanned on change, through freedesktop-desktop-entry and freedesktop-icons; the
-//! theme from CosmicTk `icon_theme`, else Cosmic, else hicolor;
+//! theme from GTK's settings, else hicolor;
 //! `notify` on the applications directories, 500 ms.
 
 mod backend;

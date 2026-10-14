@@ -20,16 +20,16 @@ use sill_launcher::{
     SectionSpan, SettingsTarget, SystemCommand, UnixTime, WindowKey, place,
 };
 use sill_launcher_ui::launcher::LauncherProviders;
-use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_model::results::{Results, SearchCommand};
+use sill_model::windows::WlCommand;
 use sill_services::Control;
 use sill_ui_kit::services::Services;
 use tokio::sync::watch;
 
 pub const FIREFOX: &str = "org.mozilla.firefox";
-pub const FILES: &str = "com.system76.CosmicFiles";
-pub const TERM: &str = "com.system76.CosmicTerm";
+pub const FILES: &str = "org.gnome.Nautilus";
+pub const TERM: &str = "foot";
 pub const FIREFOX_WINDOW: u64 = 10;
 
 /// The fakes' senders, and every search command the launcher sent.
@@ -55,8 +55,8 @@ fn row(provider: ProviderKind, id: &str, title: &str, subtitle: &str, score: u32
     }
 }
 
-/// An app's hicolor icon, as the app index would resolve it, when this system has one (COSMIC
-/// Files and Terminal do; a row without one shows its provider's glyph).
+/// An app's hicolor icon, as the app index would resolve it, when this system has one (a row
+/// without one shows its provider's glyph).
 fn app_icon(id: &str) -> IconRef {
     let path = std::path::PathBuf::from(format!("/usr/share/icons/hicolor/48x48/apps/{id}.svg"));
     if path.is_file() {
@@ -91,7 +91,7 @@ pub fn catalogue() -> Vec<Item> {
             ],
         ),
         with_actions(
-            row(Apps, FILES, "Files", "COSMIC File Manager", 800),
+            row(Apps, FILES, "Files", "Example File Manager", 800),
             &[("new-window", "New Window")],
         ),
         row(
@@ -101,7 +101,7 @@ pub fn catalogue() -> Vec<Item> {
             "Firefox, workspace 2",
             750,
         ),
-        row(Apps, TERM, "Terminal", "COSMIC Terminal", 700),
+        row(Apps, TERM, "Terminal", "Example Terminal", 700),
         row(Settings, "wireless", "Wi-Fi", "Network & Wireless", 500),
         row(Settings, "display", "Display", "Resolution and scale", 450),
         row(System, "lock", "Lock Screen", "loginctl lock-session", 300),
@@ -210,7 +210,7 @@ pub fn services_with_runner() -> (Services, LauncherFeeds, Runner) {
     let answer = Answer {
         results: results_tx.clone(),
         searches: searches.clone(),
-        wl: services.cosmic_wl.control.clone(),
+        wl: services.windows.control.clone(),
         launch: services.launch.control.clone(),
         providers: providers(),
         companion: services.companion.state.clone(),
@@ -281,7 +281,7 @@ impl Provider for FakeProvider {
                 text: "42".to_owned(),
             },
             (ProviderKind::Settings, _) => Activation::OpenSettings {
-                target: SettingsTarget::Cosmic(item.id.0.clone()),
+                target: SettingsTarget::Key(item.id.0.clone()),
             },
             (ProviderKind::System, _) => Activation::System(SystemCommand::Lock),
             // The companion's kinds: the real providers say what their rows do (`tests/launcher_companion.rs`).

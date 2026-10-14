@@ -206,13 +206,13 @@ fn spawn_followers(
 /// The bound [`shutdown_runtime`] gives every service's blocking-pool thread to finish once
 /// `host.run` has returned (`ctx.exit()`; every surface, and with it every clone of `Services`,
 /// is already gone by then — shell-host's own `Host::run` clears every surface before
-/// returning). Comfortably above `sill-services`' own bounded waits (its `cosmic-randr` call is
-/// 2 s), but not unbounded.
+/// returning). Comfortably above `sill-services`' own bounded waits (a few
+/// seconds at most), but not unbounded.
 const RUNTIME_SHUTDOWN_BOUND: Duration = Duration::from_secs(4);
 
 /// Ends `runtime`, waiting at most [`RUNTIME_SHUTDOWN_BOUND`] for every spawned task's thread to
 /// finish. Dropping a `tokio::runtime::Runtime` plainly waits forever for that, and a
-/// `spawn_blocking` task that calls into something that hangs (`cosmic-randr` under a
+/// `spawn_blocking` task that calls into something that hangs (an output tool under a
 /// compositor without `zwlr_output_manager_v1`) would otherwise keep
 /// the daemon from ever exiting after `sill quit` already got its answer. Past the bound, that
 /// thread (and whatever it is stuck in) is left running and the process exits without it; a
@@ -246,7 +246,7 @@ mod shutdown_tests {
 
     use super::shutdown_runtime_within;
 
-    /// A `spawn_blocking` task that never returns — the shape of `cosmic-randr` hanging under a
+    /// A `spawn_blocking` task that never returns — the shape of an output tool hanging under a
     /// compositor without `zwlr_output_manager_v1` — does not keep
     /// [`shutdown_runtime_within`] waiting past its bound; the leaked thread is left running
     /// (past the bound `forever` is never drained again, so it stays parked) and the call still

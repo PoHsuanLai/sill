@@ -9,7 +9,7 @@ use ds::host::measure::use_rect;
 use ds::root::common::Common;
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
-use sill_services::{AppMenuService, AppsService, CosmicWlService};
+use sill_services::{AppMenuService, AppsService, WindowsService};
 use sill_shell_kit::prelude::*;
 use sill_ui_kit::hooks::{use_service, use_service_part};
 
@@ -20,7 +20,7 @@ use super::title::{shown_of, use_title_pointer};
 /// The titles of the focused app's menus other than its first, which the app-name title holds.
 #[component]
 pub fn AppMenuTitles(output: OutputInfo) -> Element {
-    let toplevels = use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone());
+    let toplevels = use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone());
     let apps = use_service::<AppsService>();
     let menus = use_service::<AppMenuService>();
     let on = output.name.clone().map(OutputName);

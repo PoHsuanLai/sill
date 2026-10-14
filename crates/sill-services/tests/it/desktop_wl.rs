@@ -21,7 +21,6 @@ use desktop_client::{
 };
 use sill_launcher::WindowKey;
 use sill_model::apps::AppIndex;
-use sill_model::cosmic_wl::{Activity, Sizing, Toplevels, WindowState, WlCommand};
 use sill_model::desktop::{
     DesktopBackend, DesktopCommand, GlobalOffer, SpacePlaceView, Supports, supports,
 };
@@ -29,6 +28,7 @@ use sill_model::displays::randr::Enablement;
 use sill_model::displays::scale::DisplayScale;
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::keyboard::focused;
+use sill_model::windows::{Activity, Sizing, Toplevels, WindowState, WlCommand};
 use sill_services::desktop_wl::{
     Refusal, ScaleRefusal, backend_of, config_for_scale, desktop_of, desktop_view, heads_of,
     offer_of_protocols, project_toplevels, project_workspaces, space_id, wire_of,
@@ -299,13 +299,13 @@ fn workspaces_are_grouped_and_in_position_order() {
     assert!(
         group.workspaces[0]
             .capabilities
-            .contains(sill_model::cosmic_wl::WorkspaceCap::Activate),
+            .contains(sill_model::windows::WorkspaceCap::Activate),
         "the ability the compositor gave"
     );
     assert!(
         !group.workspaces[0]
             .capabilities
-            .contains(sill_model::cosmic_wl::WorkspaceCap::Pin),
+            .contains(sill_model::windows::WorkspaceCap::Pin),
         "and none it did not"
     );
 }
@@ -478,7 +478,7 @@ fn the_shells_commands_become_the_wire_requests_the_protocols_carry() {
             Err(Refusal::Unsupported),
         ),
         (
-            "pinning is COSMIC's",
+            "pinning is not carried",
             WlCommand::PinWorkspace(WorkspaceKey(10)),
             Err(Refusal::Unsupported),
         ),
@@ -558,13 +558,14 @@ fn the_offered_protocols_choose_the_arm() {
             DesktopBackend::Wlr,
         ),
         (
-            "the list beside COSMIC's own toplevel info",
-            named(&[
-                list_and_workspaces[0],
-                list_and_workspaces[1],
-                "zcosmic_toplevel_info_v1",
-            ]),
-            DesktopBackend::Cosmic,
+            "the list alone",
+            named(&list_and_workspaces[..1]),
+            DesktopBackend::Wlr,
+        ),
+        (
+            "the wlr manager alone",
+            named(&["zwlr_foreign_toplevel_manager_v1"]),
+            DesktopBackend::Wlr,
         ),
         (
             "the desktop's own manager",
@@ -574,9 +575,9 @@ fn the_offered_protocols_choose_the_arm() {
         (
             "the desktop's own manager without the list",
             named(&["quire_desktop_manager_v1"]),
-            DesktopBackend::Cosmic,
+            DesktopBackend::Bare,
         ),
-        ("nothing", GlobalOffer::default(), DesktopBackend::Cosmic),
+        ("nothing", GlobalOffer::default(), DesktopBackend::Bare),
     ];
     for (name, offer, want) in cases {
         assert_eq!(backend_of(&offer), want, "{name}");

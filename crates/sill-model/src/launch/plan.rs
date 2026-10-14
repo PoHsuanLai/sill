@@ -6,7 +6,7 @@ use super::{LaunchRequest, ScopeUnit};
 use crate::apps::{App, AppIcon, ExecArgs, ExecError, Terminal, expand_exec};
 
 /// The full command: `systemd-run --user --scope --collect --unit=<unit> -- <exec...>`, with
-/// the terminal wrapper (`terminal`, e.g. `["cosmic-term", "-e"]`) in front of `Exec` when the
+/// the terminal wrapper (`terminal`, e.g. `["foot", "-e"]`) in front of `Exec` when the
 /// entry has `Terminal=true`, and the request's action's `Exec` when it names one.
 pub fn launch_argv(
     app: &App,

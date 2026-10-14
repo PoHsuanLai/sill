@@ -6,7 +6,7 @@ use keycap_protocol::ProfileName;
 use sill_launcher::AppId;
 
 use crate::apps::App;
-use crate::cosmic_wl::Toplevel;
+use crate::windows::Toplevel;
 
 /// The window that has the keyboard focus, and the desktop entry it belongs to when
 /// `match_app` found one.

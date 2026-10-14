@@ -6,8 +6,7 @@
 //!
 //! Why `Bottom` and not a second `Background` surface above sill's wallpaper: the layer-shell
 //! protocol does not order two surfaces on one layer, so a widget layer on `Background` may be
-//! drawn under the wallpaper; `Bottom` is always above `Background` and below windows. With
-//! `spaces.wallpaper_drawer = "cosmic"` the wallpaper is cosmic-bg's, on `Background` too.
+//! drawn under the wallpaper; `Bottom` is always above `Background` and below windows.
 
 use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,

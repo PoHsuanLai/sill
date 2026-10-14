@@ -1,7 +1,7 @@
 //! Where an output's scale is read and set on a compositor that offers the standard output
 //! management (`zwlr_output_manager_v1`) and the standard toplevel protocols: the desktop
-//! client's output state and an applied configuration, and the route that picks between this
-//! and `cosmic-randr` from the compositor's globals.
+//! client's output state and an applied configuration, and the route that picks this or no
+//! sink from the compositor's globals.
 
 use desktop_client::client::DesktopClient;
 use desktop_client::output::{ConfigOutcome, OutputEvent};
@@ -9,7 +9,7 @@ use desktop_client::{ConfigId, Desktop, DesktopCommand, DesktopEvent, Ticket};
 use sill_model::displays::randr::Head;
 use sill_model::displays::scale::DisplayScale;
 
-use super::sink::{CosmicRandr, ScaleSink};
+use super::sink::ScaleSink;
 use crate::desktop_wl::{config_for_scale, heads_of};
 use crate::env::WaylandRoute;
 use crate::error::ServiceError;
@@ -73,19 +73,19 @@ impl ScaleSink for WlrOutputs {
     }
 }
 
-/// The sink the compositor's globals select: the native one on the standard protocols,
-/// `cosmic-randr` otherwise.
+/// The sink the compositor's globals select: the native one on the standard protocols, none
+/// otherwise.
 #[derive(Debug)]
 pub enum OutputsRoute {
     /// The standard output management.
     Wlr(Box<WlrOutputs>),
-    /// COSMIC's tool.
-    Cosmic(CosmicRandr),
+    /// No output management: the outputs are not listed and no scale is set.
+    Bare,
 }
 
 impl OutputsRoute {
     /// Connect to `route`'s compositor and pick by its globals; a compositor that cannot be
-    /// reached, or whose descriptions do not bind, gets the tool.
+    /// reached, or whose descriptions do not bind, gets none.
     pub fn pick(route: &WaylandRoute) -> OutputsRoute {
         let client = route
             .connect()
@@ -93,7 +93,7 @@ impl OutputsRoute {
             .and_then(|connection| DesktopClient::new(&connection).ok())
             .filter(|client| {
                 // The standard arm or the desktop's own: both list the wlr toplevel manager or the
-                // Quire manager; COSMIC's ext list alone is not enough.
+                // Quire manager; the ext list alone is not enough.
                 matches!(
                     desktop_client::backend_for(&client.state().protocols),
                     Some(
@@ -103,7 +103,7 @@ impl OutputsRoute {
             });
         match client {
             Some(client) => OutputsRoute::Wlr(Box::new(WlrOutputs { client })),
-            None => OutputsRoute::Cosmic(CosmicRandr),
+            None => OutputsRoute::Bare,
         }
     }
 }
@@ -112,14 +112,14 @@ impl ScaleSink for OutputsRoute {
     fn heads(&mut self) -> Result<Vec<Head>, ServiceError> {
         match self {
             OutputsRoute::Wlr(sink) => sink.heads(),
-            OutputsRoute::Cosmic(sink) => sink.heads(),
+            OutputsRoute::Bare => Ok(Vec::new()),
         }
     }
 
     fn set_scale(&mut self, head: &Head, scale: DisplayScale) -> Result<(), ServiceError> {
         match self {
             OutputsRoute::Wlr(sink) => sink.set_scale(head, scale),
-            OutputsRoute::Cosmic(sink) => sink.set_scale(head, scale),
+            OutputsRoute::Bare => Err(ServiceError::Unsupported("output management")),
         }
     }
 }

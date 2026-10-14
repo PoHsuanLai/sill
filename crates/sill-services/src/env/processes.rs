@@ -1,4 +1,4 @@
-//! What is running: this user's processes by name (cosmic-session, cosmic-idle), which the
+//! What is running: this user's processes by name, which the
 //! locker's and idle's session resolution reads. The daemon scans `/proc`; a test sees none.
 
 use std::fmt;

@@ -1,7 +1,6 @@
 //! The crate's integration tests: one executable, one module per former test file.
 //! A separate test target needs a stated reason (CONVENTIONS.md, Tests).
 
-mod cosmic_seeds;
 mod host_signals;
 mod ipc;
 mod latency;

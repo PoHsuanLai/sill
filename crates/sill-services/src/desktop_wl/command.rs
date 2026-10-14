@@ -6,7 +6,7 @@ use desktop_client::toplevel::ToplevelFlag;
 use desktop_client::workspace::WorkspaceAbility;
 use desktop_client::{DesktopCommand as Wire, DesktopState};
 use porter_core::SpaceId;
-use sill_model::cosmic_wl::WlCommand;
+use sill_model::windows::WlCommand;
 use sill_model::desktop::{DesktopBackend, DesktopCommand, Supports, supports};
 
 use super::ids::{space_id, toplevel_key, wire_workspace_key};
@@ -32,7 +32,7 @@ pub enum Refusal {
     NoSurface(ShellRole),
 }
 
-/// `command` as the desktop's command. `None` for the requests only COSMIC takes (reordering,
+/// `command` as the desktop's command. `None` for the requests no arm takes (reordering,
 /// pinning), and for a window or workspace `state` does not know.
 pub fn desktop_of(command: &WlCommand, state: &DesktopState) -> Option<DesktopCommand> {
     let window = |key| state.toplevels.get(toplevel_key(key)).map(identifier);

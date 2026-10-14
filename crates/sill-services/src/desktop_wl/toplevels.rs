@@ -3,8 +3,8 @@
 use desktop_client::DesktopState;
 use desktop_client::toplevel::{Toplevel as WireToplevel, ToplevelFlag, ToplevelFlags};
 use sill_launcher::WindowKey;
-use sill_model::cosmic_wl::Activity;
-use sill_model::cosmic_wl::toplevels::{
+use sill_model::windows::Activity;
+use sill_model::windows::toplevels::{
     Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, step,
 };
 use sill_model::ids::WorkspaceKey;
@@ -60,7 +60,7 @@ fn window_state(flags: &ToplevelFlags) -> WindowState {
     }
 }
 
-/// Full screen wins over maximised, as the COSMIC arm reads it.
+/// Full screen wins over maximised, as the shell reads it.
 fn sizing(flags: &ToplevelFlags) -> Sizing {
     if flags.contains(ToplevelFlag::Fullscreen) {
         Sizing::Fullscreen

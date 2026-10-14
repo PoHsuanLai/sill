@@ -1,4 +1,4 @@
-//! What the `cosmic_wl` thread can be told to do.
+//! What the `windows` thread can be told to do.
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::WindowKey;
@@ -26,9 +26,9 @@ pub enum WlCommand {
         relative: Relative,
         other: WorkspaceKey,
     },
-    /// Pin a workspace (needs [`crate::cosmic_wl::WorkspaceCap::Pin`]).
+    /// Pin a workspace (needs [`crate::windows::WorkspaceCap::Pin`]).
     PinWorkspace(WorkspaceKey),
-    /// Unpin a workspace (needs [`crate::cosmic_wl::WorkspaceCap::Pin`]).
+    /// Unpin a workspace (needs [`crate::windows::WorkspaceCap::Pin`]).
     UnpinWorkspace(WorkspaceKey),
     /// Move a toplevel onto a workspace, on that workspace's output (needs the toplevel
     /// manager's `move_to_ext_workspace`, version 4).

@@ -1,4 +1,4 @@
-//! COSMIC's toplevels and workspaces as the shell sees them: keys, words, capabilities, the
+//! The compositor's toplevels and workspaces as the shell sees them: keys, words, capabilities, the
 //! commands the compositor can be sent, and the pure steps that fold each protocol event in.
 
 mod caps;
@@ -11,6 +11,6 @@ pub mod workspaces;
 pub use caps::{WorkspaceCap, WorkspaceCaps};
 pub use command::{Relative, WlCommand};
 pub use ids::{Activity, Pinning};
-pub use model::CosmicWl;
+pub use model::WindowModel;
 pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState};
 pub use workspaces::{Step, Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces};

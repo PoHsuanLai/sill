@@ -1,15 +1,15 @@
 //! The windows provider's query table against a fake toplevel list (no compositor, no thread —
-//! just the reducer's own public surface, the same one `CosmicWlService` publishes through).
+//! just the reducer's own public surface, the same one `WindowsService` publishes through).
 
 use std::path::PathBuf;
 
 use sill_launcher::{AppId, Cancel, Provider, Query, VecSink, WindowKey};
 use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
-use sill_model::cosmic_wl::{
-    Activity, CosmicWl, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, Workspace,
+use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
+use sill_model::windows::{
+    Activity, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowModel, WindowState, Workspace,
     WorkspaceGroup, Workspaces,
 };
-use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
 use sill_search::providers::WindowsProvider;
 
 fn app(id: &str, name: &str) -> App {
@@ -70,17 +70,17 @@ fn provider() -> WindowsProvider {
             "org.mozilla.firefox",
             Some(2),
         ),
-        window(3, "", "cosmic-term", None),
+        window(3, "", "foot", None),
     ];
     let toplevels = windows.into_iter().fold(Toplevels::default(), |t, w| {
-        sill_model::cosmic_wl::toplevels::step(t, ToplevelEvent::Opened(w))
+        sill_model::windows::toplevels::step(t, ToplevelEvent::Opened(w))
     });
     let apps = sill_model::apps::step(
         AppIndex::default(),
         AppsEvent::Scanned(vec![
             app("thunderbird", "Thunderbird"),
             app("org.mozilla.firefox", "Firefox"),
-            app("cosmic-term", "Terminal"),
+            app("foot", "Terminal"),
         ]),
     );
     let workspaces = Workspaces {
@@ -90,13 +90,13 @@ fn provider() -> WindowsProvider {
             workspaces: vec![workspace(1, "Mail"), workspace(2, "Web")],
         }],
     };
-    let (_wtx, wrx) = tokio::sync::watch::channel(CosmicWl {
+    let (_wtx, wrx) = tokio::sync::watch::channel(WindowModel {
         workspaces,
         toplevels,
     });
     let (_atx, arx) = tokio::sync::watch::channel(apps);
     WindowsProvider {
-        cosmic_wl: wrx,
+        windows: wrx,
         apps: arx,
     }
 }

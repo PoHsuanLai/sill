@@ -12,13 +12,11 @@ mod command;
 mod debug;
 mod desktop;
 mod display;
-pub mod import_input;
 mod intents;
 mod keycap;
 mod launcher;
 mod made_up;
 mod notifications;
-pub mod render_gpu;
 mod request;
 mod session;
 pub mod stdout;
@@ -29,7 +27,7 @@ mod tests;
 pub use command::Command;
 pub use request::request;
 
-/// sill, the COSMIC shell.
+/// sill, the desktop shell.
 #[derive(Debug, Parser)]
 #[command(name = "sill", version, about)]
 pub struct Cli {

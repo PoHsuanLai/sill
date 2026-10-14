@@ -9,10 +9,10 @@ use super::{
     MenuApp, MenuName, Node, NodeProps, NodeType, OwnItem, QuitRow, Route, ServedMenu, ToggleKind,
     effect_of, listing, own_commands, own_groups, route_of, rows_of, step, titles,
 };
-use crate::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use crate::ids::OutputName;
 use crate::tray::{Check, Chord, MenuCommand, TrayMenuEntry, TrayMenuIcon, TrayMenuKind};
 use crate::units::{Availability, Visibility};
+use crate::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 
 fn node(id: i32, label: &str, children: Vec<Node>) -> Node {
     Node {

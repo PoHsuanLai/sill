@@ -8,15 +8,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// The files that start a process of their own, and why each is not the opener's seam.
-const ALLOWED: [(&str, &str); 7] = [
+const ALLOWED: [(&str, &str); 6] = [
     ("env/children.rs", "the seam's real implementation"),
     (
         "launch/backend/run.rs",
         "an app launch, tracked to its exit; only an `#[ignore]`d test runs it",
-    ),
-    (
-        "displays/backend/sink.rs",
-        "cosmic-randr, read and written through the display sink's own seam",
     ),
     (
         "now_playing/backend/art.rs",

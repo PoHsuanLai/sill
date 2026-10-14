@@ -104,7 +104,7 @@ fn edit_widgets(reach: &Reach, request: EditWidgetsRequest) -> Response {
     let link = &reach.links.edit_widgets;
     let focus = reach
         .services
-        .cosmic_wl
+        .windows
         .state
         .borrow()
         .toplevels

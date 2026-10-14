@@ -22,9 +22,7 @@ use super::session::{
 /// The request `command` sends; `None` for `run`, `style` and `auth-check`, which are not requests.
 pub fn request(command: &Command) -> Option<Request> {
     Some(match command {
-        Command::Run(_) | Command::AuthCheck | Command::Style { .. } | Command::Session { .. } => {
-            return None;
-        }
+        Command::Run(_) | Command::AuthCheck | Command::Style { .. } => return None,
         Command::Ping => Request::Ping,
         Command::Quit => Request::Quit,
         Command::Reload => Request::Reload,

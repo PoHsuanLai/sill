@@ -28,9 +28,9 @@ use sill_launcher::Provider;
 use sill_model::apps::AppIndex;
 use sill_model::clipboard::Clipboard;
 use sill_model::companion::{Companion, CompanionCommand};
-use sill_model::cosmic_wl::{CosmicWl, WlCommand};
 use sill_model::launch::LaunchCommand;
 use sill_model::results::{LauncherPolicy, Results, SearchCommand};
+use sill_model::windows::{WindowModel, WlCommand};
 use tokio::sync::watch;
 
 use sill_services::control::Control;
@@ -66,7 +66,7 @@ impl fmt::Debug for Sources {
 #[derive(Debug, Clone)]
 pub struct ResultsLinks {
     pub apps: watch::Receiver<AppIndex>,
-    pub cosmic_wl: watch::Receiver<CosmicWl>,
+    pub windows: watch::Receiver<WindowModel>,
     pub clipboard: watch::Receiver<Clipboard>,
     /// The companion's state, which its three providers read, and where its two lookups go.
     pub companion: watch::Receiver<Companion>,

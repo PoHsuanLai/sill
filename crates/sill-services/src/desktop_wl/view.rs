@@ -8,7 +8,7 @@ use casement_protocols::vocab::{
 use desktop_client::toplevel::{Toplevel as WireToplevel, ToplevelFlag};
 use desktop_client::workspace::WorkspaceFlag;
 use desktop_client::{DesktopState, ToplevelKey};
-use sill_model::cosmic_wl::Toplevels;
+use sill_model::windows::Toplevels;
 use sill_model::desktop::{
     ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView,
 };

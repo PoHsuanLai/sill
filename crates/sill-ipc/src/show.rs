@@ -43,7 +43,7 @@ pub enum Reveal {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum LauncherRequest {
-    /// Open when closed, close when open: the COSMIC `Launcher` shortcut.
+    /// Open when closed, close when open: the launcher shortcut.
     Toggle,
     /// Open with `query` already typed; an empty query opens a fresh launcher.
     Open { query: String },

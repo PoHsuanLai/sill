@@ -10,9 +10,9 @@ use std::os::fd::{AsFd, OwnedFd};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use cosmic_client_toolkit::sctk::reexports::calloop::{LoopHandle, LoopSignal};
-use cosmic_client_toolkit::wayland_client::backend::ObjectId;
-use cosmic_client_toolkit::wayland_client::{Connection, QueueHandle};
+use smithay_client_toolkit::reexports::calloop::{LoopHandle, LoopSignal};
+use wayland_client::backend::ObjectId;
+use wayland_client::{Connection, QueueHandle};
 use sill_launcher::UnixTime;
 use sill_model::clipboard::{
     ClipContent, ClipEvent, ImageCap, ImagesKept, MimePick, OfferVerdict, Skipped, offer_verdict,

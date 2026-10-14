@@ -3,10 +3,10 @@
 //! with no quote in them and cut short; the listing is labelled untrusted by the service.
 
 use super::window_plan::main_group;
-use crate::cosmic_wl::{
-    Activity, CosmicWl, Sizing, Toplevel, WindowState, Workspace, WorkspaceGroup, Workspaces,
-};
 use crate::units::Urgency;
+use crate::windows::{
+    Activity, Sizing, Toplevel, WindowModel, WindowState, Workspace, WorkspaceGroup, Workspaces,
+};
 
 /// The most characters the answer carries (the manifest's `max`).
 pub const LISTING_MAX: usize = 12_000;
@@ -15,7 +15,7 @@ pub const LISTING_MAX: usize = 12_000;
 const FIELD_MAX: usize = 120;
 
 /// One line per window, most recently active first.
-pub fn windows_text(wl: &CosmicWl) -> String {
+pub fn windows_text(wl: &WindowModel) -> String {
     let lines = wl
         .toplevels
         .windows

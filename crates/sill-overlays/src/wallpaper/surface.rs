@@ -1,9 +1,8 @@
-//! The wallpaper as a [`Surface`]: one per output while the shell draws the background, shown
-//! at once.
+//! The wallpaper as a [`Surface`]: one per output, shown at once.
 
 use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
-use sill_settings::{ShellFile, WallpaperDrawer};
+use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::view::wallpaper;
@@ -18,11 +17,8 @@ impl Surface for Wallpaper {
     type Link = ();
     type Slot = ();
 
-    fn slots(place: &Place) -> Vec<()> {
-        match place.settings.spaces.wallpaper_drawer {
-            WallpaperDrawer::Shell => vec![()],
-            _ => Vec::new(),
-        }
+    fn slots(_place: &Place) -> Vec<()> {
+        vec![()]
     }
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {

@@ -214,7 +214,7 @@ mod tests {
         ("iPhone 15", false),
         ("iPhone 15 Pro", false),
         ("Chapter 7", false),
-        ("cosmic-settings", false),
+        ("system-settings", false),
         ("rfc-2119", false),
     ];
 

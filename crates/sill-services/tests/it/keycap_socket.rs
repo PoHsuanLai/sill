@@ -19,12 +19,12 @@ use sill_launcher::{AppId, WindowKey};
 use sill_model::apps::{
     App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, step as apps_step,
 };
-use sill_model::cosmic_wl::{Activity, CosmicWl, Sizing, Toplevel, Toplevels, WindowState};
 use sill_model::keyboard::{ShellFocus, UserOverrides};
 use sill_model::keycap::{Attention, KeycapCommand, KeycapState, notice_text};
 use sill_model::notifications::{
     BannerLife, LiveBanner, NotesState, Notification, NotificationId, NotificationsCommand, UnixMs,
 };
+use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowModel, WindowState};
 use sill_services::Control;
 use sill_services::env::Env;
 use sill_services::keycap::{KeycapLinks, KeycapService};
@@ -77,7 +77,7 @@ fn apps() -> AppIndex {
 }
 
 /// The compositor's state with `app_id` active, or no window at all.
-fn focused(app_id: Option<&str>) -> CosmicWl {
+fn focused(app_id: Option<&str>) -> WindowModel {
     let windows = app_id
         .into_iter()
         .map(|app_id| Toplevel {
@@ -91,9 +91,9 @@ fn focused(app_id: Option<&str>) -> CosmicWl {
             outputs: Vec::new(),
         })
         .collect();
-    CosmicWl {
+    WindowModel {
         toplevels: Toplevels { windows },
-        ..CosmicWl::default()
+        ..WindowModel::default()
     }
 }
 
@@ -193,7 +193,7 @@ struct Rig {
     daemon: Daemon,
     state: watch::Receiver<KeycapState>,
     control: Control<KeycapCommand>,
-    wl: watch::Sender<CosmicWl>,
+    wl: watch::Sender<WindowModel>,
     /// Held so the index stays readable; these tests never change it.
     _apps: watch::Sender<AppIndex>,
     notices: mpsc::UnboundedReceiver<NotificationsCommand>,
@@ -226,7 +226,7 @@ fn rig(config: Option<&str>) -> Rig {
     let (notifications, notices) = Control::channel();
     let (notes, notes_rx) = watch::channel(NotesState::default());
     let links = KeycapLinks {
-        cosmic_wl: wl_rx,
+        windows: wl_rx,
         apps: apps_rx,
         notifications,
         notes: notes_rx,
@@ -515,14 +515,14 @@ async fn an_isolated_env_never_connects_and_stays_unknown() {
     let env = Env::isolated(Path::new(scratch.path()));
     assert_eq!(env.keycap_socket, None);
     let (_apps, apps_rx) = watch::channel(AppIndex::default());
-    let (_wl, wl_rx) = watch::channel(CosmicWl::default());
+    let (_wl, wl_rx) = watch::channel(WindowModel::default());
     let (notifications, mut notices) = Control::channel();
     let (_notes, notes_rx) = watch::channel(NotesState::default());
     let handle = spawn::<KeycapService>(
         &tokio::runtime::Handle::current(),
         &env,
         KeycapLinks {
-            cosmic_wl: wl_rx,
+            windows: wl_rx,
             apps: apps_rx,
             notifications,
             notes: notes_rx,

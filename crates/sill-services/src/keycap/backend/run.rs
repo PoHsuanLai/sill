@@ -3,7 +3,7 @@
 
 use keycap_protocol::{ProfileName, ToDaemon};
 use sill_model::apps::AppIndex;
-use sill_model::cosmic_wl::CosmicWl;
+use sill_model::windows::WindowModel;
 use sill_model::keyboard::{
     CategoryTable, OwnProfiles, ShellFocus, UserOverrides, under_shell, wanted,
 };
@@ -36,7 +36,7 @@ struct Live {
     link: Link,
     told: UnboundedSender<KeycapEvent>,
     tx: watch::Sender<KeycapState>,
-    cosmic_wl: watch::Receiver<CosmicWl>,
+    windows: watch::Receiver<WindowModel>,
     apps: watch::Receiver<AppIndex>,
     notes: watch::Receiver<NotesState>,
     notifications: Control<NotificationsCommand>,
@@ -73,14 +73,14 @@ pub(crate) async fn run(
     let mut touch = config::watch(&reach.config_dir)
         .map_err(|error| eprintln!("sill: keycap: watching keycap.toml: {error}"))
         .ok();
-    let (mut cosmic_wl, mut apps) = (links.cosmic_wl.clone(), links.apps.clone());
+    let (mut windows, mut apps) = (links.windows.clone(), links.apps.clone());
     let mut live = Live {
         reach,
         rt: Handle::current(),
         link,
         told,
         tx,
-        cosmic_wl: links.cosmic_wl,
+        windows: links.windows,
         apps: links.apps,
         notes: links.notes,
         notifications: links.notifications,
@@ -101,7 +101,7 @@ pub(crate) async fn run(
                 None => break,
             },
             Some(event) = events.recv() => live.feed(event),
-            Ok(()) = cosmic_wl.changed() => live.refocus(),
+            Ok(()) = windows.changed() => live.refocus(),
             Ok(()) = apps.changed() => live.refocus(),
             Some(()) = touched(&mut touch) => live.send_config(),
             () = due(live.check_at) => live.check_unit(),
@@ -171,7 +171,7 @@ impl Live {
             &self.overrides,
             &self.own,
             &self.categories,
-            &self.cosmic_wl.borrow().toplevels,
+            &self.windows.borrow().toplevels,
             &self.apps.borrow(),
         );
         let next = under_shell(self.shell, window);

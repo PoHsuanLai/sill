@@ -123,7 +123,7 @@ vello_common = "0.1"
 parley = { version = "0.11.1", default-features = false, features = ["std"] }
 image = { version = "0.25.6", default-features = false, features = ["png", "jpeg"] }
 
-# Wayland client (shell-host and sill share one sctk major: cosmic-client-toolkit uses 0.20).
+# Wayland client (shell-host and sill share one sctk major).
 smithay-client-toolkit = { version = "0.20", default-features = false, features = ["calloop", "xkbcommon"] }
 wayland-client = "0.31"
 wayland-backend = { version = "0.3", features = ["client_system"] }
@@ -142,8 +142,6 @@ thiserror = "2"
 jiff = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# cosmic-config's file format: `sill session import-input` writes it, and a test parses the seeds in dist/cosmic.
-ron = "0.12"
 futures-timer = "3"
 cssparser = "0.37"
 notify = "8.2"
@@ -159,8 +157,7 @@ syn = { version = "2", features = ["full", "extra-traits"] }
 quote = "1"
 proc-macro2 = "1"
 
-# Shell-only (COSMIC).
-cosmic-client-toolkit = { git = "https://github.com/pop-os/cosmic-protocols", rev = "c0cff4db14c37ed954983158e4055aa94c7741d9" }
+# Shell-only.
 upower_dbus = { git = "https://github.com/pop-os/dbus-settings-bindings", rev = "eed01dd3609e90e3c8cd043656734c500956c793" }
 logind-zbus = "5"
 libpulse-binding = "2.30"

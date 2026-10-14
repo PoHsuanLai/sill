@@ -34,7 +34,7 @@ const INSTALLED: &[Installed] = &[
     ("Mailo", "", &[], &[]),
     ("KMail Import Wizard", "", &[], &[]),
     ("NeoChat", "Matrix Client", &[], &[]),
-    ("COSMIC Terminal", "", &[], &[]),
+    ("Example Terminal", "", &[], &[]),
     ("Ghostty", "", &["terminal"], &[]),
     ("Konsole", "Terminal", &[], &[]),
     ("Telegram", "", &[], &["Quit Telegram"]),
@@ -154,7 +154,7 @@ fn mail_puts_the_mail_apps_first_and_no_emoji_on_top() {
 #[test]
 fn term_ranks_the_terminals_above_scattered_letters() {
     let placement = shown("term");
-    assert_eq!(titles(&placement, Section::TopHit), ["COSMIC Terminal"]);
+    assert_eq!(titles(&placement, Section::TopHit), ["Example Terminal"]);
     let apps = titles(&placement, Section::Applications);
     assert_eq!(
         apps.iter().take(2).copied().collect::<Vec<_>>(),

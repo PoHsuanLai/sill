@@ -1,7 +1,5 @@
-//! Settings pages and keys: quire and sill's own schemas (design/22 §9.3 "deep links") and the
-//! `cosmic-settings` page table when that binary exists.
+//! Settings pages and keys: quire and sill's own schemas (design/22 §9.3 "deep links").
 
-pub mod cosmic_pages;
 pub mod index;
 pub mod schema_files;
 
@@ -14,15 +12,12 @@ use sill_launcher::{
     Score, SettingsTarget,
 };
 
-use cosmic_pages::{cosmic_pages_table, is_on_path, real_path_dirs, search_cosmic_pages};
 use ds_settings::schema::{Schema, data_dirs_from};
 use index::{IndexedKey, SettingsIndex};
 use schema_files::{fingerprint, schema_paths};
 
 /// A key's `Item.id`: `activate` strips this back off, rather than re-parsing the row's title.
 const KEY_ID_PREFIX: &str = "key:";
-/// A COSMIC page's `Item.id`.
-const COSMIC_ID_PREFIX: &str = "cosmic:";
 /// A deep-linked key always outranks an ordinary fuzzy match within this provider's own rows.
 const DEEP_LINK_SCORE: Score = Score(1000);
 
@@ -37,8 +32,6 @@ struct Cached {
 /// Rows for settings pages and keys matching the query.
 #[derive(Debug)]
 pub struct SettingsProvider {
-    /// `(page id, title, keywords)` of `cosmic-settings` pages; empty when it is not installed.
-    pub cosmic_pages: Vec<(String, String, Vec<String>)>,
     dirs: Vec<PathBuf>,
     cached: Mutex<Option<Cached>>,
 }
@@ -52,7 +45,7 @@ impl Default for SettingsProvider {
 
 impl SettingsProvider {
     /// Indexes the installed quire and sill schemas (`ds_settings::schema::data_dirs_from` of
-    /// the data directory `data_home` and `$XDG_DATA_DIRS`, a system search path read like `$PATH`), adding the COSMIC pages table when `cosmic-settings` is on `PATH`.
+    /// the data directory `data_home` and `$XDG_DATA_DIRS`, a system search path read like `$PATH`).
     pub fn new(data_home: &Path) -> SettingsProvider {
         SettingsProvider::with_dirs(data_dirs_from(
             Some(data_home.into()),
@@ -64,23 +57,7 @@ impl SettingsProvider {
     /// As [`SettingsProvider::new`], but discovering schemas under `dirs` instead of the real
     /// XDG directories — for tests and for a fixture install.
     pub fn with_dirs(dirs: Vec<PathBuf>) -> SettingsProvider {
-        SettingsProvider::with_dirs_and_search_path(dirs, real_path_dirs())
-    }
-
-    /// As [`SettingsProvider::with_dirs`], but searching `search_path` for `cosmic-settings`
-    /// instead of the real `$PATH` — the seam a test uses to prove the discovery without
-    /// mutating the real environment (`cosmic_pages::is_on_path`'s doc says why that is
-    /// unavailable here).
-    fn with_dirs_and_search_path(
-        dirs: Vec<PathBuf>,
-        search_path: Vec<PathBuf>,
-    ) -> SettingsProvider {
         SettingsProvider {
-            cosmic_pages: if is_on_path(&search_path, "cosmic-settings") {
-                cosmic_pages_table()
-            } else {
-                Vec::new()
-            },
             dirs,
             cached: Mutex::new(None),
         }
@@ -155,11 +132,6 @@ impl Provider for SettingsProvider {
             }
             items.push(key_item(key, score));
         }
-        for (page_id, title, score) in
-            search_cosmic_pages(&self.cosmic_pages, &needle, &mut matcher)
-        {
-            items.push(cosmic_item(&page_id, &title, score));
-        }
 
         if query.is_cancelled() || items.is_empty() {
             return;
@@ -177,11 +149,6 @@ impl Provider for SettingsProvider {
                 target: SettingsTarget::Key(path.to_owned()),
             };
         }
-        if let Some(page) = item.id.0.strip_prefix(COSMIC_ID_PREFIX) {
-            return Activation::OpenSettings {
-                target: SettingsTarget::Cosmic(page.to_owned()),
-            };
-        }
         Activation::Nothing
     }
 }
@@ -196,74 +163,5 @@ fn key_item(key: &IndexedKey, score: Score) -> Item {
         score,
         actions: Vec::new(),
         subject: sill_launcher::Subject::None,
-    }
-}
-
-fn cosmic_item(page_id: &str, title: &str, score: Score) -> Item {
-    Item {
-        id: ItemId(format!("{COSMIC_ID_PREFIX}{page_id}")),
-        provider: ProviderKind::Settings,
-        title: title.to_owned(),
-        subtitle: "COSMIC Settings".to_owned(),
-        icon: IconRef::Glyph("settings".to_owned()),
-        score,
-        actions: Vec::new(),
-        subject: sill_launcher::Subject::None,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::path::PathBuf;
-    use std::sync::atomic::{AtomicU32, Ordering};
-
-    use super::SettingsProvider;
-
-    /// A fresh directory under the system temp dir, holding one file named `cosmic-settings` —
-    /// standing in for a `$PATH` entry, removed on drop (no `tempfile`: not in the pinned block,
-    /// `sill_testkit::TempDir` is the same pattern).
-    struct FakePathDir(PathBuf);
-
-    impl FakePathDir {
-        fn with_cosmic_settings() -> FakePathDir {
-            static NEXT: AtomicU32 = AtomicU32::new(0);
-            let n = NEXT.fetch_add(1, Ordering::Relaxed);
-            let dir = std::env::temp_dir().join(format!(
-                "sill-services-settings-fake-path-{}-{n}",
-                std::process::id()
-            ));
-            fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
-            fs::write(dir.join("cosmic-settings"), b"").unwrap_or_else(|e| panic!("{e}"));
-            FakePathDir(dir)
-        }
-    }
-
-    impl Drop for FakePathDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
-        }
-    }
-
-    #[test]
-    fn cosmic_pages_appear_when_cosmic_settings_is_on_the_search_path() {
-        let fake = FakePathDir::with_cosmic_settings();
-        let provider =
-            SettingsProvider::with_dirs_and_search_path(Vec::new(), vec![fake.0.clone()]);
-        assert!(
-            !provider.cosmic_pages.is_empty(),
-            "{:?}",
-            provider.cosmic_pages
-        );
-    }
-
-    #[test]
-    fn no_cosmic_pages_when_cosmic_settings_is_not_on_the_search_path() {
-        let provider = SettingsProvider::with_dirs_and_search_path(Vec::new(), Vec::new());
-        assert!(
-            provider.cosmic_pages.is_empty(),
-            "{:?}",
-            provider.cosmic_pages
-        );
     }
 }

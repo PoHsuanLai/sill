@@ -6,10 +6,8 @@ use super::{Runner, Triggers};
 /// What kind of session sill is running in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Host {
-    /// cosmic-session is running for this user: its own components answer logind.
-    CosmicSession,
     /// sill's own session (`dist/sill-session`, or the desktop's own: `XDG_CURRENT_DESKTOP`
-    /// names COSMIC or quire, no cosmic-session).
+    /// names quire).
     SillSession,
     /// Another desktop's session, e.g. sill on a nested compositor during development:
     /// logind's signals belong to that desktop.
@@ -17,39 +15,29 @@ pub enum Host {
 }
 
 impl Host {
-    /// From whether cosmic-session runs and `XDG_CURRENT_DESKTOP` (colon-separated).
-    pub fn of(cosmic_session: SessionManager, current_desktop: &str) -> Host {
-        match cosmic_session {
-            SessionManager::CosmicSession => Host::CosmicSession,
-            SessionManager::Other if current_desktop.split(':').any(is_own_desktop) => {
-                Host::SillSession
-            }
-            SessionManager::Other => Host::Guest,
+    /// From `XDG_CURRENT_DESKTOP` (colon-separated).
+    pub fn of(current_desktop: &str) -> Host {
+        match current_desktop.split(':').any(is_own_desktop) {
+            true => Host::SillSession,
+            false => Host::Guest,
         }
     }
 
     fn triggers(self) -> Triggers {
         match self {
             Host::SillSession => Triggers::FollowLogind,
-            Host::CosmicSession | Host::Guest => Triggers::IgnoreLogind,
+            Host::Guest => Triggers::IgnoreLogind,
         }
     }
 }
 
 /// The desktop names a sill session carries in `XDG_CURRENT_DESKTOP`.
-const OWN_DESKTOPS: [&str; 2] = ["COSMIC", "quire"];
+const OWN_DESKTOPS: [&str; 1] = ["quire"];
 
 fn is_own_desktop(name: &str) -> bool {
     OWN_DESKTOPS
         .iter()
         .any(|own| own.eq_ignore_ascii_case(name))
-}
-
-/// Whether a cosmic-session process runs for this user.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SessionManager {
-    CosmicSession,
-    Other,
 }
 
 /// What the service does, resolved.
@@ -81,25 +69,21 @@ impl LockerMode {
 
 #[cfg(test)]
 mod tests {
-    use super::{Host, LockerMode, SessionManager};
+    use super::{Host, LockerMode};
     use crate::locker::Triggers;
 
     #[test]
     fn only_a_sill_session_follows_logind() {
         let cases = [
-            (SessionManager::CosmicSession, "COSMIC", Host::CosmicSession),
-            (SessionManager::Other, "COSMIC", Host::SillSession),
-            (SessionManager::Other, "sill:COSMIC", Host::SillSession),
-            (SessionManager::Other, "quire", Host::SillSession),
-            (SessionManager::Other, "Quire", Host::SillSession),
-            (SessionManager::Other, "GNOME:quire", Host::SillSession),
-            (SessionManager::Other, "quirey", Host::Guest),
-            (SessionManager::CosmicSession, "quire", Host::CosmicSession),
-            (SessionManager::Other, "KDE", Host::Guest),
-            (SessionManager::Other, "", Host::Guest),
+            ("quire", Host::SillSession),
+            ("Quire", Host::SillSession),
+            ("GNOME:quire", Host::SillSession),
+            ("quirey", Host::Guest),
+            ("KDE", Host::Guest),
+            ("", Host::Guest),
         ];
-        for (manager, desktop, want) in cases {
-            assert_eq!(Host::of(manager, desktop), want, "{manager:?} {desktop:?}");
+        for (desktop, want) in cases {
+            assert_eq!(Host::of(desktop), want, "{desktop:?}");
         }
         assert_eq!(
             LockerMode::for_host(Host::SillSession),
@@ -108,7 +92,7 @@ mod tests {
             }
         );
         assert_eq!(
-            LockerMode::for_host(Host::CosmicSession),
+            LockerMode::for_host(Host::Guest),
             LockerMode::Own {
                 triggers: Triggers::IgnoreLogind
             }

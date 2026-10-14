@@ -1,5 +1,5 @@
 //! The dock's fixtures: four apps, two pins, a badge and windows for the fake services to be fed
-//! (`Feeds::apps`, `pins`, `badges`, `cosmic_wl`); they start empty.
+//! (`Feeds::apps`, `pins`, `badges`, `windows`); they start empty.
 
 use std::path::PathBuf;
 
@@ -8,15 +8,15 @@ use sill_model::apps::{
     App, AppIcon, AppIndex, DbusActivation, DesktopActionEntry, Listing, Terminal,
 };
 use sill_model::badges::{Badge, Badges};
-use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::pins::DockPins;
 use sill_model::units::{Permille, Visibility};
+use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 
 /// App ids the fixtures use.
-pub const TERM: &str = "com.system76.CosmicTerm";
-pub const FILES: &str = "com.system76.CosmicFiles";
-pub const SETTINGS: &str = "com.system76.CosmicSettings";
+pub const TERM: &str = "foot";
+pub const FILES: &str = "org.gnome.Nautilus";
+pub const SETTINGS: &str = "org.quire.Settings";
 pub const FIREFOX: &str = "org.mozilla.firefox";
 
 /// An entry named `name` whose icon is the hicolor theme's, when this machine has it.
@@ -57,9 +57,9 @@ fn app(id: &str, name: &str, actions: &[(&str, &str)]) -> App {
 /// Four apps, sorted by id as the index keeps them.
 pub fn index() -> AppIndex {
     let mut apps = vec![
-        app(FILES, "COSMIC Files", &[]),
-        app(SETTINGS, "COSMIC Settings", &[]),
-        app(TERM, "COSMIC Terminal", &[("new-window", "New Window")]),
+        app(FILES, "Example Files", &[]),
+        app(SETTINGS, "Settings", &[]),
+        app(TERM, "Example Terminal", &[("new-window", "New Window")]),
         app(FIREFOX, "Firefox", &[]),
     ];
     apps.sort_by(|a, b| a.id.cmp(&b.id));

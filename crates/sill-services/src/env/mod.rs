@@ -95,7 +95,7 @@ impl Default for UnitWait {
 /// Where idle's screen-off and suspend times come from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum IdleTimesSource {
-    /// The settings (`idle.times` and its keys, in minutes).
+    /// The settings (the `idle.*_min` keys, in minutes).
     #[default]
     Settings,
     /// These, for both power sources, whatever the settings say (a dev script's seconds).
@@ -132,7 +132,7 @@ impl Env {
     /// that is not there (none), no polkit helper, session actions that are only recorded, and a
     /// password check that refuses everything, no processes running, no child started (each is recorded) and no keycap socket. For
     /// tests that start services and must never reach the person's session or files. `scratch` must exist: the wallpaper service watches the
-    /// nearest existing folder above COSMIC's record.
+    /// nearest existing folder above the wallpaper's source file.
     pub fn isolated(scratch: &Path) -> Env {
         Env {
             buses: Buses::absent(),

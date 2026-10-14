@@ -8,7 +8,7 @@ use prov::{AppName, SpaceId};
 use sill_launcher::WindowKey;
 use sill_model::companion::LauncherOrigin;
 use sill_model::companion::{AskInput, Summon};
-use sill_model::cosmic_wl::Toplevels;
+use sill_model::windows::Toplevels;
 
 /// The ask for `prompt` in the summon `summon` found the panel in, over `toplevels`, made in
 /// `space`.

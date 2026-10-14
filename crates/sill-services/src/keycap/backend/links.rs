@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use sill_model::apps::AppIndex;
-use sill_model::cosmic_wl::CosmicWl;
+use sill_model::windows::WindowModel;
 use sill_model::notifications::{NotesState, NotificationsCommand};
 use tokio::sync::watch;
 
@@ -14,7 +14,7 @@ use crate::env::{Bus, BusRoute, Env, UnitWait};
 #[derive(Debug, Clone)]
 pub struct KeycapLinks {
     /// Which window has the focus.
-    pub cosmic_wl: watch::Receiver<CosmicWl>,
+    pub windows: watch::Receiver<WindowModel>,
     /// The desktop entries that tell which profile the focused window wants.
     pub apps: watch::Receiver<AppIndex>,
     /// Where the notices about keycap are posted and withdrawn.

@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use sill_search::results::ResultsService;
+use sill_services::WindowsService;
 use sill_services::accounts::AccountsService;
 use sill_services::accounts::sheet::AccountsSheetService;
 use sill_services::app_menu::AppMenuService;
@@ -17,7 +18,6 @@ use sill_services::capture_pick::CaptureService;
 use sill_services::clipboard::ClipboardService;
 use sill_services::clock::ClockService;
 use sill_services::companion::CompanionService;
-use sill_services::cosmic_wl::CosmicWlService;
 use sill_services::displays::DisplaysService;
 use sill_services::env::{Dirs, SessionActions};
 use sill_services::events::EventsService;
@@ -68,7 +68,7 @@ pub struct Services {
     pub app_menu: Handle<AppMenuService>,
     pub pins: Handle<PinsService>,
     pub apps: Handle<AppsService>,
-    pub cosmic_wl: Handle<CosmicWlService>,
+    pub windows: Handle<WindowsService>,
     pub launch: Handle<LaunchService>,
     /// The clipboard history: passive until the daemon's policy.
     pub clipboard: Handle<ClipboardService>,
@@ -163,7 +163,7 @@ members! {
     app_menu: AppMenuService,
     pins: PinsService,
     apps: AppsService,
-    cosmic_wl: CosmicWlService,
+    windows: WindowsService,
     launch: LaunchService,
     clipboard: ClipboardService,
     results: ResultsService,

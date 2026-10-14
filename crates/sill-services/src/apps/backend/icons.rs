@@ -10,41 +10,42 @@ use sill_model::apps::AppIcon;
 #[serde(transparent)]
 pub struct IconTheme(pub String);
 
-/// The file [`icon_theme`] reads, and the apps service watches, for a live theme change.
-const COSMIC_TK_ICON_THEME: &str = "icon_theme";
-
 /// The largest size a theme lookup asks for. 08-ICONS.md §2.2's master export is 1024, but no
 /// installed icon theme ships raster tiles anywhere near that; 256 is the common ceiling
 /// (Adwaita, Papirus, hicolor all top out there) and `freedesktop_icons` falls back to the
 /// closest size it has when a theme has nothing this large.
 const MAX_SIZE: u16 = 256;
 
-/// COSMIC's `icon_theme` (`com.system76.CosmicTk/v1/icon_theme`), else `Cosmic`, else
-/// `hicolor`. The third step is `freedesktop_icons::lookup`'s own: every lookup falls back to the
-/// `hicolor` theme whenever the chosen theme is not installed, so this
-/// function only ever has to choose between the first two.
+/// The theme GTK's settings name (`gtk-icon-theme-name` in `gtk-3.0/settings.ini` under the
+/// config directory), else `hicolor`. Every lookup falls back to the `hicolor` theme anyway
+/// whenever the chosen theme is not installed (`freedesktop_icons::lookup`'s own step).
 pub fn icon_theme(config: &Path) -> IconTheme {
-    cosmic_tk_icon_theme(config).unwrap_or_else(|| IconTheme("Cosmic".to_owned()))
+    gtk_icon_theme(config).unwrap_or_else(|| IconTheme(HICOLOR.to_owned()))
 }
 
-/// The path [`icon_theme`] reads under the config directory `config`:
-/// `cosmic/com.system76.CosmicTk/v1/icon_theme` (`cosmic-config`'s own layout, read directly
-/// rather than through the `cosmic-config` crate, which is not in the pinned dependency block).
-pub fn cosmic_tk_icon_theme_path(config: &Path) -> PathBuf {
-    config
-        .join("cosmic")
-        .join("com.system76.CosmicTk")
-        .join("v1")
-        .join(COSMIC_TK_ICON_THEME)
+/// The theme every lookup falls back to.
+const HICOLOR: &str = "hicolor";
+
+/// The path [`icon_theme`] reads under the config directory `config`, which the apps service
+/// also watches for a live theme change.
+pub fn icon_theme_path(config: &Path) -> PathBuf {
+    config.join("gtk-3.0").join("settings.ini")
 }
 
-/// `cosmic-config` writes a RON string (`"Pop"`), one line, no trailing content; reading it is
-/// just stripping the quotes. `None` when the file is absent, empty or unreadable (no theme has
-/// been set, or COSMIC is not installed), which is exactly when the caller should fall back.
-fn cosmic_tk_icon_theme(config: &Path) -> Option<IconTheme> {
-    let raw = std::fs::read_to_string(cosmic_tk_icon_theme_path(config)).ok()?;
-    let name = raw.trim().trim_matches('"');
-    (!name.is_empty()).then(|| IconTheme(name.to_owned()))
+/// The `gtk-icon-theme-name` line's value. `None` when the file is absent or unreadable or
+/// names no theme, which is exactly when the caller should fall back.
+fn gtk_icon_theme(config: &Path) -> Option<IconTheme> {
+    let text = std::fs::read_to_string(icon_theme_path(config)).ok()?;
+    theme_named(&text)
+}
+
+fn theme_named(settings: &str) -> Option<IconTheme> {
+    settings.lines().find_map(|line| {
+        let (key, value) = line.split_once('=')?;
+        let name = value.trim();
+        (key.trim() == "gtk-icon-theme-name" && !name.is_empty())
+            .then(|| IconTheme(name.to_owned()))
+    })
 }
 
 /// `icon` (a name or an absolute path) as a file, the largest size up to [`MAX_SIZE`] px,
@@ -100,7 +101,7 @@ pub fn pixmap_dirs() -> Vec<PathBuf> {
 mod tests {
     use std::path::Path;
 
-    use super::{IconTheme, cosmic_tk_icon_theme_path, pixmap_dirs, resolve_icon};
+    use super::{IconTheme, icon_theme_path, pixmap_dirs, resolve_icon, theme_named};
     use sill_model::apps::AppIcon;
     use std::fs;
     use std::path::PathBuf;
@@ -159,12 +160,24 @@ mod tests {
     }
 
     #[test]
-    fn cosmic_tk_icon_theme_path_ends_in_the_documented_layout() {
-        let path = cosmic_tk_icon_theme_path(Path::new("/c"));
-        assert!(
-            path == Path::new("/c/cosmic/com.system76.CosmicTk/v1/icon_theme"),
-            "{path:?}"
+    fn the_icon_theme_is_the_one_gtk_settings_name() {
+        assert_eq!(
+            icon_theme_path(Path::new("/c")),
+            Path::new("/c/gtk-3.0/settings.ini")
         );
+        let cases = [
+            ("named", "[Settings]\ngtk-icon-theme-name=Papirus\n", Some("Papirus")),
+            ("spaced", "gtk-icon-theme-name = Adwaita \n", Some("Adwaita")),
+            ("empty", "gtk-icon-theme-name=\n", None),
+            ("absent", "[Settings]\ngtk-theme-name=Foo\n", None),
+        ];
+        for (name, text, want) in cases {
+            assert_eq!(
+                theme_named(text),
+                want.map(|theme| IconTheme(theme.to_owned())),
+                "{name}"
+            );
+        }
     }
 
     #[test]

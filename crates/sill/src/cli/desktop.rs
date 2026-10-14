@@ -34,9 +34,9 @@ pub enum ControlCenterAction {
 /// `sill screenshot KIND`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum ShotArg {
-    /// A rectangle you drag out (COSMIC's picker).
+    /// A rectangle you drag out (the picker).
     Area,
-    /// One window (COSMIC's picker).
+    /// One window (the picker).
     Window,
     /// The whole screen, at once.
     Screen,

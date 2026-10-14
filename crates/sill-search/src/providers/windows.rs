@@ -8,16 +8,16 @@ use sill_launcher::{
 use tokio::sync::watch;
 
 use sill_model::apps::{AppIcon, AppIndex, match_app};
-use sill_model::cosmic_wl::{CosmicWl, Workspaces};
+use sill_model::windows::{WindowModel, Workspaces};
 
 /// The id of a window row's one action: asks the daemon to close it (`Activation::CloseWindow`).
 const CLOSE_ACTION: &str = "close";
 
 /// Rows for every toplevel matching the query, most recent first on ties (the order
-/// [`Toplevels`](sill_model::cosmic_wl::Toplevels) already keeps).
+/// [`Toplevels`](sill_model::windows::Toplevels) already keeps).
 #[derive(Debug)]
 pub struct WindowsProvider {
-    pub cosmic_wl: watch::Receiver<CosmicWl>,
+    pub windows: watch::Receiver<WindowModel>,
     pub apps: watch::Receiver<AppIndex>,
 }
 
@@ -33,10 +33,10 @@ impl Provider for WindowsProvider {
         let needle = Needle::parse(&query.text);
         let weights = RankWeights::DEFAULT;
         let mut matcher = matching::matcher();
-        let CosmicWl {
+        let WindowModel {
             workspaces,
             toplevels,
-        } = self.cosmic_wl.borrow().clone();
+        } = self.windows.borrow().clone();
         let apps = self.apps.borrow().clone();
 
         let mut items = Vec::new();
@@ -161,11 +161,11 @@ mod tests {
         VecSink, WindowKey,
     };
     use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
-    use sill_model::cosmic_wl::{
-        Activity, CosmicWl, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, Workspace,
+    use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
+    use sill_model::windows::{
+        Activity, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowModel, WindowState, Workspace,
         WorkspaceGroup, Workspaces, toplevels::step,
     };
-    use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
     use std::path::PathBuf;
 
     fn window(key: u64, title: &str, app_id: &str, workspaces: Vec<WorkspaceKey>) -> Toplevel {
@@ -192,7 +192,7 @@ mod tests {
             AppIndex::default(),
             AppsEvent::Scanned(apps),
         ));
-        let (_stx, srx) = tokio::sync::watch::channel(CosmicWl {
+        let (_stx, srx) = tokio::sync::watch::channel(WindowModel {
             workspaces: Workspaces {
                 groups: vec![WorkspaceGroup {
                     key: GroupKey(1),
@@ -206,7 +206,7 @@ mod tests {
             toplevels: toplevels(windows),
         });
         WindowsProvider {
-            cosmic_wl: srx,
+            windows: srx,
             apps: arx,
         }
     }
@@ -216,7 +216,7 @@ mod tests {
             key,
             name: name.to_owned(),
             stable_id: String::new(),
-            activity: sill_model::cosmic_wl::Activity::Inactive,
+            activity: sill_model::windows::Activity::Inactive,
             urgency: sill_model::units::Urgency::Calm,
             visibility: sill_model::units::Visibility::Shown,
             coordinates: Vec::new(),

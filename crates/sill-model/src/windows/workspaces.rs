@@ -13,7 +13,7 @@ pub struct Workspaces {
     pub groups: Vec<WorkspaceGroup>,
 }
 
-/// A group of workspaces: one per output on COSMIC's default, or one shared.
+/// A group of workspaces: one per output, or one shared.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkspaceGroup {
     pub key: GroupKey,
@@ -33,7 +33,7 @@ pub struct Workspace {
     pub activity: Activity,
     pub urgency: Urgency,
     pub visibility: Visibility,
-    /// The protocol's coordinates in its group (COSMIC: one component, the row position). The
+    /// The protocol's coordinates in its group (one component, the row position). The
     /// group's `workspaces` are already in this order; a surface needs the numbers only to
     /// place a workspace in a grid. Empty when the compositor gives none.
     #[serde(default)]
@@ -42,7 +42,7 @@ pub struct Workspace {
     /// by the thread.
     #[serde(default)]
     pub capabilities: WorkspaceCaps,
-    /// COSMIC's pinned state; `Unpinned` where the compositor has no such state.
+    /// The pinned state; `Unpinned` where the compositor has no such state.
     #[serde(default)]
     pub pinning: Pinning,
 }
@@ -105,7 +105,7 @@ pub enum Step {
 impl Workspaces {
     /// The workspace one `step` away from the active one, in the first group that has an active
     /// workspace (the main display's, in the compositor's order). There is no wrap-around: at
-    /// the first or last workspace this is `None`, as COSMIC's own shortcuts stop there.
+    /// the first or last workspace this is `None`, as keyboard shortcuts stop there.
     pub fn neighbour(&self, step: Step) -> Option<WorkspaceKey> {
         let group = self
             .groups
@@ -139,11 +139,11 @@ impl Workspaces {
 #[cfg(test)]
 mod tests {
     use super::{Step, Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, step};
-    use crate::cosmic_wl::{Activity, Pinning};
-    use crate::cosmic_wl::{WorkspaceCap, WorkspaceCaps};
     use crate::ids::{GroupKey, OutputName, WorkspaceKey};
     use crate::units::Urgency;
     use crate::units::Visibility;
+    use crate::windows::{Activity, Pinning};
+    use crate::windows::{WorkspaceCap, WorkspaceCaps};
 
     fn ws(key: u64, activity: Activity) -> Workspace {
         Workspace {

@@ -129,7 +129,7 @@ fn use_art(app: &AppRef, entry: Option<&AppIcon>, look: impl FnOnce() -> CardArt
     art
 }
 
-/// A theme icon name as a file, through the apps service's lookup (the theme is COSMIC's
+/// A theme icon name as a file, through the apps service's lookup (the theme is the apps service's
 /// setting under the config directory `config`).
 fn theme_icon(name: &str, config: &Path) -> Option<PathBuf> {
     match resolve_icon(name, &icon_theme(config)) {

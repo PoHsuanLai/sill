@@ -1,14 +1,14 @@
 //! The idle thread's protocol state: the held notifications, the outputs and their power
 //! controls, and what it does on each order.
 
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_manager_v1::ZwlrOutputPowerManagerV1;
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_v1::{Mode, ZwlrOutputPowerV1};
-use cosmic_client_toolkit::wayland_client::{Proxy, QueueHandle};
-use cosmic_client_toolkit::wayland_client::globals::GlobalList;
-use cosmic_client_toolkit::wayland_client::protocol::wl_output::WlOutput;
-use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
-use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::ext_idle_notification_v1::ExtIdleNotificationV1;
-use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::ext_idle_notifier_v1::ExtIdleNotifierV1;
+use smithay_client_toolkit::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_manager_v1::ZwlrOutputPowerManagerV1;
+use smithay_client_toolkit::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_v1::{Mode, ZwlrOutputPowerV1};
+use wayland_client::{Proxy, QueueHandle};
+use wayland_client::globals::GlobalList;
+use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_seat::WlSeat;
+use wayland_protocols::ext::idle_notify::v1::client::ext_idle_notification_v1::ExtIdleNotificationV1;
+use wayland_protocols::ext::idle_notify::v1::client::ext_idle_notifier_v1::ExtIdleNotifierV1;
 use sill_model::idle::{Threshold, Watch, DisplayPower};
 
 use super::wl::{Offered, Protocols, Tell, WlEvent};

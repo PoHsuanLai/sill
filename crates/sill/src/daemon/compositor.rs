@@ -2,7 +2,7 @@
 //! desktop arm that follows it on the shell host's connection, and what each note of its shell
 //! protocol does.
 //!
-//! On a session without that compositor (COSMIC, KWin, a test) nothing here runs: the host
+//! On a session without that compositor (KWin, a test) nothing here runs: the host
 //! connects through the environment and the seat stays absent.
 //!
 //! The seat starts the arm at the first mapped surface that has a role: the arm binds beside the

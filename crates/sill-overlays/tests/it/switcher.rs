@@ -10,8 +10,8 @@ use std::time::Duration;
 use ds::prelude::*;
 use ds_harness::{Driver, FocusState, Harness, Input, Query, Viewport};
 use sill_launcher::{AppId, WindowKey};
-use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use sill_overlays::Switcher;
 use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
@@ -59,7 +59,7 @@ fn start(file: ShellFile, toplevels: Toplevels) -> Running {
         .start();
     running
         .feeds
-        .cosmic_wl
+        .windows
         .send_modify(|wl| wl.toplevels = toplevels);
     running
 }

@@ -14,9 +14,7 @@ use ds_harness::{Backdrop, Driver};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_overlays::Wallpaper;
-use sill_settings::{ShellFile, WallpaperDrawer};
-use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::surface::{OutputRank, Place, Surface};
+use sill_ui_kit::harness::SurfaceHarness;
 
 /// The colour the fixture PNG is filled with.
 const IMAGE: [u8; 3] = [220, 40, 20];
@@ -143,20 +141,4 @@ fn this_outputs_image_covers_the_surface() {
 fn no_image_paints_an_opaque_paper_ground() {
     let picture = paint(Wallpapers::default(), |p| centre(p)[3] == 255);
     assert_eq!(centre(&picture)[3], 255, "centre {:?}", centre(&picture));
-}
-
-#[test]
-fn the_surface_exists_only_while_the_shell_draws_the_background() {
-    let output = fake::output();
-    let slots = |drawer| {
-        let mut settings = ShellFile::default();
-        settings.spaces.wallpaper_drawer = drawer;
-        Wallpaper::slots(&Place {
-            output: &output,
-            rank: OutputRank::Primary,
-            settings: &settings,
-        })
-    };
-    assert_eq!(slots(WallpaperDrawer::Shell), vec![()]);
-    assert!(slots(WallpaperDrawer::Cosmic).is_empty());
 }

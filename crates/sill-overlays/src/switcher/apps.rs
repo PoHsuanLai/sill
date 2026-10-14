@@ -1,14 +1,14 @@
 //! The app switcher's data (design/13 §13.3.5): open windows grouped into apps in
 //! most-recently-used order, as macOS's Cmd+Tab shows applications, not
-//! windows, and the `cosmic_wl` commands each of its verbs becomes. Pure: the surface derives
+//! windows, and the `windows` commands each of its verbs becomes. Pure: the surface derives
 //! the list from `Services.toplevels` and `Services.apps` whenever it shows, and sends the
-//! commands through `Services.cosmic_wl`; there is no task, since the switcher has no state of its
+//! commands through `Services.windows`; there is no task, since the switcher has no state of its
 //! own outside the surface's machine (`ds_behaviour::switcher::Switcher`).
 
 use sill_launcher::{AppId, WindowKey};
 
 use sill_model::apps::{AppIndex, match_app};
-use sill_model::cosmic_wl::{Toplevel, Toplevels, WindowState, WlCommand};
+use sill_model::windows::{Toplevel, Toplevels, WindowState, WlCommand};
 
 /// Whether an app has a window on screen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -109,7 +109,7 @@ mod tests {
 
     use super::{AppShown, SwitcherApp, activate, hide, quit, switcher_apps};
     use sill_model::apps::AppIndex;
-    use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
+    use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 
     fn window(key: u64, app_id: &str, window: WindowState) -> Toplevel {
         Toplevel {

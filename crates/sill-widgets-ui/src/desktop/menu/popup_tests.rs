@@ -32,7 +32,7 @@ fn app() -> Element {
     });
     use_context_provider(|| PopupRoom::CONTEXT);
     let world = MenuWorld {
-        picker: Some(AppId("com.system76.CosmicSettings".to_owned())),
+        picker: Some(AppId("org.quire.Settings".to_owned())),
         view: DesktopView {
             cell: Px(164),
             gap: Px(24),

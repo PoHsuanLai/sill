@@ -148,7 +148,7 @@ impl Live {
         let policy = match command {
             IdleCommand::Configure(config) => {
                 self.config = Some(config);
-                resolved(config, &self.setup).await
+                resolved(config, &self.setup)
             }
             IdleCommand::Use(policy) => {
                 self.config = None;
@@ -168,7 +168,7 @@ impl Live {
         let Some(config) = self.config else {
             return;
         };
-        let policy = resolved(config, &self.setup).await;
+        let policy = resolved(config, &self.setup);
         if policy != self.state.policy {
             self.use_policy(policy).await;
         }
@@ -370,17 +370,9 @@ impl Live {
     }
 }
 
-/// `config` resolved on the blocking pool; `Off` if that fails.
-async fn resolved(config: IdleConfig, reach: &Reach) -> sill_model::idle::IdlePolicy {
-    let dir = reach.config.clone();
-    let processes = reach.processes.clone();
-    let desktop = reach.current_desktop.clone();
-    tokio::task::spawn_blocking(move || resolve(&config, &dir, processes.as_ref(), &desktop))
-        .await
-        .unwrap_or(sill_model::idle::IdlePolicy {
-            mode: IdleMode::Off(sill_model::idle::OffReason::NoPolicy),
-            ..sill_model::idle::PASSIVE
-        })
+/// `config` resolved against this session.
+fn resolved(config: IdleConfig, reach: &Reach) -> sill_model::idle::IdlePolicy {
+    resolve(&config, &reach.current_desktop)
 }
 
 /// The lock as idle reads it: `Locking` counts as locked.

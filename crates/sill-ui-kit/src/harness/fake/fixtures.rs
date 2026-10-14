@@ -8,10 +8,6 @@ use sill_model::bluetooth::{
     Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
 };
 use sill_model::clock::ClockText;
-use sill_model::cosmic_wl::{
-    Activity, Pinning, Sizing, Toplevel, Toplevels, WindowState, Workspace, WorkspaceCaps,
-    WorkspaceGroup, Workspaces,
-};
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
 use sill_model::network::{Connectivity, Link, Network};
 use sill_model::now_playing::Media;
@@ -19,6 +15,10 @@ use sill_model::power_profile::{PowerProfiles, Profile, ProfileDegraded};
 use sill_model::units::{Percent, Presence, Seconds, Urgency, Visibility};
 use sill_model::volume::{Mute, Volume};
 use sill_model::wifi::{AccessPoint, Association, Radio, Security, Ssid, Wifi};
+use sill_model::windows::{
+    Activity, Pinning, Sizing, Toplevel, Toplevels, WindowState, Workspace, WorkspaceCaps,
+    WorkspaceGroup, Workspaces,
+};
 
 /// A 1920 x 1080 output named `DP-1`.
 pub fn output() -> OutputInfo {

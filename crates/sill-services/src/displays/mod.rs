@@ -3,11 +3,11 @@
 //!
 //! - **Scale.** Every output's EDID (size, native mode) gives its density; `default_scale`
 //!   aims it at 109 points per inch, and the first time sill sees a display it sets that scale
-//!   through the compositor's own output management, or `cosmic-randr` on COSMIC
+//!   through the compositor's own output management
 //!   ([`OutputsRoute`], picked from the compositor's globals), then never again
 //!   (`decide_scale`, `$XDG_STATE_HOME/sill/displays.json`).
 //! - **Gamut.** The EDID primaries classified as sRGB, Display P3 or wide (`classify`); stored
-//!   for colour management, which cosmic-comp 1.8 does not offer yet.
+//!   for colour management, which no compositor offers yet.
 //! - **DDC/CI.** External monitors' brightness, contrast, speaker volume, mute, input and RGB
 //!   gains (`Controls`) on one worker thread, with debounced writes and cached reads.
 //! - **Brightness routing.** Built-in panels through logind, monitors through DDC
@@ -20,7 +20,7 @@
 
 mod backend;
 
-pub use backend::{CosmicRandr, OutputsRoute, ScaleSink, WlrOutputs};
+pub use backend::{OutputsRoute, ScaleSink, WlrOutputs};
 
 use std::sync::Arc;
 
@@ -34,7 +34,7 @@ use crate::service::{Service, ServiceIo};
 
 /// The displays as a [`Service`], following the volume service (its `Deps`) for the
 /// monitor-speaker path and talking DDC on `env`'s buses. Until the first `Policy` command it does
-/// nothing at all: no bus probe, no `cosmic-randr`, no file.
+/// nothing at all: no bus probe, no output query, no file.
 #[derive(Debug)]
 pub enum DisplaysService {}
 

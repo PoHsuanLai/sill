@@ -18,7 +18,7 @@ mod surfaces;
 mod view;
 
 /// The host's surface type, for a caller that registers one without naming the Wayland crate.
-pub use cosmic_client_toolkit::wayland_client::protocol::wl_surface::WlSurface;
+pub use wayland_client::protocol::wl_surface::WlSurface;
 
 pub use arm::{ArmError, NoteSink, QuireArm};
 pub use command::quire_wire_of;

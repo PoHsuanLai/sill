@@ -18,7 +18,7 @@ pub enum SessionEvent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionCommand {
     /// Carry out `action`: `Lock` goes to the locker service (which runs the configured
-    /// locker, or asks logind's `LockSession` for COSMIC's resident one), `LogOut`
+    /// locker, or asks logind's `LockSession` for the session's resident one), `LogOut`
     /// `TerminateSession`, the rest the manager's `Suspend`/`Reboot`/`PowerOff` with
     /// `interactive = true` (polkit may ask). An action logind does not offer is dropped.
     Run(SessionAction),
