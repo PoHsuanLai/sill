@@ -2708,8 +2708,9 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-spaces-foot{ display:flex; align-items:center; gap:var(--s-6); padding-top:var(--s-6); min-width:0; }
 .ds-spaces-foot > *{ flex:none; }
 /* The dots take the foot's free width, so the buttons sit at its end, and stand close together at
-   its centre. */
+   its centre. With one Space there are no dots, and the empty gap takes that width instead. */
 .ds-spaces-foot > .ds-spaces-dots{ display:flex; gap:var(--s-2); align-items:center; justify-content:center; flex:1 1 auto; min-width:0; }
+.ds-spaces-foot > .ds-spaces-gap{ flex:1 1 auto; min-width:0; }
 /* The hold a dot's right click is caught on: it lays out as the dot. Which Space is current is
    the dot's own brightness and size (space_editor.css), not the hold's. */
 .ds-spaces-dot-hold{ display:flex; }
@@ -3135,7 +3136,7 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-run[*|data-tone=mono]{ font-family:var(--font-code); font-size:var(--fs-mono); }
 /* -- thread_row -- */
 /* ThreadRow (design/30 section 2.11): a mail row's content inside a `Row` of the Card density,
-   `S:175-199`, `S:293-307`. The row is a card with the dot, the words and the tail in a grid. The
+   `S:175-199`, `S:293-307`. The row is a card with the dot and the words in a grid, the tail ending the first line. The
    `Row`'s own state draws the selection (a raised card with an accent hairline), the dragged source
    (.35) and the drop target. Subject and snippet truncate with `.ds-truncate`; the name only when
    `ThreadRow` finds it longer than its column's character budget (`NameFit`), since a fade on a name
@@ -3151,7 +3152,7 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-row[*|data-density=card][*|aria-selected=true]{ background:var(--raise); border-color:var(--accent-text); box-shadow:var(--shadow-1); color:var(--ink); }
 .ds-row[*|data-density=card][*|data-drop=target]{ background:var(--accent-soft); }
 
-.ds-thread{ position:relative; box-sizing:border-box; height:100%; display:grid; grid-template-columns:10px minmax(0,1fr) auto; gap:var(--s-10); align-items:start; padding:var(--s-10) var(--s-11); }
+.ds-thread{ position:relative; box-sizing:border-box; height:100%; display:grid; grid-template-columns:10px minmax(0,1fr); gap:var(--s-10); align-items:start; padding:var(--s-10) var(--s-11); }
 
 /* Dot (`S:185-187`, `S:295-296`). */
 .ds-thread-dot{ padding-top:var(--s-6); }
@@ -3170,7 +3171,9 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-thread-sub{ font-size:var(--fs-body); line-height:1.35; color:var(--ink); }
 .ds-row[*|data-emphasis=strong] .ds-thread-sub{ font-weight:600; }
 .ds-thread-snip{ font-size:var(--fs-meta); color:var(--ink-faint); }
-.ds-thread-tail{ display:flex; flex-direction:column; align-items:flex-end; gap:var(--s-5); }
+/* The tail (time, tags, ⋯) ends the name's line, so the subject and the snippet run to the row's
+   right inset under it. */
+.ds-thread-tail{ display:flex; align-items:baseline; gap:var(--s-5); flex:none; margin-left:auto; }
 .ds-thread-time{ font-family:var(--font-data); font-size:var(--fs-caption); color:var(--ink-faint); font-variant-numeric:tabular-nums; }
 .ds-thread-tags{ display:flex; gap:var(--s-4); align-items:center; }
 
