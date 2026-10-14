@@ -1,0 +1,8 @@
+/* The power menu (design/20 §1.8). Everything drawn is quire's `Alert` on its `Sheet`; this sheet
+   only sets the control sizes that alert reads. Its buttons are quire's Large; here Large is the
+   ladder's Medium (design/29, 28), the height of a Mac alert's buttons, so the sheet's controls
+   share the ladder with the rest of the shell. Tokens only. */
+[*|data-surface=power-menu]{
+  --ctl-h-l:var(--ctl-h-m); --ctl-r-l:var(--ctl-r-m); --ctl-cap-r-l:var(--ctl-cap-r-m);
+  --ctl-glyph-l:var(--ctl-glyph-m); --ctl-pad-l:var(--ctl-pad-m); --ctl-fs-l:var(--ctl-fs-m); --ctl-fw-l:var(--ctl-fw-m);
+}

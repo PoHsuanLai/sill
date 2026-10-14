@@ -25,16 +25,23 @@ pub fn prompt(action: SessionAction) -> &'static str {
     }
 }
 
-/// The line under the question: what the default action does to the running apps.
+/// The line under the question: what the default action does to the running apps. Each is short
+/// enough for one line in the alert's 292 pt text column at 13 pt, so no word is left alone on a
+/// second line.
 pub fn consequence(action: SessionAction) -> &'static str {
     match action {
-        SessionAction::Lock => "Your apps keep running behind the lock screen.",
-        SessionAction::LogOut => "Your apps will quit and the session will end.",
-        SessionAction::Restart => "Your apps will quit and the computer will start again.",
-        SessionAction::PowerOff => "Your apps will quit and the computer will turn off.",
-        SessionAction::Suspend => "The computer will sleep and wake where you left it.",
+        SessionAction::Lock => "Apps keep running behind the lock screen.",
+        SessionAction::LogOut => "Apps quit and your session ends.",
+        SessionAction::Restart => "Apps quit and the computer restarts.",
+        SessionAction::PowerOff => "Apps quit and the computer turns off.",
+        SessionAction::Suspend => "The computer sleeps; apps stay open.",
     }
 }
+
+/// The alert's words when the session offers no action (no login manager reached, as in a bare
+/// container): it says so, and Cancel is the only button.
+pub const NONE_OFFERED_TITLE: &str = "No power actions available";
+pub const NONE_OFFERED_MESSAGE: &str = "This session cannot shut down or restart the computer.";
 
 #[cfg(test)]
 mod tests {

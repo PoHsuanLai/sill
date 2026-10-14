@@ -13,8 +13,8 @@ use super::backend::{DryRunSession, PowerMenuBackend};
 use super::choice::{initial, offered};
 use super::follow::{Follow, follow};
 use super::labels::action_label;
-use super::sheet::{MenuSession, SheetEffect, SheetInput, Then, advance};
-use sill_ui_kit::links::{OpenSerial, PanelFocus};
+use super::sheet::{MenuSession, SheetEffect, SheetInput, SheetPhase, Then, advance};
+use sill_ui_kit::links::{OpenSerial, PanelFocus, Preselect};
 use sill_ui_kit::links::{PowerMenuLink, PowerMenuOpening, Reveal};
 
 /// Everything the menu's handlers reach. Clone is cheap.
@@ -52,6 +52,7 @@ pub(super) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
     let shown = use_watch(link.subscribe());
     use_follow_visibility(shown, output);
     use_openings(ctx.clone(), shown, output, default);
+    use_offers_arriving(ctx.clone(), default);
     ctx
 }
 
@@ -92,6 +93,28 @@ fn use_openings(
         }
     });
     use_keyboard_line(shown, output);
+}
+
+/// logind answers after the menu has opened (`refresh` is asynchronous, and the first answer on a
+/// fresh session can come late): when the offers change under an open menu, say so and, if the
+/// action it is about is not offered, move it to one that is, so the buttons never wait on a
+/// reopen.
+fn use_offers_arriving(ctx: MenuCtx, default: PowerMenuDefault) {
+    let mut menu = ctx.menu;
+    use_effect(move || {
+        let offers = *ctx.offers.read();
+        let Some(now) = *menu.peek() else {
+            return;
+        };
+        eprintln!("power_menu.offers={}", offered_labels(&offers));
+        let about = initial(Preselect::Action(now.default), default, &offers);
+        if about != now.default && now.phase == SheetPhase::Open {
+            menu.set(Some(MenuSession {
+                default: about,
+                ..now
+            }));
+        }
+    });
 }
 
 /// Print `power_menu.keyboard=held` once per opening, when the surface first has the keyboard

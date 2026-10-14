@@ -139,7 +139,7 @@ const SURFACES: &[SurfaceCase] = &[
     SurfaceCase {
         name: "power_menu",
         surface: <PowerMenu as Surface>::NAME,
-        css: "", // quire's Alert and sill's ClickAway: the surface has no stylesheet
+        css: sill_overlays::power_menu::POWER_MENU_CSS,
         states: power_menu_states,
     },
     SurfaceCase {
