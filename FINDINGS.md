@@ -680,7 +680,7 @@ a source; `assumed` means not yet checked.
 - **G470** After a Clear in the notification center, the widgets slot under the list jumps up
   instead of healing.
 - **G421** `calendar.week_numbers` is inert: neither compact month draws week numbers.
-- The center's tiles are 344 wide: `notifications.center_width_px` under 368 overflows them.
+- The center's tiles are 336 wide (160 pt cells): `notifications.center_width_px` under 360 overflows them.
 - The popup reserves Battery's height when the machine has no battery (harmless, transparent).
 - `ClockRow` carries the day and offset as one string; the reference draws two lines.
 - **Q320** Should the selection present when clipboard history turns on be kept? It is today.

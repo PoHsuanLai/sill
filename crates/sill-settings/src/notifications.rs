@@ -307,7 +307,7 @@ impl Default for NotificationsSettings {
             swipe: NotificationSwipe::KeepInCenter,
             banner_position: BannerPosition::TopRight,
             history_cap: Count(100),
-            center_width_px: Px(384),
+            center_width_px: Px(360),
         }
     }
 }

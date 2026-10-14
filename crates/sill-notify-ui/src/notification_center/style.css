@@ -29,7 +29,8 @@
 .sill-nc-foot{ padding:var(--s-8) var(--s-4) 0; border-top:var(--hair) solid var(--line-soft); }
 
 /* The widgets slot (design/20 §1.14): quire's widget tiles under the history, standing
-   apart as the control center's modules do. */
-.sill-nc-widgets{ display:flex; flex-direction:column; align-items:center; gap:var(--s-8); padding-top:var(--s-8); }
+   apart as the control center's modules do. A medium tile is two cells and a gap: 160 cells make it 336 wide, the panel's 360 less its
+   two 12 pt paddings, as a Mac's medium widget fills its column. */
+.sill-nc-widgets{ --widget-cell:160px; --widget-gap:16px; display:flex; flex-direction:column; align-items:center; gap:var(--s-8); padding-top:var(--s-8); }
 /* "Edit Widgets" under the tiles, centred, as at the foot of macOS's Notification Center. */
 .sill-nc-edit{ display:flex; justify-content:center; padding:var(--s-4) 0 var(--s-8); }

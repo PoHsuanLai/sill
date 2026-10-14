@@ -9,7 +9,7 @@ use sill_shell_kit::widget::kind::Lift;
 use super::{OnProvider, WidgetProvider, with_provider};
 
 /// The one size `kind` takes in `host`: a widget has one size, nothing picks another. In the
-/// notification center every tile spans the column at Medium (344 fits its 384 less the
+/// notification center every tile spans the column at Medium (336 fits its 360 less the
 /// padding): the month is the reference's Medium Calendar, today beside the compact month. On the
 /// desktop the compact month and the batteries are Small, the lists and the clocks' dials
 /// Medium.
