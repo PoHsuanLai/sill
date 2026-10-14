@@ -91,7 +91,7 @@ fn the_power_page_is_idle_and_the_lock_grace() {
             assert_eq!(key.page, Page::Accounts, "{path}");
         }
     }
-    assert_eq!(whole.key.iter().filter(|k| on_power(&k.path.0)).count(), 10);
+    assert_eq!(whole.key.iter().filter(|k| on_power(&k.path.0)).count(), 9);
 }
 
 /// The idle times carry their unit (`Secs` "s", `Mins` "min") and their §3.24 range.

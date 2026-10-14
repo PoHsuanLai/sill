@@ -19,13 +19,16 @@ pub const FILES: &str = "org.gnome.Nautilus";
 pub const SETTINGS: &str = "org.quire.Settings";
 pub const FIREFOX: &str = "org.mozilla.firefox";
 
-/// An entry named `name` whose icon is the hicolor theme's, when this machine has it.
+/// An entry named `name` whose icon is the fixture's own `fixtures/icons/<id>.svg` when it ships
+/// one (the terminal and the file manager), never this machine's icon theme.
 fn app(id: &str, name: &str, actions: &[(&str, &str)]) -> App {
-    let icon = ["scalable", "256x256", "128x128"]
-        .iter()
-        .map(|size| PathBuf::from(format!("/usr/share/icons/hicolor/{size}/apps/{id}.svg")))
-        .find(|path| path.is_file())
-        .map_or(AppIcon::None, AppIcon::File);
+    let icon = Some(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/icons")
+            .join(format!("{id}.svg")),
+    )
+    .filter(|path| path.is_file())
+    .map_or(AppIcon::None, AppIcon::File);
     App {
         id: AppId(id.to_owned()),
         name: name.to_owned(),

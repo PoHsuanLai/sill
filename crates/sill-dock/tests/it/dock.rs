@@ -75,7 +75,7 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
             4,
         ),
         ("no bare art", "class=\"sill-dock-art\"", 0),
-        ("the terminal draws its own hicolor icon", "Term.svg", 1),
+        ("the terminal draws its own icon", "icons/foot.svg", 1),
         ("quire's floor in the pill", "class=\"ds-dock-floor\"", 1),
         ("a squircle pill", "data-corner=\"squircle\"", 1),
         (
@@ -100,7 +100,7 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
         ("no tint layer of the dock's own", "sill-dock-tint", 0),
         ("plates on paper", "data-ground=\"frame\"", 0),
         (
-            "Files and Terminal draw their own hicolor icons",
+            "Files and Terminal draw their own icons",
             "data-kind=\"image\"",
             2,
         ),
