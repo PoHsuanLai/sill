@@ -5,23 +5,22 @@
 # the Sound and Battery bar items, so the status area reads, from the right: the clock, the
 # control center, Wi-Fi (the one module item left).
 #
-# Default: the nested cosmic-comp (dev/nested.sh; its socket is reused and never stopped; design/20
-# §1.5, design/13 §13.3.7). Nothing changes a real radio, level or profile: no switch or slider is
-# ever pressed, and the only list the Wi-Fi pane asks for is a scan.
+# Default: casement (brought up and ended by start_compositor). Nothing changes a real radio,
+# level or profile: no switch or slider is ever pressed, and the only list the Wi-Fi pane asks for is a scan.
 #
 #   1. A debug click on the control center's item opens `sill-bar-<out>/popup` at the panel's
 #      size (320 + the shadow room), its card 8 px inside the output's right edge (read from a
-#      screenshot); a second click closes it. Screenshot dev/out/control-center-cosmic.png.
+#      screenshot); a second click closes it. Screenshot dev/out/control-center-casement.png.
 #   2. An outside click (the bar's empty middle) closes it; Escape (`sill debug key`: shell-host's
 #      `Inject::Key`, which needs no grab) closes it too, or the step says why it could not try.
 #   3. The Wi-Fi tile's chevron slides the Wi-Fi pane in: the popup takes the pane's size (a
 #      Wi-Fi pane with a long list of networks may be as tall as the grid; then it only has to
 #      change). Its only request is a scan.
-#      Screenshot dev/out/control-center-wifi-cosmic.png.
+#      Screenshot dev/out/control-center-wifi-casement.png.
 #   4. The Wi-Fi bar item opens the Wi-Fi pane directly: its popup is about the pane's size from
 #      step 3 (within 24 px: no back header), not the grid's.
 #   5. `sill control-center toggle` opens it with no pointer event behind it, and again closes
-#      it; whether cosmic-comp maps a popup opened without a fresh input serial, and whether its
+#      it; whether the compositor maps a popup opened without a fresh input serial, and whether its
 #      grab holds (an outside click dismisses it), is printed. Not mapped: exit 2, naming it.
 #   6. 5 s idle after closing: 0 frames on the bar.
 #
@@ -40,8 +39,7 @@
 # - DDC is a FAKE: the daemon runs with `sill run --fake-ddc FILE` naming a JSON file of one
 #   made-up monitor on the headless output. The daemon's log must say so ("DDC is the fake in
 #   ...") before any input is sent; otherwise the script stops. The fake never opens /dev/i2c-*.
-# - The outputs list is FAKE: a stand-in `cosmic-randr` that never answers is first on the
-#   daemon's PATH.
+# - KWin has no zwlr_output_manager_v1, so the displays service reports no outputs.
 # - KWin's private bus is the daemon's session AND system bus, so the real BlueZ,
 #   NetworkManager and the rest are simply absent; the power menu is a dry run.
 #
@@ -77,7 +75,7 @@
 # Captures: dev/out/ (screenshots) and target/accept-control-center/*.png. Exit 0 only when every
 # step passed; 1 when one failed; 2 when a step could not run safely (named).
 #
-# Usage: dev/nested.sh && dev/accept/control-center.sh
+# Usage: dev/accept/control-center.sh
 #        dev/accept/control-center.sh --real-input [bluetooth]
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
@@ -107,7 +105,7 @@ PANEL_POPUP_MIN=$(( PANEL_CARD_W + 2 * PANEL_SIDE ))
 PANEL_POPUP_MAX=$(( PANEL_POPUP_MIN + 8 ))
 panel_width_ok() { [ "${1:-0}" -ge "$PANEL_POPUP_MIN" ] && [ "${1:-0}" -le "$PANEL_POPUP_MAX" ]; }
 # The output's scale: the headless KWin's is set (the user's BenQ MA270U: 3840 x 2160 at 2,
-# CC_SCALE=1 CC_SIZE=1920x1080 for 1x), the nested compositor's is read as 1.
+# CC_SCALE=1 CC_SIZE=1920x1080 for 1x), casement's is read as 1.
 SCALE=1
 if [ "$MODE" = real ]; then
   SIZE="${CC_SIZE:-3840x2160}"
@@ -116,7 +114,6 @@ if [ "$MODE" = real ]; then
 fi
 scratch_new
 trap scratch_drop EXIT
-STANDINS="$SCRATCH/bin"
 RECORD="$SCRATCH/power-menu.record"
 BTLOG="$SCRATCH/bluez.powered"
 BLUEZ=
@@ -225,9 +222,9 @@ step_item_click() {
   # width): take it again, up to four times.
   for _ in 1 2 3 4; do
     [ "$COMPOSITOR" != casement ] || break # no output screenshot there yet (below)
-    shot "$SHOTS/control-center-cosmic.png" >>"$log" 2>&1 \
+    shot "$SHOTS/control-center-casement.png" >>"$log" 2>&1 \
       || echo "screenshot failed" >&2
-    gap=$(card_right_gap "$SHOTS/control-center-cosmic.png")
+    gap=$(card_right_gap "$SHOTS/control-center-casement.png")
     [ "$gap" -lt 100 ] && break
     sleep 0.5
   done
@@ -282,7 +279,7 @@ step_wifi_pane() {
   sill debug click "$POPUP" 171 47 >>"$log" 2>&1
   sleep 0.8
   after=$(popup_height)
-  shot "$SHOTS/control-center-wifi-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/control-center-wifi-casement.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   close_popup
   PANE_H=$after
@@ -321,7 +318,7 @@ step_toggle() {
   : >"$log"
   sill control-center toggle >>"$log" 2>&1 || { echo "the toggle request failed" >&2; return 1; }
   if ! wait_surface "$POPUP" 20 up; then
-    echo "sill control-center toggle: cosmic-comp did not map the popup (grab without a fresh input serial refused)" \
+    echo "sill control-center toggle: the compositor did not map the popup (grab without a fresh input serial refused)" \
       | tee -a "$log" >&2
     return 2
   fi
@@ -372,7 +369,6 @@ start_nested_daemon() {
 
 cleanup_nested() {
   local result=0
-  backdrop_down
   stop_daemon || result=1
   stop_nm
   stop_private_bus
@@ -383,16 +379,15 @@ cleanup_nested() {
 
 run_nested() {
   start_compositor || exit 1
-  nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+  nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (start_compositor failed)" >&2; exit 1; }
   build || exit 1
   start_private_bus || exit 1
   start_nm || { cleanup_nested; exit 1; }
   start_nested_daemon || { cleanup_nested; exit 1; }
-  backdrop_up "$SCRATCH/backdrop" || echo "backdrop: none (the shot shows the bare compositor)" >&2
   run_steps step_item_click step_dismiss step_wifi_pane step_module_item step_toggle step_idle
   status=$STATUS
   cleanup_nested || status=1
-  echo "logs in $OUT_DIR; screenshots $SHOTS/control-center-cosmic.png, $SHOTS/control-center-wifi-cosmic.png"
+  echo "logs in $OUT_DIR; screenshots $SHOTS/control-center-casement.png, $SHOTS/control-center-wifi-casement.png"
   exit "$status"
 }
 
@@ -410,22 +405,9 @@ fake_monitor() {
     "$NAME" "$1" >"$DDC.tmp" && mv "$DDC.tmp" "$DDC"
 }
 
-# The stand-ins first on the daemon's PATH: a cosmic-randr that never answers (KWin has no
-# zwlr_output_manager_v1), so the displays service reports no outputs.
-standins() {
-  mkdir -p "$STANDINS"
-  cat >"$STANDINS/cosmic-randr" <<'EOF'
-#!/bin/sh
-echo "accept-control-center: stand-in cosmic-randr, no answer" >&2
-exit 1
-EOF
-  chmod +x "$STANDINS/cosmic-randr"
-}
-
 start_real_daemon() {
   write_settings
   : >"$RECORD"
-  IN_ENV_EXTRA=("PATH=$STANDINS:$PATH")
   launch_daemon --session-dry-run "$RECORD" || return 1
   DDC="$FAKE_DDC"
   WRITES="$DDC.writes"
@@ -929,7 +911,6 @@ run_real() {
   if [ "$SCALE" != 1 ]; then
     require_scale "$SCALE" || { echo "the headless output is not at scale $SCALE (see $OUT_DIR/kwin.log)" >&2; exit 1; }
   fi
-  standins
   start_bluez || exit 1
   start_real_daemon || exit 1
   prove_safe || { echo "SKIP: the fake DDC or the stand-in outputs are not proven from the daemon's log; no input sent" >&2; exit 2; }

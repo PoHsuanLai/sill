@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Notification center acceptance (design/20 §1.6), on the nested cosmic-comp (dev/nested.sh; a
-# running wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug
+# Notification center acceptance (design/20 §1.6), on casement (brought up and ended by start_compositor). Starts `sill run` from this checkout's debug
 # build (`--features debug`) on a private bus (dev/private-bus.conf: no service directories, so
 # nothing is activated and the real session's org.freedesktop.Notifications is never touched) as
 # both its session and its system bus, with scratch HOME and XDG directories, a fake DDC fixture
@@ -10,12 +9,12 @@
 #
 #   1. `sill-notification-center-<out>` exists from the start, hidden (no capture).
 #   2. `sill notifications toggle` shows it (a capture with the column's pixels; the empty state
-#      in dev/out/notification-center-empty-cosmic.png), `toggle`
+#      in dev/out/notification-center-empty-casement.png), `toggle`
 #      again hides it, `open` twice stays open, `close` hides it.
 #   3. A debug click on the bar's clock opens it; a second click closes it.
 #   4. Three notifications from two apps (Chat, then Mail twice): a capture shows two groups,
-#      screenshot dev/out/notification-center-cosmic.png; a click on "1 more" opens Mail's
-#      group (dev/out/notification-center-open-cosmic.png); Mail's Clear drops `status` kept
+#      screenshot dev/out/notification-center-casement.png; a click on "1 more" opens Mail's
+#      group (dev/out/notification-center-open-casement.png); Mail's Clear drops `status` kept
 #      by 2.
 #   5. A click left of the column closes it.
 #   6. 5 s idle while open, and 5 s after it hides: 0 frames on the center surface.
@@ -152,8 +151,7 @@ for x in range(w - 1, w // 2, -1):
 print((run[0] + run[1]) // 2, h // 2)
 EOF
 }
-
-# Starts the daemon on the nested compositor, its wallpaper the backdrop: cosmic-bg draws it when
+# Starts the daemon on the compositor, its wallpaper the backdrop.
 # the daemon does not.
 start_center_daemon() {
   backdrop_seed "$CONFIG" || return 1
@@ -162,17 +160,12 @@ start_center_daemon() {
   BAR="sill-bar-$NAME"
   CENTER="sill-notification-center-$NAME"
   sleep 1.5
-  if [[ "$(sill debug stats)" != *'"sill-wallpaper-'* ]]; then
-    in_env cosmic-bg >/dev/null 2>&1 &
-    BACKDROP_PID=$!
-  fi
   echo "daemon on a private bus and runtime dir $RUNTIME; $BAR, $CENTER" >&2
 }
 
 cleanup() {
   local result=0
   stop_daemon || result=1
-  backdrop_down
   stop_private_bus
   stop_compositor
   scratch_drop
@@ -197,12 +190,12 @@ step_toggle_open_close() {
   sleep 0.6
   sill debug capture "$CENTER" "$OUT_DIR/toggled.png" >>"$log" 2>&1 || return 1
   box=$(column_box "$OUT_DIR/toggled.png") || { echo "toggle: no column drawn" >&2; return 1; }
-  shot "$SHOTS/notification-center-empty-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/notification-center-empty-casement.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   size=$(python3 -c 'import sys; from PIL import Image; print(*Image.open(sys.argv[1]).size)' \
     "$OUT_DIR/toggled.png")
   shot=$(python3 -c 'import sys; from PIL import Image; print(*Image.open(sys.argv[1]).size)' \
-    "$SHOTS/notification-center-empty-cosmic.png")
+    "$SHOTS/notification-center-empty-casement.png")
   sill notifications toggle >>"$log" 2>&1 || return 1
   wait_surface "$CENTER" 20 down || { echo "toggle: still mapped" >&2; return 1; }
   sill notifications open >>"$log" 2>&1 || return 1
@@ -247,7 +240,7 @@ step_groups() {
   wait_surface "$CENTER" 20 up || return 1
   sleep 0.8
   sill debug capture "$CENTER" "$OUT_DIR/groups.png" >>"$log" 2>&1 || return 1
-  shot "$SHOTS/notification-center-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/notification-center-casement.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   ink_rows "$OUT_DIR/groups.png" >"$OUT_DIR/rows-collapsed.txt"
   read -r -a buttons < <(header_buttons "$OUT_DIR/groups.png") \
@@ -259,7 +252,7 @@ step_groups() {
   sill debug leave "$CENTER" >>"$log" 2>&1
   sleep 0.5
   sill debug capture "$CENTER" "$OUT_DIR/open.png" >>"$log" 2>&1 || return 1
-  shot "$SHOTS/notification-center-open-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/notification-center-open-casement.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   ink_rows "$OUT_DIR/open.png" >"$OUT_DIR/rows-open.txt"
   grep -q 'act=Toggle(AppKey("Mail"))' "$OUT_DIR/daemon.log" \
@@ -322,7 +315,7 @@ main() {
   status=$STATUS
   cleanup || status=1
   trap - EXIT
-  echo "logs in $OUT_DIR; screenshots $SHOTS/notification-center-cosmic.png, $SHOTS/notification-center-open-cosmic.png"
+  echo "logs in $OUT_DIR; screenshots $SHOTS/notification-center-casement.png, $SHOTS/notification-center-open-casement.png"
   exit "$status"
 }
 

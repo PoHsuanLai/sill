@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Screenshot thumbnail acceptance (design/20 §1.13), on the nested cosmic-comp (dev/nested.sh; a
-# running wayland-1 is reused and never stopped), and with --real-input the drag of the thumbnail
+# Screenshot thumbnail acceptance (design/20 §1.13), on casement (brought up and ended by start_compositor), and with --real-input the drag of the thumbnail
 # out (shell-host's `SurfaceHandle::start_drag`) on shell-host's private headless KWin
 # (scripts/dev/kwin-virtual.sh) driven by ONE fake-input client (scripts/dev/fake-input.sh).
 #
@@ -9,13 +8,13 @@
 # directories, a fake DDC fixture and its own XDG_RUNTIME_DIR (the compositor's socket as an
 # absolute WAYLAND_DISPLAY). Never the user's session (wayland-0), never ~/Pictures or the real
 # trash: the scratch config's `screenshot.folders` is a temp folder, and `screenshot.tool` a
-# stand-in that copies the services' fixture PNG there (never cosmic-screenshot), or "off" for
+# stand-in that copies the services' fixture PNG there, or "off" for
 # the drag; `xdg-open` and `gio` are stand-ins first on the daemon's PATH that log their
 # arguments; the output shot is grim on the nested socket only (no fallback).
 #
 #   1. `sill-screenshot-thumb-<out>` exists from the start, hidden (no capture).
 #   2. `sill debug screenshot <temp>/Screenshot_a.png` shows it within 500 ms; screenshot
-#      dev/out/screenshot-thumb-cosmic.png while it holds.
+#      dev/out/screenshot-thumb-casement.png while it holds.
 #   3. It hides after the hold (screenshot.thumbnail_hold_ms, 5200) plus the exit, and the file
 #      is still there.
 #   4. `sill screenshot screen` runs the stand-in, whose file the watch shows.
@@ -182,7 +181,7 @@ step_debug_shot_shows_then_hides() {
   sill debug screenshot "$ELSEWHERE/Screenshot_a.png" >>"$log" 2>&1 || { cat "$log" >&2; return 1; }
   shown=$(until_shown "$start" 1500)
   sleep 0.5
-  nested_shot "$SHOTS/screenshot-thumb-cosmic.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
+  nested_shot "$SHOTS/screenshot-thumb-casement.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
   cp "$OUT_DIR/probe.png" "$OUT_DIR/thumb-shown.png" 2>/dev/null
   gone=$(until_gone "$start" 9000)
   limit=$(( HOLD_MS + 800 + 400 ))
@@ -349,7 +348,7 @@ main() {
   cleanup || status=1
   trap - EXIT
   echo "logs in $OUT_DIR"
-  [ "$MODE" = real ] || echo "screenshot $SHOTS/screenshot-thumb-cosmic.png"
+  [ "$MODE" = real ] || echo "screenshot $SHOTS/screenshot-thumb-casement.png"
   exit "$status"
 }
 

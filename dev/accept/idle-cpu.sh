@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# sill's idle-cost acceptance, on the nested cosmic-comp ONLY (dev/nested.sh; wayland-N is reused
-# and never stopped). A release+debug build is started on a private bus (both session and system
+# sill's idle-cost acceptance, on casement ONLY (brought up and ended by start_compositor). A release+debug build is started on a private bus (both session and system
 # bus, nothing else on it) with scratch HOME/XDG and the fake DDC, left alone for WARMUP seconds,
 # then sampled over DURATION seconds from /proc/<pid>:
 #
@@ -17,7 +16,7 @@
 # SAFETY: the daemon gets its own XDG_RUNTIME_DIR/HOME/XDG_*, the private bus as both buses, the
 # fake DDC; it only touches processes it started itself (kill by its own pid).
 #
-# Usage: dev/nested.sh && dev/accept/idle-cpu.sh
+# Usage: dev/accept/idle-cpu.sh
 #   DURATION=60 WARMUP=20 MAX_CPU_PCT=1.0 MAX_THREADS=120 SILL_PROFILE=release|debug (default release)
 set -uo pipefail
 # Idle cost is a release measurement (a debug build's CPU says nothing): release unless asked.
@@ -82,7 +81,7 @@ cleanup() {
 }
 
 start_compositor || exit 1
-nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (start_compositor failed)" >&2; exit 1; }
 await_no_process || exit 1
 build || exit 1
 IN_ENV_EXTRA+=(LP_NUM_THREADS=2)

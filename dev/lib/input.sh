@@ -50,7 +50,7 @@ key() { input "key $1 down" "sleep 30" "key $1 up" "sleep 150"; }
 click() { input "move $1 $2" "sleep 60" "press left" "sleep 40" "release left" "sleep 200"; }
 
 # A click on the surface $1 at its local point ($2, $3): `surface_click SURFACE X Y [--button
-# secondary] [--origin GX GY]`. On KWin and cosmic-comp `sill debug click` stands in for a pointer
+# secondary] [--origin GX GY]`. On KWin `sill debug click` stands in for a pointer
 # press (the daemon feeds it to the surface itself). Casement answers an `xdg_popup.grab` whose
 # serial is no real press with `popup_done`, as the protocol says, so a popup opened by that
 # stand-in (a bar item's, a context menu) is dismissed at once: on casement the click is a real

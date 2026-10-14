@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# A demo session: today's sill inside a nested cosmic-comp, left running between commands.
+# A demo session: today's sill inside a headless casement, left running between commands.
 #
 #   dev/demo.sh start            build, seed a scratch desktop, leave it up
 #   dev/demo.sh tour             play the tour and write a frame of each beat to dev/out/demo-*.png
 #   dev/demo.sh video [out.mp4]  play the tour and record it (default dev/out/demo.mp4)
-#   dev/demo.sh shot [out.png]   grim of the nested output (default dev/out/demo.png)
+#   dev/demo.sh shot [out.png]   grim of the compositor's output (default dev/out/demo.png)
 #   dev/demo.sh stop             quit the daemon and end everything `start` recorded
 #
 # `tour` and `video` start the demo first when it is not up.
@@ -15,20 +15,17 @@
 # for the power menu. A made-up NetworkManager, BlueZ and MPRIS player (sill-testkit's
 # `mpris_player` example) are the only services on that bus. The terminal and the mail app it
 # opens get the same scratch environment. ~/.config, ~/.cache, the real buses, wayland-0 and the
-# host session are not touched: the only thing on the host is the nested compositor's window.
+# host session are not touched: casement runs headless on its own socket and bus (the casement
+# checkout's dev/up.sh, so this runs where that does: inside the jail).
 #
 # Every process `start` creates is recorded in target/demo/procs with its start time; `stop`
-# (and a failed `start`) ends exactly those, by PID, and never anything matched by name. A
-# cosmic-comp that shell-host's .nested-env does not own makes `start` refuse; `stop` ends the
-# compositor only when this demo started it.
+# (and a failed `start`) ends exactly those, by PID, and never anything matched by name, and
+# then the casement `start` brought up (dev/down.sh, by the pids in its env file).
 #
-# DEMO_FIT_WINDOW=1 shrinks the nested window to a 13-inch Mac's 1440x900 through the host
-# KWin's scripting service (it moves that one window, found by the compositor's pid, and nothing
-# else). It is off by default because it is the one thing that talks to the host session's bus;
-# without it the output is the winit window's default size.
+# DEMO_SIZE sets the output (default 1440x900, a 13-inch Mac's).
 #
-# Needs: cosmic-comp, grim, ffmpeg (video), python3 with PIL and dbus, dbus-daemon, fd (the
-# launcher's file search). cosmic-term and mailo are opened when installed.
+# Needs: the casement checkout's tools (dev/bootstrap.sh), grim, ffmpeg (video), python3 with PIL and dbus, dbus-daemon, fd (the
+# launcher's file search). foot and mailo are opened when installed.
 #
 # Usage: dev/demo.sh start | tour | video [out.mp4] | shot [out.png] | stop
 set -uo pipefail
@@ -40,12 +37,10 @@ OUT_DIR="$DEMO_DIR"
 ENV_FILE="$DEMO_DIR/env"
 PROCS="$DEMO_DIR/procs"
 CLIENT="$DEMO_DIR/sill"
-NESTED_ENV="$SHELL_HOST_DEV/.nested-env"
 SHOTS="$SILL_REPO/dev/out"
 PLAYER="$SILL_OUT/examples/mpris_player"
 # Set by start (or read back from $ENV_FILE): the scratch tree's directory (scratch_use), the
-# nested socket, whether this demo started the compositor, the output's name.
-STARTED_NESTED=0
+# compositor's socket and bus, its kind and env file, the output's name.
 NAME=
 
 usage() {
@@ -114,84 +109,13 @@ daemon_pid() {
 
 # ---------------------------------------------------------------- the compositor
 
-# The pid .nested-env records, when that process is still alive.
-owned_compositor() {
-  [ -f "$NESTED_ENV" ] || return 0
-  # In a subshell: nothing of the file reaches this shell.
-  ( source "$NESTED_ENV"
-    if [ -n "${NESTED_COMPOSITOR_PID:-}" ] && kill -0 "$NESTED_COMPOSITOR_PID" 2>/dev/null; then
-      echo "$NESTED_COMPOSITOR_PID"
-    fi )
-}
-
-# Refuses while some other cosmic-comp is up: nested.sh stop will not end it, and its output would
-# be in the screenshots.
-refuse_foreign_compositor() {
-  local owned pid foreign=""
-  owned="$(owned_compositor)"
-  for pid in $(pgrep -u "$(id -u)" -x cosmic-comp); do
-    [ "$pid" = "$owned" ] || foreign="$foreign $pid"
-  done
-  [ -z "$foreign" ] || die "cosmic-comp pid${foreign} is running and $NESTED_ENV does not own it;
-demo.sh: stop it (dev/nested.sh stop will not), then run dev/demo.sh start again."
-}
-
-# Waits until the nested compositor answers a client: its own window has to be mapped on the host
-# first, and a daemon that connects before that never completes its handshake.
+# Waits until the compositor answers a client.
 await_compositor() {
   for _ in $(seq 25); do
-    timeout 2 "$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 && return 0
+    timeout 2 env WAYLAND_DISPLAY="$WL" XDG_RUNTIME_DIR="$(dirname "$WL")" wayland-info >/dev/null 2>&1 && return 0
     sleep 0.4
   done
-  echo "the nested compositor is not answering clients; its window on the host may not be mapped" >&2
-  return 1
-}
-
-# DEMO_FIT_WINDOW: sizes the compositor's window (the winit default is 1280x800 logical, 2560x1600
-# on a scale-2 host, where a 164 px widget is a tenth of the screen) to a 13-inch Mac's 1440x900
-# in host pixels. KWin's sizes are logical, so it divides by the host scale. The window is the
-# one whose pid is the compositor's.
-fit_window() {
-  local pid scale lw lh js id info w h
-  pid=$(owned_compositor)
-  [ -n "$pid" ] || return 1
-  scale=$(WAYLAND_DISPLAY=wayland-0 timeout 3 wayland-info 2>/dev/null \
-    | sed -n 's/.*scale: \([0-9]*\).*/\1/p' | head -1)
-  scale=${scale:-2}
-  lw=$((1440 / scale))
-  lh=$((900 / scale))
-  js=$(mktemp "$DEMO_DIR/resize.XXXXXX.js")
-  cat >"$js" <<EOF
-var wins = workspace.windowList ? workspace.windowList() : workspace.clientList();
-for (var i = 0; i < wins.length; i++) {
-    if (wins[i].pid == $pid) wins[i].frameGeometry = { x: 80, y: 60, width: $lw, height: $lh };
-}
-EOF
-  id=$(busctl --user --timeout=5 call org.kde.KWin /Scripting org.kde.kwin.Scripting loadScript s "$js" \
-    | awk '{print $2}')
-  [ -n "$id" ] || { echo "KWin did not load the resize script" >&2; rm -f "$js"; return 1; }
-  # winit finishes its own configure a moment after the socket answers, and a resize during it
-  # is undone: wait, then resize, up to three times.
-  for _ in 1 2 3; do
-    sleep 0.8
-    busctl --user --timeout=5 call org.kde.KWin "/Scripting/Script$id" org.kde.kwin.Script run >/dev/null
-    for _ in $(seq 10); do
-      sleep 0.2
-      info=$(nested wayland-info 2>/dev/null || true)
-      w=$(sed -n 's/.*logical_width: \([0-9]*\).*/\1/p' <<<"$info" | head -1)
-      h=$(sed -n 's/.*logical_height: \([0-9]*\).*/\1/p' <<<"$info" | head -1)
-      # 1440x900 lands near 1424x820 once the frame is taken off.
-      if [ "${w:-0}" -ge 1300 ] && [ "${w:-0}" -le 1600 ] && [ "${h:-0}" -ge 700 ] && [ "${h:-0}" -le 1000 ]; then
-        busctl --user --timeout=5 call org.kde.KWin /Scripting org.kde.kwin.Scripting unloadScript s "$js" >/dev/null
-        rm -f "$js"
-        echo "demo.sh: nested output is ${w}x${h}"
-        return 0
-      fi
-    done
-  done
-  busctl --user --timeout=5 call org.kde.KWin /Scripting org.kde.kwin.Scripting unloadScript s "$js" >/dev/null
-  rm -f "$js"
-  echo "the nested window stayed at the winit default" >&2
+  echo "the compositor is not answering clients" >&2
   return 1
 }
 
@@ -201,7 +125,6 @@ write_scene() {
   mkdir -p "$CONFIG/sill"
   cat >"$CONFIG/sill/settings.toml" <<'EOF'
 [spaces]
-wallpaper_drawer = "shell"
 
 [launcher]
 files_backend = "fd"
@@ -214,8 +137,8 @@ EOF
   cat >"$CONFIG/sill/dock.json" <<'EOF'
 {
   "pinned": [
-    "com.system76.CosmicTerm",
-    "com.system76.CosmicFiles",
+    "foot",
+    "org.gnome.Nautilus",
     "google-chrome",
     "btop"
   ]
@@ -261,12 +184,12 @@ start_player() {
   return 1
 }
 
-# A terminal window in the nested session, in the scratch HOME.
+# A terminal window in the demo session, in the scratch HOME.
 start_terminal() {
   local bin
-  bin=$(command -v cosmic-term || command -v foot || true)
+  bin=$(command -v foot || true)
   if [ -z "$bin" ]; then
-    echo "demo.sh: no cosmic-term or foot; the desktop will have no window" >&2
+    echo "demo.sh: no foot; the desktop will have no window" >&2
     return 0
   fi
   in_env setsid "$bin" >"$DEMO_DIR/term.log" 2>&1 &
@@ -345,7 +268,7 @@ write_env() {
     printf 'BUS=%q\n' "$BUS"
     printf 'WL=%q\n' "$WL"
     printf 'NAME=%q\n' "$NAME"
-    printf 'STARTED_NESTED=%q\n' "$STARTED_NESTED"
+    printf 'COMPOSITOR=%q\nCASEMENT_ENV=%q\nCASEMENT_BUS=%q\n' "$COMPOSITOR" "$CASEMENT_ENV" "$CASEMENT_BUS"
   } >"$ENV_FILE"
   write_client
 }
@@ -372,9 +295,7 @@ teardown() {
   fi
   record_scratch_clients
   end_recorded
-  if [ "$STARTED_NESTED" = 1 ]; then
-    "$SILL_REPO/dev/nested.sh" stop
-  fi
+  stop_compositor
   [ -z "${SCRATCH:-}" ] || scratch_drop
   rm -f "$ENV_FILE" "$CLIENT"
 }
@@ -397,28 +318,18 @@ cmd_start() {
   fi
   # A leftover env file of a demo that is gone: its tree and records are stale.
   [ ! -f "$ENV_FILE" ] || teardown
-  STARTED_NESTED=0
   rm -f "$PROCS"
-  refuse_foreign_compositor
 
   echo "demo.sh: building sill ($SILL_PROFILE)"
   build "-p sill-testkit --example mpris_player" || exit 1
 
   trap abort_start EXIT
-  if [ -n "$(owned_compositor)" ]; then
-    echo "demo.sh: reusing nested cosmic-comp pid $(owned_compositor)"
-  else
-    "$SILL_REPO/dev/nested.sh" start || exit 1
-    STARTED_NESTED=1
-  fi
-  use_nested_socket || exit 1
+  SIZE="${DEMO_SIZE:-1440x900}"
+  start_compositor --default casement || exit 1
   await_compositor || exit 1
-  [ -z "${DEMO_FIT_WINDOW:-}" ] || fit_window || true
 
   scratch_new
   # From here a teardown has a tree to remove: the env file is what names it.
-  start_private_bus || exit 1
-  record_proc bus "$BUS_PID"
   write_env
   write_scene
   use_fake_ddc "$CONFIG" >/dev/null
@@ -438,8 +349,7 @@ cmd_start() {
   write_monitor
   write_env
 
-  # The wallpaper surface follows ping, once the image is prepared; only when sill still draws
-  # none does backdrop_up start cosmic-bg on the nested session.
+  # The wallpaper surface follows ping, once the image is prepared.
   for _ in $(seq 100); do
     [ -n "$(surface_named sill-wallpaper-)" ] && break
     sleep 0.1
@@ -459,13 +369,12 @@ cmd_start() {
   trap - EXIT
   cat <<EOF
 
-The demo is up, in the nested compositor's window.
+The demo is up, in a headless casement ($WL).
 
   1. Rest. Wallpaper, menu bar, dock, a terminal and the mail app.
   2. Move the pointer along the dock.
   3. Click the app name in the bar, then the next title.
   4. Launcher:  $CLIENT launcher open --query fi
-     (the compositor's own shortcuts run the host's sill, not this one)
   5. The control center opens, turns Wi-Fi on, and joins Home.
   6. The network list, a volume indicator, the app switcher, the power menu,
      and the desktop calendar.
@@ -484,10 +393,10 @@ EOF
 
 # ---------------------------------------------------------------- shot and video
 
-# A screenshot of the nested output with grim, on the compositor's own socket: never the host
+# A screenshot of the output with grim, on the compositor's own socket: never the host
 # (shell-host's shot.sh falls back to spectacle on the host when no compositor answers).
 take_shot() {
-  [ -S "$WL" ] || { echo "demo.sh: no nested compositor at $WL" >&2; return 1; }
+  [ -S "$WL" ] || { echo "demo.sh: no compositor at $WL" >&2; return 1; }
   mkdir -p "$(dirname "$1")"
   WAYLAND_DISPLAY="$WL" grim "$1"
 }
@@ -499,7 +408,7 @@ cmd_shot() {
   take_shot "$(realpath -m "${1:-$SHOTS/demo.png}")"
 }
 
-# Films the nested output with grim while a tour runs. One screencopy client at a time, so
+# Films the output with grim while a tour runs. One screencopy client at a time, so
 # cmd_shot does not also call grim while this runs.
 record_start() {
   RECORD_DIR=$(mktemp -d "$DEMO_DIR/frames.XXXXXX")
@@ -532,7 +441,7 @@ record_start() {
     RECORD_PID=
     return 1
   fi
-  echo "demo.sh: recording the nested desktop" >&2
+  echo "demo.sh: recording the desktop" >&2
 }
 
 # Ends the recording and encodes it to $1 (a variable-frame-rate H.264 from the frames' own
@@ -1050,7 +959,7 @@ beat_osd_switcher_power() {
   sleep 0.35
 
   echo "demo.sh tour: 7 switcher"
-  sill debug switcher com.system76.CosmicTerm com.system76.CosmicFiles google-chrome >/dev/null
+  sill debug switcher foot org.gnome.Nautilus google-chrome >/dev/null
   await_up "sill-switcher-$NAME" 0.4
   cmd_shot "$SHOTS/demo-7-switcher.png"
   show 2.0
@@ -1139,7 +1048,7 @@ beat_notifications() {
 
 # Plays the beats on the running demo and writes one frame of each to dev/out. Pointer moves and
 # clicks go through `sill debug`, the path the acceptance scripts use; nothing here is aimed at
-# the host session. `tour --video` records the nested desktop for the length of the tour.
+# the host session. `tour --video` records the desktop for the length of the tour.
 cmd_tour() {
   local video=0
   [ "${1:-}" != "--video" ] || video=1
@@ -1148,7 +1057,7 @@ cmd_tour() {
   WORK="$DEMO_DIR/tour"
   mkdir -p "$SHOTS" "$WORK"
   WIDTH=$(nested_output_size | cut -d' ' -f1)
-  [ -n "$WIDTH" ] || die "tour: no nested output"
+  [ -n "$WIDTH" ] || die "tour: no output"
   BAR=$(surface_named sill-bar-)
   DOCK=$(surface_named sill-dock-)
   [ -n "$BAR" ] && [ -n "$DOCK" ] || die "tour: the bar or the dock is missing"

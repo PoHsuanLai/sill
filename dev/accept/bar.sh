@@ -4,9 +4,9 @@
 # NetworkManager, BlueZ, UPower and the rest are simply absent), with a scratch HOME and XDG tree
 # of its own, its own XDG_RUNTIME_DIR and the fake DDC; nothing reaches the user's session.
 #
-# Default: the daemon's basics and the bar's own, on the nested cosmic-comp (dev/nested.sh; a
-# running one is reused and never stopped), then the bar demo's steps on a headless KWin:
-#   Daemon (the nested compositor):
+# Default: the daemon's basics and the bar's own, on casement (brought up and ended by
+# start_compositor), then the bar demo's steps on a headless KWin:
+#   Daemon (casement):
 #     1. ping: the daemon answers.
 #     2. single instance: a second `sill run` exits 0 fast without touching Wayland.
 #     3. reload: `sill reload` answers Done.
@@ -14,9 +14,9 @@
 #     5. exclusive zone: a maximised probe window is output_h - bar_h (less the dock's 68 when
 #        the daemon runs one).
 #     6. idle: 5 s with the pointer still, the bar's commit counter does not move; shoots
-#        dev/out/bar-cosmic.png over the test wallpaper.
+#        dev/out/bar-casement.png over the test wallpaper.
 #     7. menus: a press on the control center's item opens its menu popup, an outside press
-#        dismisses it (`sill debug click`); shoots dev/out/bar-cosmic-menu.png.
+#        dismisses it (`sill debug click`); shoots dev/out/bar-casement-menu.png.
 #     8. clock: a click toggles the notification center and opens no bar menu, a second click
 #        closes it.
 #     9. quit: `sill quit` ends the daemon and a `ping` after it finds nobody home. Runs last.
@@ -35,9 +35,9 @@
 #     5. a screenshot with the control center open, dev/out/bar.png (reviewed by eye).
 #   The demo's logs and result JSON: target/accept-bar/. It passes only when 1-4 pass.
 #
-# --ui: only the bar demo's steps, on the headless KWin (no nested compositor needed).
-# --ui-nested: the bar demo's steps 3-4 on the running nested cosmic-comp (`sill run` may already
-#   reserve a bar there, so no exclusive-zone or idle step); screenshot dev/out/bar-cosmic-menu.png.
+# --ui: only the bar demo's steps, on the headless KWin (no casement needed).
+# --ui-nested: the bar demo's steps 3-4 on the running casement (`sill run` may already
+#   reserve a bar there, so no exclusive-zone or idle step); screenshot dev/out/bar-casement-menu.png.
 #
 # --real-input [STEP...]: the bar's menus and the keyboard of the control center and the
 # notification center under REAL input, on shell-host's private headless KWin (scripts/dev/
@@ -77,7 +77,7 @@
 #
 # Exit 0 only when every step passed, 1 on a failure.
 #
-# Usage: dev/nested.sh && dev/accept/bar.sh     (daemon steps, then the bar demo)
+# Usage: dev/accept/bar.sh     (daemon steps, then the bar demo)
 #        dev/accept/bar.sh --ui | --ui-nested
 #        dev/accept/bar.sh --real-input [STEP...]   (default: every step, in order)
 set -uo pipefail
@@ -198,8 +198,8 @@ step_exclusive_zone() {
 }
 
 # 6. Idle: 5 s with the pointer still, the bar's commit counter does not move.
-#    Also shoots the nested screen to dev/out/bar-cosmic.png, over the test wallpaper
-#    (dev/lib/backdrop.sh: the daemon's own when it draws one, else cosmic-bg's).
+#    Also shoots the screen to dev/out/bar-casement.png, over the test wallpaper
+#    (dev/lib/backdrop.sh).
 step_idle() {
   local before after
   sleep 1
@@ -226,7 +226,7 @@ bar_status_items() {
 #    center, step 8); the bar's empty middle stands in for an outside press (a compositor-level
 #    outside press cannot be synthesized). Whether the popup is up is whether `sill debug capture
 #    <bar>/popup` succeeds: `debug stats` lists bars only. Shoots the nested screen with the menu
-#    open to dev/out/bar-cosmic-menu.png.
+#    open to dev/out/bar-casement-menu.png.
 step_menus() {
   local log="$OUT_DIR/menus.log" bar width y popup opened=no closed=no items
   : >"$log"
@@ -306,24 +306,22 @@ step_quit() {
 }
 
 
-# The daemon steps, on the nested cosmic-comp. Sets STATUS.
+# The daemon steps, on casement. Sets STATUS.
 run_daemon_steps() {
-  start_compositor --default cosmic || return 1
-  nested wayland-info >/dev/null 2>&1 || { echo "no compositor to run on (dev/nested.sh first)" >&2; stop_compositor; return 1; }
+  start_compositor --default casement || return 1
+  nested wayland-info >/dev/null 2>&1 || { echo "no compositor to run on (start_compositor failed)" >&2; stop_compositor; return 1; }
   await_no_process || return 1
   scratch_new
   start_bar_daemon || { stop_daemon; stop_compositor; scratch_drop; return 1; }
-  backdrop_up "$CONFIG" || echo "backdrop: none (the shots show the bare compositor)" >&2
   run_steps step_ping step_single_instance step_reload step_ipc_latency step_exclusive_zone \
     step_idle step_menus step_clock_center step_quit
-  backdrop_down
   stop_daemon || STATUS=1
   stop_compositor
   scratch_drop
 }
 
 # Runs the bar demo's checks in the world of the daemon (in_env: $WL, the private bus, the scratch
-# tree): $1 is `kwin` or `cosmic` (which compositor takes the screenshot and which steps run), $2
+# tree): $1 is `kwin` or `casement` (which compositor takes the screenshot and which steps run), $2
 # the screenshot's path. Exit 0 only when every check passed.
 run_bar_demo() {
   in_env env CASEMENTCTL="$CASEMENT_TOOLS/bin/casementctl" ACCEPT_OUT="$OUT_DIR" ACCEPT_PNG="$2" ACCEPT_MODE="$1" BAR_DEMO="$BAR_DEMO" \
@@ -448,12 +446,8 @@ def screenshot(path):
             log("expected skip: screenshot:", r.stderr.strip() or "casementctl shot failed")
             SKIPS["screenshot"] = "casementctl shot is not built yet (P1-C1)"
         return
-    if MODE == "cosmic":
-        with open(path, "wb") as f:
-            subprocess.run(["grim", "-"], check=True, timeout=20, stdout=f)
-    else:
-        subprocess.run(["spectacle", "-b", "-n", "-f", "-o", path], check=True, timeout=20,
-                       capture_output=True)
+    subprocess.run(["spectacle", "-b", "-n", "-f", "-o", path], check=True, timeout=20,
+                   capture_output=True)
     for _ in range(100):
         if os.path.exists(path) and os.path.getsize(path) > 0: break
         time.sleep(0.05)
@@ -537,7 +531,7 @@ PY
 }
 
 step_demo_kwin() { run_bar_demo kwin "$SHOTS/bar.png"; }
-step_demo_nested() { run_bar_demo cosmic "$SHOTS/bar-cosmic-menu.png"; }
+step_demo_nested() { run_bar_demo casement "$SHOTS/bar-casement-menu.png"; }
 
 # The demo and shell-host's probe, built (a no-op when up to date). Under dev/accept.sh
 # (SILL_PREBUILT) they were built outside the jail: only checked here.
@@ -564,10 +558,10 @@ run_demo_kwin() {
   scratch_drop
 }
 
-# The bar demo on the nested cosmic-comp. Sets STATUS.
+# The bar demo on casement. Sets STATUS.
 run_demo_nested() {
-  start_compositor --default cosmic || return 1
-  nested wayland-info >/dev/null 2>&1 || { echo "no compositor to run on (dev/nested.sh first)" >&2; stop_compositor; return 1; }
+  start_compositor --default casement || return 1
+  nested wayland-info >/dev/null 2>&1 || { echo "no compositor to run on (start_compositor failed)" >&2; stop_compositor; return 1; }
   scratch_new
   run_steps step_demo_nested
   stop_compositor

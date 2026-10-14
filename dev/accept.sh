@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The acceptance runner: every dev/accept/NAME.sh on a compositor, one verdict per script.
 #
-#   dev/accept.sh [--compositor casement|cosmic|kwin] [--jobs N] [--build] [--out DIR]
+#   dev/accept.sh [--compositor casement|kwin] [--jobs N] [--build] [--out DIR]
 #                 [--timeout SECONDS] [NAME...]
 #
 # NAME is a script's name (`bar`, `bar.sh` or its path); with none, every dev/accept/*.sh.
@@ -14,10 +14,10 @@
 #                           and nothing in it calls cargo or the network (A7): the daemon, the examples
 #                           and casement's tools are built OUTSIDE first (--build does it; without it a
 #                           missing artefact is an error, exit 3).
-#   --compositor cosmic|kwin   the scripts run directly, one at a time (they share the nested cosmic-comp
-#                           or the one headless KWin), as before.
-#   (no --compositor)       each script keeps its own default (cosmic where it ran nested, kwin where it
-#                           ran headless KWin).
+#   --compositor kwin       the scripts run directly, one at a time (they share the one headless
+#                           KWin), as before.
+#   (no --compositor)       each script keeps its own default (casement, or kwin where it ran
+#                           headless KWin).
 #
 # Each script's combined output is OUT/NAME.log (default OUT: $SILL_TARGET/accept-runs/<run>). The runner
 # prints one PASS|SKIP|FAIL line per script and, under it, the steps that skipped and why ("expected
@@ -49,7 +49,7 @@ while [ $# -gt 0 ]; do
     *) names+=("$1"); shift ;;
   esac
 done
-case "$compositor" in ""|casement|cosmic|kwin) ;; *) echo "accept.sh: --compositor is casement, cosmic or kwin" >&2; exit 64 ;; esac
+case "$compositor" in ""|casement|kwin) ;; *) echo "accept.sh: --compositor is casement or kwin" >&2; exit 64 ;; esac
 case "$parallel" in ''|*[!0-9]*|0) echo "accept.sh: --jobs wants a positive number" >&2; exit 64 ;; esac
 
 # The scripts to run, as names.

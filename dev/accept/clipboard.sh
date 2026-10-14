@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Clipboard history acceptance, on the nested
-# cosmic-comp (dev/nested.sh; its socket is pinged first, reused and never stopped).
+# Clipboard history acceptance, on casement (brought up and ended by start_compositor).
 # Starts `sill run` from this checkout's debug build (`--features debug`) on a private bus (the
 # daemon's session AND system bus), with a scratch HOME and XDG directories, its own
 # XDG_RUNTIME_DIR and the nested socket as an absolute WAYLAND_DISPLAY. `wl-copy`,
@@ -9,7 +8,7 @@
 # copied is made up, and no clipboard content is printed or written to a file: only counts,
 # modes and protocols are logged. The nested selection is cleared before and after.
 #
-#   1. `sill clipboard status`: memory, ext (cosmic-comp offers ext_data_control_v1), 0 entries.
+#   1. `sill clipboard status`: memory, ext (the compositor offers ext_data_control_v1), 0 entries.
 #   2. `wl-copy` of a made-up string: 1 entry.
 #   3. `secret_source` (text marked with x-kde-passwordManagerHint) takes the selection: still 1.
 #   4. `sill launcher open --query lantern`: one clipboard row (`sill debug launcher-rows`),
@@ -22,7 +21,7 @@
 #
 # Exit 0 when every step passed, 1 on a failure.
 #
-# Usage: dev/nested.sh && dev/accept/clipboard.sh
+# Usage: dev/accept/clipboard.sh
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -194,7 +193,7 @@ step_clear() {
   wait_status "memory ext 0"
 }
 
-ping_nested || { echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
+ping_nested || { echo "no nested compositor at $WL (start_compositor failed)" >&2; exit 1; }
 command -v wl-copy >/dev/null && command -v wl-paste >/dev/null \
   || { echo "wl-copy and wl-paste are missing (wl-clipboard); not installed by this script" >&2; exit 1; }
 build "-p sill-testkit --example secret_source" || exit 1

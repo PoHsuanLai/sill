@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Wallpaper acceptance (design/20 §1.4), against the running nested cosmic-comp
-# (`dev/nested.sh`; this script takes its socket from shell-host's `.nested-env` and never stops
-# the compositor) with a real `sill run`, which spawns a `Wallpaper` per output
+# Wallpaper acceptance (design/20 §1.4), against a casement
+# (brought up and ended by start_compositor) with a real `sill run`, which spawns a `Wallpaper` per output
 # (`spawn_surface::<Wallpaper>` in `daemon/surfaces.rs`) and sends the
 # wallpaper service a `Prepare` (`prepare_wallpapers`) at the output's buffer size, so this
 # script starts its own `sill run`.
 #
-# The COSMIC background config and sill's own settings live under a scratch XDG_CONFIG_HOME (never
+# The wallpaper source and sill's own settings live under a scratch XDG_CONFIG_HOME (never
 # the real ~/.config), so there is nothing to back up or restore. The daemon runs in its own
 # XDG_RUNTIME_DIR and scratch HOME, and a private dbus-daemon (dev/private-bus.conf) is its
 # session AND system bus, refused if it would be the real one.
@@ -14,10 +13,10 @@
 # Checks: a wallpaper surface exists per output and presents at least one frame; its capture's
 # centre pixel matches the marked source image's own centre pixel (cover-fit keeps the crop
 # centred, `geometry.rs`); five idle seconds add zero frames. Screenshot:
-# `dev/out/wallpaper-cosmic.png` (the nested screen, `shot.sh`); the pixel check itself reads
+# `dev/out/wallpaper-casement.png` (the nested screen, `shot.sh`); the pixel check itself reads
 # `sill debug capture`'s own file, not the screenshot.
 #
-# Usage: dev/nested.sh start && dev/accept/wallpaper.sh
+# Usage: dev/accept/wallpaper.sh
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -27,14 +26,10 @@ mkdir -p "$OUT_DIR" "$SILL_SHOTS"
 start_compositor || exit 1
 scratch_new
 
-# A marked source image and a COSMIC background config pointing at it, all under the scratch
+# A marked source image and the wallpaper-source file naming it, under the scratch
 # XDG_CONFIG_HOME.
-CONFIG_DIR="$CONFIG/cosmic/com.system76.CosmicBackground/v1"
-CONFIG_FILE="$CONFIG_DIR/all"
+CONFIG_FILE="$CONFIG/sill/wallpaper-source"
 SOURCE_PNG="$OUT_DIR/source.png"
-# The shell draws the background only when `spaces.wallpaper_drawer` is "shell" (cosmic-bg by
-# default), so this script sets it in sill's (scratch) settings file for the run.
-SETTINGS_FILE="$CONFIG/sill/settings.toml"
 
 cleanup() {
   # Stop the daemon this script started (never the compositor), the private bus, and the scratch
@@ -46,26 +41,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$CONFIG_DIR" "$(dirname "$SETTINGS_FILE")"
-python3 - "$SETTINGS_FILE" <<'PY'
-# Set spaces.wallpaper_drawer = "shell", keeping every other line of the file.
-import re
-import sys
-
-path = sys.argv[1]
-try:
-    text = open(path).read()
-except FileNotFoundError:
-    text = ""
-lines = [l for l in text.splitlines() if not re.match(r"\s*wallpaper_drawer\s*=", l)]
-if "[spaces]" in (l.strip() for l in lines):
-    i = next(i for i, l in enumerate(lines) if l.strip() == "[spaces]")
-    lines.insert(i + 1, 'wallpaper_drawer = "shell"')
-else:
-    lines += ["", "[spaces]", 'wallpaper_drawer = "shell"']
-open(path, "w").write("\n".join(lines) + "\n")
-PY
-
+mkdir -p "$(dirname "$CONFIG_FILE")"
 python3 - "$SOURCE_PNG" <<'PY'
 # A 1600 x 1000 source: a big solid-colour block centred in a contrasting field, well clear of
 # every edge, so Lanczos3's own ringing near the resize never reaches the centre pixel this
@@ -85,17 +61,7 @@ for x in range(x0, x0 + box_w):
 im.save(path)
 PY
 
-cat >"$CONFIG_FILE" <<RON
-(
-    output: "all",
-    source: Path("$SOURCE_PNG"),
-    filter_by_theme: false,
-    rotation_frequency: 3600,
-    filter_method: Lanczos,
-    scaling_mode: Zoom,
-    sampling_method: Alphanumeric,
-)
-RON
+printf '%s\n' "$SOURCE_PNG" >"$CONFIG_FILE"
 
 # --- Start the daemon ---------------------------------------------------------------------
 
@@ -172,10 +138,10 @@ step_idle() {
   sleep 5
   after=$(wallpaper_counters) || return 1
   printf 'before:\n%s\nafter:\n%s\n' "$before" "$after" | tee "$OUT_DIR/idle.log" >&2
-  shot "$SILL_SHOTS/wallpaper-cosmic.png" >&2 || true
+  shot "$SILL_SHOTS/wallpaper-casement.png" >&2 || true
   [ "$before" = "$after" ]
 }
 
 run_steps step_ping step_surfaces_exist step_centre_pixel step_idle
-echo "output dir: $OUT_DIR; screenshot: $SILL_SHOTS/wallpaper-cosmic.png" >&2
+echo "output dir: $OUT_DIR; screenshot: $SILL_SHOTS/wallpaper-casement.png" >&2
 exit "$STATUS"

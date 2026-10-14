@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Hot corners acceptance (design/20 §1.16, design/13 §13.3.12), on the nested cosmic-comp
-# (dev/nested.sh; a running one is reused and never stopped).
+# Hot corners acceptance (design/20 §1.16, design/13 §13.3.12), on casement
+# (brought up and ended by start_compositor).
 # Starts `sill run` from this checkout's debug build (`--features debug`) with a scratch HOME and
 # XDG tree, on a private bus (dev/private-bus.conf) that is both its session and its system bus,
 # and with its own XDG_RUNTIME_DIR (the nested socket given as an absolute WAYLAND_DISPLAY), so
@@ -33,7 +33,7 @@
 # `target/*/sill run` is waited for (up to 10 minutes), so two shells never share the nested
 # output's screenshots.
 #
-# Usage: dev/nested.sh && dev/accept/hot-corners.sh
+# Usage: dev/accept/hot-corners.sh
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -70,7 +70,6 @@ TOML
   LAUNCHER="sill-launcher-$NAME"
   CENTER="sill-notification-center-$NAME"
   sleep 1.5
-  backdrop_up "$CONFIG" || echo "backdrop: none (the shots show the bare compositor)" >&2
   echo "daemon on a private bus and runtime dir $RUNTIME; corners $TOP_LEFT, $TOP_RIGHT, $BOTTOM_RIGHT (not $BOTTOM_LEFT)" >&2
 }
 
@@ -183,7 +182,6 @@ step_idle() {
 cleanup() {
   local result=0
   stop_daemon || result=1
-  backdrop_down
   stop_private_bus
   stop_compositor
   scratch_drop
@@ -191,7 +189,7 @@ cleanup() {
 }
 
 start_compositor || exit 1
-nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (start_compositor failed)" >&2; exit 1; }
 build || exit 1
 await_no_process || exit 1
 scratch_new

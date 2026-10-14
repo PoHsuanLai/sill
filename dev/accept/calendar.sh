@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Calendar acceptance (design/20 §1.12 and §1.14), on the nested cosmic-comp (dev/nested.sh; its
-# socket is reused and never stopped).
+# Calendar acceptance (design/20 §1.12 and §1.14), on casement (brought up and ended by start_compositor).
 # Starts `sill run` from this checkout's debug build (`--features debug`) on a private bus (the
 # daemon's session AND system bus), with a scratch HOME and XDG directories, its own
 # XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY) and a fake DDC.
@@ -12,8 +11,8 @@
 # "up_next"]`. The daemon is quit at the end.
 #
 #   1. `sill notifications open`: a capture of `sill-notification-center-<out>` shows the month
-#      with today on the accent disc (dev/out/calendar-cosmic.png; the output with the center
-#      open, dev/out/calendar-widget-cosmic.png).
+#      with today on the accent disc (dev/out/calendar-casement.png; the output with the center
+#      open, dev/out/calendar-widget-casement.png).
 #   2. The center's Calendar tile is the Medium card (a today column beside the compact month): it
 #      shows the NEXT event of the agenda Up Next reads, one row (quire's `MonthFace.events`: Medium
 #      takes the first, only Large lists several). Then Up Next lists the fixture's next events in
@@ -36,7 +35,7 @@
 # slot is not in this build), 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes).
 #
-# Usage: dev/nested.sh && dev/accept/calendar.sh
+# Usage: dev/accept/calendar.sh
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -182,13 +181,11 @@ start_daemon() {
   NAME=$(output_name) || return 1
   CENTER="sill-notification-center-$NAME"
   sleep 1.5
-  backdrop_up "$CONFIG" || echo "backdrop: none (the shots show the bare compositor)" >&2
   echo "daemon on a private bus and runtime dir $RUNTIME; calendars in $CAL; $CENTER" >&2
 }
 
 cleanup() {
   local result=0
-  backdrop_down
   stop_daemon || result=1
   stop_private_bus
   stop_compositor
@@ -207,9 +204,9 @@ step_month_and_up_next() {
   sill notifications open >>"$log" 2>&1 || return 1
   wait_surface "$CENTER" 20 up || { echo "the center never mapped" >&2; return 1; }
   sleep 1
-  sill debug capture "$CENTER" "$SHOTS/calendar-cosmic.png" >>"$log" 2>&1 || return 1
-  shot "$SHOTS/calendar-widget-cosmic.png" || echo "screenshot failed" >&2
-  seen=$(probe "$SHOTS/calendar-cosmic.png")
+  sill debug capture "$CENTER" "$SHOTS/calendar-casement.png" >>"$log" 2>&1 || return 1
+  shot "$SHOTS/calendar-widget-casement.png" || echo "screenshot failed" >&2
+  seen=$(probe "$SHOTS/calendar-casement.png")
   echo "capture: $seen (work $WORK, team $TEAM, personal $PERSONAL)" | tee -a "$log" >&2
   if [ "$(bars_of "$seen")" = "" ] && [ "$(disc_of "$seen")" = none ]; then
     echo "the center draws no widgets: the widget slot (CenterWidgets) is not in this build" >&2
@@ -274,7 +271,7 @@ step_idle() {
 }
 
 start_compositor || exit 1
-nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (start_compositor failed)" >&2; exit 1; }
 build || exit 1
 await_no_process || exit 1
 start_private_bus || exit 1
@@ -290,5 +287,5 @@ for step in step_month_and_up_next step_edit step_week_numbers_ignored step_idle
   esac
 done
 cleanup || status=1
-echo "logs in $OUT_DIR; screenshots $SHOTS/calendar-cosmic.png, $SHOTS/calendar-widget-cosmic.png"
+echo "logs in $OUT_DIR; screenshots $SHOTS/calendar-casement.png, $SHOTS/calendar-widget-casement.png"
 exit "$status"

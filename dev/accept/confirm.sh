@@ -41,7 +41,7 @@ SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$SELF/../.." && pwd)"
 PRIVATE_DEV="$(mktemp -d)"
 cp -r "${SHELL_HOST_DEV:-$REPO/../shell-host/scripts/dev}" "$PRIVATE_DEV/dev"
-rm -f "$PRIVATE_DEV/dev/.kwin-env" "$PRIVATE_DEV/dev/.nested-env"
+rm -f "$PRIVATE_DEV/dev/.kwin-env"
 export SHELL_HOST_DEV="$PRIVATE_DEV/dev"
 # shellcheck source=dev/lib/all.sh
 source "$SELF/../lib/all.sh"

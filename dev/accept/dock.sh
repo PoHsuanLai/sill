@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Acceptance for the dock, on the nested cosmic-comp (dev/nested.sh; a running one is reused and
-# never stopped). Starts `sill run` from this checkout's debug build (`--features debug`) with a
+# Acceptance for the dock, on casement (brought up and ended by start_compositor). Starts `sill run` from this checkout's debug build (`--features debug`) with a
 # scratch HOME and XDG tree (the pins, the appearance file and the icon cache it writes never touch
 # the real ones), its own XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY) and a
 # private dbus-daemon as both its session and its system bus (refused if it would be the real one),
@@ -11,22 +10,22 @@
 #      48 + 2 x the 6 px padding).
 #   2. Hover sweep at 60 Hz for 1 s through `sill debug pointer`: frames >= 0.9 x callbacks;
 #      then, after `sill debug leave` and the 200 ms shrink, 5 s idle: 0 frames.
-#   3. A click on the pinned, not-running COSMIC Terminal tile launches it: its running dot
+#   3. A click on the pinned, not-running foot tile launches it: its running dot
 #      (the dock's view of a mapped toplevel) shows within 3 s.
 #   4. `badge_emitter` for that app shows a count badge within 1 s.
-#   5. A secondary click on that tile (`surface_click --button secondary`: `sill debug click` on KWin
-#      and cosmic-comp, a real right press through casement's inject on casement) opens its context
+#   5. A secondary click on that tile (`surface_click --button secondary`: `sill debug click` on KWin,
+#      a real right press through casement's inject on casement) opens its context
 #      menu popup.
 #   6. The pill's corner is a squircle of `dock.pill_radius_px` from the scratch settings
 #      (PILL_RADIUS, 12 by default, not the key's 22): the pixel centred 6.5 px in from the
 #      pill's left edge and 1.5 px down from its top is the pill's (inside a 12 px squircle,
 #      whose edge crosses that row 5.4 px in, and outside a 22 px one, 7.7 px in: its extent is
 #      capped at half the 60 px pill).
-# Screenshots: dev/out/dock-cosmic.png (rest), dock-cosmic-magnified.png, dock-cosmic-menu.png,
+# Screenshots: dev/out/dock-casement.png (rest), dock-casement-magnified.png, dock-casement-menu.png,
 # over the test wallpaper (dev/lib/backdrop.sh).
 #
 # --icons steps (the icon style on the dock, its own daemon and pins):
-# The dock holds COSMIC Terminal, COSMIC Files, Google Chrome and btop, every one on the neutral
+# The dock holds foot, Files, Google Chrome and btop, every one on the neutral
 # plate with its own theme icon, tinted along with the plate under Muted and Monochrome. With
 # `icons.style` set in the scratch `quire/appearance.toml` to colour, then muted, then monochrome
 # (the running dock follows the file live), it checks that the Muted and Monochrome runs each
@@ -34,9 +33,9 @@
 # surface each time: dev/out/dock-icons-{colour,muted,monochrome}.png. A last switch to
 # `appearance.theme = "dark"` in Monochrome (no new raster: the dark scheme changes the plate's
 # own stops, not the icon's) captures dev/out/dock-icons-monochrome-dark.png. The launcher
-# (queried for "cosmic", Colour style) is captured too: dev/out/launcher-icons.png, COSMIC
-# Terminal and Files as rows drawing their own hicolor icon, the same fallback path.
-#   1. The nested compositor answers; the daemon starts and the dock is up with its four pins.
+# (queried for "foot", Colour style) is captured too: dev/out/launcher-icons.png,
+# foot as a row drawing its own hicolor icon, the same fallback path.
+#   1. The compositor answers; the daemon starts and the dock is up with its four pins.
 #   2. Colour: a capture, and no Muted or Monochrome raster in the cache.
 #   3. The launcher's icons capture.
 #   4. Muted, then Monochrome: four re-tinted rasters each, a capture each.
@@ -45,7 +44,7 @@
 #
 # Exit 0 when every step passed, 1 on a failure.
 #
-# Usage: dev/nested.sh && dev/accept/dock.sh [--icons]
+# Usage: dev/accept/dock.sh [--icons]
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -60,8 +59,8 @@ EMITTER="$SILL_OUT/examples/badge_emitter"
 BAR_H="${BAR_H:-24}"
 RESERVE=68
 PILL_RADIUS="${PILL_RADIUS:-12}"
-TERM_ID=com.system76.CosmicTerm
-PINS=(com.system76.CosmicTerm com.system76.CosmicFiles google-chrome btop)
+TERM_ID=foot
+PINS=(foot org.gnome.Nautilus google-chrome btop)
 # Surface-local geometry of the default dock (design/10 §10.3.1): the surface is H_s tall (gut 8 +
 # pad 6 + magnified tile 72 + tile 48 = 134, read off a capture by `read_geometry` rather than
 # written down: it was 158 when the magnified tile was 96), the pill's bottom edge `gut` above the
@@ -73,10 +72,10 @@ PAD=6
 TILE=48
 PILL_Y=0 BASELINE_Y=0 DOT_Y=0 SURFACE_H=0
 
-# Kill every COSMIC Terminal running in the nested session (never the host's).
+# Kill every foot running on casement's socket (never the host's).
 kill_nested_terms() {
   local pid
-  for pid in $(pgrep -x cosmic-term); do
+  for pid in $(pgrep -x foot); do
     if tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null \
       | grep -qxE "WAYLAND_DISPLAY=($WL|${WL##*/})"; then
       kill "$pid" 2>/dev/null
@@ -120,7 +119,6 @@ start_dock_daemon() {
   printf '[dock]\npill_radius_px = %s\n' "$PILL_RADIUS" >"$CONFIG/sill/settings.toml"
   backdrop_seed "$CONFIG" || return 1
   launch_daemon || return 1
-  backdrop_up "$CONFIG" || return 1
   sill dock pin "$TERM_ID" >"$OUT_DIR/pin.log" 2>&1 || return 1
   await_dock || return 1
   sleep 1
@@ -132,7 +130,7 @@ step_exclusive_zone() {
   local height
   height=$(maximised_height) || return $?
   echo "output ${OUT_H}, maximised window ${height}, bar ${BAR_H}, dock ${RESERVE}" | tee "$OUT_DIR/exclusive-zone.log" >&2
-  shot "$SHOTS/dock-cosmic.png" >/dev/null 2>&1 || true
+  shot "$SHOTS/dock-casement.png" >/dev/null 2>&1 || true
   [ "$height" = "$(( OUT_H - BAR_H - RESERVE ))" ]
 }
 
@@ -156,7 +154,7 @@ EOF
   sleep 0.05
   sill debug pointer "$DOCK" $(( OUT_W / 2 )) "$PILL_Y" >/dev/null
   sleep 0.3
-  shot "$SHOTS/dock-cosmic-magnified.png" >/dev/null 2>&1 || true
+  shot "$SHOTS/dock-casement-magnified.png" >/dev/null 2>&1 || true
   read -r f1 c1 < <(counters_of "$DOCK")
   frames=$(( f1 - f0 )); callbacks=$(( c1 - c0 ))
   echo "sweep: frames $frames callbacks $callbacks" | tee -a "$log" >&2
@@ -180,7 +178,7 @@ step_launch() {
   x=$(first_tile_x)
   before=$(pixel "$DOCK" "$x" "$DOT_Y" "$OUT_W")
   cp "$OUT_DIR/pixel.png" "$OUT_DIR/launch-before.png"
-  echo "click the COSMIC Terminal tile at $x,$PILL_Y; dot pixel before: $before" >"$log"
+  echo "click the foot tile at $x,$PILL_Y; dot pixel before: $before" >"$log"
   start=$(date +%s%N)
   sill debug click "$DOCK" "$x" "$PILL_Y" >>"$log" 2>&1 || return 1
   sill debug leave "$DOCK" >/dev/null
@@ -241,7 +239,7 @@ step_menu() {
     sleep 0.05
   done
   sleep 0.5
-  shot "$SHOTS/dock-cosmic-menu.png" >/dev/null 2>&1 || true
+  shot "$SHOTS/dock-casement-menu.png" >/dev/null 2>&1 || true
   echo "popup $DOCK/popup opened: $opened" | tee -a "$log" >&2
   [ "$opened" = yes ]
 }
@@ -313,10 +311,10 @@ step_colour() {
   shoot_dock colour && [ "$(cached muted)" = 0 ] && [ "$(cached monochrome)" = 0 ]
 }
 
-# The launcher, queried for "cosmic" so COSMIC Terminal and Files show as rows: their own
+# The launcher, queried for "foot" so foot shows as a row: its own
 # hicolor icon on the row's plate, the fallback every entry takes (dev/out/launcher-icons.png).
 step_launcher() {
-  sill launcher open --query cosmic >>"$OUT_DIR/launcher.log" 2>&1
+  sill launcher open --query foot >>"$OUT_DIR/launcher.log" 2>&1
   local name="" rc=1
   for _ in $(seq 50); do name=$(surface_named sill-launcher-); [ -n "$name" ] && break; sleep 0.1; done
   if [ -n "$name" ]; then
@@ -375,7 +373,6 @@ cleanup() {
   local result=0
   stop_daemon || result=1
   kill_nested_terms
-  backdrop_down
   stop_private_bus
   stop_compositor
   scratch_drop
@@ -383,13 +380,13 @@ cleanup() {
 }
 
 start_compositor || exit 1
-nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (start_compositor failed)" >&2; exit 1; }
 if [ "$MODE" = icons ]; then
   build || exit 1
 else
   build "-p sill-testkit --example badge_emitter" || exit 1
   read -r OUT_W OUT_H < <(output_size)
-  [ -n "${OUT_W:-}" ] || { echo "no nested output (dev/nested.sh first)" >&2; exit 1; }
+  [ -n "${OUT_W:-}" ] || { echo "no nested output (start_compositor failed)" >&2; exit 1; }
 fi
 await_no_process || exit 1
 scratch_new

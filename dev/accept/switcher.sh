@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
-# App switcher acceptance (design/13 §13.3.5, design/20 §1.11), on the nested cosmic-comp
-# (dev/nested.sh; wayland-1 is pinged first, reused, never stopped or restarted). Starts `sill run`
+# App switcher acceptance (design/13 §13.3.5, design/20 §1.11), on casement
+# (brought up and ended by start_compositor). Starts `sill run`
 # from this checkout's build (SILL_PROFILE, debug by default; `--features debug`) with its own XDG_RUNTIME_DIR
 # (WAYLAND_DISPLAY as an absolute socket path) and a scratch XDG_CONFIG_HOME, and three windows of
 # its own inside the nested compositor, never the user's:
-#   term    `cosmic-term` (com.system76.CosmicTerm);
+#   term    `foot`;
 #   demo    shell-host's `demo_window` (app id `demo_window`), which prints its own activated
 #           state: the script's view of the nested toplevel state;
 #   calc    `kcalc` (org.kde.kcalc), the one Q closes.
 # Started term, demo, calc, so the most recently used order is calc, demo, term. Every window
 # is killed at the end.
 #
-# The chord is `sill switcher next|prev`, as COSMIC's WindowSwitcher runs it under dist/cosmic.
+# The chord is `sill switcher next|prev`, as the compositor's window-switch shortcut runs it.
 # Its modifier is Alt, injected with `sill debug key SURFACE Alt --action press|release`
 # (shell-host's `Inject::Key`, which moves the seat modifiers the switcher reads through
 # `use_modifiers`); its release is the release. The keys pressed while Alt is held are `sill debug
 # key SURFACE KEY` too, and nothing reaches the user's session: every key goes to the switcher
 # surface of this run's own daemon. The show delay is 400 ms (`switcher.show_delay_ms`). Right and
-# Left step as Tab and Shift+Tab do. The script needs the nested cosmic-comp for the windows
+# Left step as Tab and Shift+Tab do. The script needs casement for the windows
 # (toplevel activation), which the headless KWin does not offer.
 #
 #   1. Warm: `sill-switcher-<out>` exists from the start, hidden (its capture fails).
@@ -27,7 +27,7 @@
 #      reports a modifier held at the focus (the host session can leave it with Alt down; the
 #      line then says NOT PROVEN and the injected Alt's release commits it).
 #   3. Alt held, `next` shows the panel after the show delay, not before, on the three apps
-#      (screenshot dev/out/switcher-cosmic.png); `next` and `prev` move the selection (the
+#      (screenshot dev/out/switcher-casement.png); `next` and `prev` move the selection (the
 #      panel's pixels change, and come back); `cancel` hides it, and no window's activation
 #      changed, then or at Alt's release.
 #   4. Alt held, `next`, then past the delay `next` and `commit`: the third app in MRU order is
@@ -38,7 +38,7 @@
 #      it, and no window's activation changed.
 #   7. 5 s idle after it hides: 0 frames on the switcher surface.
 #
-# Usage: dev/nested.sh && dev/accept/switcher.sh
+# Usage: dev/accept/switcher.sh
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -51,11 +51,11 @@ SHOW_DELAY_MS=400
 
 start_compositor || exit 1
 if [ "$COMPOSITOR" = casement ]; then
-  # The switcher lists real toplevels (cosmic-term, shell-host's demo_window, kcalc) through the
+  # The switcher lists real toplevels (foot, shell-host's demo_window, kcalc) through the
   # compositor's toplevel protocols and a held Alt; casement's window management (activation, the
   # toplevel list, a focused app's modifiers) is P1/P2 work, and the apps themselves are not in
   # the jail's tools. Nothing here can be proven before that.
-  expected_skip "the app switcher needs real windows and casement's window management (P1/P2), and cosmic-term/kcalc are not jail tools"
+  expected_skip "the app switcher needs real windows and casement's window management (P1/P2), and foot/kcalc are not jail tools"
   stop_compositor
   exit 2
 fi
@@ -156,19 +156,19 @@ start_switcher_daemon() {
 }
 
 # The three windows, each waited for; demo's state lines go to demo.log. Each starts through
-# run.sh directly (it execs), so the pid kept is the window's own and the kill reaches it.
+# `nested` (it execs), so the pid kept is the window's own and the kill reaches it.
 start_windows() {
-  "$SHELL_HOST_DEV/run.sh" cosmic-term >"$OUT_DIR/term.log" 2>&1 &
+  nested foot >"$OUT_DIR/term.log" 2>&1 &
   PIDS+=($!)
   sleep 2
   : >"$OUT_DIR/demo.log"
   rm -f "$OUT_DIR/demo.in"
   mkfifo "$OUT_DIR/demo.in"
-  "$SHELL_HOST_DEV/run.sh" "$DEMO" <"$OUT_DIR/demo.in" >"$OUT_DIR/demo.log" 2>&1 &
+  nested "$DEMO" <"$OUT_DIR/demo.in" >"$OUT_DIR/demo.log" 2>&1 &
   PIDS+=($!)
   exec 8>"$OUT_DIR/demo.in"
   wait_demo Active 30000 || { echo "demo_window never became active" >&2; return 1; }
-  QT_QPA_PLATFORM=wayland "$SHELL_HOST_DEV/run.sh" kcalc >"$OUT_DIR/calc.log" 2>&1 &
+  nested env QT_QPA_PLATFORM=wayland kcalc >"$OUT_DIR/calc.log" 2>&1 &
   CALC_PID=$!
   PIDS+=("$CALC_PID")
   wait_demo Inactive 10000 || { echo "kcalc never took the focus" >&2; return 1; }
@@ -177,7 +177,7 @@ start_windows() {
 
 stop_windows() {
   local pid display
-  display=$(source "$SHELL_HOST_DEV/.nested-env" && echo "$WAYLAND_DISPLAY")
+  display=$WL
   exec 8>&- 2>/dev/null
   for pid in "${PIDS[@]}"; do
     pkill -P "$pid" 2>/dev/null
@@ -185,9 +185,9 @@ stop_windows() {
   done
   for pid in "${PIDS[@]}"; do wait "$pid" 2>/dev/null; done
   PIDS=()
-  # cosmic-term hands its window to a process of its own: the one in the nested session started
+  # foot may hand its window to a process of its own: the one on this socket started
   # from this checkout (never the host's, never another checkout's).
-  for pid in $(pgrep -x cosmic-term); do
+  for pid in $(pgrep -x foot); do
     [ "$(readlink "/proc/$pid/cwd")" = "$SILL_REPO" ] || continue
     tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "WAYLAND_DISPLAY=$display" \
       && kill "$pid" 2>/dev/null
@@ -280,7 +280,7 @@ step_show_move_cancel() {
   panel_to "$OUT_DIR/early.png" && early=panel
   shown=$(wait_panel 2000) || { echo "the panel never showed" >&2; wait "$HOLD"; return 1; }
   sleep 0.3
-  shot "$SHOTS/switcher-cosmic.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
+  shot "$SHOTS/switcher-casement.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
   panel_to "$OUT_DIR/a.png"
   sill switcher next >>"$log" 2>&1; sleep 0.4; panel_to "$OUT_DIR/b.png"
   sill switcher prev >>"$log" 2>&1; sleep 0.4; panel_to "$OUT_DIR/c.png"
@@ -378,7 +378,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (start_compositor failed)" >&2; exit 1; }
 build_switcher || exit 1
 await_no_process || exit 1
 start_private_bus || exit 1
@@ -387,5 +387,5 @@ start_windows || exit 1
 run_steps step_warm step_quick_tap step_show_move_cancel step_commit_third step_real_keys \
   step_quit step_idle
 status=$STATUS
-echo "logs in $OUT_DIR; screenshot $SHOTS/switcher-cosmic.png"
+echo "logs in $OUT_DIR; screenshot $SHOTS/switcher-casement.png"
 exit "$status"

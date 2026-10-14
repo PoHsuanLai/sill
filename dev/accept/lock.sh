@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# sill's own lock screen acceptance (design/20 §1.9), on the nested cosmic-comp ONLY (dev/nested.sh;
-# wayland-1 is pinged first, reused, and never stopped or restarted). Starts `sill run` from this
+# sill's own lock screen acceptance (design/20 §1.9), on casement ONLY (brought up and ended by start_compositor). Starts `sill run` from this
 # checkout's debug build (`--features debug`) with a scratch XDG_CONFIG_HOME, XDG_STATE_HOME and
 # XDG_CACHE_HOME, its own XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY, so the
 # lock marker and the single-instance lock are the script's), under a private session bus.
@@ -16,12 +15,12 @@
 #      (`session_locker`) is refused (exit 3) while sill holds the lock.
 #   2. A capture of every output's lock surface (`sill-lock/<out>`; `debug stats` does not list
 #      lock surfaces); the prompt's output shows the clock and the field
-#      (dev/out/lock-cosmic.png), and its pixels differ from a clock-only surface's in the
+#      (dev/out/lock-casement.png), and its pixels differ from a clock-only surface's in the
 #      prompt's band.
 #   3. `sill debug auth refuse`: the prompt spins then shakes (captures in the prompt's band
 #      differ from the idle one, and settle back to it), and the session stays locked.
 #   4. Five more refusals (six wrongs): no lockout, so the prompt settles back to the
-#      idle field every time (dev/out/lock-sixwrong-cosmic.png; the band matches the idle one, no
+#      idle field every time (dev/out/lock-sixwrong-casement.png; the band matches the idle one, no
 #      "Try again at" line), still locked.
 #   5. 5 s idle while locked: 0 commits on the lock surfaces (counted from the daemon's
 #      WAYLAND_DEBUG=client log, since `debug stats` has no lock rows).
@@ -35,7 +34,7 @@
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes).
 #
-# Usage: dev/nested.sh && dev/accept/lock.sh
+# Usage: dev/accept/lock.sh
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -201,9 +200,9 @@ EOF
     fi
   done
   sill debug stats | grep -c '"sill-lock/' | xargs -I{} echo "debug stats rows for lock surfaces: {}" | tee -a "$log" >&2
-  [ -n "$PROMPT_OUT" ] && cp "$OUT_DIR/lock-$PROMPT_OUT.png" "$SHOTS/lock-cosmic.png"
+  [ -n "$PROMPT_OUT" ] && cp "$OUT_DIR/lock-$PROMPT_OUT.png" "$SHOTS/lock-casement.png"
   cp "$OUT_DIR/lock-$PROMPT_OUT.png" "$OUT_DIR/idle.png" 2>/dev/null
-  echo "the prompt is on $PROMPT_OUT: $SHOTS/lock-cosmic.png; backdrops written: $(find "$CACHE" -name '*-backdrop.png' | wc -l)" | tee -a "$log" >&2
+  echo "the prompt is on $PROMPT_OUT: $SHOTS/lock-casement.png; backdrops written: $(find "$CACHE" -name '*-backdrop.png' | wc -l)" | tee -a "$log" >&2
   [ "$ok" = 0 ] && [ "$best" -gt 200 ]
 }
 
@@ -252,9 +251,9 @@ step_no_lockout() {
     sleep 0.9
   done
   sleep 0.5
-  capture_lock "$PROMPT_OUT" "$SHOTS/lock-sixwrong-cosmic.png"
-  diff=$(band_diff "$OUT_DIR/idle.png" "$SHOTS/lock-sixwrong-cosmic.png" 70 97)
-  echo "six wrongs: $diff pixels differ from the idle prompt (no 'Try again at' line: no lockout); status $(lock_phase); $SHOTS/lock-sixwrong-cosmic.png" \
+  capture_lock "$PROMPT_OUT" "$SHOTS/lock-sixwrong-casement.png"
+  diff=$(band_diff "$OUT_DIR/idle.png" "$SHOTS/lock-sixwrong-casement.png" 70 97)
+  echo "six wrongs: $diff pixels differ from the idle prompt (no 'Try again at' line: no lockout); status $(lock_phase); $SHOTS/lock-sixwrong-casement.png" \
     | tee -a "$log" >&2
   [ "$diff" -lt 150 ] && [ "$(lock_phase)" = "locked" ]
 }
@@ -347,7 +346,7 @@ step_crash_relocks() {
   start_lock_daemon daemon-restarted.log || return 1
   start=$(now_ms)
   again=$(until_phase "$start" "locked" 3000)
-  capture_lock "$FIRST" "$OUT_DIR/relocked.png" && cp "$OUT_DIR/relocked.png" "$SHOTS/lock-relocked-cosmic.png"
+  capture_lock "$FIRST" "$OUT_DIR/relocked.png" && cp "$OUT_DIR/relocked.png" "$SHOTS/lock-relocked-casement.png"
   start=$(now_ms)
   sill debug auth accept >>"$log" 2>&1
   took=$(until_phase "$start" "unlocked" 3000)
@@ -398,7 +397,7 @@ recover() {
 }
 
 WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 || {
-  echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
+  echo "no nested compositor at $WL (start_compositor failed)" >&2; exit 1; }
 build_all || exit 1
 await_no_process || exit 1
 trap recover EXIT
@@ -413,5 +412,5 @@ fi
 recover
 trap - EXIT
 scratch_drop
-echo "logs in $OUT_DIR; screenshots $SHOTS/lock-cosmic.png, $SHOTS/lock-sixwrong-cosmic.png"
+echo "logs in $OUT_DIR; screenshots $SHOTS/lock-casement.png, $SHOTS/lock-sixwrong-casement.png"
 exit "$status"

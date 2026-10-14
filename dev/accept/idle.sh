@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# sill's own idle acceptance, on the nested cosmic-comp ONLY (dev/nested.sh; wayland-1 is pinged
-# first, reused, and never stopped or restarted). Its "displays" are windows on the host, so
-# powering them off darkens nothing real.
+# sill's own idle acceptance, on casement ONLY (brought up and ended by start_compositor). Its
+# "displays" are headless outputs, so powering them off darkens nothing real.
 #
 # SAFETY. Nothing here reaches logind, the session bus's org.freedesktop.ScreenSaver, PAM, a
 # backlight or wayland-0:
@@ -10,11 +9,11 @@
 #   SetIdleHint and Inhibit (it sends PrepareForSleep and Lock on command);
 # - the daemon gets its own XDG_RUNTIME_DIR, XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME,
 #   the nested socket as an absolute WAYLAND_DISPLAY (the script refuses wayland-0), and
-#   XDG_CURRENT_DESKTOP=COSMIC so it resolves a sill session (Host::SillSession) and owns idle;
+#   XDG_CURRENT_DESKTOP=quire so it resolves a sill session (Host::SillSession) and owns idle;
 # - short idle times come from `sill run --idle-times`, which only a debug build takes;
 # - no password is typed: an asked lock is opened with `sill debug auth accept` (debug build);
 # - no input is typed anywhere: a wake is `sill debug idle-wake` (debug build), a made-up
-#   `resumed` (the nested cosmic-comp counts no synthetic input as activity);
+#   `resumed` (the compositor counts no synthetic input as activity);
 # - whatever fails, the script ends by accepting on the daemon, quitting it, and running the
 #   recovery lock-and-unlock (`session_locker 0`), so the nested session is left unlocked.
 #
@@ -32,7 +31,7 @@
 #      captured twice while dimmed: early in the fade and once `--t-idle-dim` (2 s) has run.
 #      Both must be the black scrim (every pixel RGB 0), the early one lighter than the late
 #      one, and the late one at 50 % (alpha 128 +- 12). The late capture is kept as
-#      dev/out/idle-dim.png, with the nested screen at that moment as dev/out/idle-dim-cosmic.png
+#      dev/out/idle-dim.png, with the nested screen at that moment as dev/out/idle-dim-casement.png
 #      (non-fatal). Once the displays are off the surface is unmapped again. The power-off order
 #      is looked for in the WAYLAND_DEBUG=client log (set_mode(off) before
 #      ext_session_lock_v1.locked, and no `failed`); the nested winit outputs refuse power
@@ -53,7 +52,7 @@
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes).
 #
-# Usage: dev/nested.sh && dev/accept/idle.sh
+# Usage: dev/accept/idle.sh
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -74,13 +73,12 @@ mkdir -p "$CONFIG/sill"
 LOGIND=
 TIMES="6,0"
 DAEMON_LOG="$OUT_DIR/daemon.log"
-# The daemon resolves a sill session (Host::SillSession) and owns idle only as COSMIC.
-COSMIC_ENV=(XDG_CURRENT_DESKTOP=COSMIC)
-IN_ENV_EXTRA=("${COSMIC_ENV[@]}")
+# The daemon resolves a sill session (Host::SillSession) and owns idle only as the sill session's desktop (quire, as desktop-session sets it).
+SESSION_ENV=(XDG_CURRENT_DESKTOP=quire)
+IN_ENV_EXTRA=("${SESSION_ENV[@]}")
 
 nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
-# A wake: `sill debug idle-wake` stands in for the compositor's `resumed` (the nested
-# cosmic-comp 1.8 counts no virtual-keyboard input as activity, and a key typed into the host's
+# A wake: `sill debug idle-wake` stands in for the compositor's `resumed` (the compositor counts no virtual-keyboard input as activity, and a key typed into a
 # window of it would be real input on the person's own session).
 # It also holds every idle notification afresh, so the idle timers count from here.
 wake() { sill debug idle-wake >/dev/null; }
@@ -181,10 +179,10 @@ start_idle_daemon() {
   backdrop_seed "$CONFIG" || return 1
   printf '[session]\nlock_grace_s = 5\n\n[idle]\ndim_s = 3\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
     >"$CONFIG/sill/settings.toml"
-  IN_ENV_EXTRA=("${COSMIC_ENV[@]}" "$@")
+  IN_ENV_EXTRA=("${SESSION_ENV[@]}" "$@")
   launch_daemon --idle-times "$TIMES"
   local launched=$?
-  IN_ENV_EXTRA=("${COSMIC_ENV[@]}")
+  IN_ENV_EXTRA=("${SESSION_ENV[@]}")
   [ "$launched" = 0 ] || return 1
   [ "$(until_match "$(now_ms)" idle_state '^own ' 30000)" -ge 0 ] \
     || { echo "idle is not own: $(idle_state)" >&2; return 1; }
@@ -231,7 +229,7 @@ step_dim_off_lock() {
   capture_dim "$OUT_DIR/dim-early.png" && early=$(scrim_of "$OUT_DIR/dim-early.png")
   late=$(capture_dim_at_level "$OUT_DIR/dim-late.png" 4000)
   local late_at=$(( $(now_ms) - start ))
-  shot "$SHOTS/idle-dim-cosmic.png" >>"$log" 2>&1 \
+  shot "$SHOTS/idle-dim-casement.png" >>"$log" 2>&1 \
     || echo "nested screenshot failed (non-fatal)" >&2
   cp "$OUT_DIR/dim-late.png" "$SHOTS/idle-dim.png" 2>/dev/null
   off=$(until_match "$start" idle_state ' displays_off ' 25000)
@@ -475,7 +473,7 @@ recover() {
 }
 
 WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 || {
-  echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
+  echo "no nested compositor at $WL (start_compositor failed)" >&2; exit 1; }
 build "-p sill-testkit --example session_locker --example logind_standin --example screensaver_client" || exit 1
 await_no_process || exit 1
 trap recover EXIT

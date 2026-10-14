@@ -4,24 +4,23 @@
 # is ever reached), with a scratch HOME and XDG directories, its own XDG_RUNTIME_DIR and a fake
 # DDC, and quits it at the end.
 #
-# Default: the nested cosmic-comp (dev/nested.sh; its socket is reused and never stopped, design/20
-# §1.14), with one fake MPRIS player (sill-testkit's `mpris_player` example) on the private bus.
+# Default: casement (brought up and ended by start_compositor), with one fake MPRIS player (sill-testkit's `mpris_player` example) on the private bus.
 # Another sill daemon started from a `target/*/sill run` is waited for (up to 10 minutes), so two
 # shells never share the nested output's screenshots.
 #
 #   1. With the default `widgets.center` (Calendar, Up Next, Battery), `sill notifications open`: a
 #      capture of the center shows three widget tiles under the history (Battery says "No
 #      batteries": the private bus has no UPower and no BlueZ). Screenshot
-#      dev/out/widgets-center-cosmic.png.
+#      dev/out/widgets-center-casement.png.
 #   2. `widgets.center` = all five and two world clocks, `sill reload`: five tiles, Now Playing
-#      showing the fake player (dev/out/widgets-center-all-cosmic.png).
+#      showing the fake player (dev/out/widgets-center-all-casement.png).
 #   3. 5 s idle while open, clear of the minute's turn, with the fake player paused (over MPRIS
 #      on the private bus: a playing track's position steps once a second, which is motion,
 #      not idle): 0 frames on the center.
 #   4. `sill widgets toggle-desktop`: `sill-desktop-widgets-<out>` appears in `sill debug stats`,
 #      `widgets.desktop = "on"` in the file, and a capture of the layer shows two frames
-#      (Calendar and Battery) at the top right with nothing painted between them; a COSMIC
-#      Terminal opened in the nested session beside them (dev/out/widgets-desktop-cosmic.png:
+#      (Calendar and Battery) at the top right with nothing painted between them; a foot
+#      terminal opened on casement beside them (dev/out/widgets-desktop-casement.png:
 #      the layer over the wallpaper, with a window). Then shell-host's probe window, maximised,
 #      must hide the first frame (the layer is under windows). The placements are saved in the
 #      scratch `$XDG_STATE_HOME/sill/desktop-widgets.json`.
@@ -33,25 +32,25 @@
 #      up to row 1; dropped, the swap is kept. The file then names the output. Captures of the layer
 #      before, lifted, dropped, making room and after (target/accept-widgets/drag-*.png), one held
 #      half a cell off its snap cell so quire's slot guide shows beside the lifted card
-#      (dev/out/widgets-drag-guide-cosmic.png), and a screenshot after
-#      (dev/out/widgets-drag-cosmic.png).
+#      (dev/out/widgets-drag-guide-casement.png), and a screenshot after
+#      (dev/out/widgets-drag-casement.png).
 #   6. 5 s idle: 0 frames on the desktop layer.
 #   7. World Clock on the desktop (`world_clocks` = Pacific/Kiritimati and Pacific/Pago_Pago, and the
 #      daemon's TZ is Pacific/Kiritimati): the first city is here, its day line says "Today"; the
 #      second, 25 hours behind, is on another date and its day line says it ("Fri 2 Oct"), which is
-#      wider. Measured on the layer's capture (dev/out/widgets-clock-dates-cosmic.png).
+#      wider. Measured on the layer's capture (dev/out/widgets-clock-dates-casement.png).
 #   8. The desktop's context menu, through shell-host's real pointer path (`surface_click --button
-#      secondary` on the layer: `sill debug click` on KWin and cosmic-comp, a real right press through
+#      secondary` on the layer: `sill debug click` on KWin, a real right press through
 #      casement's inject on casement): a secondary press on the bare desktop opens a popup of
 #      three entries, Change Wallpaper..., Edit Widgets... and Show View Options
-#      (dev/out/widgets-desktop-menu-cosmic.png). Change Wallpaper... starts the wallpaper picker
-#      (a scratch desktop entry standing in for COSMIC Settings' Wallpaper page, whose Exec writes a
+#      (dev/out/widgets-desktop-menu-casement.png). Change Wallpaper... starts the wallpaper picker
+#      (a scratch desktop entry standing in for Settings' Wallpaper page, whose Exec writes a
 #      marker); Edit Widgets... maps `sill-edit-widgets-<out>` on this output; hovering Show View
-#      Options opens its submenu (dev/out/widgets-view-options-cosmic.png) and picking Large
+#      Options opens its submenu (dev/out/widgets-view-options-casement.png) and picking Large
 #      writes `widgets.desktop_cell_px = 196`, the layer's frames grow to match, and picking
 #      Standard puts 164 back.
 #   9. `sill widgets edit`: `sill-edit-widgets-<out>` maps, showing quire's widget gallery beside
-#      the desktop's widgets (a capture, and dev/out/widgets-edit-cosmic.png); 3 s idle on it: 0
+#      the desktop's widgets (a capture, and dev/out/widgets-edit-casement.png); 3 s idle on it: 0
 #      frames; `sill widgets edit-close` unmaps it again.
 #  10. A second toggle removes the surface and writes `widgets.desktop = "off"`.
 #
@@ -103,13 +102,13 @@
 #   3. In that sheet, World Clock and Add to Desktop: the second output's own list in
 #      `desktop-widgets.json` is the three widgets, the first output has none (it follows the
 #      setting, which is untouched), and the second layer shows three frames, the first two
-#      (dev/out/widgets-outputs-sheet-cosmic.png).
+#      (dev/out/widgets-outputs-sheet-casement.png).
 #   4. On the first output the same way, Remove on its Batteries: its list is the Calendar alone,
 #      the second output still has its three.
 #
 # Exit 0 only when every step passed; 1 on a failure.
 #
-# Usage: dev/nested.sh && dev/accept/widgets.sh
+# Usage: dev/accept/widgets.sh
 #        dev/accept/widgets.sh --real-input
 #        dev/accept/widgets.sh --outputs
 set -uo pipefail
@@ -229,14 +228,14 @@ start_nested_daemon() {
   # The daemon's zone is Pacific/Kiritimati (UTC+14): a World Clock city there is "Today", and
   # one in Pacific/Pago_Pago (UTC-11, 25 hours behind) is always on another date.
   IN_ENV_EXTRA+=(TZ=Pacific/Kiritimati)
-  # The wallpaper picker the desktop menu opens, a scratch desktop entry named as COSMIC
+  # The wallpaper picker the desktop menu opens, a scratch desktop entry named as
   # Settings' Wallpaper page whose Exec writes a marker: no real app is started.
   PICKER_MARK="$OUT_DIR/picker-opened"
   mkdir -p "$DATA/applications"
   printf '#!/bin/sh\necho opened >"%s"\n' "$PICKER_MARK" >"$OUT_DIR/picker.sh"
   chmod +x "$OUT_DIR/picker.sh"
   printf '[Desktop Entry]\nType=Application\nName=Wallpaper\nExec=%s\n' "$OUT_DIR/picker.sh" \
-    >"$DATA/applications/com.system76.CosmicSettings.Wallpaper.desktop"
+    >"$DATA/applications/org.quire.Settings.Wallpaper.desktop"
   in_env "$PLAYER" sillaccept --title "So What" --artist "Miles Davis" --album "Kind of Blue" &
   PLAYER_PID=$!
   launch_daemon || return 1
@@ -244,7 +243,6 @@ start_nested_daemon() {
   CENTER="sill-notification-center-$NAME"
   LAYER="sill-desktop-widgets-$NAME"
   sleep 1.5
-  backdrop_up "$CONFIG" || echo "backdrop: none (the shots show the bare compositor)" >&2
   # Let the wallpaper paint before the first screenshot.
   for _ in $(seq 50); do
     [ "$(frames_of "sill-wallpaper-$NAME")" -gt 0 ] 2>/dev/null && break
@@ -254,10 +252,10 @@ start_nested_daemon() {
   echo "daemon on a private bus and runtime dir $RUNTIME; $CENTER, $LAYER" >&2
 }
 
-# Kill every COSMIC Terminal on the nested socket (never the host's).
+# Kill every foot on casement's socket (never the host's).
 kill_terms() {
   local pid
-  for pid in $(pgrep -x cosmic-term); do
+  for pid in $(pgrep -x foot); do
     if tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "WAYLAND_DISPLAY=$WL"; then
       kill "$pid" 2>/dev/null
     fi
@@ -274,7 +272,7 @@ step_center_default() {
   wait_surface "$CENTER" 100 up || { echo "the center never mapped" >&2; return 1; }
   sleep 0.8
   capture_settled "$CENTER" "$OUT_DIR/center.png" || return 1
-  shot "$SHOTS/widgets-center-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-center-casement.png" || echo "screenshot failed" >&2
   center_tiles "$OUT_DIR/center.png" >"$OUT_DIR/center-tiles.txt"
   tiles=$(wc -l <"$OUT_DIR/center-tiles.txt")
   echo "default widgets.center: $tiles tiles under the history ($(tr '\n' ';' <"$OUT_DIR/center-tiles.txt"))" \
@@ -295,7 +293,7 @@ TOML
   sill_sent reload >>"$log" 2>&1 || return 1
   sleep 1
   capture_settled "$CENTER" "$OUT_DIR/center-all.png" || return 1
-  shot "$SHOTS/widgets-center-all-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-center-all-casement.png" || echo "screenshot failed" >&2
   center_tiles "$OUT_DIR/center-all.png" >"$OUT_DIR/center-all-tiles.txt"
   tiles=$(wc -l <"$OUT_DIR/center-all-tiles.txt")
   echo "all five: $tiles tiles ($(tr '\n' ';' <"$OUT_DIR/center-all-tiles.txt"))" | tee -a "$log" >&2
@@ -389,13 +387,13 @@ EOF2
     [ "${diff:-0}" -gt 30 ]
     return
   fi
-  # A COSMIC Terminal in the nested session (its own scratch config and private bus), over part
+  # A foot terminal on casement (its own scratch config and private bus), over part
   # of the layer.
-  in_env dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- cosmic-term \
+  in_env dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- foot \
     >"$OUT_DIR/term.log" 2>&1 &
   TERM_PID=$!
   sleep 3
-  shot "$SHOTS/widgets-desktop-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-desktop-casement.png" || echo "screenshot failed" >&2
   kill_terms
   # Under windows: shell-host's probe window, maximised, covers the whole work area; the first
   # frame's box in a screenshot then shows the probe's checkerboard, not the frame.
@@ -405,7 +403,7 @@ EOF2
   sleep 0.5
   shot "$OUT_DIR/covered.png" || echo "screenshot failed" >&2
   kill "$probe" 2>/dev/null; wait "$probe" 2>/dev/null
-  covered=$(python3 - "$SHOTS/widgets-desktop-cosmic.png" "$OUT_DIR/covered.png" \
+  covered=$(python3 - "$SHOTS/widgets-desktop-casement.png" "$OUT_DIR/covered.png" \
     "$(head -1 "$OUT_DIR/desktop-frames.txt")" "$BAR_H" <<'EOF'
 import sys
 from PIL import Image
@@ -465,7 +463,7 @@ step_drag() {
   drag_to "$cx" "$cy" $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.5
   capture_settled "$LAYER" "$OUT_DIR/drag-lifted.png" || return 1
-  shot "$SHOTS/widgets-drag-lifted-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-drag-lifted-casement.png" || echo "screenshot failed" >&2
   # quire's lift is the drag shadow, not a scale (`.ds-widget[data-lift=lifted]` in
   # sill-shell-kit/src/widget/frame.css): the card keeps its cell's size and the detected frame is at
   # most a few px wider where the shadow starts. So "lifted" is: the frame under the pointer, about a
@@ -485,7 +483,7 @@ print(r - l + 1, (l + r) // 2, (t + b) // 2)' $(( cx - 900 )) $(( cy + 360 )))
   pointer_move $(( cx - 900 + 70 )) $(( cy + 360 + 50 )) || return 1
   sleep 0.5
   capture_settled "$LAYER" "$OUT_DIR/drag-guide.png" || return 1
-  shot "$SHOTS/widgets-drag-guide-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-drag-guide-casement.png" || echo "screenshot failed" >&2
   pointer_move $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.3
   pointer_release $(( cx - 900 )) $(( cy + 360 )) || return 1
@@ -499,11 +497,11 @@ print(r - l + 1, (l + r) // 2, (t + b) // 2)' $(( cx - 900 )) $(( cy + 360 )))
   drag_to "$bx" "$by" $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.8
   capture_settled "$LAYER" "$OUT_DIR/drag-room.png" || return 1
-  shot "$SHOTS/widgets-drag-room-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-drag-room-casement.png" || echo "screenshot failed" >&2
   pointer_release $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.8
   capture_settled "$LAYER" "$OUT_DIR/drag-after.png" || return 1
-  shot "$SHOTS/widgets-drag-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-drag-casement.png" || echo "screenshot failed" >&2
   desktop_frames "$OUT_DIR/drag-after.png" >"$OUT_DIR/drag-after.txt"
   saved=$(tr -d '\n ' <"$STATE/sill/desktop-widgets.json" 2>/dev/null)
   echo "after: $(tr '\n' ';' <"$OUT_DIR/drag-after.txt") saved $saved" | tee -a "$log" >&2
@@ -575,7 +573,7 @@ TOML
   capture_patient "$LAYER" "$OUT_DIR/clock-dates.png" || return 1
   frame=$(desktop_frames "$OUT_DIR/clock-dates.png" | awk '$3 - $1 > 300 { print; exit }')
   [ -n "$frame" ] || { echo "no World Clock frame (over 300 px wide) on $LAYER" | tee -a "$log" >&2; return 1; }
-  shot "$SHOTS/widgets-clock-dates-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-clock-dates-casement.png" || echo "screenshot failed" >&2
   read -r here behind <<<"$(clock_day_widths "$OUT_DIR/clock-dates.png" "$frame")"
   echo "World Clock at $frame: the city here has a day line ${here:-?} px wide (\"Today\"), the city 25 hours behind ${behind:-?} px (a date)" \
     | tee -a "$log" >&2
@@ -647,7 +645,7 @@ menu_open_on() {
 
 # Hovers the popup of layer $1 at its local point ($2, $3), the menu last captured into
 # $OUT_DIR/menu.png (opened at MENU_AT). `sill debug pointer` stands in for a pointer motion on
-# KWin and cosmic-comp. On casement the pointer really moves, at the global point: the popup's
+# KWin. On casement the pointer really moves, at the global point: the popup's
 # card sits with its top left at the point the menu was opened at, and the card's corner in the
 # popup's own pixels is read off the capture (sheet_corner).
 popup_hover() {
@@ -703,7 +701,7 @@ step_desktop_menu() {
   rm -f "$PICKER_MARK" "$OUT_DIR/menu-edit.png"
   # The menu: three entries on the bare desktop.
   menu_open "$OUT_DIR/menu.png" || return 1
-  shot "$SHOTS/widgets-desktop-menu-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-desktop-menu-casement.png" || echo "screenshot failed" >&2
   lines=$(menu_lines "$OUT_DIR/menu.png")
   count=$(grep -vc '^x' <<<"$lines")
   x=$(sed -n 's/^x //p' <<<"$lines")
@@ -733,7 +731,7 @@ step_desktop_menu() {
   popup_hover "$LAYER" "$x" "$view_y" >>"$log" 2>&1 || return 1
   sleep 1
   sill debug capture "$LAYER/popup" "$OUT_DIR/menu-view.png" >>"$log" 2>&1 || return 1
-  shot "$SHOTS/widgets-view-options-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-view-options-casement.png" || echo "screenshot failed" >&2
   lines=$(menu_lines "$OUT_DIR/menu-view.png")
   count=$(grep -vc '^x' <<<"$lines")
   echo "View Options hovered: $count lines (3 entries, then the submenu's two headers and six choices)" | tee -a "$log" >&2
@@ -776,7 +774,7 @@ step_edit() {
   [ -n "$up" ] || { echo "$edit never mapped" | tee -a "$log" >&2; return 1; }
   sleep 1
   sill debug capture "$edit" "$OUT_DIR/edit.png" >>"$log" 2>&1 || return 1
-  shot "$SHOTS/widgets-edit-cosmic.png" || echo "screenshot failed" >&2
+  shot "$SHOTS/widgets-edit-casement.png" || echo "screenshot failed" >&2
   clear_of_the_minute
   f0=$(frames_of "$edit")
   sleep 3
@@ -808,7 +806,6 @@ cleanup_nested() {
   stop_daemon || result=1
   [ -z "$PLAYER_PID" ] || kill "$PLAYER_PID" 2>/dev/null
   pkill -f "$PLAYER sillaccept" 2>/dev/null
-  backdrop_down
   stop_private_bus
   stop_compositor
   scratch_drop
@@ -817,7 +814,7 @@ cleanup_nested() {
 
 run_nested() {
   start_compositor || exit 1
-  nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+  nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (start_compositor failed)" >&2; exit 1; }
   build_nested || exit 1
   await_no_process || exit 1
   start_private_bus || exit 1
@@ -826,7 +823,7 @@ run_nested() {
     step_drag step_desktop_idle step_clock_dates step_desktop_menu step_edit step_toggle_off
   status=$STATUS
   cleanup_nested || status=1
-  echo "logs in $OUT_DIR; screenshots $SHOTS/widgets-center-cosmic.png, $SHOTS/widgets-center-all-cosmic.png, $SHOTS/widgets-desktop-cosmic.png, $SHOTS/widgets-edit-cosmic.png"
+  echo "logs in $OUT_DIR; screenshots $SHOTS/widgets-center-casement.png, $SHOTS/widgets-center-all-casement.png, $SHOTS/widgets-desktop-casement.png, $SHOTS/widgets-edit-casement.png"
   exit "$status"
 }
 
@@ -1375,7 +1372,7 @@ step_outputs_add_on_the_second() {
   for _ in $(seq 30); do kinds=$(desktop_kinds "$SECOND"); [[ "$kinds" == *world_clock* ]] && break; sleep 0.2; done
   sleep 2
   capture_patient "sill-edit-widgets-$SECOND" "$OUT_DIR/sheet-added-$SECOND.png" || return 1
-  crop_over_ground "$OUT_DIR/sheet-added-$SECOND.png" "$SHOTS/widgets-outputs-sheet-cosmic.png" "0 0 1920 988"
+  crop_over_ground "$OUT_DIR/sheet-added-$SECOND.png" "$SHOTS/widgets-outputs-sheet-casement.png" "0 0 1920 988"
   echo "$SECOND's list: '$kinds'; $FIRST's: '$(desktop_kinds "$FIRST")'; the setting widgets.desktop_widgets: '$(setting_desktop_widgets)'; frames $(frames_on "$SECOND") and $(frames_on "$FIRST")" \
     | tee -a "$log" >&2
   sill widgets edit-close >>"$log" 2>&1 || return 1
@@ -1417,7 +1414,7 @@ run_outputs() {
     step_outputs_remove_on_the_first
   status=$STATUS
   cleanup_outputs
-  echo "logs and captures in $OUT_DIR; screenshot $SHOTS/widgets-outputs-sheet-cosmic.png"
+  echo "logs and captures in $OUT_DIR; screenshot $SHOTS/widgets-outputs-sheet-casement.png"
   exit "$status"
 }
 

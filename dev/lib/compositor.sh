@@ -1,18 +1,18 @@
-# Where the sibling shell-host checkout and this repo are, and the three compositors a script runs
-# on: the nested cosmic-comp (shell-host's nested.sh), shell-host's headless KWin (kwin-virtual.sh)
-# and casement (the sibling casement checkout's dev/up.sh, headless, INSIDE the jail: only
+# Where the sibling shell-host checkout and this repo are, and the two compositors a script runs
+# on: casement (the sibling casement checkout's dev/up.sh, headless, INSIDE the jail: only
 # dev/accept.sh --compositor casement, or a script run under ~/desktop/harness/jail.sh, can use
-# it). The nested-compositor and KWin harnesses belong to shell-host; sill only wraps them.
+# it) and shell-host's headless KWin (kwin-virtual.sh). The KWin harness belongs to shell-host;
+# sill only wraps it.
 #
-# SILL_COMPOSITOR=casement|cosmic|kwin picks the compositor for `start_compositor`; unset, each
-# script keeps its historical choice (cosmic where it ran nested, kwin where it ran headless
-# KWin: its `start_compositor --default ...`) until the S4 switch makes casement the default.
-# One set of helpers answers for all three: start_compositor / stop_compositor, set_scale,
+# SILL_COMPOSITOR=casement|kwin picks the compositor for `start_compositor`; unset, each script
+# keeps its own choice: casement by default, kwin where it runs headless KWin (its
+# `start_compositor --default kwin ...`).
+# One set of helpers answers for both: start_compositor / stop_compositor, set_scale,
 # require_scale, output_scale, output_size, shot, maximised_height and nested (a command in the
 # compositor's environment); input.sh has start_input / input / key / click.
 SILL_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SHELL_HOST_DEV="${SHELL_HOST_DEV:-$SILL_REPO/../shell-host/scripts/dev}"
-if [ ! -x "$SHELL_HOST_DEV/nested.sh" ]; then
+if [ ! -x "$SHELL_HOST_DEV/kwin-virtual.sh" ]; then
   echo "dev: shell-host's harness not found at $SHELL_HOST_DEV (set SHELL_HOST_DEV)" >&2
   exit 1
 fi
@@ -59,7 +59,7 @@ CASEMENT_ENV=
 # Casement's own bus (Debug1 lives on it): BUS is the script's, which a script that starts a bus per
 # group (launcher.sh) replaces, so casementctl keeps its own address.
 CASEMENT_BUS=
-# The compositor start_compositor started (casement, cosmic or kwin).
+# The compositor start_compositor started (casement or kwin).
 COMPOSITOR=
 # Where a script's logs and captures go: the target directory and dev/out in a checkout, but the
 # jail's own scratch dir inside one (A8: state never lands in the checkout, so jails run in parallel).
@@ -70,9 +70,6 @@ else
   SILL_OUT_ROOT="$SILL_TARGET"
   SILL_SHOTS="$SILL_REPO/dev/out"
 fi
-
-# Runs "$@" in the nested cosmic-comp's session (shell-host's run.sh).
-nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
 
 # The headless KWin, at $SIZE (or $1), on its private bus; sets WL (its socket, absolute) and BUS
 # (its private bus) from its env file, read without sourcing it into this shell: `kwin-virtual.sh
@@ -138,21 +135,6 @@ nested_output_size() {
   nested wayland-info | sed -n 's/.*logical_width: \([0-9]*\), logical_height: \([0-9]*\).*/\1 \2/p' | head -1
 }
 
-# Sets WL to the running nested cosmic-comp's socket (absolute), from the env file dev/nested.sh
-# wrote, read in a subshell so nothing of it reaches this shell. Fails when no such socket exists.
-# A script on the nested compositor then starts its own private bus (start_private_bus) and its
-# scratch tree (scratch_new); it never stops the compositor.
-use_nested_socket() {
-  local env_file="$SHELL_HOST_DEV/.nested-env" display
-  [ -f "$env_file" ] || { echo "no nested compositor (dev/nested.sh first)" >&2; return 1; }
-  display=$(source "$env_file" && echo "$WAYLAND_DISPLAY")
-  case "$display" in
-    /*) WL="$display" ;;
-    *) WL="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$display" ;;
-  esac
-  [ -S "$WL" ] || { echo "no nested compositor at $WL (dev/nested.sh first)" >&2; return 1; }
-}
-
 # True when a `sill run` of the person's draws on the compositor socket $WL (its WAYLAND_DISPLAY,
 # read from /proc): only a daemon on the same output is in this script's screenshots. Daemons on
 # other compositors (another agent's nested session, the real one) are none of its business.
@@ -182,26 +164,24 @@ await_no_process() {
 compositor_kind() {
   local kind="${SILL_COMPOSITOR:-$1}"
   case "$kind" in
-    casement|cosmic|kwin) echo "$kind" ;;
-    *) echo "dev: SILL_COMPOSITOR must be casement, cosmic or kwin, not '$kind'" >&2; return 1 ;;
+    casement|kwin) echo "$kind" ;;
+    *) echo "dev: SILL_COMPOSITOR must be casement or kwin, not '$kind'" >&2; return 1 ;;
   esac
 }
 
-# start_compositor [--default cosmic|kwin] [SIZE]: brings the compositor up and sets WL (its
+# start_compositor [--default casement|kwin] [SIZE]: brings the compositor up and sets WL (its
 # socket, absolute) and BUS (the private bus standing in for the session and the system bus).
-#   cosmic    the running nested cosmic-comp's socket (reused, never stopped) and a new private bus;
 #   kwin      shell-host's headless KWin at SIZE (default $SIZE) on its private bus;
 #   casement  dev/up.sh of the casement checkout in this jail: a headless casement on the
 #             wall clock at SIZE, its private bus (also fake-logind's), WL and BUS from its env file.
 # Needs OUT_DIR. Fails (exit code 2 for "not here") when casement is asked for outside the jail.
 start_compositor() {
-  local default=cosmic
+  local default=casement
   if [ "${1:-}" = --default ]; then default="$2"; shift 2; fi
   COMPOSITOR=$(compositor_kind "$default") || return 1
   case "$COMPOSITOR" in
     casement) start_casement "$@" ;;
     kwin) start_kwin "$@" ;;
-    cosmic) use_nested_socket && start_private_bus ;;
   esac
 }
 
@@ -210,7 +190,6 @@ stop_compositor() {
   case "$COMPOSITOR" in
     casement) stop_casement ;;
     kwin) stop_kwin ;;
-    cosmic) stop_private_bus ;;
   esac
   COMPOSITOR=
 }
@@ -283,13 +262,9 @@ expected_skip() {
   return 2
 }
 
-# Runs "$@" in the compositor's environment: the nested cosmic-comp's session (shell-host's
-# run.sh), or, on casement or KWin, the script's own socket and bus.
+# Runs "$@" in the compositor's environment: the script's own socket and bus.
 nested() {
-  case "$COMPOSITOR" in
-    casement|kwin) env WAYLAND_DISPLAY="$WL" XDG_RUNTIME_DIR="$(dirname "$WL")" DBUS_SESSION_BUS_ADDRESS="$BUS" "$@" ;;
-    *) "$SHELL_HOST_DEV/run.sh" "$@" ;;
-  esac
+  env WAYLAND_DISPLAY="$WL" XDG_RUNTIME_DIR="$(dirname "$WL")" DBUS_SESSION_BUS_ADDRESS="$BUS" "$@"
 }
 
 # The output's logical size, "W H".
@@ -302,10 +277,6 @@ o = json.load(sys.stdin)[0]
 print(*o["logical"])' ;;
     *) nested_output_size ;;
   esac
-}
-# The nested output's logical size, "W H", from wayland-info.
-nested_output_size() {
-  nested wayland-info | sed -n 's/.*logical_width: \([0-9]*\), logical_height: \([0-9]*\).*/\1 \2/p' | head -1
 }
 
 # The first output's name and scale (a decimal), by compositor.
@@ -345,11 +316,10 @@ require_scale() {
   return 1
 }
 
-# Shoots the whole output into $1 (a PNG): grim on the nested socket (shell-host's shot.sh) for
-# cosmic, `casementctl shot --output NAME` for casement (the last presented frame of that output, the
-# size answered as JSON; `--window` and `--masked` are P1-C1 and not used here). Returns 2
-# (expected skip) when this casement build has no capture at all; KWin's own scripts use spectacle
-# themselves.
+# Shoots the whole output into $1 (a PNG): `casementctl shot --output NAME` for casement (the last
+# presented frame of that output, the size answered as JSON; `--window` and `--masked` are P1-C1
+# and not used here). Returns 2 (expected skip) when this casement build has no capture at all;
+# KWin's own scripts use spectacle themselves.
 shot() {
   case "$COMPOSITOR" in
     casement)
@@ -360,14 +330,13 @@ shot() {
       rc=$?
       [ "$rc" != 2 ] || expected_skip "this casement build has no screenshot (casementctl shot exits 2)"
       return "$rc" ;;
-    # shell-host's shot.sh falls back to the host's session when no nested compositor answers, so
-    # it is never called without one.
-    *) nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor" >&2; return 1; }
-       "$SHELL_HOST_DEV/shot.sh" "$1" >/dev/null ;;
+    *) nested wayland-info >/dev/null 2>&1 || { echo "no compositor" >&2; return 1; }
+       mkdir -p "$(dirname "$1")"
+       nested grim "$1" >/dev/null ;;
   esac
 }
 
-# The height of a window that asks to be maximised on the output. Cosmic: shell-host's
+# The height of a window that asks to be maximised on the output. KWin: shell-host's
 # `probe_toplevel` (built on first use) stands in for foot, asks to be maximised and prints each
 # configure as JSON into $OUT_DIR/probe.log; prints the last maximised configure's height.
 # Casement: `casement-probe toplevel --maximised`, which prints the same facts as JSON lines;
