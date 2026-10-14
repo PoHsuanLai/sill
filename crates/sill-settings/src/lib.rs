@@ -74,7 +74,7 @@ pub use scroll::{
 pub use scrollbar::{ScrollbarSettings, TrackClick};
 pub use section::Section;
 pub use session::{LockClock, SessionSettings};
-pub use spaces::{DefaultCardAccent, SpacesSettings};
+pub use spaces::SpacesSettings;
 pub use switcher::SwitcherSettings;
 pub use voice::{HoldToTalk, VoiceConsent, VoiceSettings, params as voice_params};
 pub use widgets::{DesktopWidgets, WidgetKind, WidgetsSettings};

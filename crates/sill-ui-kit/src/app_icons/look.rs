@@ -6,8 +6,6 @@
 use ds::prelude::*;
 use ds::style::icon::retint::IconStyle;
 use ds::style::icon::retint::Tint;
-use ds::style::space::look::CardAccent;
-use ds::style::space::palette::derive;
 use ds::style::tokens::accent_table::accent_of;
 use ds_settings::{IconsSettings, MonochromeTint};
 
@@ -71,23 +69,14 @@ fn style_of(style: ds_settings::IconStyle) -> IconStyle {
     }
 }
 
-/// `icons.monochrome_tint`: the Space's accent, the card accent, or none.
+/// `icons.monochrome_tint`: the Space's hue, the appearance accent the card wears, or none.
 fn tint_of(tint: MonochromeTint, space: &SpaceLook, accent: Accent) -> Tint {
     match tint {
         MonochromeTint::Space => Tint::space(&space.dots),
         MonochromeTint::Accent => {
-            Tint::from_hex(&card_accent(space, accent)).unwrap_or(Tint::NEUTRAL)
+            Tint::from_hex(&accent_of(accent, Scheme::Light).fill.css()).unwrap_or(Tint::NEUTRAL)
         }
         _ => Tint::NEUTRAL,
-    }
-}
-
-/// The accent a card on this Space shows (light scheme, as `Tint::space` reads it): the Space's
-/// own when its card accent follows the Space, else the appearance accent.
-fn card_accent(space: &SpaceLook, accent: Accent) -> String {
-    match space.card_accent {
-        CardAccent::SpaceHue => derive(&space.dots, Scheme::Light).accent,
-        CardAccent::Chosen => accent_of(accent, Scheme::Light).fill.css(),
     }
 }
 
@@ -97,7 +86,6 @@ mod tests {
     use ds::prelude::*;
     use ds::style::icon::retint::IconStyle;
     use ds::style::icon::retint::Tint;
-    use ds::style::space::look::CardAccent;
     use ds::style::space::presets::default_look;
     use ds_settings::{IconsSettings, MonochromeTint};
 
@@ -115,7 +103,7 @@ mod tests {
     #[test]
     fn colour_and_muted_ignore_the_tint() {
         use ds_settings::IconStyle as S;
-        let work = default_look(0, Grain(35), CardAccent::Chosen);
+        let work = default_look(0, Grain(35));
         for (style, want) in [(S::Colour, IconStyle::Colour), (S::Muted, IconStyle::Muted)] {
             let look = icon_look(
                 &icons(style, MonochromeTint::Space),
@@ -135,12 +123,12 @@ mod tests {
     }
 
     /// Space follows the workspace's preset (Work near 268, Home near 152), Accent the card's
-    /// accent (Chosen: the appearance accent; SpaceHue: the Space's), Neutral none.
+    /// accent (the appearance accent, on every Space), Neutral none.
     #[test]
     fn monochrome_takes_its_tint_from_the_setting() {
         use ds_settings::IconStyle::Monochrome;
-        let work = default_look(0, Grain(35), CardAccent::Chosen);
-        let home = default_look(1, Grain(55), CardAccent::Chosen);
+        let work = default_look(0, Grain(35));
+        let home = default_look(1, Grain(55));
         let at = |tint, space, accent| {
             icon_look(&icons(Monochrome, tint), space, accent, Scheme::Light).tint
         };
@@ -162,10 +150,9 @@ mod tests {
             at(MonochromeTint::Accent, &work, Accent::Red),
             28.0
         ));
-        let home_hue = default_look(1, Grain(55), CardAccent::SpaceHue);
         assert!(hue_near(
-            at(MonochromeTint::Accent, &home_hue, Accent::Red),
-            152.0
+            at(MonochromeTint::Accent, &home, Accent::Red),
+            28.0
         ));
         assert_eq!(
             at(MonochromeTint::Neutral, &work, Accent::Red),
@@ -188,7 +175,7 @@ mod tests {
     #[test]
     fn only_a_retinted_style_keys_on_the_scheme() {
         use ds_settings::IconStyle as S;
-        let work = default_look(0, Grain(35), CardAccent::Chosen);
+        let work = default_look(0, Grain(35));
         let cases = [
             (S::Colour, Scheme::Light),
             (S::Muted, Scheme::Dark),
