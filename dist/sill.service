@@ -1,11 +1,11 @@
-# sill, the COSMIC shell, as a systemd user service.
+# sill, the shell, as a systemd user service.
 #
 # Install: copy to ~/.config/systemd/user/sill.service (adjust ExecStart if sill is not in
-# /usr/bin), then `systemctl --user enable --now sill.service` inside a COSMIC session.
+# /usr/bin), then `systemctl --user enable --now sill.service` inside a casement session.
 # `sill run` takes a single-instance lock (latchkey) and exits 0 when one is already running,
 # so a client that started the daemon on demand and this unit never race into two shells.
 [Unit]
-Description=sill, the COSMIC shell (bar, wallpaper, dock, launcher)
+Description=sill, the shell (bar, wallpaper, dock, launcher)
 Documentation=https://github.com/PoHsuanLai/sill
 PartOf=graphical-session.target
 After=graphical-session.target

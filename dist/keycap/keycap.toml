@@ -3,24 +3,24 @@
 # settings, which lie over /etc/keycap/keycap.toml, so the machine file can stay the Plasma one:
 # Plasma never forwards a user file and keeps its own mapping.
 #
-# Only the chords where the Plasma overlay and COSMIC differ are listed. A later layer cannot
-# delete a rule of an earlier one, only replace it, so each chord the overlay redirects and COSMIC
-# does not bind is restated here as what the built-in mapping would write.
+# Only the chords where the Plasma overlay and the sill session differ are listed. A later layer
+# cannot delete a rule of an earlier one, only replace it, so each chord the overlay redirects and
+# the sill session does not bind is restated here as what the built-in mapping would write.
 
 [profile.default]
 rules = [
   # Cmd+Space is sill's launcher: Super+Space (the overlay says Alt+Space, KRunner's key).
   { when = "command+space", then = "super+space" },
-  # Cmd+Shift+3/4/5 -> Print, which COSMIC binds to the Screenshot action (`sill screenshot area`).
+  # Cmd+Shift+3/4/5 -> Print, which the session binds to the Screenshot action (`sill screenshot area`).
   { when = "command+shift+3", then = "print" },
   { when = "command+shift+4", then = "print" },
   { when = "command+shift+5", then = "print" },
-  # Redirected by the overlay to Plasma shortcuts COSMIC does not have: back to the plain chord.
+  # Redirected by the overlay to Plasma shortcuts the sill session does not have: back to the plain chord.
   { when = "command+control+space", then = "ctrl+super+space" },
   { when = "command+control+f", then = "ctrl+super+f" },
   { when = "command+h", then = "ctrl+h" },
   { when = "command+f3", then = "ctrl+f3" },
-  # Works the same in both sessions (Super+Ctrl+Left/Right change workspace in COSMIC).
+  # Works the same in both sessions (Super+Ctrl+Left/Right change workspace).
   { when = "control+left", then = "ctrl+super+left" },
   { when = "control+right", then = "ctrl+super+right" },
   { when = "capslock", then = "ctrl+space" },

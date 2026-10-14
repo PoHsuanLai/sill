@@ -1,17 +1,14 @@
 # shellcheck shell=bash disable=SC2034
-# Shared by dist/install.sh and dist/uninstall.sh (sourced, never run). Where each piece of the
-# session goes, and the helpers that print every step and honour --dry-run.
+# Shared by dist/install.sh and dist/uninstall.sh (sourced, never run). Where each piece of sill
+# goes, and the helpers that print every step and honour --dry-run.
 #
-# Nothing here touches Plasma's files, Toshy's units or keycap's system files: the session is the
-# files below, the binary, and one user file for keycap (the sill layer), and nothing else.
+# Nothing here touches Plasma's files, Toshy's units or keycap's system files: sill is the files
+# below, the binary, and one user file for keycap (the sill layer), and nothing else.
 
 DIST="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$DIST/.." && pwd)"
 
 BIN_DEST=/usr/local/bin/sill
-SESSION_DEST=/usr/local/bin/sill-session
-DESKTOP_DEST=/usr/share/wayland-sessions/sill.desktop
-TARGET_DEST=/etc/systemd/user/sill-session.target
 PAM_DEST=/etc/pam.d/sill
 # What the shell can be asked to do (`org.quire.Shell`): intentd reads every manifest under
 # $XDG_DATA_DIRS/quire/intents/, and /usr/local/share is in the default XDG_DATA_DIRS.
@@ -22,10 +19,6 @@ SKILLS_DEST=/usr/local/share/quire/skills
 # sill's settings schema (every domain's keys, app `sill`): Settings (detent) reads every schema
 # under $XDG_DATA_DIRS/quire/settings/. The binary writes it (`sill --write-schema <dir>`).
 SCHEMA_DEST=/usr/local/share/quire/settings/sill.settings.toml
-# The seed files sill-session copies into ~/.config/cosmic when they are missing there: the
-# shortcuts (dist/cosmic) and the keyboard repeat. System-wide COSMIC defaults under
-# /usr/share/cosmic belong to cosmic-settings-daemon's package, so nothing is written there.
-SEED_DEST=/usr/local/share/sill
 # The sill session's keycap layer. sill forwards this user file to keycap, which lays it over
 # /etc/keycap/keycap.toml (the Plasma overlay, which Plasma never overrides); the file is copied
 # when missing and never overwritten.
@@ -68,9 +61,6 @@ put() {
 
 # skills: the skill files' paths relative to dist/skills, one per line (evals are not installed).
 skills() { (cd "$DIST/skills" && find . -type f -not -path '*/evals/*' | sed 's|^\./||' | sort); }
-
-# seeds: the seed files' paths relative to dist/cosmic, one per line.
-seeds() { (cd "$DIST/cosmic" && find . -type f | sed 's|^\./||' | sort); }
 
 # sibling_checkouts: the sibling repos the workspace names by path (`../quire`, ...), one per line.
 sibling_checkouts() {
