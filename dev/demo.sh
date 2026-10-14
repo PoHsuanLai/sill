@@ -354,8 +354,6 @@ cmd_start() {
     [ -n "$(surface_named sill-wallpaper-)" ] && break
     sleep 0.1
   done
-  backdrop_up "$CONFIG" || echo "backdrop: none (the shots show the bare compositor)" >&2
-  [ -z "$BACKDROP_PID" ] || record_proc backdrop "$BACKDROP_PID"
 
   start_terminal
   start_mail
