@@ -87,8 +87,8 @@ prebuild() {
     echo "== shell-host's probe_toplevel (the maximised-window probe), into its own target dir"
     (cd "$HOST_REPO" && CARGO_TARGET_DIR="$SILL_TARGET/shell-host-examples" cargo build --release -p shell-host \
       --features debug-inject --example probe_toplevel) || return 1
-    echo "== docket (confirm.sh's intentd and quire-do), into its own target dir"
-    (cd "${DOCKET_DIR:-$root/../docket}" && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p intentd -p docket-cli --bins --features intentd/test-proc-root) || return 1
+    echo "== docket (confirm.sh's accept-intentd and quire-do), into its own target dir"
+    (cd "${DOCKET_DIR:-$root/../docket}" && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p docket-accept --bin accept-intentd && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p docket-cli --bins) || return 1
     echo "== casement's tools"
     (cd "$CASEMENT_REPO" && CARGO_TARGET_DIR="${CASEMENT_TARGET:-$CASEMENT_REPO/target}" dev/bootstrap.sh --build-only) || return 1
   } >"$out/build.log" 2>&1 || { echo "accept.sh: the build failed (see $out/build.log)" >&2; return 1; }

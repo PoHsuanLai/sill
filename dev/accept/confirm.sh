@@ -50,7 +50,7 @@ SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
 DOCKET_DIR="${DOCKET_DIR:-$SILL_REPO/../docket}"
 DOCKET_TARGET="${DOCKET_TARGET:-$OUT_DIR/docket-target}"
-INTENTD="$DOCKET_TARGET/debug/intentd"
+INTENTD="$DOCKET_TARGET/debug/accept-intentd"
 QUIRE_DO="$DOCKET_TARGET/debug/quire-do"
 INTENTD_PID=
 ASKER=
@@ -62,8 +62,9 @@ mkdir -p "$CONFIG/sill" "$DATA/quire/intents"
 # intentd names a caller that owns no bus name by its cgroup, and only a terminal's child
 # (`vte-spawn-*.scope`) is the cli that `quire-do` must be; this script runs in whatever scope its
 # caller has (a gate, an agent's shell, a service), so it presents `quire-do` as a terminal's
-# child: intentd is built with docket's `test-proc-root` feature and reads its callers from a
-# scratch proc root, where `as_terminal` writes the cgroup of the process it then execs.
+# child: it runs docket-accept's `accept-intentd` (the shipped intentd ignores INTENTD_PROC_ROOT),
+# which reads its callers from a scratch proc root, where `as_terminal` writes the cgroup of the
+# process it then execs.
 PROC_ROOT="$OUT_DIR/proc"
 as_terminal() {
   mkdir -p "$PROC_ROOT/$$"
@@ -351,7 +352,7 @@ build_docket() {
     return 0
   fi
   {
-    (cd "$DOCKET_DIR" && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p intentd -p docket-cli --bins --features intentd/test-proc-root)
+    (cd "$DOCKET_DIR" && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p docket-accept --bin accept-intentd && CARGO_TARGET_DIR="$DOCKET_TARGET" cargo build -p docket-cli --bins)
   } >"$OUT_DIR/docket-build.log" 2>&1 || { echo "docket build failed (see $OUT_DIR/docket-build.log)" >&2; return 1; }
 }
 
