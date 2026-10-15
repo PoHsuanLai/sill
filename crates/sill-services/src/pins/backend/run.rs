@@ -72,10 +72,6 @@ fn seed(dir: &Path, tx: &watch::Sender<DockPins>, installed: &AppIndex) {
     }
 }
 
-fn apply(tx: &watch::Sender<DockPins>, event: PinEvent) {
-    tx.send_modify(|pins| *pins = step(std::mem::take(pins), event));
-}
-
 /// Saved before it is published: whoever sees the new pins finds them on disk too.
 fn apply_and_save(dir: &Path, tx: &watch::Sender<DockPins>, event: PinEvent) {
     let next = step(tx.borrow().clone(), event);
