@@ -26,7 +26,9 @@ const PICKED: Rgb8 = Rgb8 {
 
 #[test]
 fn the_reply_is_the_portals_array_of_one_colour_or_empty() {
-    let cases: [(&str, ColorReply, Vec<(f64, f64, f64)>); 3] = [
+    // `(case, the reply, the portal's array of (r, g, b))`.
+    type Case = (&'static str, ColorReply, Vec<(f64, f64, f64)>);
+    let cases: [Case; 3] = [
         ("cancelled", ColorReply::cancelled(), vec![]),
         (
             "a colour in 0..1",
