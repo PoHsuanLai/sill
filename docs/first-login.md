@@ -32,8 +32,14 @@ screen's session list the whole time. Nothing below changes Plasma's files.
 
    ```sh
    dist/install.sh --dry-run        # read it: every step is printed, nothing is changed
-   dist/install.sh                  # builds release (a few minutes), asks for sudo once
+   dist/install.sh                  # builds release (a few minutes), asks for root once
    ```
+
+   Options: `--prefix DIR` (default `/usr/local`), `--destdir DIR` (stage under DIR for packaging; nothing
+   is escalated), `--no-build` (install the release binary already built). Root comes from `$SUDO` if
+   set, else `sudo`, `doas` or `pkexec`; with none of them the commands that need root are printed at the
+   end for you to run. The repo's `.cargo/config.toml` links with `clang` and `mold`; where they are not
+   both installed the install links with `cc` instead, for that build only.
 
    It installs `/usr/local/bin/sill`, `/etc/pam.d/sill`, the intents manifest
    `/usr/local/share/quire/intents/org.quire.Shell.toml`, the skills and the settings schema; it also
@@ -45,6 +51,23 @@ screen's session list the whole time. Nothing below changes Plasma's files.
    ls /usr/local/bin/sill /etc/pam.d/sill ~/.config/keycap/keycap.toml
    ls /usr/share/wayland-sessions/ | grep -i casement
    ```
+   **System services sill uses (all optional).** Each feature below works only while its service runs
+   on the system bus, and hides quietly when the service is absent (no error, the item is just not
+   there). Fedora, Debian and Ubuntu desktops have most of them already; Arch installs none by default.
+
+   | Feature | Service | dnf | apt | pacman |
+   |---|---|---|---|---|
+   | Wi-Fi and network menu | NetworkManager | `NetworkManager` | `network-manager` | `networkmanager` |
+   | Bluetooth | BlueZ | `bluez` | `bluez` | `bluez` |
+   | Battery | UPower | `upower` | `upower` | `upower` |
+   | Power profile | power-profiles-daemon | `power-profiles-daemon` | `power-profiles-daemon` | `power-profiles-daemon` |
+   | Your picture and name | AccountsService | `accountsservice` | `accountsservice` | `accountsservice` |
+
+   Enable what you install (`sudo systemctl enable --now NetworkManager bluetooth upower power-profiles-daemon accounts-daemon`;
+   the unit names differ little between distributions). Two more programs are needed at run time:
+   `curl` (cover art, currency rates) and `xdg-utils` (opening links), the same package names on all
+   three. External monitor brightness needs the `i2c-dev` module and an ACL on `/dev/i2c-*`: the install
+   adds both unless a ddcutil package already does (`ddcutil` on all three).
 5. **keycap** replaces Toshy; the sill session has no Mac layout without it (Cmd stays Cmd). It is
    installed and running on this machine; if not, `~/keycap/install.sh --dry-run`, then
    `~/keycap/install.sh` (it builds and installs with sudo; see `~/keycap/README.md`, "Install").
@@ -85,8 +108,9 @@ screen's session list the whole time. Nothing below changes Plasma's files.
 8. **Mouse settings.** Plasma's per-mouse settings are not copied. casement's settings
    (`~/.config/casement/settings.toml`, `[pointer] natural_scroll`) hold the mouse options, and natural
    scroll is on by default. Change it there if you want the other direction.
-9. Do not install `dist/sill.service`, `dist/udev` or `dist/modules-load.d`, and do not enable
-   `voiced.service` (see "The agent stack" in section 3).
+9. Do not install `dist/sill.service` and do not enable `voiced.service` (see "The agent stack" in
+   section 3). `dist/udev` and `dist/modules-load.d` (external monitor brightness) are installed by
+   `dist/install.sh` itself, and only when no ddcutil udev rule exists on the machine.
 10. Log out of Plasma.
 
 ## 2. At the login screen
