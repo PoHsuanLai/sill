@@ -36,8 +36,8 @@ pub use bar_thumbs::{
     BarPicture, BarPictures, SpacePicture, ThumbAsks, ThumbRequest, thumbs_wanted,
 };
 pub use casement_protocols::vocab::{
-    Corner, KeyGesture, OverviewMode, OverviewState, ShellRole, Shown, SpaceKind, SplitSide,
-    WindowEntry, WireCode,
+    Corner, DragOutcome, KeyGesture, OverviewMode, OverviewState, ShellRole, Shown, SpaceKind,
+    SplitSide, WindowEntry, WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};

@@ -1218,3 +1218,12 @@ the workarounds above.
 - **Check at the gate.** `use_signal` / `use_hook` in `use_publish_layout`; `DrawnBar: PartialEq` (it is); `rect` equality to the whole
   pixel between quire's phase-published rects and the harness's `rect` (rounding may need a one-pixel tolerance); the lit-tile test
   assumes `data-drop` is only on the plus then; whether the surface's `logical` origin type is `i32`.
+
+## wave-2026-10-15/dragstart
+
+The Spaces bar shows its accepting state during a Mission Control window drag. `ShellNote::WindowDragBegin` / `WindowDragEnd`
+(from `ShellEvent::WindowDragBegin` / `WindowDragEnd`, quire_shell_v1 version 4) go through `spaces_bar::apply_note` to
+`SpacesBarLink::set_dragging`; `BarDrops` keeps the outputs with a drag under way and answers `DropState::Accepts` for every
+Space tile and the plus there, `DropState::Target` still wins for the tile under the window. No quire change: `SpacesBar`
+already draws `DropState::Accepts` through `SpaceTile::in_drag` and `add_drop`. Needs casement-protocols `08bcc62`; against a
+compositor older than version 4 nothing is sent and the bar behaves as before.

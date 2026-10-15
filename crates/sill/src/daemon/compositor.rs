@@ -219,6 +219,8 @@ pub fn apply(shell: &Shell, note: ShellNote) {
         | ShellNote::OverviewOutput { .. }
         | ShellNote::DropTarget { .. }
         | ShellNote::DropTargetNew { .. }
+        | ShellNote::WindowDragBegin { .. }
+        | ShellNote::WindowDragEnd { .. }
         | ShellNote::SpacePicture { .. }) => {
             crate::spaces_bar::apply_note(&shell.links.spaces_bar, &bar);
         }

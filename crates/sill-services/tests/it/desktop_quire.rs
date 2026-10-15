@@ -10,9 +10,9 @@ use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
 
 use casement_protocols::vocab::{
-    ActorKind, AppLifeKind, Corner, Emphasis, KeyGesture, MacMods, OverviewMode, OverviewState,
-    PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide, Toggle,
-    WindowEntry, WindowStateKind,
+    ActorKind, AppLifeKind, Corner, DragOutcome, Emphasis, KeyGesture, MacMods, OverviewMode,
+    OverviewState, PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide,
+    Toggle, WindowEntry, WindowStateKind,
 };
 use desktop_client::capture::{CaptureEvent, ShmFormat};
 use desktop_client::fake::FakeDesktop;
@@ -580,6 +580,15 @@ fn the_shell_protocols_events_become_notes_in_order() {
                 output: OutputName::new("DP-1"),
                 over: Shown::Hidden,
             },
+            ShellEvent::WindowDragBegin {
+                output: OutputName::new("DP-1"),
+                window: ToplevelIdentifier::new("id-2"),
+            },
+            ShellEvent::WindowDragEnd {
+                output: OutputName::new("DP-1"),
+                window: ToplevelIdentifier::new("id-2"),
+                outcome: DragOutcome::DroppedOnNew,
+            },
             ShellEvent::Killed,
         ],
     );
@@ -642,6 +651,15 @@ fn the_shell_protocols_events_become_notes_in_order() {
             ShellNote::DropTargetNew {
                 output: "DP-1".to_owned(),
                 over: Shown::Hidden
+            },
+            ShellNote::WindowDragBegin {
+                output: "DP-1".to_owned(),
+                window: "id-2".to_owned(),
+            },
+            ShellNote::WindowDragEnd {
+                output: "DP-1".to_owned(),
+                window: "id-2".to_owned(),
+                outcome: DragOutcome::DroppedOnNew,
             },
             ShellNote::Killed,
         ],

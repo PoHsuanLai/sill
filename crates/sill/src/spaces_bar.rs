@@ -6,7 +6,9 @@
 //! and sends the drop targets and the requests for pictures.
 
 use shell_host::HostHandle;
-use sill_model::desktop::{Outbox, OverviewNote, ShellNote, bar_show, commands_of, outgoing};
+use sill_model::desktop::{
+    Outbox, OverviewNote, ShellNote, Shown, bar_show, commands_of, outgoing,
+};
 use sill_ui_kit::links::{Links, SpacesBarLink};
 use tokio::runtime::Handle;
 
@@ -36,7 +38,7 @@ pub fn apply(link: &SpacesBarLink, note: &OverviewNote) {
 }
 
 /// What a note of the compositor's shell protocol does to the bar on `link`: the per-output
-/// overview, the tile under a dragged window and an answer to a request for a Space's picture
+/// overview, the tile under a dragged window, where a window drag begins and ends, and an answer to a request for a Space's picture
 /// are written to it; the overview as a whole goes through [`apply`]; every other note is not the
 /// bar's.
 ///
@@ -55,6 +57,8 @@ pub fn apply_note(link: &SpacesBarLink, note: &ShellNote) {
         ShellNote::OverviewOutput { output, shown } => link.set_output(output, *shown),
         ShellNote::DropTarget { output, space } => link.set_drop(output, space.clone()),
         ShellNote::DropTargetNew { output, over } => link.set_drop_new(output, *over),
+        ShellNote::WindowDragBegin { output, .. } => link.set_dragging(output, Shown::Shown),
+        ShellNote::WindowDragEnd { output, .. } => link.set_dragging(output, Shown::Hidden),
         ShellNote::SpacePicture {
             output,
             space,
@@ -111,7 +115,7 @@ pub fn spawn_picks(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
 #[cfg(test)]
 mod tests {
     use sill_model::desktop::{
-        BarDrops, BarShow, OverviewMode, OverviewNote, OverviewState, ShellNote, Shown,
+        BarDrops, BarShow, DragOutcome, OverviewMode, OverviewNote, OverviewState, ShellNote, Shown,
     };
     use sill_ui_kit::links::SpacesBarLink;
 
@@ -162,6 +166,10 @@ mod tests {
                 output: "DP-2".to_owned(),
                 over: Shown::Shown,
             },
+            ShellNote::WindowDragBegin {
+                output: "DP-2".to_owned(),
+                window: "id-1".to_owned(),
+            },
             ShellNote::Killed,
         ];
         for note in &notes {
@@ -170,6 +178,20 @@ mod tests {
         let outputs = link.latest().outputs;
         assert_eq!(outputs.bar_on(BarShow::Show, Some("DP-2")), BarShow::Show);
         assert_eq!(outputs.bar_on(BarShow::Show, Some("DP-1")), BarShow::Hide);
+        assert_eq!(
+            link.latest().drops,
+            BarDrops::default()
+                .with_new("DP-2", Shown::Shown)
+                .with_dragging("DP-2", Shown::Shown)
+        );
+        apply_note(
+            &link,
+            &ShellNote::WindowDragEnd {
+                output: "DP-2".to_owned(),
+                window: "id-1".to_owned(),
+                outcome: DragOutcome::Cancelled,
+            },
+        );
         assert_eq!(
             link.latest().drops,
             BarDrops::default().with_new("DP-2", Shown::Shown)

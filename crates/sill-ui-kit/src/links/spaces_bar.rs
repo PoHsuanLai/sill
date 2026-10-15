@@ -114,6 +114,15 @@ impl SpacesBarLink {
         self.edit(|feed| &mut feed.drops, |drops| drops.with_new(output, over));
     }
 
+    /// A window drag began (`Shown`) or ended (`Hidden`) on `output`: the tiles show that they
+    /// accept the window.
+    pub fn set_dragging(&self, output: &str, drag: Shown) {
+        self.edit(
+            |feed| &mut feed.drops,
+            |drops| drops.with_dragging(output, drag),
+        );
+    }
+
     /// The compositor answered a request for the picture of `space` on `output`.
     pub fn set_picture(&self, output: &str, space: SpaceId, answer: &SpacePicture) {
         self.edit(
@@ -195,6 +204,7 @@ mod tests {
         link.set_output("DP-1", Shown::Shown);
         link.set_drop("DP-1", Some(space.clone()));
         link.set_drop_new("DP-2", Shown::Shown);
+        link.set_dragging("DP-3", Shown::Shown);
         link.set_picture("DP-1", space.clone(), &SpacePicture::Png(vec![1]));
         link.set_layout("DP-1", Some(BarLayout::default()));
         let now = link.latest();
@@ -204,12 +214,14 @@ mod tests {
         );
         assert_eq!(now.drops.state_of(Some("DP-1"), &space), DropState::Target);
         assert_eq!(now.drops.new_state_of(Some("DP-2")), DropState::Target);
+        assert_eq!(now.drops.new_state_of(Some("DP-3")), DropState::Accepts);
         assert_eq!(now.pictures.seq_of("DP-1", &space), 1);
         assert_eq!(now.layouts.0.len(), 1);
         drop(follower.borrow_and_update());
         link.set_output("DP-1", Shown::Shown);
         link.set_drop("DP-1", Some(space));
         link.set_drop_new("DP-2", Shown::Shown);
+        link.set_dragging("DP-3", Shown::Shown);
         link.set_layout("DP-1", Some(BarLayout::default()));
         assert_eq!(follower.has_changed().ok(), Some(false));
         link.set_layout("DP-1", None);

@@ -7,7 +7,8 @@
 //! [`super::DesktopView`], not a note.
 
 use casement_protocols::vocab::{
-    Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown, SplitSide,
+    Corner, DragOutcome, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown,
+    SplitSide,
 };
 use porter_core::SpaceId;
 
@@ -94,6 +95,23 @@ pub enum ShellNote {
         output: String,
         /// `Shown` while the window is over the plus; `Hidden` when it left or the drag ended.
         over: Shown,
+    },
+    /// A window drag began in Mission Control on an output: the Spaces bar shows which of its
+    /// tiles accept the window, before the pointer is over any.
+    WindowDragBegin {
+        /// The output's name.
+        output: String,
+        /// The dragged window's identifier.
+        window: String,
+    },
+    /// The window drag in Mission Control is over on an output: the tiles stop accepting.
+    WindowDragEnd {
+        /// The output's name.
+        output: String,
+        /// The dragged window's identifier.
+        window: String,
+        /// Where it went.
+        outcome: DragOutcome,
     },
     /// The answer to a [`super::DesktopCommand::CaptureSpace`].
     SpacePicture {

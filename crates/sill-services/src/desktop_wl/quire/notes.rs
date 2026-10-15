@@ -71,6 +71,19 @@ pub fn note_of(event: &ShellEvent) -> Option<ShellNote> {
             output: output.as_str().to_owned(),
             over: *over,
         },
+        ShellEvent::WindowDragBegin { output, window } => ShellNote::WindowDragBegin {
+            output: output.as_str().to_owned(),
+            window: window.as_str().to_owned(),
+        },
+        ShellEvent::WindowDragEnd {
+            output,
+            window,
+            outcome,
+        } => ShellNote::WindowDragEnd {
+            output: output.as_str().to_owned(),
+            window: window.as_str().to_owned(),
+            outcome: *outcome,
+        },
         ShellEvent::Killed => ShellNote::Killed,
         // Slots are collected into the overview's layout until `OverviewDone`.
         _ => return None,

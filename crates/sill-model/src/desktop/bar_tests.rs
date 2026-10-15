@@ -342,3 +342,23 @@ fn a_laid_out_bar_gets_its_targets_and_a_request_per_space_and_nothing_again_unt
         ]
     );
 }
+
+#[test]
+fn every_tile_of_an_output_accepts_the_window_while_a_drag_is_under_way_and_the_one_under_it_is_lit()
+ {
+    let drag = BarDrops::default().with_dragging("DP-1", Shown::Shown);
+    assert_eq!(drag.state_of(Some("DP-1"), &id("ws-1")), DropState::Accepts);
+    assert_eq!(drag.new_state_of(Some("DP-1")), DropState::Accepts);
+    assert_eq!(drag.state_of(Some("DP-2"), &id("ws-1")), DropState::Idle);
+    assert_eq!(drag.new_state_of(None), DropState::Idle);
+    let over = drag.clone().with("DP-1", Some(id("ws-2")));
+    assert_eq!(over.state_of(Some("DP-1"), &id("ws-2")), DropState::Target);
+    assert_eq!(over.state_of(Some("DP-1"), &id("ws-1")), DropState::Accepts);
+    let on_plus = drag.clone().with_new("DP-1", Shown::Shown);
+    assert_eq!(on_plus.new_state_of(Some("DP-1")), DropState::Target);
+    let over_end = on_plus.with_dragging("DP-1", Shown::Hidden);
+    assert_eq!(
+        over_end.state_of(Some("DP-1"), &id("ws-1")),
+        DropState::Idle
+    );
+}
