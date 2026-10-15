@@ -31,7 +31,6 @@ pub fn SoundModule(
 ) -> Element {
     rsx! {
         LevelModule {
-            glyph: StatusState::Volume(volume),
             level_glyph: volume,
             title: device,
             level,

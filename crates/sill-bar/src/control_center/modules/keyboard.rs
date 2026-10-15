@@ -27,7 +27,6 @@ pub fn KeyboardModule() -> Element {
     };
     rsx! {
         LevelModule {
-            glyph: Icon::Keyboard,
             level_glyph: LevelGlyph::KeyboardBrightness,
             title: "Keyboard Brightness".to_owned(),
             level,

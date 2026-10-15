@@ -24,7 +24,6 @@ pub fn DisplayModule(
 ) -> Element {
     rsx! {
         LevelModule {
-            glyph: Icon::Sun,
             level_glyph: LevelGlyph::Brightness,
             title: "Display".to_owned(),
             level,
