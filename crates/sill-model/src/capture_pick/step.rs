@@ -1,6 +1,7 @@
 //! The picker's state and its one transition function.
 
 use super::ask::Ask;
+use super::color::{ColorAsking, ColorOutcome, ColorReply, Eyedropper};
 use super::plan::Candidates;
 use super::reply::{Picks, Reply, outcome_reply};
 
@@ -33,6 +34,9 @@ pub struct CapturePicker {
     /// What there is to share now, kept current while nothing is asked too.
     pub candidates: Candidates,
     pub asking: Option<Asking>,
+    /// The colour request on screen; open only while the eyedropper is drawn.
+    pub color: Option<ColorAsking>,
+    pub eyedropper: Eyedropper,
 }
 
 /// What the service is told.
@@ -46,6 +50,10 @@ pub enum CaptureCommand {
     Outputs(Vec<super::plan::OutputCandidate>),
     /// The person pressed Allow (with their picks) or cancelled.
     Answer(AskId, Outcome),
+    /// A surface draws the eyedropper (or stopped).
+    Eyedropper(Eyedropper),
+    /// The person clicked a colour with the eyedropper or cancelled.
+    ColorAnswer(AskId, ColorOutcome),
 }
 
 /// How the person ended the request.
@@ -62,6 +70,9 @@ pub enum CaptureEvent {
     Candidates(Candidates),
     Opened(Asking),
     Answered(AskId, Outcome),
+    Eyedropper(Eyedropper),
+    ColorOpened(ColorAsking),
+    ColorAnswered(AskId, ColorOutcome),
     /// The caller left the bus: nobody is waiting.
     CallerGone,
 }
@@ -71,6 +82,8 @@ pub enum CaptureEvent {
 pub enum CaptureOut {
     /// Return this to the caller of the request.
     Reply(AskId, Reply),
+    /// Return this to the caller of the colour request.
+    ColorReply(AskId, ColorReply),
 }
 
 /// Whether a request may be opened.
@@ -81,11 +94,11 @@ pub enum Admit {
     Busy,
 }
 
-/// Whether `Opened` is taken now.
+/// Whether `Opened` or `ColorOpened` is taken now: one question of either kind at a time.
 pub fn admits(state: &CapturePicker) -> Admit {
-    match state.asking {
-        None => Admit::Yes,
-        Some(_) => Admit::Busy,
+    match (&state.asking, &state.color) {
+        (None, None) => Admit::Yes,
+        (Some(_), _) | (_, Some(_)) => Admit::Busy,
     }
 }
 
@@ -123,9 +136,41 @@ pub fn step(state: CapturePicker, event: CaptureEvent) -> (CapturePicker, Vec<Ca
             }
             Some(_) | None => (state, Vec::new()),
         },
+        CaptureEvent::Eyedropper(eyedropper) => (
+            CapturePicker {
+                eyedropper,
+                ..state
+            },
+            Vec::new(),
+        ),
+        CaptureEvent::ColorOpened(asking) => match (admits(&state), state.eyedropper) {
+            (Admit::Busy, _) => (state, Vec::new()),
+            (Admit::Yes, Eyedropper::Absent) => (
+                state,
+                vec![CaptureOut::ColorReply(asking.id, ColorReply::cancelled())],
+            ),
+            (Admit::Yes, Eyedropper::Present) => (
+                CapturePicker {
+                    color: Some(asking),
+                    ..state
+                },
+                Vec::new(),
+            ),
+        },
+        CaptureEvent::ColorAnswered(id, outcome) => match &state.color {
+            Some(asking) if asking.id == id => (
+                CapturePicker {
+                    color: None,
+                    ..state
+                },
+                vec![CaptureOut::ColorReply(id, ColorReply::of(outcome))],
+            ),
+            Some(_) | None => (state, Vec::new()),
+        },
         CaptureEvent::CallerGone => (
             CapturePicker {
                 asking: None,
+                color: None,
                 ..state
             },
             Vec::new(),

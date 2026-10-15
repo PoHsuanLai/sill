@@ -12,6 +12,10 @@
 //!   from the compositor arm's `DesktopView` ([`CaptureCommand::Windows`]), by the identifiers
 //!   casement publishes. A call waits on the person (Allow or Cancel on the sheet) and returns
 //!   an empty list on cancel. The caller leaving the bus takes the sheet down.
+//! - **Colours.** `PickColor` is checked and admitted the same way, one question of either
+//!   kind at a time, and answered with `a(ddd)`: one colour in 0..1, or an empty array when the
+//!   person cancelled. While no surface draws the eyedropper
+//!   ([`CaptureCommand::Eyedropper`] was not sent) it is answered with an empty array at once.
 //! - **Passive until [`CaptureCommand::Serve`]**: a test's `start` exports nothing.
 
 mod backend;
