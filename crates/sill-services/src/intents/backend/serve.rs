@@ -1,9 +1,10 @@
 //! Taking the bus: one connection, the names in the order that keeps intentd's trust check true.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 
+use docket_dbus::callers::{Identity, intentd_only};
 use docket_dbus::{CONFIRM_BUS, CONFIRM_PATH};
 use sill_model::intents::LinkTrouble;
 use sill_model::screenshots::Shots;
@@ -41,6 +42,7 @@ pub(super) async fn take(
     };
     let manifest = manifest().map_err(LinkTrouble::Refused)?;
     let app = manifest.manifest().app.clone();
+    let callers = Arc::new(intentd_at(&connection, &proc_root));
     let provider = ShellProvider {
         manifest,
         calls: shell,
@@ -48,9 +50,15 @@ pub(super) async fn take(
         windows: menus,
         shots,
     };
-    docket_client::serve_on(&connection, provider, ShellContext { app }, NoSummon)
-        .await
-        .map_err(|error| trouble(error.to_string()))?;
+    docket_client::serve_on_with(
+        &connection,
+        provider,
+        ShellContext { app },
+        NoSummon,
+        callers,
+    )
+    .await
+    .map_err(|error| trouble(error.to_string()))?;
     connection
         .object_server()
         .at(
@@ -74,6 +82,14 @@ pub(super) async fn take(
             Err(LinkTrouble::NameTaken(format!("{CONFIRM_BUS} is taken")))
         }
     }
+}
+
+/// Who may call the provider: intentd's unit only. Under the system's `/proc` its main process is
+/// asked of the systemd manager; any other root is a fixture tree (`<root>/<pid>/cgroup`, and
+/// `<root>/units/intentd.service` for the main process), which is how a test names intentd.
+fn intentd_at(connection: &Connection, proc_root: &Path) -> Identity {
+    let fixture = (proc_root != Path::new("/proc")).then_some(proc_root);
+    Identity::on(connection.clone(), intentd_only(), fixture)
 }
 
 /// A name that is taken says so in its text (docket's "is taken", zbus's "already taken");

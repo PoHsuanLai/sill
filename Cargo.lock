@@ -2384,6 +2384,7 @@ name = "docket-dbus"
 version = "0.1.0"
 dependencies = [
  "docket-core",
+ "porter-core",
  "porter-dbus",
  "prov",
  "thiserror 2.0.21",
@@ -2422,6 +2423,7 @@ dependencies = [
  "docket-skills",
  "futures-channel",
  "futures-util",
+ "genai-names",
  "policy-point",
  "porter-core",
  "prov",
@@ -6091,6 +6093,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "tokio",
+ "toml",
  "zbus",
 ]
 
