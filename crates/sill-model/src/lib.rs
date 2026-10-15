@@ -29,6 +29,7 @@ pub mod keycap;
 pub mod launch;
 pub mod locker;
 pub mod network;
+pub mod night_shift;
 pub mod notifications;
 pub mod now_playing;
 pub mod pins;

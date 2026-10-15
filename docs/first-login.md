@@ -161,8 +161,11 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 - No sink list in the control centre (G352): switch audio in Settings > Sound or `wpctl set-default <id>`.
 - Mouse settings are casement's (`~/.config/casement/settings.toml`, section 1, item 8), or per device in
   Settings > Mouse (the "palmrest" devices).
-- No colour management, no software night light (the monitor is dimmed and warmed over DDC/CI where it supports it), no
-  screen recording app, no printer applet, no weather.
+- Night Shift: the control centre's Display module switches casement's software night light on until
+  tomorrow and sets its warmth; the schedule (times, "always") is casement's `[night_light]`, set in
+  Settings. Sunset to Sunrise is not offered (sill has no location). Where `display.night_warmth` is
+  `hardware` the monitors are warmed over DDC/CI instead and casement's night light is kept off.
+- No colour management, no screen recording app, no printer applet, no weather.
 - fcitx5 starts from XDG autostart; `GTK_IM_MODULE` and `QT_IM_MODULE` are deliberately unset.
 - More in `FINDINGS.md` ("What casement still has to provide").
 

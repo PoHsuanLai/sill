@@ -5,6 +5,7 @@ mod bar_render;
 mod cc_brightness;
 mod cc_details_modules;
 mod cc_details_rows;
+mod cc_night_shift;
 mod cc_support;
 mod cc_terminal;
 mod control_center_bluetooth_ask;

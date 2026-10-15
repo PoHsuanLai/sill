@@ -88,6 +88,9 @@ pub struct Feeds {
     pub voice_commands: mpsc::UnboundedReceiver<sill_model::voice::VoiceCommand>,
     /// The prepared wallpapers (none until a test feeds some).
     pub wallpaper: watch::Sender<Wallpapers>,
+    /// Night Shift: unreachable until a test feeds it, and what the control center sends it.
+    pub night_shift: watch::Sender<sill_model::night_shift::NightShift>,
+    pub night_shift_commands: mpsc::UnboundedReceiver<sill_model::night_shift::NightShiftCommand>,
     /// The dock's app index, pins and badges (empty until a test feeds them), and the pin
     /// commands it sends.
     pub apps: watch::Sender<AppIndex>,
@@ -141,6 +144,8 @@ pub fn services() -> (Services, Feeds) {
     let (intents, intents_io) = Handle::channel(sill_model::intents::Intents::default());
     let (companion, companion_io) = Handle::channel(sill_model::companion::Companion::default());
     let (voice, voice_io) = Handle::channel(sill_model::voice::Voice::default());
+    let (night_shift, night_shift_io) =
+        Handle::channel(sill_model::night_shift::NightShift::default());
     let (wallpaper, wallpaper_io) = Handle::channel(Wallpapers::default());
     keep.push(Box::new(wallpaper_io.commands));
     let (apps, apps_io) = Handle::channel(AppIndex::default());
@@ -188,6 +193,7 @@ pub fn services() -> (Services, Feeds) {
         sync_hold: fixed(sill_model::sync_hold::SyncHoldState::default(), &mut keep),
         guest_asks: fixed(sill_model::guest_asks::GuestAsksState::default(), &mut keep),
         work_areas: fixed(sill_model::work_areas::WorkAreas::default(), &mut keep),
+        night_shift,
         workspace_looks: fixed(
             sill_model::workspace_looks::WorkspaceLooks::default(),
             &mut keep,
@@ -250,6 +256,8 @@ pub fn services() -> (Services, Feeds) {
         companion_commands: companion_io.commands,
         voice: voice_io.state,
         voice_commands: voice_io.commands,
+        night_shift: night_shift_io.state,
+        night_shift_commands: night_shift_io.commands,
         wallpaper: wallpaper_io.state,
         apps: apps_io.state,
         pins: pins_io.state,

@@ -1261,3 +1261,32 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
   3. *Gamut.* The pixel is the output's sRGB as casement composes it; on a wide-gamut panel with the
      colour pass the value read is the sRGB picture, which is what an app asked for.
 
+## wave-6/night-shift: Night Shift on casement's night light
+
+- **What it is.** The control center's Display module gains a Night Shift row (a switch, a line
+  saying what it is doing, and a Less Warm to More Warm slider while it warms or will). The
+  switch is macOS's "Turn On Until Tomorrow": casement's `night_light.mode` becomes `always` and
+  the previous table is kept in `$XDG_STATE_HOME/sill/night-shift.json` with the end (the next
+  time the clock reads `night_light.to`); the service puts it back at the end, and at start if
+  the end passed while sill was away. Off ends a manual turn-on, else sets the mode off. A change
+  made in Settings ends a manual turn-on. Only the `night_light` keys are written; the rest of
+  casement's `settings.toml` is merged around (comments in that file are lost on a write, since
+  it is rewritten from its parsed table).
+- **Schedule.** Off/Custom are casement's `mode` and `from`/`to`, edited in Settings (casement's
+  schema page); the row shows "Scheduled, 22:00 to 07:00" read-only. **Sunset to Sunrise is not
+  offered**: sill has no location, and casement's schema help mentions the Clock settings writing
+  sunset, which do not exist yet. When a location exists, the writer belongs in
+  `sill_services::night_shift` (compute sunrise and sunset daily, write `from`/`to`).
+- **Not doubled.** casement's mode is one value for every output, so sill cannot leave it on for
+  the panels without DDC and off for the monitors it warms over DDC. Where `display.night_warmth`
+  is `hardware` the whole of Night Shift stands down: casement is written `off`, the switch is
+  disabled and says so. Ask of casement: a per-output exclusion (`night_light.skip_outputs`, names)
+  would let both work on a mixed desk.
+- **The warmth.** The slider spans 6500 K (Less Warm) to 2700 K (More Warm); casement accepts 1000
+  to 6500 K, so a value set below 2700 K in Settings sits at the slider's end.
+- **No Settings page of ours.** The Settings app is detent's; casement's `[night_light]` section is
+  already in its schema (page Appearance), so Mode, Starts at, Ends at, Warmth and Fade are there.
+- **Check at the gate.** `toml` 1's `Table::entry`/`Value::as_table_mut`; `jiff::Zoned::offset().seconds()`;
+  whether casement re-reads `settings.toml` when it changes (the lane that drives the night light
+  watches the file).
+

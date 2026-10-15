@@ -24,6 +24,7 @@ mod keycap_layer;
 mod keycap_socket;
 mod keycap_systemd_bus;
 mod launch_viewer_bus;
+mod night_shift;
 mod nm_bus;
 mod notifications_bus;
 mod pins_seed;

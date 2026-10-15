@@ -31,6 +31,7 @@ use sill_services::locker::LockerService;
 use sill_services::network::NetworkService;
 use sill_services::notifications::NotificationsService;
 use sill_services::now_playing::NowPlayingService;
+use sill_services::night_shift::NightShiftService;
 use sill_services::pins::PinsService;
 use sill_services::polkit_agent::PolkitAgentService;
 use sill_services::power_profile::PowerProfileService;
@@ -106,6 +107,9 @@ pub struct Services {
     /// Each output's work area and scale, served on `org.quire.Outputs1`; passive until the daemon
     /// says to serve.
     pub work_areas: Handle<WorkAreaService>,
+    /// casement's night light, asked for by the person (the control center's Night Shift); it
+    /// reads and writes casement's settings file.
+    pub night_shift: Handle<NightShiftService>,
     /// Each workspace's name, output and `SpaceLook`, served on `org.quire.Workspaces1`; passive
     /// until the daemon says to serve.
     pub workspace_looks: Handle<WorkspaceLooksService>,
@@ -183,6 +187,7 @@ members! {
     sync_hold: SyncHoldService,
     guest_asks: GuestAsksService,
     work_areas: WorkAreaService,
+    night_shift: NightShiftService,
     workspace_looks: WorkspaceLooksService,
     capture: CaptureService,
     intents: IntentsService,
