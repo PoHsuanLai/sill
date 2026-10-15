@@ -14,7 +14,7 @@ pub fn use_sheet_stage<T>(wanted: impl Fn() -> Option<T> + 'static) -> Signal<Sh
 where
     T: Clone + PartialEq + 'static,
 {
-    let stage = use_signal(SheetStage::<T>::default);
+    let stage = use_signal(|| SheetStage::<T>::Empty);
     use_effect(move || step(stage, StageIn::Want(wanted())));
     let surface = try_use_context::<SurfaceHandle>();
     let mut applied = use_hook(|| CopyValue::new(Mapped::No));

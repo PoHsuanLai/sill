@@ -28,10 +28,13 @@ fn the_stage_follows_the_wanted_value_and_plays_the_exit() {
     }
 }
 
+/// A case: its name, the stage, and what is drawn.
+type DrawnCase = (&'static str, Stage, Option<(u8, Shown)>);
+
 #[test]
 fn a_value_is_drawn_visible_while_up_and_hidden_while_leaving() {
     #[rustfmt::skip]
-    let cases: &[(&str, Stage, Option<(u8, Shown)>)] = &[
+    let cases: &[DrawnCase] = &[
         ("empty draws nothing",  Stage::Empty,      None),
         ("up is visible",        Stage::Up(1),      Some((1, Shown::Visible))),
         ("leaving is hidden",    Stage::Leaving(1), Some((1, Shown::Hidden))),

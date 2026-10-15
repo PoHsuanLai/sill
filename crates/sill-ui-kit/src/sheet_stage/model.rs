@@ -15,12 +15,6 @@ pub enum SheetStage<T> {
     Leaving(T),
 }
 
-impl<T> Default for SheetStage<T> {
-    fn default() -> Self {
-        SheetStage::Empty
-    }
-}
-
 /// What reaches the stage.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum StageIn<T> {
