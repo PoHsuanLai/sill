@@ -131,7 +131,7 @@ Then, in this order, tick them in `docs/manual-checks.md`:
 # 12 display: casementctl debug output list (3840x2160, scale 2); sill display brightness up (the BenQ moves, OSD shows)
 # 13 video in Zen: the screen must not dim; sill idle status shows "inhibition":"held"
 # 14 power menu offers (N14): the menu lists Log Out, Restart, Shut Down (do not press Restart or Shut Down)
-# 15 workspaces and the mouse: sill workspace next; sill workspace prev; scroll the Magic Mouse: direction (section 1, item 8; else Settings > Mouse)
+# 15 workspaces and the mouse: sill workspace next; sill workspace prev; sill workspace overview (Mission Control opens); scroll the Magic Mouse: direction (section 1, item 8; else Settings > Mouse)
 # 16 screenshot and share: sill screenshot area; share a screen in Zen or Teams; plug a USB drive, open it in your file manager
 # 17 quire apps: open mailo and anyview: which adapter do they log, does a second window close cleanly (X5)
 # 18 SELinux: sudo ausearch -m avc -ts recent | head    # expect nothing about sill, ksecretd, pam_kwallet_init
@@ -154,8 +154,7 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 
 - No Toshy: the Mac layout is keycap's. Without keycap running, Cmd is Cmd. A lone Cmd tap has no sender yet (the companion's
   Cmd double-tap); use `sill companion summon`.
-- `sill workspace overview` answers "unsupported" (no overview yet); `next` and `prev` work and
-  stop at the first and last workspace (no wrap).
+- `sill workspace next` and `prev` stop at the first and last workspace (no wrap).
 - No sink list in the control centre (G352): switch audio in Settings > Sound or `wpctl set-default <id>`.
 - Mouse settings are casement's (`~/.config/casement/settings.toml`, section 1, item 8), or per device in
   Settings > Mouse (the "palmrest" devices).

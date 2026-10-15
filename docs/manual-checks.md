@@ -229,7 +229,7 @@ screen.
   Secret Service without a wallet prompt; Chrome and Electron apps stay signed in.
 - [ ] **Workspace gestures**: with two workspaces, `sill workspace next` and `prev` move between
   them; at the ends nothing happens; the Magic Mouse two-finger swipes do the same (palmrest).
-  `sill workspace overview` fails with "unsupported" (no overview yet).
+  `sill workspace overview` opens Mission Control, and so does a hot corner set to Workspaces.
 - [ ] **The session comes up**: bar, dock, wallpaper; `systemctl --user is-active
   graphical-session.target` says `active`; `sill polkit status` says `registered`.
 - [ ] **The power key** opens sill's power menu and does not power off (`systemd-inhibit --list`

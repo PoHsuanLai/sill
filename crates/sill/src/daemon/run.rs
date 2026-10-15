@@ -208,6 +208,7 @@ fn spawn_followers(
         links.clone(),
         settings_feed.settings.clone(),
         services.clone(),
+        host.clone(),
     );
 }
 

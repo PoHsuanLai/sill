@@ -12,7 +12,7 @@ mod status;
 mod switcher;
 mod workspace;
 
-pub use reach::Reach;
+pub use reach::{Carried, DesktopLine, Reach};
 pub(crate) use reply::sent;
 pub use route::route;
 pub(crate) use show::focused_or_first;

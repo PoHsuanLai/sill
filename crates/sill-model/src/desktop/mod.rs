@@ -15,6 +15,7 @@ mod bar_thumbs;
 mod command;
 mod model;
 mod note;
+mod overview;
 mod spaces_bar;
 #[cfg(test)]
 mod spaces_bar_tests;
@@ -42,6 +43,7 @@ pub use casement_protocols::vocab::{
 pub use command::{DesktopCommand, Supports, supports};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};
 pub use note::{OverviewNote, ShellNote, SwitcherNote};
+pub use overview::open_mission_control;
 pub use spaces_bar::{
     BarPick, BarShow, BarSpace, bar_show, bar_space_ids, bar_spaces, commands_of,
 };
