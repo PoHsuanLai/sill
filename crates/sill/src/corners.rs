@@ -204,7 +204,6 @@ mod tests {
     use sill_ui_kit::links::Corner;
 
     use sill_launcher::WindowKey;
-    use sill_model::desktop::open_mission_control;
     use sill_model::ids::WorkspaceKey;
     use sill_model::windows::{Activity, Sizing, WindowState};
     use sill_model::windows::{Toplevel, WlCommand};

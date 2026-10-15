@@ -295,7 +295,7 @@ async fn a_colour_request_from_anyone_but_the_portal_backend_is_refused() {
         return;
     };
     let scratch = TempDir::new("capture-pick-colour-forged");
-    let (mut service, _transom) = serving(&bus, &scratch).await;
+    let (service, _transom) = serving(&bus, &scratch).await;
     let _ = service
         .control
         .send(CaptureCommand::Eyedropper(Eyedropper::Present));
