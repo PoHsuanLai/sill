@@ -1,0 +1,9 @@
+/* The Force Quit Applications panel. The sheet, the list, the alert and the buttons are quire's;
+   this lays out what sill puts in the sheet. Tokens only. */
+
+.sill-fq{ display:flex; flex-direction:column; gap:var(--s-10); padding:var(--s-16); color:var(--ink); outline:none; }
+.sill-fq-title{ font-size:var(--fs-title); font-weight:700; }
+.sill-fq-byline{ font-size:var(--fs-body); color:var(--ink-soft); }
+.sill-fq-list{ display:flex; flex-direction:column; max-height:280px; overflow-y:auto; }
+.sill-fq-empty{ font-size:var(--fs-body); color:var(--ink-faint); text-align:center; padding:var(--s-16); }
+.sill-fq-footer{ display:flex; justify-content:flex-end; gap:var(--s-8); }

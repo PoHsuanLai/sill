@@ -155,6 +155,9 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 - No Toshy: the Mac layout is keycap's. Without keycap running, Cmd is Cmd. A lone Cmd tap has no sender yet (the companion's
   Cmd double-tap); use `sill companion summon`.
 - `sill workspace next` and `prev` stop at the first and last workspace (no wrap).
+- Option+Cmd+Esc (Force Quit Applications) does nothing until casement runs `sill force-quit toggle`
+  for its Force Quit chord (today the chord is swallowed by a command that does nothing). Run
+  `sill force-quit toggle` from a terminal to see the panel.
 - No sink list in the control centre (G352): switch audio in Settings > Sound or `wpctl set-default <id>`.
 - Mouse settings are casement's (`~/.config/casement/settings.toml`, section 1, item 8), or per device in
   Settings > Mouse (the "palmrest" devices).

@@ -1,11 +1,11 @@
-//! The panels a client opens and closes: the launcher, the power menu, the control center, the
+//! The panels a client opens and closes: the launcher, the power menu, Force Quit Applications, the control center, the
 //! notification center, Edit Widgets and the companion. Each opens on the output the daemon picks (the output
 //! under the pointer is not known to the daemon), which is the first with that surface; Edit
 //! Widgets prefers the output of the active window.
 
 use serde::{Deserialize, Serialize};
 
-/// `sill launcher|power-menu|control-center|notifications|widgets ...`, the verbs that show or
+/// `sill launcher|power-menu|force-quit|control-center|notifications|widgets ...`, the verbs that show or
 /// hide something.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
@@ -14,6 +14,9 @@ pub enum ShowRequest {
     Launcher(LauncherRequest),
     /// The power menu (`sill power-menu {open,close,toggle}`).
     PowerMenu(Reveal),
+    /// The Force Quit Applications panel (`sill force-quit {open,close,toggle}`), on the output
+    /// of the active window.
+    ForceQuit(Reveal),
     /// The notification center (`sill notifications {toggle,open,close}`).
     NotificationCenter(Reveal),
     /// The control center under the first bar's item: it is a popup of a bar, so it has no open

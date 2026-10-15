@@ -1,4 +1,4 @@
-//! The desktop's command line: `sill dock`, `sill power-menu`, `sill control-center`, `sill
+//! The desktop's command line: `sill dock`, `sill power-menu`, `sill force-quit`, `sill control-center`, `sill
 //! screenshot`, `sill widgets` and `sill companion`.
 
 use clap::{Subcommand, ValueEnum};
@@ -20,6 +20,14 @@ pub enum DockAction {
 /// `sill power-menu ...`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
 pub enum PowerMenuAction {
+    Open,
+    Close,
+    Toggle,
+}
+
+/// `sill force-quit ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum ForceQuitAction {
     Open,
     Close,
     Toggle,
@@ -98,6 +106,15 @@ pub fn power_menu_request(action: PowerMenuAction) -> Request {
         PowerMenuAction::Open => Reveal::Open,
         PowerMenuAction::Close => Reveal::Close,
         PowerMenuAction::Toggle => Reveal::Toggle,
+    }))
+}
+
+/// The request `sill force-quit ACTION` sends.
+pub fn force_quit_request(action: ForceQuitAction) -> Request {
+    Request::Show(ShowRequest::ForceQuit(match action {
+        ForceQuitAction::Open => Reveal::Open,
+        ForceQuitAction::Close => Reveal::Close,
+        ForceQuitAction::Toggle => Reveal::Toggle,
     }))
 }
 

@@ -27,16 +27,16 @@ use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
-    PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
+    AccountsSheet, CaptureSheet, ConfirmSheet, ForceQuit, HotCorners, IdleDim, Lock, Osd,
+    PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
-    EditWidgetsLink, LauncherLink, LevelSource, LockLink, OsdKind, OsdLink, PlacementFile,
-    PowerMenuLink, Preselect, PromptOutput, SpacesBarLink, SplitPickerLink, SwitcherAsk,
-    SwitcherLink,
+    EditWidgetsLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind, OsdLink,
+    PlacementFile, PowerMenuLink, Preselect, PromptOutput, SpacesBarLink, SplitPickerLink,
+    SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::surface::{LockSurface, Surface};
 use sill_widgets_ui::{DesktopWidgets, EditWidgets};
@@ -160,6 +160,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <SplitPicker as Surface>::NAME,
         css: sill_overlays::split_picker::SPLIT_PICKER_CSS,
         states: split_picker_states,
+    },
+    SurfaceCase {
+        name: "force_quit",
+        surface: <ForceQuit as Surface>::NAME,
+        css: sill_overlays::force_quit::FORCE_QUIT_CSS,
+        states: force_quit_states,
     },
     SurfaceCase {
         name: "polkit_prompt",
@@ -387,6 +393,38 @@ fn split_picker_states() -> Vec<(&'static str, String)> {
     let offered = picker.harness.html();
     assert!(offered.contains("sill-split-scrim"), "{offered}");
     vec![("hidden", hidden), ("offered", offered)]
+}
+
+/// The panel hidden, then listing two apps (one hung), then asking about the hung one.
+fn force_quit_states() -> Vec<(&'static str, String)> {
+    use sill_model::desktop::{ForceQuitRow, Standing};
+
+    let mut panel = SurfaceHarness::<ForceQuit>::setup(ForceQuitLink::new(), ()).start();
+    panel.harness.advance(Duration::from_millis(40));
+    let hidden = panel.harness.html();
+    panel.link.set_rows(vec![
+        ForceQuitRow {
+            app: "mail".to_owned(),
+            standing: Standing::Responding,
+        },
+        ForceQuitRow {
+            app: "term".to_owned(),
+            standing: Standing::NotResponding,
+        },
+    ]);
+    panel.link.open(fake::output().id);
+    panel.harness.advance(Duration::from_millis(600));
+    let listed = panel.harness.html();
+    assert!(listed.contains("sill-fq"), "{listed}");
+    let button = panel
+        .harness
+        .centre("#force-quit-button")
+        .expect("the Force Quit button is laid out"); // test-only
+    panel.harness.send(Input::click(button));
+    panel.harness.advance(Duration::from_millis(600));
+    let asking = panel.harness.html();
+    assert!(asking.contains("ds-alert"), "{asking}");
+    vec![("hidden", hidden), ("listed", listed), ("asking", asking)]
 }
 
 /// The switcher hidden, then shown on three apps past the show delay.

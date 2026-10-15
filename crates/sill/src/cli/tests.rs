@@ -237,6 +237,18 @@ fn every_command_line_sends_its_request() {
             show(ShowRequest::PowerMenu(Reveal::Toggle)),
         ),
         (
+            &["force-quit", "open"],
+            show(ShowRequest::ForceQuit(Reveal::Open)),
+        ),
+        (
+            &["force-quit", "close"],
+            show(ShowRequest::ForceQuit(Reveal::Close)),
+        ),
+        (
+            &["force-quit", "toggle"],
+            show(ShowRequest::ForceQuit(Reveal::Toggle)),
+        ),
+        (
             &["control-center", "toggle"],
             show(ShowRequest::ControlCenter),
         ),
@@ -560,6 +572,7 @@ fn a_malformed_command_line_is_refused() {
     for args in [
         &["launcher"][..],
         &["power-menu"],
+        &["force-quit"],
         &["control-center", "open"],
         &["dock", "pin"],
         &["debug", "pointer", "s", "x", "1"],
