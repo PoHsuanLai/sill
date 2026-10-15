@@ -1227,3 +1227,32 @@ The Spaces bar shows its accepting state during a Mission Control window drag. `
 Space tile and the plus there, `DropState::Target` still wins for the tile under the window. No quire change: `SpacesBar`
 already draws `DropState::Accepts` through `SpaceTile::in_drag` and `add_drop`. Needs casement-protocols `08bcc62`; against a
 compositor older than version 4 nothing is sent and the bar behaves as before.
+
+## wave-6/colour-picker: `PickColor` and the eyedropper
+
+- **Served.** `org.quire.Shell1.PickColor(app_label: s) -> (color: a(ddd))` on the same object as
+  `PickCaptureSource` (`sill_services::capture_pick`), with the same caller check (only the owner of
+  `org.freedesktop.impl.portal.desktop.quire`; anyone else is `AccessDenied`). The array is empty on
+  cancel, else one `(red, green, blue)` in 0..1 sRGB (`sill_model::capture_pick::ColorReply::wire`,
+  an 8-bit pixel over 255). One question at a time of either kind: a second call while a colour or a
+  sources question is open is `LimitsExceeded`; the caller leaving the bus clears it
+  (`CaptureEvent::CallerGone`).
+- **No eyedropper is drawn yet, so every call is answered with an empty array at once.** The state
+  says so (`CapturePicker::eyedropper` is `Absent` until a surface sends
+  `CaptureCommand::Eyedropper(Present)`); nothing is asked of the person and nothing opens. What is
+  missing for the real thing, exactly:
+  1. *A picture of the whole output.* `desktop-client` can already capture an output as shown
+     (`CaptureRequest::new(output)` through `DesktopCommand::CaptureOutput`, ext-image-copy-capture
+     with shm), but sill only asks for a Space picture. It needs a `DesktopCommand::CaptureOutput`
+     (`sill-model`), its arm in `desktop_wl/quire/command.rs`, `QuireArm::pending` to hold an output
+     capture beside a Space capture, and a `ShellNote::OutputPicture` that carries the frame's RGBA
+     bytes (`picture_of` PNG-encodes at the Space thumbnail size, so it cannot be reused as it is).
+  2. *The surface.* An Overlay layer surface per output, keyboard `Exclusive`, shown over the frozen
+     picture (taken before the surface maps, so the pointer and the surface are not in it): a
+     magnifier loupe following the pointer (about 9 by 9 source pixels, a grid, the centre pixel
+     boxed, its hex value under it), a click sends `CaptureCommand::ColorAnswer(id, Picked(Rgb8))`
+     from the pixel under the pointer (logical position times the output's scale), Escape sends
+     `Cancel`. It sends `Eyedropper(Present)` when it starts.
+  3. *Gamut.* The pixel is the output's sRGB as casement composes it; on a wide-gamut panel with the
+     colour pass the value read is the sRGB picture, which is what an app asked for.
+

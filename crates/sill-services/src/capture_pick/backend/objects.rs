@@ -1,7 +1,7 @@
 //! `org.quire.Shell1`, as the shell exports it on the seat. The object checks who is calling and
 //! hands the call to the loop, which decides, and waits for the loop's answer.
 
-use sill_model::capture_pick::{Ask, Reply};
+use sill_model::capture_pick::{Ask, ColorAsk, ColorReply, Reply};
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use zbus::fdo;
 use zbus::message::Header;
@@ -20,9 +20,25 @@ const MAX_MODES: usize = 8;
 
 /// What the loop is asked.
 #[derive(Debug)]
-pub(super) struct Call {
+pub(super) enum Call {
+    /// What to share.
+    Sources(SourceCall),
+    /// One colour from the screen.
+    Color(ColorCall),
+}
+
+/// A request for sources to share, and where its answer goes.
+#[derive(Debug)]
+pub(super) struct SourceCall {
     pub ask: Ask,
     pub answer: oneshot::Sender<fdo::Result<Reply>>,
+}
+
+/// A request for one colour, and where its answer goes.
+#[derive(Debug)]
+pub(super) struct ColorCall {
+    pub ask: ColorAsk,
+    pub answer: oneshot::Sender<fdo::Result<ColorReply>>,
 }
 
 /// The picker object.
@@ -63,9 +79,30 @@ impl PickerObject {
         let (answer, answered) = oneshot::channel();
         let stopped = || fdo::Error::Failed("the picker has stopped".to_owned());
         self.calls
-            .send(Call { ask, answer })
+            .send(Call::Sources(SourceCall { ask, answer }))
             .map_err(|_| stopped())?;
         let reply = answered.await.map_err(|_| stopped())??;
         Ok((reply.sources, reply.cursor))
+    }
+
+    /// One colour from the screen, as the portal's `PickColor` asks it: red, green and blue in
+    /// 0..1, or an empty array when the person cancelled.
+    async fn pick_color(
+        &self,
+        app_label: String,
+        #[zbus(header)] header: Header<'_>,
+        #[zbus(connection)] connection: &Connection,
+    ) -> fdo::Result<Vec<(f64, f64, f64)>> {
+        from_transom(connection, &header).await?;
+        let ask = ColorAsk {
+            app_label: app_label.chars().take(MAX_LABEL).collect(),
+        };
+        let (answer, answered) = oneshot::channel();
+        let stopped = || fdo::Error::Failed("the picker has stopped".to_owned());
+        self.calls
+            .send(Call::Color(ColorCall { ask, answer }))
+            .map_err(|_| stopped())?;
+        let reply = answered.await.map_err(|_| stopped())??;
+        Ok(reply.wire())
     }
 }

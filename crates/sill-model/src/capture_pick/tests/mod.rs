@@ -1,4 +1,5 @@
 mod ask;
+mod color;
 mod desktop;
 mod reply;
 mod step;
