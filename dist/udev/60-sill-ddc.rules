@@ -1,9 +1,9 @@
 # DDC/CI for sill: let the user at the active seat open the i2c buses of display controllers,
 # so brightness, speaker volume and night warmth reach external monitors without a group.
 #
-# Only needed where the distribution does not already do this. Fedora's ddcutil package ships
-# 60-ddcutil-i2c.rules with the same uaccess tag (for PCI class 0x030000 only) and loads i2c-dev;
-# with it installed, this file adds only the 0x0302xx and 0x0380xx controllers
+# dist/install.sh installs this only where no ddcutil rule exists. A ddcutil package that ships
+# 60-ddcutil-i2c.rules (Fedora's does) has the same uaccess tag, for PCI class 0x030000 only, and
+# loads i2c-dev; this file's class match also covers the 0x0302xx and 0x0380xx controllers
 # (the discrete GPU of some hybrid laptops, which drives their HDMI port).
 #
 # uaccess grants the logged-in, active local session an ACL on the device; a remote login or a

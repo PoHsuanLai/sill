@@ -36,7 +36,8 @@ pub(crate) fn resolve_art(
     }
 }
 
-/// Downloads `url` into `cache_path` with `curl` (Fedora ships it) and reports success on `art_tx`.
+/// Downloads `url` into `cache_path` with `curl` (a runtime requirement of the desktop; without it
+/// no cover art is fetched) and reports success on `art_tx`.
 /// Never downloads twice: [`resolve_art`] only schedules this
 /// when the file was not already there.
 pub(crate) fn spawn_art_fetch(
