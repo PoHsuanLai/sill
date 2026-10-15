@@ -166,6 +166,8 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
   Settings. Sunset to Sunrise is not offered (sill has no location). Where `display.night_warmth` is
   `hardware` the monitors are warmed over DDC/CI instead and casement's night light is kept off.
 - No colour management, no screen recording app, no printer applet, no weather.
+- Escape does not close the control centre after a pointer press on empty space (G400; waits on quire's
+  shell-surface click focus).
 - fcitx5 starts from XDG autostart; `GTK_IM_MODULE` and `QT_IM_MODULE` are deliberately unset.
 - More in `FINDINGS.md` ("What casement still has to provide").
 

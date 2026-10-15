@@ -41,8 +41,6 @@ pub fn ModuleDropdown(
             tabindex: "-1",
             style: panel_style(cc.width_px.0, cc.grid_padding_px.0, cap),
             onmounted: move |event: MountedEvent| home.mounted(event),
-            onfocusin: move |_| home.arrived(),
-            onfocusout: move |_| home.left(),
             {body}
             TurnOffAlert { on_answered: move |()| home.take() }
         }

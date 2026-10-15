@@ -85,8 +85,6 @@ pub(crate) fn control_center(
             tabindex: "-1",
             style,
             onmounted: move |event: MountedEvent| home.mounted(event),
-            onfocusin: move |_| home.arrived(),
-            onfocusout: move |_| home.left(),
             onkeydown: move |event: KeyboardEvent| {
                 // Escape on a detail page goes back; on the grid it reaches the popover, which
                 // closes.
@@ -112,69 +110,30 @@ pub(crate) fn pane_of(page: CcPage) -> Pane {
     }
 }
 
-/// Whether the keyboard is inside the panel, as the focus events it hears say.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum Keyboard {
-    /// Some element of the panel has it.
-    #[default]
-    Held,
-    /// The last thing heard was an element of the panel giving it up.
-    Lost,
-}
-
 /// The panel's own element, which holds the keyboard so Escape reaches the panel (and the
-/// popover around it) with nothing inside focused: as it mounts, after a page change takes
-/// the focused button away, and after a press on nothing that takes the keyboard.
-///
-/// A shell surface's host has no click-focus part, so Blitz clears the focus on a press that
-/// lands on nothing focusable, and a key then goes to the document's root, never reaching the
-/// panel. The panel hears the focus leave ([`KeyboardHome::left`]); when no element of the
-/// panel has received it by the time the events of that move have all been heard, it takes the
-/// keyboard back. A move from one element of the panel to another ends with
-/// [`KeyboardHome::arrived`] and is left alone.
+/// popover around it) with nothing inside focused: as it mounts, and after a page change takes
+/// the focused button away.
 #[derive(Clone, Copy)]
-pub(crate) struct KeyboardHome {
-    element: Signal<Option<Rc<MountedData>>>,
-    keyboard: Signal<Keyboard>,
-}
+pub(crate) struct KeyboardHome(Signal<Option<Rc<MountedData>>>);
 
 impl KeyboardHome {
     /// The panel mounted: keep it and give it the keyboard.
     pub(crate) fn mounted(mut self, event: MountedEvent) {
         let element = event.data();
-        self.element.set(Some(element.clone()));
+        self.0.set(Some(element.clone()));
         focus_soon(element);
     }
 
     /// Give the panel the keyboard again.
     pub(crate) fn take(self) {
-        if let Some(element) = self.element.peek().clone() {
+        if let Some(element) = self.0.peek().clone() {
             focus_soon(element);
         }
-    }
-
-    /// An element of the panel got the keyboard.
-    pub(crate) fn arrived(mut self) {
-        self.keyboard.set(Keyboard::Held);
-    }
-
-    /// An element of the panel gave the keyboard up: unless another element of the panel takes
-    /// it in the same move, the panel takes it back.
-    pub(crate) fn left(mut self) {
-        self.keyboard.set(Keyboard::Lost);
-        spawn(async move {
-            if *self.keyboard.peek() == Keyboard::Lost {
-                self.take();
-            }
-        });
     }
 }
 
 pub(crate) fn use_keyboard_home() -> KeyboardHome {
-    KeyboardHome {
-        element: use_signal(|| None),
-        keyboard: use_signal(Keyboard::default),
-    }
+    KeyboardHome(use_signal(|| None))
 }
 
 /// The panel's inline box: `control_center.width_px` wide, `grid_padding_px` inside, scrolling
