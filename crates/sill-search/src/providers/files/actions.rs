@@ -61,6 +61,7 @@ pub fn carried(action: FileAction, file: &FileFacts) -> Option<Carried> {
         | FileAction::RotateRight
         | FileAction::FlipHorizontal
         | FileAction::FlipVertical
+        | FileAction::Trim
         | FileAction::PlayInMiniWindow
         | FileAction::ConvertTo => return None,
     };

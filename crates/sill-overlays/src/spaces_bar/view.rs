@@ -39,9 +39,6 @@ fn SpacesStrip(output: OutputInfo) -> Element {
         let bar = bar.clone();
         move || bar.tiles(&apps())
     });
-    let probe = bar.probe;
-    let mounted =
-        use_hook(|| EventHandler::new(move |event: MountedEvent| probe.on_mounted(event)));
     let (by_pick, by_add) = (bar.clone(), bar.clone());
     let on_layout = bar.on_layout;
     let add_drop = bar.add_drop();
@@ -61,7 +58,6 @@ fn SpacesStrip(output: OutputInfo) -> Element {
                 on_hidden: move |()| on_hidden.call(()),
                 common: Common {
                     id: Some(BAR_ID.to_owned()),
-                    mounted: Some(mounted),
                     ..Common::default()
                 },
             }
