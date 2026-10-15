@@ -18,5 +18,6 @@ mod model;
 mod surface;
 mod view;
 
+pub(crate) use model::url_for;
 pub use surface::Wallpaper;
 pub use view::WALLPAPER_CSS;

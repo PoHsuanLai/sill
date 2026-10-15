@@ -152,7 +152,7 @@ const SURFACES: &[SurfaceCase] = &[
     SurfaceCase {
         name: "spaces_bar",
         surface: <SpacesBar as Surface>::NAME,
-        css: "",
+        css: sill_overlays::spaces_bar::SPACES_BAR_CSS,
         states: spaces_bar_states,
     },
     SurfaceCase {

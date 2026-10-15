@@ -1,18 +1,22 @@
 //! The bar's render: one transparent viewport root holding, under the menu bar's height, quire's
 //! `SpacesBar` with the output's Spaces (the one on show marked, a picture on each that has
-//! one) and the plus. quire's bar plays its own drop-in and lift; [`super::io`] follows the link,
-//! writes the clicks and publishes where the cards lie; this file only draws.
+//! one, over the output's wallpaper) and the plus. quire's bar plays its own drop-in and lift;
+//! [`super::io`] follows the link, writes the clicks and publishes where the cards and the plus
+//! lie; this file only draws.
 
 use dioxus::prelude::*;
 use ds::prelude::*;
 use shell_host::OutputInfo;
 use sill_services::AppsService;
 
-use super::io::{use_bar, use_unmap};
+use super::io::{css_url, use_bar, use_unmap};
 use super::layer::BAR_ID;
 use sill_ui_kit::hooks::{use_service, use_settings};
 use sill_ui_kit::links::SpacesBarLink;
 use sill_ui_kit::root::SurfaceRoot;
+
+/// The bar's own stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
+pub const SPACES_BAR_CSS: &str = include_str!("style.css");
 
 pub(super) fn spaces_bar(output: OutputInfo) -> Element {
     rsx! {
@@ -42,8 +46,18 @@ fn SpacesStrip(output: OutputInfo) -> Element {
     let mounted =
         use_hook(|| EventHandler::new(move |event: MountedEvent| probe.on_mounted(event)));
     let (by_pick, by_add) = (bar.clone(), bar.clone());
+    let wallpaper = (bar.wallpaper)().map(|url| css_url(&url));
+    let backdrop = wallpaper.as_ref().map(|_| "wallpaper");
+    let var = wallpaper
+        .map(|url| format!("--sill-bar-wallpaper:{url};"))
+        .unwrap_or_default();
     rsx! {
-        div { style: "padding-top:{menu_bar}px;",
+        AppStyle { css: SPACES_BAR_CSS }
+        div {
+            class: "sill-spaces-bar",
+            style: "padding-top:{menu_bar}px;{var}",
+            "data-backdrop": backdrop,
+            "data-add-drop": bar.add_drop().drop_attr(),
             SpacesBar {
                 label: "Spaces",
                 spaces: tiles(),

@@ -4,15 +4,23 @@
 
 use dioxus::prelude::*;
 use ds::host::measure::{RectProbe, use_rect};
-use ds::prelude::{BarSpaceKey, ImageSource, Rect, Selection, Shown, SpaceTile};
+use ds::prelude::{
+    BarSpaceKey, DropState, ImageSource, Rect, Scheme, Selection, Shown, SpaceLook, SpaceTile,
+    resolve,
+};
 use porter_core::SpaceId;
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::apps::AppIndex;
 use sill_model::desktop::target::Rect as WholeRect;
 use sill_model::desktop::{
-    BarLayout, BarPick, BarShow, BarSpace, bar_space_ids, bar_spaces, thumb_size, tiles_of,
+    BarLayout, BarPick, BarShow, BarSpace, add_of, bar_space_ids, bar_spaces, thumb_size, tiles_of,
 };
+use sill_model::ids::OutputName;
+use sill_services::WallpaperService;
+use sill_ui_kit::hooks::{use_appearance, use_service};
 use sill_ui_kit::links::{SpacesBarFeed, SpacesBarLink};
+
+use crate::wallpaper::url_for;
 
 /// Everything the bar's handlers and render reach. Clone is cheap.
 #[derive(Clone)]
@@ -24,6 +32,8 @@ pub(super) struct Bar {
     pub up: Memo<BarShow>,
     /// The bar's element, once mounted.
     pub probe: RectProbe,
+    /// The `file://` URL of this output's wallpaper, once it has one.
+    pub wallpaper: Memo<Option<String>>,
 }
 
 /// The bar on `output`.
@@ -40,13 +50,30 @@ pub(super) fn use_bar(link: &SpacesBarLink, output: &OutputInfo) -> Bar {
     let probe = use_rect();
     use_map_when_up(up);
     use_publish_layout(link, feed, up, probe, output);
+    let wallpaper = use_wallpaper_url(output.name.clone());
     Bar {
         link: link.clone(),
         feed,
         name,
         up,
         probe,
+        wallpaper,
     }
+}
+
+/// The wallpaper this output shows in the scheme the desktop resolves to, as the wallpaper surface
+/// itself picks it.
+fn use_wallpaper_url(name: Option<String>) -> Memo<Option<String>> {
+    let wallpapers = use_service::<WallpaperService>();
+    let environment = use_appearance();
+    use_memo(move || {
+        let environment = environment();
+        let appearance = environment.settings.appearance.appearance();
+        let scheme: Scheme =
+            resolve(appearance, SpaceLook::default().theme, environment.system).scheme;
+        let on = name.clone().map(OutputName);
+        url_for(&wallpapers(), on.as_ref(), scheme)
+    })
 }
 
 impl Bar {
@@ -65,6 +92,11 @@ impl Bar {
             .into_iter()
             .map(|space| tile_of(&feed, self.name.as_deref(), space))
             .collect()
+    }
+
+    /// The plus: lit while a dragged window is over it.
+    pub(super) fn add_drop(&self) -> DropState {
+        self.feed.read().drops.new_state_of(self.name.as_deref())
     }
 
     /// The person clicked the tile with this key.
@@ -111,7 +143,13 @@ pub(super) fn whole(rect: Rect) -> Option<WholeRect> {
     })
 }
 
-/// Keep the link told where this output's cards lie while the bar is up and laid out, and that
+/// `url` as a CSS `url()` value: quoted, with the characters a quoted URL cannot hold escaped.
+pub(super) fn css_url(url: &str) -> String {
+    let escaped = url.replace('\\', "\\\\").replace('"', "\\\"");
+    format!("url(\"{escaped}\")")
+}
+
+/// Keep the link told where this output's cards and plus lie while the bar is up and laid out, and that
 /// there are none once it goes.
 fn use_publish_layout(
     link: &SpacesBarLink,
@@ -135,6 +173,7 @@ fn use_publish_layout(
             let layout = BarLayout {
                 tiles: tiles_of(origin, bar, &ids),
                 thumb: thumb_size(scale),
+                add: Some(add_of(origin, bar)),
             };
             link.set_layout(&name, Some(layout));
         }
@@ -176,7 +215,7 @@ pub(super) fn use_unmap() -> EventHandler<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::whole;
+    use super::{css_url, whole};
     use ds::prelude::{Point, Px, Rect, Size};
 
     fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect {
@@ -187,6 +226,12 @@ mod tests {
                 height: Px(h),
             },
         }
+    }
+
+    #[test]
+    fn a_url_is_quoted_for_css_with_quotes_and_backslashes_escaped() {
+        assert_eq!(css_url("file:///a/b.png"), "url(\"file:///a/b.png\")");
+        assert_eq!(css_url("file:///a\"b\\c"), "url(\"file:///a\\\"b\\\\c\")");
     }
 
     #[test]

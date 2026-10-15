@@ -7,7 +7,7 @@ use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 
 use super::io::use_crossfade;
-use super::model::{file_url, image_for};
+use super::model::url_for;
 use sill_services::WallpaperService;
 use sill_ui_kit::hooks::{use_appearance, use_service};
 use sill_ui_kit::root::use_root_style;
@@ -24,13 +24,7 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
     let on = output.name.clone().map(OutputName);
     let appearance = environment.settings.appearance.appearance();
     let resolved = resolve(appearance, SpaceLook::default().theme, environment.system);
-    let url = image_for(&wallpapers, on.as_ref()).map(|image| {
-        let path = match resolved.scheme {
-            Scheme::Light => &image.light,
-            Scheme::Dark => &image.dark,
-        };
-        file_url(path)
-    });
+    let url = url_for(&wallpapers, on.as_ref(), resolved.scheme);
     let layers = use_crossfade(url);
     let root = use_root_style();
     rsx! {

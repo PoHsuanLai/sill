@@ -1,9 +1,10 @@
 //! Mission Control's Spaces bar on the harness, following a `SpacesBarLink` the test writes as
 //! the daemon does. Down it draws nothing; up it draws quire's bar with a tile per Space of the
-//! output, the one on show marked, a picture on a tile that has one, the tile a drag is over lit,
-//! and a plus; a click on a tile or on the plus writes the pick; the bar publishes where its
-//! cards lie, and they lie where the bar measures them; and an output Mission Control is not up
-//! on gets no bar.
+//! output, the one on show marked, a picture on every tile that has one (a hidden Space's too), the
+//! output's wallpaper under the pictures, the tile a drag is over lit, and a plus that lights when
+//! the drag is over it; a click on a tile or on the plus writes the pick; the bar publishes where
+//! its cards and its plus lie, and they lie where the bar draws them; and an output Mission
+//! Control is not up on gets no bar.
 
 use std::time::Duration;
 
@@ -12,6 +13,8 @@ use porter_core::SpaceId;
 use sill_model::desktop::{
     BarPick, BarShow, DesktopView, Shown, SpaceKind, SpacePicture, SpaceView,
 };
+use sill_model::ids::OutputName;
+use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_overlays::SpacesBar;
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::harness::fake::output_named;
@@ -185,4 +188,74 @@ fn the_published_cards_lie_where_the_bar_draws_its_thumbnails() {
         drawn.origin.y.0.round() as i32,
     );
     assert_eq!(layout.tiles[0].rect, (x, y, 160, 100), "{drawn:?}");
+}
+
+#[test]
+fn the_published_plus_lies_where_the_bar_draws_it() {
+    let running = open();
+    let layout = running
+        .link
+        .latest()
+        .layouts
+        .0
+        .get("DP-1")
+        .cloned()
+        .expect("the bar published its layout"); // test-only
+    let drawn = running
+        .harness
+        .rect(".ds-spaces-bar-add .ds-button")
+        .expect("the plus is laid out"); // test-only
+    let (x, y) = (
+        drawn.origin.x.0.round() as i32,
+        drawn.origin.y.0.round() as i32,
+    );
+    assert_eq!(layout.add, Some((x, y, 28, 28)), "{drawn:?}");
+}
+
+#[test]
+fn every_space_shows_its_picture_the_hidden_one_too() {
+    let mut running = open();
+    for space in ["ws-1", "ws-2"] {
+        running
+            .link
+            .set_picture("DP-1", id(space), &SpacePicture::Png(vec![0x89, b'P']));
+    }
+    running.harness.advance(Duration::from_millis(100));
+    assert_eq!(running.harness.count(".ds-spaces-bar-picture"), 2);
+}
+
+#[test]
+fn the_plus_lights_while_the_dragged_window_is_over_it_and_not_with_a_tile() {
+    let mut running = open();
+    assert!(!running.harness.html().contains("data-add-drop=\"target\""));
+    running.link.set_drop_new("DP-1", Shown::Shown);
+    running.harness.advance(Duration::from_millis(100));
+    let html = running.harness.html();
+    assert!(html.contains("data-add-drop=\"target\""), "{html}");
+    assert!(!html.contains("data-drop=\"target\""), "{html}");
+    running.link.set_drop_new("DP-1", Shown::Hidden);
+    running.harness.advance(Duration::from_millis(100));
+    assert!(!running.harness.html().contains("data-add-drop=\"target\""));
+}
+
+#[test]
+fn the_outputs_wallpaper_lies_under_the_pictures_and_another_outputs_does_not() {
+    let mut running = open();
+    assert!(!running.harness.html().contains("data-backdrop"));
+    let image = |output: &str| Wallpapers {
+        outputs: vec![WallpaperImage {
+            output: OutputName(output.to_owned()),
+            light: "/tmp/sill-bar-wallpaper/light.png".into(),
+            dark: "/tmp/sill-bar-wallpaper/dark.png".into(),
+        }],
+    };
+    running.feeds.wallpaper.send_replace(image("DP-2"));
+    running.harness.advance(Duration::from_millis(100));
+    assert!(!running.harness.html().contains("data-backdrop"));
+    running.feeds.wallpaper.send_replace(image("DP-1"));
+    running.harness.advance(Duration::from_millis(100));
+    let html = running.harness.html();
+    assert!(html.contains("data-backdrop=\"wallpaper\""), "{html}");
+    assert!(html.contains("--sill-bar-wallpaper:url("), "{html}");
+    assert!(html.contains("/tmp/sill-bar-wallpaper/light.png"), "{html}");
 }
