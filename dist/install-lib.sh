@@ -8,22 +8,41 @@
 DIST="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$DIST/.." && pwd)"
 
-BIN_DEST=/usr/local/bin/sill
-PAM_DEST=/etc/pam.d/sill
-# What the shell can be asked to do (`org.quire.Shell`): intentd reads every manifest under
-# $XDG_DATA_DIRS/quire/intents/, and /usr/local/share is in the default XDG_DATA_DIRS.
-INTENTS_DEST=/usr/local/share/quire/intents/org.quire.Shell.toml
-# The skills sill teaches the companion (dist/skills/<id>/): docket's loader reads every directory
-# under $XDG_DATA_DIRS/quire/skills/.
-SKILLS_DEST=/usr/local/share/quire/skills
-# sill's settings schema (every domain's keys, app `sill`): Settings (detent) reads every schema
-# under $XDG_DATA_DIRS/quire/settings/. The binary writes it (`sill --write-schema <dir>`).
-SCHEMA_DEST=/usr/local/share/quire/settings/sill.settings.toml
+# Where it goes is settled by set_dests once the flags are read (--prefix, --destdir). PREFIX is the
+# install prefix; DESTDIR a staging root put in front of every system path (empty: the real system).
+# The paths set_dests makes are the logical ones; put and uninstall.sh prepend $DESTDIR.
+PREFIX=/usr/local
+DESTDIR=
+NO_BUILD=0
+
 # The sill session's keycap layer. sill forwards this user file to keycap, which lays it over
 # /etc/keycap/keycap.toml (the Plasma overlay, which Plasma never overrides); the file is copied
 # when missing and never overwritten.
 KEYCAP_LAYER_SRC="$DIST/keycap/keycap.toml"
 KEYCAP_LAYER_DEST="${XDG_CONFIG_HOME:-$HOME/.config}/keycap/keycap.toml"
+
+# DDC/CI for external monitors: a uaccess rule on the i2c buses and the i2c-dev module load. Put in
+# place only where no ddcutil rule exists (ddcutil_rule_present).
+DDC_RULE_SRC="$DIST/udev/60-sill-ddc.rules"
+DDC_RULE_DEST=/etc/udev/rules.d/60-sill-ddc.rules
+DDC_MODULES_SRC="$DIST/modules-load.d/sill-ddc.conf"
+DDC_MODULES_DEST=/etc/modules-load.d/sill-ddc.conf
+
+# set_dests: every destination, from $PREFIX.
+set_dests() {
+  BIN_DEST="$PREFIX/bin/sill"
+  PAM_DEST=/etc/pam.d/sill
+  # What the shell can be asked to do (`org.quire.Shell`): intentd reads every manifest under
+  # $XDG_DATA_DIRS/quire/intents/, and /usr/local/share is in the default XDG_DATA_DIRS.
+  INTENTS_DEST="$PREFIX/share/quire/intents/org.quire.Shell.toml"
+  # The skills sill teaches the companion (dist/skills/<id>/): docket's loader reads every directory
+  # under $XDG_DATA_DIRS/quire/skills/.
+  SKILLS_DEST="$PREFIX/share/quire/skills"
+  # sill's settings schema (every domain's keys, app `sill`): Settings (detent) reads every schema
+  # under $XDG_DATA_DIRS/quire/settings/. The binary writes it (`sill --write-schema <dir>`).
+  SCHEMA_DEST="$PREFIX/share/quire/settings/sill.settings.toml"
+}
+set_dests
 
 DRY=0
 
@@ -37,17 +56,39 @@ keycap_rules_lacking() {
   comm -23 <(keycap_rules "$KEYCAP_LAYER_SRC") <(keycap_rules "$KEYCAP_LAYER_DEST")
 }
 
-# parse_flags "$@": --dry-run, and the extra flags a script allows ($EXTRA_FLAGS, space-separated).
+# parse_flags "$@": --dry-run, --prefix DIR, --destdir DIR, --no-build (only where the script sets
+# HAS_BUILD=1), and the extra flags a script allows ($EXTRA_FLAGS, space-separated).
 parse_flags() {
   local arg name
-  for arg in "$@"; do
+  while [ $# -gt 0 ]; do
+    arg="$1"
+    shift
     case "$arg" in
       --dry-run) DRY=1 ;;
+      --no-build)
+        [ "${HAS_BUILD:-0}" = 1 ] || { echo "unknown argument: $arg" >&2; usage >&2; exit 2; }
+        NO_BUILD=1 ;;
+      --prefix|--destdir)
+        [ $# -gt 0 ] || { echo "$arg needs a directory" >&2; exit 2; }
+        set_root_flag "$arg" "$1"
+        shift ;;
+      --prefix=*|--destdir=*) set_root_flag "${arg%%=*}" "${arg#*=}" ;;
       -h|--help) usage; exit 0 ;;
       *) if [[ " ${EXTRA_FLAGS:-} " == *" $arg "* ]]; then name="${arg#--}"; declare -g "FLAG_${name//-/_}=1"; else
            echo "unknown argument: $arg" >&2; usage >&2; exit 2; fi ;;
     esac
   done
+  set_dests
+}
+
+# set_root_flag FLAG DIR: --prefix or --destdir, an absolute directory (a trailing slash is dropped).
+set_root_flag() {
+  local dir="${2%/}"
+  case "$dir" in
+    /*) ;;
+    *) echo "$1 needs an absolute directory, got: $2" >&2; exit 2 ;;
+  esac
+  if [ "$1" = --prefix ]; then PREFIX="$dir"; else DESTDIR="$dir"; fi
 }
 
 step() { printf '\n==> %s\n' "$*"; }
@@ -59,14 +100,29 @@ run() {
   [ "$DRY" = 1 ] || "$@"
 }
 
-# put MODE SRC DEST: install SRC at DEST as root, unless DEST already is a copy of it.
+# as_root CMD...: run CMD as root through the helper need_root_helper chose. With a staging root
+# ($DESTDIR) nothing escalates: that tree is the caller's. With no helper at all the command is
+# printed now and listed again at the end (print_pending), for the person to run themselves.
+as_root() {
+  if [ -n "$DESTDIR" ]; then
+    run "$@"
+  elif [ "$ESC_MODE" = print ]; then
+    PENDING+=("$(printf '%q ' "$@")")
+    printf '    (as root, listed at the end) %s\n' "${PENDING[${#PENDING[@]}-1]}"
+  else
+    run "${ESC[@]}" "$@"
+  fi
+}
+
+# put MODE SRC DEST: install SRC at DEST (under $DESTDIR) as root, unless DEST already is a copy of it.
 put() {
   local mode="$1" src="$2" dest="$3"
-  if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
-    note "unchanged: $dest"
+  if [ -f "$DESTDIR$dest" ] && cmp -s "$src" "$DESTDIR$dest"; then
+    note "unchanged: $DESTDIR$dest"
     return 0
   fi
-  run sudo install -D -m "$mode" "$src" "$dest"
+  as_root install -D -m "$mode" "$src" "$DESTDIR$dest"
+  INSTALLED+=("$dest")
 }
 
 # skills: the skill files' paths relative to dist/skills, one per line (evals are not installed).
@@ -111,14 +167,84 @@ check_lock() {
 
 refuse_root() {
   [ "$(id -u)" -ne 0 ] || {
-    echo "run this as yourself, not root: it builds as you and uses sudo only to install" >&2
+    echo "run this as yourself, not root: it builds as you and escalates only to install" >&2
     exit 1
   }
 }
 
-need_sudo() {
+ESC=()
+ESC_MODE=run
+PENDING=()
+INSTALLED=()
+
+# need_root_helper: choose how files get installed as root: $SUDO (a command line, word-split), else
+# sudo, doas or pkexec, whichever is on PATH. With none, the commands are printed for the person to
+# run (ESC_MODE=print). A staging root ($DESTDIR) needs none. Sets ESC and ESC_MODE.
+need_root_helper() {
+  [ -z "$DESTDIR" ] || return 0
+  local tool
+  if [ -n "${SUDO:-}" ]; then
+    read -ra ESC <<<"$SUDO"
+  else
+    for tool in sudo doas pkexec; do
+      if command -v "$tool" >/dev/null; then ESC=("$tool"); break; fi
+    done
+  fi
+  if [ "${#ESC[@]}" -eq 0 ]; then
+    ESC_MODE=print
+    note "no sudo, doas or pkexec: the commands that need root are listed at the end for you to run (or set SUDO)"
+    return 0
+  fi
   [ "$DRY" = 1 ] && return 0
-  command -v sudo >/dev/null || { echo "sudo is needed" >&2; exit 1; }
-  note "sudo will ask for your password once"
-  sudo -v
+  command -v "${ESC[0]}" >/dev/null || { echo "${ESC[0]} (from SUDO) was not found" >&2; exit 1; }
+  if [ "${ESC[0]}" = sudo ]; then
+    note "sudo will ask for your password once"
+    "${ESC[@]}" -v
+  else
+    note "${ESC[0]} will ask for your password when it needs it"
+  fi
+}
+
+# print_pending: the root commands held back for want of a helper, ready to paste.
+print_pending() {
+  [ "${#PENDING[@]}" -gt 0 ] || return 0
+  printf '\nRun these as root to finish:\n'
+  printf '    %s\n' "${PENDING[@]}"
+}
+
+# ddcutil_rule_present ROOT: whether a ddcutil package (or the admin) already put a udev rule for the
+# i2c buses under ROOT (empty ROOT: the real system). Then sill's own rule is not installed.
+ddcutil_rule_present() {
+  local root="$1" pattern
+  for pattern in /usr/lib/udev/rules.d/60-ddcutil-i2c.rules /lib/udev/rules.d/60-ddcutil-i2c.rules /etc/udev/rules.d/60-ddcutil*.rules; do
+    if compgen -G "$root$pattern" >/dev/null; then return 0; fi
+  done
+  return 1
+}
+
+# target_rustflags: this repo's x86_64 linux rustflags from .cargo/config.toml minus the mold
+# `-fuse-ld` argument, space-separated. Reads only the one-line `rustflags = ["-C", "x", ...]` form.
+target_rustflags() {
+  local line tokens=() i tok
+  line="$(awk '/^\[target\.x86_64-unknown-linux-gnu\]/ { in_target = 1; next } /^\[/ { in_target = 0 } in_target && /^rustflags/ { print; exit }' "$ROOT/.cargo/config.toml" 2>/dev/null || true)"
+  mapfile -t tokens < <(grep -oE '"[^"]*"' <<<"$line" | tr -d '"' || true)
+  for ((i = 0; i < ${#tokens[@]}; i++)); do
+    tok="${tokens[i]}"
+    if [ "$tok" = -C ] && [[ "${tokens[i + 1]:-}" == *-fuse-ld=* ]]; then
+      i=$((i + 1))
+      continue
+    fi
+    [[ "$tok" == *-fuse-ld=* ]] && continue
+    printf '%s\n' "$tok"
+  done | paste -sd' ' -
+}
+
+# linker_fallback: .cargo/config.toml links with clang and mold (a developer-speed setup). Where both
+# are not installed, link with `cc` and the repo's other rustflags instead, for this build only (a
+# linker or rustflags variable you already set is kept). The file itself is not edited.
+linker_fallback() {
+  if command -v clang >/dev/null && command -v mold >/dev/null; then return 0; fi
+  export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="${CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER:-cc}"
+  export RUSTFLAGS="${RUSTFLAGS-$(target_rustflags)}"
+  note "clang and mold are not both installed: linking with cc, without mold, for this build"
 }
