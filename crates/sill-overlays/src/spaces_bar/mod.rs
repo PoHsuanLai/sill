@@ -18,4 +18,3 @@ mod view;
 
 pub use layer::STRIP_PX;
 pub use surface::SpacesBar;
-pub use view::SPACES_BAR_CSS;

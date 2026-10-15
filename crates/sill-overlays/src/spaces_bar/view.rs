@@ -9,14 +9,11 @@ use ds::prelude::*;
 use shell_host::OutputInfo;
 use sill_services::AppsService;
 
-use super::io::{css_url, use_bar, use_unmap};
+use super::io::{use_bar, use_unmap};
 use super::layer::BAR_ID;
 use sill_ui_kit::hooks::{use_service, use_settings};
 use sill_ui_kit::links::SpacesBarLink;
 use sill_ui_kit::root::SurfaceRoot;
-
-/// The bar's own stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
-pub const SPACES_BAR_CSS: &str = include_str!("style.css");
 
 pub(super) fn spaces_bar(output: OutputInfo) -> Element {
     rsx! {
@@ -46,23 +43,19 @@ fn SpacesStrip(output: OutputInfo) -> Element {
     let mounted =
         use_hook(|| EventHandler::new(move |event: MountedEvent| probe.on_mounted(event)));
     let (by_pick, by_add) = (bar.clone(), bar.clone());
-    let wallpaper = (bar.wallpaper)().map(|url| css_url(&url));
-    let backdrop = wallpaper.as_ref().map(|_| "wallpaper");
-    let var = wallpaper
-        .map(|url| format!("--sill-bar-wallpaper:{url};"))
-        .unwrap_or_default();
+    let on_layout = bar.on_layout;
+    let add_drop = bar.add_drop();
     rsx! {
-        AppStyle { css: SPACES_BAR_CSS }
         div {
             class: "sill-spaces-bar",
-            style: "padding-top:{menu_bar}px;{var}",
-            "data-backdrop": backdrop,
-            "data-add-drop": bar.add_drop().drop_attr(),
+            style: "padding-top:{menu_bar}px;",
             SpacesBar {
                 label: "Spaces",
                 spaces: tiles(),
                 shown: bar.shown(),
                 expansion: Some(BarExpansion::Expanded),
+                add_drop,
+                on_layout,
                 on_pick: move |key: BarSpaceKey| by_pick.switch(&key),
                 on_add: move |()| by_add.add(),
                 on_hidden: move |()| on_hidden.call(()),

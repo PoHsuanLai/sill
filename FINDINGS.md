@@ -1195,3 +1195,26 @@ version 3 (casement-protocols `0f7afcb`, casement `3eaf1f7`) and completes the S
 - **Open, only a real run proves.** That every Space (hidden ones too) comes back with a picture and nothing spins; that the wallpaper
   shows under the pictures; that a drop on the plus makes a Desktop and the new card appears with its picture; that dragging between
   outputs lights the right bar; that the plus lights and puts its light out.
+
+### mc4, part 2: quire's `SpacesBar` API (lane `sill-mc4`, written without a build)
+
+Switches the Spaces bar onto quire `c22bbd9e` (`add_drop`, `on_layout`, `SpaceTile::backdrop`; quire FINDINGS `q-barasks`) and deletes
+the workarounds above.
+
+- **Resolved.** Departures 1 and 2 and the wallpaper's custom property: `spaces_bar/style.css`, `SPACES_BAR_CSS`, the wrapper's
+  `data-add-drop` / `data-backdrop` / `--sill-bar-wallpaper`, `css_url`, and the arithmetic (`tiles_of`, `add_of`, `BAR_SIDE`, `ADD_PX`,
+  the tile padding and gap) are gone. The plus is lit by `SpacesBar::add_drop` (`BarDrops::new_state_of`); each tile takes
+  `.backdrop(ImageSource(file URL))`, the URL `wallpaper::url_for` gives (the string the wallpaper surface's `img` already loads);
+  `io.rs` keeps the last `ds::prelude::BarLayout` quire reported (imported as `DrawnBar`, because `sill_model::desktop::BarLayout` is the
+  published shape and keeps its name), and an effect publishes it as the link's `BarLayout` while the bar is up: the cards (`card`, so a
+  collapsed bar publishes none), the plus, each moved by the surface's origin on the output, `thumb` still from `thumb_size`. The
+  published shape, `target_commands` and the daemon are unchanged. The lint case is `css: ""` again.
+- **Still open.** Departure 3 (`Accepts` is never set: no drag-start event from the compositor). Departure 4 (the wallpaper and the
+  windows agree only on a 16:10 output) stands; the backdrop is now an `img` with `object-fit: cover`, so the file URL needs no
+  background-image proof. The plus rectangle is quire's `span.ds-spaces-bar-add` (the button's box), not a smaller button.
+- **Tests.** sill-model: the `tiles_of` / `add_of` tests are deleted (target commands, asks, drops kept). `io.rs`: the origin shift and
+  the collapsed card. sill-overlays: published rects equal the drawn `.ds-spaces-bar-thumb` and `.ds-spaces-bar-add`; the lit plus is
+  `.ds-spaces-bar-add[data-drop=target]`; `img.ds-spaces-bar-backdrop` appears on both tiles for the right output only.
+- **Check at the gate.** `use_signal` / `use_hook` in `use_publish_layout`; `DrawnBar: PartialEq` (it is); `rect` equality to the whole
+  pixel between quire's phase-published rects and the harness's `rect` (rounding may need a one-pixel tolerance); the lit-tile test
+  assumes `data-drop` is only on the plus then; whether the surface's `logical` origin type is `i32`.

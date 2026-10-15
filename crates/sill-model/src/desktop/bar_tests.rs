@@ -9,9 +9,9 @@ use ds_core::vocab::DropState;
 use porter_core::SpaceId;
 
 use super::{
-    BarDrops, BarLayout, BarLayouts, BarOutputs, BarPictures, BarShow, DesktopCommand, DesktopView,
-    Outbox, SpacePicture, SpacePlaceView, SpaceView, ThumbAsks, ThumbRequest, WindowView, add_of,
-    bar_space_ids, outgoing, target_commands, thumb_size, thumbs_wanted, tiles_of,
+    BarDrops, BarLayout, BarLayouts, BarOutputs, BarPictures, BarShow, BarTile, DesktopCommand,
+    DesktopView, Outbox, SpacePicture, SpacePlaceView, SpaceView, ThumbAsks, ThumbRequest,
+    WindowView, bar_space_ids, outgoing, target_commands, thumb_size, thumbs_wanted,
 };
 
 fn id(text: &str) -> SpaceId {
@@ -45,33 +45,6 @@ fn the_bar_is_drawn_only_where_mission_control_is_up() {
 }
 
 #[test]
-fn the_cards_lie_in_a_row_centred_in_the_bar_on_the_surfaces_place_in_the_desktop() {
-    let spaces = [id("ws-1"), id("ws-2")];
-    // A 1000 wide bar at the top of a surface that starts at x 1920: two tiles of 168 and a gap
-    // of 16 make a row of 352, which starts 324 in.
-    let tiles = tiles_of((1920, 0), (0, 0, 1000, 150), &spaces);
-    let rects: Vec<_> = tiles.iter().map(|tile| tile.rect).collect();
-    assert_eq!(
-        rects,
-        [
-            (1920 + 324 + 4, 12, 160, 100),
-            (1920 + 324 + 184 + 4, 12, 160, 100)
-        ]
-    );
-    assert_eq!(tiles[1].space, id("ws-2"));
-    assert!(tiles_of((0, 0), (0, 0, 1000, 150), &[]).is_empty());
-}
-
-#[test]
-fn the_plus_lies_at_the_bars_right_edge_inside_its_padding() {
-    assert_eq!(add_of((0, 0), (0, 0, 1000, 150)), (952, 8, 28, 28));
-    assert_eq!(
-        add_of((1920, 24), (0, 10, 1000, 150)),
-        (1920 + 952, 42, 28, 28)
-    );
-}
-
-#[test]
 fn a_card_is_asked_for_at_the_outputs_scale() {
     assert_eq!(thumb_size(120), (160, 100));
     assert_eq!(thumb_size(240), (320, 200));
@@ -79,14 +52,21 @@ fn a_card_is_asked_for_at_the_outputs_scale() {
 }
 
 fn layouts(output: &str, spaces: &[SpaceId]) -> BarLayouts {
-    let tiles = tiles_of((0, 0), (0, 0, 1000, 150), spaces);
+    let tiles = spaces
+        .iter()
+        .zip(0_i32..)
+        .map(|(space, at)| BarTile {
+            space: space.clone(),
+            rect: (328 + at * 184, 12, 160, 100),
+        })
+        .collect();
     BarLayouts(
         [(
             output.to_owned(),
             BarLayout {
                 tiles,
                 thumb: (320, 200),
-                add: Some(add_of((0, 0), (0, 0, 1000, 150))),
+                add: Some((952, 8, 28, 28)),
             },
         )]
         .into(),

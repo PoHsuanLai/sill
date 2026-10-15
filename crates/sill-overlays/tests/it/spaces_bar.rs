@@ -165,51 +165,51 @@ fn a_picture_that_arrived_is_on_its_tile_and_a_drag_over_a_tile_lights_it() {
     assert!(!running.harness.html().contains("data-drop=\"target\""));
 }
 
-#[test]
-fn the_published_cards_lie_where_the_bar_draws_its_thumbnails() {
-    let running = open();
-    let layout = running
+/// `selector`'s element as drawn, in whole logical pixels.
+fn drawn(running: &Running, selector: &str) -> (i32, i32, u32, u32) {
+    let rect = running
+        .harness
+        .rect(selector)
+        .unwrap_or_else(|| panic!("{selector} is laid out")); // test-only
+    (
+        rect.origin.x.0.round() as i32,
+        rect.origin.y.0.round() as i32,
+        rect.size.width.0.round() as u32,
+        rect.size.height.0.round() as u32,
+    )
+}
+
+fn published(running: &Running) -> sill_model::desktop::BarLayout {
+    running
         .link
         .latest()
         .layouts
         .0
         .get("DP-1")
         .cloned()
-        .expect("the bar published its layout"); // test-only
+        .expect("the bar published its layout") // test-only
+}
+
+#[test]
+fn the_published_cards_lie_where_the_bar_draws_its_thumbnails() {
+    let running = open();
+    let layout = published(&running);
     assert_eq!(layout.thumb, (160, 100));
     assert_eq!(layout.tiles.len(), 2);
     assert_eq!(layout.tiles[0].space, id("ws-1"));
-    let drawn = running
-        .harness
-        .rect(".ds-spaces-bar-thumb")
-        .expect("a thumbnail is laid out"); // test-only
-    let (x, y) = (
-        drawn.origin.x.0.round() as i32,
-        drawn.origin.y.0.round() as i32,
+    assert_eq!(
+        layout.tiles[0].rect,
+        drawn(&running, ".ds-spaces-bar-thumb")
     );
-    assert_eq!(layout.tiles[0].rect, (x, y, 160, 100), "{drawn:?}");
 }
 
 #[test]
 fn the_published_plus_lies_where_the_bar_draws_it() {
     let running = open();
-    let layout = running
-        .link
-        .latest()
-        .layouts
-        .0
-        .get("DP-1")
-        .cloned()
-        .expect("the bar published its layout"); // test-only
-    let drawn = running
-        .harness
-        .rect(".ds-spaces-bar-add .ds-button")
-        .expect("the plus is laid out"); // test-only
-    let (x, y) = (
-        drawn.origin.x.0.round() as i32,
-        drawn.origin.y.0.round() as i32,
+    assert_eq!(
+        published(&running).add,
+        Some(drawn(&running, ".ds-spaces-bar-add"))
     );
-    assert_eq!(layout.add, Some((x, y, 28, 28)), "{drawn:?}");
 }
 
 #[test]
@@ -227,21 +227,23 @@ fn every_space_shows_its_picture_the_hidden_one_too() {
 #[test]
 fn the_plus_lights_while_the_dragged_window_is_over_it_and_not_with_a_tile() {
     let mut running = open();
-    assert!(!running.harness.html().contains("data-add-drop=\"target\""));
+    let lit = ".ds-spaces-bar-add[data-drop=target]";
+    assert_eq!(running.harness.count(lit), 0);
     running.link.set_drop_new("DP-1", Shown::Shown);
     running.harness.advance(Duration::from_millis(100));
-    let html = running.harness.html();
-    assert!(html.contains("data-add-drop=\"target\""), "{html}");
-    assert!(!html.contains("data-drop=\"target\""), "{html}");
+    assert_eq!(running.harness.count(lit), 1);
+    // Only the plus is lit, no tile.
+    assert_eq!(running.harness.count("[data-drop=target]"), 1);
     running.link.set_drop_new("DP-1", Shown::Hidden);
     running.harness.advance(Duration::from_millis(100));
-    assert!(!running.harness.html().contains("data-add-drop=\"target\""));
+    assert_eq!(running.harness.count(lit), 0);
 }
 
 #[test]
 fn the_outputs_wallpaper_lies_under_the_pictures_and_another_outputs_does_not() {
     let mut running = open();
-    assert!(!running.harness.html().contains("data-backdrop"));
+    let backdrops = |running: &Running| running.harness.count("img.ds-spaces-bar-backdrop");
+    assert_eq!(backdrops(&running), 0);
     let image = |output: &str| Wallpapers {
         outputs: vec![WallpaperImage {
             output: OutputName(output.to_owned()),
@@ -251,11 +253,10 @@ fn the_outputs_wallpaper_lies_under_the_pictures_and_another_outputs_does_not() 
     };
     running.feeds.wallpaper.send_replace(image("DP-2"));
     running.harness.advance(Duration::from_millis(100));
-    assert!(!running.harness.html().contains("data-backdrop"));
+    assert_eq!(backdrops(&running), 0);
     running.feeds.wallpaper.send_replace(image("DP-1"));
     running.harness.advance(Duration::from_millis(100));
+    assert_eq!(backdrops(&running), 2);
     let html = running.harness.html();
-    assert!(html.contains("data-backdrop=\"wallpaper\""), "{html}");
-    assert!(html.contains("--sill-bar-wallpaper:url("), "{html}");
     assert!(html.contains("/tmp/sill-bar-wallpaper/light.png"), "{html}");
 }

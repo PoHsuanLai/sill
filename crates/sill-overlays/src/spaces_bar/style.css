@@ -1,9 +1,0 @@
-/* The Spaces bar's additions to quire's SpacesBar (FINDINGS mc4). Each Space's picture is composed
-   over a transparent background, so the output's wallpaper lies under it, as on the Mac: the
-   wrapper carries the wallpaper's URL as `--sill-bar-wallpaper` and says `data-backdrop` when
-   there is one. The plus has no drop state of its own in quire's bar, so the wrapper's
-   `data-add-drop=target` gives it the wash and ring quire gives a lit Space. Attribute selectors
-   carry `*|`. */
-
-.sill-spaces-bar[*|data-backdrop=wallpaper] .ds-spaces-bar-thumb{ background-image:var(--sill-bar-wallpaper); background-size:cover; background-position:center; }
-.sill-spaces-bar[*|data-add-drop=target] .ds-spaces-bar-add .ds-button{ background:var(--accent-soft); color:var(--ink); box-shadow:0 0 0 var(--s-2) var(--accent); }
