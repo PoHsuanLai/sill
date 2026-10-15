@@ -22,12 +22,6 @@ use sill_ui_kit::root::SurfaceRoot;
 pub const SPACES_BAR_CSS: &str = include_str!("style.css");
 
 pub(super) fn spaces_bar(output: OutputInfo) -> Element {
-    let link = use_context::<SpacesBarLink>();
-    let bar = use_bar(&link, &output);
-    let apps = use_service::<AppsService>()();
-    let menu_bar = use_settings()().bar.height_px.0;
-    let drawn = bar.presented.presence.drawn_slug();
-    let spaces = bar.spaces(&apps);
     rsx! {
         SurfaceRoot {
             output: output.clone(),
@@ -35,6 +29,21 @@ pub(super) fn spaces_bar(output: OutputInfo) -> Element {
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
             AppStyle { css: SPACES_BAR_CSS }
+            SpacesStrip { output }
+        }
+    }
+}
+
+/// The strip itself, inside the root: its motion reads the motion level the root provides.
+#[component]
+fn SpacesStrip(output: OutputInfo) -> Element {
+    let link = use_context::<SpacesBarLink>();
+    let bar = use_bar(&link, &output);
+    let apps = use_service::<AppsService>()();
+    let menu_bar = use_settings()().bar.height_px.0;
+    let drawn = bar.presented.presence.drawn_slug();
+    let spaces = bar.spaces(&apps);
+    rsx! {
             if let Some(drawn) = drawn {
                 div {
                     class: "sill-spaces-bar",
@@ -65,7 +74,6 @@ pub(super) fn spaces_bar(output: OutputInfo) -> Element {
                     }
                 }
             }
-        }
     }
 }
 
