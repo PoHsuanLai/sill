@@ -1,0 +1,8 @@
+/* The Split View picker. The tiles are quire's `AppSwitcher`; this lays out the dimmed backdrop and
+   the half of the screen the tiles are centred in. Tokens only. */
+.sill-split{ position:relative; width:100vw; height:100vh; outline:none; }
+.sill-split-scrim{ position:absolute; top:0; right:0; bottom:0; left:0; background:var(--scrim); }
+.sill-split-stage{ position:absolute; top:0; bottom:0; width:50%; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+.sill-split-stage[*|data-half=left]{ left:0; }
+.sill-split-stage[*|data-half=right]{ right:0; }
+.sill-split-panel{ display:flex; pointer-events:auto; }

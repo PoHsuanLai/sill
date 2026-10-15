@@ -31,6 +31,7 @@ Renaming a surface below is a breaking change for your file, so it is named in t
 | `accounts-sheet` | the accounts sheet (accountd's consent question and add-account steps, in a window of their own) |
 | `capture` | the sharing sheet (which screen or window an app may share) |
 | `switcher` | the app switcher |
+| `split-picker` | the Split View picker (which window fills the other half) |
 | `desktop-widgets` | the desktop widgets |
 | `edit-widgets` | the widget editor |
 | `wallpaper` | the wallpaper |

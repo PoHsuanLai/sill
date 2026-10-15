@@ -992,3 +992,37 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
   has no input serial. If casement refuses or immediately dismisses the grab, give the popup `PopupGrab::Ungrabbed`
   and close it on the next pointer press outside (the compositor knows the press; add a `window_menu_close` event).
   The menu opens `Full Screen Tile` entries dimmed until casement has a Split View command.
+
+## splitwire: the Split View picker and divider
+
+- **The route.** casement offers the other half of a Split View with `quire_shell_v1.split_choose(first, side)` and one
+  `split_candidate(toplevel)` per candidate, and ends it with `split_choice_end(first)`; `desktop-client` folds them
+  into `Shell::split_choice` and `ShellEvent::{SplitChoose, SplitCandidate, SplitChoiceEnd}`; `sill-services` `note_of`
+  makes `ShellNote::{SplitChoose, SplitCandidate, SplitChoiceEnd}` (one note per event: the wire has no "list complete"
+  event, so the picker fills as the candidates arrive); `daemon::compositor::apply` hands them to
+  `sill::split_picker::apply`, which writes `SplitPickerLink` (`begin`, `add`, `end`) with the first window's output and
+  each candidate's title from the latest `DesktopView`. Each output's `sill_overlays::SplitPicker` (Overlay, whole output,
+  keyboard Exclusive, input everywhere, no blur) maps while an offer shows on it. A tile or Return writes
+  `SplitAnswer::Picked`, Escape or a press on the backdrop `Cancelled`; `split_picker::spawn_answers` sends
+  `DesktopCommand::PickSplit` / `CancelSplit`, and the Quire arm sends `split_pick` / `split_cancel`.
+- **No window previews.** sill has no window previews (Mission Control and the switcher are the compositor's or app
+  tiles), so each card is the window's app icon with its title under the selected tile: quire's `AppSwitcher` with the
+  window identifier as the tile key. A thumbnail needs a per-window capture (casement has `ext-image-copy-capture`
+  for toplevels); when the shell asks for those, the tile's `IconSource` is where the picture goes.
+- **Shared with the switcher.** The icon source (`TileIcons`) and the tile sizes (`icon_side`, `metrics_of`) moved
+  from the switcher to `sill_ui_kit::app_icons` so both surfaces draw the same tiles from `switcher.*`.
+- **An offer with no output named** (the desktop did not say which output the first window is on) shows on every output.
+- **The divider is not built.** The wire is complete (`DesktopCommand::DivideSplit(window, thousandths)` ->
+  `split_divide`), but sill has no handle. A handle would be a second overlay surface whose input region is one 8 px
+  element at the strip between the halves (`DIVIDER_WIDTH` in casement's `rust_scene/split.rs`), dragged with the
+  pointer held (Wayland keeps the grab on the surface while a button is down, so the drag can leave the region); its
+  share is `(pointer x - 4) / (output width - 8)` in thousandths. What stops it: (1) casement has no hit test or pointer
+  grab on the strip and the full-screen windows are drawn above Top layers, so whether an Overlay surface gets pointer
+  events over a full-screen window's pair is only proven by a real run; (2) `DesktopView` carries neither which
+  windows are a pair nor the share, so the handle would take the strip's place from the two windows' geometry; (3) the
+  share is not reported back, so a restarted shell would draw the handle at the middle until the next drag.
+- **Open, only a real run proves.** Left of Screen in the green light's menu with two windows: the dimmed picker appears
+  on the free half with the other window as a tile, a click on it makes both halves; Escape and a click on the dimmed
+  first half both leave the first window alone, full screen. Whether Escape reaches the picker (keyboard Exclusive over a
+  full-screen window), and whether a press on `.sill-split-scrim` arrives as a pointer-down on the surface.
+  `dev/accept/split-picker.sh` (the recipe's acceptance script) is not written: it needs a running session.

@@ -28,14 +28,14 @@ use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
     AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
-    PowerMenu, Switcher, VoiceConsentSheet, Wallpaper,
+    PowerMenu, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
     EditWidgetsLink, LauncherLink, LevelSource, LockLink, OsdKind, OsdLink, PlacementFile,
-    PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
+    PowerMenuLink, Preselect, PromptOutput, SplitPickerLink, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::surface::{LockSurface, Surface};
 use sill_widgets_ui::{DesktopWidgets, EditWidgets};
@@ -147,6 +147,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <Switcher as Surface>::NAME,
         css: sill_overlays::switcher::SWITCHER_CSS,
         states: switcher_states,
+    },
+    SurfaceCase {
+        name: "split_picker",
+        surface: <SplitPicker as Surface>::NAME,
+        css: sill_overlays::split_picker::SPLIT_PICKER_CSS,
+        states: split_picker_states,
     },
     SurfaceCase {
         name: "polkit_prompt",
@@ -340,6 +346,27 @@ fn power_menu_states() -> Vec<(&'static str, String)> {
     let open = menu.harness.html();
     assert!(open.contains("ds-alert"), "{open}");
     vec![("hidden", hidden), ("open", open)]
+}
+
+/// The picker hidden, then offering two windows for the right half.
+fn split_picker_states() -> Vec<(&'static str, String)> {
+    let mut picker = SurfaceHarness::<SplitPicker>::setup(SplitPickerLink::new(), ()).start();
+    picker.harness.advance(Duration::from_millis(40));
+    let hidden = picker.harness.html();
+    let card = |window: &str| sill_model::desktop::SplitCard {
+        window: window.to_owned(),
+        app: "term".to_owned(),
+        title: format!("Title of {window}"),
+    };
+    picker
+        .link
+        .begin("w1", sill_model::desktop::SplitSide::Left, "");
+    picker.link.add(card("w2"));
+    picker.link.add(card("w3"));
+    picker.harness.advance(Duration::from_millis(200));
+    let offered = picker.harness.html();
+    assert!(offered.contains("sill-split-scrim"), "{offered}");
+    vec![("hidden", hidden), ("offered", offered)]
 }
 
 /// The switcher hidden, then shown on three apps past the show delay.
