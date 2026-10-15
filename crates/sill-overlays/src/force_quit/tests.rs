@@ -1,9 +1,7 @@
 use sill_model::desktop::{ForceQuitRow, Standing};
 
 use super::model::{Chosen, Confirming};
-use super::stage::{Mapped, Stage, StageIn, advance as stage};
 use super::step::{In, Out, advance};
-use sill_ui_kit::links::{ForceQuitOpening, ForceQuitSerial};
 
 fn row(app: &str, standing: Standing) -> ForceQuitRow {
     ForceQuitRow {
@@ -135,59 +133,5 @@ fn the_panel_selects_asks_confirms_and_leaves() {
     ];
     for (name, from, input, want, out) in cases {
         assert_eq!(advance(from, input, &rows()), (want, out), "{name}");
-    }
-}
-
-fn opening(serial: u64) -> ForceQuitOpening {
-    ForceQuitOpening {
-        serial: ForceQuitSerial(serial),
-        output: shell_host::OutputId(1),
-    }
-}
-
-#[test]
-fn the_stage_follows_the_link_and_plays_the_exit() {
-    type Case = (&'static str, Stage, StageIn, Stage, Mapped);
-    let cases: Vec<Case> = vec![
-        (
-            "opening maps the surface",
-            Stage::Empty,
-            StageIn::Want(Some(opening(1))),
-            Stage::Up(opening(1)),
-            Mapped::Yes,
-        ),
-        (
-            "closing starts the exit",
-            Stage::Up(opening(1)),
-            StageIn::Want(None),
-            Stage::Leaving(opening(1)),
-            Mapped::Yes,
-        ),
-        (
-            "the exit's settle unmaps",
-            Stage::Leaving(opening(1)),
-            StageIn::Settled,
-            Stage::Empty,
-            Mapped::No,
-        ),
-        (
-            "the next opening replaces a leaving one",
-            Stage::Leaving(opening(1)),
-            StageIn::Want(Some(opening(2))),
-            Stage::Up(opening(2)),
-            Mapped::Yes,
-        ),
-        (
-            "a settle with the panel up changes nothing",
-            Stage::Up(opening(1)),
-            StageIn::Settled,
-            Stage::Up(opening(1)),
-            Mapped::Yes,
-        ),
-    ];
-    for (name, from, input, want, mapped) in cases {
-        let next = stage(from, input);
-        assert_eq!(next, want, "{name}");
-        assert_eq!(next.mapped(), mapped, "{name}");
     }
 }

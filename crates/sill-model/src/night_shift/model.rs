@@ -92,14 +92,14 @@ pub struct Manual {
     pub restore: NightLight,
 }
 
-/// Who warms the screen.
+/// Who warms the monitors that answer DDC/CI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Backend {
-    /// casement, in software.
+    /// casement, in software, like every other display.
     #[default]
     Software,
-    /// sill, over each display's own colour gains (`display.night_warmth`); casement is kept
-    /// off so the screen is not warmed twice.
+    /// sill, over each monitor's own colour gains (`display.night_warmth`); casement is told to
+    /// leave those monitors alone (`night_light.skip_outputs`) and keeps warming the rest.
     Hardware,
 }
 

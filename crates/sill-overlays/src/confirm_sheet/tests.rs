@@ -1,12 +1,10 @@
-//! The gate and the stage as tables: pure, on the machine's own stamps.
+//! The gate as a table: pure, on the machine's own stamps.
 
 use ds::base::machine::Machine;
 use ds::base::time::stamp::Stamp;
-use sill_model::intents::ConfirmOffer;
-use sill_model::intents::sheet::{SheetChoice, SheetView};
+use sill_model::intents::sheet::SheetChoice;
 
 use super::gate::{AnswerGate, GateIn, GateOut, GateParams};
-use super::stage::{Mapped, Stage, StageIn, advance};
 
 const PARAMS: GateParams = GateParams {
     arm_ms: 500,
@@ -87,51 +85,4 @@ fn only_an_armed_or_holding_gate_takes_input() {
     ] {
         assert_eq!(gate.takes_input(), takes, "{gate:?}");
     }
-}
-
-fn view(id: &str, waiting: usize) -> SheetView {
-    SheetView {
-        id: sill_model::intents::ConfirmId::parse(id).unwrap_or_else(|e| panic!("{e}")),
-        title: "Archive a thread?".to_owned(),
-        byline: String::new(),
-        facts: Vec::new(),
-        notes: Vec::new(),
-        offer: ConfirmOffer::OnceOnly,
-        gesture: sill_model::intents::Gesture::Press,
-        effect: sill_model::intents::Effect::UndoableWrite,
-        waiting,
-    }
-}
-
-#[test]
-fn the_stage_follows_the_question_and_keeps_it_while_its_sheet_leaves() {
-    let up = |id: &str, waiting| Stage::Up(view(id, waiting));
-    let leaving = |id: &str| Stage::Leaving(view(id, 0));
-    #[rustfmt::skip]
-    let cases = [
-        ("a question appears",          Stage::Empty,   StageIn::Want(Some(view("a", 0))), up("a", 0),   Mapped::Yes),
-        ("none while empty",            Stage::Empty,   StageIn::Want(None),               Stage::Empty, Mapped::No),
-        ("the question goes",           up("a", 0),     StageIn::Want(None),               leaving("a"), Mapped::Yes),
-        ("the exit settles",            leaving("a"),   StageIn::Settled,                  Stage::Empty, Mapped::No),
-        ("the same question, one more waiting", up("a", 0), StageIn::Want(Some(view("a", 1))), up("a", 1), Mapped::Yes),
-        ("the next question replaces",  up("a", 1),     StageIn::Want(Some(view("b", 0))), up("b", 0),   Mapped::Yes),
-        ("one that arrives while leaving is up at once", leaving("a"), StageIn::Want(Some(view("b", 0))), up("b", 0), Mapped::Yes),
-        ("a settle with nothing leaving is nothing", up("a", 0), StageIn::Settled,         up("a", 0),   Mapped::Yes),
-    ];
-    for (name, from, input, want, mapped) in cases {
-        let next = advance(from, input);
-        assert_eq!(next, want, "{name}");
-        assert_eq!(next.mapped(), mapped, "{name}");
-    }
-    let (view_of, shown) = up("a", 0)
-        .drawn()
-        .map(|(v, s)| (v.id.clone(), s))
-        .unwrap_or_else(|| panic!("drawn"));
-    assert_eq!(view_of.as_str(), "a");
-    assert_eq!(shown, ds::prelude::Shown::Visible);
-    assert_eq!(
-        leaving("a").drawn().map(|(_, s)| s),
-        Some(ds::prelude::Shown::Hidden)
-    );
-    assert_eq!(Stage::Empty.drawn(), None);
 }

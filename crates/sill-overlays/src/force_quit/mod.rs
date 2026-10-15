@@ -14,7 +14,6 @@
 mod io;
 mod layer;
 mod model;
-mod stage;
 mod step;
 mod surface;
 #[cfg(test)]
