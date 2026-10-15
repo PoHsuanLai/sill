@@ -136,7 +136,8 @@ fn each_accent_block_sets_exactly_the_seven() {
         .into_iter()
         .filter(|(sel, _)| sel.contains("data-accent="))
         .collect();
-    assert_eq!(blocks.len(), Accent::ALL.len() * Scheme::ALL.len());
+    // One block per accent and scheme, and the same again under high contrast.
+    assert_eq!(blocks.len(), 2 * Accent::ALL.len() * Scheme::ALL.len());
     for (selector, decls) in blocks {
         let names: BTreeSet<&str> = decls.iter().map(|(name, _)| name.as_str()).collect();
         assert_eq!(names, seven, "{selector}");

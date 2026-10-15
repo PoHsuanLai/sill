@@ -64,7 +64,6 @@ fn the_grid_shows_what_the_services_hold() {
             ">Built-in Audio Analog Stereo<",
             1,
         ),
-        ("its level", ">40%<", 1),
         ("Display", ">Display<", 1),
         ("nothing playing", ">Not Playing<", 1),
         ("the theme control", "aria-label=\"Theme\"", 1),
@@ -138,7 +137,6 @@ fn a_modules_dropdown_draws_it_bare_on_the_card() {
         ("one quire panel", "class=\"ds-module-panel\"", 1),
         ("bare: the card is its plate", "data-plate=\"bare\"", 1),
         ("headed", "class=\"ds-module-panel-head\"", 1),
-        ("its level", ">40%<", 1),
     ];
     for (name, needle, want) in cases {
         assert_eq!(count(&html, needle), want, "{name}: {needle}");

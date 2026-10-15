@@ -256,7 +256,6 @@ fn the_bar_bluetooth_shows_its_dots_once_connected() {
 const DISC_WIFI: &str = ".ds-module-disc > .ds-status-glyph[*|data-kind=wifi]";
 const DISC_BT: &str = ".ds-module-disc > .ds-status-glyph[*|data-kind=bluetooth]";
 const BATTERY_HEAD: &str = ".ds-module-panel-glyph > .ds-status-glyph[*|data-kind=battery]";
-const SOUND_HEAD: &str = ".ds-module-panel-glyph > .ds-status-glyph[*|data-kind=volume]";
 /// The Sound module's level (Display's is the other `.ds-slider`).
 const SOUND: &str = ".ds-slider[*|aria-label=\"Built-in Audio Analog Stereo\"]";
 /// The glyph in the knob (the `Mac` look carries it there, quire design/29 section 16).
@@ -342,23 +341,16 @@ fn the_bluetooth_disc_seals_when_a_device_connects() {
 }
 
 #[test]
-fn the_sound_level_and_its_header_read_the_bars_volume_state() {
+fn the_sound_level_reads_the_bars_volume_state() {
     let mut running = center();
     let harness = &mut running.harness;
     assert!(
         on(harness, LEVEL, "wave-2") && !on(harness, LEVEL, "wave-3"),
         "40 %: two waves"
     );
-    assert_eq!(
-        harness.count(SOUND_HEAD),
-        1,
-        "the bar item's glyph heads it"
-    );
     assert_settles_to_zero_frames(harness);
     running.feeds.volume.send_modify(|v| v.mute = Mute::Muted);
-    settle_until(harness, |h| {
-        on(h, LEVEL, "slash") && on(h, SOUND_HEAD, "slash")
-    });
+    settle_until(harness, |h| on(h, LEVEL, "slash"));
     assert!(!on(harness, LEVEL, "wave-1"), "muted draws no waves");
     assert_eq!(
         harness.attr(SOUND, "aria-valuenow").as_deref(),

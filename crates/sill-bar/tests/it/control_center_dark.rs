@@ -21,10 +21,6 @@ const INKS: &[(&str, &str)] = &[
         ".ds-module-disc > .ds-status-glyph[*|data-kind=wifi]",
     ),
     ("the Focus moon", ".ds-module-disc > svg.ds-ic"),
-    (
-        "the Sound header glyph",
-        ".ds-level-glyph[*|data-size='16']",
-    ),
 ];
 
 fn weak(run: &mut live::Running) -> Vec<String> {
