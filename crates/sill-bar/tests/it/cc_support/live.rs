@@ -11,6 +11,7 @@ use dioxus::prelude::*;
 use ds::base::geometry::placement::{Align, Side};
 use ds::host::measure::Anchor;
 use ds::prelude::*;
+use ds_blitz::FocusFallback;
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_bar::control_center::{CcPage, ControlCenter};
 use sill_model::ids::OutputName;
@@ -122,6 +123,21 @@ pub fn start(services: Services, feeds: fake::Feeds) -> Running {
 
 /// [`start`] on an output at `scale_percent` (200: the user's 4K monitor at scale 2).
 pub fn start_at(services: Services, feeds: fake::Feeds, scale_percent: u16) -> Running {
+    build(services, feeds, scale_percent, FocusFallback::default())
+}
+
+/// [`start`] as a shell surface runs it: its host has no click-focus part, so a press on
+/// nothing focusable clears the keyboard, as Blitz does.
+pub fn start_in_shell(services: Services, feeds: fake::Feeds) -> Running {
+    build(services, feeds, 100, FocusFallback::BlitzDefault)
+}
+
+fn build(
+    services: Services,
+    feeds: fake::Feeds,
+    scale_percent: u16,
+    focus_fallback: FocusFallback,
+) -> Running {
     let reports = Arc::new(Mutex::new(Vec::new()));
     let (focus, mode) = watch::channel(FocusMode::Off);
     let (set, focus_sets) = mpsc::unbounded_channel();
@@ -139,7 +155,12 @@ pub fn start_at(services: Services, feeds: fake::Feeds, scale_percent: u16) -> R
         scale_percent,
     };
     Running {
-        harness: Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
+        harness: Harness::new(
+            app,
+            HarnessConfig::new(viewport)
+                .with_clock(Clock::Virtual)
+                .with_focus_fallback(focus_fallback),
+        ),
         feeds,
         focus,
         focus_sets,

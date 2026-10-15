@@ -675,8 +675,13 @@ a source; `assumed` means not yet checked.
 - **G353** Two devices connecting at once share one connect stamp.
 - **G301** A Bluetooth failure beside a connected device does not shake the glyph.
 - MPRIS `Playback::Buffering` is never produced.
-- **G400** Real Escape after a pointer press in the control center does not close it (right after
-  opening it does).
+- A shell surface's host (`ds_blitz::provide_host()`) has no click-focus part, so Blitz clears the
+  keyboard on a press that lands on nothing focusable and a key then goes to the document root.
+  The control center's panel hears its own focus leave (`onfocusout`) and, unless another element
+  of the panel took the keyboard in the same move (`onfocusin`), takes it back
+  (`control_center::panel::KeyboardHome`), so Escape closes it after a press. Every other shell
+  surface that takes keys without a field of its own has the same gap; quire giving the standalone
+  host the click-focus part would close it for all of them.
 - **G470** After a Clear in the notification center, the widgets slot under the list jumps up
   instead of healing.
 - **G421** `calendar.week_numbers` is inert: neither compact month draws week numbers.

@@ -1,6 +1,6 @@
 //! The control center's keyboard from the moment it opens: the panel holds the keyboard, Tab
 //! walks its tiles in order, Shift+Tab walks back, Space and Enter toggle the focused tile,
-//! Escape reaches the popover.
+//! Escape reaches the popover, also after a press on nothing that takes the keyboard.
 
 use crate::cc_support;
 
@@ -68,6 +68,37 @@ fn tab_walks_the_tiles_and_space_toggles_the_focused_one() {
         "the tile keeps the focus"
     );
     assert!(running.reports().is_empty(), "no page change, no close");
+    running.harness.send(Input::key(ShortcutKey::Escape));
+    running.harness.advance(Duration::from_millis(400));
+    assert_eq!(running.reports().last(), Some(&Report::Closed));
+}
+
+#[test]
+fn escape_closes_after_a_press_on_nothing_that_takes_the_keyboard() {
+    let (services, feeds) = fake::services();
+    let mut running = live::start_in_shell(services, feeds);
+    running.harness.advance(Duration::from_millis(300));
+    assert_eq!(
+        running.harness.focus_of(".sill-cc"),
+        FocusState::Focused,
+        "the panel holds the keyboard as it opens"
+    );
+    // The panel's own padding: nothing there takes a press, so Blitz clears the focus.
+    let panel = running
+        .harness
+        .rect(".sill-cc")
+        .expect("the panel is laid out");
+    let padding = Point {
+        x: Px(panel.origin.x.0 + 2.0),
+        y: Px(panel.origin.y.0 + 2.0),
+    };
+    running.harness.send(Input::click(padding));
+    running.harness.advance(Duration::from_millis(100));
+    assert_eq!(
+        running.harness.focus_of(".sill-cc"),
+        FocusState::Focused,
+        "the panel took the keyboard back"
+    );
     running.harness.send(Input::key(ShortcutKey::Escape));
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
