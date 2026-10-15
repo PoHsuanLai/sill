@@ -2,19 +2,83 @@
 # Regenerate crates/sill-search/data/emoji-keywords.tsv from Unicode CLDR's English emoji
 # annotations (the launcher's emoji search by keyword).
 #
-# Source: CLDR common/annotations/en.xml (Fedora: cldr-emoji-annotation), Unicode-3.0. The
-# output keeps CLDR's copyright line and SPDX identifier; each data line is
+# Source: CLDR common/annotations/en.xml, Unicode-3.0. A development script: the output is checked in.
+# The CLDR data comes from the distribution's package (Fedora: cldr-emoji-annotation; Debian and
+# Ubuntu: unicode-cldr-core # unverified; Arch: unicode-cldr # unverified) or from a release of
+# https://cldr.unicode.org unpacked anywhere. The output keeps CLDR's copyright line and SPDX
+# identifier; each data line is
 #   <emoji> TAB <keyword>|<keyword>|...
 # for every non-"tts" annotation (the short names come from the `emojis` crate).
 #
-# Usage: scripts/gen-emoji-keywords.sh [path/to/en.xml]
+# Usage: scripts/gen-emoji-keywords.sh [--cldr-dir DIR | path/to/en.xml]
+#   --cldr-dir DIR   the CLDR directory holding common/annotations/en.xml (or $CLDR_DIR); default:
+#                    the first that exists of /usr/share/unicode/cldr, /usr/share/unicode-data/cldr,
+#                    /usr/share/cldr
+#   CLDR_VERSION     the release number to write in the header (default: the package's, when known)
 set -euo pipefail
 
-src="${1:-/usr/share/unicode/cldr/common/annotations/en.xml}"
+# Where the package managers put the CLDR data, in the order tried.
+cldr_dirs=(/usr/share/unicode/cldr /usr/share/unicode-data/cldr /usr/share/cldr)
+
+# os_family: fedora, debian, arch or unknown, from /etc/os-release (ID, then ID_LIKE).
+os_family() {
+    local ID="" ID_LIKE="" word
+    [ -r /etc/os-release ] && . /etc/os-release
+    for word in $ID $ID_LIKE; do
+        case "$word" in
+            fedora|rhel|centos) echo fedora; return ;;
+            debian|ubuntu) echo debian; return ;;
+            arch) echo arch; return ;;
+        esac
+    done
+    echo unknown
+}
+
+# install_hint: how to get the CLDR data on this distribution.
+install_hint() {
+    case "$(os_family)" in
+        fedora) echo "install it:  sudo dnf install cldr-emoji-annotation" ;;
+        debian) echo "install it:  sudo apt install unicode-cldr-core   # unverified name" ;;
+        arch) echo "install it:  sudo pacman -S unicode-cldr   # unverified name" ;;
+        *) echo "install the distribution's CLDR package (dnf: cldr-emoji-annotation, apt: unicode-cldr-core, pacman: unicode-cldr)" ;;
+    esac
+    echo "or unpack a CLDR release from https://cldr.unicode.org and pass --cldr-dir"
+}
+
+# package_version: the CLDR package's version when the distribution's package manager knows it.
+package_version() {
+    case "$(os_family)" in
+        fedora) rpm -q --qf '%{VERSION}' cldr-emoji-annotation 2>/dev/null ;;
+        debian) dpkg-query -W -f '${Version}' unicode-cldr-core 2>/dev/null ;;
+        arch) pacman -Q unicode-cldr 2>/dev/null | cut -d' ' -f2 ;;
+    esac
+}
+
+cldr_dir="${CLDR_DIR:-}"
+src=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --cldr-dir) cldr_dir="${2:?--cldr-dir needs a directory}"; shift 2 ;;
+        --cldr-dir=*) cldr_dir="${1#*=}"; shift ;;
+        -h|--help) sed -n '2,/^set -/p' "$0" | grep '^#' | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) src="$1"; shift ;;
+    esac
+done
+if [ -z "$src" ] && [ -z "$cldr_dir" ]; then
+    for dir in "${cldr_dirs[@]}"; do
+        if [ -d "$dir" ]; then cldr_dir="$dir"; break; fi
+    done
+fi
+[ -n "$src" ] || src="${cldr_dir:-/nonexistent}/common/annotations/en.xml"
+if [ ! -f "$src" ]; then
+    echo "no CLDR annotations at $src" >&2
+    install_hint >&2
+    exit 1
+fi
 out="$(dirname "$0")/../crates/sill-search/data/emoji-keywords.tsv"
 
 # en.xml carries no release number; the distribution's package does.
-version="${CLDR_VERSION:-$(rpm -q --qf '%{VERSION}' cldr-emoji-annotation 2>/dev/null || true)}"
+version="${CLDR_VERSION:-$(package_version || true)}"
 {
     printf '# CLDR %s English emoji keywords, from common/annotations/en.xml.\n' "${version:-unknown}"
     printf '# Copyright (c) 1991-2025 Unicode, Inc. For terms of use, see https://www.unicode.org/copyright.html\n'
