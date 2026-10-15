@@ -13,9 +13,11 @@ pub mod look;
 pub mod plan;
 pub mod render;
 pub mod size;
+pub mod tile;
 
 pub use cache::{IconResolver, use_icon_resolver};
 pub use context::IconContext;
 pub use look::{IconLook, icon_look};
 pub use plan::{Art, theme_art};
 pub use size::{AssetPx, LogicalPx, pick};
+pub use tile::{TileIcons, icon_side, metrics_of};

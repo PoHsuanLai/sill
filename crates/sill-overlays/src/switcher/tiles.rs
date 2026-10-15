@@ -5,10 +5,8 @@ use super::apps::SwitcherApp;
 use ds::prelude::*;
 use sill_launcher::AppId;
 use sill_model::apps::AppIndex;
-use sill_settings::SwitcherSettings;
 use sill_shell_kit::switcher::app_switcher::AppKey;
 use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
-use sill_shell_kit::switcher::switcher_fit::SwitcherMetrics;
 
 /// One tile per app, in order: the key is the app id, the name the desktop entry's `Name` (the
 /// id when it has no entry), the icon from `icon` (the caller's resolver, at the cell's icon
@@ -49,43 +47,6 @@ fn readable(id: &str) -> String {
         .join(" ")
 }
 
-/// The icon and cell sizes sill draws when `switcher.*` leaves them at quire's defaults (96 and
-/// 112): design/20 section 1.11 plates the icons at 64, so the cell is 80. Until quire's
-/// `SwitcherSettings::default` moves there, a pair at quire's defaults reads as not set.
-const ICON: ds_settings::Px = ds_settings::Px(64);
-const CELL: ds_settings::Px = ds_settings::Px(80);
-
-/// The icon and cell sides to draw, in `switcher.*`'s units.
-fn sides(settings: &SwitcherSettings) -> (ds_settings::Px, ds_settings::Px) {
-    let quire = SwitcherSettings::default();
-    if settings.icon_size_px == quire.icon_size_px && settings.cell_size_px == quire.cell_size_px {
-        (ICON, CELL)
-    } else {
-        (settings.icon_size_px, settings.cell_size_px)
-    }
-}
-
-/// The icon's side to resolve art at (`switcher.icon_size_px`, [`sides`]).
-pub fn icon_side(settings: &SwitcherSettings) -> ds_settings::Px {
-    sides(settings).0
-}
-
-/// quire's metrics from `switcher.*` (`icon_size_px`, `cell_size_px`, `cell_gap_px`,
-/// `overflow_min_icon_px`).
-pub fn metrics_of(settings: &SwitcherSettings) -> SwitcherMetrics {
-    let (icon, cell) = sides(settings);
-    SwitcherMetrics {
-        icon: px(icon),
-        cell: px(cell),
-        gap: px(settings.cell_gap_px),
-        min_icon: px(settings.overflow_min_icon_px),
-    }
-}
-
-fn px(value: ds_settings::Px) -> Px {
-    Px(f32::from(value.0))
-}
-
 /// quire's key for `app`.
 pub fn key_of(app: &AppId) -> AppKey {
     AppKey(app.0.clone())
@@ -110,11 +71,9 @@ mod tests {
     use ds::prelude::*;
     use sill_launcher::AppId;
     use sill_model::apps::AppIndex;
-    use sill_settings::SwitcherSettings;
     use sill_shell_kit::switcher::app_switcher::AppKey;
-    use sill_shell_kit::switcher::switcher_fit::SwitcherMetrics;
 
-    use super::{index_of, key_of, metrics_of, output_width, tiles};
+    use super::{index_of, key_of, output_width, tiles};
 
     fn app(id: &str) -> SwitcherApp {
         SwitcherApp {
@@ -125,7 +84,7 @@ mod tests {
     }
 
     #[test]
-    fn tiles_keys_and_metrics() {
+    fn tiles_and_keys() {
         let apps = [app("foot"), app("org.mozilla.firefox")];
         let icon = |_: &AppId| IconSource::Glyph(Icon::ArrowRight);
         let row = tiles(&apps, &AppIndex::default(), icon);
@@ -137,18 +96,6 @@ mod tests {
         assert_eq!(row[1].name, "Firefox", "no entry: the id's last part");
         assert_eq!(index_of(&AppKey("foot".to_owned()), &apps), Some(0));
         assert_eq!(index_of(&AppKey("mail".to_owned()), &apps), None);
-        assert_eq!(
-            metrics_of(&SwitcherSettings::default()),
-            SwitcherMetrics {
-                icon: Px(64.0),
-                cell: Px(80.0),
-                ..SwitcherMetrics::default()
-            }
-        );
-        let mut set = SwitcherSettings::default();
-        set.icon_size_px = ds_settings::Px(96);
-        set.cell_size_px = ds_settings::Px(100);
-        assert_eq!(metrics_of(&set).icon, Px(96.0), "a set size is kept");
         assert_eq!(output_width(1920), Some(Px(1920.0)));
         assert_eq!(output_width(0), None);
     }

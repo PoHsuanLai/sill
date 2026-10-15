@@ -15,7 +15,6 @@
 
 mod apps;
 mod hold;
-mod icon;
 mod io;
 mod keys;
 mod layer;

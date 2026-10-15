@@ -6,7 +6,7 @@
 //! [`super::io`] follows the [`sill_ui_kit::links::SwitcherLink`] for this output and runs the machine;
 //! this file only draws: the tiles from [`super::tiles`] over the opening's apps (a quit tile is left out of the list
 //! while its fold plays: quire keeps drawing it until it settles), `selected` the machine's selection as
-//! [`super::key_of`], `metrics` [`super::metrics_of`], `output` [`super::output_width`], and
+//! [`super::key_of`], `metrics` [`sill_ui_kit::app_icons::metrics_of`], `output` [`super::output_width`], and
 //! `onhover` / `onactivate` as `Hover` / `Click`. Style nothing under `.ds-switcher*`.
 
 use dioxus::prelude::*;
@@ -17,16 +17,17 @@ use sill_shell_kit::prelude::*;
 use sill_shell_kit::switcher::app_switcher::AppKey;
 use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
 
-use super::icon::SwitcherIcons;
 use super::io::{SwitcherCtx, use_switcher};
 use super::layer::PANEL_ID;
 use super::pointer::At;
 use super::session::{Session, Windows};
-use super::tiles::{icon_side, key_of, metrics_of, output_width, tiles};
+use super::tiles::{key_of, output_width, tiles};
 use super::watch::ChordWatch;
 use ds_behaviour::switcher::Phase;
 use sill_services::AppsService;
-use sill_ui_kit::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
+use sill_ui_kit::app_icons::{
+    IconContext, LogicalPx, TileIcons, icon_look, icon_side, metrics_of, use_icon_resolver,
+};
 use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
 use sill_ui_kit::links::SwitcherLink;
 use sill_ui_kit::look::use_active_look;
@@ -42,7 +43,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
     let appearance = environment.settings.appearance.appearance();
     let resolved = resolve(appearance, look.theme, environment.system);
     let level = resolved.motion;
-    let icons = SwitcherIcons {
+    let icons = TileIcons {
         cx: IconContext {
             look: icon_look(
                 &environment.settings.icons,
@@ -112,7 +113,7 @@ fn chord_watch(host: Option<&SurfaceHandle>, session: &Session, ctx: SwitcherCtx
 }
 
 /// The tiles and the selected one's key.
-fn row(session: &Session, sel: usize, icons: &SwitcherIcons) -> (Vec<Tile>, AppKey) {
+fn row(session: &Session, sel: usize, icons: &TileIcons) -> (Vec<Tile>, AppKey) {
     let listed: Vec<_> = session
         .apps
         .iter()
