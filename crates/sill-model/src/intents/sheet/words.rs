@@ -51,6 +51,9 @@ pub fn why_words(reason: &AskReason) -> String {
         }
         AskReason::RuleOfTwo => "Private data and an outside channel meet.".to_owned(),
         AskReason::UntrustedSink(_) => "Something you did not write feeds this.".to_owned(),
+        AskReason::EvaluationFailed => {
+            "Your rules could not be checked for this, so it asks you.".to_owned()
+        }
         AskReason::OutsideTask => "It goes beyond what you asked for.".to_owned(),
         AskReason::Disagreement => "The reviewers did not agree.".to_owned(),
         AskReason::Rule(_) => "A rule asks.".to_owned(),
