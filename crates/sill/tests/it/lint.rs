@@ -472,6 +472,7 @@ fn capture_sheet_states() -> Vec<(&'static str, String)> {
             id: AskId(id),
             ask: Ask::from_wire("Meet", kinds, multiple, cursors).expect("a valid ask"), // test-only
         }),
+        ..CapturePicker::default()
     };
     let link = BannerLink::new();
     link.set(BannerOutput::On(fake::output().id));
