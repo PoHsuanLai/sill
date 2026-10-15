@@ -2592,6 +2592,13 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-spaces-bar-space[*|data-drop=target] .ds-spaces-bar-thumb{ box-shadow:0 0 0 var(--s-2) var(--accent); }
 .ds-spaces-bar[*|data-expansion=expanded] .ds-spaces-bar-space[*|data-drop=accepts]{ box-shadow:none; }
 .ds-spaces-bar[*|data-expansion=expanded] .ds-spaces-bar-space[*|data-drop=accepts] .ds-spaces-bar-thumb{ box-shadow:0 0 0 var(--hair) var(--accent); }
+
+/* The Space's own desktop picture (`SpaceTile::backdrop`) lies under its thumbnail picture, cover-fit
+   and clipped by the thumbnail's radius; the plus lit by `SpacesBar::add_drop` gets the wash and ring
+   a lit Space gets. */
+.ds-spaces-bar-backdrop{ position:absolute; left:0; top:0; display:block; width:100%; height:100%; object-fit:cover; pointer-events:none; user-select:none; }
+.ds-spaces-bar-add[*|data-drop=target] .ds-button{ background:var(--accent-soft); color:var(--f-ink); box-shadow:0 0 0 var(--s-2) var(--accent); }
+.ds-spaces-bar-add[*|data-drop=accepts] .ds-button{ box-shadow:0 0 0 var(--hair) var(--accent); }
 /* -- slider -- */
 /* Slider (design/30 section 2.1, `NSSlider`; sized by design/29-SIZING.md). Attribute selectors
    carry `*|` (spike S2); the focus ring is the global one, on `.ds-slider` (spike S12). The level
