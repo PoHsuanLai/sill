@@ -284,11 +284,11 @@ vello_cpu = { git = "https://github.com/PoHsuanLai/vello", rev = "3e43d4af1f1955
 vello_hybrid = { git = "https://github.com/PoHsuanLai/vello", rev = "3e43d4af1f1955f2efc2cd52e50350811a1386ca" }
 vello_sparse_shaders = { git = "https://github.com/PoHsuanLai/vello", rev = "3e43d4af1f1955f2efc2cd52e50350811a1386ca" }
 glifo = { git = "https://github.com/PoHsuanLai/vello", rev = "3e43d4af1f1955f2efc2cd52e50350811a1386ca" }
-anyrender = { git = "https://github.com/PoHsuanLai/anyrender", rev = "a1c328cc6084cd3a4580d16a7ecdc939bd68f50e" }
-anyrender_vello_cpu = { git = "https://github.com/PoHsuanLai/anyrender", rev = "a1c328cc6084cd3a4580d16a7ecdc939bd68f50e" }
-anyrender_vello_hybrid = { git = "https://github.com/PoHsuanLai/anyrender", rev = "a1c328cc6084cd3a4580d16a7ecdc939bd68f50e" }
-wgpu_context = { git = "https://github.com/PoHsuanLai/anyrender", rev = "a1c328cc6084cd3a4580d16a7ecdc939bd68f50e" }
-pixels_window_renderer = { git = "https://github.com/PoHsuanLai/anyrender", rev = "a1c328cc6084cd3a4580d16a7ecdc939bd68f50e" }
+anyrender = { git = "https://github.com/PoHsuanLai/anyrender", rev = "d4ae3885f89a58351ff7e99cd75d9b7de5865337" }
+anyrender_vello_cpu = { git = "https://github.com/PoHsuanLai/anyrender", rev = "d4ae3885f89a58351ff7e99cd75d9b7de5865337" }
+anyrender_vello_hybrid = { git = "https://github.com/PoHsuanLai/anyrender", rev = "d4ae3885f89a58351ff7e99cd75d9b7de5865337" }
+wgpu_context = { git = "https://github.com/PoHsuanLai/anyrender", rev = "d4ae3885f89a58351ff7e99cd75d9b7de5865337" }
+pixels_window_renderer = { git = "https://github.com/PoHsuanLai/anyrender", rev = "d4ae3885f89a58351ff7e99cd75d9b7de5865337" }
 
 # porter takes stoker by git rev (porter ARCHITECTURE section 1); the sibling checkout is the one copy of cua-action.
 [patch."https://github.com/PoHsuanLai/stoker"]
