@@ -344,7 +344,10 @@ fn a_finished_text_answer_shows_the_answer_in_its_row_and_every_line_in_the_pane
     assert!(!html.contains("**"), "no marks show: {html}");
 }
 
-fn working(phase: companion_wire::AnswerPhase, said: &[&str]) -> sill_model::companion::AnswerFacts {
+fn working(
+    phase: companion_wire::AnswerPhase,
+    said: &[&str],
+) -> sill_model::companion::AnswerFacts {
     use companion_wire::AnswerBody;
     let mut answer = launcher_harness::launcher_support::companion::answer(
         "t-6",
@@ -382,13 +385,20 @@ fn while_working_the_row_says_the_newest_progress_and_the_pane_lists_the_newest_
     );
     assert!(html.contains("+2 earlier"), "{html}");
     assert!(!html.contains("**"), "no marks show: {html}");
-    assert_eq!(h.count(".ds-palette-aside .sill-answer-progress .ds-progress"), 1);
+    assert_eq!(
+        h.count(".ds-palette-aside .sill-answer-progress .ds-progress"),
+        1
+    );
 }
 
 #[test]
 fn a_finished_answer_hides_the_working_out_in_the_row_and_the_pane() {
     use companion_wire::AnswerPhase;
-    for phase in [AnswerPhase::Done, AnswerPhase::Failed, AnswerPhase::Cancelled] {
+    for phase in [
+        AnswerPhase::Done,
+        AnswerPhase::Failed,
+        AnswerPhase::Cancelled,
+    ] {
         let open = open_in("", LauncherMode::Companion, |bar| {
             bar.companion
                 .send_replace(companion(vec![working(phase.clone(), &SAID)], fresh()));
@@ -396,7 +406,10 @@ fn a_finished_answer_hides_the_working_out_in_the_row_and_the_pane() {
         let h = &open.harness;
         let html = h.html();
         assert_eq!(h.count(".sill-answer-progress"), 0, "{phase:?}: {html}");
-        assert!(!html.contains("Looking at your calendar"), "{phase:?}: {html}");
+        assert!(
+            !html.contains("Looking at your calendar"),
+            "{phase:?}: {html}"
+        );
     }
 }
 

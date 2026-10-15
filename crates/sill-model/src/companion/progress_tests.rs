@@ -94,7 +94,11 @@ fn the_row_shows_the_newest_progress_line_only_while_working() {
 fn the_rows_second_line_falls_back_to_the_thinking_words() {
     type Case = (&'static str, AnswerFacts, &'static str);
     let cases: Vec<Case> = vec![
-        ("thinking, none", said(AnswerPhase::Thinking, &[]), "Thinking"),
+        (
+            "thinking, none",
+            said(AnswerPhase::Thinking, &[]),
+            "Thinking",
+        ),
         (
             "thinking, said something",
             said(AnswerPhase::Thinking, &["Checking"]),
@@ -110,7 +114,11 @@ fn the_rows_second_line_falls_back_to_the_thinking_words() {
             said(AnswerPhase::Streaming, &["a", "b"]),
             "b",
         ),
-        ("done, never the working-out", said(AnswerPhase::Done, &FIVE), "Done"),
+        (
+            "done, never the working-out",
+            said(AnswerPhase::Done, &FIVE),
+            "Done",
+        ),
     ];
     for (name, answer, want) in cases {
         assert_eq!(answer_line(&answer).1, want, "{name}");
@@ -135,12 +143,23 @@ fn the_preview_lists_the_newest_three_and_counts_the_rest() {
         (
             "five fold two, newest last, marks kept",
             said(AnswerPhase::Streaming, &FIVE),
-            shown(2, &["I'll check **my memory**", "four", "Looking at your *calendar*"]),
+            shown(
+                2,
+                &[
+                    "I'll check **my memory**",
+                    "four",
+                    "Looking at your *calendar*",
+                ],
+            ),
         ),
         ("done", said(AnswerPhase::Done, &FIVE), shown(0, &[])),
         ("needs you", said(question(), &FIVE), shown(0, &[])),
         ("failed", said(AnswerPhase::Failed, &FIVE), shown(0, &[])),
-        ("cancelled", said(AnswerPhase::Cancelled, &FIVE), shown(0, &[])),
+        (
+            "cancelled",
+            said(AnswerPhase::Cancelled, &FIVE),
+            shown(0, &[]),
+        ),
     ];
     for (name, answer, want) in cases {
         assert_eq!(preview_progress(&answer), want, "{name}");

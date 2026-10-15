@@ -52,10 +52,6 @@ pub fn preview_progress(answer: &AnswerFacts) -> ProgressShown {
     let earlier = lines.len().saturating_sub(LISTED);
     ProgressShown {
         earlier,
-        lines: lines
-            .into_iter()
-            .skip(earlier)
-            .map(str::to_owned)
-            .collect(),
+        lines: lines.into_iter().skip(earlier).map(str::to_owned).collect(),
     }
 }
