@@ -1139,3 +1139,59 @@ and casement's `quire_shell_v1` version 2 (casement-protocols `ea171a1`).
   that the cards sit where the compositor's targets think they do on a scaled output (rects are logical, origin from
   `OutputInfo::logical`); that an input region following the bar element leaves the window tiles below reachable; that
   nothing spins when the bar sits still; the lower 62 px of the bar over the window tiles looks right.
+
+## mc4
+
+Lane `mc4`, written without a build: nothing here has been compiled or run, so the gate decides. Adopts casement's `quire_shell_v1`
+version 3 (casement-protocols `0f7afcb`, casement `3eaf1f7`) and completes the Spaces bar of `mc2`.
+
+- **What landed.**
+  1. *Version 3.* sill pins no version: desktop-client's `bind_all` binds `quire_shell_v1` at `1..=3` already, so nothing changed
+     there. New note `ShellNote::DropTargetNew { output, over }`, new command `DesktopCommand::SetNewSpaceTarget { output, rect:
+     Option<Rect> }` (`None` removes). Matched in `quire_wire_of`, `desktop_wl::command` (wlr refuses), `note_of`, `compositor::apply`.
+  2. *A picture of every Space.* `thumbs_wanted` keeps one ask per output and Space (`ThumbAsks` keyed by both) and asks for every
+     Space `bar_space_ids` lists on a laid-out output, shown or not. The refresh rule is the mc2 one per Space: again only after the
+     last answer arrived and that Space's windows (identifier, state, geometry) changed. Switching Space changes no window, so the
+     compositor's kept sessions are not asked again. A Space that leaves an output forgets its ask. The arm already tracked captures by
+     id (`QuireArm::pending`), so several in flight needed nothing there. The mc2 departure "only the shown Space" is gone, and so is
+     its test (replaced by the every-Space ask test).
+  3. *Wallpaper under each picture.* quire's `SpaceTile` has no backdrop slot, so sill composes it with no quire change: the bar's
+     wrapper div carries `--sill-bar-wallpaper: url("file://...")` (the same prepared image the wallpaper surface shows, light or dark
+     as `resolve` says, through `wallpaper::url_for`, now shared by the wallpaper view and the bar) and `data-backdrop=wallpaper`;
+     `spaces_bar/style.css` (`SPACES_BAR_CSS`, an `AppStyle`) paints it as the background of quire's `.ds-spaces-bar-thumb`, under the
+     transparent picture. The lint case takes the sheet again. Interface ask to quire (cleaner): `SpaceTile::backdrop(ImageSource)`.
+  4. *The plus.* `add_of` gives its rectangle from the bar's box, as `tiles_of` gives the cards: at the right edge, `--s-20` in,
+     `--s-8` down, a square of `--ctl-h-m` (28 px). `BarLayout::add` carries it; `target_commands` sends `SetSpaceTargets` then
+     `SetNewSpaceTarget` per output, each only when it changed, and `SetNewSpaceTarget { rect: None }` once the bar goes. The
+     harness compares the published rectangle with the drawn button.
+  5. *The plus lit.* `BarDrops` now holds the Space tile and the plus per output (`with_new`, `new_state_of`); a Space under the window
+     puts the plus out. `ShellNote::DropTargetNew` -> `SpacesBarLink::set_drop_new`.
+- **Departures.**
+  1. *The plus is lit by sill's sheet, not quire's drop state.* quire's `SpacesBar` has no drop state for its plus (the `Button` is
+     built inside it), so the wrapper says `data-add-drop=target` and `style.css` gives the button the wash and ring a lit Space gets
+     (`--accent-soft`, `--accent`). Interface ask to quire: `SpacesBar::add_drop: DropState` (and `SpaceTile::backdrop`, and a
+     measured rectangle for the plus, as for the cards).
+  2. *The plus rectangle is arithmetic*, like the cards (FINDINGS `mc2` departure 2): a change to quire's bar padding or the medium
+     control height needs `BAR_SIDE`, `ADD_PX` in `bar_layout.rs` changed with it. It is the button itself, 28 px: small to hit.
+  3. *`Accepts` is still never set.* The protocol gives no event when a drag begins: `drop_target` and `drop_target_new` fire only on
+     entering or leaving a rectangle (and at the end), so the shell cannot know a drag is in progress before the pointer reaches a
+     tile. Ask for casement: an event at drag start and end (or the dragged window) would let the tiles that take it show the outline.
+  4. *The wallpaper may not line up with the windows.* The picture is the output's size squeezed into 160 x 100 by `object-fit:
+     cover`, the wallpaper by `background-size: cover`; they agree only when the output is 16:10. The file URL is read by the
+     renderer's net layer as the wallpaper surface's `img` is; a CSS background through a custom property is what is unproven.
+  5. *Drag between outputs and the created Space* are the compositor's: sill sends each output's targets and lights what the events
+     name, nothing more.
+- **Tests.** sill-model `bar_tests.rs` (the plus's place, targets then the plus's target sent, moved alone, cleared with the bar; an ask
+  per Space, kept across a switch, forgotten when the Space leaves; the plus lit and put out by a tile; the outbox); `tests.rs` (the
+  new command is Quire-only); sill-services `desktop_quire.rs` (`SetNewSpaceTarget` set and removed, `DropTargetNew` note); sill-ui-kit
+  link test; `sill` `spaces_bar.rs` (the note reaches the link); sill-overlays `spaces_bar.rs` (the plus where it is drawn, a picture
+  on every tile, the plus lit, the wallpaper backdrop for the right output only) and `io.rs` (`css_url`).
+- **Check at the gate.** First compile: `ds::prelude::{DropState, Scheme, SpaceLook, resolve}` in `io.rs`; `Memo<Option<String>>` read
+  as `(bar.wallpaper)()`; `"data-backdrop": Option<&str>` and `"data-add-drop": Option<&'static str>` attributes in `rsx!`;
+  `AppStyle` inside `SpacesStrip`; the lint of `style.css` under `Profile::Strict` (selectors that name quire's classes,
+  `var(--sill-bar-wallpaper)` as a `background-image`). The overlay harness cases: whether `html()` shows the inline custom property
+  and `data-add-drop`; the plus-rectangle equality test (`.ds-spaces-bar-add .ds-button`) is the one most likely to need the
+  constants changed.
+- **Open, only a real run proves.** That every Space (hidden ones too) comes back with a picture and nothing spins; that the wallpaper
+  shows under the pictures; that a drop on the plus makes a Desktop and the new card appears with its picture; that dragging between
+  outputs lights the right bar; that the plus lights and puts its light out.
