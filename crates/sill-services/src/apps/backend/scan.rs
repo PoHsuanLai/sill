@@ -17,13 +17,14 @@ use super::icons::{IconTheme, resolve_icon};
 const CURRENT_DESKTOPS: [&str; 1] = ["quire"];
 
 /// `$XDG_DATA_HOME/applications` then each `$XDG_DATA_DIRS/applications`, in precedence order
-/// (`freedesktop_desktop_entry::default_paths`), with Flatpak's own export directories added at
-/// the end when they are not already on `XDG_DATA_DIRS` (a login session that has sourced
-/// `/etc/profile.d/flatpak.sh` already has them there, at the same low precedence; this is a
-/// safety net for one that has not). `data_home` is where the user's own Flatpak installs.
+/// (`freedesktop_desktop_entry::default_paths`), with the app stores' own export directories
+/// (Flatpak's, snap's) added at the end when they are not already on `XDG_DATA_DIRS` (a login
+/// session that has sourced `/etc/profile.d/flatpak.sh` or snapd's profile script already has them
+/// there, at the same low precedence; this is a safety net for one that has not). `data_home` is
+/// where the user's own Flatpak installs.
 pub fn applications_dirs(data_home: &Path) -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = freedesktop_desktop_entry::default_paths().collect();
-    for extra in flatpak_dirs(data_home) {
+    for extra in store_export_dirs(data_home) {
         if !dirs.contains(&extra) {
             dirs.push(extra);
         }
@@ -31,11 +32,13 @@ pub fn applications_dirs(data_home: &Path) -> Vec<PathBuf> {
     dirs
 }
 
-/// Flatpak's own well-known export directories: the user install, then the system one.
-fn flatpak_dirs(data_home: &Path) -> Vec<PathBuf> {
+/// The app stores' well-known export directories: Flatpak's user install, then its system one,
+/// then snap's (Ubuntu's Firefox is a snap).
+fn store_export_dirs(data_home: &Path) -> Vec<PathBuf> {
     vec![
         data_home.join("flatpak/exports/share/applications"),
         PathBuf::from("/var/lib/flatpak/exports/share/applications"),
+        PathBuf::from("/var/lib/snapd/desktop/applications"),
     ]
 }
 
@@ -236,7 +239,7 @@ fn actions(entry: &DesktopEntry, locales: &[String]) -> Vec<DesktopActionEntry> 
 #[cfg(test)]
 mod tests {
     use super::super::icons::IconTheme;
-    use super::{entry_id, is_application, is_listed, on_path, parse_entry};
+    use super::{entry_id, is_application, is_listed, on_path, parse_entry, store_export_dirs};
     use freedesktop_desktop_entry::DesktopEntry;
     use keycap_protocol::ProfileName;
     use sill_model::apps::Listing;
@@ -262,6 +265,17 @@ mod tests {
                 "{path}"
             );
         }
+    }
+
+    #[test]
+    fn store_export_dirs_name_flatpak_user_and_system_then_snap() {
+        let dirs = store_export_dirs(Path::new("/home/a/.local/share"));
+        let want = [
+            "/home/a/.local/share/flatpak/exports/share/applications",
+            "/var/lib/flatpak/exports/share/applications",
+            "/var/lib/snapd/desktop/applications",
+        ];
+        assert_eq!(dirs, want.map(PathBuf::from));
     }
 
     #[test]

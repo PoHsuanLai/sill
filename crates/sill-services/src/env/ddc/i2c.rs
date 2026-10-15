@@ -2,9 +2,10 @@
 //! `/dev/i2c-N` whose adapter belongs to a display controller is asked for its EDID, and one
 //! that returns a connected connector's EDID and answers a VCP read is a DDC display.
 //!
-//! Access is the distribution's business: Fedora's ddcutil package grants the seat's user
-//! `/dev/i2c-*` on display adapters (`uaccess`), and `dist/udev/60-sill-ddc.rules` does the same
-//! where ddcutil is not installed. Without access every probe comes back empty and brightness keys
+//! Access is a udev matter: a ddcutil package that ships a `uaccess` rule for `/dev/i2c-*` on
+//! display adapters (Fedora's does) grants the seat's user access, and `dist/install.sh` puts
+//! `dist/udev/60-sill-ddc.rules` in place, with the `i2c-dev` module load, where no ddcutil rule
+//! exists. Without access every probe comes back empty and brightness keys
 //! fall through to nothing, quietly.
 
 use std::collections::BTreeMap;

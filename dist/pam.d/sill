@@ -5,9 +5,12 @@
 auth     include  login
 account  include  login
 # The wallet, the way Plasma's own stacks have it (/usr/lib/pam.d/plasmalogin): the leading `-`
-# makes a missing module no error, and `optional` means it can never fail an unlock. These two
-# lines do not open the wallet at login: the display manager's PAM stack does that (its session
-# module starts ksecretd), and the session script sends the password on to it. They are here so a
-# login that goes through this service (a greeter pointed at it) behaves like Plasma's.
+# makes a missing module no error, and `optional` means it can never fail an unlock. These lines do
+# not open the wallet at login: the display manager's PAM stack does that (its session module starts
+# the wallet daemon), and the session script sends the password on to it. They are here so a login
+# that goes through this service (a greeter pointed at it) behaves like the desktop's own. Both
+# wallets are listed: whichever is installed unlocks, and the other module is skipped.
 -auth    optional pam_kwallet5.so
 -session optional pam_kwallet5.so auto_start
+-auth    optional pam_gnome_keyring.so
+-session optional pam_gnome_keyring.so auto_start

@@ -6,7 +6,8 @@
 //!
 //! How agents authenticate: an agent never checks a password itself, and
 //! never needs root. It hands the request's cookie to `polkit-agent-helper-1` (setuid root;
-//! `/usr/lib/polkit-1/` on Fedora and Arch, `/usr/libexec/` on Debian), which runs PAM as the
+//! `/usr/lib/polkit-1/` on Fedora and Arch, `/usr/libexec/` or `/usr/lib/policykit-1/` on
+//! Debian and its relatives: `HELPER_PATHS` lists them), which runs PAM as the
 //! chosen identity and, on success, tells polkitd itself (`AuthenticationAgentResponse2`), so a
 //! lying agent cannot fake an answer. libpolkit-agent-1's `PolkitAgentSession` (under
 //! polkit-gnome, polkit-kde and lxqt-policykit) speak the
@@ -16,8 +17,8 @@
 //! the user name as its argument and writes the cookie on stdin. The helper then writes
 //! `PAM_PROMPT_ECHO_OFF <prompt>`, `PAM_PROMPT_ECHO_ON <prompt>`, `PAM_ERROR_MSG <text>`,
 //! `PAM_TEXT_INFO <text>`, and finally `SUCCESS` or `FAILURE`; the agent answers a prompt with
-//! one line. On this machine (Fedora 44, polkit 127) the socket unit is installed but disabled,
-//! so the setuid helper is the route. The identity asked for is the session's own user when
+//! one line. Where the socket unit is installed but disabled (polkit 127 on the machine this was
+//! written on), the setuid helper is the route. The identity asked for is the session's own user when
 //! polkit offers it, else root, else the first `unix-user` (what GNOME Shell
 //! picks). Registration: `RegisterAuthenticationAgent((unix-session, {session-id}), locale,
 //! object_path)` on `org.freedesktop.PolicyKit1.Authority`, the session id from logind.
