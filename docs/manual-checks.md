@@ -458,12 +458,20 @@ the real daemons or a real keyboard.
   off for Mouse in Settings, replug the mouse (settings apply when a device appears), and the wheel
   reverses while the touchpad does not.
 
-## Mission Control's Spaces bar (lane spacesbar, not built or run when written)
+## Mission Control's Spaces bar (lanes spacesbar and mc2, not built or run when written)
 
 - [ ] **Spaces bar**: in the casement session open Mission Control (the key, the hot corner or the gesture). A row of the output's Spaces
-  by name ("Desktop 1", "Desktop 2", and the apps' names for a full-screen Space) slides down across the top strip over the spread
-  windows, the current Space marked as the selected pill, and a plus sits at the right edge; it sits under the menu bar, not over it.
-  Closing Mission Control lifts it away and it is gone (no stuck strip, `sill debug stats` shows the surface unmapped). A click on
-  another Space switches to it and leaves Mission Control; the plus adds a Desktop and stays in Mission Control. App Expose and Show
-  Desktop show no bar. With two monitors the bar is on both with each monitor's own Spaces. Known short of the Mac: no thumbnails on
-  hover, no drag of a window onto a Space, motion shorter than the windows' (FINDINGS `spacesbar`).
+  drops in across the top, under the menu bar, over the spread windows: each Space is a 160 x 100 card with its name under it
+  ("Desktop 1", "Desktop 2", and the apps' names for a full-screen Space), the current Space ringed in the accent, and a plus at the
+  right edge. The card of the Space on show has a picture of its windows (no frames, over the card's quiet blank background: the
+  wallpaper is not drawn under it); the other Spaces show a picture once you have switched to them with Mission Control open, else a
+  blank card. The expanded bar is taller than the 112 px the windows leave free, so its lower part lies over the top of the window
+  tiles; a click on a window tile below the bar still reaches it, and a click on the bar's own box does not fall through. Closing Mission
+  Control lifts it away and it is gone (no stuck strip, `sill debug stats` shows the surface unmapped). A click on a card switches
+  to that Space and leaves Mission Control; the plus adds a Desktop and stays in Mission Control. App Expose and Show Desktop show no
+  bar. With two monitors the bar is on the monitors Mission Control is up on, each with its own Spaces.
+- [ ] **Drag a window onto a Space**: in Mission Control drag a window tile up onto a card. The card under the dragged window lights
+  (accent wash, ringed card) and the window moves to that Space on release. The lit card is the one the window is over, not a
+  neighbour (the card rectangles are worked out from the bar's box and quire's card size: if they are off, FINDINGS `mc2`).
+- [ ] **Picture refresh**: with Mission Control open, close a window on the current Space: the card's picture follows within a
+  moment and the shell does not use a core while the bar sits still.

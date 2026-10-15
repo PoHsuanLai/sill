@@ -1067,3 +1067,75 @@ Mission Control's Spaces bar (lane `spacesbar`, written without a build: nothing
   the menu bar drawn over its top; if the compositor places the strip below the menu bar's reserve the padding doubles); whether
   a press on a pill reaches the surface while the compositor holds the pointer for Mission Control; the pill row's centring and the
   plus alignment under Blitz's flex.
+
+## mc2
+
+Lane `mc2`, written without a build: nothing here has been compiled or run, so the gate decides. Adopts quire's `SpacesBar`
+and casement's `quire_shell_v1` version 2 (casement-protocols `ea171a1`).
+
+- **What landed.**
+  1. *quire's bar.* `sill-overlays/src/spaces_bar/` now hangs `SpacesBar { label, spaces, shown, on_pick, on_add, on_hidden,
+     expansion, common }` under the menu bar's padding. WorkspacePills, the own Add Button, `style.css`, `SPACES_BAR_CSS` and the
+     `sheet-in`/`sheet-out` presence are gone (the lint case takes `css: ""`). A Space id is the `BarSpaceKey` string
+     (`SpaceId::as_str`) and parsed back on a press (`SpaceId::parse`; an unparsable key sends nothing).
+  2. *Wire.* The arm's client already binds `quire_shell_v1` at `1..=2` and every `wl_output` (desktop-client `bind_all`,
+     `bind_outputs`); sill changed nothing there. New notes `ShellNote::{OverviewOutput, DropTarget, SpacePicture}`, new commands
+     `DesktopCommand::{CaptureSpace, SetSpaceTargets}`. sill matches `ShellEvent`/`DesktopCommand` exhaustively nowhere else than
+     `quire_wire_of` (arms added) and `desktop_wl::wire_of` (wlr refuses both); `note_of` has a catch-all.
+  3. *Per output.* `BarOutputs::bar_on(overall, output)` (sill-model `bar_outputs.rs`): up only when the overview as a whole is
+     Mission Control and the output is reported `Shown`; with no report at all every output follows the whole (desktop-client's
+     `Overview::shown_on` rule, kept in the model because sill carries notes, not the client's state).
+  4. *Pictures.* `QuireArm::execute` keeps the capture ticket of a `CaptureSpace`; `QuireArm::pictures(take)` (called by the
+     shell thread after each sync with `DesktopClient::take_capture`, which the `Desktop` trait does not have) turns a finished
+     frame into PNG bytes (`pictures.rs`, `Frame::to_rgba8`, `image`) and a `ShellNote::SpacePicture`, or `Failed`. The note
+     reaches `SpacesBarLink::set_picture`; the tile gets `SpaceTile::thumbnail(ImageSource::png(..))`.
+  5. *When to ask* (`thumbs_wanted`, pure): per laid-out bar, the Space its output shows, once when the bar comes up; again only
+     after the last answer arrived and the Space or its windows (identifier, state, geometry) changed. A held request is the
+     compositor's damage gate, but a new session's first frame completes at once, so asking after every frame would spin; a
+     failed answer is not retried until something changes; a bar that goes forgets its ask.
+  6. *Targets* (`tiles_of`, `target_commands`, pure): the surface measures its bar element (`use_rect`) and publishes a `BarLayout`
+     (cards in the desktop's logical pixels: the bar's box plus the output's origin, and the card size at the output's scale) on
+     the link's feed; `spaces_bar::spawn_outbox` follows the feed, sends `SetSpaceTargets` for each output whose cards changed (an
+     empty set clears: sent as soon as the bar goes down) and the `CaptureSpace` requests.
+  7. *Drop highlight.* `BarDrops::state_of` gives `DropState::Target` to the tile named by `DropTarget` (`SpaceTile::in_drag`).
+- **Surface height and input (record asked for).** The layer surface is `bar.height_px + BAR_EXPANDED_PX` (150) tall
+  (`layer::surface_px`), more than the compositor's 112 px reserve (`STRIP_PX`, kept: casement still keeps 112 free for the collapsed
+  bar). The expanded bar therefore lies over the top (about 62 px with a 24 px menu bar) of the windows' layout, as the Mac's does.
+  Input is `RegionSpec::Element { id: "spaces-bar" }`, the quire bar's own element (its `Common::id`), so the transparent rest of
+  the surface passes the pointer to the compositor's window tiles; the menu-bar padding above the bar is not input either (the menu
+  bar's own surface covers it). Ask for casement: reserve at least the bar's real height if the windows should not be overlapped.
+- **Departures.**
+  1. *Always expanded.* The bar is given `expansion: Some(Expanded)`: while the compositor holds the pointer for a window drag the
+     bar gets no pointer events, so a hover-driven expansion could never happen during the one gesture the targets exist for; and
+     the targets are the cards, which exist only expanded. The collapsed row of names is not reachable.
+  2. *Card rectangles are arithmetic.* `SpacesBar` reports no per-tile rectangle or mounted handle, so `tiles_of` centres a row of
+     168 x ... cards in the bar's box using quire's `spaces_bar.css` numbers (160 x 100 card, `--s-4` tile padding, `--s-16` gap,
+     `--s-8` top padding). A harness test compares the first card with the drawn `.ds-spaces-bar-thumb`, which catches drift when
+     quire changes. Interface ask to quire: `SpaceTile::common` (or `on_layout(Vec<(BarSpaceKey, Rect)>)`) so the host measures the
+     cards.
+  3. *Only the Space on show is pictured* (casement: "first version: only the Space the output shows now"). A tile keeps the last
+     picture it got in the session (the feed holds them per output and Space; they go stale), else the quiet blank card.
+  4. *No wallpaper under the picture.* The picture has none (windows over transparency) and the card is quire's blank colour. The
+     wallpaper images exist (`WallpaperService`) but drawing one under quire's `<img>` needs a layer in quire's card or compositing
+     in the daemon; not done. Ask to quire: a `SpaceTile` backdrop, or draw the card's background from an `ImageSource`.
+  5. *Scale from the output.* The picture is asked at the output's scale (`OutputInfo::scale`), not the surface's own
+     `preferred_scale`; they are equal unless fractional scale differs per surface.
+  6. *Base64 per recompute.* `ImageSource::png` re-encodes each picture when the tile list is recomputed (a memo over the feed and
+     the app index), which includes every feed change. Cheap at 320 x 200; a cache keyed by the picture's `seq` is the fix if it shows.
+  7. *`Accepts` is never set.* Only the compositor's `drop_target` is known; the outline for "could take the drop" needs the
+     compositor to say a drag has begun.
+- **Tests.** sill-model `bar_tests.rs` (per-output show, card layout and scale, target commands, ask/refresh decisions, a bar that
+  goes, a failed answer, drop highlight, the outbox, space ids); sill-ui-kit link tests (the new parts, repeats wake no one);
+  sill-services `desktop_quire.rs` (the two notes, `SetSpaceTargets`, a picture asked for and returned as a PNG note);
+  sill-overlays `spaces_bar.rs` (the existing five moved to quire's selectors, plus per-output, picture and drop highlight, the
+  published cards against the drawn thumbnail); layer tests (height, input element); `sill` `spaces_bar.rs` (the notes reach the link).
+- **Check at the gate.** Everything compiles for the first time: the `ds::prelude` names (`BarSpaceKey`, `ImageSource`, `Rect`, `Common`,
+  `BarExpansion`), `Memo<BarShow>` in `use_map_when_up`/`use_publish_layout`, the `fn(&mut SpacesBarFeed) -> &mut T` closures in
+  `SpacesBarLink::edit`, `Option::is_none_or`, the doc tests in `sill::spaces_bar`. The harness cases: that `use_rect` yields a
+  rect in the harness and that it is settled after 400 ms; the first-card equality test is the one most likely to need the
+  constants or the wait changed. Lint: the `spaces_bar` case now has `css: ""`.
+- **Open, only a real run proves.** That `get_space_capture_source` returns a picture in time (ms) and with the right orientation
+  (the frame's transform is not applied); that the `drop_target` event arrives while the pointer is held by the compositor's drag;
+  that the cards sit where the compositor's targets think they do on a scaled output (rects are logical, origin from
+  `OutputInfo::logical`); that an input region following the bar element leaves the window tiles below reachable; that
+  nothing spins when the bar sits still; the lower 62 px of the bar over the window tiles looks right.
