@@ -28,14 +28,15 @@ use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
     AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
-    PowerMenu, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
+    PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
     EditWidgetsLink, LauncherLink, LevelSource, LockLink, OsdKind, OsdLink, PlacementFile,
-    PowerMenuLink, Preselect, PromptOutput, SplitPickerLink, SwitcherAsk, SwitcherLink,
+    PowerMenuLink, Preselect, PromptOutput, SpacesBarLink, SplitPickerLink, SwitcherAsk,
+    SwitcherLink,
 };
 use sill_ui_kit::surface::{LockSurface, Surface};
 use sill_widgets_ui::{DesktopWidgets, EditWidgets};
@@ -147,6 +148,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <Switcher as Surface>::NAME,
         css: sill_overlays::switcher::SWITCHER_CSS,
         states: switcher_states,
+    },
+    SurfaceCase {
+        name: "spaces_bar",
+        surface: <SpacesBar as Surface>::NAME,
+        css: sill_overlays::spaces_bar::SPACES_BAR_CSS,
+        states: spaces_bar_states,
     },
     SurfaceCase {
         name: "split_picker",
@@ -346,6 +353,19 @@ fn power_menu_states() -> Vec<(&'static str, String)> {
     let open = menu.harness.html();
     assert!(open.contains("ds-alert"), "{open}");
     vec![("hidden", hidden), ("open", open)]
+}
+
+/// The Spaces bar down, then up (the strip and the plus; sill has no Space id of its own to
+/// list, the pills are drawn in the overlay crate's tests).
+fn spaces_bar_states() -> Vec<(&'static str, String)> {
+    let mut bar = SurfaceHarness::<SpacesBar>::setup(SpacesBarLink::new(), ()).start();
+    bar.harness.advance(Duration::from_millis(40));
+    let down = bar.harness.html();
+    bar.link.set_show(sill_model::desktop::BarShow::Show);
+    bar.harness.advance(Duration::from_millis(400));
+    let up = bar.harness.html();
+    assert!(up.contains("sill-spaces-bar"), "{up}");
+    vec![("down", down), ("up", up)]
 }
 
 /// The picker hidden, then offering two windows for the right half.

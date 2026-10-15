@@ -9,6 +9,7 @@ mod lock;
 mod osd;
 mod polkit_prompt;
 mod power_menu;
+mod spaces_bar;
 mod split_picker;
 mod switcher;
 mod switcher_wlr;

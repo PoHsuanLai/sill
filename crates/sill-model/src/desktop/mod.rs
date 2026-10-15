@@ -8,6 +8,9 @@ mod backend;
 mod command;
 mod model;
 mod note;
+mod spaces_bar;
+#[cfg(test)]
+mod spaces_bar_tests;
 mod split;
 pub mod target;
 #[cfg(test)]
@@ -17,9 +20,10 @@ mod tests;
 
 pub use backend::{DesktopBackend, GlobalOffer};
 pub use casement_protocols::vocab::{
-    Corner, KeyGesture, ShellRole, SplitSide, WindowEntry, WireCode,
+    Corner, KeyGesture, OverviewMode, OverviewState, ShellRole, SplitSide, WindowEntry, WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};
 pub use note::{OverviewNote, ShellNote, SwitcherNote};
+pub use spaces_bar::{BarPick, BarShow, BarSpace, bar_show, bar_spaces, commands_of};
 pub use split::{SplitCard, cards_of, output_of};

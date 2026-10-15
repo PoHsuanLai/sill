@@ -215,7 +215,7 @@ pub fn apply(shell: &Shell, note: ShellNote) {
         ShellNote::Killed => companion_stop(shell),
         ShellNote::Modifiers(_) => option_variants(),
         ShellNote::Switcher(_) => switcher_panel(),
-        ShellNote::Overview(_) => mission_control_chrome(),
+        ShellNote::Overview(note) => crate::spaces_bar::apply(&shell.links.spaces_bar, &note),
         ShellNote::Reveal { .. } => edge_reveal(),
         ShellNote::MenuFlash { .. } => menu_flash(),
         ShellNote::Bell(_) => bell(),
@@ -284,10 +284,6 @@ fn option_variants() {}
 /// panel, answered with `PickSwitcher` and `CancelSwitcher`; the panel still follows its own
 /// machine. Lane P3-SW (casement side) and P3-SILL (the panel).
 fn switcher_panel() {}
-
-/// The overview's mode, progress and layout (`DesktopState::quire.shell().overview`) will draw
-/// Mission Control's chrome. Lane P3-MC (casement side) and P3-SILL (the chrome).
-fn mission_control_chrome() {}
 
 /// An edge reveal will show or hide the bar and dock while a window is full screen.
 /// Lane P3-SILL.

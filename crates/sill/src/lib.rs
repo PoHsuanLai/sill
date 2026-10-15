@@ -17,6 +17,7 @@ pub mod outputs;
 pub mod policy;
 pub mod run_args;
 pub mod scroll;
+pub mod spaces_bar;
 pub mod split_picker;
 pub mod voice;
 pub mod window_menu;

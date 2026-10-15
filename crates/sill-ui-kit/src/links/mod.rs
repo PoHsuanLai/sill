@@ -15,6 +15,7 @@ mod osd;
 mod places;
 mod power_menu;
 mod reveal;
+mod spaces_bar;
 mod split_picker;
 mod switcher;
 mod window_menu;
@@ -33,6 +34,7 @@ pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, O
 pub use places::PlacementFile;
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal};
+pub use spaces_bar::{SpacesBarFeed, SpacesBarLink, SpacesBarPicked};
 pub use split_picker::{OfferSerial, SplitAnswer, SplitAnswered, SplitOffer, SplitPickerLink};
 pub use switcher::{AskSerial, Asks, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};
 pub use window_menu::{MenuSerial, WindowMenuLink, WindowMenuOpening, WindowMenuPicked};
@@ -63,4 +65,7 @@ pub struct Links {
     /// The Split View being chosen (a window went full screen on one half): the daemon opens
     /// the offer, the picker surfaces show it, and the answer goes back to the daemon.
     pub split_picker: SplitPickerLink,
+    /// Mission Control's Spaces bar: the daemon follows the overview and the desktop onto it,
+    /// the bar surfaces draw it, and a click goes back to the daemon.
+    pub spaces_bar: SpacesBarLink,
 }

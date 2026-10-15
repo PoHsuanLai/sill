@@ -78,6 +78,7 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
                 .capture
                 .control
                 .send(sill_model::capture_pick::CaptureCommand::Windows(windows));
+            shell.links.spaces_bar.set_view(&view);
             shell.seat.set_view(*view)
         }
         other => host_event(shell, ctx, other),

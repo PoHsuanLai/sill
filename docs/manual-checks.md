@@ -457,3 +457,13 @@ the real daemons or a real keyboard.
   (as on macOS with natural scrolling on). Turn "Natural scrolling"
   off for Mouse in Settings, replug the mouse (settings apply when a device appears), and the wheel
   reverses while the touchpad does not.
+
+## Mission Control's Spaces bar (lane spacesbar, not built or run when written)
+
+- [ ] **Spaces bar**: in the casement session open Mission Control (the key, the hot corner or the gesture). A row of the output's Spaces
+  by name ("Desktop 1", "Desktop 2", and the apps' names for a full-screen Space) slides down across the top strip over the spread
+  windows, the current Space marked as the selected pill, and a plus sits at the right edge; it sits under the menu bar, not over it.
+  Closing Mission Control lifts it away and it is gone (no stuck strip, `sill debug stats` shows the surface unmapped). A click on
+  another Space switches to it and leaves Mission Control; the plus adds a Desktop and stays in Mission Control. App Expose and Show
+  Desktop show no bar. With two monitors the bar is on both with each monitor's own Spaces. Known short of the Mac: no thumbnails on
+  hover, no drag of a window onto a Space, motion shorter than the windows' (FINDINGS `spacesbar`).

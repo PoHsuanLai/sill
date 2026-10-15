@@ -13,7 +13,7 @@ use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
     AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
-    PowerMenu, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper, WindowMenu,
+    PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper, WindowMenu,
 };
 use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
@@ -46,6 +46,9 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     let Spawn {
         services, links, ..
     } = *spawn;
+    // Mission Control's Spaces bar first: it shares the Top layer with the menu bar and the
+    // menu bar draws over its top.
+    spawn_surface::<SpacesBar>(ctx, outputs, spawn, &links.spaces_bar);
     spawn_surface::<Bar>(ctx, outputs, spawn, &links.control_center);
     prepare_wallpapers(outputs, services);
     spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());

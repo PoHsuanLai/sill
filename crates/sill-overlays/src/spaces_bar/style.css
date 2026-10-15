@@ -1,0 +1,10 @@
+/* Mission Control's Spaces bar. The Spaces are quire's `WorkspacePills`, the plus a toolbar
+   `Button`; this lays out the strip and plays the slide: quire's `sheet-in` and `sheet-out` with
+   their offset (`--sheet-dy`) set to a lift off the top edge, at the tokens the sheet uses.
+   Tokens only. */
+.sill-spaces-bar{ --sheet-dy:calc(var(--s-48) * -1); --sheet-scale:1; position:relative; box-sizing:border-box; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+.sill-spaces-bar[*|data-presence=entering],.sill-spaces-bar[*|data-presence=present]{ animation:sheet-in var(--t-quick) var(--e-out); }
+.sill-spaces-bar[*|data-presence=entering][*|data-pulse=b],.sill-spaces-bar[*|data-presence=present][*|data-pulse=b]{ animation-name:sheet-in--b; }
+.sill-spaces-bar[*|data-presence=present][*|data-pulse=held]{ animation:hold var(--t-quick) var(--e-linear); }
+.sill-spaces-bar[*|data-presence=leaving]{ animation:sheet-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }
+.sill-spaces-side{ flex:1; display:flex; align-items:center; justify-content:flex-end; padding:0 var(--s-20); }

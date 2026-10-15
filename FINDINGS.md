@@ -1026,3 +1026,44 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
   first half both leave the first window alone, full screen. Whether Escape reaches the picker (keyboard Exclusive over a
   full-screen window), and whether a press on `.sill-split-scrim` arrives as a pointer-down on the surface.
   `dev/accept/split-picker.sh` (the recipe's acceptance script) is not written: it needs a running session.
+
+## spacesbar
+
+Mission Control's Spaces bar (lane `spacesbar`, written without a build: nothing here has been compiled or run).
+
+- **What landed.** `ShellNote::Overview(Moved{mode,state,..})` now does something: `sill::spaces_bar::apply` turns it into
+  `BarShow` (`sill_model::desktop::bar_show`: up for Mission Control Entering, Open or Tracking, down for Leaving, Closed and for
+  App Expose and Show Desktop, which have no bar) on `SpacesBarLink`. `daemon/events.rs` writes each `DesktopView` to the same
+  link. Each output's `sill_overlays::SpacesBar` (Top, anchored top/left/right, 112 px high = `STRIP_PX`, reserves nothing, no keyboard,
+  input everywhere, spawned before the menu bar so the bar draws over its top) maps while the bar is up and unmaps when the leave
+  has settled. It draws quire's `WorkspacePills` (a pill per Space of the output, the one on show `Selected`) centred, and a
+  toolbar `Button` with the plus glyph at the right edge; the strip is padded by `bar.height_px` so the pills sit under the menu bar.
+- **Names.** `bar_spaces`: desktops are "Desktop N" counted per output in order (as the Mac counts them, full-screen Spaces do
+  not take a number); full-screen, Split View and agent Spaces are named by the apps with a window on them (app index name, else
+  the app key), joined with " & "; with no known window, "Full Screen", "Split View" or "Agent". The wire carries no Space name, so
+  a renamed Space cannot show its name.
+- **Click.** A primary press on a pill sends `SwitchSpace(id)` then `Overview(MissionControl, Off)` (the Mac leaves Mission Control
+  on a Space click); the plus sends `CreateSpace(output name)` (the existing path, `DesktopCommand::CreateSpace`) and stays in
+  Mission Control. Right-click on a pill does nothing (the Space editor does not exist).
+- **Departures.**
+  1. *Names only, no thumbnails.* Sonoma expands the collapsed bar to Space thumbnails when the pointer reaches the top. The wire has
+     no Space thumbnail and sill has no capture of a Space, so the bar stays at the collapsed state.
+  2. *Motion is 120 ms, not about 350 ms.* quire has no top-edge slide and its sheet pair is the nearest known animation: `sheet-in`
+     / `sheet-out` (`--t-quick`, `--e-out` / `--e-exit`) with `--sheet-dy` set to a lift of `--s-48` off the top (sill may not define
+     keyframes: the lint rejects unknown animation names). The windows settle in about 350 ms, so the bar finishes first.
+  3. *Every output.* The overview note names no output, so the bar shows on all outputs; the Spaces on each are its own.
+  4. *Drag and drop of windows onto a Space is not done.* There is no drag from the compositor's window tiles to this surface
+     (the tiles are the compositor's, not ours); `DesktopCommand::ToSpace` exists for when casement reports a drop on the strip.
+  5. *Space reorder, remove and the Space menu are not done* (`MoveSpace`, `RemoveSpace` exist as commands; nothing in the bar sends them).
+  6. *`Tracking` shows the bar at once,* at full strength, not scaled by `progress`; the progress field is ignored.
+- **Interface asks.**
+  - quire: `Anim::DropIn` / `Exit::LiftOut` (a top-edge slide-down and lift, with the overview's duration token, about 350 ms) for
+    `use_presence`; today the bar borrows the sheet pair.
+  - quire: a `SpacesBar` component (pills with a thumbnail slot that expands on hover, the Space add plus, drop target highlight)
+    once the wire has thumbnails; `WorkspacePills` is the menu bar's segmented group, near enough for a collapsed bar.
+  - casement: say which output Mission Control is open on (a per-output `overview_state`), report a Space thumbnail, and report a
+    window dropped on the strip.
+- **Open, only a real run proves.** Whether the strip lies where the compositor leaves it (the Top layer, anchored at y 0, with
+  the menu bar drawn over its top; if the compositor places the strip below the menu bar's reserve the padding doubles); whether
+  a press on a pill reaches the surface while the compositor holds the pointer for Mission Control; the pill row's centring and the
+  plus alignment under Blitz's flex.
