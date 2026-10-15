@@ -71,11 +71,14 @@ mod tests {
         }
     }
 
+    /// (case, the point, what the right-hand output makes of it).
+    type PointCase = (&'static str, (i32, i32), Option<(i32, i32)>);
+
     #[test]
     fn the_points_on_the_output_are_made_local_and_the_rest_are_not_ours() {
         let right = rect(1920, 0, 1920, 1080);
         // (case, the point, what the right-hand output makes of it)
-        let cases: [(&str, (i32, i32), Option<(i32, i32)>); 5] = [
+        let cases: [PointCase; 5] = [
             ("its top left corner", (1920, 0), Some((0, 0))),
             ("inside", (2000, 40), Some((80, 40))),
             ("past its right edge", (3840, 40), None),

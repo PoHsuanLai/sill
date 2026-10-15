@@ -157,11 +157,14 @@ mod tests {
         }
     }
 
+    /// (case, bits offered, the top level as (title, dimmed)).
+    type TopCase = (&'static str, u32, [(&'static str, bool); 5]);
+
     #[test]
     fn the_top_level_is_full_screen_two_submenus_fill_and_centre() {
         // (case, bits offered, the top level as (title, dimmed))
         use WindowEntry::{Centre, EnterFullScreen, ExitFullScreen, Fill, Left, Right};
-        let cases: [(&str, u32, [(&str, bool); 5]); 3] = [
+        let cases: [TopCase; 3] = [
             (
                 "a floating window",
                 mask(&[EnterFullScreen, Left, Right, Fill, Centre]),
@@ -245,7 +248,7 @@ mod tests {
 
     #[test]
     fn every_entry_has_words_and_a_bit() {
-        for entry in WindowEntry::ALL {
+        for entry in WindowEntry::ALL.iter().copied() {
             assert!(!label(entry).is_empty(), "{entry:?}");
             assert!(offered(mask(&[entry]), entry), "{entry:?}");
         }

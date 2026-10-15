@@ -279,6 +279,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         HostEvent::App(ShellMsg::Note(_)) => {}
         // Answered by `handle`, which holds the seat.
         HostEvent::App(ShellMsg::DockRects(_) | ShellMsg::Desktop(_)) => {}
+        // Answered by `handle`, which sends it to the compositor through the services.
+        HostEvent::App(ShellMsg::Command(_)) => {}
         HostEvent::App(ShellMsg::Ipc { reply, .. }) => {
             // Never reached through `handle`, which answers `Ipc` itself; answered rather
             // than dropped in case another caller ever delivers one here directly.
