@@ -1,4 +1,6 @@
 use super::*;
+use crate::displays::ddc::{Controls, DdcDisplay, Endpoint, RgbGain};
+use crate::ids::{DdcId, OutputName};
 
 fn at(hour: u32, minute: u32) -> MinuteOfDay {
     MinuteOfDay::wrapping(hour * 60 + minute)
@@ -225,42 +227,90 @@ fn a_change_made_in_settings_ends_the_manual_turn_on() {
 }
 
 #[test]
-fn where_sill_warms_the_displays_casement_stays_off() {
-    let (quiet, effects) = step(
-        ready(light(Schedule::Scheduled), None, Backend::Software),
+fn where_sill_warms_the_monitors_the_software_light_stays_as_it_is() {
+    let scheduled = ready(light(Schedule::Scheduled), None, Backend::Software);
+    let (told, effects) = step(
+        scheduled,
         NightShiftEvent::Told(NightShiftCommand::Backend(Backend::Hardware), now(22, 0)),
     );
-    assert_eq!(quiet.light.schedule, Schedule::Off);
-    assert_eq!(
-        effects,
-        vec![NightShiftEffect::WriteLight(light(Schedule::Off))]
-    );
-    assert_eq!(shown(&quiet), Shown::ByDisplay);
-    let (same, effects) = step(
-        quiet,
+    assert_eq!(told.backend, Backend::Hardware);
+    assert_eq!(told.light, scheduled.light, "the light is not stood down");
+    assert_eq!(effects, vec![]);
+    let (on, effects) = step(
+        told,
         NightShiftEvent::Told(NightShiftCommand::TurnOnUntilTomorrow, now(22, 0)),
     );
     assert_eq!(
-        (same, effects),
-        (quiet, vec![]),
-        "the switch does nothing there"
+        on.light.schedule,
+        Schedule::Always,
+        "the switch still warms"
     );
-    let (again, effects) = step(
-        quiet,
+    assert_eq!(effects.len(), 2);
+    let (loaded, effects) = step(
+        told,
         NightShiftEvent::Loaded {
             light: light(Schedule::Always),
             manual: None,
         },
     );
     assert_eq!(
-        again.light.schedule,
-        Schedule::Off,
-        "an edit in Settings is put back"
+        loaded.light.schedule,
+        Schedule::Always,
+        "an edit in Settings stays"
     );
-    assert_eq!(
-        effects,
-        vec![NightShiftEffect::WriteLight(light(Schedule::Off))]
-    );
+    assert_eq!((loaded.backend, effects), (Backend::Hardware, vec![]));
+}
+
+fn monitor(bus: u16, connector: Option<&str>, gain: Option<RgbGain>) -> DdcDisplay {
+    DdcDisplay {
+        endpoint: Endpoint {
+            id: DdcId(bus),
+            connector: connector.map(|name| OutputName(name.to_owned())),
+            product: format!("Monitor {bus}"),
+        },
+        controls: Controls {
+            gain,
+            ..Controls::default()
+        },
+    }
+}
+
+fn names(connectors: &[&str]) -> Vec<OutputName> {
+    connectors
+        .iter()
+        .map(|name| OutputName((*name).to_owned()))
+        .collect()
+}
+
+#[test]
+fn casement_leaves_the_monitors_sill_warms_over_ddc_alone() {
+    let gain = Some(RgbGain::default());
+    let monitors = [
+        monitor(5, Some("HDMI-A-1"), gain),
+        monitor(4, Some("DP-1"), gain),
+        monitor(6, Some("DP-2"), None),
+        monitor(7, None, gain),
+        monitor(8, Some("DP-1"), gain),
+    ];
+    let cases: &[(&str, Backend, &[DdcDisplay], &[&str])] = &[
+        ("software: none", Backend::Software, &monitors, &[]),
+        (
+            "hardware: the connectors with gains, sorted, once each",
+            Backend::Hardware,
+            &monitors,
+            &["DP-1", "HDMI-A-1"],
+        ),
+        (
+            "hardware: a monitor without gains or a connector is not listed",
+            Backend::Hardware,
+            &monitors[2..4],
+            &[],
+        ),
+        ("hardware: no monitors", Backend::Hardware, &[], &[]),
+    ];
+    for (name, backend, ddc, want) in cases {
+        assert_eq!(skip_outputs(*backend, ddc), names(want), "{name}");
+    }
 }
 
 #[test]

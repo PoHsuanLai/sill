@@ -30,6 +30,7 @@ use sill_services::intents::{IntentsLinks, IntentsService, ShellCall};
 use sill_services::keycap::{KeycapLinks, KeycapService};
 use sill_services::launch::{LaunchLinks, LaunchService};
 use sill_services::locker::LockerService;
+use sill_services::night_shift::NightShiftService;
 use sill_services::notifications::NotificationsService;
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::seat::seat;
@@ -180,6 +181,8 @@ pub(crate) fn start(
             notes: notifications.state.clone(),
         },
     );
+    // Night Shift tells casement which monitors the displays service warms itself.
+    let night_shift = spawn::<NightShiftService>(rt, env, displays.state.clone());
     Services {
         clock: spawn(rt, env, ()),
         network: spawn(rt, env, ()),
@@ -237,7 +240,7 @@ pub(crate) fn start(
         accounts_sheet,
         sync_hold,
         guest_asks,
-        night_shift: spawn(rt, env, ()),
+        night_shift,
         work_areas: spawn::<WorkAreaService>(rt, env, ()),
         workspace_looks: spawn::<WorkspaceLooksService>(rt, env, ()),
         dirs: env.dirs.clone(),
@@ -315,7 +318,7 @@ pub(crate) fn follow_settings(
         DisplaysBridge,
         services.displays.control.clone(),
     );
-    // Night Shift keeps casement's night light off where the displays are warmed over DDC/CI.
+    // Night Shift tells casement to leave the monitors warmed over DDC/CI alone.
     follow(
         rt,
         settings(),

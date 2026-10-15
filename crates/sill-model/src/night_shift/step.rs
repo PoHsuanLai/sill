@@ -1,7 +1,7 @@
 //! The transition: what each event does to Night Shift, and which files it then asks to change.
 
 use super::{
-    Backend, Manual, MinuteOfDay, NightLight, NightShift, NightShiftCommand, NightShiftEffect,
+    Manual, MinuteOfDay, NightLight, NightShift, NightShiftCommand, NightShiftEffect,
     NightShiftEvent, Now, Reach, Schedule, UnixSeconds,
 };
 
@@ -51,8 +51,6 @@ fn loaded(
         manual: kept,
         backend: state.backend,
     };
-    let (next, quiet) = quiet_for_hardware(next);
-    effects.extend(quiet);
     (next, effects)
 }
 
@@ -62,19 +60,17 @@ fn told(
     now: Now,
 ) -> (NightShift, Vec<NightShiftEffect>) {
     if let NightShiftCommand::Backend(backend) = command {
-        return quiet_for_hardware(NightShift { backend, ..state });
+        return (NightShift { backend, ..state }, Vec::new());
     }
     let reachable = state.reach == Reach::Ready;
-    match (command, reachable, state.backend) {
-        (_, false, _) | (NightShiftCommand::TurnOnUntilTomorrow, true, Backend::Hardware) => {
-            (state, Vec::new())
-        }
-        (NightShiftCommand::TurnOnUntilTomorrow, true, Backend::Software) => turned_on(state, now),
-        (NightShiftCommand::TurnOff, true, _) => match state.manual {
+    match (command, reachable) {
+        (_, false) => (state, Vec::new()),
+        (NightShiftCommand::TurnOnUntilTomorrow, true) => turned_on(state, now),
+        (NightShiftCommand::TurnOff, true) => match state.manual {
             Some(manual) => ended(state, manual),
             None => turned_off(state),
         },
-        (NightShiftCommand::SetWarmth(warmth), true, _) => {
+        (NightShiftCommand::SetWarmth(warmth), true) => {
             let light = NightLight {
                 warmth,
                 ..state.light
@@ -99,7 +95,7 @@ fn told(
                 effects,
             )
         }
-        (NightShiftCommand::Backend(_), true, _) => (state, Vec::new()),
+        (NightShiftCommand::Backend(_), true) => (state, Vec::new()),
     }
 }
 
@@ -163,29 +159,4 @@ fn ended(state: NightShift, manual: Manual) -> (NightShift, Vec<NightShiftEffect
             NightShiftEffect::WriteManual(None),
         ],
     )
-}
-
-/// Where sill warms the displays itself, casement stays off, so the screen is not warmed twice.
-fn quiet_for_hardware(state: NightShift) -> (NightShift, Vec<NightShiftEffect>) {
-    match (state.backend, state.light.schedule, state.reach) {
-        (Backend::Hardware, Schedule::Always | Schedule::Scheduled, Reach::Ready) => {
-            let light = NightLight {
-                schedule: Schedule::Off,
-                ..state.light
-            };
-            let mut effects = vec![NightShiftEffect::WriteLight(light)];
-            if state.manual.is_some() {
-                effects.push(NightShiftEffect::WriteManual(None));
-            }
-            (
-                NightShift {
-                    light,
-                    manual: None,
-                    ..state
-                },
-                effects,
-            )
-        }
-        (Backend::Hardware | Backend::Software, _, _) => (state, Vec::new()),
-    }
 }

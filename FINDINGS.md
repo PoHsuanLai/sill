@@ -1272,11 +1272,17 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
   offered**: sill has no location, and casement's schema help mentions the Clock settings writing
   sunset, which do not exist yet. When a location exists, the writer belongs in
   `sill_services::night_shift` (compute sunrise and sunset daily, write `from`/`to`).
-- **Not doubled.** casement's mode is one value for every output, so sill cannot leave it on for
-  the panels without DDC and off for the monitors it warms over DDC. Where `display.night_warmth`
-  is `hardware` the whole of Night Shift stands down: casement is written `off`, the switch is
-  disabled and says so. Ask of casement: a per-output exclusion (`night_light.skip_outputs`, names)
-  would let both work on a mixed desk.
+- **Not doubled.** Where `display.night_warmth` is `hardware` the displays service warms the DDC
+  monitors that have RGB gains itself, and Night Shift lists their connectors in casement's
+  `night_light.skip_outputs` (`sill_model::night_shift::skip_outputs`, kept current as monitors
+  come and go; nothing is written before the policy has said who warms them, so a start does not
+  undo the last run's list). casement keeps warming every other output, and the switch works as
+  anywhere. Entries with a colon (`edid:...`, `connector:...`) are the person's own and are kept;
+  a plain connector name the person typed there is sill's to replace. Open: a DDC monitor whose
+  connector sill could not match to a bus is not listed, so casement warms it too (twice); this
+  needs casement's `skip_outputs` to be in the casement sill runs against (branch
+  `lane/cas28-daily`), and an older casement ignores the key, which leaves every output warmed by
+  casement as well.
 - **The warmth.** The slider spans 6500 K (Less Warm) to 2700 K (More Warm); casement accepts 1000
   to 6500 K, so a value set below 2700 K in Settings sits at the slider's end.
 - **No Settings page of ours.** The Settings app is detent's; casement's `[night_light]` section is

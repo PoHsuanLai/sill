@@ -7,6 +7,7 @@ use std::path::Path;
 
 use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
+use sill_model::ids::OutputName;
 use sill_model::night_shift::{Manual, MinuteOfDay, NightLight, Schedule, UnixSeconds, Warmth};
 use toml::{Table, Value};
 
@@ -73,18 +74,8 @@ fn light_of(section: Option<&Value>) -> NightLight {
 /// key of the file and of the table as it was. A file that is not valid TOML is not overwritten.
 pub(super) fn write_light(dir: &Path, light: &NightLight) -> Result<(), FileError> {
     let path = dir.join(SETTINGS);
-    let mut table = match std::fs::read_to_string(&path) {
-        Ok(text) => toml::from_str::<Table>(&text)?,
-        Err(error) if error.kind() == ErrorKind::NotFound => Table::new(),
-        Err(error) => return Err(error.into()),
-    };
-    let section = table
-        .entry("night_light")
-        .or_insert_with(|| Value::Table(Table::new()));
-    if !section.is_table() {
-        *section = Value::Table(Table::new());
-    }
-    if let Some(section) = section.as_table_mut() {
+    let mut table = load_table(&path)?;
+    with_night_light(&mut table, |section| {
         section.insert(
             "mode".to_owned(),
             Value::String(light.schedule.slug().to_owned()),
@@ -105,8 +96,95 @@ pub(super) fn write_light(dir: &Path, light: &NightLight) -> Result<(), FileErro
             "fade_minutes".to_owned(),
             Value::Integer(i64::from(light.fade_minutes)),
         );
-    }
+    });
     atomically(&path, &toml::to_string(&table)?)
+}
+
+/// The key casement reads the outputs it leaves alone from.
+const SKIP_KEY: &str = "skip_outputs";
+
+/// Whether a write changed the file's `skip_outputs`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Skipping {
+    Changed,
+    AsWas,
+}
+
+/// `night_light.skip_outputs` for the monitors `skip` (sill's), among the `existing` entries: an
+/// entry that names a display by its identity (`edid:...`, `connector:...`; a connector name
+/// has no colon) is the person's and stays, in front; every plain connector name is sill's to
+/// replace.
+pub(super) fn skip_list(existing: &[String], skip: &[OutputName]) -> Vec<String> {
+    existing
+        .iter()
+        .filter(|entry| entry.trim().contains(':'))
+        .cloned()
+        .chain(skip.iter().map(|name| name.0.clone()))
+        .collect()
+}
+
+/// Make `[night_light] skip_outputs` of `dir/settings.toml` list the monitors `skip`, keeping the
+/// person's own entries ([`skip_list`]) and every other key. Nothing is written (so casement's
+/// watch is not woken) when the list is already that; an empty list removes the key. A file that
+/// is not valid TOML is not overwritten.
+pub(super) fn write_skip(dir: &Path, skip: &[OutputName]) -> Result<Skipping, FileError> {
+    let path = dir.join(SETTINGS);
+    let mut table = load_table(&path)?;
+    let changed = with_night_light(&mut table, |section| set_skip(section, skip));
+    match changed {
+        Some(Skipping::Changed) => {
+            atomically(&path, &toml::to_string(&table)?)?;
+            Ok(Skipping::Changed)
+        }
+        Some(Skipping::AsWas) | None => Ok(Skipping::AsWas),
+    }
+}
+
+fn set_skip(section: &mut Table, skip: &[OutputName]) -> Skipping {
+    let existing: Vec<String> = section
+        .get(SKIP_KEY)
+        .and_then(Value::as_array)
+        .map(|entries| {
+            entries
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default();
+    let wanted = skip_list(&existing, skip);
+    if wanted == existing {
+        return Skipping::AsWas;
+    }
+    if wanted.is_empty() {
+        section.remove(SKIP_KEY);
+    } else {
+        section.insert(
+            SKIP_KEY.to_owned(),
+            Value::Array(wanted.into_iter().map(Value::String).collect()),
+        );
+    }
+    Skipping::Changed
+}
+
+/// `path` as a TOML table; empty for a file that is not there.
+fn load_table(path: &Path) -> Result<Table, FileError> {
+    match std::fs::read_to_string(path) {
+        Ok(text) => Ok(toml::from_str::<Table>(&text)?),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(Table::new()),
+        Err(error) => Err(error.into()),
+    }
+}
+
+/// `edit` applied to the `[night_light]` table of `table`, made (or made a table) first.
+fn with_night_light<R>(table: &mut Table, edit: impl FnOnce(&mut Table) -> R) -> Option<R> {
+    let section = table
+        .entry("night_light")
+        .or_insert_with(|| Value::Table(Table::new()));
+    if !section.is_table() {
+        *section = Value::Table(Table::new());
+    }
+    section.as_table_mut().map(edit)
 }
 
 /// The manual turn-on's file.
@@ -183,6 +261,7 @@ fn atomically(path: &Path, text: &str) -> Result<(), FileError> {
 
 #[cfg(test)]
 mod tests {
+    use sill_model::ids::OutputName;
     use sill_model::night_shift::{Manual, MinuteOfDay, NightLight, Schedule, UnixSeconds, Warmth};
     use sill_testkit::TempDir;
 
@@ -282,5 +361,121 @@ mod tests {
         write_manual(dir.path(), None).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(read_manual(dir.path()), None);
         write_manual(dir.path(), None).unwrap_or_else(|e| panic!("{e}"));
+    }
+
+    fn outputs(names: &[&str]) -> Vec<OutputName> {
+        names
+            .iter()
+            .map(|name| OutputName((*name).to_owned()))
+            .collect()
+    }
+
+    fn strings(names: &[&str]) -> Vec<String> {
+        names.iter().map(|name| (*name).to_owned()).collect()
+    }
+
+    #[test]
+    fn the_skip_list_keeps_the_persons_identities_and_replaces_connector_names() {
+        let cases: &[(&str, &[&str], &[&str], &[&str])] = &[
+            ("nothing either way", &[], &[], &[]),
+            (
+                "sill's monitors are listed",
+                &[],
+                &["DP-1", "HDMI-A-1"],
+                &["DP-1", "HDMI-A-1"],
+            ),
+            (
+                "last time's connectors are replaced",
+                &["DP-1", "DP-2"],
+                &["HDMI-A-1"],
+                &["HDMI-A-1"],
+            ),
+            (
+                "the person's identities stay in front",
+                &["DP-1", "edid:ACME/M1/S1", " connector:DP-9"],
+                &["DP-2"],
+                &["edid:ACME/M1/S1", " connector:DP-9", "DP-2"],
+            ),
+            (
+                "no monitors of sill's, only the person's",
+                &["edid:A/B/C", "DP-1"],
+                &[],
+                &["edid:A/B/C"],
+            ),
+        ];
+        for (name, existing, skip, want) in cases {
+            assert_eq!(
+                skip_list(&strings(existing), &outputs(skip)),
+                strings(want),
+                "{name}"
+            );
+        }
+    }
+
+    fn skip_in(dir: &std::path::Path) -> Option<Vec<String>> {
+        let text = std::fs::read_to_string(dir.join(SETTINGS)).unwrap_or_default();
+        let table: toml::Table = toml::from_str(&text).unwrap_or_default();
+        table
+            .get("night_light")?
+            .get("skip_outputs")?
+            .as_array()
+            .map(|entries| {
+                entries
+                    .iter()
+                    .filter_map(|e| e.as_str().map(str::to_owned))
+                    .collect()
+            })
+    }
+
+    #[test]
+    fn the_monitors_sill_warms_are_written_once_beside_the_rest_of_the_file() {
+        let dir = TempDir::new("night-shift-skip");
+        std::fs::write(
+            dir.path().join(SETTINGS),
+            "[pointer]\ntap = \"on\"\n\n[night_light]\nmode = \"scheduled\"\nskip_outputs = [\"edid:A/B/C\", \"DP-7\"]\n",
+        )
+        .unwrap_or_else(|e| panic!("{e}"));
+        let wanted = outputs(&["DP-1", "HDMI-A-1"]);
+        let first = write_skip(dir.path(), &wanted).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(first, Skipping::Changed);
+        assert_eq!(
+            skip_in(dir.path()),
+            Some(strings(&["edid:A/B/C", "DP-1", "HDMI-A-1"]))
+        );
+        let text = std::fs::read_to_string(dir.path().join(SETTINGS)).unwrap_or_default();
+        assert!(
+            text.contains("tap = \"on\"") && text.contains("mode = \"scheduled\""),
+            "{text}"
+        );
+        let again = write_skip(dir.path(), &wanted).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(again, Skipping::AsWas, "the same list is not written again");
+        let gone = write_skip(dir.path(), &[]).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(gone, Skipping::Changed);
+        assert_eq!(skip_in(dir.path()), Some(strings(&["edid:A/B/C"])));
+    }
+
+    #[test]
+    fn nothing_to_skip_creates_no_file_and_removes_an_emptied_key() {
+        let dir = TempDir::new("night-shift-skip-none");
+        let none = write_skip(dir.path(), &[]).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(none, Skipping::AsWas);
+        assert!(!dir.path().join(SETTINGS).exists(), "no file for no list");
+        write_skip(dir.path(), &outputs(&["DP-1"])).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(skip_in(dir.path()), Some(strings(&["DP-1"])));
+        write_skip(dir.path(), &[]).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(
+            skip_in(dir.path()),
+            None,
+            "the key is removed with its last entry"
+        );
+    }
+
+    #[test]
+    fn a_file_that_is_not_toml_is_not_overwritten_by_the_skip_list() {
+        let dir = TempDir::new("night-shift-skip-damaged");
+        std::fs::write(dir.path().join(SETTINGS), "this = is = not toml").unwrap_or_default();
+        assert!(write_skip(dir.path(), &outputs(&["DP-1"])).is_err());
+        let kept = std::fs::read_to_string(dir.path().join(SETTINGS)).unwrap_or_default();
+        assert_eq!(kept, "this = is = not toml");
     }
 }

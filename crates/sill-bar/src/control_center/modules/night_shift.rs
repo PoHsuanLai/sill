@@ -27,7 +27,6 @@ pub(crate) struct Face {
     pub line: String,
     /// The switch.
     pub switch: Check,
-    pub availability: Availability,
     /// The warmth slider's place, while the screen is or will be warmed.
     pub warmth: Option<Fraction>,
 }
@@ -35,38 +34,20 @@ pub(crate) struct Face {
 /// The row for `night_shift`; none while casement's settings cannot be reached.
 pub(crate) fn face_of(night_shift: &NightShift) -> Option<Face> {
     let level = Fraction(warmth_fraction(night_shift.light.warmth));
-    let (line, switch, availability, warmth) = match shown(night_shift) {
+    let (line, switch, warmth) = match shown(night_shift) {
         Shown::Unavailable => return None,
-        Shown::ByDisplay => (
-            "Warmed through the display's own colour".to_owned(),
-            Check::Off,
-            Availability::Disabled,
-            None,
-        ),
-        Shown::Off => ("Off".to_owned(), Check::Off, Availability::Enabled, None),
-        Shown::OnUntilTomorrow => (
-            "On until tomorrow".to_owned(),
-            Check::On,
-            Availability::Enabled,
-            Some(level),
-        ),
-        Shown::On => (
-            "On".to_owned(),
-            Check::On,
-            Availability::Enabled,
-            Some(level),
-        ),
+        Shown::Off => ("Off".to_owned(), Check::Off, None),
+        Shown::OnUntilTomorrow => ("On until tomorrow".to_owned(), Check::On, Some(level)),
+        Shown::On => ("On".to_owned(), Check::On, Some(level)),
         Shown::Scheduled { from, to } => (
             format!("Scheduled, {} to {}", clock(from), clock(to)),
             Check::Off,
-            Availability::Enabled,
             Some(level),
         ),
     };
     Some(Face {
         line,
         switch,
-        availability,
         warmth,
     })
 }
@@ -97,7 +78,6 @@ pub(crate) fn NightShiftRow() -> Element {
         ModulePanel {
             title: TextLine::from("Night Shift"),
             plate: use_plate(),
-            availability: face.availability,
             common: Common {
                 id: Some(ROW_ID.to_owned()),
                 extra_class: ExtraClass::parse("sill-cc-night").ok(),
@@ -107,8 +87,7 @@ pub(crate) fn NightShiftRow() -> Element {
                 Toggle {
                     label: "Night Shift".to_owned(),
                     value: face.switch,
-                    availability: face.availability,
-                    onchange: move |to: Check| {
+                            onchange: move |to: Check| {
                         // A stopped service drops it: the switch shows what it last published.
                         let _gone = control.send(command_of(to));
                     },
@@ -120,8 +99,7 @@ pub(crate) fn NightShiftRow() -> Element {
                     Slider {
                         label: "Colour Temperature".to_owned(),
                         value: level,
-                        availability: face.availability,
-                        onchange: move |to: Fraction| {
+                                    onchange: move |to: Fraction| {
                             let _gone = warmth.send(NightShiftCommand::SetWarmth(warmth_at(to.0)));
                         },
                     }
@@ -157,11 +135,10 @@ mod tests {
         }
     }
 
-    fn face(line: &str, switch: Check, availability: Availability, warm: bool) -> Option<Face> {
+    fn face(line: &str, switch: Check, warm: bool) -> Option<Face> {
         Some(Face {
             line: line.to_owned(),
             switch,
-            availability,
             // casement's default 3400 K sits at 815 thousandths of the slider.
             warmth: warm.then_some(Fraction(815)),
         })
@@ -173,38 +150,27 @@ mod tests {
             until: UnixSeconds(1),
             restore: NightLight::default(),
         };
-        let on = Availability::Enabled;
         let cases = [
             ("unreachable", NightShift::default(), None),
             (
                 "off",
                 ready(Schedule::Off, None, Backend::Software),
-                face("Off", Check::Off, on, false),
+                face("Off", Check::Off, false),
             ),
             (
                 "until tomorrow",
                 ready(Schedule::Always, Some(by_hand), Backend::Software),
-                face("On until tomorrow", Check::On, on, true),
+                face("On until tomorrow", Check::On, true),
             ),
             (
                 "all day",
                 ready(Schedule::Always, None, Backend::Software),
-                face("On", Check::On, on, true),
+                face("On", Check::On, true),
             ),
             (
                 "on a schedule",
                 ready(Schedule::Scheduled, None, Backend::Software),
-                face("Scheduled, 22:00 to 07:00", Check::Off, on, true),
-            ),
-            (
-                "by the display",
-                ready(Schedule::Off, None, Backend::Hardware),
-                face(
-                    "Warmed through the display's own colour",
-                    Check::Off,
-                    Availability::Disabled,
-                    false,
-                ),
+                face("Scheduled, 22:00 to 07:00", Check::Off, true),
             ),
         ];
         for (name, state, want) in cases {

@@ -1,17 +1,20 @@
 //! The loop: load the two files, then feed the pure step the person's commands, casement's file
 //! changing under us, and the clock reaching the end of a manual turn-on; what the step asks
-//! (a write of either file) is carried out here.
+//! (a write of either file) is carried out here. Beside it, casement's `skip_outputs` is kept to
+//! the monitors sill warms (`sill_model::night_shift::skip_outputs`) as the displays come and go.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use sill_model::displays::Displays;
 use sill_model::night_shift::{
-    MinuteOfDay, NightShift, NightShiftEffect, NightShiftEvent, Now, UnixSeconds, step,
+    MinuteOfDay, NightShift, NightShiftCommand, NightShiftEffect, NightShiftEvent, Now, Reach,
+    UnixSeconds, skip_outputs, step,
 };
 use tokio::sync::watch;
 
-use super::files::{SETTINGS, read_light, read_manual, write_light, write_manual};
+use super::files::{SETTINGS, read_light, read_manual, write_light, write_manual, write_skip};
 use crate::env::WallClock;
 use crate::night_shift::NightShiftService;
 use crate::service::ServiceIo;
@@ -24,6 +27,7 @@ pub(crate) async fn run(
     casement: PathBuf,
     state: PathBuf,
     clock: Arc<dyn WallClock>,
+    displays: watch::Receiver<Displays>,
     io: ServiceIo<NightShiftService>,
 ) {
     let ServiceIo {
@@ -40,12 +44,15 @@ pub(crate) async fn run(
             None
         }
     };
+    let mut moving = Some(displays.clone());
     let mut live = Live {
         current: NightShift::default(),
+        heard: Heard::Not,
         tx,
         casement,
         state,
         clock,
+        displays,
     };
     live.reload();
     live.feed(NightShiftEvent::Tick(live.now()));
@@ -66,11 +73,23 @@ pub(crate) async fn run(
                 None => std::future::pending().await,
             }
         };
+        let monitors = async {
+            match &mut moving {
+                Some(moving) => moving.changed().await.is_ok(),
+                None => std::future::pending().await,
+            }
+        };
         tokio::select! {
             command = commands.recv() => {
                 let Some(command) = command else { return };
-                let now = live.now();
-                live.feed(NightShiftEvent::Told(command, now));
+                live.tell(command);
+            }
+            followed = monitors => {
+                if !followed {
+                    moving = None;
+                    continue;
+                }
+                live.sync_skip();
             }
             settled = settled => {
                 if settled.is_none() {
@@ -87,14 +106,25 @@ pub(crate) async fn run(
     }
 }
 
+/// Whether the shell has said who warms the monitors. Until it has, casement's `skip_outputs`
+/// is left as it is, so a start does not undo the last run's list before the policy speaks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Heard {
+    Not,
+    Yes,
+}
+
 struct Live {
     current: NightShift,
+    heard: Heard,
     tx: watch::Sender<NightShift>,
     /// casement's config directory.
     casement: PathBuf,
     /// sill's state directory.
     state: PathBuf,
     clock: Arc<dyn WallClock>,
+    /// The displays service's monitors.
+    displays: watch::Receiver<Displays>,
 }
 
 impl Live {
@@ -122,6 +152,29 @@ impl Live {
             }
         };
         self.feed(event);
+        self.sync_skip();
+    }
+
+    /// Step on what the person or the shell told.
+    fn tell(&mut self, command: NightShiftCommand) {
+        if matches!(command, NightShiftCommand::Backend(_)) {
+            self.heard = Heard::Yes;
+        }
+        let now = self.now();
+        self.feed(NightShiftEvent::Told(command, now));
+        self.sync_skip();
+    }
+
+    /// Make casement's `skip_outputs` list the monitors sill warms, once the shell has said who
+    /// warms them and casement's settings are readable.
+    fn sync_skip(&self) {
+        if self.heard == Heard::Not || self.current.reach != Reach::Ready {
+            return;
+        }
+        let skip = skip_outputs(self.current.backend, &self.displays.borrow().ddc);
+        if let Err(error) = write_skip(&self.casement, &skip) {
+            eprintln!("sill: night shift: casement's skip list: {error}");
+        }
     }
 
     /// Step on `event`, carry out the writes it asks for, then publish: whoever sees the new
