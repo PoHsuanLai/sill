@@ -254,3 +254,32 @@ fn the_ids_are_the_outputs_spaces_in_order() {
     assert_eq!(bar_space_ids(&seen, Some("DP-1")), [id("ws-2"), id("ws-1")]);
     assert!(bar_space_ids(&seen, Some("DP-2")).is_empty());
 }
+
+#[test]
+fn a_laid_out_bar_gets_its_targets_and_one_request_and_nothing_again_until_answered() {
+    let layout = layouts("DP-1", &[id("ws-1")]);
+    let seen = view("ws-1", 0);
+    let none = BarPictures::default();
+    let (outbox, commands) = outgoing(Outbox::default(), &layout, &seen, &none);
+    assert!(
+        matches!(
+            commands.as_slice(),
+            [
+                DesktopCommand::SetSpaceTargets { output, targets },
+                DesktopCommand::CaptureSpace { size: (320, 200), space, .. },
+            ] if output == "DP-1" && targets.len() == 1 && *space == id("ws-1")
+        ),
+        "{commands:?}"
+    );
+    let (outbox, again) = outgoing(outbox, &layout, &seen, &none);
+    assert!(again.is_empty(), "{again:?}");
+    // The bar goes: the targets are cleared and nothing is asked for.
+    let (_, gone) = outgoing(outbox, &BarLayouts::default(), &seen, &none);
+    assert_eq!(
+        gone,
+        [DesktopCommand::SetSpaceTargets {
+            output: "DP-1".to_owned(),
+            targets: Vec::new()
+        }]
+    );
+}

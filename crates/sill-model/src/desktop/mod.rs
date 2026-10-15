@@ -7,6 +7,7 @@
 mod backend;
 mod bar_drops;
 mod bar_layout;
+mod bar_outbox;
 mod bar_outputs;
 #[cfg(test)]
 mod bar_tests;
@@ -30,6 +31,7 @@ pub use bar_layout::{
     BAR_EXPANDED_PX, BarLayout, BarLayouts, BarTile, THUMB_H, THUMB_W, target_commands, thumb_size,
     tiles_of,
 };
+pub use bar_outbox::{Outbox, outgoing};
 pub use bar_outputs::BarOutputs;
 pub use bar_thumbs::{
     BarPicture, BarPictures, SpacePicture, ThumbAsks, ThumbRequest, thumbs_wanted,

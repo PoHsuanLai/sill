@@ -202,6 +202,7 @@ fn spawn_followers(
     crate::window_menu::spawn_picks(runtime.handle(), links, host.clone());
     crate::split_picker::spawn_answers(runtime.handle(), links, host.clone());
     crate::spaces_bar::spawn_picks(runtime.handle(), links, host.clone());
+    crate::spaces_bar::spawn_outbox(runtime.handle(), links, host.clone());
     crate::corners::spawn_hits(
         runtime.handle(),
         links.clone(),

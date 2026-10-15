@@ -1,10 +1,12 @@
-//! The daemon's half of Mission Control's Spaces bar: the compositor's overview notes raise and
-//! lower the bar on the link ([`apply`], called from [`crate::daemon::compositor::apply`]), the
-//! bar surfaces draw it, and a click comes back on the link. [`spawn_picks`] follows the clicks
-//! and sends each one's commands to the host for the desktop arm.
+//! The daemon's half of Mission Control's Spaces bar: the compositor's notes raise and lower the
+//! bar on the link per output, bring the pictures of Spaces and say which Space a dragged window
+//! is over ([`apply_note`], called from [`crate::daemon::compositor::apply`]), the bar surfaces
+//! draw it, and a click comes back on the link. [`spawn_picks`] follows the clicks and sends each
+//! one's commands to the host for the desktop arm; [`spawn_outbox`] follows the bars' layouts
+//! and sends the drop targets and the requests for pictures.
 
 use shell_host::HostHandle;
-use sill_model::desktop::{OverviewNote, bar_show, commands_of};
+use sill_model::desktop::{Outbox, OverviewNote, ShellNote, bar_show, commands_of, outgoing};
 use sill_ui_kit::links::{Links, SpacesBarLink};
 use tokio::runtime::Handle;
 
@@ -33,6 +35,57 @@ pub fn apply(link: &SpacesBarLink, note: &OverviewNote) {
     }
 }
 
+/// What a note of the compositor's shell protocol does to the bar on `link`: the per-output
+/// overview, the Space under a dragged window and an answer to a request for a Space's picture
+/// are written to it; the overview as a whole goes through [`apply`]; every other note is not the
+/// bar's.
+///
+/// ```
+/// use sill::spaces_bar::apply_note;
+/// use sill_model::desktop::{BarShow, ShellNote, Shown};
+/// use sill_ui_kit::links::SpacesBarLink;
+///
+/// let link = SpacesBarLink::new();
+/// apply_note(&link, &ShellNote::OverviewOutput { output: "DP-1".to_owned(), shown: Shown::Hidden });
+/// assert_eq!(link.latest().outputs.bar_on(BarShow::Show, Some("DP-1")), BarShow::Hide);
+/// ```
+pub fn apply_note(link: &SpacesBarLink, note: &ShellNote) {
+    match note {
+        ShellNote::Overview(note) => apply(link, note),
+        ShellNote::OverviewOutput { output, shown } => link.set_output(output, *shown),
+        ShellNote::DropTarget { output, space } => link.set_drop(output, space.clone()),
+        ShellNote::SpacePicture {
+            output,
+            space,
+            picture,
+        } => link.set_picture(output, space.clone(), picture),
+        _ => {}
+    }
+}
+
+/// Follow the bars' feed on `links` on `rt` and send what [`outgoing`] says to the host, until
+/// the host is gone.
+pub fn spawn_outbox(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
+    let mut feed = links.spaces_bar.subscribe();
+    rt.spawn(async move {
+        let mut outbox = Outbox::default();
+        loop {
+            let latest = feed.borrow_and_update().clone();
+            let (next, commands) =
+                outgoing(outbox, &latest.layouts, &latest.view, &latest.pictures);
+            outbox = next;
+            for command in commands {
+                if host.send(ShellMsg::Command(command)).is_err() {
+                    return;
+                }
+            }
+            if feed.changed().await.is_err() {
+                return;
+            }
+        }
+    });
+}
+
 /// Follow the clicks on `links` on `rt` and send each one's commands to the host, until the host
 /// is gone.
 pub fn spawn_picks(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
@@ -56,10 +109,12 @@ pub fn spawn_picks(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
 
 #[cfg(test)]
 mod tests {
-    use sill_model::desktop::{BarShow, OverviewMode, OverviewNote, OverviewState};
+    use sill_model::desktop::{
+        BarShow, OverviewMode, OverviewNote, OverviewState, ShellNote, Shown,
+    };
     use sill_ui_kit::links::SpacesBarLink;
 
-    use super::apply;
+    use super::{apply, apply_note};
 
     fn moved(mode: OverviewMode, state: OverviewState) -> OverviewNote {
         OverviewNote::Moved {
@@ -88,5 +143,27 @@ mod tests {
             apply(&link, &note);
             assert_eq!(link.latest().show, want, "{note:?}");
         }
+    }
+
+    #[test]
+    fn the_notes_of_the_bar_reach_the_link_and_the_others_do_not() {
+        let link = SpacesBarLink::new();
+        let notes = [
+            ShellNote::OverviewOutput {
+                output: "DP-2".to_owned(),
+                shown: Shown::Shown,
+            },
+            ShellNote::DropTarget {
+                output: "DP-2".to_owned(),
+                space: None,
+            },
+            ShellNote::Killed,
+        ];
+        for note in &notes {
+            apply_note(&link, note);
+        }
+        let outputs = link.latest().outputs;
+        assert_eq!(outputs.bar_on(BarShow::Show, Some("DP-2")), BarShow::Show);
+        assert_eq!(outputs.bar_on(BarShow::Show, Some("DP-1")), BarShow::Hide);
     }
 }

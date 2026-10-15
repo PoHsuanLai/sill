@@ -215,7 +215,12 @@ pub fn apply(shell: &Shell, note: ShellNote) {
         ShellNote::Killed => companion_stop(shell),
         ShellNote::Modifiers(_) => option_variants(),
         ShellNote::Switcher(_) => switcher_panel(),
-        ShellNote::Overview(note) => crate::spaces_bar::apply(&shell.links.spaces_bar, &note),
+        bar @ (ShellNote::Overview(_)
+        | ShellNote::OverviewOutput { .. }
+        | ShellNote::DropTarget { .. }
+        | ShellNote::SpacePicture { .. }) => {
+            crate::spaces_bar::apply_note(&shell.links.spaces_bar, &bar);
+        }
         ShellNote::Reveal { .. } => edge_reveal(),
         ShellNote::MenuFlash { .. } => menu_flash(),
         ShellNote::Bell(_) => bell(),
