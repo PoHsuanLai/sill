@@ -107,6 +107,9 @@ pub fn quire_wire_of(
             WireSpaceId::new(space.as_str()),
             Size::new(*w, *h),
         ))),
+        DesktopCommand::CaptureOutput { output } => one(Wire::CaptureOutput(CaptureRequest::new(
+            OutputName::new(output.as_str()),
+        ))),
         DesktopCommand::SetSpaceTargets { output, targets } => one(Wire::SetSpaceTargets {
             output: OutputName::new(output.as_str()),
             targets: targets

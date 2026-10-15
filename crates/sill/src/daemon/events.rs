@@ -67,8 +67,17 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
         HostEvent::App(ShellMsg::Note(note)) => super::compositor::apply(shell, note),
         HostEvent::App(ShellMsg::DockRects(rects)) => shell.seat.set_rects(rects),
         HostEvent::App(ShellMsg::Command(command)) => {
-            // Without a running arm (a session without our compositor) there is nowhere to go.
-            let _carried = shell.seat.command(command);
+            // Without a running arm (a session without our compositor) there is nowhere to go;
+            // a request for a picture is then answered as failed, so its question is not left
+            // waiting.
+            let asked = command.clone();
+            if !shell.seat.command(command) {
+                crate::eyedropper::refuse(
+                    &shell.links.eyedropper,
+                    &shell.services.capture.control,
+                    &asked,
+                );
+            }
         }
         HostEvent::App(ShellMsg::Desktop(view)) => {
             // The windows the screen-sharing picker may offer, by the identifiers casement gave.

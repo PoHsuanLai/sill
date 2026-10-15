@@ -1237,22 +1237,33 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
   an 8-bit pixel over 255). One question at a time of either kind: a second call while a colour or a
   sources question is open is `LimitsExceeded`; the caller leaving the bus clears it
   (`CaptureEvent::CallerGone`).
-- **No eyedropper is drawn yet, so every call is answered with an empty array at once.** The state
-  says so (`CapturePicker::eyedropper` is `Absent` until a surface sends
-  `CaptureCommand::Eyedropper(Present)`); nothing is asked of the person and nothing opens. What is
-  missing for the real thing, exactly:
-  1. *A picture of the whole output.* `desktop-client` can already capture an output as shown
-     (`CaptureRequest::new(output)` through `DesktopCommand::CaptureOutput`, ext-image-copy-capture
-     with shm), but sill only asks for a Space picture. It needs a `DesktopCommand::CaptureOutput`
-     (`sill-model`), its arm in `desktop_wl/quire/command.rs`, `QuireArm::pending` to hold an output
-     capture beside a Space capture, and a `ShellNote::OutputPicture` that carries the frame's RGBA
-     bytes (`picture_of` PNG-encodes at the Space thumbnail size, so it cannot be reused as it is).
-  2. *The surface.* An Overlay layer surface per output, keyboard `Exclusive`, shown over the frozen
-     picture (taken before the surface maps, so the pointer and the surface are not in it): a
-     magnifier loupe following the pointer (about 9 by 9 source pixels, a grid, the centre pixel
-     boxed, its hex value under it), a click sends `CaptureCommand::ColorAnswer(id, Picked(Rgb8))`
-     from the pixel under the pointer (logical position times the output's scale), Escape sends
-     `Cancel`. It sends `Eyedropper(Present)` when it starts.
-  3. *Gamut.* The pixel is the output's sRGB as casement composes it; on a wide-gamut panel with the
-     colour pass the value read is the sRGB picture, which is what an app asked for.
-
+- **The eyedropper.** While a colour is asked for, the daemon (`sill::eyedropper`) asks the compositor
+  for a still picture of every screen (`DesktopCommand::CaptureOutput`, `CaptureRequest::new(output)`:
+  the output as shown, the pointer hidden, in device pixels), holds the pictures on
+  `EyedropperLink` (`sill_model::capture_pick::eyedrop_step`), and each output's `ColorSampler`
+  surface maps over its own picture once it has come, so neither the pointer nor the surface is in
+  it. A round magnifier follows the pointer (11 device pixels across, each drawn 12 logical pixels
+  wide, the pixel under the pointer ringed in the middle); a click sends
+  `CaptureCommand::ColorAnswer(id, Picked(Rgb8))` for the pixel under the pointer, Escape or the
+  right button sends `Cancel`, and the surface hides at the answer. No readout of the value, as
+  `NSColorSampler` shows none. The surfaces count themselves on the link; the daemon sends
+  `Eyedropper(Present)` while one exists. A question whose every picture failed (no compositor of
+  ours, no capture protocol, a frame that does not come upright) is cancelled at once, an empty
+  array to the app, never a wait.
+- **Departures from the Mac.** The picture is frozen: the Mac samples the live screen, so a video
+  playing under the loupe keeps playing there and here it stands still (the answer is always the
+  pixel the person saw). The loupe's size is a sill constant (`SIDE`, `CELL`), not a quire token:
+  quire has no loupe. The pointer cursor is hidden with `cursor: none`; if shell-host does not map
+  that to a hidden cursor the arrow is drawn over the middle cell.
+- **Pixel under the pointer.** `pixel_under` scales each axis by (picture size / surface size), so a
+  fractional scale and the rounding of the logical size are exact; it floors. The picture is read
+  as the compositor composed it (sRGB), which is what an app asked for on a wide-gamut panel.
+- **Known limits, only a live casement run proves.** (1) casement's capture is "the last presented
+  frame", and its tty backend has no read-back yet (casement FINDINGS p1-c1: a frame request there
+  fails with `unknown`): on real hardware every picture fails until that lands, and the picker then
+  cancels. (2) A frame whose transform is not `Normal` is refused (`shot_of`), not turned, so a
+  rotated monitor has no eyedropper. (3) Two data-URI copies of one multi-megabyte PNG are decoded
+  by Blitz per question (the still and the magnifier); the first frame after the picture arrives
+  may take a moment on a 4K output. (4) The magnifier's round clip relies on Blitz clipping
+  `overflow: hidden` to the rounded border box, and the enlarged pixels on `image-rendering:
+  pixelated`; if either fails the magnifier is square or soft.

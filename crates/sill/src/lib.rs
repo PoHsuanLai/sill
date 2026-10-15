@@ -6,6 +6,7 @@ pub mod companion;
 pub mod corners;
 pub mod daemon;
 pub mod edit_widgets;
+pub mod eyedropper;
 pub mod idle_dim;
 pub mod intents;
 pub mod ipc;

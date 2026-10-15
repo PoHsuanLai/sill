@@ -3,6 +3,7 @@
 
 mod accounts_sheet;
 mod confirm_sheet;
+mod eyedropper;
 mod hot_corners;
 mod idle_dim;
 mod lock;

@@ -12,8 +12,9 @@ use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
-    PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper, WindowMenu,
+    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, HotCorners, IdleDim, Lock, Osd,
+    PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
+    WindowMenu,
 };
 use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
@@ -66,6 +67,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<AccountsSheet>(ctx, outputs, spawn, &links.banners);
     // The screen-sharing picker, on the same output, when an app asks what to share.
     spawn_surface::<CaptureSheet>(ctx, outputs, spawn, &links.banners);
+    // The colour picker's eyedropper, over a still picture of each output.
+    spawn_surface::<ColorSampler>(ctx, outputs, spawn, &links.eyedropper);
     spawn_surface::<Switcher>(ctx, outputs, spawn, &links.switcher);
     // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
     spawn_surface::<Banners>(ctx, outputs, spawn, &links.banners);

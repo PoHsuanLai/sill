@@ -6,6 +6,7 @@
 mod banners;
 mod control_center;
 mod edit_widgets;
+mod eyedropper;
 mod focus;
 mod hot_corners;
 mod launcher;
@@ -25,6 +26,7 @@ pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use edit_widgets::{
     DesktopView, EditShown, EditWidgetsLink, WidgetsChange, WidgetsWrite, WidgetsWriter, Written,
 };
+pub use eyedropper::{EyedropFeed, EyedropperLink};
 pub use focus::{Delivery, FocusLink};
 pub use hot_corners::{Corner, CornerHit, CornerLink};
 pub use launcher::{CLIPBOARD_TITLE, LauncherLink, Opening, PanelHit, ShownRows, ShownRowsSection};
@@ -68,4 +70,7 @@ pub struct Links {
     /// Mission Control's Spaces bar: the daemon follows the overview and the desktop onto it,
     /// the bar surfaces draw it, and a click goes back to the daemon.
     pub spaces_bar: SpacesBarLink,
+    /// The colour picker's eyedropper: the daemon holds the still pictures of the screens for
+    /// the colour being asked for, the eyedropper surfaces draw them.
+    pub eyedropper: EyedropperLink,
 }

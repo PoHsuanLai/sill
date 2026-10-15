@@ -90,6 +90,9 @@ fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
             space: space(),
             size: (160, 100),
         },
+        DesktopCommand::CaptureOutput {
+            output: "DP-1".to_owned(),
+        },
         DesktopCommand::SetSpaceTargets {
             output: "DP-1".to_owned(),
             targets: vec![(space(), (0, 0, 160, 100))],
