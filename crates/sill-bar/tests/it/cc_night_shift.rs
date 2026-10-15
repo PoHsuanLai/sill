@@ -109,21 +109,3 @@ fn a_press_on_the_warmth_slider_sets_the_warmth_between_less_and_more_warm() {
         warmth.kelvin()
     );
 }
-
-#[test]
-fn where_the_displays_warm_themselves_the_switch_is_off_and_asks_for_nothing() {
-    let mut running = center(|feeds| {
-        feeds
-            .night_shift
-            .send_replace(ready(Schedule::Off, None, Backend::Hardware));
-    });
-    assert!(
-        running
-            .harness
-            .html()
-            .contains("Warmed through the display"),
-    );
-    press(&mut running.harness, SWITCH);
-    running.harness.advance(ms(100));
-    assert_eq!(running.feeds.night_shift_commands.try_recv().ok(), None);
-}

@@ -27,14 +27,14 @@ use shell_host::OutputInfo;
 use sill_launcher::AppId;
 use sill_model::desktop::{ForceQuitRow, Standing};
 use sill_ui_kit::app_icons::{LogicalPx, TileIcons, use_tile_icons};
-use sill_ui_kit::links::ForceQuitLink;
+use sill_ui_kit::links::{ForceQuitLink, ForceQuitOpening};
 use sill_ui_kit::root::{ClickAway, SurfaceRoot};
+use sill_ui_kit::sheet_stage::{SheetStage, settle};
 
 use super::FORCE_QUIT_CSS;
 use super::io::{use_rows, use_stage};
 use super::layer::PANEL_ID;
 use super::model::{Chosen, Confirming};
-use super::stage::{Stage, StageIn, advance as advance_stage};
 use super::step::{In, Out, advance};
 
 /// The icon side of a row, in points.
@@ -47,7 +47,7 @@ const CANCEL_ID: &str = "force-quit-cancel";
 
 pub(super) fn force_quit(output: OutputInfo) -> Element {
     let stage = use_stage(&output);
-    let drawn = stage().drawn();
+    let drawn = stage().drawn().map(|(opening, shown)| (*opening, shown));
     rsx! {
         SurfaceRoot {
             output: output.clone(),
@@ -63,7 +63,11 @@ pub(super) fn force_quit(output: OutputInfo) -> Element {
 
 /// One opening's sheet and what the person has selected on it.
 #[component]
-fn PanelCard(output: OutputInfo, shown: Shown, stage: Signal<Stage>) -> Element {
+fn PanelCard(
+    output: OutputInfo,
+    shown: Shown,
+    stage: Signal<SheetStage<ForceQuitOpening>>,
+) -> Element {
     let link = use_context::<ForceQuitLink>();
     let rows = use_rows();
     let icons = use_tile_icons(&output, LogicalPx(ROW_ICON_PX));
@@ -238,12 +242,5 @@ fn title_of(row: &ForceQuitRow, icons: &TileIcons) -> String {
     match row.standing {
         Standing::Responding => name,
         Standing::NotResponding => format!("{name} (not responding)"),
-    }
-}
-
-fn settle(mut stage: Signal<Stage>) {
-    let next = advance_stage(*stage.peek(), StageIn::Settled);
-    if *stage.peek() != next {
-        stage.set(next);
     }
 }

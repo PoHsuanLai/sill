@@ -1,14 +1,12 @@
 //! What Night Shift looks like to the person, and the warmth slider's scale. Pure.
 
-use super::{Backend, MinuteOfDay, NightShift, Reach, Schedule, Warmth};
+use super::{MinuteOfDay, NightShift, Reach, Schedule, Warmth};
 
 /// What the Night Shift switch says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Shown {
     /// casement's settings could not be reached: the switch does nothing.
     Unavailable,
-    /// The displays are warmed through their own settings, not by Night Shift.
-    ByDisplay,
     Off,
     /// Turned on by hand, until the night ends.
     OnUntilTomorrow,
@@ -23,19 +21,19 @@ pub enum Shown {
 
 /// The switch's state for `night_shift`.
 pub fn shown(night_shift: &NightShift) -> Shown {
-    match (night_shift.reach, night_shift.backend) {
-        (Reach::Unavailable, _) => Shown::Unavailable,
-        (Reach::Ready, Backend::Hardware) => Shown::ByDisplay,
-        (Reach::Ready, Backend::Software) => match (night_shift.manual, night_shift.light.schedule)
-        {
-            (Some(_), _) => Shown::OnUntilTomorrow,
-            (None, Schedule::Always) => Shown::On,
-            (None, Schedule::Scheduled) => Shown::Scheduled {
-                from: night_shift.light.from,
-                to: night_shift.light.to,
-            },
-            (None, Schedule::Off) => Shown::Off,
+    match (
+        night_shift.reach,
+        night_shift.manual,
+        night_shift.light.schedule,
+    ) {
+        (Reach::Unavailable, _, _) => Shown::Unavailable,
+        (Reach::Ready, Some(_), _) => Shown::OnUntilTomorrow,
+        (Reach::Ready, None, Schedule::Always) => Shown::On,
+        (Reach::Ready, None, Schedule::Scheduled) => Shown::Scheduled {
+            from: night_shift.light.from,
+            to: night_shift.light.to,
         },
+        (Reach::Ready, None, Schedule::Off) => Shown::Off,
     }
 }
 
