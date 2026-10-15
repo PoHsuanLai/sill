@@ -235,6 +235,8 @@ pub enum CompanionEffect {
     Summon(SummonOut),
     /// Warm the planner model: a prompt is about to be typed.
     Prepare,
+    /// The person asked and no model is set: open Settings' model picker.
+    PickModel,
 }
 
 impl SummonOut {

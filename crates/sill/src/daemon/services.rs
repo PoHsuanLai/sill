@@ -69,12 +69,24 @@ pub(crate) fn start(
     // The connection the intents service claims `org.quire.Shell` on, which the companion speaks
     // on as the launcher.
     let (seat_publisher, seat_view) = seat();
+    let apps = spawn::<AppsService>(rt, env, ());
+    // Passive (never asks for the bus name) until the daemon sends its first policy.
+    let notifications = spawn::<NotificationsService>(rt, env, ());
+    let launch = spawn::<LaunchService>(
+        rt,
+        env,
+        LaunchLinks {
+            apps: apps.state.clone(),
+            notifications: notifications.control.clone(),
+        },
+    );
     let companion = spawn::<CompanionService>(
         rt,
         env,
         CompanionLinks {
             seat: seat_view.clone(),
             summons,
+            launch: launch.control.clone(),
         },
     );
     let voice = spawn::<VoiceService>(
@@ -98,18 +110,7 @@ pub(crate) fn start(
         },
     );
     let battery = spawn::<BatteryService>(rt, env, ());
-    let apps = spawn::<AppsService>(rt, env, ());
     let windows = spawn::<WindowsService>(rt, env, ());
-    // Passive (never asks for the bus name) until the daemon sends its first policy.
-    let notifications = spawn::<NotificationsService>(rt, env, ());
-    let launch = spawn::<LaunchService>(
-        rt,
-        env,
-        LaunchLinks {
-            apps: apps.state.clone(),
-            notifications: notifications.control.clone(),
-        },
-    );
     let clipboard = spawn::<ClipboardService>(rt, env, ());
     let results = spawn::<ResultsService>(
         rt,

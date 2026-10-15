@@ -5,7 +5,7 @@ use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, DbusActivation};
 use sill_model::launch::{
     FailureCause, LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches,
-    SETTINGS_BUS_NAME, ScopeUnit, SettingsAccount, launch_argv, scope_unit, step,
+    SETTINGS_BUS_NAME, ScopeUnit, SettingsAccount, SettingsPage, launch_argv, scope_unit, step,
 };
 use std::time::{Duration, Instant};
 
@@ -57,6 +57,7 @@ pub(crate) async fn run(
             LaunchCommand::ForceQuit(app_id) => force_quit(&tx, &app_id).await,
             LaunchCommand::Open(request) => super::open::open(&setup, request).await,
             LaunchCommand::OpenSettings(account) => open_settings(&setup.session, &account).await,
+            LaunchCommand::OpenSettingsPage(page) => open_settings_page(&setup.session, page).await,
         }
     }
 }
@@ -280,14 +281,30 @@ fn record(tx: &watch::Sender<Launches>, outcome: LaunchOutcome) {
 
 /// Settings at `account`, started by the bus when it is not running.
 async fn open_settings(session: &Bus, account: &SettingsAccount) {
+    if let Some(connection) = session_connection(session).await
+        && let Err(error) = dbus::open_settings(&connection, account).await
+    {
+        eprintln!("sill: launch: opening Settings: {error}");
+    }
+}
+
+/// Settings at `page`, started by the bus when it is not running.
+async fn open_settings_page(session: &Bus, page: SettingsPage) {
+    if let Some(connection) = session_connection(session).await
+        && let Err(error) = dbus::open_settings_page(&connection, page).await
+    {
+        eprintln!("sill: launch: opening Settings: {error}");
+    }
+}
+
+/// The session bus, or none when there is not one (logged when it could not be reached).
+async fn session_connection(session: &Bus) -> Option<zbus::Connection> {
     match session.connect().await {
-        Ok(Some(connection)) => {
-            if let Err(error) = dbus::open_settings(&connection, account).await {
-                eprintln!("sill: launch: opening Settings: {error}");
-            }
+        Ok(connection) => connection,
+        Err(error) => {
+            eprintln!("sill: launch: opening Settings: {error}");
+            None
         }
-        Ok(None) => {}
-        Err(error) => eprintln!("sill: launch: opening Settings: {error}"),
     }
 }
 

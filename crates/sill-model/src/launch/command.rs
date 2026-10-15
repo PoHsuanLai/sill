@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, DesktopAction, OpenTarget};
 
-use super::{FailureCause, LaunchedScope, ScopeUnit};
+use super::{FailureCause, LaunchedScope, ScopeUnit, SettingsPage};
 
 /// What became of a launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,6 +57,8 @@ pub enum LaunchCommand {
     Open(OpenRequest),
     /// Open the quire Settings app at an account, by bus activation of `org.quire.Settings`.
     OpenSettings(SettingsAccount),
+    /// Open the quire Settings app at a page, by bus activation of `org.quire.Settings`.
+    OpenSettingsPage(SettingsPage),
 }
 
 /// The bus name Settings runs under: the only name porter trusts for the Settings role, so it is

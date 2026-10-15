@@ -93,7 +93,7 @@ pub fn answer_view(answer: &AnswerWire, prompt: &str, cx: &ViewCx<'_>) -> Answer
             footer,
         }),
         AnswerBody::Form(form) => AnswerView::Form(form_view(form, prompt, "Continue", footer)),
-        AnswerBody::Refused(refusal) => AnswerView::Refused(refused(refusal, footer)),
+        AnswerBody::Refused(refusal) => refused(refusal, footer),
     }
 }
 
@@ -150,7 +150,9 @@ fn needs_you_actions(phase: &AnswerPhase) -> Vec<CardAction> {
     }
 }
 
-fn refused(refusal: &RefusalWire, footer: CardFooter) -> RefusedAnswer {
+/// The card of a refusal. A turn that met no model has no failure to show: the shell opens the
+/// model picker, and the card is the footer alone with nothing in its body.
+fn refused(refusal: &RefusalWire, footer: CardFooter) -> AnswerView {
     let (why, actions) = match refusal {
         RefusalWire::NeedsCloud(class) => (
             RefusedView::NeedsCloud {
@@ -179,12 +181,20 @@ fn refused(refusal: &RefusalWire, footer: CardFooter) -> RefusedAnswer {
         ),
         RefusalWire::OverBudget(_) => (RefusedView::OverBudget, Vec::new()),
         RefusalWire::Failed(why) => (RefusedView::Failed { why: why.clone() }, Vec::new()),
+        RefusalWire::NoModel => {
+            return AnswerView::Text(TextAnswer {
+                body: Vec::new(),
+                streaming: Streaming::Complete,
+                actions: Vec::new(),
+                footer,
+            });
+        }
     };
-    RefusedAnswer {
+    AnswerView::Refused(RefusedAnswer {
         why,
         actions,
         footer,
-    }
+    })
 }
 
 /// `view` without its card buttons: where the buttons are drawn elsewhere (the launcher's pane

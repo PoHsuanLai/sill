@@ -1,6 +1,8 @@
 use sill_launcher::AppId;
 
-use super::{FailureCause, LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
+use ds_core::word::Word;
+
+use super::{FailureCause, LaunchOutcome, LaunchedScope, Launches, ScopeUnit, SettingsPage, step};
 
 fn scope(app: &str, n: u32) -> LaunchedScope {
     LaunchedScope {
@@ -60,4 +62,17 @@ fn scopes_come_and_go() {
     for (name, before, outcome, want) in cases {
         assert_eq!(step(before, outcome), want, "{name}");
     }
+}
+
+#[test]
+fn settings_pages_are_opened_by_the_slugs_settings_serves() {
+    const CASES: &[(SettingsPage, &str)] = &[
+        (SettingsPage::AssistantModel, "assistant-model"),
+        (SettingsPage::AssistantModelSetup, "assistant-model-setup"),
+    ];
+    for (page, slug) in CASES {
+        assert_eq!(page.slug(), *slug, "{page:?}");
+        assert_eq!(SettingsPage::parse(slug), Some(*page), "{slug}");
+    }
+    assert_eq!(SettingsPage::ALL.len(), CASES.len());
 }

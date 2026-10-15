@@ -8,7 +8,7 @@ use docket_core::{
     TimeRange, UndoId, Value,
 };
 use ds::components::companion::answer::footer::ServedPlaceKind;
-use ds::components::companion::answer::model::AnswerView;
+use ds::components::companion::answer::model::{AnswerView, Streaming};
 use ds::components::companion::form::model::{FieldNeed, FormInput, FormValue};
 use ds::components::companion::plan::model::{PlanFinish, PlanPhase, PlanStepState, StopWhy};
 use ds_core::vocab::EffectMark;
@@ -497,4 +497,19 @@ fn a_refusal_that_needs_the_cloud_offers_allow_once() {
     };
     assert_eq!(refused.actions.len(), 1);
     assert_eq!(refused.actions[0].label, "Allow Once…");
+}
+
+#[test]
+fn a_refusal_for_want_of_a_model_shows_no_failure() {
+    let zone = TimeZone::UTC;
+    let cx = cx(&zone, &none);
+    let body = AnswerBody::Refused(RefusalWire::NoModel);
+    let AnswerView::Text(quiet) = answer_view(&answer(AnswerPhase::Failed, body), "ask", &cx)
+    else {
+        panic!("a card with no failure on it");
+    };
+    assert_eq!(
+        (quiet.body.len(), quiet.actions.len(), quiet.streaming),
+        (0, 0, Streaming::Complete)
+    );
 }

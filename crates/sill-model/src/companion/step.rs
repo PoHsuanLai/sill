@@ -13,6 +13,7 @@ use sill_launcher::Generation;
 use super::card::{card_call, handle_fallback, settled};
 use super::command::{CompanionEffect, CompanionEvent, CompanionParams};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
+use super::model_picker::{Picker, opens, picker_of, touched};
 use super::summon::{SummonCx, SummonIn, SummonOut};
 use super::tap::{TapIn, TapOut};
 
@@ -48,7 +49,17 @@ pub fn step(
         }
         CompanionEvent::LauncherClosed => summoned(state, SummonIn::LauncherClosed, at, params),
         CompanionEvent::Dismissed => summoned(state, SummonIn::Dismiss, at, params),
-        other => (bookkeeping(state, other), Vec::new()),
+        other => {
+            let task = touched(&other).cloned();
+            let before = task
+                .as_ref()
+                .map_or(Picker::Unneeded, |task| picker_of(&state, task));
+            let state = bookkeeping(state, other);
+            let after = task
+                .as_ref()
+                .map_or(Picker::Unneeded, |task| picker_of(&state, task));
+            (state, opens(before, after))
+        }
     }
 }
 

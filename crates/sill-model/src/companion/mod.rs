@@ -14,6 +14,9 @@ mod emphasis;
 #[cfg(test)]
 mod memory_line_tests;
 mod model;
+mod model_picker;
+#[cfg(test)]
+mod model_picker_tests;
 #[cfg(test)]
 mod openers_tests;
 mod presence;

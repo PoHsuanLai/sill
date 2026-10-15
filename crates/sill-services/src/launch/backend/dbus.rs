@@ -3,8 +3,9 @@
 
 use std::collections::HashMap;
 
+use ds_core::word::Word;
 use sill_model::apps::App;
-use sill_model::launch::{LaunchRequest, SETTINGS_BUS_NAME, SettingsAccount};
+use sill_model::launch::{LaunchRequest, SETTINGS_BUS_NAME, SettingsAccount, SettingsPage};
 use zbus::Connection;
 use zbus::zvariant::Value;
 
@@ -38,6 +39,17 @@ pub async fn activate(
 /// `org.freedesktop.Application.ActivateAction("open-account", [path])` on `org.quire.Settings`:
 /// the bus starts it as its own unit when it is not running, and Settings opens at the account.
 pub async fn open_settings(connection: &Connection, account: &SettingsAccount) -> zbus::Result<()> {
+    settings_action(connection, "open-account", &account.0).await
+}
+
+/// `org.freedesktop.Application.ActivateAction("open-page", [slug])` on `org.quire.Settings`:
+/// Settings opens at the page the slug names.
+pub async fn open_settings_page(connection: &Connection, page: SettingsPage) -> zbus::Result<()> {
+    settings_action(connection, "open-page", page.slug()).await
+}
+
+/// One action of Settings with its one string parameter.
+async fn settings_action(connection: &Connection, action: &str, target: &str) -> zbus::Result<()> {
     let platform_data: HashMap<&str, Value<'_>> = HashMap::new();
     connection
         .call_method(
@@ -45,11 +57,7 @@ pub async fn open_settings(connection: &Connection, account: &SettingsAccount) -
             object_path(SETTINGS_BUS_NAME).as_str(),
             Some("org.freedesktop.Application"),
             "ActivateAction",
-            &(
-                "open-account",
-                vec![Value::from(account.0.as_str())],
-                platform_data,
-            ),
+            &(action, vec![Value::from(target)], platform_data),
         )
         .await?;
     Ok(())

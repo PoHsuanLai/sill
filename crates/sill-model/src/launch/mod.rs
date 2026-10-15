@@ -4,6 +4,7 @@ mod command;
 mod failure;
 mod model;
 mod plan;
+mod settings_page;
 mod step;
 #[cfg(test)]
 mod tests;
@@ -14,4 +15,5 @@ pub use command::{
 pub use failure::{FailureCause, LaunchNotice, failure_text};
 pub use model::{LaunchedScope, Launches, ScopeUnit};
 pub use plan::{launch_argv, scope_unit};
+pub use settings_page::SettingsPage;
 pub use step::step;

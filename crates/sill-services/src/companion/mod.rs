@@ -17,20 +17,24 @@ mod backend;
 use tokio::sync::mpsc;
 
 use sill_model::companion::{Companion, CompanionCommand, SummonOut};
+use sill_model::launch::LaunchCommand;
 
+use crate::control::Control;
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::seat::SeatView;
 use crate::service::{Service, ServiceIo};
 
-/// What the service needs from the daemon: the seat to speak on, and where a summon's launcher
-/// effects go.
+/// What the service needs from the daemon: the seat to speak on, where a summon's launcher
+/// effects go, and the launch service that opens Settings' model picker.
 #[derive(Debug)]
 pub struct CompanionLinks {
     /// The shell's connection at intentd.
     pub seat: SeatView,
     /// The launcher effects of a summon (`OpenLauncher`, `SwitchLauncher`, `CloseLauncher`).
     pub summons: mpsc::UnboundedSender<SummonOut>,
+    /// Opens Settings at the model picker when a turn meets no model.
+    pub launch: Control<LaunchCommand>,
 }
 
 /// The companion as a [`Service`].

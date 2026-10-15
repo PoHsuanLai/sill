@@ -24,7 +24,9 @@ use sill_model::companion::{
     Companion, CompanionCommand, CompanionLink, CompanionParams, FocusInput, LauncherFacts,
     SummonOut, SummonParams, TapParams,
 };
+use sill_model::launch::LaunchCommand;
 use sill_model::units::Ms;
+use sill_services::control::Control;
 use sill_services::env::{BusRoute, Buses, Env};
 use sill_services::seat::{SeatPublisher, seat};
 use sill_services::service::{Handle, spawn};
@@ -101,6 +103,8 @@ pub struct Desk {
     pub bus: PrivateBus,
     pub companion: Handle<CompanionService>,
     pub summons: mpsc::UnboundedReceiver<SummonOut>,
+    /// What the service asked the launch service to do.
+    pub launched: mpsc::UnboundedReceiver<LaunchCommand>,
     pub seat: SeatPublisher,
     pub shell: Connection,
     pub log: Log,
@@ -122,12 +126,14 @@ pub async fn desk() -> Option<Desk> {
     };
     let (seat_publisher, seat_view) = seat();
     let (summons_tx, summons) = mpsc::unbounded_channel();
+    let (launch, launched) = Control::channel();
     let companion = spawn::<CompanionService>(
         &tokio::runtime::Handle::current(),
         &env,
         CompanionLinks {
             seat: seat_view,
             summons: summons_tx,
+            launch,
         },
     );
     let shell = connect(&bus.address).await;
@@ -135,6 +141,7 @@ pub async fn desk() -> Option<Desk> {
         bus,
         companion,
         summons,
+        launched,
         seat: seat_publisher,
         shell,
         log: Log::default(),
@@ -187,6 +194,14 @@ impl Desk {
             .control
             .send(command)
             .unwrap_or_else(|e| panic!("{e}"));
+    }
+
+    /// The next thing the service asked the launch service to do.
+    pub async fn next_launched(&mut self) -> LaunchCommand {
+        tokio::time::timeout(GIVE_UP, self.launched.recv())
+            .await
+            .unwrap_or_else(|_| panic!("the service asked the launch service for nothing"))
+            .unwrap_or_else(|| panic!("the service stopped"))
     }
 
     /// The next effect the service handed the daemon.

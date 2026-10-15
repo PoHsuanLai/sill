@@ -21,6 +21,7 @@ use sill_model::companion::{
     CompanionParams, SummonOut, card_call, going_runs, promote_card, step, unresolved_handles,
     wake,
 };
+use sill_model::launch::{LaunchCommand, SettingsPage};
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
@@ -31,6 +32,7 @@ use super::probe::{self, Arrival};
 use super::text::text;
 use super::{answer, cua, intents, memory, tell};
 use crate::companion::{CompanionLinks, CompanionService};
+use crate::control::Control;
 use crate::env::{Env, WallClock};
 use crate::owner;
 use crate::seat::SeatView;
@@ -66,7 +68,11 @@ pub(crate) async fn run(reach: Reach, links: CompanionLinks, io: ServiceIo<Compa
     let (inner_tx, mut inner) = mpsc::unbounded_channel();
     let (events_tx, mut events) = mpsc::unbounded_channel();
     let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
-    let CompanionLinks { seat, summons } = links;
+    let CompanionLinks {
+        seat,
+        summons,
+        launch,
+    } = links;
     tokio::spawn(probe::run(seat.clone(), arrivals, events_tx.clone()));
     let mut seat = Some(seat);
     let mut live = Live {
@@ -77,6 +83,7 @@ pub(crate) async fn run(reach: Reach, links: CompanionLinks, io: ServiceIo<Compa
         clock: reach.clock,
         connection: None,
         summons,
+        launch,
         inner: inner_tx,
         events: events_tx,
         arrivals: arrivals_tx,
@@ -130,6 +137,7 @@ struct Live {
     clock: Arc<dyn WallClock>,
     connection: Option<Connection>,
     summons: mpsc::UnboundedSender<SummonOut>,
+    launch: Control<LaunchCommand>,
     inner: mpsc::UnboundedSender<Inner>,
     events: mpsc::UnboundedSender<CompanionEvent>,
     arrivals: mpsc::UnboundedSender<Arrival>,
@@ -259,6 +267,12 @@ impl Live {
                 self.on_bus("warming the planner", |connection| async move {
                     answer::prepare(&connection).await
                 });
+            }
+            CompanionEffect::PickModel => {
+                let page = LaunchCommand::OpenSettingsPage(SettingsPage::AssistantModel);
+                if let Err(error) = self.launch.send(page) {
+                    eprintln!("sill: companion: opening the model picker: {error}");
+                }
             }
             CompanionEffect::Summon(SummonOut::AskApp { app, serial }) => {
                 let events = self.events.clone();
