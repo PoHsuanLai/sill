@@ -1290,3 +1290,29 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
   whether casement re-reads `settings.toml` when it changes (the lane that drives the night light
   watches the file).
 
+## wave-6/force-quit: Force Quit Applications
+
+- **The panel.** `sill force-quit {open,close,toggle}` opens a centred `Sheet` on the output of the
+  active window: the apps the compositor lists (`quire_desktop_app_v1`, in `DesktopView`; those
+  with windows, most recently used first), each with its icon, "(not responding)" after the name
+  of one whose life is `not_responding` or any of whose windows does not answer pings, a hung app
+  preselected, and a Force Quit button that asks first ("Do you want to force quit "App"? You
+  will lose any unsaved changes.", Cancel the default, Force Quit destructive). Confirming sends
+  `DesktopCommand::ForceQuitApp` (`quire_desktop_app_v1.force_quit`). The panel stays open for the
+  next app, as on the Mac.
+- **Departures from macOS.** The shell is not listed, so there is no Relaunch (the Mac lists
+  Finder with it). There is no Apple menu in the bar (its power items are the power menu), so the
+  menu item "Force Quit..." has nowhere to live. The Mac sorts the list by when the apps were
+  opened, not by use; this one is by recency (`AppView::mru`), which keeps the app that just hung
+  near the top. Windowless apps (background helpers) and launching apps are not listed.
+- **The key.** chordkit has the action (`StandardAction::ForceQuit`, Option+Command+Escape on the
+  Mac convention; keycap writes it as Alt+Super+Esc). casement binds the action to
+  `DesktopCommand::ForceQuitPanel`, which does nothing and swallows the chord
+  (`casement/crates/casement/src/keymap/shell.rs`, `ROWS`) and the shell protocol has no event for
+  it. **Ask of casement:** run `sill force-quit toggle` for that row (`Does::Sill(&["force-quit",
+  "toggle"])`), as it does for the launcher and the screenshots; nothing else is needed on sill's
+  side. Until then the chord does nothing and the panel is opened from a terminal.
+- **Consolidation candidate.** `force_quit/stage.rs` is a third copy of the sheet-with-exit stage
+  (`capture_sheet/stage.rs`, `confirm_sheet/stage.rs`); a generic one in `sill-ui-kit::surface`
+  would replace all three.
+
