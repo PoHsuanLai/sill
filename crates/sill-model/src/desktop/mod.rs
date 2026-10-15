@@ -28,8 +28,8 @@ mod tests;
 pub use backend::{DesktopBackend, GlobalOffer};
 pub use bar_drops::BarDrops;
 pub use bar_layout::{
-    BAR_EXPANDED_PX, BarLayout, BarLayouts, BarTile, THUMB_H, THUMB_W, target_commands, thumb_size,
-    tiles_of,
+    BAR_EXPANDED_PX, BarLayout, BarLayouts, BarTile, THUMB_H, THUMB_W, add_of, target_commands,
+    thumb_size, tiles_of,
 };
 pub use bar_outbox::{Outbox, outgoing};
 pub use bar_outputs::BarOutputs;

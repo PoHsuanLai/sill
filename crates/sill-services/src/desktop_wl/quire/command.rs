@@ -116,6 +116,10 @@ pub fn quire_wire_of(
                 })
                 .collect(),
         }),
+        DesktopCommand::SetNewSpaceTarget { output, rect } => one(Wire::SetNewSpaceTarget {
+            output: OutputName::new(output.as_str()),
+            rect: rect.map(|(x, y, w, h)| Rect::new(x, y, w, h)),
+        }),
     }
 }
 

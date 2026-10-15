@@ -4,11 +4,11 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use casement_protocols::vocab::{Shown, WindowStateKind};
+use casement_protocols::vocab::WindowStateKind;
 use porter_core::SpaceId;
 
 use super::bar_layout::BarLayouts;
-use super::{DesktopView, SpacePlaceView};
+use super::{DesktopView, SpacePlaceView, bar_space_ids};
 
 /// What a request for a picture of a Space came to.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,7 +67,7 @@ impl BarPictures {
 pub struct ThumbRequest {
     /// The output.
     pub output: String,
-    /// The Space it shows now.
+    /// The Space.
     pub space: SpaceId,
     /// The picture's size in device pixels.
     pub size: (u32, u32),
@@ -81,28 +81,17 @@ struct WindowMark {
     geometry: Option<(i32, i32, u32, u32)>,
 }
 
-/// What was asked for on one output and what the Space looked like then.
+/// What was asked for of one Space on one output and what the Space looked like then.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Ask {
-    space: SpaceId,
     looked: Vec<WindowMark>,
     /// How many answers the Space had when asked: a request is out until there are more.
     seq: u64,
 }
 
-/// The requests in flight or answered, by output.
+/// The requests in flight or answered, by output and Space.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct ThumbAsks(BTreeMap<String, Ask>);
-
-/// The Space `output` shows now.
-fn shown_on(view: &DesktopView, output: &str) -> Option<SpaceId> {
-    view.spaces
-        .iter()
-        .find(|space| {
-            space.shown == Shown::Shown && (space.output.is_empty() || space.output == output)
-        })
-        .map(|space| space.id.clone())
-}
+pub struct ThumbAsks(BTreeMap<(String, SpaceId), Ask>);
 
 /// The marks of the windows `space` shows.
 fn looks_of(view: &DesktopView, space: &SpaceId) -> Vec<WindowMark> {
@@ -121,11 +110,12 @@ fn looks_of(view: &DesktopView, space: &SpaceId) -> Vec<WindowMark> {
         .collect()
 }
 
-/// The pictures to ask for now and the asks that follow. Each laid-out bar asks for the Space its
-/// output shows (the compositor pictures only that one), once when the bar comes up, and again
-/// only after the last answer came and the Space changed or looks different: a held request is the
-/// compositor's damage gate, and asking in a loop for a picture that did not change would spin. A
-/// bar that went away forgets its ask, so the next opening asks again.
+/// The pictures to ask for now and the asks that follow. Each laid-out bar asks for every Space
+/// of its output, shown or not (the compositor keeps a picture session per Space across switches),
+/// once when the bar comes up, and again only after the last answer came and the Space's windows
+/// look different: a held request is the compositor's damage gate, and asking in a loop for a
+/// picture that did not change would spin. A bar that went away, or a Space that left it, forgets
+/// its ask, so the next opening asks again.
 pub fn thumbs_wanted(
     asks: &ThumbAsks,
     layouts: &BarLayouts,
@@ -135,33 +125,26 @@ pub fn thumbs_wanted(
     let mut next = BTreeMap::new();
     let mut requests = Vec::new();
     for (output, layout) in &layouts.0 {
-        let Some(space) = shown_on(view, output) else {
-            continue;
-        };
-        let looked = looks_of(view, &space);
-        let ask = asks.0.get(output);
-        let due = ask.is_none_or(|ask| {
-            let answered = pictures.seq_of(output, &ask.space) > ask.seq;
-            answered && (ask.space != space || ask.looked != looked)
-        });
-        match (due, ask) {
-            (false, Some(ask)) => {
-                next.insert(output.clone(), ask.clone());
-            }
-            _ => {
-                next.insert(
-                    output.clone(),
-                    Ask {
-                        seq: pictures.seq_of(output, &space),
-                        space: space.clone(),
-                        looked,
-                    },
-                );
-                requests.push(ThumbRequest {
-                    output: output.clone(),
-                    space,
-                    size: layout.thumb,
-                });
+        for space in bar_space_ids(view, Some(output)) {
+            let key = (output.clone(), space.clone());
+            let looked = looks_of(view, &space);
+            let ask = asks.0.get(&key);
+            let due = ask.is_none_or(|ask| {
+                pictures.seq_of(output, &space) > ask.seq && ask.looked != looked
+            });
+            match (due, ask) {
+                (false, Some(ask)) => {
+                    next.insert(key, ask.clone());
+                }
+                _ => {
+                    let seq = pictures.seq_of(output, &space);
+                    next.insert(key, Ask { looked, seq });
+                    requests.push(ThumbRequest {
+                        output: output.clone(),
+                        space,
+                        size: layout.thumb,
+                    });
+                }
             }
         }
     }

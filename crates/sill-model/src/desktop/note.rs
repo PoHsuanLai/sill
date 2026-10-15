@@ -87,6 +87,14 @@ pub enum ShellNote {
         /// The Space under the dragged window; `None` when over none, or the drag ended.
         space: Option<SpaceId>,
     },
+    /// The window dragged in Mission Control entered or left the plus that makes a new Space on an
+    /// output: light the plus, or put its light out.
+    DropTargetNew {
+        /// The output's name.
+        output: String,
+        /// `Shown` while the window is over the plus; `Hidden` when it left or the drag ended.
+        over: Shown,
+    },
     /// The answer to a [`super::DesktopCommand::CaptureSpace`].
     SpacePicture {
         /// The output's name.

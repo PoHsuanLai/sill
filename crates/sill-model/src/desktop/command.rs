@@ -85,13 +85,13 @@ pub enum DesktopCommand {
     /// The person moved the divider of the Split View the window (either of the pair, by its
     /// identifier) is in: the leading window now takes this many thousandths of the width.
     DivideSplit(String, u32),
-    /// Ask for a picture of the Space the output called `output` shows now, `size` device pixels
-    /// across and down; the desktop answers with [`super::ShellNote::SpacePicture`]. Asking again
-    /// later gets the picture as it is then.
+    /// Ask for a picture of a Space on the output called `output`, shown or not, `size` device
+    /// pixels across and down; the desktop answers with [`super::ShellNote::SpacePicture`]. Asking
+    /// again later gets the picture as it is then.
     CaptureSpace {
         /// The output's name.
         output: String,
-        /// The Space; the compositor pictures only the one the output shows.
+        /// The Space.
         space: SpaceId,
         /// The picture's size in device pixels.
         size: (u32, u32),
@@ -104,6 +104,15 @@ pub enum DesktopCommand {
         output: String,
         /// Each Space and its rectangle.
         targets: Vec<(SpaceId, super::target::Rect)>,
+    },
+    /// Set, or with `None` remove, the place on `output` a window dragged in Mission Control can
+    /// be dropped on to make a new Space with it, in the desktop's logical pixels. The Spaces'
+    /// places are left as they are.
+    SetNewSpaceTarget {
+        /// The output's name.
+        output: String,
+        /// The place; `None` removes it.
+        rect: Option<super::target::Rect>,
     },
 }
 

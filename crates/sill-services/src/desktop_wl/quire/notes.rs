@@ -67,6 +67,10 @@ pub fn note_of(event: &ShellEvent) -> Option<ShellNote> {
                 None => None,
             },
         },
+        ShellEvent::DropTargetNew { output, over } => ShellNote::DropTargetNew {
+            output: output.as_str().to_owned(),
+            over: *over,
+        },
         ShellEvent::Killed => ShellNote::Killed,
         // Slots are collected into the overview's layout until `OverviewDone`.
         _ => return None,

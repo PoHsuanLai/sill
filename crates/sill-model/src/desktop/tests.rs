@@ -94,6 +94,10 @@ fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
             output: "DP-1".to_owned(),
             targets: vec![(space(), (0, 0, 160, 100))],
         },
+        DesktopCommand::SetNewSpaceTarget {
+            output: "DP-1".to_owned(),
+            rect: Some((0, 0, 28, 28)),
+        },
     ];
     for command in &commands {
         assert_eq!(supports(DesktopBackend::Quire, command), Supports::Yes);

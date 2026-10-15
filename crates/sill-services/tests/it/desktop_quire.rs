@@ -401,6 +401,28 @@ fn the_shells_commands_become_quire_requests() {
                 )],
             }],
         ),
+        (
+            "set the new-Space drop target",
+            DesktopCommand::SetNewSpaceTarget {
+                output: "DP-1".to_owned(),
+                rect: Some((900, 12, 28, 28)),
+            },
+            vec![Wire::SetNewSpaceTarget {
+                output: OutputName::new("DP-1"),
+                rect: Some(Rect::new(900, 12, 28, 28)),
+            }],
+        ),
+        (
+            "remove the new-Space drop target",
+            DesktopCommand::SetNewSpaceTarget {
+                output: "DP-1".to_owned(),
+                rect: None,
+            },
+            vec![Wire::SetNewSpaceTarget {
+                output: OutputName::new("DP-1"),
+                rect: None,
+            }],
+        ),
     ];
     for (name, command, want) in cases {
         assert_eq!(sent(&mut arm, command), want, "{name}");
@@ -550,6 +572,14 @@ fn the_shell_protocols_events_become_notes_in_order() {
                 output: OutputName::new("DP-1"),
                 space: None,
             },
+            ShellEvent::DropTargetNew {
+                output: OutputName::new("DP-1"),
+                over: Shown::Shown,
+            },
+            ShellEvent::DropTargetNew {
+                output: OutputName::new("DP-1"),
+                over: Shown::Hidden,
+            },
             ShellEvent::Killed,
         ],
     );
@@ -604,6 +634,14 @@ fn the_shell_protocols_events_become_notes_in_order() {
             ShellNote::DropTarget {
                 output: "DP-1".to_owned(),
                 space: None
+            },
+            ShellNote::DropTargetNew {
+                output: "DP-1".to_owned(),
+                over: Shown::Shown
+            },
+            ShellNote::DropTargetNew {
+                output: "DP-1".to_owned(),
+                over: Shown::Hidden
             },
             ShellNote::Killed,
         ],
