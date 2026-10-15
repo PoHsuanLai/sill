@@ -50,8 +50,8 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::policy::{
     calendar::CalendarBridge, clipboard::ClipboardBridge, companion::CompanionBridge,
     displays::DisplaysBridge, follow, idle::IdleBridge, keyboard::KeyboardBridge,
-    night_shift::NightShiftBridge, notifications::NotificationsBridge, screenshots::ScreenshotsBridge, search::SearchBridge,
-    voice::VoiceBridge,
+    night_shift::NightShiftBridge, notifications::NotificationsBridge,
+    screenshots::ScreenshotsBridge, search::SearchBridge, voice::VoiceBridge,
 };
 
 /// Start every service on `rt` (the `windows` and volume threads on their own threads)
