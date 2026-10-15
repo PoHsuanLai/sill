@@ -12,3 +12,7 @@ pub use index::{
     App, AppIcon, AppIndex, AppsEvent, DbusActivation, DesktopActionEntry, Listing, Terminal, step,
 };
 pub use match_app::match_app;
+
+/// A minimal entry with `id` and `name`, for the tests of what reads an index.
+#[cfg(test)]
+pub(crate) use index::tests::app as test_app;

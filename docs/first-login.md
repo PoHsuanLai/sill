@@ -158,7 +158,6 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 - No sink list in the control centre (G352): switch audio in Settings > Sound or `wpctl set-default <id>`.
 - Mouse settings are casement's (`~/.config/casement/settings.toml`, section 1, item 8), or per device in
   Settings > Mouse (the "palmrest" devices).
-- The dock and the launcher start empty on a fresh account and nothing is seeded: pin apps with `sill dock pin <id>`.
 - No colour management, no software night light (the monitor is dimmed and warmed over DDC/CI where it supports it), no
   screen recording app, no printer applet, no weather.
 - fcitx5 starts from XDG autostart; `GTK_IM_MODULE` and `QT_IM_MODULE` are deliberately unset.

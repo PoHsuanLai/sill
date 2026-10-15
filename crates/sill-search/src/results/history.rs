@@ -32,6 +32,18 @@ impl History {
         read(&self.0.lock().unwrap_or_else(PoisonError::into_inner))
     }
 
+    /// Whether nothing has been counted.
+    pub(crate) fn untouched(&self) -> bool {
+        self.read(|frecency| frecency.entries.is_empty())
+    }
+
+    /// Start the history from `seed`, which replaces what is there; the history as it now stands.
+    pub(crate) fn start_from(&self, seed: Frecency) -> Frecency {
+        let mut guard = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        *guard = seed;
+        guard.clone()
+    }
+
     /// Count one more use of `key` at `now`; the history as it now stands.
     pub(crate) fn record(&self, key: ItemKey, now: UnixTime) -> Frecency {
         let mut guard = self.0.lock().unwrap_or_else(PoisonError::into_inner);

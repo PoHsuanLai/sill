@@ -9,9 +9,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use sill_launcher::{
     Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, SectionPlan, UnixTime,
 };
+use sill_model::apps::AppIndex;
 use sill_model::results::{
     Asked, LauncherPolicy, Results, ResultsEvent, SearchCommand, Typed, arranged, step,
 };
+use sill_model::seed::{Store, first_frecency};
 use tokio::sync::{mpsc, watch};
 
 use super::effect::{Outlets, effect};
@@ -37,6 +39,8 @@ pub(crate) struct Search {
     pending: usize,
     tx: watch::Sender<Results>,
     arrivals: mpsc::UnboundedSender<Arrival>,
+    /// The installed apps, while a fresh account's history waits to start from them.
+    pub(super) first_run: Option<watch::Receiver<AppIndex>>,
 }
 
 impl Search {
@@ -63,6 +67,7 @@ impl Search {
             pending: 0,
             tx,
             arrivals,
+            first_run: None,
         };
         (search, rx)
     }
@@ -84,7 +89,20 @@ pub(crate) async fn run(
             },
             // `search` holds a sender, so this never yields `None`.
             Some(arrival) = arrivals.recv() => search.arrive(arrival),
+            Some(installed) = installed(&mut search.first_run) => search.start_history(&installed),
         }
+    }
+}
+
+/// The installed apps once there are any, while a fresh account's history waits for them.
+async fn installed(apps: &mut Option<watch::Receiver<AppIndex>>) -> Option<AppIndex> {
+    match apps {
+        Some(apps) => apps
+            .wait_for(|index| !index.apps.is_empty())
+            .await
+            .ok()
+            .map(|index| AppIndex::clone(&index)),
+        None => std::future::pending().await,
     }
 }
 
@@ -98,6 +116,21 @@ impl Search {
             SearchCommand::Policy(policy) => {
                 self.policy.send_replace(policy);
             }
+        }
+    }
+
+    /// Start a fresh account's history from the desktop's own apps, unless something was counted
+    /// in the meantime (`sill_model::seed::first_frecency`).
+    pub(super) fn start_history(&mut self, installed: &AppIndex) {
+        self.first_run = None;
+        let store = if self.history.untouched() {
+            Store::Missing
+        } else {
+            Store::Present
+        };
+        if let Some(seed) = first_frecency(store, installed, now()) {
+            let frecency = self.history.start_from(seed);
+            self.persist.save(frecency);
         }
     }
 

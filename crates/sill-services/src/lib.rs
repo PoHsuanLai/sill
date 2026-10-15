@@ -31,6 +31,7 @@ pub mod env;
 pub mod error;
 pub mod events;
 mod file_touch;
+pub mod first_run;
 pub mod guest_asks;
 pub mod idle;
 pub mod intents;

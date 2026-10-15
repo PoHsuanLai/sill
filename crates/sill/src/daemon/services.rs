@@ -198,7 +198,7 @@ pub(crate) fn start(
                 name_of: menu_name_of,
             },
         ),
-        pins: spawn(rt, env, ()),
+        pins: spawn(rt, env, apps.state.clone()),
         wallpaper: spawn(rt, env, ()),
         session: spawn(rt, env, locker.control.clone()),
         notifications,

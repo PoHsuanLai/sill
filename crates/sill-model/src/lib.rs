@@ -36,6 +36,7 @@ pub mod polkit_agent;
 pub mod power_profile;
 pub mod results;
 pub mod screenshots;
+pub mod seed;
 pub mod session;
 pub mod sync_hold;
 pub mod tray;

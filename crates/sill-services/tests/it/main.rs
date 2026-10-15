@@ -26,6 +26,7 @@ mod keycap_systemd_bus;
 mod launch_viewer_bus;
 mod nm_bus;
 mod notifications_bus;
+mod pins_seed;
 mod polkit_bus;
 mod scan;
 mod screenshots_live;
