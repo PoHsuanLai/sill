@@ -97,6 +97,7 @@ pub fn wire_of(command: &DesktopCommand, state: &DesktopState) -> Result<Vec<Wir
         | DesktopCommand::CancelSplit
         | DesktopCommand::DivideSplit(..)
         | DesktopCommand::CaptureSpace { .. }
+        | DesktopCommand::CaptureOutput { .. }
         | DesktopCommand::SetSpaceTargets { .. }
         | DesktopCommand::SetNewSpaceTarget { .. } => Err(Refusal::Unsupported),
     }

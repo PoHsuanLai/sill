@@ -488,3 +488,18 @@ the real daemons or a real keyboard.
   an output whose shape is not 16:10 is expected, FINDINGS `mc4`).
 - [ ] **Picture refresh**: with Mission Control open, close a window on the current Space: the card's picture follows within a
   moment and the shell does not use a core while the bar sits still.
+
+## The colour picker's eyedropper (casement session, an app that asks for a colour)
+
+- [ ] **Pick a colour**: in an app that asks for a colour from the screen (a colour well's eyedropper, a portal `PickColor`
+  caller), the screen holds still and a round magnifier follows the pointer, the pixels around it enlarged with the one under
+  the pointer ringed in the middle. A click gives the app that pixel's colour (compare with a screenshot of the same spot) and
+  the magnifier goes. The magnifier is round, its pixels are hard-edged squares, and it fades in when it first appears.
+- [ ] **Cancel**: Escape, or a click with the other button, gives the app no colour and the screen is live again.
+- [ ] **Two monitors**: each monitor holds still under its own picture and the magnifier follows the pointer onto either one;
+  a pick on the second monitor reads that monitor's pixel.
+- [ ] **A fractional scale** (150 %): the pixel picked is the one the middle of the magnifier shows, not a neighbour.
+- [ ] **No cursor over the magnifier**: the arrow is hidden while the magnifier is up (FINDINGS `wave-6/colour-picker`, if it is
+  drawn over the middle cell shell-host does not map `cursor: none`).
+- [ ] **Real hardware**: casement's tty backend has no capture read-back yet, so on a real screen the app is answered with no
+  colour at once and nothing is drawn (FINDINGS `wave-6/colour-picker`, known limits).

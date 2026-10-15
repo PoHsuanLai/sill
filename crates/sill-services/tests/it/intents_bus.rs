@@ -29,7 +29,7 @@ use sill_services::env::{BusRoute, Buses, Env};
 use sill_services::seat::seat;
 use sill_services::service::{Handle, spawn};
 use sill_services::{IntentsLinks, IntentsService, MenuLinks, ShellCall};
-use sill_testkit::PrivateBus;
+use sill_testkit::{PrivateBus, TempDir};
 use tokio::sync::{mpsc, watch};
 use zbus::fdo;
 use zbus::object_server::SignalEmitter;
@@ -110,11 +110,30 @@ impl StandInControl {
 
 /// The seat under test, its bus and the stand-in intentd.
 struct Desk {
+    procs: TempDir,
     bus: PrivateBus,
     seat: Handle<IntentsService>,
     shell_calls: mpsc::UnboundedReceiver<ShellCall>,
     intentd: Connection,
     held: Arc<Mutex<Held>>,
+}
+
+/// A fake proc root in which this process is `intentd.service`'s main process: every connection
+/// of the test is this one process, and the shell's provider answers only intentd.
+fn intentd_is_this_process() -> TempDir {
+    let procs = TempDir::new("intents-procs");
+    let pid = std::process::id();
+    let write = |path: std::path::PathBuf, text: String| {
+        std::fs::create_dir_all(path.parent().unwrap_or_else(|| panic!("a parent")))
+            .unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(path, text).unwrap_or_else(|e| panic!("{e}"));
+    };
+    write(
+        procs.path().join(format!("{pid}/cgroup")),
+        "0::/user.slice/user-1000.slice/user@1000.service/app.slice/intentd.service\n".to_owned(),
+    );
+    write(procs.path().join("units/intentd.service"), pid.to_string());
+    procs
 }
 
 async fn connect(address: &str) -> Connection {
@@ -133,8 +152,10 @@ async fn desk() -> Option<Desk> {
 /// As [`desk`], with `menus` for the windows and `shots` for the screenshots the shell has seen.
 async fn desk_with(menus: MenuLinks, shots: watch::Receiver<Shots>) -> Option<Desk> {
     let bus = PrivateBus::start()?;
+    let procs = intentd_is_this_process();
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        proc_root: procs.path().to_owned(),
         ..Env::isolated(Path::new("/nonexistent/sill-intents-bus"))
     };
     let (calls, shell_calls) = mpsc::unbounded_channel();
@@ -160,6 +181,7 @@ async fn desk_with(menus: MenuLinks, shots: watch::Receiver<Shots>) -> Option<De
         .await
         .unwrap_or_else(|e| panic!("{e}"));
     Some(Desk {
+        procs,
         bus,
         seat,
         shell_calls,
@@ -568,7 +590,14 @@ async fn intentd_performs_a_shell_action_through_the_provider() {
     let refused: Result<docket_core::Outcome, docket_core::AppRefusal> =
         serde_json::from_str(&reply).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(refused, Err(docket_core::AppRefusal::Unsupported));
-    // Nobody but intentd may call the provider: a stranger's call is refused.
+    // Nobody but intentd may call the provider: a stranger's call is refused. Every connection
+    // here is this one process, so it is the stranger once the fake proc root puts it in an app's
+    // scope.
+    std::fs::write(
+        desk.procs.path().join(format!("{}/cgroup", std::process::id())),
+        "0::/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.example.Stranger-1.scope\n",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
     let stranger = connect(&desk.bus.address).await;
     let refused = provider(&stranger)
         .await

@@ -14,8 +14,9 @@
 //!   an empty list on cancel. The caller leaving the bus takes the sheet down.
 //! - **Colours.** `PickColor` is checked and admitted the same way, one question of either
 //!   kind at a time, and answered with `a(ddd)`: one colour in 0..1, or an empty array when the
-//!   person cancelled. While no surface draws the eyedropper
-//!   ([`CaptureCommand::Eyedropper`] was not sent) it is answered with an empty array at once.
+//!   person cancelled. The daemon sends [`CaptureCommand::Eyedropper`] while an eyedropper
+//!   surface exists (`sill_overlays::eyedropper`); without one it is answered with an empty array
+//!   at once.
 //! - **Passive until [`CaptureCommand::Serve`]**: a test's `start` exports nothing.
 
 mod backend;

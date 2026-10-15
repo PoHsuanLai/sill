@@ -777,7 +777,9 @@ async fn the_compositor_on_the_bus_hands_the_shell_a_connected_socket() {
 
 /// A shell arm whose compositor also offers the standard capture protocol.
 fn capture_arm() -> QuireArm<FakeDesktop, Vec<ShellNote>> {
-    let offer = quire_offer().with(Protocol::ExtImageCopyCapture);
+    let offer = quire_offer()
+        .with(Protocol::ExtImageCopyCapture)
+        .with(Protocol::ExtOutputImageCaptureSource);
     let desktop = FakeDesktop::with_config(offer, DesktopConfig::holding_shell());
     QuireArm::new(desktop, Vec::new())
 }
@@ -834,6 +836,82 @@ fn a_picture_of_a_space_is_asked_for_by_output_and_comes_back_as_a_png_note() {
         .to_rgba8();
     assert_eq!((decoded.width(), decoded.height()), (2, 1));
     assert_eq!(decoded.get_pixel(0, 0).0, [255, 0, 0, 255]);
+}
+
+#[test]
+fn a_picture_of_a_whole_output_comes_back_as_pixels_and_a_png() {
+    use desktop_client::capture::CapturePhase;
+    use sill_model::desktop::OutputPicture;
+    let mut arm = capture_arm();
+    arm.execute(&DesktopCommand::CaptureOutput {
+        output: "DP-1".to_owned(),
+    })
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        arm.desktop_mut().take_sent(),
+        [Wire::CaptureOutput(CaptureRequest::new(OutputName::new(
+            "DP-1"
+        )))]
+    );
+    arm.pictures(|_, _| None);
+    assert!(arm.sink().is_empty(), "still going: nothing is said");
+    arm.pictures(|desktop, id| {
+        finish_capture_in(desktop, id);
+        match desktop.state().captures.get(id).map(|s| s.phase.clone()) {
+            Some(CapturePhase::Ready(frame)) => Some(Ok(frame)),
+            _ => None,
+        }
+    });
+    let [ShellNote::OutputPicture { output, picture }] = arm.sink().as_slice() else {
+        panic!("one picture note: {:?}", arm.sink());
+    };
+    assert_eq!(output, "DP-1");
+    let OutputPicture::Shot(shot) = picture else {
+        panic!("a shot: {picture:?}");
+    };
+    assert_eq!(shot.size, (2, 1));
+    assert_eq!(&shot.rgba[..], &[255, 0, 0, 255, 0, 0, 255, 255]);
+    let decoded = image::load_from_memory(&shot.png)
+        .unwrap_or_else(|e| panic!("{e}"))
+        .to_rgba8();
+    assert_eq!(
+        decoded.into_raw(),
+        shot.rgba.to_vec(),
+        "the PNG is the same picture"
+    );
+}
+
+#[test]
+fn a_picture_the_compositor_cannot_make_is_a_failed_note_not_a_wait() {
+    use sill_model::desktop::OutputPicture;
+    // This compositor offers no capture protocol: the request is refused, and the note comes at once.
+    let mut arm = shell_arm();
+    let refused = arm.execute(&DesktopCommand::CaptureOutput {
+        output: "DP-1".to_owned(),
+    });
+    assert!(refused.is_err());
+    assert_eq!(
+        arm.sink().as_slice(),
+        [ShellNote::OutputPicture {
+            output: "DP-1".to_owned(),
+            picture: OutputPicture::Failed,
+        }]
+    );
+
+    // A capture that ends in failure is a failed note too.
+    let mut arm = capture_arm();
+    arm.execute(&DesktopCommand::CaptureOutput {
+        output: "DP-2".to_owned(),
+    })
+    .unwrap_or_else(|e| panic!("{e}"));
+    arm.pictures(|_, _| Some(Err(desktop_client::capture::CaptureFailure::Stopped)));
+    assert_eq!(
+        arm.sink().as_slice(),
+        [ShellNote::OutputPicture {
+            output: "DP-2".to_owned(),
+            picture: OutputPicture::Failed,
+        }]
+    );
 }
 
 /// [`finish_capture`] on a bare desktop.

@@ -30,6 +30,7 @@ Renaming a surface below is a breaking change for your file, so it is named in t
 | `voice-consent` | the voice consent sheet (asked once, before the microphone first opens) |
 | `accounts-sheet` | the accounts sheet (accountd's consent question and add-account steps, in a window of their own) |
 | `capture` | the sharing sheet (which screen or window an app may share) |
+| `eyedropper` | the colour picker's eyedropper (a still picture of the output with a round magnifier that follows the pointer, the pixel under it ringed) |
 | `switcher` | the app switcher |
 | `spaces-bar` | Mission Control's Spaces bar (the Spaces of the output across the top, each over a picture of the Space on the output's wallpaper, and a plus that lights under a dragged window; styled by quire's `.ds-spaces-bar-*` classes, `img.ds-spaces-bar-backdrop` is the wallpaper, `.ds-spaces-bar-add[data-drop=target]` the lit plus) |
 | `split-picker` | the Split View picker (which window fills the other half) |
