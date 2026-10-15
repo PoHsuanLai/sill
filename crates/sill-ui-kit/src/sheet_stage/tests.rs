@@ -49,8 +49,9 @@ fn a_value_is_drawn_visible_while_up_and_hidden_while_leaving() {
 fn a_sheet_leaves_with_its_answer_and_hands_it_over_once_settled() {
     use super::exit::{ExitIn, ExitOut, SheetExit};
     type Exit = SheetExit<u8>;
+    type Case = (&'static str, Exit, ExitIn<u8>, Exit, ExitOut<u8>);
     #[rustfmt::skip]
-    let cases: &[(&str, Exit, ExitIn<u8>, Exit, ExitOut<u8>)] = &[
+    let cases: &[Case] = &[
         ("an answer starts the exit",            Exit::Open,       ExitIn::Leave(1), Exit::Leaving(1), ExitOut::Left),
         ("a second answer while leaving waits",  Exit::Leaving(1), ExitIn::Leave(2), Exit::Leaving(1), ExitOut::Nothing),
         ("the settle hands the answer over",     Exit::Leaving(1), ExitIn::Settled,  Exit::Leaving(1), ExitOut::Finished(1)),
@@ -59,7 +60,7 @@ fn a_sheet_leaves_with_its_answer_and_hands_it_over_once_settled() {
         ("shown again while up changes nothing", Exit::Open,       ExitIn::Reshown,  Exit::Open,       ExitOut::Nothing),
     ];
     for (name, from, input, want, out) in cases {
-        assert_eq!(from.clone().advance(*input), (want.clone(), *out), "{name}");
+        assert_eq!(from.advance(*input), (*want, *out), "{name}");
     }
     assert_eq!(Exit::Open.shown(), Shown::Visible);
     assert_eq!(Exit::Leaving(1).shown(), Shown::Hidden);
