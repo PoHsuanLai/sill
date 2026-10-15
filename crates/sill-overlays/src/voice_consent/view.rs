@@ -11,20 +11,24 @@ use ds::components::overlays::sheet_width::SheetWidth;
 use ds::focus::soon::focus_soon;
 use ds::prelude::*;
 use ds::root::common::Common;
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, use_watch};
 use sill_model::voice::{ConsentAnswer, ConsentSheet, VoiceCommand};
 use sill_services::VoiceService;
 
 use super::VOICE_CONSENT_CSS;
 use super::layer::PANEL_ID;
-use super::stage::{Mapped, Stage, StageIn, advance};
 use sill_ui_kit::hooks::{use_control, use_service_part};
 use sill_ui_kit::links::BannerLink;
 use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
 /// The sheet's words: what is asked, and what listening means.
 const TITLE: &str = "Talk to Companion?";
 const BODY: &str = "Companion listens only while you hold \u{2318}. What you say is turned into text on this computer and is not kept.";
+
+/// The one thing the stage holds: the consent question is up (it has no value of its own).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Asked;
 
 /// The buttons' element ids (the tests', and a person's stylesheet's, handles).
 pub(super) const ALLOW_ID: &str = "voice-consent-allow";
@@ -32,11 +36,7 @@ pub(super) const NOT_NOW_ID: &str = "voice-consent-not-now";
 
 pub(super) fn voice_consent(output: OutputInfo) -> Element {
     let stage = use_stage(output.clone());
-    let shown = match stage() {
-        Stage::Empty => None,
-        Stage::Up => Some(Shown::Visible),
-        Stage::Leaving => Some(Shown::Hidden),
-    };
+    let shown = stage().drawn().map(|(_, shown)| shown);
     rsx! {
         SurfaceRoot {
             output: output.clone(),
@@ -51,7 +51,7 @@ pub(super) fn voice_consent(output: OutputInfo) -> Element {
 }
 
 #[component]
-fn ConsentCard(shown: Shown, stage: Signal<Stage>) -> Element {
+fn ConsentCard(shown: Shown, stage: Signal<SheetStage<Asked>>) -> Element {
     let control = use_control::<VoiceService>();
     let answer = use_callback(move |choice: ConsentAnswer| {
         let _ = control.send(VoiceCommand::Answer(choice));
@@ -100,44 +100,19 @@ fn ConsentCard(shown: Shown, stage: Signal<Stage>) -> Element {
     }
 }
 
-fn settle(mut stage: Signal<Stage>) {
-    let next = advance(*stage.peek(), StageIn::Settled);
-    if *stage.peek() != next {
-        stage.set(next);
-    }
-}
-
-/// The stage on `output`, following the service and the banners' output, and the surface's
-/// mapping following the stage. Nothing to map without a host (a test, an SSR render).
-fn use_stage(output: OutputInfo) -> Signal<Stage> {
+/// The stage on `output`, following the service and the banners' output.
+fn use_stage(output: OutputInfo) -> Signal<SheetStage<Asked>> {
     let sheet = use_service_part::<VoiceService, _>(|voice| voice.sheet);
     let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
     let shows = use_watch(link.subscribe());
-    let mut stage = use_signal(Stage::default);
-    use_effect(move || {
-        let wanted = match shows.read().shows_on(output.id) {
+    use_sheet_stage(move || {
+        let asking = match shows.read().shows_on(output.id) {
             true => sheet(),
             false => ConsentSheet::Closed,
         };
-        let next = advance(*stage.peek(), StageIn::Want(wanted));
-        if *stage.peek() != next {
-            stage.set(next);
+        match asking {
+            ConsentSheet::Asking => Some(Asked),
+            ConsentSheet::Closed => None,
         }
-    });
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Mapped::No));
-    use_effect(move || {
-        let mapped = stage.read().mapped();
-        if *applied.peek() == mapped {
-            return;
-        }
-        applied.set(mapped);
-        if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match mapped {
-                Mapped::Yes => Visibility::Shown,
-                Mapped::No => Visibility::Hidden,
-            }));
-        }
-    });
-    stage
+    })
 }

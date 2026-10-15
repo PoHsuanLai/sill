@@ -7,13 +7,13 @@
 //! `PolkitCommand::Answer { cookie, secret: Secret::new(text) }` (the text moves into the `Secret`
 //! at once and is never kept in a signal), `oncancel` sending `PolkitCommand::Dismiss(cookie)`;
 //! when the request goes away `shown` turns `Hidden` and the surface unmaps at `on_hidden`
-//! ([`super::step`]). Nothing is styled under `.ds-polkit*`; the only markup of sill's own is the
+//! (`sill_ui_kit::sheet_stage`). Nothing is styled under `.ds-polkit*`; the only markup of sill's own is the
 //! wrapper that hears the keys' modifiers, since quire's sheet floats in the root's overlay host.
 
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, use_watch};
 use sill_model::auth::Secret;
 use sill_model::polkit_agent::{Cookie, PolkitCommand};
 use sill_services::{Control, PolkitAgentService};
@@ -22,10 +22,10 @@ use sill_shell_kit::prelude::*;
 
 use super::layer::PANEL_ID;
 use super::model::{PolkitPromptView, prompt_view};
-use super::step::{Mapped, Stage, StageIn, advance};
 use sill_ui_kit::hooks::{use_control, use_service};
 use sill_ui_kit::links::BannerLink;
 use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
 pub(super) fn polkit_prompt(output: OutputInfo) -> Element {
     let stage = use_stage(output.clone());
@@ -61,7 +61,7 @@ fn prompt(
     view: PolkitPromptView,
     shown: Shown,
     caps: CapsLock,
-    stage: Signal<Stage>,
+    stage: Signal<SheetStage<PolkitPromptView>>,
     control: Control<PolkitCommand>,
 ) -> Element {
     let (submit, cancel) = (control.clone(), control);
@@ -94,45 +94,16 @@ fn prompt(
     }
 }
 
-fn settle(mut stage: Signal<Stage>) {
-    let next = advance(stage.peek().clone(), StageIn::Settled);
-    if *stage.peek() != next {
-        stage.set(next);
-    }
-}
-
-/// The stage on `output`, following the agent and the banners' output, and the surface's
-/// mapping following the stage. Nothing to map without a host (a test, an SSR render).
-fn use_stage(output: OutputInfo) -> Signal<Stage> {
+/// The stage on `output`, following the agent and the banners' output.
+fn use_stage(output: OutputInfo) -> Signal<SheetStage<PolkitPromptView>> {
     let polkit = use_service::<PolkitAgentService>();
     let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
     let shows = use_watch(link.subscribe());
-    let mut stage = use_signal(Stage::default);
-    use_effect(move || {
-        let wanted = shows
+    use_sheet_stage(move || {
+        shows
             .read()
             .shows_on(output.id)
             .then(|| prompt_view(&polkit.read()))
-            .flatten();
-        let next = advance(stage.peek().clone(), StageIn::Want(wanted));
-        if *stage.peek() != next {
-            stage.set(next);
-        }
-    });
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Mapped::No));
-    use_effect(move || {
-        let mapped = stage.read().mapped();
-        if *applied.peek() == mapped {
-            return;
-        }
-        applied.set(mapped);
-        if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match mapped {
-                Mapped::Yes => Visibility::Shown,
-                Mapped::No => Visibility::Hidden,
-            }));
-        }
-    });
-    stage
+            .flatten()
+    })
 }

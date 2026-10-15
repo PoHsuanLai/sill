@@ -4,11 +4,11 @@
 //! `on_hidden` the menu closes and, for a chosen action, the action runs, so a suspend or a
 //! polkit prompt never finds the sheet still up. Shown again while leaving, it is up again.
 
-use ds::prelude::*;
 use sill_model::session::{Session, SessionAction};
 
 use super::choice::offered;
 use sill_ui_kit::links::OpenSerial;
+use sill_ui_kit::sheet_stage::{ExitIn, ExitOut, SheetExit};
 
 /// What happens once the sheet has left.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,30 +17,13 @@ pub enum Then {
     Run(SessionAction),
 }
 
-/// Whether the sheet is up.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SheetPhase {
-    Open,
-    Leaving(Then),
-}
-
-impl SheetPhase {
-    /// quire's `Sheet { shown }` for this phase.
-    pub fn shown(self) -> Shown {
-        match self {
-            SheetPhase::Open => Shown::Visible,
-            SheetPhase::Leaving(_) => Shown::Hidden,
-        }
-    }
-}
-
 /// One opening's state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MenuSession {
     pub serial: OpenSerial,
     /// The action the alert is about: its default button, the one Return presses.
     pub default: SessionAction,
-    pub phase: SheetPhase,
+    pub phase: SheetExit<Then>,
 }
 
 impl MenuSession {
@@ -49,7 +32,7 @@ impl MenuSession {
         MenuSession {
             serial,
             default,
-            phase: SheetPhase::Open,
+            phase: SheetExit::Open,
         }
     }
 }
@@ -67,56 +50,40 @@ pub enum SheetInput {
     Reshown,
 }
 
-/// What the panel does after an input.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SheetEffect {
-    Nothing,
-    /// The sheet started to leave: tell the link, which keeps the surface mapped meanwhile.
-    Leave,
-    /// Close the menu, then carry out `Then`.
-    Finish(Then),
-}
-
-/// `menu` after `input`, with `session`'s offers.
+/// `menu` after `input`, with `session`'s offers: the shared exit machine does the rest.
 pub fn advance(
     menu: MenuSession,
     input: SheetInput,
     session: &Session,
-) -> (MenuSession, SheetEffect) {
-    let leave = |then: Then| {
-        (
-            MenuSession {
-                phase: SheetPhase::Leaving(then),
-                ..menu
-            },
-            SheetEffect::Leave,
-        )
+) -> (MenuSession, ExitOut<Then>) {
+    let Some(input) = exit_input(input, session) else {
+        return (menu, ExitOut::Nothing);
     };
-    match (menu.phase, input) {
-        (SheetPhase::Open, SheetInput::Pressed(action)) if offered(session, action) => {
-            leave(Then::Run(action))
+    let (phase, out) = menu.phase.advance(input);
+    (MenuSession { phase, ..menu }, out)
+}
+
+/// The exit machine's input for `input`; `None` for a press of an action not offered.
+fn exit_input(input: SheetInput, session: &Session) -> Option<ExitIn<Then>> {
+    match input {
+        SheetInput::Pressed(action) if offered(session, action) => {
+            Some(ExitIn::Leave(Then::Run(action)))
         }
-        (SheetPhase::Open, SheetInput::Dismissed) => leave(Then::Close),
-        (SheetPhase::Leaving(then), SheetInput::Settled) => (menu, SheetEffect::Finish(then)),
-        (SheetPhase::Leaving(_), SheetInput::Reshown) => (
-            MenuSession {
-                phase: SheetPhase::Open,
-                ..menu
-            },
-            SheetEffect::Nothing,
-        ),
-        _ => (menu, SheetEffect::Nothing),
+        SheetInput::Pressed(_) => None,
+        SheetInput::Dismissed => Some(ExitIn::Leave(Then::Close)),
+        SheetInput::Settled => Some(ExitIn::Settled),
+        SheetInput::Reshown => Some(ExitIn::Reshown),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{MenuSession, SheetEffect, SheetInput, SheetPhase, Then, advance};
-    use ds::prelude::*;
+    use super::{MenuSession, SheetInput, Then, advance};
     use sill_model::session::{Offer, Session, SessionAction};
     use sill_ui_kit::links::OpenSerial;
+    use sill_ui_kit::sheet_stage::{ExitOut, SheetExit};
 
-    fn menu(default: SessionAction, phase: SheetPhase) -> MenuSession {
+    fn menu(default: SessionAction, phase: SheetExit<Then>) -> MenuSession {
         MenuSession {
             serial: OpenSerial(3),
             default,
@@ -127,68 +94,74 @@ mod tests {
     #[test]
     fn every_way_out_leaves_first_and_acts_once_settled() {
         use SessionAction::{LogOut, PowerOff, Restart, Suspend};
-        use SheetPhase::{Leaving, Open};
+        use SheetExit::{Leaving, Open};
         let all = Session::everything();
         let no_suspend = Session {
             suspend: Offer::Unavailable,
             ..all
         };
-        let cases: Vec<(MenuSession, SheetInput, &Session, MenuSession, SheetEffect)> = vec![
+        let cases: Vec<(
+            MenuSession,
+            SheetInput,
+            &Session,
+            MenuSession,
+            ExitOut<Then>,
+        )> = vec![
             (
                 menu(PowerOff, Open),
                 SheetInput::Pressed(LogOut),
                 &all,
                 menu(PowerOff, Leaving(Then::Run(LogOut))),
-                SheetEffect::Leave,
+                ExitOut::Left,
             ),
             (
                 menu(PowerOff, Open),
                 SheetInput::Pressed(Suspend),
                 &no_suspend,
                 menu(PowerOff, Open),
-                SheetEffect::Nothing,
+                ExitOut::Nothing,
             ),
             (
                 menu(PowerOff, Open),
                 SheetInput::Dismissed,
                 &all,
                 menu(PowerOff, Leaving(Then::Close)),
-                SheetEffect::Leave,
+                ExitOut::Left,
             ),
             (
                 menu(Restart, Leaving(Then::Run(Restart))),
                 SheetInput::Pressed(Restart),
                 &all,
                 menu(Restart, Leaving(Then::Run(Restart))),
-                SheetEffect::Nothing,
+                ExitOut::Nothing,
             ),
             (
                 menu(Restart, Leaving(Then::Run(Restart))),
                 SheetInput::Settled,
                 &all,
                 menu(Restart, Leaving(Then::Run(Restart))),
-                SheetEffect::Finish(Then::Run(Restart)),
+                ExitOut::Finished(Then::Run(Restart)),
             ),
             (
                 menu(PowerOff, Open),
                 SheetInput::Settled,
                 &all,
                 menu(PowerOff, Open),
-                SheetEffect::Nothing,
+                ExitOut::Nothing,
             ),
             (
                 menu(Restart, Leaving(Then::Run(Restart))),
                 SheetInput::Reshown,
                 &all,
                 menu(Restart, Open),
-                SheetEffect::Nothing,
+                ExitOut::Nothing,
             ),
             (
                 menu(Restart, Open),
                 SheetInput::Reshown,
                 &all,
                 menu(Restart, Open),
-                SheetEffect::Nothing,
+                ExitOut::Nothing,
             ),
         ];
         for (from, input, session, want, effect) in cases {
@@ -198,7 +171,5 @@ mod tests {
                 "{from:?} {input:?}"
             );
         }
-        assert_eq!(Open.shown(), Shown::Visible);
-        assert_eq!(Leaving(Then::Close).shown(), Shown::Hidden);
     }
 }

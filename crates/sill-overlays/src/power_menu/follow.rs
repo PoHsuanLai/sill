@@ -2,8 +2,9 @@
 //! new opening starts one, the same opening shown again while its sheet leaves brings the sheet
 //! back, and a hidden menu drops it.
 
-use super::sheet::{MenuSession, SheetPhase};
+use super::sheet::MenuSession;
 use sill_ui_kit::links::{PowerMenuOpening, Showing};
+use sill_ui_kit::sheet_stage::SheetExit;
 
 /// What the panel does when the link changes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,7 +23,7 @@ pub fn follow(opening: Option<&PowerMenuOpening>, menu: Option<MenuSession>) -> 
     match (opening, menu) {
         (Some(opening), Some(menu)) if opening.serial == menu.serial => {
             match (opening.showing, menu.phase) {
-                (Showing::Up, SheetPhase::Leaving(_)) => Follow::Reshow,
+                (Showing::Up, SheetExit::Leaving(_)) => Follow::Reshow,
                 _ => Follow::Nothing,
             }
         }
@@ -35,13 +36,14 @@ pub fn follow(opening: Option<&PowerMenuOpening>, menu: Option<MenuSession>) -> 
 #[cfg(test)]
 mod tests {
     use super::{Follow, follow};
-    use crate::power_menu::sheet::{MenuSession, SheetPhase, Then};
+    use crate::power_menu::sheet::{MenuSession, Then};
     use shell_host::OutputId;
     use sill_model::session::SessionAction;
     use sill_ui_kit::links::{OpenSerial, PanelFocus};
     use sill_ui_kit::links::{PowerMenuOpening, Preselect, Showing};
+    use sill_ui_kit::sheet_stage::SheetExit;
 
-    fn menu(default: SessionAction, phase: SheetPhase) -> MenuSession {
+    fn menu(default: SessionAction, phase: SheetExit<Then>) -> MenuSession {
         MenuSession {
             serial: OpenSerial(1),
             default,
@@ -52,7 +54,7 @@ mod tests {
     #[test]
     fn the_link_starts_reshows_or_drops_the_session() {
         use SessionAction::PowerOff;
-        use SheetPhase::{Leaving, Open};
+        use SheetExit::{Leaving, Open};
         let opening = |serial: u64, showing: Showing| PowerMenuOpening {
             output: OutputId(1),
             preselect: Preselect::Default,
@@ -60,7 +62,7 @@ mod tests {
             focus: PanelFocus::Awaited,
             showing,
         };
-        let at = |serial: u64, phase: SheetPhase| MenuSession {
+        let at = |serial: u64, phase: SheetExit<Then>| MenuSession {
             serial: OpenSerial(serial),
             ..menu(PowerOff, phase)
         };

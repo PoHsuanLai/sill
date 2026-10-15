@@ -18,7 +18,6 @@
 
 mod layer;
 mod model;
-mod step;
 mod surface;
 mod view;
 

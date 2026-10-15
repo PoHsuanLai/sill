@@ -1362,8 +1362,6 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
   it. **Ask of casement:** run `sill force-quit toggle` for that row (`Does::Sill(&["force-quit",
   "toggle"])`), as it does for the launcher and the screenshots; nothing else is needed on sill's
   side. Until then the chord does nothing and the panel is opened from a terminal.
-- **Consolidation candidate.** The capture sheet, the confirm sheet and this panel share
-  `sill-ui-kit::sheet_stage`. `polkit_prompt/step.rs` and `voice_consent/stage.rs` still carry
-  their own copies of the same machine and could move onto it (the voice consent sheet's value is
-  a unit-like `Asking`/`Closed`, so it would need a `Some(())` wanted value).
+- **Consolidated.** The capture, confirm, Force Quit, polkit and voice consent sheets share
+  `sill-ui-kit::sheet_stage`; the power menu's sheet uses its answer-carrying `SheetExit<Then>`.
 

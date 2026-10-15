@@ -6,10 +6,7 @@
 //! daemon writes it into `voice.consent` of the settings file, which `voiced` reads on every hold.
 
 mod layer;
-mod stage;
 mod surface;
-#[cfg(test)]
-mod tests;
 mod view;
 
 pub use surface::VoiceConsentSheet;

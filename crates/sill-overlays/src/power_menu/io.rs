@@ -13,9 +13,10 @@ use super::backend::{DryRunSession, PowerMenuBackend};
 use super::choice::{initial, offered};
 use super::follow::{Follow, follow};
 use super::labels::action_label;
-use super::sheet::{MenuSession, SheetEffect, SheetInput, SheetPhase, Then, advance};
+use super::sheet::{MenuSession, SheetInput, Then, advance};
 use sill_ui_kit::links::{OpenSerial, PanelFocus, Preselect};
 use sill_ui_kit::links::{PowerMenuLink, PowerMenuOpening, Reveal};
+use sill_ui_kit::sheet_stage::{ExitOut, SheetExit};
 
 /// Everything the menu's handlers reach. Clone is cheap.
 #[derive(Clone)]
@@ -108,7 +109,7 @@ fn use_offers_arriving(ctx: MenuCtx, default: PowerMenuDefault) {
         };
         eprintln!("power_menu.offers={}", offered_labels(&offers));
         let about = initial(Preselect::Action(now.default), default, &offers);
-        if about != now.default && now.phase == SheetPhase::Open {
+        if about != now.default && now.phase == SheetExit::Open {
             menu.set(Some(MenuSession {
                 default: about,
                 ..now
@@ -177,9 +178,9 @@ impl MenuCtx {
             menu.set(Some(next));
         }
         match effect {
-            SheetEffect::Nothing => {}
-            SheetEffect::Leave => self.link.leaving(),
-            SheetEffect::Finish(then) => self.finish(then),
+            ExitOut::Nothing => {}
+            ExitOut::Left => self.link.leaving(),
+            ExitOut::Finished(then) => self.finish(then),
         }
     }
 
