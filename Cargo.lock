@@ -1313,7 +1313,7 @@ dependencies = [
 [[package]]
 name = "chordkit"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=6ef54930760208ed28b81269878ded080600fd35#6ef54930760208ed28b81269878ded080600fd35"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=55a62b2366d6ee1994d95f7cb5a195217807099c#55a62b2366d6ee1994d95f7cb5a195217807099c"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -1322,7 +1322,7 @@ dependencies = [
 [[package]]
 name = "chordkit-gnome"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=6ef54930760208ed28b81269878ded080600fd35#6ef54930760208ed28b81269878ded080600fd35"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=55a62b2366d6ee1994d95f7cb5a195217807099c#55a62b2366d6ee1994d95f7cb5a195217807099c"
 dependencies = [
  "chordkit",
 ]
@@ -1330,7 +1330,7 @@ dependencies = [
 [[package]]
 name = "chordkit-kde"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=6ef54930760208ed28b81269878ded080600fd35#6ef54930760208ed28b81269878ded080600fd35"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=55a62b2366d6ee1994d95f7cb5a195217807099c#55a62b2366d6ee1994d95f7cb5a195217807099c"
 dependencies = [
  "chordkit",
 ]
