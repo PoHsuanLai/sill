@@ -14,8 +14,8 @@ use sill_services::env::Env;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     BannerLink, CenterLink, ControlCenterLink, CornerLink, EditWidgetsLink, EyedropperLink,
-    LauncherLink, Links, LockLink, OsdLink, PlacementFile, PowerMenuLink, SpacesBarLink,
-    SplitPickerLink, SwitcherLink, WindowMenuLink,
+    ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PlacementFile, PowerMenuLink,
+    SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
@@ -173,6 +173,7 @@ fn build_links(
         lock: LockLink::new(),
         window_menu: WindowMenuLink::new(),
         split_picker: SplitPickerLink::new(),
+        force_quit: ForceQuitLink::new(),
         spaces_bar: SpacesBarLink::new(),
         eyedropper: EyedropperLink::new(),
         edit_widgets: EditWidgetsLink::new()
@@ -202,6 +203,7 @@ fn spawn_followers(
     settings::spawn_user_style_watch(runtime, store, host.clone());
     crate::window_menu::spawn_picks(runtime.handle(), links, host.clone());
     crate::split_picker::spawn_answers(runtime.handle(), links, host.clone());
+    crate::force_quit::spawn_asks(runtime.handle(), links, host.clone());
     crate::spaces_bar::spawn_picks(runtime.handle(), links, host.clone());
     crate::spaces_bar::spawn_outbox(runtime.handle(), links, host.clone());
     crate::eyedropper::spawn_follower(runtime.handle(), links, services, host.clone());
@@ -210,6 +212,7 @@ fn spawn_followers(
         links.clone(),
         settings_feed.settings.clone(),
         services.clone(),
+        host.clone(),
     );
 }
 

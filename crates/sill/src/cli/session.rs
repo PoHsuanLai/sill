@@ -26,7 +26,7 @@ pub enum WorkspaceAction {
     Prev,
     /// Go to the workspace after the active one.
     Next,
-    /// Show every workspace (not built yet: this fails with "unsupported").
+    /// Show every window and workspace at once (Mission Control; fails on a session that is not ours).
     Overview,
 }
 

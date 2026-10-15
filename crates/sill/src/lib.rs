@@ -7,6 +7,7 @@ pub mod corners;
 pub mod daemon;
 pub mod edit_widgets;
 pub mod eyedropper;
+pub mod force_quit;
 pub mod idle_dim;
 pub mod intents;
 pub mod ipc;

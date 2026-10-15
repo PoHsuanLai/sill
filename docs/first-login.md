@@ -131,7 +131,7 @@ Then, in this order, tick them in `docs/manual-checks.md`:
 # 12 display: casementctl debug output list (3840x2160, scale 2); sill display brightness up (the BenQ moves, OSD shows)
 # 13 video in Zen: the screen must not dim; sill idle status shows "inhibition":"held"
 # 14 power menu offers (N14): the menu lists Log Out, Restart, Shut Down (do not press Restart or Shut Down)
-# 15 workspaces and the mouse: sill workspace next; sill workspace prev; scroll the Magic Mouse: direction (section 1, item 8; else Settings > Mouse)
+# 15 workspaces and the mouse: sill workspace next; sill workspace prev; sill workspace overview (Mission Control opens); scroll the Magic Mouse: direction (section 1, item 8; else Settings > Mouse)
 # 16 screenshot and share: sill screenshot area; share a screen in Zen or Teams; plug a USB drive, open it in your file manager
 # 17 quire apps: open mailo and anyview: which adapter do they log, does a second window close cleanly (X5)
 # 18 SELinux: sudo ausearch -m avc -ts recent | head    # expect nothing about sill, ksecretd, pam_kwallet_init
@@ -154,15 +154,20 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 
 - No Toshy: the Mac layout is keycap's. Without keycap running, Cmd is Cmd. A lone Cmd tap has no sender yet (the companion's
   Cmd double-tap); use `sill companion summon`.
-- `sill workspace overview` answers "unsupported" (no overview yet); `next` and `prev` work and
-  stop at the first and last workspace (no wrap).
+- `sill workspace next` and `prev` stop at the first and last workspace (no wrap).
+- Option+Cmd+Esc (Force Quit Applications) does nothing until casement runs `sill force-quit toggle`
+  for its Force Quit chord (today the chord is swallowed by a command that does nothing). Run
+  `sill force-quit toggle` from a terminal to see the panel.
 - No sink list in the control centre (G352): switch audio in Settings > Sound or `wpctl set-default <id>`.
 - Mouse settings are casement's (`~/.config/casement/settings.toml`, section 1, item 8), or per device in
   Settings > Mouse (the "palmrest" devices).
-- The dock and the launcher start empty on a fresh account and nothing is seeded: pin apps with `sill dock pin <id>`.
-- No colour management, no software night light (the monitor is dimmed and warmed over DDC/CI where it supports it), no
-  screen recording app, no printer applet, no weather.
-- Escape does not close the control centre after a pointer press (G400).
+- Night Shift: the control centre's Display module switches casement's software night light on until
+  tomorrow and sets its warmth; the schedule (times, "always") is casement's `[night_light]`, set in
+  Settings. Sunset to Sunrise is not offered (sill has no location). Where `display.night_warmth` is
+  `hardware` the monitors are warmed over DDC/CI instead and casement's night light is kept off.
+- No colour management, no screen recording app, no printer applet, no weather.
+- Escape does not close the control centre after a pointer press on empty space (G400; waits on quire's
+  shell-surface click focus).
 - fcitx5 starts from XDG autostart; `GTK_IM_MODULE` and `QT_IM_MODULE` are deliberately unset.
 - More in `FINDINGS.md` ("What casement still has to provide").
 

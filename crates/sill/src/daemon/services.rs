@@ -50,8 +50,8 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::policy::{
     calendar::CalendarBridge, clipboard::ClipboardBridge, companion::CompanionBridge,
     displays::DisplaysBridge, follow, idle::IdleBridge, keyboard::KeyboardBridge,
-    notifications::NotificationsBridge, screenshots::ScreenshotsBridge, search::SearchBridge,
-    voice::VoiceBridge,
+    night_shift::NightShiftBridge, notifications::NotificationsBridge,
+    screenshots::ScreenshotsBridge, search::SearchBridge, voice::VoiceBridge,
 };
 
 /// Start every service on `rt` (the `windows` and volume threads on their own threads)
@@ -198,7 +198,7 @@ pub(crate) fn start(
                 name_of: menu_name_of,
             },
         ),
-        pins: spawn(rt, env, ()),
+        pins: spawn(rt, env, apps.state.clone()),
         wallpaper: spawn(rt, env, ()),
         session: spawn(rt, env, locker.control.clone()),
         notifications,
@@ -237,6 +237,7 @@ pub(crate) fn start(
         accounts_sheet,
         sync_hold,
         guest_asks,
+        night_shift: spawn(rt, env, ()),
         work_areas: spawn::<WorkAreaService>(rt, env, ()),
         workspace_looks: spawn::<WorkspaceLooksService>(rt, env, ()),
         dirs: env.dirs.clone(),
@@ -313,6 +314,13 @@ pub(crate) fn follow_settings(
         settings(),
         DisplaysBridge,
         services.displays.control.clone(),
+    );
+    // Night Shift keeps casement's night light off where the displays are warmed over DDC/CI.
+    follow(
+        rt,
+        settings(),
+        NightShiftBridge,
+        services.night_shift.control.clone(),
     );
     // The companion's double tap and summon follow `companion.*`.
     follow(rt, settings(), VoiceBridge, services.voice.control.clone());

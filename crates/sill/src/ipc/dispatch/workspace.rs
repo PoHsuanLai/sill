@@ -1,11 +1,13 @@
 //! `sill workspace prev|next|overview`: palmrest's swipes. A step activates the neighbour of the
-//! active workspace through the compositor service; at either end nothing happens.
+//! active workspace through the compositor service; at either end nothing happens. The overview
+//! opens Mission Control on the desktop's own compositor, and is refused on any other.
 
 use sill_ipc::act::WorkspaceRequest;
 use sill_ipc::response::Response;
+use sill_model::desktop::{DesktopCommand, open_mission_control};
 use sill_model::windows::{Step, WlCommand, Workspaces};
 
-use super::reach::Reach;
+use super::reach::{Carried, Reach};
 use super::reply::{sent, unsupported};
 
 /// Carry out `request` against the compositor service's current workspaces.
@@ -15,7 +17,15 @@ pub fn step(reach: &Reach, request: WorkspaceRequest) -> Response {
     match plan {
         Plan::Send(command) => sent(handle.control.send(command), "windows"),
         Plan::Stay => Response::Done,
-        Plan::Unsupported(why) => unsupported(why),
+        Plan::Ask(command) => asked(reach.desktop.send(command)),
+    }
+}
+
+/// The reply once the compositor was asked.
+fn asked(carried: Carried) -> Response {
+    match carried {
+        Carried::Yes => Response::Done,
+        Carried::No => unsupported("this session's compositor has no Mission Control"),
     }
 }
 
@@ -25,16 +35,15 @@ enum Plan {
     Send(WlCommand),
     /// Already at the end: a swipe past it is not an error.
     Stay,
-    Unsupported(&'static str),
+    /// Ask the desktop's own compositor.
+    Ask(DesktopCommand),
 }
 
 fn plan(workspaces: &Workspaces, request: WorkspaceRequest) -> Plan {
     let step = match request {
         WorkspaceRequest::Prev => Step::Prev,
         WorkspaceRequest::Next => Step::Next,
-        WorkspaceRequest::Overview => {
-            return Plan::Unsupported("sill has no workspace overview yet");
-        }
+        WorkspaceRequest::Overview => return Plan::Ask(open_mission_control()),
     };
     workspaces.neighbour(step).map_or(Plan::Stay, |key| {
         Plan::Send(WlCommand::ActivateWorkspace(key))
@@ -44,13 +53,15 @@ fn plan(workspaces: &Workspaces, request: WorkspaceRequest) -> Plan {
 #[cfg(test)]
 mod tests {
     use sill_ipc::act::WorkspaceRequest;
+    use sill_ipc::response::{FailureKind, Response};
+    use sill_model::desktop::open_mission_control;
     use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
     use sill_model::units::{Urgency, Visibility};
     use sill_model::windows::{
         Activity, Pinning, WlCommand, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
     };
 
-    use super::{Plan, plan};
+    use super::{Carried, Plan, asked, plan};
 
     fn row(active: u64) -> Workspaces {
         let ws = |k: u64| Workspace {
@@ -89,11 +100,20 @@ mod tests {
             (
                 row(2),
                 WorkspaceRequest::Overview,
-                Plan::Unsupported("sill has no workspace overview yet"),
+                Plan::Ask(open_mission_control()),
             ),
         ];
         for (all, request, want) in cases {
             assert_eq!(plan(&all, request), want, "{request:?}");
         }
+    }
+
+    #[test]
+    fn the_overview_is_refused_without_the_desktops_compositor() {
+        assert_eq!(asked(Carried::Yes), Response::Done);
+        let Response::Failed(failure) = asked(Carried::No) else {
+            panic!("a refusal"); // test-only
+        };
+        assert_eq!(failure.kind, FailureKind::Unsupported);
     }
 }

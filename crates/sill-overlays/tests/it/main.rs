@@ -4,6 +4,7 @@
 mod accounts_sheet;
 mod confirm_sheet;
 mod eyedropper;
+mod force_quit;
 mod hot_corners;
 mod idle_dim;
 mod lock;

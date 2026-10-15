@@ -12,8 +12,8 @@ use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, HotCorners, IdleDim, Lock, Osd,
-    PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
+    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, ForceQuit, HotCorners, IdleDim, Lock,
+    Osd, PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
     WindowMenu,
 };
 use sill_settings::ShellFile;
@@ -69,6 +69,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<CaptureSheet>(ctx, outputs, spawn, &links.banners);
     // The colour picker's eyedropper, over a still picture of each output.
     spawn_surface::<ColorSampler>(ctx, outputs, spawn, &links.eyedropper);
+    // Force Quit Applications, on the output it was opened on (hidden until `sill force-quit`).
+    spawn_surface::<ForceQuit>(ctx, outputs, spawn, &links.force_quit);
     spawn_surface::<Switcher>(ctx, outputs, spawn, &links.switcher);
     // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
     spawn_surface::<Banners>(ctx, outputs, spawn, &links.banners);

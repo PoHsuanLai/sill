@@ -61,6 +61,7 @@ fn search_to(
         Some(dir.path().to_path_buf()),
         outlets,
         watch::channel(super::LauncherPolicy::default()).0,
+        None,
         io,
     ));
     (search.state, search.control, history)
@@ -286,6 +287,63 @@ async fn the_runner_itself_drops_a_batch_of_an_older_generation() {
     assert_eq!(titles(&rx.borrow()), ["current"]);
     search.arrive(batch(1, "later still"));
     assert_eq!(titles(&rx.borrow()), ["current"]);
+}
+
+/// An index of installed apps with these ids.
+fn installed(ids: &[&str]) -> sill_model::apps::AppIndex {
+    use sill_model::apps::{
+        App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, step,
+    };
+    let app = |id: &str| App {
+        id: sill_launcher::AppId(id.to_owned()),
+        name: id.to_owned(),
+        generic_name: String::new(),
+        comment: String::new(),
+        exec: id.to_owned(),
+        icon: AppIcon::None,
+        startup_wm_class: None,
+        flatpak: None,
+        terminal: Terminal::No,
+        activation: DbusActivation::Exec,
+        actions: Vec::new(),
+        mime_types: Vec::new(),
+        categories: Vec::new(),
+        keyboard_profile: None,
+        keywords: Vec::new(),
+        listing: Listing::Shown,
+        path: std::path::PathBuf::from(format!("/usr/share/applications/{id}.desktop")),
+    };
+    step(
+        AppIndex::default(),
+        AppsEvent::Scanned(ids.iter().map(|id| app(id)).collect()),
+    )
+}
+
+#[test]
+fn a_fresh_history_starts_from_the_desktops_apps_once() {
+    use super::history::Persist;
+    use super::run::Search;
+
+    let history = History::default();
+    let (mut search, _arrivals) = Search::new(
+        Vec::new(),
+        history.clone(),
+        Persist::Nowhere,
+        Outlets::default(),
+        watch::channel(super::LauncherPolicy::default()).0,
+        watch::channel(Results::default()).0,
+    );
+    let keys = |history: &History| -> Vec<String> {
+        history.read(|f| f.entries.keys().map(|key| key.0.clone()).collect())
+    };
+    search.start_history(&installed(&["mailo", "firefox", "org.quire.Settings"]));
+    assert_eq!(keys(&history), ["apps:mailo", "apps:org.quire.Settings"]);
+    search.start_history(&installed(&["org.quire.Anyview"]));
+    assert_eq!(
+        keys(&history),
+        ["apps:mailo", "apps:org.quire.Settings"],
+        "once counted, a history is never started again"
+    );
 }
 
 async fn next<T>(rx: &mut tokio::sync::mpsc::UnboundedReceiver<T>) -> Option<T> {

@@ -61,7 +61,7 @@ fn asked_with_picture_of(output: &str) -> Running {
     running
 }
 
-fn at(x: f64, y: f64) -> Point {
+fn at(x: f32, y: f32) -> Point {
     Point { x: Px(x), y: Px(y) }
 }
 

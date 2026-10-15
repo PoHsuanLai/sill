@@ -34,6 +34,7 @@ Renaming a surface below is a breaking change for your file, so it is named in t
 | `switcher` | the app switcher |
 | `spaces-bar` | Mission Control's Spaces bar (the Spaces of the output across the top, each over a picture of the Space on the output's wallpaper, and a plus that lights under a dragged window; styled by quire's `.ds-spaces-bar-*` classes, `img.ds-spaces-bar-backdrop` is the wallpaper, `.ds-spaces-bar-add[data-drop=target]` the lit plus) |
 | `split-picker` | the Split View picker (which window fills the other half) |
+| `force-quit` | Force Quit Applications (the list of running apps and the question before one is ended) |
 | `desktop-widgets` | the desktop widgets |
 | `edit-widgets` | the widget editor |
 | `wallpaper` | the wallpaper |

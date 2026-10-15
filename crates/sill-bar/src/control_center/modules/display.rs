@@ -1,5 +1,6 @@
 //! The Display module: a [`crate::control_center::LevelModule`] with the `Sun` glyph,
-//! "Display" as its title, and the brightness. It reads no service: the caller
+//! "Display" as its title, and the brightness, over the Night Shift row ([`super::night_shift`]).
+//! The brightness reads no service: the caller
 //! ([`super::Module`], the bar's display dropdown) passes the bar output's brightness
 //! (`Displays::target`, then `Displays::brightness`), sends `DisplaysCommand::SetBrightness {
 //! output, level }` from `on_change`, and passes `Disabled` when the target is
@@ -10,6 +11,7 @@ use ds::components::content::level_glyph::vocab::LevelGlyph;
 use ds::prelude::*;
 
 use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
+use super::night_shift::NightShiftRow;
 use super::wired::WiredDisplay;
 use crate::bar::{BarMenu, StatusIcon};
 use crate::control_center::LevelModule;
@@ -42,7 +44,10 @@ impl CcModule for DisplayCc {
     }
 
     fn tile(&self, cx: &CcCx) -> Element {
-        rsx! { WiredDisplay { output: cx.output.clone() } }
+        rsx! {
+            WiredDisplay { output: cx.output.clone() }
+            NightShiftRow {}
+        }
     }
 
     fn menu_bar(&self, settings: &ControlCenterSettings) -> InMenuBar {

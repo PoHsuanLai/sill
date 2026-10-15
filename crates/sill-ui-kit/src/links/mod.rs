@@ -8,6 +8,7 @@ mod control_center;
 mod edit_widgets;
 mod eyedropper;
 mod focus;
+mod force_quit;
 mod hot_corners;
 mod launcher;
 mod lock;
@@ -28,6 +29,9 @@ pub use edit_widgets::{
 };
 pub use eyedropper::{EyedropFeed, EyedropperLink};
 pub use focus::{Delivery, FocusLink};
+pub use force_quit::{
+    ForceQuitAsked, ForceQuitLink, ForceQuitOpening, ForceQuitSerial, ForceQuitShown,
+};
 pub use hot_corners::{Corner, CornerHit, CornerLink};
 pub use launcher::{CLIPBOARD_TITLE, LauncherLink, Opening, PanelHit, ShownRows, ShownRowsSection};
 pub use lock::{LockLink, PromptOutput};
@@ -64,6 +68,9 @@ pub struct Links {
     /// A window's menu (the pointer rested on its green light): the daemon opens it, the window
     /// menu surfaces show it, and a pick goes back to the daemon.
     pub window_menu: WindowMenuLink,
+    /// The Force Quit Applications panel: the daemon opens it and lists the apps, the panel
+    /// surfaces show it, and a confirmed app goes back to the daemon.
+    pub force_quit: ForceQuitLink,
     /// The Split View being chosen (a window went full screen on one half): the daemon opens
     /// the offer, the picker surfaces show it, and the answer goes back to the daemon.
     pub split_picker: SplitPickerLink,

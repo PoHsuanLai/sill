@@ -30,12 +30,14 @@ use sill_model::clipboard::Clipboard;
 use sill_model::companion::{Companion, CompanionCommand};
 use sill_model::launch::LaunchCommand;
 use sill_model::results::{LauncherPolicy, Results, SearchCommand};
+use sill_model::seed::Store;
 use sill_model::windows::{WindowModel, WlCommand};
 use tokio::sync::watch;
 
 use sill_services::control::Control;
 use sill_services::env::Env;
 use sill_services::error::ServiceError;
+use sill_services::first_run::store_of;
 use sill_services::service::{Service, ServiceIo};
 
 pub use frecency_file::{FILE_NAME as FRECENCY_FILE, load_frecency, save_frecency};
@@ -95,6 +97,12 @@ impl Service for ResultsService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let dir = env.dirs.sill_state();
         let history = History::new(load_frecency(&dir));
+        let first_run = match &deps {
+            Sources::Services(links) if store_of(&dir.join(FRECENCY_FILE)) == Store::Missing => {
+                Some(links.apps.clone())
+            }
+            Sources::Services(_) | Sources::Providers(_) => None,
+        };
         let (policy, policy_rx) = watch::channel(LauncherPolicy::default());
         let (providers, outlets) = match deps {
             Sources::Services(links) => (
@@ -107,7 +115,16 @@ impl Service for ResultsService {
             Sources::Providers(providers) => (providers, Outlets::default()),
         };
         async move {
-            runner(providers, history, Some(dir), outlets, policy, io).await;
+            runner(
+                providers,
+                history,
+                Some(dir),
+                outlets,
+                policy,
+                first_run,
+                io,
+            )
+            .await;
             Ok(())
         }
     }
@@ -120,11 +137,13 @@ async fn runner(
     dir: Option<PathBuf>,
     outlets: Outlets,
     policy: watch::Sender<LauncherPolicy>,
+    first_run: Option<watch::Receiver<AppIndex>>,
     io: ServiceIo<ResultsService>,
 ) {
     let initial = history.read(Clone::clone);
     let persist = Persist::start(dir, initial);
-    let (search, arrivals) =
+    let (mut search, arrivals) =
         run::Search::new(providers, history, persist, outlets, policy, io.state);
+    search.first_run = first_run;
     run::run(search, io.commands, arrivals).await;
 }

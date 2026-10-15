@@ -1267,3 +1267,77 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
   may take a moment on a 4K output. (4) The magnifier's round clip relies on Blitz clipping
   `overflow: hidden` to the rounded border box, and the enlarged pixels on `image-rendering:
   pixelated`; if either fails the magnifier is square or soft.
+- **No eyedropper is drawn yet, so every call is answered with an empty array at once.** The state
+  says so (`CapturePicker::eyedropper` is `Absent` until a surface sends
+  `CaptureCommand::Eyedropper(Present)`); nothing is asked of the person and nothing opens. What is
+  missing for the real thing, exactly:
+  1. *A picture of the whole output.* `desktop-client` can already capture an output as shown
+     (`CaptureRequest::new(output)` through `DesktopCommand::CaptureOutput`, ext-image-copy-capture
+     with shm), but sill only asks for a Space picture. It needs a `DesktopCommand::CaptureOutput`
+     (`sill-model`), its arm in `desktop_wl/quire/command.rs`, `QuireArm::pending` to hold an output
+     capture beside a Space capture, and a `ShellNote::OutputPicture` that carries the frame's RGBA
+     bytes (`picture_of` PNG-encodes at the Space thumbnail size, so it cannot be reused as it is).
+  2. *The surface.* An Overlay layer surface per output, keyboard `Exclusive`, shown over the frozen
+     picture (taken before the surface maps, so the pointer and the surface are not in it): a
+     magnifier loupe following the pointer (about 9 by 9 source pixels, a grid, the centre pixel
+     boxed, its hex value under it), a click sends `CaptureCommand::ColorAnswer(id, Picked(Rgb8))`
+     from the pixel under the pointer (logical position times the output's scale), Escape sends
+     `Cancel`. It sends `Eyedropper(Present)` when it starts.
+  3. *Gamut.* The pixel is the output's sRGB as casement composes it; on a wide-gamut panel with the
+     colour pass the value read is the sRGB picture, which is what an app asked for.
+
+## wave-6/night-shift: Night Shift on casement's night light
+
+- **What it is.** The control center's Display module gains a Night Shift row (a switch, a line
+  saying what it is doing, and a Less Warm to More Warm slider while it warms or will). The
+  switch is macOS's "Turn On Until Tomorrow": casement's `night_light.mode` becomes `always` and
+  the previous table is kept in `$XDG_STATE_HOME/sill/night-shift.json` with the end (the next
+  time the clock reads `night_light.to`); the service puts it back at the end, and at start if
+  the end passed while sill was away. Off ends a manual turn-on, else sets the mode off. A change
+  made in Settings ends a manual turn-on. Only the `night_light` keys are written; the rest of
+  casement's `settings.toml` is merged around (comments in that file are lost on a write, since
+  it is rewritten from its parsed table).
+- **Schedule.** Off/Custom are casement's `mode` and `from`/`to`, edited in Settings (casement's
+  schema page); the row shows "Scheduled, 22:00 to 07:00" read-only. **Sunset to Sunrise is not
+  offered**: sill has no location, and casement's schema help mentions the Clock settings writing
+  sunset, which do not exist yet. When a location exists, the writer belongs in
+  `sill_services::night_shift` (compute sunrise and sunset daily, write `from`/`to`).
+- **Not doubled.** casement's mode is one value for every output, so sill cannot leave it on for
+  the panels without DDC and off for the monitors it warms over DDC. Where `display.night_warmth`
+  is `hardware` the whole of Night Shift stands down: casement is written `off`, the switch is
+  disabled and says so. Ask of casement: a per-output exclusion (`night_light.skip_outputs`, names)
+  would let both work on a mixed desk.
+- **The warmth.** The slider spans 6500 K (Less Warm) to 2700 K (More Warm); casement accepts 1000
+  to 6500 K, so a value set below 2700 K in Settings sits at the slider's end.
+- **No Settings page of ours.** The Settings app is detent's; casement's `[night_light]` section is
+  already in its schema (page Appearance), so Mode, Starts at, Ends at, Warmth and Fade are there.
+- **Check at the gate.** `toml` 1's `Table::entry`/`Value::as_table_mut`; `jiff::Zoned::offset().seconds()`;
+  whether casement re-reads `settings.toml` when it changes (the lane that drives the night light
+  watches the file).
+
+## wave-6/force-quit: Force Quit Applications
+
+- **The panel.** `sill force-quit {open,close,toggle}` opens a centred `Sheet` on the output of the
+  active window: the apps the compositor lists (`quire_desktop_app_v1`, in `DesktopView`; those
+  with windows, most recently used first), each with its icon, "(not responding)" after the name
+  of one whose life is `not_responding` or any of whose windows does not answer pings, a hung app
+  preselected, and a Force Quit button that asks first ("Do you want to force quit "App"? You
+  will lose any unsaved changes.", Cancel the default, Force Quit destructive). Confirming sends
+  `DesktopCommand::ForceQuitApp` (`quire_desktop_app_v1.force_quit`). The panel stays open for the
+  next app, as on the Mac.
+- **Departures from macOS.** The shell is not listed, so there is no Relaunch (the Mac lists
+  Finder with it). There is no Apple menu in the bar (its power items are the power menu), so the
+  menu item "Force Quit..." has nowhere to live. The Mac sorts the list by when the apps were
+  opened, not by use; this one is by recency (`AppView::mru`), which keeps the app that just hung
+  near the top. Windowless apps (background helpers) and launching apps are not listed.
+- **The key.** chordkit has the action (`StandardAction::ForceQuit`, Option+Command+Escape on the
+  Mac convention; keycap writes it as Alt+Super+Esc). casement binds the action to
+  `DesktopCommand::ForceQuitPanel`, which does nothing and swallows the chord
+  (`casement/crates/casement/src/keymap/shell.rs`, `ROWS`) and the shell protocol has no event for
+  it. **Ask of casement:** run `sill force-quit toggle` for that row (`Does::Sill(&["force-quit",
+  "toggle"])`), as it does for the launcher and the screenshots; nothing else is needed on sill's
+  side. Until then the chord does nothing and the panel is opened from a terminal.
+- **Consolidation candidate.** `force_quit/stage.rs` is a third copy of the sheet-with-exit stage
+  (`capture_sheet/stage.rs`, `confirm_sheet/stage.rs`); a generic one in `sill-ui-kit::surface`
+  would replace all three.
+
