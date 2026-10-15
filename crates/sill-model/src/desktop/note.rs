@@ -12,7 +12,7 @@ use casement_protocols::vocab::{
 };
 use porter_core::SpaceId;
 
-use super::SpacePicture;
+use super::{OutputPicture, SpacePicture};
 
 /// One thing the shell protocol said.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -121,6 +121,13 @@ pub enum ShellNote {
         space: SpaceId,
         /// The picture, or that none could be made.
         picture: SpacePicture,
+    },
+    /// The answer to a [`super::DesktopCommand::CaptureOutput`].
+    OutputPicture {
+        /// The output's name.
+        output: String,
+        /// The picture, or that none could be made.
+        picture: OutputPicture,
     },
     /// The kill chord was pressed.
     Killed,

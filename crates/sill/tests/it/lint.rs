@@ -27,15 +27,15 @@ use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, CaptureSheet, ConfirmSheet, ForceQuit, HotCorners, IdleDim, Lock, Osd,
-    PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
+    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, ForceQuit, HotCorners, IdleDim, Lock,
+    Osd, PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
-    EditWidgetsLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind, OsdLink,
-    PlacementFile, PowerMenuLink, Preselect, PromptOutput, SpacesBarLink, SplitPickerLink,
+    EditWidgetsLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind,
+    OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput, SpacesBarLink, SplitPickerLink,
     SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::surface::{LockSurface, Surface};
@@ -196,6 +196,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <CaptureSheet as Surface>::NAME,
         css: sill_overlays::capture_sheet::CAPTURE_SHEET_CSS,
         states: capture_sheet_states,
+    },
+    SurfaceCase {
+        name: "eyedropper",
+        surface: <ColorSampler as Surface>::NAME,
+        css: sill_overlays::eyedropper::EYEDROPPER_CSS,
+        states: eyedropper_states,
     },
 ];
 
@@ -393,6 +399,38 @@ fn split_picker_states() -> Vec<(&'static str, String)> {
     let offered = picker.harness.html();
     assert!(offered.contains("sill-split-scrim"), "{offered}");
     vec![("hidden", hidden), ("offered", offered)]
+}
+
+/// The eyedropper with nothing asked, then over a picture of its output with the pointer on it.
+fn eyedropper_states() -> Vec<(&'static str, String)> {
+    use sill_model::capture_pick::{AskId, EyedropIn};
+    use sill_model::desktop::{OutputPicture, OutputShot};
+    let mut sampler = SurfaceHarness::<ColorSampler>::setup(EyedropperLink::new(), ()).start();
+    sampler.harness.advance(Duration::from_millis(40));
+    let hidden = sampler.harness.html();
+    let screens = vec!["DP-1".to_owned()];
+    let _asked = sampler
+        .link
+        .take(EyedropIn::Asked(Some((AskId(1), screens))));
+    let shot = OutputShot {
+        size: (192, 108),
+        rgba: vec![200_u8; 192 * 108 * 4].into(),
+        png: vec![0x89, b'P'].into(),
+    };
+    let _held = sampler.link.take(EyedropIn::Picture(
+        "DP-1".to_owned(),
+        OutputPicture::Shot(shot),
+    ));
+    sampler.harness.advance(Duration::from_millis(100));
+    let at = ds::prelude::Point {
+        x: ds::prelude::Px(400.0),
+        y: ds::prelude::Px(300.0),
+    };
+    sampler.harness.send(Input::pointer_move(at));
+    sampler.harness.advance(Duration::from_millis(100));
+    let pointed = sampler.harness.html();
+    assert!(pointed.contains("sill-eyedrop-loupe"), "{pointed}");
+    vec![("hidden", hidden), ("pointed", pointed)]
 }
 
 /// The panel hidden, then listing two apps (one hung), then asking about the hung one.
