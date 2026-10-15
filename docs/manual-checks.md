@@ -439,3 +439,21 @@ the real daemons or a real keyboard.
 
 - [ ] shell-host spike item f at a fractional output (1.5): run on casement at
   1.5x; the KWin run at 2.0 left `screen_row_equals_buffer_row` false.
+
+## casement (tty session), first-login findings 2026-10-15
+
+- [ ] **VT switch**: in the casement session press Ctrl+Alt+F3. The screen goes to VT 3 (a login
+  prompt). Switch back with Ctrl+Alt+F1 or F2 (whichever VT holds the session), and the desktop
+  returns drawn and responsive. Try it on the Keychron both with Fn held (F-row as F-keys) and in
+  its media-key mode, where plain Ctrl+Alt+F3 only works if the keyboard sends F3. The chord must not
+  reach the focused app.
+- [ ] **Multi-GPU rendering**: with the NVIDIA card driving the monitors and the AMD iGPU present,
+  windows appear on every monitor and the log has no "Failed to create EGLImage" or BAD_MATCH lines.
+  Drag a video or a game window and confirm it is smooth. If `gpu.render` is set to the iGPU's PCI
+  address, windows are expected to be blank on the NVIDIA monitors until the copy path lands (known gap,
+  FINDINGS wave-2026-10-15/session).
+- [ ] **Scroll direction**: two-finger scroll on the touchpad and the wheel on a mouse (and a
+  trackball if there is one) both move the content with the fingers or wheel the way the Mac does
+  (as on macOS with natural scrolling on). Turn "Natural scrolling"
+  off for Mouse in Settings, replug the mouse (settings apply when a device appears), and the wheel
+  reverses while the touchpad does not.
