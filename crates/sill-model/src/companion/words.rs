@@ -3,7 +3,7 @@
 
 use almanac_core::{EntryBody, TimelineEntry};
 use companion_wire::{AnswerBody, AnswerPhase, NeedsYou, RefusalWire, StepWireState};
-use docket_core::{Reveal, UndoEntry, UndoState};
+use docket_core::{DenyCode, Reveal, UndoEntry, UndoState};
 use prov::Actor;
 
 use super::emphasis::plain_of;
@@ -92,7 +92,12 @@ fn last_plain_line(answer: &AnswerFacts) -> Option<String> {
 fn refusal_words(body: &AnswerBody) -> String {
     match body {
         AnswerBody::Refused(RefusalWire::NeedsCloud(_)) => "Needs a cloud model".to_owned(),
-        AnswerBody::Refused(RefusalWire::NotAllowed(_)) => "Not allowed".to_owned(),
+        AnswerBody::Refused(RefusalWire::NotAllowed(DenyCode::Never)) => {
+            "You said never to do this".to_owned()
+        }
+        AnswerBody::Refused(RefusalWire::NotAllowed(
+            DenyCode::OutsideTask | DenyCode::NotAllowed | DenyCode::NeedsUser | DenyCode::Repeated,
+        )) => "Not allowed".to_owned(),
         AnswerBody::Refused(RefusalWire::NoWay { .. }) => "No way to do that".to_owned(),
         AnswerBody::Refused(RefusalWire::OverBudget(_)) => "Over its budget".to_owned(),
         AnswerBody::Refused(RefusalWire::Failed(why)) => why.clone(),

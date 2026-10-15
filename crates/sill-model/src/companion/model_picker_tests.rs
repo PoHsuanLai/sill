@@ -10,11 +10,11 @@ use prov::{SessionId, TaskId};
 use super::model_picker::{Picker, opens, picker_of};
 use super::*;
 
-fn task() -> TaskId {
+pub(super) fn task() -> TaskId {
     TaskId::parse("t-1").unwrap_or_else(|e| panic!("{e}"))
 }
 
-fn wire(phase: AnswerPhase, body: AnswerBody) -> AnswerWire {
+pub(super) fn wire(phase: AnswerPhase, body: AnswerBody) -> AnswerWire {
     AnswerWire {
         task: task(),
         phase,
@@ -73,7 +73,7 @@ fn effects_of(events: Vec<CompanionEvent>) -> Vec<Vec<CompanionEffect>> {
     all
 }
 
-fn held(prompt: &str, wire: AnswerWire) -> Companion {
+pub(super) fn held(prompt: &str, wire: AnswerWire) -> Companion {
     let facts = AnswerFacts {
         prompt: prompt.to_owned(),
         wire,

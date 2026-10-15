@@ -24,6 +24,8 @@ mod program_labels;
 mod progress;
 #[cfg(test)]
 mod progress_tests;
+#[cfg(test)]
+mod refusal_tests;
 mod run_state;
 mod step;
 mod summon;

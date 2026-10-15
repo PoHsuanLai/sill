@@ -9,6 +9,7 @@ use docket_core::{
 };
 use ds::components::companion::answer::footer::ServedPlaceKind;
 use ds::components::companion::answer::model::{AnswerView, Streaming};
+use ds::components::companion::answer::refused::RefusedView;
 use ds::components::companion::form::model::{FieldNeed, FormInput, FormValue};
 use ds::components::companion::plan::model::{PlanFinish, PlanPhase, PlanStepState, StopWhy};
 use ds_core::vocab::EffectMark;
@@ -414,6 +415,7 @@ fn refusal_words_total() {
         CallRefusal::Denied(DenyCode::NotAllowed),
         CallRefusal::Denied(DenyCode::NeedsUser),
         CallRefusal::Denied(DenyCode::Repeated),
+        CallRefusal::Denied(DenyCode::Never),
         CallRefusal::Unconfirmed(ConfirmEnd::Refused),
         CallRefusal::Unconfirmed(ConfirmEnd::Dismissed),
         CallRefusal::Unconfirmed(ConfirmEnd::Expired),
@@ -497,6 +499,55 @@ fn a_refusal_that_needs_the_cloud_offers_allow_once() {
     };
     assert_eq!(refused.actions.len(), 1);
     assert_eq!(refused.actions[0].label, "Allow Once…");
+}
+
+#[test]
+fn a_denied_call_is_worded_by_why_it_was_denied() {
+    let cases = [
+        ("never", DenyCode::Never, "You said never to do this."),
+        (
+            "outside the task",
+            DenyCode::OutsideTask,
+            "Not allowed (outside what you asked).",
+        ),
+        (
+            "not for an assistant",
+            DenyCode::NotAllowed,
+            "Not allowed (not for an assistant to do).",
+        ),
+        (
+            "needs the person",
+            DenyCode::NeedsUser,
+            "Not allowed (needs you).",
+        ),
+        (
+            "refused before",
+            DenyCode::Repeated,
+            "Not allowed (refused before).",
+        ),
+    ];
+    let zone = TimeZone::UTC;
+    let cx = cx(&zone, &none);
+    for (name, code, want) in cases {
+        let body = AnswerBody::Refused(RefusalWire::NotAllowed(code));
+        let AnswerView::Refused(refused) =
+            answer_view(&answer(AnswerPhase::Failed, body), "ask", &cx)
+        else {
+            panic!("{name}: a refusal");
+        };
+        assert_eq!(
+            refused.why,
+            RefusedView::NotAllowed {
+                what: want.to_owned()
+            },
+            "{name}"
+        );
+        assert_eq!(
+            refusal_words(&docket_core::CallRefusal::Denied(code)),
+            want,
+            "{name}"
+        );
+    }
 }
 
 #[test]

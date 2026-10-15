@@ -10,7 +10,7 @@ use super::ViewCx;
 pub fn refusal_words(refusal: &CallRefusal) -> String {
     match refusal {
         CallRefusal::App(_) => "The app said no.".to_owned(),
-        CallRefusal::Denied(code) => format!("Not allowed ({}).", deny_words(code)),
+        CallRefusal::Denied(code) => denied_words(*code),
         CallRefusal::Unconfirmed(end) => match end {
             ConfirmEnd::Refused => "You said no.".to_owned(),
             ConfirmEnd::Dismissed => "It was dismissed.".to_owned(),
@@ -28,13 +28,16 @@ pub fn refusal_words(refusal: &CallRefusal) -> String {
     }
 }
 
-fn deny_words(code: &DenyCode) -> &'static str {
-    match code {
+/// A denial in a sentence: a "never" the person set says so; the others say what kind of no it is.
+fn denied_words(code: DenyCode) -> String {
+    let kind = match code {
+        DenyCode::Never => return "You said never to do this.".to_owned(),
         DenyCode::OutsideTask => "outside what you asked",
         DenyCode::NotAllowed => "not for an assistant to do",
         DenyCode::NeedsUser => "needs you",
         DenyCode::Repeated => "refused before",
-    }
+    };
+    format!("Not allowed ({kind}).")
 }
 
 fn budget_words(kind: BudgetKind) -> &'static str {
