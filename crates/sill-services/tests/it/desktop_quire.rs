@@ -14,6 +14,7 @@ use casement_protocols::vocab::{
     PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide, Toggle,
     WindowEntry, WindowStateKind,
 };
+use desktop_client::capture::{CaptureEvent, ShmFormat};
 use desktop_client::fake::FakeDesktop;
 use desktop_client::quire::{
     AppChange, AppEvent, MenuSource, QuireEvent, ShellEvent, SpaceChange, SpaceEvent, SpacePlace,
@@ -24,9 +25,10 @@ use desktop_client::workspace::{
     GroupChange, WorkspaceAbility, WorkspaceChange, WorkspaceEvent, WorkspaceFlag,
 };
 use desktop_client::{
-    AppId, AppKey, CommandError, DesktopCommand as Wire, DesktopConfig, DesktopEvent, GroupKey,
-    OutputName, Point, Protocol, ProtocolSet, Rect, SpaceId as WireSpaceId, SpaceKey, SurfaceKey,
-    ToplevelIdentifier, ToplevelKey, WorkspaceKey,
+    AppId, AppKey, CaptureRequest, CommandError, DesktopCommand as Wire, DesktopConfig,
+    DesktopEvent, GroupKey, OutputName, Point, Protocol, ProtocolSet, Rect, Size,
+    SpaceId as WireSpaceId, SpaceKey, SpaceTarget, SurfaceKey, ToplevelIdentifier, ToplevelKey,
+    WorkspaceKey,
 };
 use porter_core::SpaceId;
 use sill_model::desktop::{DesktopCommand, OverviewNote, ShellNote, SpacePlaceView, SwitcherNote};
@@ -385,6 +387,20 @@ fn the_shells_commands_become_quire_requests() {
                 share: 400,
             }],
         ),
+        (
+            "set the Space drop targets",
+            DesktopCommand::SetSpaceTargets {
+                output: "DP-1".to_owned(),
+                targets: vec![(space_id("two"), (10, 12, 160, 100))],
+            },
+            vec![Wire::SetSpaceTargets {
+                output: OutputName::new("DP-1"),
+                targets: vec![SpaceTarget::new(
+                    WireSpaceId::new("two"),
+                    Rect::new(10, 12, 160, 100),
+                )],
+            }],
+        ),
     ];
     for (name, command, want) in cases {
         assert_eq!(sent(&mut arm, command), want, "{name}");
@@ -522,6 +538,18 @@ fn the_shell_protocols_events_become_notes_in_order() {
             },
             ShellEvent::SplitCandidate(ToplevelIdentifier::new("id-2")),
             ShellEvent::SplitChoiceEnd(ToplevelIdentifier::new("id-1")),
+            ShellEvent::OverviewOutput {
+                output: OutputName::new("DP-1"),
+                shown: Shown::Shown,
+            },
+            ShellEvent::DropTarget {
+                output: OutputName::new("DP-1"),
+                space: Some(WireSpaceId::new("two")),
+            },
+            ShellEvent::DropTarget {
+                output: OutputName::new("DP-1"),
+                space: None,
+            },
             ShellEvent::Killed,
         ],
     );
@@ -565,6 +593,18 @@ fn the_shell_protocols_events_become_notes_in_order() {
             },
             ShellNote::SplitCandidate("id-2".to_owned()),
             ShellNote::SplitChoiceEnd("id-1".to_owned()),
+            ShellNote::OverviewOutput {
+                output: "DP-1".to_owned(),
+                shown: Shown::Shown
+            },
+            ShellNote::DropTarget {
+                output: "DP-1".to_owned(),
+                space: Some(space_id("two"))
+            },
+            ShellNote::DropTarget {
+                output: "DP-1".to_owned(),
+                space: None
+            },
             ShellNote::Killed,
         ],
         "the layout's slot is state, not a note"
@@ -677,4 +717,82 @@ async fn the_compositor_on_the_bus_hands_the_shell_a_connected_socket() {
     let mut byte = [0u8; 1];
     ours.read_exact(&mut byte).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(&byte, b"y");
+}
+
+/// A shell arm whose compositor also offers the standard capture protocol.
+fn capture_arm() -> QuireArm<FakeDesktop, Vec<ShellNote>> {
+    let offer = quire_offer().with(Protocol::ExtImageCopyCapture);
+    let desktop = FakeDesktop::with_config(offer, DesktopConfig::holding_shell());
+    QuireArm::new(desktop, Vec::new())
+}
+
+#[test]
+fn a_picture_of_a_space_is_asked_for_by_output_and_comes_back_as_a_png_note() {
+    use desktop_client::capture::CapturePhase;
+    let mut arm = capture_arm();
+    arm.execute(&DesktopCommand::CaptureSpace {
+        output: "DP-1".to_owned(),
+        space: space_id("two"),
+        size: (320, 200),
+    })
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        arm.desktop_mut().take_sent(),
+        [Wire::CaptureOutput(CaptureRequest::of_space(
+            OutputName::new("DP-1"),
+            WireSpaceId::new("two"),
+            Size::new(320, 200),
+        ))]
+    );
+    // Still going: nothing is said.
+    arm.pictures(|_, _| None);
+    assert!(arm.sink().is_empty());
+    // Finished: one note, once.
+    let mut finished = |arm: &mut QuireArm<FakeDesktop, Vec<ShellNote>>| {
+        arm.pictures(|desktop, id| {
+            finish_capture_in(desktop, id);
+            match desktop.state().captures.get(id).map(|s| s.phase.clone()) {
+                Some(CapturePhase::Ready(frame)) => Some(Ok(frame)),
+                _ => None,
+            }
+        });
+    };
+    finished(&mut arm);
+    finished(&mut arm);
+    let [
+        ShellNote::SpacePicture {
+            output,
+            space,
+            picture,
+        },
+    ] = arm.sink().as_slice()
+    else {
+        panic!("one picture note: {:?}", arm.sink());
+    };
+    assert_eq!((output.as_str(), space), ("DP-1", &space_id("two")));
+    let sill_model::desktop::SpacePicture::Png(bytes) = picture else {
+        panic!("a PNG: {picture:?}");
+    };
+    let decoded = image::load_from_memory(bytes)
+        .unwrap_or_else(|e| panic!("{e}"))
+        .to_rgba8();
+    assert_eq!((decoded.width(), decoded.height()), (2, 1));
+    assert_eq!(decoded.get_pixel(0, 0).0, [255, 0, 0, 255]);
+}
+
+/// [`finish_capture`] on a bare desktop.
+fn finish_capture_in(desktop: &mut FakeDesktop, id: desktop_client::CaptureId) {
+    let pixel = [[0_u8, 0, 255, 255], [255, 0, 0, 255]].concat();
+    for event in [
+        CaptureEvent::BufferSize(Size::new(2, 1)),
+        CaptureEvent::Format(ShmFormat::ARGB8888),
+        CaptureEvent::ConstraintsDone,
+        CaptureEvent::Ready {
+            stride: 8,
+            pixels: pixel,
+        },
+    ] {
+        desktop.script(DesktopEvent::Capture { id, event });
+    }
+    desktop.advance_all();
 }

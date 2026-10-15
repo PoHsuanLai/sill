@@ -95,7 +95,9 @@ pub fn wire_of(command: &DesktopCommand, state: &DesktopState) -> Result<Vec<Wir
         | DesktopCommand::PickWindowMenu(..)
         | DesktopCommand::PickSplit(_)
         | DesktopCommand::CancelSplit
-        | DesktopCommand::DivideSplit(..) => Err(Refusal::Unsupported),
+        | DesktopCommand::DivideSplit(..)
+        | DesktopCommand::CaptureSpace { .. }
+        | DesktopCommand::SetSpaceTargets { .. } => Err(Refusal::Unsupported),
     }
 }
 

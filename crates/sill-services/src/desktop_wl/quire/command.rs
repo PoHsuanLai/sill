@@ -3,8 +3,8 @@
 use casement_protocols::vocab::ShellRole;
 use desktop_client::toplevel::ToplevelFlag;
 use desktop_client::{
-    AppId, AppKey, DesktopCommand as Wire, DesktopState, OutputName, Rect, SpaceId as WireSpaceId,
-    SpaceKey, ToplevelIdentifier, ToplevelKey,
+    AppId, AppKey, CaptureRequest, DesktopCommand as Wire, DesktopState, OutputName, Rect, Size,
+    SpaceId as WireSpaceId, SpaceKey, SpaceTarget, ToplevelIdentifier, ToplevelKey,
 };
 use porter_core::SpaceId;
 use sill_model::desktop::DesktopCommand;
@@ -97,6 +97,24 @@ pub fn quire_wire_of(
         DesktopCommand::DivideSplit(id, share) => one(Wire::DivideSplit {
             window: ToplevelIdentifier::new(id.as_str()),
             share: *share,
+        }),
+        DesktopCommand::CaptureSpace {
+            output,
+            space,
+            size: (w, h),
+        } => one(Wire::CaptureOutput(CaptureRequest::of_space(
+            OutputName::new(output.as_str()),
+            WireSpaceId::new(space.as_str()),
+            Size::new(*w, *h),
+        ))),
+        DesktopCommand::SetSpaceTargets { output, targets } => one(Wire::SetSpaceTargets {
+            output: OutputName::new(output.as_str()),
+            targets: targets
+                .iter()
+                .map(|(space, (x, y, w, h))| {
+                    SpaceTarget::new(WireSpaceId::new(space.as_str()), Rect::new(*x, *y, *w, *h))
+                })
+                .collect(),
         }),
     }
 }

@@ -1,6 +1,7 @@
 //! The shell protocol's events as [`ShellNote`]s.
 
 use desktop_client::quire::ShellEvent;
+use porter_core::SpaceId;
 use sill_model::desktop::{OverviewNote, ShellNote, SwitcherNote};
 
 /// `event` in the shell's words. `None` for what is state the desktop client keeps and a
@@ -55,6 +56,17 @@ pub fn note_of(event: &ShellEvent) -> Option<ShellNote> {
         },
         ShellEvent::SplitCandidate(window) => ShellNote::SplitCandidate(window.as_str().to_owned()),
         ShellEvent::SplitChoiceEnd(first) => ShellNote::SplitChoiceEnd(first.as_str().to_owned()),
+        ShellEvent::OverviewOutput { output, shown } => ShellNote::OverviewOutput {
+            output: output.as_str().to_owned(),
+            shown: *shown,
+        },
+        ShellEvent::DropTarget { output, space } => ShellNote::DropTarget {
+            output: output.as_str().to_owned(),
+            space: match space {
+                Some(space) => Some(SpaceId::parse(space.as_str()).ok()?),
+                None => None,
+            },
+        },
         ShellEvent::Killed => ShellNote::Killed,
         // Slots are collected into the overview's layout until `OverviewDone`.
         _ => return None,
