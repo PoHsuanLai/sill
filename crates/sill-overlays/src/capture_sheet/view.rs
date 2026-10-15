@@ -22,7 +22,7 @@ use ds::components::overlays::sheet_width::SheetWidth;
 use ds::focus::soon::focus_soon;
 use ds::prelude::*;
 use ds::root::common::Common;
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, use_watch};
 use sill_model::capture_pick::{
     Asking, Outcome, Picks, Plurality, Pointer, Source, Tab, can_allow, plan, toggle,
 };
@@ -32,10 +32,10 @@ use super::CAPTURE_SHEET_CSS;
 use super::io::use_end;
 use super::layer::PANEL_ID;
 use super::rows::{byline_of, empty_words, key_of, pointer_words, rows_of, source_of, tab_words};
-use super::stage::{Mapped, Stage, StageIn, advance};
 use sill_ui_kit::hooks::use_service_part;
 use sill_ui_kit::links::BannerLink;
 use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
 pub(super) fn capture_sheet(output: OutputInfo) -> Element {
     let stage = use_stage(output.clone());
@@ -61,7 +61,7 @@ const CANCEL_ID: &str = "capture-cancel";
 
 /// One request's sheet and what the person has picked on it.
 #[component]
-fn SheetCard(asking: Asking, shown: Shown, stage: Signal<Stage>) -> Element {
+fn SheetCard(asking: Asking, shown: Shown, stage: Signal<SheetStage<Asking>>) -> Element {
     let candidates = use_service_part::<CaptureService, _>(|picker| picker.candidates.clone());
     let end = use_end(asking.id);
     let ask = asking.ask.clone();
@@ -231,46 +231,17 @@ fn SheetCard(asking: Asking, shown: Shown, stage: Signal<Stage>) -> Element {
     }
 }
 
-fn settle(mut stage: Signal<Stage>) {
-    let next = advance(stage.peek().clone(), StageIn::Settled);
-    if *stage.peek() != next {
-        stage.set(next);
-    }
-}
-
-/// The stage on `output`, following the request and the banners' output, and the surface's
-/// mapping following the stage. Nothing to map without a host (a test, an SSR render).
-fn use_stage(output: OutputInfo) -> Signal<Stage> {
+/// The stage on `output`, following the request and the banners' output.
+fn use_stage(output: OutputInfo) -> Signal<SheetStage<Asking>> {
     let asking = use_service_part::<CaptureService, _>(|picker| picker.asking.clone());
     let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
     let shows = use_watch(link.subscribe());
-    let mut stage = use_signal(Stage::default);
-    use_effect(move || {
+    use_sheet_stage(move || {
         let current = asking();
-        let wanted = shows
+        shows
             .read()
             .shows_on(output.id)
             .then_some(current)
-            .flatten();
-        let next = advance(stage.peek().clone(), StageIn::Want(wanted));
-        if *stage.peek() != next {
-            stage.set(next);
-        }
-    });
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Mapped::No));
-    use_effect(move || {
-        let mapped = stage.read().mapped();
-        if *applied.peek() == mapped {
-            return;
-        }
-        applied.set(mapped);
-        if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match mapped {
-                Mapped::Yes => Visibility::Shown,
-                Mapped::No => Visibility::Hidden,
-            }));
-        }
-    });
-    stage
+            .flatten()
+    })
 }

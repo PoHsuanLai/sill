@@ -19,7 +19,7 @@ use ds::focus::soon::focus_soon;
 use ds::machine::MachineRef;
 use ds::prelude::*;
 use ds::root::common::Common;
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, use_watch};
 use sill_model::intents::sheet::{SheetChoice, SheetFact, SheetView, sheet_view};
 use sill_model::intents::{ConfirmOffer, Gesture};
 use sill_services::IntentsService;
@@ -28,10 +28,10 @@ use super::CONFIRM_SHEET_CSS;
 use super::gate::{AnswerGate, GateIn};
 use super::io::use_gate;
 use super::layer::PANEL_ID;
-use super::stage::{Mapped, Stage, StageIn, advance};
 use sill_ui_kit::hooks::use_service_part;
 use sill_ui_kit::links::BannerLink;
 use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
 pub(super) fn confirm_sheet(output: OutputInfo) -> Element {
     let stage = use_stage(output.clone());
@@ -51,7 +51,7 @@ pub(super) fn confirm_sheet(output: OutputInfo) -> Element {
 
 /// One question's sheet and its gate.
 #[component]
-fn SheetCard(view: SheetView, shown: Shown, stage: Signal<Stage>) -> Element {
+fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>) -> Element {
     let gate = use_gate(view.id.clone());
     let state = gate.state();
     let mut focus_target = use_signal(|| None::<std::rc::Rc<MountedData>>);
@@ -274,46 +274,17 @@ fn waiting_words(count: usize) -> String {
     }
 }
 
-fn settle(mut stage: Signal<Stage>) {
-    let next = advance(stage.peek().clone(), StageIn::Settled);
-    if *stage.peek() != next {
-        stage.set(next);
-    }
-}
-
-/// The stage on `output`, following the queue and the banners' output, and the surface's mapping
-/// following the stage. Nothing to map without a host (a test, an SSR render).
-fn use_stage(output: OutputInfo) -> Signal<Stage> {
+/// The stage on `output`, following the queue and the banners' output.
+fn use_stage(output: OutputInfo) -> Signal<SheetStage<SheetView>> {
     let sheets = use_service_part::<IntentsService, _>(|intents| sheet_view(&intents.sheets));
     let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
     let shows = use_watch(link.subscribe());
-    let mut stage = use_signal(Stage::default);
-    use_effect(move || {
+    use_sheet_stage(move || {
         let current = sheets();
-        let wanted = shows
+        shows
             .read()
             .shows_on(output.id)
             .then_some(current)
-            .flatten();
-        let next = advance(stage.peek().clone(), StageIn::Want(wanted));
-        if *stage.peek() != next {
-            stage.set(next);
-        }
-    });
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Mapped::No));
-    use_effect(move || {
-        let mapped = stage.read().mapped();
-        if *applied.peek() == mapped {
-            return;
-        }
-        applied.set(mapped);
-        if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match mapped {
-                Mapped::Yes => Visibility::Shown,
-                Mapped::No => Visibility::Hidden,
-            }));
-        }
-    });
-    stage
+            .flatten()
+    })
 }

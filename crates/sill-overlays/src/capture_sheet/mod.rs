@@ -16,10 +16,7 @@
 mod io;
 mod layer;
 mod rows;
-mod stage;
 mod surface;
-#[cfg(test)]
-mod tests;
 mod view;
 
 pub use surface::CaptureSheet;

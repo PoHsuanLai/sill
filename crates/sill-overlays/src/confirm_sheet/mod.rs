@@ -19,7 +19,6 @@
 mod gate;
 mod io;
 mod layer;
-mod stage;
 mod surface;
 #[cfg(test)]
 mod tests;
