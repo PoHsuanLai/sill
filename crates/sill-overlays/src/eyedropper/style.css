@@ -1,0 +1,8 @@
+/* The eyedropper. A still picture of the output with a round magnifier over it; the magnifier's
+   size and place are set per frame from the pointer. Tokens only. */
+
+.sill-eyedrop{ position:relative; width:100vw; height:100vh; overflow:hidden; outline:none; cursor:none; }
+.sill-eyedrop-still{ position:absolute; top:0; left:0; display:block; width:100%; height:100%; }
+.sill-eyedrop-loupe{ position:absolute; overflow:hidden; border-radius:var(--r-pill); box-shadow:0 0 0 var(--hair) var(--paper), var(--shadow-window); pointer-events:none; animation:fade var(--t-quick) var(--e-out); }
+.sill-eyedrop-zoom{ position:absolute; display:block; max-width:none; image-rendering:pixelated; }
+.sill-eyedrop-cell{ position:absolute; box-sizing:border-box; border:var(--hair) solid var(--ink); box-shadow:0 0 0 var(--hair) var(--paper); }

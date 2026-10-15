@@ -96,6 +96,13 @@ pub enum DesktopCommand {
         /// The picture's size in device pixels.
         size: (u32, u32),
     },
+    /// Ask for a picture of the whole of the output called `output` as it is shown now, at its
+    /// own pixel size, without the pointer; the desktop answers with
+    /// [`super::ShellNote::OutputPicture`].
+    CaptureOutput {
+        /// The output's name.
+        output: String,
+    },
     /// Replace the places on `output` a window dragged in Mission Control can be dropped on to
     /// move it to a Space, in the desktop's logical pixels; later ones lie in front. An empty set
     /// clears them.

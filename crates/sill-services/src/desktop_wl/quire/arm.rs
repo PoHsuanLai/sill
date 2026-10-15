@@ -11,11 +11,11 @@ use desktop_client::{
     CaptureId, Desktop, DesktopCommand as Wire, DesktopEvent, Frame, SurfaceKey, Ticket,
 };
 use porter_core::SpaceId;
-use sill_model::desktop::{DesktopCommand, DesktopView, ShellNote, SpacePicture};
+use sill_model::desktop::{DesktopCommand, DesktopView, OutputPicture, ShellNote, SpacePicture};
 
 use super::command::quire_wire_of;
 use super::notes::note_of;
-use super::pictures::picture_of;
+use super::pictures::{picture_of, shot_of};
 use super::surfaces::ShellSurfaces;
 use super::view::quire_view;
 use crate::desktop_wl::Refusal;
@@ -44,15 +44,23 @@ pub enum ArmError<E: std::error::Error + 'static> {
     Send(#[source] E),
 }
 
+/// A picture asked for and not yet taken.
+#[derive(Debug)]
+enum Pending {
+    /// A Space of an output.
+    Space(String, SpaceId),
+    /// A whole output, as it is shown.
+    Output(String),
+}
+
 /// The Quire arm: a [`Desktop`], where its notes go and the surfaces registered with it.
 #[derive(Debug)]
 pub struct QuireArm<D, S> {
     desktop: D,
     sink: S,
     surfaces: ShellSurfaces,
-    /// The pictures of Spaces asked for and not yet taken, by capture, with the output and Space
-    /// each is of.
-    pending: BTreeMap<CaptureId, (String, SpaceId)>,
+    /// The pictures asked for and not yet taken, by capture, with what each is of.
+    pending: BTreeMap<CaptureId, Pending>,
 }
 
 impl<D: Desktop, S: NoteSink> QuireArm<D, S> {
@@ -89,23 +97,44 @@ impl<D: Desktop, S: NoteSink> QuireArm<D, S> {
         quire_view(self.desktop.state())
     }
 
-    /// Carry out `command`.
+    /// Carry out `command`. A picture of an output that cannot be asked for is answered as
+    /// failed at once, so whoever waits for it is not left waiting.
     pub fn execute(&mut self, command: &DesktopCommand) -> Result<(), Failed<D>> {
+        let sent = self.send_all(command);
+        if sent.is_err() {
+            self.refuse_picture(command);
+        }
+        sent
+    }
+
+    fn send_all(&mut self, command: &DesktopCommand) -> Result<(), Failed<D>> {
         let requests = quire_wire_of(command, self.desktop.state(), &self.surfaces)?;
         for request in requests {
             let ticket = self.desktop.send(request).map_err(ArmError::Send)?;
-            if let (Ticket::Capture(id), DesktopCommand::CaptureSpace { output, space, .. }) =
-                (ticket, command)
+            if let Ticket::Capture(id) = ticket
+                && let Some(pending) = pending_of(command)
             {
-                self.pending.insert(id, (output.clone(), space.clone()));
+                self.pending.insert(id, pending);
             }
         }
         Ok(())
     }
 
-    /// Hand the sink a [`ShellNote::SpacePicture`] for each asked-for picture that is finished.
-    /// `take` takes a finished capture out of the desktop (the wire client has a method for it,
-    /// the trait has none) and says nothing while it is still going.
+    /// Say that the picture `command` asked for will not come.
+    fn refuse_picture(&mut self, command: &DesktopCommand) {
+        match pending_of(command) {
+            Some(Pending::Output(output)) => self.sink.note(ShellNote::OutputPicture {
+                output,
+                picture: OutputPicture::Failed,
+            }),
+            Some(Pending::Space(..)) | None => {}
+        }
+    }
+
+    /// Hand the sink a [`ShellNote::SpacePicture`] or [`ShellNote::OutputPicture`] for each
+    /// asked-for picture that is finished. `take` takes a finished capture out of the desktop
+    /// (the wire client has a method for it, the trait has none) and says nothing while it is
+    /// still going.
     pub fn pictures(
         &mut self,
         mut take: impl FnMut(&mut D, CaptureId) -> Option<Result<Frame, CaptureFailure>>,
@@ -115,15 +144,21 @@ impl<D: Desktop, S: NoteSink> QuireArm<D, S> {
             let Some(done) = take(&mut self.desktop, id) else {
                 continue;
             };
-            let Some((output, space)) = self.pending.remove(&id) else {
+            let Some(pending) = self.pending.remove(&id) else {
                 continue;
             };
-            let picture = done.map_or(SpacePicture::Failed, |frame| picture_of(&frame));
-            self.sink.note(ShellNote::SpacePicture {
-                output,
-                space,
-                picture,
-            });
+            let note = match pending {
+                Pending::Space(output, space) => ShellNote::SpacePicture {
+                    output,
+                    space,
+                    picture: done.map_or(SpacePicture::Failed, |frame| picture_of(&frame)),
+                },
+                Pending::Output(output) => ShellNote::OutputPicture {
+                    output,
+                    picture: done.map_or(OutputPicture::Failed, |frame| shot_of(&frame)),
+                },
+            };
+            self.sink.note(note);
         }
     }
 
@@ -140,6 +175,17 @@ impl<D: Desktop, S: NoteSink> QuireArm<D, S> {
             .map_err(ArmError::Send)?;
         self.surfaces.add(role, output, key);
         Ok(())
+    }
+}
+
+/// What `command` asks a picture of, if it asks for one.
+fn pending_of(command: &DesktopCommand) -> Option<Pending> {
+    match command {
+        DesktopCommand::CaptureSpace { output, space, .. } => {
+            Some(Pending::Space(output.clone(), space.clone()))
+        }
+        DesktopCommand::CaptureOutput { output } => Some(Pending::Output(output.clone())),
+        _ => None,
     }
 }
 

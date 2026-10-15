@@ -1,6 +1,7 @@
 mod ask;
 mod color;
 mod desktop;
+mod eyedrop;
 mod reply;
 mod step;
 

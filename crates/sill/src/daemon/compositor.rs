@@ -224,6 +224,11 @@ pub fn apply(shell: &Shell, note: ShellNote) {
         | ShellNote::SpacePicture { .. }) => {
             crate::spaces_bar::apply_note(&shell.links.spaces_bar, &bar);
         }
+        picture @ ShellNote::OutputPicture { .. } => crate::eyedropper::apply_note(
+            &shell.links.eyedropper,
+            &shell.services.capture.control,
+            picture,
+        ),
         ShellNote::Reveal { .. } => edge_reveal(),
         ShellNote::MenuFlash { .. } => menu_flash(),
         ShellNote::Bell(_) => bell(),
