@@ -265,7 +265,10 @@ mod tests {
     use sill_model::night_shift::{Manual, MinuteOfDay, NightLight, Schedule, UnixSeconds, Warmth};
     use sill_testkit::TempDir;
 
-    use super::{SETTINGS, read_light, read_manual, write_light, write_manual};
+    use super::{
+        SETTINGS, Skipping, read_light, read_manual, skip_list, write_light, write_manual,
+        write_skip,
+    };
 
     fn warm() -> NightLight {
         NightLight {
