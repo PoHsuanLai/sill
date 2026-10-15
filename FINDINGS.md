@@ -974,3 +974,21 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
   "Shown", "By the App") are first drafts. The capture sheet is phase A like the other sheets
   (a layer surface, not unforgeable).
 
+
+## winwire: a window's menu (the green light)
+
+- **The route.** casement sends `quire_shell_v1.window_menu(toplevel, x, y, enabled)` when the pointer rests on a
+  window's green light; `desktop-client` folds it into `ShellEvent::WindowMenu`; `sill-services` `note_of` makes
+  `ShellNote::WindowMenu { window, at, enabled }`; `daemon::compositor::apply` opens it on
+  `Links::window_menu` (`WindowMenuLink`); each output's `sill_overlays::WindowMenu` surface (Overlay, whole
+  output, empty input region, draws nothing) opens quire's `Menu` as a context popup (`context_menu_popup`,
+  `PopupConfig` of the desktop menu) when the point is on its output. A pick is written back to the link,
+  `window_menu::spawn_picks` sends `DesktopCommand::PickWindowMenu(window, entry)` to the arm, and the Quire arm sends
+  `window_menu_pick`. A dismissal sends nothing.
+- **Dimmed, not hidden.** quire's context menu leaves unavailable entries out unless asked; `MenuModel::unavailable()`
+  (default `Hide`) lets this menu ask for `Dim`, so the menu is always the same set of entries.
+- **Submenus are quire's own** ("Move & Resize", "Full Screen Tile"); no section headers were needed.
+- **Open, only a real run proves:** the popup is opened by a hover, not by a press on the shell's own surface, so it
+  has no input serial. If casement refuses or immediately dismisses the grab, give the popup `PopupGrab::Ungrabbed`
+  and close it on the next pointer press outside (the compositor knows the press; add a `window_menu_close` event).
+  The menu opens `Full Screen Tile` entries dimmed until casement has a Split View command.

@@ -31,6 +31,9 @@ pub enum ShellMsg {
     Note(sill_model::desktop::ShellNote),
     /// Where the docks' icons rest now (`targets::forward` sends it).
     DockRects(sill_model::desktop::target::OutputRects),
+    /// A command for the compositor's arm (`crate::window_menu::spawn_picks` sends a pick of a
+    /// window's menu).
+    Command(sill_model::desktop::DesktopCommand),
     /// The desktop as the compositor's arm sees it now (`targets::forward` sends it).
     Desktop(Box<sill_model::desktop::DesktopView>),
 }

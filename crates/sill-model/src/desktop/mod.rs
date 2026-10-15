@@ -15,7 +15,7 @@ mod target_tests;
 mod tests;
 
 pub use backend::{DesktopBackend, GlobalOffer};
-pub use casement_protocols::vocab::{Corner, KeyGesture, ShellRole};
+pub use casement_protocols::vocab::{Corner, KeyGesture, ShellRole, WindowEntry, WireCode};
 pub use command::{DesktopCommand, Supports, supports};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};
 pub use note::{OverviewNote, ShellNote, SwitcherNote};

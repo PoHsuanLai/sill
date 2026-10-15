@@ -14,7 +14,7 @@ use sill_services::env::Env;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     BannerLink, CenterLink, ControlCenterLink, CornerLink, EditWidgetsLink, LauncherLink, Links,
-    LockLink, OsdLink, PlacementFile, PowerMenuLink, SwitcherLink,
+    LockLink, OsdLink, PlacementFile, PowerMenuLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
@@ -170,6 +170,7 @@ fn build_links(
         corners: CornerLink::new(),
         switcher: SwitcherLink::new(),
         lock: LockLink::new(),
+        window_menu: WindowMenuLink::new(),
         edit_widgets: EditWidgetsLink::new()
             .with_places(places.clone())
             .with_writer(crate::edit_widgets::writer(
@@ -195,6 +196,7 @@ fn spawn_followers(
     crate::idle_dim::spawn_follower(runtime.handle(), services, host.clone());
     settings::spawn_watch(runtime, store, host.clone());
     settings::spawn_user_style_watch(runtime, store, host.clone());
+    crate::window_menu::spawn_picks(runtime.handle(), links, host.clone());
     crate::corners::spawn_hits(
         runtime.handle(),
         links.clone(),

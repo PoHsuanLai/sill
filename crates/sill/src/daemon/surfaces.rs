@@ -13,7 +13,7 @@ use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
     AccountsSheet, CaptureSheet, ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt,
-    PowerMenu, Switcher, VoiceConsentSheet, Wallpaper,
+    PowerMenu, Switcher, VoiceConsentSheet, Wallpaper, WindowMenu,
 };
 use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
@@ -73,6 +73,9 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<DesktopWidgets>(ctx, outputs, spawn, &PlacementFile::in_dirs(&services.dirs));
     spawn_surface::<EditWidgets>(ctx, outputs, spawn, &links.edit_widgets);
     spawn_surface::<HotCorners>(ctx, outputs, spawn, &links.corners);
+    // The window menu's transparent parent (Overlay, takes no input): the popup the green light
+    // opens hangs from it.
+    spawn_surface::<WindowMenu>(ctx, outputs, spawn, &links.window_menu);
     spawn_surface::<Osd>(ctx, outputs, spawn, &links.osd);
     spawn_surface::<IdleDim>(ctx, outputs, spawn, &());
     // A surface spawned while the service dims is mapped at once.

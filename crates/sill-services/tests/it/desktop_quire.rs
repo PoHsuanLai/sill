@@ -11,7 +11,8 @@ use std::sync::{Arc, Mutex};
 
 use casement_protocols::vocab::{
     ActorKind, AppLifeKind, Corner, Emphasis, KeyGesture, MacMods, OverviewMode, OverviewState,
-    PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, Toggle, WindowStateKind,
+    PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, Toggle, WindowEntry,
+    WindowStateKind,
 };
 use desktop_client::fake::FakeDesktop;
 use desktop_client::quire::{
@@ -24,7 +25,7 @@ use desktop_client::workspace::{
 };
 use desktop_client::{
     AppId, AppKey, CommandError, DesktopCommand as Wire, DesktopConfig, DesktopEvent, GroupKey,
-    OutputName, Protocol, ProtocolSet, Rect, SpaceId as WireSpaceId, SpaceKey, SurfaceKey,
+    OutputName, Point, Protocol, ProtocolSet, Rect, SpaceId as WireSpaceId, SpaceKey, SurfaceKey,
     ToplevelIdentifier, ToplevelKey, WorkspaceKey,
 };
 use porter_core::SpaceId;
@@ -358,6 +359,14 @@ fn the_shells_commands_become_quire_requests() {
             DesktopCommand::CancelSwitcher,
             vec![Wire::CancelSwitcher],
         ),
+        (
+            "pick Left in a window's menu",
+            DesktopCommand::PickWindowMenu("id-1".to_owned(), WindowEntry::Left),
+            vec![Wire::PickWindowMenu {
+                window: ToplevelIdentifier::new("id-1"),
+                entry: WindowEntry::Left,
+            }],
+        ),
     ];
     for (name, command, want) in cases {
         assert_eq!(sent(&mut arm, command), want, "{name}");
@@ -484,6 +493,11 @@ fn the_shell_protocols_events_become_notes_in_order() {
             },
             ShellEvent::Bell(term()),
             ShellEvent::Reopen(term()),
+            ShellEvent::WindowMenu {
+                window: ToplevelIdentifier::new("id-1"),
+                at: Point::new(40, 52),
+                enabled: 0b1100,
+            },
             ShellEvent::Killed,
         ],
     );
@@ -516,6 +530,11 @@ fn the_shell_protocols_events_become_notes_in_order() {
             },
             ShellNote::Bell("org.example.term".to_owned()),
             ShellNote::Reopen("org.example.term".to_owned()),
+            ShellNote::WindowMenu {
+                window: "id-1".to_owned(),
+                at: (40, 52),
+                enabled: 0b1100,
+            },
             ShellNote::Killed,
         ],
         "the layout's slot is state, not a note"

@@ -43,6 +43,16 @@ pub enum ShellNote {
     Bell(String),
     /// The desktop asks the dock to reopen an app that has no windows.
     Reopen(String),
+    /// The pointer rested on a window's green light: show that window's menu.
+    WindowMenu {
+        /// The window's identifier, as [`super::DesktopCommand::PickWindowMenu`] quotes it.
+        window: String,
+        /// Where the menu's top left goes, in the desktop's logical pixels.
+        at: (i32, i32),
+        /// A bit per [`casement_protocols::vocab::WindowEntry`] code, set when the entry can be
+        /// picked now; the rest are shown dimmed.
+        enabled: u32,
+    },
     /// The kill chord was pressed.
     Killed,
 }

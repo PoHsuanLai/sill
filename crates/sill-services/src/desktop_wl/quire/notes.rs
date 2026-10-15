@@ -40,6 +40,15 @@ pub fn note_of(event: &ShellEvent) -> Option<ShellNote> {
         },
         ShellEvent::Bell(app) => ShellNote::Bell(app.as_str().to_owned()),
         ShellEvent::Reopen(app) => ShellNote::Reopen(app.as_str().to_owned()),
+        ShellEvent::WindowMenu {
+            window,
+            at,
+            enabled,
+        } => ShellNote::WindowMenu {
+            window: window.as_str().to_owned(),
+            at: (at.x, at.y),
+            enabled: *enabled,
+        },
         ShellEvent::Killed => ShellNote::Killed,
         // Slots are collected into the overview's layout until `OverviewDone`.
         _ => return None,

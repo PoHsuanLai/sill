@@ -1,6 +1,6 @@
 //! What the shell asks of the desktop, and which backend can carry it.
 
-use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, Toggle};
+use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, Toggle, WindowEntry};
 use porter_core::SpaceId;
 
 use super::DesktopBackend;
@@ -74,6 +74,9 @@ pub enum DesktopCommand {
     PickSwitcher(u32),
     /// The person dismissed the switcher.
     CancelSwitcher,
+    /// The person picked an entry of a window's menu (the one the green light opens), by the
+    /// window's identifier. A dismissal sends nothing.
+    PickWindowMenu(String, WindowEntry),
 }
 
 /// Whether a backend can carry a command.

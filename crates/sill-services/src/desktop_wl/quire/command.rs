@@ -4,7 +4,7 @@ use casement_protocols::vocab::ShellRole;
 use desktop_client::toplevel::ToplevelFlag;
 use desktop_client::{
     AppId, AppKey, DesktopCommand as Wire, DesktopState, OutputName, Rect, SpaceId as WireSpaceId,
-    SpaceKey, ToplevelKey,
+    SpaceKey, ToplevelIdentifier, ToplevelKey,
 };
 use porter_core::SpaceId;
 use sill_model::desktop::DesktopCommand;
@@ -88,6 +88,10 @@ pub fn quire_wire_of(
         DesktopCommand::ShowDesktop(toggle) => one(Wire::ShowDesktop(*toggle)),
         DesktopCommand::PickSwitcher(index) => one(Wire::PickSwitcher(*index)),
         DesktopCommand::CancelSwitcher => one(Wire::CancelSwitcher),
+        DesktopCommand::PickWindowMenu(id, entry) => one(Wire::PickWindowMenu {
+            window: ToplevelIdentifier::new(id.as_str()),
+            entry: *entry,
+        }),
     }
 }
 

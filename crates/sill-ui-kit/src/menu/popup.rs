@@ -45,6 +45,7 @@ pub fn MenuPopup<Model: MenuModel>(
                     // The frame lays the card in flow: the anchor places nothing.
                     anchor: Anchor::Point(Point::default()),
                     items: model.entries(),
+                    unavailable: model.unavailable(),
                     onpick: on_pick,
                     onclose: on_close,
                 }

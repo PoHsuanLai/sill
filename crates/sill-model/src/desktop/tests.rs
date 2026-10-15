@@ -1,6 +1,6 @@
 //! The offer and the support table.
 
-use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, Toggle};
+use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, Toggle, WindowEntry};
 use porter_core::SpaceId;
 
 use super::{DesktopBackend, DesktopCommand, GlobalOffer, Supports, supports};
@@ -81,6 +81,7 @@ fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
         DesktopCommand::ShowDesktop(Toggle::On),
         DesktopCommand::PickSwitcher(2),
         DesktopCommand::CancelSwitcher,
+        DesktopCommand::PickWindowMenu(window(), WindowEntry::Left),
     ];
     for command in &commands {
         assert_eq!(supports(DesktopBackend::Quire, command), Supports::Yes);

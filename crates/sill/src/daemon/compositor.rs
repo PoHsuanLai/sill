@@ -215,6 +215,11 @@ pub fn apply(shell: &Shell, note: ShellNote) {
         ShellNote::MenuFlash { .. } => menu_flash(),
         ShellNote::Bell(_) => bell(),
         ShellNote::Reopen(_) => reopen_in_dock(),
+        ShellNote::WindowMenu {
+            window,
+            at,
+            enabled,
+        } => shell.links.window_menu.open(window, at, enabled),
     }
 }
 

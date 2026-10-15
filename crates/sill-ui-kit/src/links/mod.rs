@@ -16,6 +16,7 @@ mod places;
 mod power_menu;
 mod reveal;
 mod switcher;
+mod window_menu;
 
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
@@ -32,6 +33,7 @@ pub use places::PlacementFile;
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal};
 pub use switcher::{AskSerial, Asks, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};
+pub use window_menu::{MenuSerial, WindowMenuLink, WindowMenuOpening, WindowMenuPicked};
 
 /// The daemon's links.
 #[derive(Debug, Clone)]
@@ -53,4 +55,7 @@ pub struct Links {
     /// Edit Widgets: which output shows it (the notification center's "Edit Widgets", `sill
     /// widgets edit`), and where its changes are written and its places read.
     pub edit_widgets: EditWidgetsLink,
+    /// A window's menu (the pointer rested on its green light): the daemon opens it, the window
+    /// menu surfaces show it, and a pick goes back to the daemon.
+    pub window_menu: WindowMenuLink,
 }

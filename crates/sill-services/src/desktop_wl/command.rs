@@ -91,7 +91,8 @@ pub fn wire_of(command: &DesktopCommand, state: &DesktopState) -> Result<Vec<Wir
         | DesktopCommand::Overview { .. }
         | DesktopCommand::ShowDesktop(_)
         | DesktopCommand::PickSwitcher(_)
-        | DesktopCommand::CancelSwitcher => Err(Refusal::Unsupported),
+        | DesktopCommand::CancelSwitcher
+        | DesktopCommand::PickWindowMenu(..) => Err(Refusal::Unsupported),
     }
 }
 

@@ -11,4 +11,10 @@ pub trait MenuModel: Clone + PartialEq + 'static {
 
     /// The entries, top to bottom, each carrying its pick.
     fn entries(&self) -> Vec<MenuItem<Self::Pick>>;
+
+    /// What a context menu does with an entry that cannot be picked: leave it out (the
+    /// default) or keep it dimmed, for a menu whose entries are always the same set.
+    fn unavailable(&self) -> ContextUnavailable {
+        ContextUnavailable::Hide
+    }
 }

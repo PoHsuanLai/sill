@@ -18,5 +18,6 @@ pub mod policy;
 pub mod run_args;
 pub mod scroll;
 pub mod voice;
+pub mod window_menu;
 pub mod work_areas;
 pub mod workspace_looks;
