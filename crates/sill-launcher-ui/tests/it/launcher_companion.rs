@@ -343,3 +343,85 @@ fn a_finished_text_answer_shows_the_answer_in_its_row_and_every_line_in_the_pane
     assert!(html.contains(r#"data-tone="strong""#), "{html}");
     assert!(!html.contains("**"), "no marks show: {html}");
 }
+
+fn working(
+    phase: companion_wire::AnswerPhase,
+    said: &[&str],
+) -> sill_model::companion::AnswerFacts {
+    use companion_wire::AnswerBody;
+    let mut answer = launcher_harness::launcher_support::companion::answer(
+        "t-6",
+        "what do I know about Sam",
+        phase,
+        AnswerBody::Text { lines: Vec::new() },
+    );
+    answer.wire.progress = said.iter().map(|line| (*line).to_owned()).collect();
+    answer
+}
+
+const SAID: [&str; 5] = [
+    "one",
+    "I'll check **my memory**",
+    "three",
+    "four",
+    "Looking at your *calendar*",
+];
+
+#[test]
+fn while_working_the_row_says_the_newest_progress_and_the_pane_lists_the_newest_three() {
+    let open = open_in("", LauncherMode::Companion, |bar| {
+        bar.companion.send_replace(companion(
+            vec![working(companion_wire::AnswerPhase::Thinking, &SAID)],
+            fresh(),
+        ));
+    });
+    let h = &open.harness;
+    let html = h.html();
+    assert!(html.contains("Looking at your calendar"), "the row: {html}");
+    assert_eq!(
+        h.count(".ds-palette-aside .sill-answer-progress-line"),
+        4,
+        "three lines and the fold: {html}"
+    );
+    assert!(html.contains("+2 earlier"), "{html}");
+    assert!(!html.contains("**"), "no marks show: {html}");
+    assert_eq!(
+        h.count(".ds-palette-aside .sill-answer-progress .ds-progress"),
+        1
+    );
+}
+
+#[test]
+fn a_finished_answer_hides_the_working_out_in_the_row_and_the_pane() {
+    use companion_wire::AnswerPhase;
+    for phase in [
+        AnswerPhase::Done,
+        AnswerPhase::Failed,
+        AnswerPhase::Cancelled,
+    ] {
+        let open = open_in("", LauncherMode::Companion, |bar| {
+            bar.companion
+                .send_replace(companion(vec![working(phase.clone(), &SAID)], fresh()));
+        });
+        let h = &open.harness;
+        let html = h.html();
+        assert_eq!(h.count(".sill-answer-progress"), 0, "{phase:?}: {html}");
+        assert!(
+            !html.contains("Looking at your calendar"),
+            "{phase:?}: {html}"
+        );
+    }
+}
+
+#[test]
+fn a_working_answer_with_nothing_said_shows_the_thinking_words_and_no_list() {
+    let open = open_in("", LauncherMode::Companion, |bar| {
+        bar.companion.send_replace(companion(
+            vec![working(companion_wire::AnswerPhase::Thinking, &[])],
+            fresh(),
+        ));
+    });
+    let h = &open.harness;
+    assert!(h.html().contains("Thinking"));
+    assert_eq!(h.count(".sill-answer-progress"), 0);
+}

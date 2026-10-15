@@ -18,6 +18,9 @@ mod model;
 mod openers_tests;
 mod presence;
 mod program_labels;
+mod progress;
+#[cfg(test)]
+mod progress_tests;
 mod run_state;
 mod step;
 mod summon;
@@ -36,6 +39,7 @@ pub use model::{
 };
 pub use presence::presence_of;
 pub use program_labels::ProgramLabels;
+pub use progress::{ProgressShown, preview_progress};
 pub use run_state::{RunState, going_runs, run_controls, run_state_of};
 pub use step::{step, wake};
 pub use summon::{

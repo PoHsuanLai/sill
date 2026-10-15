@@ -9,6 +9,7 @@ use prov::Actor;
 use super::emphasis::plain_of;
 use super::model::{AnswerFacts, Busy};
 use super::program_labels::ProgramLabels;
+use super::progress::row_progress;
 
 /// The answer's row: what was asked, and where the answer stands.
 pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
@@ -24,8 +25,10 @@ pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
 /// done.
 fn standing(answer: &AnswerFacts) -> String {
     match &answer.wire.phase {
-        AnswerPhase::Thinking => "Thinking".to_owned(),
-        AnswerPhase::Streaming => last_plain_line(answer).unwrap_or_else(|| "Writing".to_owned()),
+        AnswerPhase::Thinking => row_progress(answer).unwrap_or_else(|| "Thinking".to_owned()),
+        AnswerPhase::Streaming => row_progress(answer)
+            .or_else(|| last_plain_line(answer))
+            .unwrap_or_else(|| "Writing".to_owned()),
         AnswerPhase::NeedsYou(needs) => match needs {
             NeedsYou::Confirm(_) => "Needs your confirmation".to_owned(),
             NeedsYou::Form(_) => "Needs a few details".to_owned(),

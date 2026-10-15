@@ -19,6 +19,10 @@
 /* A text answer in the pane: the question as the heading, the answer's lines under it. */
 .sill-answer-title{ margin:0 0 var(--s-8); font-size:var(--fs-control); font-weight:600; color:var(--ink); }
 .sill-answer-line{ margin:0 0 var(--s-6); font-size:var(--fs-small); color:var(--ink); }
+/* What the companion said while it worked: quiet lines in the secondary text, newest last,
+   the activity indicator under them. */
+.sill-answer-progress{ margin:var(--s-8) 0 0; }
+.sill-answer-progress-line{ margin:0 0 var(--s-4); font-size:var(--fs-caption); color:var(--ink-soft); }
 /* Result rows: quire's palette lays its rows out at `--row-settings-h` (48), a form row's. A
    command row is a Spotlight row, 38 pt, so the panel sets that one token for its subtree (the
    preview pane's rows are the only others in it). To be replaced by a palette row token in quire. */
