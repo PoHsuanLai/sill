@@ -9,6 +9,9 @@
 use casement_protocols::vocab::{
     Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown, SplitSide,
 };
+use porter_core::SpaceId;
+
+use super::SpacePicture;
 
 /// One thing the shell protocol said.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,6 +71,31 @@ pub enum ShellNote {
     /// The choosing for this first window is over (a pick, a cancel, or it left full screen):
     /// take the offer away.
     SplitChoiceEnd(String),
+    /// Mission Control is up or closed on one output: the Spaces bar is drawn on the outputs where
+    /// it is up.
+    OverviewOutput {
+        /// The output's name.
+        output: String,
+        /// Whether its Mission Control is up.
+        shown: Shown,
+    },
+    /// The window dragged in Mission Control is over the target of a Space on an output, or over
+    /// none: light that Space's tile.
+    DropTarget {
+        /// The output's name.
+        output: String,
+        /// The Space under the dragged window; `None` when over none, or the drag ended.
+        space: Option<SpaceId>,
+    },
+    /// The answer to a [`super::DesktopCommand::CaptureSpace`].
+    SpacePicture {
+        /// The output's name.
+        output: String,
+        /// The Space.
+        space: SpaceId,
+        /// The picture, or that none could be made.
+        picture: SpacePicture,
+    },
     /// The kill chord was pressed.
     Killed,
 }

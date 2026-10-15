@@ -85,6 +85,15 @@ fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
         DesktopCommand::PickSplit(window()),
         DesktopCommand::CancelSplit,
         DesktopCommand::DivideSplit(window(), 400),
+        DesktopCommand::CaptureSpace {
+            output: "DP-1".to_owned(),
+            space: space(),
+            size: (160, 100),
+        },
+        DesktopCommand::SetSpaceTargets {
+            output: "DP-1".to_owned(),
+            targets: vec![(space(), (0, 0, 160, 100))],
+        },
     ];
     for command in &commands {
         assert_eq!(supports(DesktopBackend::Quire, command), Supports::Yes);

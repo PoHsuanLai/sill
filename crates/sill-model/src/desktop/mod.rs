@@ -5,6 +5,12 @@
 //! from the wire.
 
 mod backend;
+mod bar_drops;
+mod bar_layout;
+mod bar_outputs;
+#[cfg(test)]
+mod bar_tests;
+mod bar_thumbs;
 mod command;
 mod model;
 mod note;
@@ -19,6 +25,15 @@ mod target_tests;
 mod tests;
 
 pub use backend::{DesktopBackend, GlobalOffer};
+pub use bar_drops::BarDrops;
+pub use bar_layout::{
+    BAR_EXPANDED_PX, BarLayout, BarLayouts, BarTile, THUMB_H, THUMB_W, target_commands, thumb_size,
+    tiles_of,
+};
+pub use bar_outputs::BarOutputs;
+pub use bar_thumbs::{
+    BarPicture, BarPictures, SpacePicture, ThumbAsks, ThumbRequest, thumbs_wanted,
+};
 pub use casement_protocols::vocab::{
     Corner, KeyGesture, OverviewMode, OverviewState, ShellRole, Shown, SpaceKind, SplitSide,
     WindowEntry, WireCode,
