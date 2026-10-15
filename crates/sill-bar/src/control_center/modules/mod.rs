@@ -14,6 +14,7 @@ pub(crate) mod bluetooth_ask;
 pub mod display;
 pub mod focus;
 pub mod keyboard;
+pub mod night_shift;
 pub mod now_playing;
 pub mod power_profile;
 pub mod sound;

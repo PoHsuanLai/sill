@@ -1,14 +1,15 @@
 //! The screen-sharing picker's host side on a private bus: a stand-in transom (the owner of the
 //! portal backend's name) calls `PickCaptureSource` on the connection the seat holds; the shell's
 //! own part is stepped through `Answer`. Only the portal backend may ask, and a second call while
-//! one is open is refused. A test skips, saying so, without a `dbus-daemon`. Never the person's
+//! one is open is refused. `PickColor` is the same: only the portal backend, one question at a
+//! time, an empty array while nothing draws the eyedropper, the colour once it is clicked. A test skips, saying so, without a `dbus-daemon`. Never the person's
 //! session bus.
 
 use std::time::Duration;
 
 use sill_model::capture_pick::{
-    CaptureCommand, CaptureLink, CapturePicker, Outcome, Picks, Plurality, Source, WindowCandidate,
-    plan, toggle,
+    CaptureCommand, CaptureLink, CapturePicker, ColorOutcome, Eyedropper, Outcome, Picks,
+    Plurality, Rgb8, Source, WindowCandidate, plan, toggle,
 };
 use sill_model::displays::Displays;
 use sill_services::capture_pick::{CaptureLinks, CaptureService};
@@ -37,6 +38,8 @@ trait Shell1 {
         multiple: u32,
         cursor_modes: Vec<u32>,
     ) -> zbus::Result<(Vec<(String, String)>, u32)>;
+
+    fn pick_color(&self, app_label: &str) -> zbus::Result<Vec<(f64, f64, f64)>>;
 }
 
 async fn wait_for<T>(receiver: &mut watch::Receiver<T>, want: impl Fn(&T) -> bool) -> bool {
@@ -178,4 +181,128 @@ async fn a_caller_that_is_not_the_portal_backend_is_refused_and_draws_nothing() 
             .is_err()
     );
     assert!(service.state.borrow().asking.is_none());
+}
+
+/// The service serving on a private bus, with a stand-in transom connected.
+async fn serving(
+    bus: &PrivateBus,
+    scratch: &TempDir,
+) -> (sill_services::service::Handle<CaptureService>, Connection) {
+    let env = Env::isolated(scratch.path());
+    let transom = connect(bus, Some(PORTAL)).await;
+    let shell = connect(bus, Some("org.quire.Shell")).await;
+    let (publisher, view) = seat();
+    publisher.publish(shell);
+    let (_displays_tx, displays) = watch::channel(Displays::default());
+    let mut service = spawn::<CaptureService>(
+        &tokio::runtime::Handle::current(),
+        &env,
+        CaptureLinks {
+            seat: view,
+            displays,
+        },
+    );
+    let _ = service.control.send(CaptureCommand::Serve);
+    assert!(
+        wait_for(&mut service.state, |s: &CapturePicker| s.link
+            == CaptureLink::Serving)
+        .await
+    );
+    // The object is exported a moment after the link says serving.
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    (service, transom)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_colour_request_is_cancelled_at_once_while_nothing_draws_the_eyedropper() {
+    let Some(bus) = PrivateBus::start() else {
+        eprintln!("skipped: no dbus-daemon");
+        return;
+    };
+    let scratch = TempDir::new("capture-pick-colour-absent");
+    let (service, transom) = serving(&bus, &scratch).await;
+    let proxy = Shell1Proxy::new(&transom)
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    let answer = proxy
+        .pick_color("Screenshot")
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(answer, Vec::<(f64, f64, f64)>::new());
+    assert!(service.state.borrow().color.is_none());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_colour_is_asked_one_at_a_time_and_the_click_comes_back_as_floats() {
+    let Some(bus) = PrivateBus::start() else {
+        eprintln!("skipped: no dbus-daemon");
+        return;
+    };
+    let scratch = TempDir::new("capture-pick-colour");
+    let (mut service, transom) = serving(&bus, &scratch).await;
+    let _ = service
+        .control
+        .send(CaptureCommand::Eyedropper(Eyedropper::Present));
+    let proxy = Shell1Proxy::new(&transom)
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    let first = {
+        let proxy = proxy.clone();
+        tokio::spawn(async move { proxy.pick_color("Screenshot").await })
+    };
+    assert!(
+        wait_for(&mut service.state, |s: &CapturePicker| s.color.is_some()).await,
+        "the eyedropper was not opened"
+    );
+    // One at a time, of either kind: both second calls are refused at once.
+    assert!(proxy.pick_color("Other").await.is_err());
+    assert!(
+        proxy
+            .pick_capture_source("Other", 1, 0, vec![1])
+            .await
+            .is_err()
+    );
+    let id = service
+        .state
+        .borrow()
+        .color
+        .as_ref()
+        .map(|asking| asking.id)
+        .unwrap_or_else(|| panic!("open"));
+    let _ = service.control.send(CaptureCommand::ColorAnswer(
+        id,
+        ColorOutcome::Picked(Rgb8 {
+            red: 255,
+            green: 0,
+            blue: 51,
+        }),
+    ));
+    let answer = first
+        .await
+        .unwrap_or_else(|e| panic!("{e}"))
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(answer, vec![(1.0, 0.0, 51.0 / 255.0)]);
+    assert!(
+        service.state.borrow().color.is_none(),
+        "the eyedropper is free again"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_colour_request_from_anyone_but_the_portal_backend_is_refused() {
+    let Some(bus) = PrivateBus::start() else {
+        eprintln!("skipped: no dbus-daemon");
+        return;
+    };
+    let scratch = TempDir::new("capture-pick-colour-forged");
+    let (service, _transom) = serving(&bus, &scratch).await;
+    let _ = service
+        .control
+        .send(CaptureCommand::Eyedropper(Eyedropper::Present));
+    let forger = connect(&bus, None).await;
+    let proxy = Shell1Proxy::new(&forger)
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert!(proxy.pick_color("Evil").await.is_err());
+    assert!(service.state.borrow().color.is_none());
 }

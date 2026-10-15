@@ -8,7 +8,7 @@ use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
 use sill_launcher_ui::Launcher;
 use sill_notify_ui::NotificationCenter;
-use sill_overlays::PowerMenu;
+use sill_overlays::{ForceQuit, PowerMenu};
 use sill_ui_kit::links::Preselect;
 use sill_widgets_ui::EditWidgets;
 
@@ -23,6 +23,7 @@ pub fn dispatch(reach: &Reach, request: ShowRequest) -> Response {
     match request {
         ShowRequest::Launcher(request) => launcher(reach, request),
         ShowRequest::PowerMenu(reveal) => power_menu(reach, reveal),
+        ShowRequest::ForceQuit(reveal) => force_quit(reach, reveal),
         ShowRequest::NotificationCenter(reveal) => notification_center(reach, reveal),
         ShowRequest::ControlCenter => control_center(reach),
         ShowRequest::EditWidgets(request) => edit_widgets(reach, request),
@@ -68,6 +69,35 @@ fn power_menu(reach: &Reach, reveal: Reveal) -> Response {
         (Reveal::Toggle, Some(output)) => menu.toggle(output),
         (Reveal::Open | Reveal::Toggle, None) => {
             return unsupported("no output has a power menu surface");
+        }
+    }
+    Response::Done
+}
+
+/// Force Quit Applications opens on the output of the active window when that output has the
+/// surface, else on the first that has.
+fn force_quit(reach: &Reach, reveal: Reveal) -> Response {
+    let panel = &reach.links.force_quit;
+    let focus = reach
+        .services
+        .windows
+        .state
+        .borrow()
+        .toplevels
+        .focused_output();
+    let with_surface: Vec<(OutputId, Option<String>)> = reach
+        .outputs
+        .outputs
+        .iter()
+        .filter(|(_, surfaces)| surfaces.surface_of::<ForceQuit>().is_some())
+        .map(|(info, _)| (info.id, info.name.clone()))
+        .collect();
+    match (reveal, focused_or_first(&with_surface, focus.as_ref())) {
+        (Reveal::Close, _) => panel.close(),
+        (Reveal::Open, Some(output)) => panel.open(output),
+        (Reveal::Toggle, Some(output)) => panel.toggle(output),
+        (Reveal::Open | Reveal::Toggle, None) => {
+            return unsupported("no output has a Force Quit Applications surface");
         }
     }
     Response::Done

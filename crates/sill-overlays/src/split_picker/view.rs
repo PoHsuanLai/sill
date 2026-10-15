@@ -12,44 +12,23 @@ use ds::prelude::*;
 use shell_host::OutputInfo;
 use sill_launcher::AppId;
 use sill_model::desktop::SplitCard;
-use sill_services::AppsService;
 use sill_shell_kit::prelude::*;
 use sill_shell_kit::switcher::app_switcher::AppKey;
 use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
 
 use super::io::use_picker;
 use super::model::{Step, index_of, moved, other_half};
-use sill_ui_kit::app_icons::{
-    IconContext, LogicalPx, TileIcons, icon_look, icon_side, metrics_of, use_icon_resolver,
-};
-use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
+use sill_ui_kit::app_icons::{LogicalPx, TileIcons, icon_side, metrics_of, use_tile_icons};
+use sill_ui_kit::hooks::use_settings;
 use sill_ui_kit::links::SplitPickerLink;
-use sill_ui_kit::look::use_active_look;
-use sill_ui_kit::root::{SurfaceRoot, use_host_scale};
+use sill_ui_kit::root::SurfaceRoot;
 
 /// The picker's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
 pub const SPLIT_PICKER_CSS: &str = include_str!("style.css");
 
 pub(super) fn split_picker(output: OutputInfo) -> Element {
     let file = use_settings()();
-    let environment = use_appearance()();
-    let look = use_active_look(&output);
-    let appearance = environment.settings.appearance.appearance();
-    let resolved = resolve(appearance, look.theme, environment.system);
-    let icons = TileIcons {
-        cx: IconContext {
-            look: icon_look(
-                &environment.settings.icons,
-                &look,
-                appearance.accent,
-                resolved.scheme,
-            ),
-            scale: use_host_scale(),
-            resolver: use_icon_resolver(),
-        },
-        index: use_service::<AppsService>()(),
-        side: LogicalPx(icon_side(&file.switcher).0),
-    };
+    let icons = use_tile_icons(&output, LogicalPx(icon_side(&file.switcher).0));
     let link = use_context::<SplitPickerLink>();
     let picker = use_picker(&link, &output);
     let mut selected = use_signal(|| None::<String>);

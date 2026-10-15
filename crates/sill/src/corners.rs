@@ -5,14 +5,15 @@
 //! `sill debug corner`); [`spawn_hits`] follows it and carries out [`corner_effect`] of that corner's
 //! action: the launcher, notification center and control center through their links, Lock
 //! through the locker service, Show Desktop through the toplevel
-//! manager ([`show_desktop`]), and the workspace overview and a custom command as child
-//! processes.
+//! manager ([`show_desktop`]), the workspace overview (Mission Control) as a command for the
+//! compositor's arm, and a custom command as a child process.
 
 use std::process::Stdio;
 
-use shell_host::OutputId;
+use shell_host::{HostHandle, OutputId};
 use sill_ipc::debug::CornerName;
 use sill_launcher::WindowKey;
+use sill_model::desktop::open_mission_control;
 use sill_model::ids::WorkspaceKey;
 use sill_model::locker::LockerCommand;
 use sill_model::windows::{Activity, Toplevel, WindowState, WlCommand};
@@ -21,6 +22,8 @@ use sill_ui_kit::links::{Corner, Links};
 use sill_ui_kit::services::Services;
 use tokio::runtime::Handle;
 use tokio::sync::watch;
+
+use crate::daemon::msg::ShellMsg;
 
 /// What a corner's action does, resolved from the settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,6 +34,8 @@ pub enum CornerEffect {
     ControlCenter,
     ShowDesktop,
     Lock,
+    /// Mission Control, on the desktop's own compositor.
+    MissionControl,
     /// A child process: `/bin/sh -c COMMAND` for `Command`.
     Run {
         program: String,
@@ -48,6 +53,7 @@ pub fn corner_effect(action: CornerAction, command: &str) -> CornerEffect {
         CornerAction::ControlCenter => CornerEffect::ControlCenter,
         CornerAction::ShowDesktop => CornerEffect::ShowDesktop,
         CornerAction::Lock => CornerEffect::Lock,
+        CornerAction::Workspaces => CornerEffect::MissionControl,
         CornerAction::Command if command.trim().is_empty() => CornerEffect::Nothing,
         CornerAction::Command => CornerEffect::Run {
             program: "/bin/sh".to_owned(),
@@ -111,6 +117,7 @@ pub fn spawn_hits(
     links: Links,
     settings: watch::Receiver<ShellFile>,
     services: Services,
+    host: HostHandle<ShellMsg>,
 ) {
     let mut hits = links.corners.subscribe();
     rt.spawn(async move {
@@ -127,19 +134,20 @@ pub fn spawn_hits(
             let command = sill_overlays::hot_corners::corner_command(&file.hot_corners, hit.corner)
                 .to_owned();
             let effect = corner_effect(action, &command);
-            act(effect, hit.output, &services, &links, &mut stash).await;
+            act(effect, hit.output, &services, &links, &host, &mut stash).await;
         }
     });
 }
 
 /// Carry out `effect` on `output`: toggle the launcher, notification center or control center;
-/// minimise (or restore) windows for Show Desktop; lock through the session's locker; spawn a
-/// detached child process for `Run` (a custom command).
+/// minimise (or restore) windows for Show Desktop; lock through the session's locker; open
+/// Mission Control through the host; spawn a detached child process for `Run` (a custom command).
 async fn act(
     effect: CornerEffect,
     output: OutputId,
     services: &Services,
     links: &Links,
+    host: &HostHandle<ShellMsg>,
     stash: &mut Stash,
 ) {
     match effect {
@@ -174,6 +182,10 @@ async fn act(
         }
         CornerEffect::Lock => {
             let _ = services.locker.control.send(LockerCommand::Lock);
+        }
+        CornerEffect::MissionControl => {
+            // Without the desktop's own compositor the host has no arm and drops the command.
+            let _ = host.send(ShellMsg::Command(open_mission_control()));
         }
         CornerEffect::Run { program, args } => {
             let mut command = tokio::process::Command::new(&program);
@@ -278,7 +290,7 @@ mod tests {
             (CornerAction::ControlCenter, "", CornerEffect::ControlCenter),
             (CornerAction::ShowDesktop, "", CornerEffect::ShowDesktop),
             (CornerAction::Lock, "", CornerEffect::Lock),
-            (CornerAction::Workspaces, "", CornerEffect::Nothing),
+            (CornerAction::Workspaces, "", CornerEffect::MissionControl),
             (
                 CornerAction::Command,
                 "foot -e htop",

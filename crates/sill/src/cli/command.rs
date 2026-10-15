@@ -5,8 +5,8 @@ use clap::Subcommand;
 
 use super::debug::DebugAction;
 use super::desktop::{
-    CompanionAction, ControlCenterAction, DockAction, PowerMenuAction, ShotArg, VoiceAction,
-    WidgetsAction,
+    CompanionAction, ControlCenterAction, DockAction, ForceQuitAction, PowerMenuAction, ShotArg,
+    VoiceAction, WidgetsAction,
 };
 use super::display::DisplayAction;
 use super::intents::IntentsAction;
@@ -51,6 +51,11 @@ pub enum Command {
     PowerMenu {
         #[command(subcommand)]
         action: PowerMenuAction,
+    },
+    /// Show or hide the Force Quit Applications panel.
+    ForceQuit {
+        #[command(subcommand)]
+        action: ForceQuitAction,
     },
     /// Open or close the control center.
     ControlCenter {

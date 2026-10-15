@@ -13,8 +13,10 @@ mod bar_outputs;
 mod bar_tests;
 mod bar_thumbs;
 mod command;
+mod force_quit;
 mod model;
 mod note;
+mod overview;
 mod spaces_bar;
 #[cfg(test)]
 mod spaces_bar_tests;
@@ -40,8 +42,10 @@ pub use casement_protocols::vocab::{
     SplitSide, WindowEntry, WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
+pub use force_quit::{ForceQuitRow, Standing, force_quit_rows, hung_first};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};
 pub use note::{OverviewNote, ShellNote, SwitcherNote};
+pub use overview::open_mission_control;
 pub use spaces_bar::{
     BarPick, BarShow, BarSpace, bar_show, bar_space_ids, bar_spaces, commands_of,
 };

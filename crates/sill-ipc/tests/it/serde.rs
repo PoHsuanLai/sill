@@ -140,6 +140,10 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"show","v":{"kind":"power_menu","v":"toggle"}}"#,
         ),
         (
+            Request::Show(ShowRequest::ForceQuit(Reveal::Toggle)),
+            r#"{"kind":"show","v":{"kind":"force_quit","v":"toggle"}}"#,
+        ),
+        (
             Request::Show(ShowRequest::NotificationCenter(Reveal::Toggle)),
             r#"{"kind":"show","v":{"kind":"notification_center","v":"toggle"}}"#,
         ),

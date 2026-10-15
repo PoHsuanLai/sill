@@ -2,6 +2,7 @@
 //! host, and every other event moves the outputs' bookkeeping (a surface the compositor took away,
 //! a bar resized by a settled settings change) and then spawns whatever is missing.
 
+use std::cell::RefCell;
 use std::time::Instant;
 
 use ds_settings::{Store, UserStyle};
@@ -11,6 +12,7 @@ use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_launcher_ui::Launcher;
+use sill_model::desktop::DesktopCommand;
 use sill_model::displays::DisplaysCommand;
 use sill_model::keyboard::{Grip, ShellKeys};
 use sill_model::keycap::KeycapCommand;
@@ -27,7 +29,7 @@ use tokio::sync::watch;
 use super::msg::ShellMsg;
 use super::settings;
 use super::surfaces::{self, Spawn};
-use crate::ipc::dispatch::{Reach, route};
+use crate::ipc::dispatch::{Carried, DesktopLine, Reach, route};
 use crate::ipc::latency;
 use crate::outputs::{OutputAction, OutputSurfaces, Outputs, reconcile};
 
@@ -79,6 +81,10 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
                 .control
                 .send(sill_model::capture_pick::CaptureCommand::Windows(windows));
             shell.links.spaces_bar.set_view(&view);
+            shell
+                .links
+                .force_quit
+                .set_rows(sill_model::desktop::force_quit_rows(&view));
             shell.seat.set_view(*view)
         }
         other => host_event(shell, ctx, other),
@@ -91,12 +97,20 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
 /// launcher's dispatch so that function's body can change freely, and the elapsed time grows on
 /// its own from "IPC overhead only" to "IPC arrival to the frame that presents the shown panel"
 /// once the dispatch itself waits on that frame.
-fn answer(shell: &Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> Response {
+fn answer(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> Response {
     let toggled_at = matches!(
         request,
         Request::Show(ShowRequest::Launcher(LauncherRequest::Toggle))
     )
     .then(Instant::now);
+    let seat = RefCell::new(&mut shell.seat);
+    let carry = |command: DesktopCommand| {
+        if seat.borrow_mut().command(command) {
+            Carried::Yes
+        } else {
+            Carried::No
+        }
+    };
     let reach = Reach {
         services: &shell.services,
         outputs: &shell.outputs,
@@ -104,6 +118,7 @@ fn answer(shell: &Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> Respo
         store: &shell.store,
         settings: &shell.settings,
         user_style: &shell.user_style,
+        desktop: DesktopLine(&carry),
     };
     let response = route(ctx, &reach, request);
     if let Some(toggled_at) = toggled_at {

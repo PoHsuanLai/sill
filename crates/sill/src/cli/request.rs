@@ -7,8 +7,8 @@ use sill_ipc::request::Request;
 use super::Command;
 use super::debug::debug_request;
 use super::desktop::{
-    companion_request, control_center_request, dock_request, power_menu_request,
-    screenshot_request, voice_request, widgets_request,
+    companion_request, control_center_request, dock_request, force_quit_request,
+    power_menu_request, screenshot_request, voice_request, widgets_request,
 };
 use super::display::display_request;
 use super::intents::intents_request;
@@ -30,6 +30,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Launcher { action } => launcher_request(action),
         Command::Dock { action } => dock_request(action),
         Command::PowerMenu { action } => power_menu_request(*action),
+        Command::ForceQuit { action } => force_quit_request(*action),
         Command::ControlCenter { action } => control_center_request(*action),
         Command::Screenshot { kind } => screenshot_request(*kind),
         Command::Widgets { action } => widgets_request(*action),

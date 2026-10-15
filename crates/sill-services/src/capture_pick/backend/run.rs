@@ -5,14 +5,14 @@ use std::collections::HashMap;
 
 use sill_model::capture_pick::{
     Admit, AskId, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut, CapturePicker,
-    OutputCandidate, Reply, admits, step,
+    ColorAsking, ColorReply, OutputCandidate, Reply, admits, step,
 };
 use sill_model::displays::Displays;
 use tokio::sync::{mpsc, oneshot, watch};
 use zbus::Connection;
 use zbus::fdo;
 
-use super::objects::{Call, PATH, PORTAL_BUS, PickerObject};
+use super::objects::{Call, ColorCall, PATH, PORTAL_BUS, PickerObject, SourceCall};
 use crate::capture_pick::{CaptureLinks, CaptureService};
 use crate::owner;
 use crate::seat::SeatView;
@@ -35,6 +35,7 @@ pub(crate) async fn run(links: CaptureLinks, io: ServiceIo<CaptureService>) {
         left: left_tx,
         exported: None,
         waiters: HashMap::new(),
+        color_waiters: HashMap::new(),
         next: 0,
     };
     if let Some(displays) = &displays {
@@ -85,6 +86,8 @@ struct Live {
     exported: Option<Connection>,
     /// Who waits for each open request's answer.
     waiters: HashMap<AskId, oneshot::Sender<fdo::Result<Reply>>>,
+    /// Who waits for each open colour request's answer.
+    color_waiters: HashMap<AskId, oneshot::Sender<fdo::Result<ColorReply>>>,
     next: u64,
 }
 
@@ -104,6 +107,11 @@ impl Live {
                 CaptureOut::Reply(id, reply) => {
                     if let Some(waiter) = self.waiters.remove(&id) {
                         // The caller may have given up; nobody is left to hear it.
+                        let _ = waiter.send(Ok(reply));
+                    }
+                }
+                CaptureOut::ColorReply(id, reply) => {
+                    if let Some(waiter) = self.color_waiters.remove(&id) {
                         let _ = waiter.send(Ok(reply));
                     }
                 }
@@ -130,6 +138,12 @@ impl Live {
                 self.feed(CaptureEvent::Candidates(candidates));
             }
             CaptureCommand::Answer(id, outcome) => self.feed(CaptureEvent::Answered(id, outcome)),
+            CaptureCommand::Eyedropper(eyedropper) => {
+                self.feed(CaptureEvent::Eyedropper(eyedropper));
+            }
+            CaptureCommand::ColorAnswer(id, outcome) => {
+                self.feed(CaptureEvent::ColorAnswered(id, outcome));
+            }
         }
     }
 
@@ -185,7 +199,31 @@ impl Live {
     }
 
     fn call(&mut self, call: Call) {
-        let Call { ask, answer } = call;
+        match call {
+            Call::Sources(call) => self.sources_call(call),
+            Call::Color(call) => self.color_call(call),
+        }
+    }
+
+    fn color_call(&mut self, call: ColorCall) {
+        let ColorCall { ask, answer } = call;
+        match admits(&self.state) {
+            Admit::Busy => {
+                let _ = answer.send(Err(fdo::Error::LimitsExceeded(
+                    "a question is already open".to_owned(),
+                )));
+            }
+            Admit::Yes => {
+                self.next += 1;
+                let id = AskId(self.next);
+                self.color_waiters.insert(id, answer);
+                self.feed(CaptureEvent::ColorOpened(ColorAsking { id, ask }));
+            }
+        }
+    }
+
+    fn sources_call(&mut self, call: SourceCall) {
+        let SourceCall { ask, answer } = call;
         match admits(&self.state) {
             Admit::Busy => {
                 let _ = answer.send(Err(fdo::Error::LimitsExceeded(
@@ -204,6 +242,7 @@ impl Live {
     /// The caller left the bus or was replaced: nobody waits any more.
     fn caller_gone(&mut self) {
         self.waiters.clear();
+        self.color_waiters.clear();
         self.feed(CaptureEvent::CallerGone);
     }
 }

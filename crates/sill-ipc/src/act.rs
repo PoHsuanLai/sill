@@ -112,6 +112,6 @@ pub enum WorkspaceRequest {
     Prev,
     /// The workspace after the active one (none at the last).
     Next,
-    /// The overview of every workspace. sill has none yet, so this answers `Unsupported`.
+    /// Mission Control, on the desktop's own compositor; any other answers `Unsupported`.
     Overview,
 }

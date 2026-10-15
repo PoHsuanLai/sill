@@ -4,9 +4,12 @@
 //! backend asks on `org.quire.Shell1.PickCaptureSource`; `sill-services` serves it and
 //! `sill-overlays` draws the sheet. Everything here is pure and table-tested.
 //!
-//! One request is open at a time: a second while one is open is refused ([`admits`]).
+//! One request is open at a time, of either kind (sources or a colour): a second while one is open
+//! is refused ([`admits`]). The colour request (`color`) is answered with a cancel until a surface
+//! draws the eyedropper.
 
 mod ask;
+mod color;
 mod from_desktop;
 mod plan;
 mod reply;
@@ -15,6 +18,7 @@ mod step;
 mod tests;
 
 pub use ask::{Ask, AskError, Kinds, Plurality, Pointer};
+pub use color::{ColorAsk, ColorAsking, ColorOutcome, ColorReply, Eyedropper, Rgb8};
 pub use from_desktop::windows_of;
 pub use plan::{Candidates, Choice, OutputCandidate, Plan, Source, Tab, WindowCandidate, plan};
 pub use reply::{Picks, Reply, can_allow, reply, toggle};
