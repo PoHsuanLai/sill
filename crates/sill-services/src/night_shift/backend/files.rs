@@ -377,9 +377,12 @@ mod tests {
         names.iter().map(|name| (*name).to_owned()).collect()
     }
 
+    /// A case: its name, the list already in the file, the connectors to skip, the list written.
+    type SkipCase<'a> = (&'a str, &'a [&'a str], &'a [&'a str], &'a [&'a str]);
+
     #[test]
     fn the_skip_list_keeps_the_persons_identities_and_replaces_connector_names() {
-        let cases: &[(&str, &[&str], &[&str], &[&str])] = &[
+        let cases: &[SkipCase<'_>] = &[
             ("nothing either way", &[], &[], &[]),
             (
                 "sill's monitors are listed",
