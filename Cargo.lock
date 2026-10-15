@@ -366,7 +366,7 @@ dependencies = [
 name = "anyview-core"
 version = "0.1.0-beta.1"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=55a62b2366d6ee1994d95f7cb5a195217807099c)",
+ "chordkit",
  "ds-core",
  "infer",
  "jiff",
@@ -1313,14 +1313,6 @@ dependencies = [
 [[package]]
 name = "chordkit"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=55a62b2366d6ee1994d95f7cb5a195217807099c#55a62b2366d6ee1994d95f7cb5a195217807099c"
-dependencies = [
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "chordkit"
-version = "0.1.0"
 source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1#934a2d71f6516bee5919ee29278003702a4ea5e1"
 dependencies = [
  "serde",
@@ -1332,7 +1324,7 @@ name = "chordkit-gnome"
 version = "0.1.0"
 source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1#934a2d71f6516bee5919ee29278003702a4ea5e1"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
 ]
 
 [[package]]
@@ -1340,7 +1332,7 @@ name = "chordkit-kde"
 version = "0.1.0"
 source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1#934a2d71f6516bee5919ee29278003702a4ea5e1"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
 ]
 
 [[package]]
@@ -2498,7 +2490,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 name = "ds"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "dioxus",
  "ds-core",
  "ds-intents",
@@ -2529,7 +2521,7 @@ dependencies = [
  "blitz-paint",
  "blitz-shell",
  "blitz-traits",
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "chordkit-gnome",
  "chordkit-kde",
  "dioxus",
@@ -2559,7 +2551,7 @@ dependencies = [
 name = "ds-core"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "ds-core-derive",
  "futures-timer",
  "keyboard-types 0.7.0",
@@ -2594,7 +2586,7 @@ dependencies = [
  "blitz-kit",
  "blitz-paint",
  "blitz-traits",
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "dioxus",
  "dioxus-native-dom",
  "ds",
@@ -4269,7 +4261,7 @@ dependencies = [
 name = "keycap-client"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "keycap-protocol",
  "rustix",
 ]
@@ -7027,7 +7019,7 @@ dependencies = [
 name = "sill-dock"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "desktop-client",
  "dioxus",
  "ds",
@@ -7064,7 +7056,7 @@ name = "sill-launcher"
 version = "0.1.0"
 dependencies = [
  "almanac-core",
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "docket-core",
  "ds-core",
  "nucleo-matcher",
@@ -7083,7 +7075,7 @@ dependencies = [
  "anyview-image",
  "anyview-peek",
  "anyview-platform",
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "companion-wire",
  "dioxus",
  "dioxus-ssr",
@@ -7157,7 +7149,7 @@ dependencies = [
 name = "sill-overlays"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "desktop-client",
  "dioxus",
  "ds",
@@ -7328,7 +7320,7 @@ dependencies = [
 name = "sill-ui-kit"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
+ "chordkit",
  "companion-wire",
  "dioxus",
  "dioxus-ssr",
