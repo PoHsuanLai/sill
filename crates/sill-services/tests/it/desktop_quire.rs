@@ -11,8 +11,8 @@ use std::sync::{Arc, Mutex};
 
 use casement_protocols::vocab::{
     ActorKind, AppLifeKind, Corner, Emphasis, KeyGesture, MacMods, OverviewMode, OverviewState,
-    PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, Toggle, WindowEntry,
-    WindowStateKind,
+    PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide, Toggle,
+    WindowEntry, WindowStateKind,
 };
 use desktop_client::fake::FakeDesktop;
 use desktop_client::quire::{
@@ -367,6 +367,24 @@ fn the_shells_commands_become_quire_requests() {
                 entry: WindowEntry::Left,
             }],
         ),
+        (
+            "pick a window for the other half",
+            DesktopCommand::PickSplit("id-2".to_owned()),
+            vec![Wire::PickSplit(ToplevelIdentifier::new("id-2"))],
+        ),
+        (
+            "turn the Split View down",
+            DesktopCommand::CancelSplit,
+            vec![Wire::CancelSplit],
+        ),
+        (
+            "move the divider",
+            DesktopCommand::DivideSplit("id-1".to_owned(), 400),
+            vec![Wire::DivideSplit {
+                window: ToplevelIdentifier::new("id-1"),
+                share: 400,
+            }],
+        ),
     ];
     for (name, command, want) in cases {
         assert_eq!(sent(&mut arm, command), want, "{name}");
@@ -498,6 +516,12 @@ fn the_shell_protocols_events_become_notes_in_order() {
                 at: Point::new(40, 52),
                 enabled: 0b1100,
             },
+            ShellEvent::SplitChoose {
+                first: ToplevelIdentifier::new("id-1"),
+                side: SplitSide::Left,
+            },
+            ShellEvent::SplitCandidate(ToplevelIdentifier::new("id-2")),
+            ShellEvent::SplitChoiceEnd(ToplevelIdentifier::new("id-1")),
             ShellEvent::Killed,
         ],
     );
@@ -535,6 +559,12 @@ fn the_shell_protocols_events_become_notes_in_order() {
                 at: (40, 52),
                 enabled: 0b1100,
             },
+            ShellNote::SplitChoose {
+                first: "id-1".to_owned(),
+                side: SplitSide::Left,
+            },
+            ShellNote::SplitCandidate("id-2".to_owned()),
+            ShellNote::SplitChoiceEnd("id-1".to_owned()),
             ShellNote::Killed,
         ],
         "the layout's slot is state, not a note"

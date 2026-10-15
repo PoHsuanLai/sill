@@ -100,6 +100,11 @@ impl ShellSeat {
         sent
     }
 
+    /// The desktop's windows as the arm last reported them.
+    pub fn view(&self) -> &DesktopView {
+        &self.targets.view
+    }
+
     /// The docks' icons rest somewhere new.
     pub fn set_rects(&mut self, rects: OutputRects) {
         self.targets.rects = rects;
@@ -220,6 +225,11 @@ pub fn apply(shell: &Shell, note: ShellNote) {
             at,
             enabled,
         } => shell.links.window_menu.open(window, at, enabled),
+        ShellNote::SplitChoose { .. }
+        | ShellNote::SplitCandidate(_)
+        | ShellNote::SplitChoiceEnd(_) => {
+            crate::split_picker::apply(&shell.links.split_picker, shell.seat.view(), note);
+        }
     }
 }
 

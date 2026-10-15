@@ -82,6 +82,9 @@ fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
         DesktopCommand::PickSwitcher(2),
         DesktopCommand::CancelSwitcher,
         DesktopCommand::PickWindowMenu(window(), WindowEntry::Left),
+        DesktopCommand::PickSplit(window()),
+        DesktopCommand::CancelSplit,
+        DesktopCommand::DivideSplit(window(), 400),
     ];
     for command in &commands {
         assert_eq!(supports(DesktopBackend::Quire, command), Supports::Yes);

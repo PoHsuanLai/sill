@@ -92,6 +92,12 @@ pub fn quire_wire_of(
             window: ToplevelIdentifier::new(id.as_str()),
             entry: *entry,
         }),
+        DesktopCommand::PickSplit(id) => one(Wire::PickSplit(ToplevelIdentifier::new(id.as_str()))),
+        DesktopCommand::CancelSplit => one(Wire::CancelSplit),
+        DesktopCommand::DivideSplit(id, share) => one(Wire::DivideSplit {
+            window: ToplevelIdentifier::new(id.as_str()),
+            share: *share,
+        }),
     }
 }
 

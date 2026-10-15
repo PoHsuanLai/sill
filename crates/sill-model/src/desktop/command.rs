@@ -77,6 +77,14 @@ pub enum DesktopCommand {
     /// The person picked an entry of a window's menu (the one the green light opens), by the
     /// window's identifier. A dismissal sends nothing.
     PickWindowMenu(String, WindowEntry),
+    /// The person picked a window, by its identifier, for the other half of the Split View
+    /// being chosen ([`super::ShellNote::SplitChoose`]).
+    PickSplit(String),
+    /// The person turned the choice of the Split View down (Escape, or a click elsewhere).
+    CancelSplit,
+    /// The person moved the divider of the Split View the window (either of the pair, by its
+    /// identifier) is in: the leading window now takes this many thousandths of the width.
+    DivideSplit(String, u32),
 }
 
 /// Whether a backend can carry a command.

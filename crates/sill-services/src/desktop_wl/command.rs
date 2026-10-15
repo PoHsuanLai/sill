@@ -92,7 +92,10 @@ pub fn wire_of(command: &DesktopCommand, state: &DesktopState) -> Result<Vec<Wir
         | DesktopCommand::ShowDesktop(_)
         | DesktopCommand::PickSwitcher(_)
         | DesktopCommand::CancelSwitcher
-        | DesktopCommand::PickWindowMenu(..) => Err(Refusal::Unsupported),
+        | DesktopCommand::PickWindowMenu(..)
+        | DesktopCommand::PickSplit(_)
+        | DesktopCommand::CancelSplit
+        | DesktopCommand::DivideSplit(..) => Err(Refusal::Unsupported),
     }
 }
 

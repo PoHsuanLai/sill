@@ -15,6 +15,7 @@ mod osd;
 mod places;
 mod power_menu;
 mod reveal;
+mod split_picker;
 mod switcher;
 mod window_menu;
 
@@ -32,6 +33,7 @@ pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, O
 pub use places::PlacementFile;
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal};
+pub use split_picker::{OfferSerial, SplitAnswer, SplitAnswered, SplitOffer, SplitPickerLink};
 pub use switcher::{AskSerial, Asks, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};
 pub use window_menu::{MenuSerial, WindowMenuLink, WindowMenuOpening, WindowMenuPicked};
 
@@ -58,4 +60,7 @@ pub struct Links {
     /// A window's menu (the pointer rested on its green light): the daemon opens it, the window
     /// menu surfaces show it, and a pick goes back to the daemon.
     pub window_menu: WindowMenuLink,
+    /// The Split View being chosen (a window went full screen on one half): the daemon opens
+    /// the offer, the picker surfaces show it, and the answer goes back to the daemon.
+    pub split_picker: SplitPickerLink,
 }

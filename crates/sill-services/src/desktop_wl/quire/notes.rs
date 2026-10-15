@@ -49,6 +49,12 @@ pub fn note_of(event: &ShellEvent) -> Option<ShellNote> {
             at: (at.x, at.y),
             enabled: *enabled,
         },
+        ShellEvent::SplitChoose { first, side } => ShellNote::SplitChoose {
+            first: first.as_str().to_owned(),
+            side: *side,
+        },
+        ShellEvent::SplitCandidate(window) => ShellNote::SplitCandidate(window.as_str().to_owned()),
+        ShellEvent::SplitChoiceEnd(first) => ShellNote::SplitChoiceEnd(first.as_str().to_owned()),
         ShellEvent::Killed => ShellNote::Killed,
         // Slots are collected into the overview's layout until `OverviewDone`.
         _ => return None,

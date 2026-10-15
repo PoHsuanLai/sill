@@ -7,7 +7,7 @@
 //! [`super::DesktopView`], not a note.
 
 use casement_protocols::vocab::{
-    Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown,
+    Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown, SplitSide,
 };
 
 /// One thing the shell protocol said.
@@ -53,6 +53,21 @@ pub enum ShellNote {
         /// picked now; the rest are shown dimmed.
         enabled: u32,
     },
+    /// A window went full screen on one half of the screen: offer the windows of the
+    /// [`ShellNote::SplitCandidate`]s that follow for the other half. The answer is
+    /// [`super::DesktopCommand::PickSplit`] or [`super::DesktopCommand::CancelSplit`].
+    SplitChoose {
+        /// The window already full screen, by its identifier.
+        first: String,
+        /// The half it took.
+        side: SplitSide,
+    },
+    /// A window that can fill the other half, by its identifier; the most recently used comes
+    /// first.
+    SplitCandidate(String),
+    /// The choosing for this first window is over (a pick, a cancel, or it left full screen):
+    /// take the offer away.
+    SplitChoiceEnd(String),
     /// The kill chord was pressed.
     Killed,
 }
