@@ -37,6 +37,7 @@ pub fn answer(id: &str, prompt: &str, phase: AnswerPhase, body: AnswerBody) -> A
             task: task(id),
             phase,
             body,
+            progress: Vec::new(),
             footer: FooterWire {
                 served: Vec::new(),
                 sources: Vec::new(),

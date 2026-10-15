@@ -264,6 +264,7 @@ fn thinking(task: &TaskId) -> AnswerWire {
         task: task.clone(),
         phase: AnswerPhase::Thinking,
         body: AnswerBody::Text { lines: Vec::new() },
+        progress: Vec::new(),
         footer: FooterWire {
             served: Vec::new(),
             sources: Vec::new(),

@@ -277,6 +277,7 @@ fn answer_in(phase: companion_wire::AnswerPhase) -> sill_model::companion::Compa
         task: task(),
         phase,
         body: AnswerBody::Text { lines: Vec::new() },
+        progress: Vec::new(),
         footer: FooterWire {
             served: Vec::new(),
             sources: Vec::new(),

@@ -84,6 +84,7 @@ fn answer(phase: AnswerPhase, body: AnswerBody) -> AnswerWire {
         task: TaskId::parse("t-1").unwrap_or_else(|e| panic!("{e}")),
         phase,
         body,
+        progress: Vec::new(),
         footer: footer(),
     }
 }

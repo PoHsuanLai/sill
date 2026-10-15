@@ -44,6 +44,7 @@ fn wire(id: &str, phase: AnswerPhase) -> AnswerWire {
         body: AnswerBody::Text {
             lines: vec![Reveal::Plain("Two receipts found.".to_owned())],
         },
+        progress: Vec::new(),
         footer: footer(),
     }
 }

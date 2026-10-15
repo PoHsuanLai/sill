@@ -238,6 +238,7 @@ mod tests {
                 task: task(id),
                 phase,
                 body,
+                progress: Vec::new(),
                 footer: FooterWire {
                     served: Vec::new(),
                     sources: Vec::new(),

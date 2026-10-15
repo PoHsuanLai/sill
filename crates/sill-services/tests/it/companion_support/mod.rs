@@ -263,6 +263,7 @@ pub fn wire(phase: AnswerPhase, text: &str) -> AnswerWire {
         body: AnswerBody::Text {
             lines: vec![docket_core::Reveal::Plain(text.to_owned())],
         },
+        progress: Vec::new(),
         footer: footer(),
     }
 }
