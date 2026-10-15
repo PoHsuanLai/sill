@@ -25,7 +25,7 @@ use desktop_client::workspace::{
     GroupChange, WorkspaceAbility, WorkspaceChange, WorkspaceEvent, WorkspaceFlag,
 };
 use desktop_client::{
-    AppId, AppKey, CaptureRequest, CommandError, DesktopCommand as Wire, DesktopConfig,
+    AppId, AppKey, CaptureRequest, CommandError, Desktop, DesktopCommand as Wire, DesktopConfig,
     DesktopEvent, GroupKey, OutputName, Point, Protocol, ProtocolSet, Rect, Size,
     SpaceId as WireSpaceId, SpaceKey, SpaceTarget, SurfaceKey, ToplevelIdentifier, ToplevelKey,
     WorkspaceKey,
