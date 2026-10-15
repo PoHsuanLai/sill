@@ -10,8 +10,8 @@ use porter_core::SpaceId;
 
 use super::{
     BarDrops, BarLayout, BarLayouts, BarOutputs, BarPictures, BarShow, DesktopCommand, DesktopView,
-    SpacePicture, SpacePlaceView, SpaceView, ThumbAsks, ThumbRequest, WindowView, bar_space_ids,
-    target_commands, thumb_size, thumbs_wanted, tiles_of,
+    Outbox, SpacePicture, SpacePlaceView, SpaceView, ThumbAsks, ThumbRequest, WindowView,
+    bar_space_ids, outgoing, target_commands, thumb_size, thumbs_wanted, tiles_of,
 };
 
 fn id(text: &str) -> SpaceId {
@@ -267,7 +267,7 @@ fn a_laid_out_bar_gets_its_targets_and_one_request_and_nothing_again_until_answe
             [
                 DesktopCommand::SetSpaceTargets { output, targets },
                 DesktopCommand::CaptureSpace { size: (320, 200), space, .. },
-            ] if output == "DP-1" && targets.len() == 1 && *space == id("ws-1")
+            ] if output == "DP-1" && targets.len() == 1 && space == &id("ws-1")
         ),
         "{commands:?}"
     );

@@ -7,7 +7,6 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use shell_host::OutputInfo;
 use sill_services::AppsService;
-use sill_shell_kit::prelude::*;
 
 use super::io::{use_bar, use_unmap};
 use super::layer::BAR_ID;

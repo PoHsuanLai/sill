@@ -748,7 +748,7 @@ fn a_picture_of_a_space_is_asked_for_by_output_and_comes_back_as_a_png_note() {
     arm.pictures(|_, _| None);
     assert!(arm.sink().is_empty());
     // Finished: one note, once.
-    let mut finished = |arm: &mut QuireArm<FakeDesktop, Vec<ShellNote>>| {
+    let finished = |arm: &mut QuireArm<FakeDesktop, Vec<ShellNote>>| {
         arm.pictures(|desktop, id| {
             finish_capture_in(desktop, id);
             match desktop.state().captures.get(id).map(|s| s.phase.clone()) {
