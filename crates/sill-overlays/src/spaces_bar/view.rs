@@ -44,7 +44,6 @@ fn SpacesStrip(output: OutputInfo) -> Element {
     let add_drop = bar.add_drop();
     rsx! {
         div {
-            class: "sill-spaces-bar",
             style: "padding-top:{menu_bar}px;",
             SpacesBar {
                 label: "Spaces",
