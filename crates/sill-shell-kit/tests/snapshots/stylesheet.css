@@ -29,10 +29,10 @@ html,body{margin:0;padding:0;background:transparent}
 /* Highlight is the element's own fill (menu rows), never a ring. */
 .ds[*|data-modality=keyboard] [*|data-focus=highlight]:focus{outline:none}
 /* == tokens == */
-.ds{--paper:#ececec;--surface:#ffffff;--surface-2:#f5f5f5;--raise:#ffffff;--ink:#202020;--ink-soft:#5c5c5c;--ink-faint:#858585;--line:#d9d9d9;--fill-quaternary:rgba(0,0,0,.06);--fill-btn:rgba(0,0,0,.06);--fill:rgba(0,0,0,.1);--sel-neutral:rgba(0,0,0,.08);--stripe:rgba(0,0,0,.03);--grp:#ffffff;--line-soft:#e6e6e6;--accent:#0088ff;--accent-ink:#ffffff;--accent-soft:rgba(0,136,255,.18);--accent-text:#0052cf;--accent-text-material:#0041a8;--seal:#0088ff;--ok:#008932;--warn:#c55300;--danger:#e9152d;--scrim:rgba(0,0,0,.22);--foreign-ground:#ffffff;--ok-wash:rgba(0,137,50,.16);--warn-wash:#fae7df;--danger-wash:rgba(233,21,45,.16);--accent-ring:rgba(0,82,207,.65);--danger-ink:#ffffff;--mark-ground:#ffffff;--handle-ring:rgba(0,0,0,.25);--on-hue:#ffffff;--ok-ink:#ffffff;--warn-ink:#ffffff;--scrim-modal:rgba(0,0,0,.4);--scroll-thumb:rgba(0,0,0,.4);--lock-ink:#ffffff;--lock-ink-soft:rgba(255,255,255,.78);--lock-glass:rgba(255,255,255,.24);--lock-glass-strong:rgba(255,255,255,.38);--lock-veil:rgba(0,0,0,.12);--spell-mark:#e9152d;--scrim-idle:#000000;--knob-fill:#ffffff;--orb-bg:#e8effc;--orb-c1:#f383bb;--orb-c2:#43d5dc;--orb-c3:#a9affe;--c-red:#e8483c;--c-red-deep:#b7352b;--c-red-soft:#fbe3e1;--c-amber:#f0a81e;--c-amber-deep:#8e5a05;--c-amber-soft:#faebd2;--c-green:#28b24a;--c-green-deep:#1a7a33;--c-green-soft:#dcf1e1;--c-blue:#2b7cff;--c-blue-deep:#0b5fe0;--c-blue-soft:#e2ebff;--c-violet:#8b5cf0;--c-violet-deep:#6b3fcc;--c-violet-soft:#ece4fb;--sel-bg:var(--accent);--sel-bg-quiet:rgba(128,128,128,.25);--sel-ink:var(--accent-ink);--term-fg:#202020;--term-bg:#ffffff;--term-cursor:var(--accent-text);--term-selection:var(--accent-soft);--term-ansi-0:#303030;--term-ansi-1:#e9152d;--term-ansi-2:#008932;--term-ansi-3:#a16a00;--term-ansi-4:#1e6ef4;--term-ansi-5:#b02fc2;--term-ansi-6:#008198;--term-ansi-7:#5c5c5c;--term-ansi-8:#6b6b6b;--term-ansi-9:#c70322;--term-ansi-10:#007128;--term-ansi-11:#865803;--term-ansi-12:#0057da;--term-ansi-13:#9908ab;--term-ansi-14:#066b7e;--term-ansi-15:#4a4a4a;--signal-success:#34c759;--signal-waiting:#ff8d28;--signal-error:#ff383c;--signal-git:#6155f5;--signal-folder:var(--ink-soft);--tag-red:#ff383c;--tag-orange:#ff8d28;--tag-yellow:#ffcc00;--tag-green:#34c759;--tag-mint:#00c8b3;--tag-teal:#00c3d0;--tag-cyan:#00c0e8;--tag-blue:#0088ff;--tag-indigo:#6155f5;--tag-purple:#cb30e0;--tag-pink:#ff2d55;--tag-brown:#ac7f5e;--shadow-1:0 var(--hair) 0 rgba(255,255,255,.7) inset,0 1px 2px rgba(26,30,26,.1);--shadow-2:0 var(--hair) 0 rgba(255,255,255,.7) inset,0 6px 16px -6px rgba(26,30,26,.3);--shadow-edge:0 0 0 var(--hairline) rgba(0,0,0,.12);--shadow-pop:0 0 0 var(--hairline) rgba(0,0,0,.12),0 10px 30px -8px rgba(0,0,0,.28);--shadow-sheet:0 0 0 var(--hairline) rgba(0,0,0,.14),0 24px 60px -12px rgba(0,0,0,.35);--shadow-drag:0 18px 30px -12px rgba(26,30,26,.4);--shadow-current:0 var(--hair) 0 rgba(255,255,255,.4) inset,0 2px 6px -3px rgba(0,0,0,.25);--shadow-pill-inset:0 var(--hair) 0 rgba(255,255,255,.35) inset;--shadow-window:0 1px 3px rgba(0,0,0,.12),0 24px 64px -16px rgba(0,0,0,.4);--shadow-card:0 0 0 var(--hair) rgba(0,0,0,.06),0 10px 30px -14px rgba(0,0,0,.45);--shadow-handle:0 0 0 var(--hair) rgba(0,0,0,.25),0 3px 8px rgba(0,0,0,.35);--shadow-mark:0 0 0 var(--hair) rgba(0,0,0,.08);--shadow-mark-tile:0 0 0 1.5px var(--f-pill),0 1px 2px rgba(0,0,0,.2);--battery-fill:#28cd41;--battery-low:#ff3b30;--battery-track:rgba(0,0,0,.12);--clock-face-day:#ffffff;--clock-face-night:#343436;--clock-ink-day:#1c1c1e;--clock-ink-night:#ffffff;--clock-seconds:#ff9500;--light-close:#ff5f57;--light-close-rim:#e2463f;--light-close-mark:#4d0000;--light-minimize:#febc2e;--light-minimize-rim:#e1a116;--light-minimize-mark:#995700;--light-zoom:#28c840;--light-zoom-rim:#12ac28;--light-zoom-mark:#006500;--r-panel:20px;--r-card:12px;--r-btn:8px;--r-chip:8px;--r-pill:999px;--r-field:8px;--r-menu:14px;--r-item:8px;--r-tile:12px;--r-window:10px;--r-window-plain:10px;--r-menu-item:8px;--r-small:8px;--r-kbd:5px;--r-tiny:6px;--r-micro:5px;--r-media:12px;--r-icon-tile:7px;--r-group:12px;--ctl-h-xs:20px;--ctl-r-xs:6px;--ctl-cap-r-xs:10px;--ctl-glyph-xs:12px;--ctl-pad-xs:8px;--ctl-fs-xs:10px;--ctl-fw-xs:600;--knob-xs:18px;--switch-w-xs:32px;--switch-h-xs:18px;--switch-r-xs:9px;--switch-knob-xs:16px;--slider-track-xs:3px;--slider-knob-xs:14px;--check-xs:12px;--spinner-xs:10px;--progress-xs:4px;--seg-well-r-xs:6px;--seg-h-xs:18px;--seg-r-xs:5px;--ctl-h-s:24px;--ctl-r-s:7px;--ctl-cap-r-s:12px;--ctl-glyph-s:14px;--ctl-pad-s:10px;--ctl-fs-s:11px;--ctl-fw-s:500;--knob-s:22px;--switch-w-s:38px;--switch-h-s:22px;--switch-r-s:11px;--switch-knob-s:20px;--slider-track-s:4px;--slider-knob-s:16px;--check-s:14px;--spinner-s:16px;--progress-s:6px;--seg-well-r-s:7px;--seg-h-s:22px;--seg-r-s:6px;--ctl-h-m:28px;--ctl-r-m:8px;--ctl-cap-r-m:14px;--ctl-glyph-m:16px;--ctl-pad-m:12px;--ctl-fs-m:13px;--ctl-fw-m:500;--knob-m:26px;--switch-w-m:44px;--switch-h-m:26px;--switch-r-m:13px;--switch-knob-m:24px;--slider-track-m:4px;--slider-knob-m:22px;--check-m:16px;--spinner-m:32px;--progress-m:6px;--seg-well-r-m:8px;--seg-h-m:26px;--seg-r-m:7px;--ctl-h-l:32px;--ctl-r-l:16px;--ctl-cap-r-l:16px;--ctl-glyph-l:18px;--ctl-pad-l:16px;--ctl-fs-l:15px;--ctl-fw-l:600;--knob-l:30px;--switch-w-l:44px;--switch-h-l:26px;--switch-r-l:13px;--switch-knob-l:24px;--slider-track-l:4px;--slider-knob-l:22px;--check-l:16px;--spinner-l:32px;--progress-l:6px;--seg-well-r-l:16px;--seg-h-l:30px;--seg-r-l:15px;--ctl-h-xl:40px;--ctl-r-xl:20px;--ctl-cap-r-xl:20px;--ctl-glyph-xl:20px;--ctl-pad-xl:20px;--ctl-fs-xl:17px;--ctl-fw-xl:600;--knob-xl:38px;--switch-w-xl:44px;--switch-h-xl:26px;--switch-r-xl:13px;--switch-knob-xl:24px;--slider-track-xl:4px;--slider-knob-xl:22px;--check-xl:16px;--spinner-xl:32px;--progress-xl:6px;--seg-well-r-xl:20px;--seg-h-xl:38px;--seg-r-xl:19px;--knob-inset:1px;--shell-bar-h:24px;--bar-status-w:30px;--r-shell-menu:14px;--shell-menu-inset:6px;--shell-palette-inset:12px;--row-settings-h:48px;--row-avatar:32px;--row-compact-h:32px;--row-icon-tile:28px;--row-tile-gap:12px;--row-palette-h:38px;--sidebar-row-h-s:28px;--sidebar-row-h-m:32px;--sidebar-row-h-l:36px;--sidebar-tile-s:20px;--sidebar-tile-m:24px;--sidebar-tile-l:28px;--sheet-narrow-w:340px;--sheet-alert-w:260px;--cc-width:320px;--cc-pad:10px;--cc-gap:10px;--cc-module-r:8px;--cc-panel-r:18px;--cc-tile-h:64px;--cc-head:16px;--cc-head-gap:6px;--cc-level-h:70px;--c-person-1:#5b4fc4;--c-person-2:#2f7f6e;--c-person-3:#b0662e;--c-person-4:#3c8a5b;--c-person-5:#7a4a9e;--c-person-6:#c0782e;--c-person-7:#2e7f8c;--c-person-8:#6d7a3a;--s-1:1px;--s-1-5:1.5px;--s-2:2px;--s-3:3px;--s-4:4px;--s-5:5px;--s-6:6px;--s-7:7px;--s-8:8px;--s-9:9px;--s-10:10px;--s-11:11px;--s-12:12px;--s-13:13px;--s-14:14px;--s-15:15px;--s-16:16px;--s-18:18px;--s-20:20px;--s-22:22px;--s-24:24px;--s-26:26px;--s-28:28px;--s-32:32px;--s-36:36px;--s-40:40px;--s-48:48px;--chrome-titlebar-height:28px;--chrome-light-size:12px;--chrome-light-gap:8px;--chrome-light-inset:13px;--chrome-title-inset:84px;--chrome-edge:4px;--chrome-edge-corner:12px;--fs-pico:7.5px;--fs-caption:10px;--fs-note:10.5px;--fs-eyebrow:11px;--fs-help:11.5px;--fs-small:12px;--fs-meta:12.5px;--fs-control:13px;--fs-body:13.5px;--fs-reading:14px;--fs-compose:14.5px;--fs-base:15px;--fs-subhead:15.5px;--fs-title:16px;--fs-title-2:17px;--fs-heading-3:16.5px;--fs-subject:20px;--fs-heading:21px;--fs-amount:22px;--fs-day:24px;--fs-display:26px;--fs-emoji-cell:30px;--fs-emoji-preview:96px;--z-scene:-2;--z-grain:-1;--z-raise:1;--z-link-pill:7;--z-toast:8;--z-send-pill:9;--z-scrim:10;--z-peek:11;--z-focus-page:12;--z-edge:14;--z-side-peek:15;--z-palette:20;--z-card:30;--z-menu:40;--z-drag:50;--veil:.16;--pane-dim:.6;--term-font:monospace;--term-lh:1.2;--fs-shell-bar:var(--shell-bar-font,13px);--fw-shell-bar:var(--shell-bar-weight,500);--shell-bar-item:var(--shell-bar-item-h,22px);--shell-bar-pad:var(--shell-bar-pad-x,8px);--r-shell-bar-item:var(--shell-bar-radius,5px);--fs-shell-menu:var(--shell-menu-font,13px);--shell-menu-row:var(--shell-menu-row-h,28px);--shell-menu-sep:var(--shell-menu-sep-m,5px);--r-shell-highlight:var(--shell-highlight-radius,8px);--fs-shell-field:var(--shell-field-font,22px);--fw-shell-field:var(--shell-field-weight,500);--shell-field-glyph:var(--shell-field-glyph-px,20px);--fs-shell-row:var(--shell-row-font,14px);--fs-shell-detail:var(--shell-detail-font,12px);--fs-shell-tip:var(--shell-tip-font,12px);--dock-floor:var(--dock-floor-on,0);--dock-tile:var(--dock-tile-px,48px);--dock-gap:var(--dock-gap-px,8px);--dock-pad:var(--dock-pad-px,6px);--dock-dot:var(--dock-dot-px,4px);--dock-dot-gap:var(--dock-dot-gap-px,3px);--osd-margin:var(--osd-margin-px,24px);--notifications-banner-width:var(--notifications-banner-width-px,360px);--notifications-banner-min-height:var(--notifications-banner-min-height-px,64px);--notifications-banner-padding:var(--notifications-banner-padding-px,12px);--notifications-icon:var(--notifications-icon-px,32px);--notifications-close:var(--notifications-close-px,18px);--notifications-stack-gap:var(--notifications-stack-gap-px,8px);--notifications-group-offset:var(--notifications-group-offset-px,4px);--notifications-center-width:var(--notifications-center-width-px,360px);--widget-cell:var(--widget-cell-px,164px);--widget-gap:var(--widget-gap-px,16px);--plate-glyph:var(--icons-glyph-share,56%);--plate-inset:var(--icons-inset-share,72%);--dpr:var(--scale-dpr,1);--px:var(--scale-px,1px);--hair:var(--scale-hair,1px);--hairline:var(--scale-hairline,.5px);--ring:var(--scale-ring,3px);--focus-ring:var(--scale-focus-ring,2.5px);--caret-w:var(--scale-caret-w,1px);--focus-gap:var(--scale-focus-gap,1px);--font-emoji:"Inter","Noto Color Emoji",system-ui,sans-serif;--font-display:"Inter Display","Inter",system-ui,sans-serif;--font-ui:"Inter",system-ui,sans-serif;--font-data:"Inter",system-ui,sans-serif;--font-serif:"Noto Serif",Georgia,"Times New Roman",serif;--font-code:"Space Mono","Inter",ui-monospace,"SFMono-Regular",Menlo,monospace;--tracking-heading:-.02em;--tracking-lock-clock:-.02em;--tracking-lock-date:-.01em;--fw-caps:600;--tracking-mono:0;--fs-mono:.86em;--fs-dial:10px;--fs-nano:10px;--fs-micro:10px;--fs-dial-large:16.5px;--fs-widget-figure:18px;--fs-widget-hero:42.5px;--fs-lock-clock:127px;--t-quick:120ms;--t-move:200ms;--t-big:280ms;--t-spin-step:83ms;--t-turn:1000ms;--t-shake:420ms;--t-send-ring:5000ms;--t-awake:20000ms;--t-idle-dim:2000ms;--t-orb-listen:12000ms;--t-orb-work:8000ms;--t-orb-act:5000ms;--e-out:cubic-bezier(.22,.9,.3,1);--e-exit:cubic-bezier(.4,0,1,1);--e-shake:cubic-bezier(.36,.07,.19,.97);--e-linear:linear;--e-in-out:cubic-bezier(.42,0,.58,1);color-scheme:light;}
+.ds{--paper:#ececec;--surface:#ffffff;--surface-2:#f5f5f5;--raise:#ffffff;--ink:#202020;--ink-soft:#5c5c5c;--ink-faint:#858585;--line:#d9d9d9;--fill-quaternary:rgba(0,0,0,.06);--fill-btn:rgba(0,0,0,.06);--fill:rgba(0,0,0,.1);--sel-neutral:rgba(0,0,0,.08);--stripe:rgba(0,0,0,.03);--grp:#ffffff;--line-soft:#e6e6e6;--accent:#0088ff;--accent-ink:#ffffff;--accent-soft:rgba(0,136,255,.18);--accent-text:#0052cf;--accent-text-material:#0041a8;--seal:#0088ff;--ok:#008932;--warn:#c55300;--danger:#e9152d;--scrim:rgba(0,0,0,.22);--foreign-ground:#ffffff;--ok-wash:rgba(0,137,50,.16);--warn-wash:#fae7df;--danger-wash:rgba(233,21,45,.16);--accent-ring:rgba(0,82,207,.65);--danger-ink:#ffffff;--mark-ground:#ffffff;--handle-ring:rgba(0,0,0,.25);--on-hue:#ffffff;--ok-ink:#ffffff;--warn-ink:#ffffff;--scrim-modal:rgba(0,0,0,.4);--scroll-thumb:rgba(0,0,0,.4);--lock-ink:#ffffff;--lock-ink-soft:rgba(255,255,255,.78);--lock-glass:rgba(255,255,255,.24);--lock-glass-strong:rgba(255,255,255,.38);--lock-veil:rgba(0,0,0,.12);--spell-mark:#e9152d;--scrim-idle:#000000;--knob-fill:#ffffff;--orb-bg:#e8effc;--orb-c1:#f383bb;--orb-c2:#43d5dc;--orb-c3:#a9affe;--c-red:#e8483c;--c-red-deep:#b7352b;--c-red-soft:#fbe3e1;--c-amber:#f0a81e;--c-amber-deep:#8e5a05;--c-amber-soft:#faebd2;--c-green:#28b24a;--c-green-deep:#1a7a33;--c-green-soft:#dcf1e1;--c-blue:#2b7cff;--c-blue-deep:#0b5fe0;--c-blue-soft:#e2ebff;--c-violet:#8b5cf0;--c-violet-deep:#6b3fcc;--c-violet-soft:#ece4fb;--sel-bg:var(--accent);--sel-bg-quiet:rgba(128,128,128,.25);--sel-ink:var(--accent-ink);--term-fg:#202020;--term-bg:#ffffff;--term-cursor:var(--accent-text);--term-selection:var(--accent-soft);--term-ansi-0:#303030;--term-ansi-1:#e9152d;--term-ansi-2:#008932;--term-ansi-3:#a16a00;--term-ansi-4:#1e6ef4;--term-ansi-5:#b02fc2;--term-ansi-6:#008198;--term-ansi-7:#5c5c5c;--term-ansi-8:#6b6b6b;--term-ansi-9:#c70322;--term-ansi-10:#007128;--term-ansi-11:#865803;--term-ansi-12:#0057da;--term-ansi-13:#9908ab;--term-ansi-14:#066b7e;--term-ansi-15:#4a4a4a;--signal-success:#34c759;--signal-waiting:#ff8d28;--signal-error:#ff383c;--signal-git:#6155f5;--signal-folder:var(--ink-soft);--tag-red:#ff383c;--tag-orange:#ff8d28;--tag-yellow:#ffcc00;--tag-green:#34c759;--tag-mint:#00c8b3;--tag-teal:#00c3d0;--tag-cyan:#00c0e8;--tag-blue:#0088ff;--tag-indigo:#6155f5;--tag-purple:#cb30e0;--tag-pink:#ff2d55;--tag-brown:#ac7f5e;--shadow-1:0 var(--hair) 0 rgba(255,255,255,.7) inset,0 1px 2px rgba(26,30,26,.1);--shadow-2:0 var(--hair) 0 rgba(255,255,255,.7) inset,0 6px 16px -6px rgba(26,30,26,.3);--shadow-edge:0 0 0 var(--hairline) rgba(0,0,0,.12);--shadow-pop:0 0 0 var(--hairline) rgba(0,0,0,.12),0 10px 30px -8px rgba(0,0,0,.28);--shadow-sheet:0 0 0 var(--hairline) rgba(0,0,0,.14),0 24px 60px -12px rgba(0,0,0,.35);--shadow-drag:0 18px 30px -12px rgba(26,30,26,.4);--shadow-current:0 var(--hair) 0 rgba(255,255,255,.4) inset,0 2px 6px -3px rgba(0,0,0,.25);--shadow-pill-inset:0 var(--hair) 0 rgba(255,255,255,.35) inset;--shadow-window:0 1px 3px rgba(0,0,0,.12),0 24px 64px -16px rgba(0,0,0,.4);--shadow-card:0 0 0 var(--hair) rgba(0,0,0,.06),0 10px 30px -14px rgba(0,0,0,.45);--shadow-handle:0 0 0 var(--hair) rgba(0,0,0,.25),0 3px 8px rgba(0,0,0,.35);--shadow-mark:0 0 0 var(--hair) rgba(0,0,0,.08);--shadow-mark-tile:0 0 0 1.5px var(--f-pill),0 1px 2px rgba(0,0,0,.2);--battery-fill:#28cd41;--battery-low:#ff3b30;--battery-track:rgba(0,0,0,.12);--clock-face-day:#ffffff;--clock-face-night:#343436;--clock-ink-day:#1c1c1e;--clock-ink-night:#ffffff;--clock-seconds:#ff9500;--light-close:#ff5f57;--light-close-rim:#e2463f;--light-close-mark:#4d0000;--light-minimize:#febc2e;--light-minimize-rim:#e1a116;--light-minimize-mark:#995700;--light-zoom:#28c840;--light-zoom-rim:#12ac28;--light-zoom-mark:#006500;--r-panel:20px;--r-card:12px;--r-btn:8px;--r-chip:8px;--r-pill:999px;--r-field:8px;--r-menu:14px;--r-item:8px;--r-tile:12px;--r-window:10px;--r-window-plain:10px;--r-menu-item:8px;--r-small:8px;--r-kbd:5px;--r-tiny:6px;--r-micro:5px;--r-media:12px;--r-icon-tile:7px;--r-group:12px;--ctl-h-xs:20px;--ctl-r-xs:6px;--ctl-cap-r-xs:10px;--ctl-glyph-xs:12px;--ctl-pad-xs:8px;--ctl-fs-xs:10px;--ctl-fw-xs:600;--knob-xs:18px;--switch-w-xs:32px;--switch-h-xs:18px;--switch-r-xs:9px;--switch-knob-xs:16px;--slider-track-xs:3px;--slider-knob-xs:14px;--check-xs:12px;--spinner-xs:10px;--progress-xs:4px;--seg-well-r-xs:6px;--seg-h-xs:18px;--seg-r-xs:5px;--ctl-h-s:24px;--ctl-r-s:7px;--ctl-cap-r-s:12px;--ctl-glyph-s:14px;--ctl-pad-s:10px;--ctl-fs-s:11px;--ctl-fw-s:500;--knob-s:22px;--switch-w-s:38px;--switch-h-s:22px;--switch-r-s:11px;--switch-knob-s:20px;--slider-track-s:4px;--slider-knob-s:16px;--check-s:14px;--spinner-s:16px;--progress-s:6px;--seg-well-r-s:7px;--seg-h-s:22px;--seg-r-s:6px;--ctl-h-m:28px;--ctl-r-m:8px;--ctl-cap-r-m:14px;--ctl-glyph-m:16px;--ctl-pad-m:12px;--ctl-fs-m:13px;--ctl-fw-m:500;--knob-m:26px;--switch-w-m:44px;--switch-h-m:26px;--switch-r-m:13px;--switch-knob-m:24px;--slider-track-m:4px;--slider-knob-m:22px;--check-m:16px;--spinner-m:32px;--progress-m:6px;--seg-well-r-m:8px;--seg-h-m:26px;--seg-r-m:7px;--ctl-h-l:32px;--ctl-r-l:16px;--ctl-cap-r-l:16px;--ctl-glyph-l:18px;--ctl-pad-l:16px;--ctl-fs-l:15px;--ctl-fw-l:600;--knob-l:30px;--switch-w-l:44px;--switch-h-l:26px;--switch-r-l:13px;--switch-knob-l:24px;--slider-track-l:4px;--slider-knob-l:22px;--check-l:16px;--spinner-l:32px;--progress-l:6px;--seg-well-r-l:16px;--seg-h-l:30px;--seg-r-l:15px;--ctl-h-xl:40px;--ctl-r-xl:20px;--ctl-cap-r-xl:20px;--ctl-glyph-xl:20px;--ctl-pad-xl:20px;--ctl-fs-xl:17px;--ctl-fw-xl:600;--knob-xl:38px;--switch-w-xl:44px;--switch-h-xl:26px;--switch-r-xl:13px;--switch-knob-xl:24px;--slider-track-xl:4px;--slider-knob-xl:22px;--check-xl:16px;--spinner-xl:32px;--progress-xl:6px;--seg-well-r-xl:20px;--seg-h-xl:38px;--seg-r-xl:19px;--knob-inset:1px;--shell-bar-h:24px;--bar-status-w:30px;--r-shell-menu:14px;--shell-menu-inset:6px;--shell-palette-inset:12px;--row-settings-h:48px;--row-avatar:32px;--row-compact-h:32px;--row-icon-tile:28px;--row-tile-gap:12px;--row-palette-h:38px;--sidebar-row-h-s:28px;--sidebar-row-h-m:32px;--sidebar-row-h-l:36px;--sidebar-tile-s:20px;--sidebar-tile-m:24px;--sidebar-tile-l:28px;--sheet-narrow-w:340px;--sheet-alert-w:260px;--cc-width:320px;--cc-pad:10px;--cc-gap:10px;--cc-module-r:8px;--cc-panel-r:18px;--cc-tile-h:64px;--cc-head:16px;--cc-head-gap:6px;--cc-level-h:70px;--c-person-1:#5b4fc4;--c-person-2:#2f7f6e;--c-person-3:#b0662e;--c-person-4:#3c8a5b;--c-person-5:#7a4a9e;--c-person-6:#c0782e;--c-person-7:#2e7f8c;--c-person-8:#6d7a3a;--s-1:1px;--s-1-5:1.5px;--s-2:2px;--s-3:3px;--s-4:4px;--s-5:5px;--s-6:6px;--s-7:7px;--s-8:8px;--s-9:9px;--s-10:10px;--s-11:11px;--s-12:12px;--s-13:13px;--s-14:14px;--s-15:15px;--s-16:16px;--s-18:18px;--s-20:20px;--s-22:22px;--s-24:24px;--s-26:26px;--s-28:28px;--s-32:32px;--s-36:36px;--s-40:40px;--s-48:48px;--chrome-titlebar-height:28px;--chrome-light-size:12px;--chrome-light-gap:8px;--chrome-light-inset:13px;--chrome-title-inset:84px;--chrome-edge:4px;--chrome-edge-corner:12px;--fs-pico:7.5px;--fs-caption:10px;--fs-note:10.5px;--fs-eyebrow:11px;--fs-help:11.5px;--fs-small:12px;--fs-meta:12.5px;--fs-control:13px;--fs-body:13.5px;--fs-reading:14px;--fs-compose:14.5px;--fs-base:15px;--fs-subhead:15.5px;--fs-title:16px;--fs-title-2:17px;--fs-heading-3:16.5px;--fs-subject:20px;--fs-heading:21px;--fs-amount:22px;--fs-day:24px;--fs-display:26px;--fs-emoji-cell:30px;--fs-emoji-preview:96px;--z-scene:-2;--z-grain:-1;--z-raise:1;--z-link-pill:7;--z-toast:8;--z-send-pill:9;--z-scrim:10;--z-peek:11;--z-focus-page:12;--z-edge:14;--z-side-peek:15;--z-palette:20;--z-card:30;--z-menu:40;--z-drag:50;--veil:.16;--pane-dim:.6;--term-font:monospace;--term-lh:1.2;--fs-shell-bar:var(--shell-bar-font,13px);--fw-shell-bar:var(--shell-bar-weight,500);--shell-bar-item:var(--shell-bar-item-h,22px);--shell-bar-pad:var(--shell-bar-pad-x,8px);--r-shell-bar-item:var(--shell-bar-radius,5px);--fs-shell-menu:var(--shell-menu-font,13px);--shell-menu-row:var(--shell-menu-row-h,28px);--shell-menu-sep:var(--shell-menu-sep-m,5px);--r-shell-highlight:var(--shell-highlight-radius,8px);--fs-shell-field:var(--shell-field-font,22px);--fw-shell-field:var(--shell-field-weight,500);--shell-field-glyph:var(--shell-field-glyph-px,20px);--fs-shell-row:var(--shell-row-font,14px);--fs-shell-detail:var(--shell-detail-font,12px);--fs-shell-tip:var(--shell-tip-font,12px);--dock-floor:var(--dock-floor-on,0);--dock-tile:var(--dock-tile-px,48px);--dock-gap:var(--dock-gap-px,8px);--dock-pad:var(--dock-pad-px,6px);--dock-dot:var(--dock-dot-px,4px);--dock-dot-gap:var(--dock-dot-gap-px,3px);--osd-margin:var(--osd-margin-px,24px);--notifications-banner-width:var(--notifications-banner-width-px,360px);--notifications-banner-min-height:var(--notifications-banner-min-height-px,64px);--notifications-banner-padding:var(--notifications-banner-padding-px,12px);--notifications-icon:var(--notifications-icon-px,32px);--notifications-close:var(--notifications-close-px,18px);--notifications-stack-gap:var(--notifications-stack-gap-px,8px);--notifications-group-offset:var(--notifications-group-offset-px,4px);--notifications-center-width:var(--notifications-center-width-px,360px);--widget-cell:var(--widget-cell-px,164px);--widget-gap:var(--widget-gap-px,16px);--plate-glyph:var(--icons-glyph-share,56%);--plate-inset:var(--icons-inset-share,72%);--dpr:var(--scale-dpr,1);--px:var(--scale-px,1px);--hair:var(--scale-hair,1px);--hairline:var(--scale-hairline,.5px);--ring:var(--scale-ring,3px);--focus-ring:var(--scale-focus-ring,2.5px);--caret-w:var(--scale-caret-w,1px);--focus-gap:var(--scale-focus-gap,1px);--font-emoji:"Inter","Noto Color Emoji",system-ui,sans-serif;--font-display:"Inter Display","Inter",system-ui,sans-serif;--font-ui:"Inter",system-ui,sans-serif;--font-data:"Inter",system-ui,sans-serif;--font-serif:"Noto Serif",Georgia,"Times New Roman",serif;--font-code:"Space Mono","Inter",ui-monospace,"SFMono-Regular",Menlo,monospace;--tracking-heading:-.02em;--tracking-lock-clock:-.02em;--tracking-lock-date:-.01em;--fw-caps:600;--tracking-mono:0;--fs-mono:.86em;--fs-dial:10px;--fs-nano:10px;--fs-micro:10px;--fs-dial-large:16.5px;--fs-widget-figure:18px;--fs-widget-hero:42.5px;--fs-lock-clock:127px;--t-quick:120ms;--t-move:200ms;--t-big:280ms;--t-spin-step:83ms;--t-turn:1000ms;--t-shake:420ms;--t-overview:350ms;--t-send-ring:5000ms;--t-awake:20000ms;--t-idle-dim:2000ms;--t-orb-listen:12000ms;--t-orb-work:8000ms;--t-orb-act:5000ms;--e-out:cubic-bezier(.22,.9,.3,1);--e-exit:cubic-bezier(.4,0,1,1);--e-shake:cubic-bezier(.36,.07,.19,.97);--e-linear:linear;--e-in-out:cubic-bezier(.42,0,.58,1);color-scheme:light;}
 .ds[*|data-theme=dark]{--paper:#1e1e1e;--surface:#2a2a2a;--surface-2:#242424;--raise:#323232;--ink:#e8e8e8;--ink-soft:#a3a3a3;--line:#444444;--fill-quaternary:rgba(255,255,255,.1);--fill-btn:rgba(255,255,255,.1);--fill:rgba(255,255,255,.14);--sel-neutral:rgba(255,255,255,.08);--stripe:rgba(255,255,255,.035);--grp:#2c2c2e;--line-soft:#383838;--accent:#0091ff;--accent-soft:rgba(0,145,255,.2);--accent-text:#5cb8ff;--accent-text-material:#c5e4ff;--seal:#0091ff;--ok:#30d158;--warn:#ff9230;--danger:#ff4245;--ok-wash:rgba(48,209,88,.16);--warn-wash:#45382f;--danger-wash:rgba(255,66,69,.16);--accent-ring:rgba(92,184,255,.6);--danger-ink:#1a0b08;--handle-ring:rgba(255,255,255,.25);--ok-ink:#0b1a12;--warn-ink:#140d03;--scrim-modal:rgba(0,0,0,.55);--scroll-thumb:rgba(255,255,255,.4);--lock-glass:rgba(255,255,255,.18);--lock-glass-strong:rgba(255,255,255,.3);--lock-veil:rgba(0,0,0,.28);--spell-mark:#ff4245;--orb-bg:#1b1f29;--orb-c1:#df6aa6;--orb-c2:#04bbc3;--orb-c3:#8d92f9;--c-red:#ff6b60;--c-red-deep:#ff8a80;--c-red-soft:#3a1e1c;--c-amber:#f5bc4e;--c-amber-deep:#f0b84a;--c-amber-soft:#3a2c12;--c-green:#4fd06a;--c-green-deep:#6edb86;--c-green-soft:#153520;--c-blue:#4c9bff;--c-blue-deep:#6fb0ff;--c-blue-soft:#14263f;--c-violet:#a98bff;--c-violet-deep:#b69bff;--c-violet-soft:#271c42;--term-fg:#e8e8e8;--term-bg:#1e1e1e;--term-ansi-0:#8e8e93;--term-ansi-1:#ff6165;--term-ansi-2:#4ad968;--term-ansi-3:#fedf43;--term-ansi-4:#5cb8ff;--term-ansi-5:#ea8dff;--term-ansi-6:#3bddec;--term-ansi-7:#d1d1d6;--term-ansi-8:#aeaeb2;--term-ansi-9:#ff9093;--term-ansi-10:#80e495;--term-ansi-11:#fee97b;--term-ansi-12:#8dcdff;--term-ansi-13:#f0afff;--term-ansi-14:#76e7f2;--term-ansi-15:#f5f5f7;--signal-success:#30d158;--signal-waiting:#ff9230;--signal-error:#ff4245;--signal-git:#6d7cff;--tag-red:#ff4245;--tag-orange:#ff9230;--tag-yellow:#ffd600;--tag-green:#30d158;--tag-mint:#00dac3;--tag-teal:#00d2e0;--tag-cyan:#3cd3fe;--tag-blue:#0091ff;--tag-indigo:#6d7cff;--tag-purple:#db34f2;--tag-pink:#ff375f;--tag-brown:#b78a66;--shadow-1:0 var(--hair) 0 rgba(255,255,255,.05) inset,0 2px 4px rgba(0,0,0,.45);--shadow-2:0 var(--hair) 0 rgba(255,255,255,.05) inset,0 10px 22px -8px rgba(0,0,0,.7);--shadow-edge:0 0 0 var(--hairline) rgba(255,255,255,.12);--shadow-pop:0 0 0 var(--hairline) rgba(255,255,255,.14),0 10px 30px -8px rgba(0,0,0,.55);--shadow-sheet:0 0 0 var(--hairline) rgba(255,255,255,.14),0 24px 60px -12px rgba(0,0,0,.6);--shadow-drag:0 22px 34px -14px rgba(0,0,0,.8);--shadow-window:0 1px 3px rgba(0,0,0,.4),0 24px 64px -16px rgba(0,0,0,.66);--battery-fill:#32d74b;--battery-low:#ff453a;--battery-track:rgba(255,255,255,.14);--clock-seconds:#ff9f0a;color-scheme:dark;}
 .ds[*|data-typeface=editorial]{--font-display:"Bricolage Grotesque","Inter","Trebuchet MS",system-ui,sans-serif;--font-ui:"Karla","Inter","Segoe UI",system-ui,sans-serif;--font-data:"Space Mono","Inter",ui-monospace,"SFMono-Regular",Menlo,monospace;--tracking-heading:-.015em;--tracking-lock-clock:-.035em;--tracking-lock-date:.01em;--fw-caps:400;--tracking-mono:-.02em;--fs-mono:.78em;--fs-dial:9px;--fs-nano:9px;--fs-micro:9.5px;--fs-dial-large:18px;--fs-widget-figure:20px;--fs-widget-hero:47px;--fs-lock-clock:140px;}
-.ds[*|data-motion=reduced]{--t-move:120ms;--t-big:120ms;--t-turn:120ms;--t-shake:120ms;--t-awake:120ms;--t-idle-dim:120ms;}
+.ds[*|data-motion=reduced]{--t-move:120ms;--t-big:120ms;--t-turn:120ms;--t-shake:120ms;--t-overview:120ms;--t-awake:120ms;--t-idle-dim:120ms;}
 /* == accents == */
 .ds{--swatch-blue:#0088ff;--swatch-purple:#cb30e0;--swatch-pink:#ff2d55;--swatch-red:#ff383c;--swatch-orange:#ff8d28;--swatch-yellow:#ffcc00;--swatch-green:#34c759;--swatch-graphite:#8e8e93;}
 .ds[*|data-theme=dark]{--swatch-blue:#0091ff;--swatch-purple:#db34f2;--swatch-pink:#ff375f;--swatch-red:#ff4245;--swatch-orange:#ff9230;--swatch-yellow:#ffd600;--swatch-green:#30d158;--swatch-graphite:#98989d;}
@@ -116,13 +116,13 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-plate-face{position:absolute;inset:0;border-radius:var(--r-plate);background:linear-gradient(135deg,var(--plate-base),var(--plate-deep));box-shadow:var(--plate-inner);mask-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%20preserveAspectRatio='none'%3E%3Cpath%20d='M100.00%2050.00L99.99%2062.73L99.96%2066.80L99.90%2069.75L99.83%2072.14L99.73%2074.20L99.61%2076.01L99.47%2077.63L99.31%2079.12L99.13%2080.49L98.92%2081.75L98.69%2082.94L98.44%2084.05L98.17%2085.09L97.87%2086.08L97.55%2087.01L97.20%2087.89L96.84%2088.73L96.44%2089.52L96.02%2090.28L95.58%2091.00L95.11%2091.68L94.61%2092.33L94.08%2092.94L93.53%2093.53L92.94%2094.08L92.33%2094.61L91.68%2095.11L91.00%2095.58L90.28%2096.02L89.52%2096.44L88.73%2096.84L87.89%2097.20L87.01%2097.55L86.08%2097.87L85.09%2098.17L84.05%2098.44L82.94%2098.69L81.75%2098.92L80.49%2099.13L79.12%2099.31L77.63%2099.47L76.01%2099.61L74.20%2099.73L72.14%2099.83L69.75%2099.90L66.80%2099.96L62.73%2099.99L50.00%20100.00L37.27%2099.99L33.20%2099.96L30.25%2099.90L27.86%2099.83L25.80%2099.73L23.99%2099.61L22.37%2099.47L20.88%2099.31L19.51%2099.13L18.25%2098.92L17.06%2098.69L15.95%2098.44L14.91%2098.17L13.92%2097.87L12.99%2097.55L12.11%2097.20L11.27%2096.84L10.48%2096.44L9.72%2096.02L9.00%2095.58L8.32%2095.11L7.67%2094.61L7.06%2094.08L6.47%2093.53L5.92%2092.94L5.39%2092.33L4.89%2091.68L4.42%2091.00L3.98%2090.28L3.56%2089.52L3.16%2088.73L2.80%2087.89L2.45%2087.01L2.13%2086.08L1.83%2085.09L1.56%2084.05L1.31%2082.94L1.08%2081.75L0.87%2080.49L0.69%2079.12L0.53%2077.63L0.39%2076.01L0.27%2074.20L0.17%2072.14L0.10%2069.75L0.04%2066.80L0.01%2062.73L0.00%2050.00L0.01%2037.27L0.04%2033.20L0.10%2030.25L0.17%2027.86L0.27%2025.80L0.39%2023.99L0.53%2022.37L0.69%2020.88L0.87%2019.51L1.08%2018.25L1.31%2017.06L1.56%2015.95L1.83%2014.91L2.13%2013.92L2.45%2012.99L2.80%2012.11L3.16%2011.27L3.56%2010.48L3.98%209.72L4.42%209.00L4.89%208.32L5.39%207.67L5.92%207.06L6.47%206.47L7.06%205.92L7.67%205.39L8.32%204.89L9.00%204.42L9.72%203.98L10.48%203.56L11.27%203.16L12.11%202.80L12.99%202.45L13.92%202.13L14.91%201.83L15.95%201.56L17.06%201.31L18.25%201.08L19.51%200.87L20.88%200.69L22.37%200.53L23.99%200.39L25.80%200.27L27.86%200.17L30.25%200.10L33.20%200.04L37.27%200.01L50.00%200.00L62.73%200.01L66.80%200.04L69.75%200.10L72.14%200.17L74.20%200.27L76.01%200.39L77.63%200.53L79.12%200.69L80.49%200.87L81.75%201.08L82.94%201.31L84.05%201.56L85.09%201.83L86.08%202.13L87.01%202.45L87.89%202.80L88.73%203.16L89.52%203.56L90.28%203.98L91.00%204.42L91.68%204.89L92.33%205.39L92.94%205.92L93.53%206.47L94.08%207.06L94.61%207.67L95.11%208.32L95.58%209.00L96.02%209.72L96.44%2010.48L96.84%2011.27L97.20%2012.11L97.55%2012.99L97.87%2013.92L98.17%2014.91L98.44%2015.95L98.69%2017.06L98.92%2018.25L99.13%2019.51L99.31%2020.88L99.47%2022.37L99.61%2023.99L99.73%2025.80L99.83%2027.86L99.90%2030.25L99.96%2033.20L99.99%2037.27Z'/%3E%3C/svg%3E");mask-size:100% 100%;mask-repeat:no-repeat;}
 .ds-plate > .ds-ic,.ds-plate > .ds-ext-icon[*|data-kind=symbolic]{position:relative;width:var(--plate-glyph);height:var(--plate-glyph);}
 .ds-plate > .ds-ext-icon[*|data-kind=image]{position:relative;width:var(--plate-inset);height:var(--plate-inset);}
-.ds-plate[*|data-family=red]{--plate-base:#e8483c;--plate-deep:#b7352b;--plate-ink:#ffffff;}
-.ds-plate[*|data-family=amber]{--plate-base:#f0a81e;--plate-deep:#8e5a05;--plate-ink:#16171a;}
-.ds-plate[*|data-family=green]{--plate-base:#28b24a;--plate-deep:#1a7a33;--plate-ink:#16171a;}
-.ds-plate[*|data-family=blue]{--plate-base:#2b7cff;--plate-deep:#0b5fe0;--plate-ink:#ffffff;}
-.ds-plate[*|data-family=violet]{--plate-base:#8b5cf0;--plate-deep:#6b3fcc;--plate-ink:#ffffff;}
-.ds-plate[*|data-family=neutral]{--plate-base:#ffffff;--plate-deep:#f1f3ee;--plate-ink:#1a1e1a;}
-.ds[*|data-theme=dark] .ds-plate[*|data-family=neutral]{--plate-base:#2a2e28;--plate-deep:#1d211b;--plate-ink:#e8eae4;}
+.ds-plate[*|data-family=red],.ds-icon-tile[*|data-family=red]{--plate-base:#e8483c;--plate-deep:#b7352b;--plate-ink:#ffffff;}
+.ds-plate[*|data-family=amber],.ds-icon-tile[*|data-family=amber]{--plate-base:#f0a81e;--plate-deep:#8e5a05;--plate-ink:#16171a;}
+.ds-plate[*|data-family=green],.ds-icon-tile[*|data-family=green]{--plate-base:#28b24a;--plate-deep:#1a7a33;--plate-ink:#16171a;}
+.ds-plate[*|data-family=blue],.ds-icon-tile[*|data-family=blue]{--plate-base:#2b7cff;--plate-deep:#0b5fe0;--plate-ink:#ffffff;}
+.ds-plate[*|data-family=violet],.ds-icon-tile[*|data-family=violet]{--plate-base:#8b5cf0;--plate-deep:#6b3fcc;--plate-ink:#ffffff;}
+.ds-plate[*|data-family=neutral],.ds-icon-tile[*|data-family=neutral]{--plate-base:#ffffff;--plate-deep:#f1f3ee;--plate-ink:#1a1e1a;}
+.ds[*|data-theme=dark] .ds-plate[*|data-family=neutral],.ds[*|data-theme=dark] .ds-icon-tile[*|data-family=neutral]{--plate-base:#2a2e28;--plate-deep:#1d211b;--plate-ink:#e8eae4;}
 .ds-plate[*|data-icon-style]{--plate-base:var(--plate-base-l);--plate-deep:var(--plate-deep-l);--plate-ink:var(--plate-ink-l);}
 .ds[*|data-theme=dark] .ds-plate[*|data-icon-style]{--plate-base:var(--plate-base-d);--plate-deep:var(--plate-deep-d);--plate-ink:var(--plate-ink-d);}
 .ds-dock-floor{--dock-floor-fill:linear-gradient(to top,rgba(255,255,255,.26),rgba(255,255,255,.08) 38%,rgba(255,255,255,0) 40%);position:absolute;inset:0;border-radius:inherit;background:var(--dock-floor-fill);opacity:var(--dock-floor);pointer-events:none;}
@@ -192,6 +192,13 @@ html,body{margin:0;padding:0;background:transparent}
 @keyframes panel-in{ from{ transform:translateX(calc(100% + var(--s-16))); } to{ transform:none; } }
 @keyframes panel-out{ from{ transform:translateX(var(--swipe-dx,0px)); } to{ transform:translateX(calc(100% + var(--s-16))); } }
 
+/* drop-in and lift-out (quire's): a surface hung from the top edge, Mission Control's Spaces bar,
+   slides down from `--drop-dy` above its place (`--s-48` by default) with a fade at
+   `--t-overview --e-out`, the pace the overview's windows fly at, and leaves by the reverse at
+   `--t-overview --e-exit`, holding its last frame until the host unmaps it. */
+@keyframes drop-in{ from{ opacity:0; transform:translateY(var(--drop-dy,calc(var(--s-48) * -1))); } to{ opacity:1; transform:none; } }
+@keyframes lift-out{ from{ opacity:1; transform:none; } to{ opacity:0; transform:translateY(var(--drop-dy,calc(var(--s-48) * -1))); } }
+
 
 /* morph-in, morph-out: a glyph that changes state grows in from .9 as the old one shrinks to .9
    and fades (MorphStyle::DownUp; OffUp plays only morph-in). */
@@ -243,6 +250,8 @@ html,body{margin:0;padding:0;background:transparent}
 @keyframes sheet-out--b{ from{ opacity:1; transform:none; } to{ opacity:0; transform:translateY(var(--sheet-dy,0px)) scale(var(--sheet-scale,.97)); } }
 @keyframes panel-in--b{ from{ transform:translateX(calc(100% + var(--s-16))); } to{ transform:none; } }
 @keyframes panel-out--b{ from{ transform:translateX(var(--swipe-dx,0px)); } to{ transform:translateX(calc(100% + var(--s-16))); } }
+@keyframes drop-in--b{ from{ opacity:0; transform:translateY(var(--drop-dy,calc(var(--s-48) * -1))); } to{ opacity:1; transform:none; } }
+@keyframes lift-out--b{ from{ opacity:1; transform:none; } to{ opacity:0; transform:translateY(var(--drop-dy,calc(var(--s-48) * -1))); } }
 @keyframes morph-in--b{ from{ opacity:0; transform:scale(.9); } to{ opacity:1; transform:none; } }
 @keyframes morph-out--b{ from{ opacity:1; transform:none; } to{ opacity:0; transform:scale(.9); } }
 @keyframes morph-fade-out--b{ from{ opacity:1; } to{ opacity:0; } }
@@ -301,6 +310,10 @@ html,body{margin:0;padding:0;background:transparent}
 .a-panel-in[*|data-pulse=b]{animation:panel-in--b var(--t-move) var(--e-out);}
 .a-panel-out[*|data-pulse=a]{animation:panel-out var(--t-quick) var(--e-exit) forwards;}
 .a-panel-out[*|data-pulse=b]{animation:panel-out--b var(--t-quick) var(--e-exit) forwards;}
+.a-drop-in[*|data-pulse=a]{animation:drop-in var(--t-overview) var(--e-out);}
+.a-drop-in[*|data-pulse=b]{animation:drop-in--b var(--t-overview) var(--e-out);}
+.a-lift-out[*|data-pulse=a]{animation:lift-out var(--t-overview) var(--e-exit) forwards;}
+.a-lift-out[*|data-pulse=b]{animation:lift-out--b var(--t-overview) var(--e-exit) forwards;}
 .a-morph-in[*|data-pulse=a]{animation:morph-in var(--t-quick) var(--e-out) backwards;}
 .a-morph-in[*|data-pulse=b]{animation:morph-in--b var(--t-quick) var(--e-out) backwards;}
 .a-morph-out[*|data-pulse=a]{animation:morph-out var(--t-quick) var(--e-out) forwards;}
@@ -380,6 +393,10 @@ html,body{margin:0;padding:0;background:transparent}
 .ds[*|data-motion=reduced] .a-panel-in[*|data-pulse=b]{animation-name:fade--b;}
 .ds[*|data-motion=reduced] .a-panel-out[*|data-pulse=a]{animation-name:menu-out;}
 .ds[*|data-motion=reduced] .a-panel-out[*|data-pulse=b]{animation-name:menu-out--b;}
+.ds[*|data-motion=reduced] .a-drop-in[*|data-pulse=a]{animation-name:fade;}
+.ds[*|data-motion=reduced] .a-drop-in[*|data-pulse=b]{animation-name:fade--b;}
+.ds[*|data-motion=reduced] .a-lift-out[*|data-pulse=a]{animation-name:menu-out;}
+.ds[*|data-motion=reduced] .a-lift-out[*|data-pulse=b]{animation-name:menu-out--b;}
 .ds[*|data-motion=reduced] .a-morph-in[*|data-pulse=a]{animation-name:fade;}
 .ds[*|data-motion=reduced] .a-morph-in[*|data-pulse=b]{animation-name:fade--b;}
 .ds[*|data-motion=reduced] .a-morph-out[*|data-pulse=a]{animation-name:menu-out;}
@@ -537,6 +554,9 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-acc-title{ font-family:var(--font-display); font-size:var(--fs-title); font-weight:700; line-height:1.3; color:var(--ink); }
 .ds-acc-body{ display:flex; flex-direction:column; gap:var(--s-12); font-size:var(--fs-control); line-height:1.45; color:var(--ink-soft); }
 .ds-acc-actions{ display:flex; justify-content:flex-end; gap:var(--s-8); margin-top:var(--s-6); }
+/* A form's Advanced disclosure holds its own sections, as far apart as the form's, the first
+   a little below the triangle. */
+.ds-acc-advanced{ display:flex; flex-direction:column; gap:var(--s-20); padding-top:var(--s-12); }
 .ds-acc-caption{ font-size:var(--fs-control); line-height:1.45; color:var(--ink-soft); }
 .ds-acc-waiting{ display:flex; align-items:center; gap:var(--s-8); }
 .ds-acc-url{ font-family:var(--font-data); font-size:var(--fs-small); color:var(--ink-soft); word-break:break-all; user-select:text; }
@@ -1166,8 +1186,10 @@ html,body{margin:0;padding:0;background:transparent}
    the card and inset to the row text; its footer 11 faint, 6 below. Rows inside lie 44 high
    (`--row-settings-h`) with a 14 side pad and the 6 px vertical pad a row keeps, so wrapped controls stay inset; each row after the first carries the hairline `--line`
    from the row's text to the trailing edge, none above the first, none below the last. A grouped
-   `List` or `FieldRow` placed inside takes the card as its own. Attribute selectors carry `*|`
-   (spike S2). */
+   `List` or `FieldRow` placed inside takes the card as its own. Where a grouped list follows a row
+   or another list, its first row carries the hairline, from its own text (`--sep`, past a leading
+   tile), and the rows where the two meet lose the group's corners, which are the card's. Attribute
+   selectors carry `*|` (spike S2). */
 
 .ds-form-section{ display:flex; flex-direction:column; min-width:0; }
 .ds-form-section-title{ padding:0 var(--s-14) var(--s-6); font-size:var(--fs-control); font-weight:600; color:var(--ink-soft); line-height:1.3; }
@@ -1178,6 +1200,13 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-form-section-group > .ds-field-row + .ds-field-row::before,
 .ds-form-section-group > .ds-list + .ds-field-row::before{ content:""; position:absolute; top:0; left:var(--s-14); right:0; height:var(--hair); background:var(--line); }
 .ds-form-section-group > .ds-list[*|data-style=grouped]{ background:transparent; border-radius:0; }
+.ds-form-section-group > .ds-field-row + .ds-list[*|data-style=grouped] > .ds-list-item:first-child > .ds-row::before,
+.ds-form-section-group > .ds-list + .ds-list[*|data-style=grouped] > .ds-list-item:first-child > .ds-row::before{ content:""; position:absolute; top:0; left:var(--sep); right:0; height:var(--hair); background:var(--line); }
+.ds-form-section-group > .ds-field-row + .ds-list[*|data-style=grouped] > .ds-list-item:first-child > .ds-row[*|aria-selected=true]::before,
+.ds-form-section-group > .ds-list + .ds-list[*|data-style=grouped] > .ds-list-item:first-child > .ds-row[*|aria-selected=true]::before{ display:none; }
+.ds-form-section-group > .ds-field-row + .ds-list[*|data-style=grouped] > .ds-list-item:first-child > .ds-row,
+.ds-form-section-group > .ds-list + .ds-list[*|data-style=grouped] > .ds-list-item:first-child > .ds-row{ border-top-left-radius:0; border-top-right-radius:0; }
+.ds-form-section-group > .ds-list[*|data-style=grouped]:not(:last-child) > .ds-list-item:last-child > .ds-row{ border-bottom-left-radius:0; border-bottom-right-radius:0; }
 /* -- hover_card -- */
 /* HoverCard (design/04-COMPONENTS.md section 22): the card `S:399-404`, its blocks `S:405-425`,
    the side card `S:428`, the live dot `S:561`. It fades in over `--t-quick` (design/30 section
@@ -1275,6 +1304,12 @@ html,body{margin:0;padding:0;background:transparent}
   border-radius:var(--r-icon-tile); background-color:var(--tile-bg); background-image:linear-gradient(180deg, var(--tile-top), var(--tile-bg));
   color:var(--on-hue);
 }
+/* A family tile (`data-family`, `TileFace::Plate`): the plate family's paint (`--plate-base`,
+   `--plate-deep`, `--plate-ink`, declared with the plate's rules, the neutral one dark paper in the
+   dark scheme), top to bottom as the tile's own gradient runs. The neutral paper is the group's
+   ground in either scheme, so it keeps a hairline rim, as the plate keeps its inner rim. */
+.ds-icon-tile[*|data-family]{ background-color:var(--plate-deep); background-image:linear-gradient(180deg, var(--plate-base), var(--plate-deep)); color:var(--plate-ink); }
+.ds-icon-tile[*|data-family=neutral]{ box-shadow:inset 0 0 0 var(--hair) var(--line); }
 /* -- icon_button_group -- */
 /* IconButtonGroup: small icon buttons on one rounded plate. The plate's radius follows the control
    size's ladder (`--ctl-r-*`); the quiet fill is the banner's. Attribute selectors carry `*|`
@@ -1839,12 +1874,17 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-pin-tile-drop{ position:absolute; top:var(--s-2); bottom:var(--s-2); left:calc(var(--s-4) * -1); width:var(--s-2); border-radius:var(--r-pill); background:var(--accent); pointer-events:none; }
 /* -- pick_list -- */
 /* PickList (design/30 section 2.4): a search field over a scrolling list of rows inside a
-   popover. The field is the popover's own inset from its edge; the rows are the palette's, at the
-   menu's inset, and the list scrolls past 264 px. Attribute selectors carry `*|`
-   (spike S2). */
+   popover. The field is the palette's plain query row, flush with the popover's edges and a
+   hairline under it, so the popover is the one outline (a bezeled field inside it drew a second
+   frame and ring); its query is at the control size, as a popover's is. The rows are the
+   palette's, at the popover's inset, and the list scrolls past 264 px. Attribute selectors carry
+   `*|` (spike S2). */
 
-.ds-pick-list{ display:flex; flex-direction:column; gap:var(--s-6); width:280px; padding:var(--s-8); box-sizing:border-box; }
-.ds-pick-list-rows{ overflow-y:auto; scrollbar-width:none; max-height:264px; outline:none; }
+.ds-pick-list{ display:flex; flex-direction:column; width:280px; box-sizing:border-box; }
+.ds-pick-list .ds-text-field[*|data-kind=search][*|data-variant=plain] .ds-text-field-frame{ padding:var(--s-8) var(--s-12); gap:var(--s-8); }
+.ds-pick-list .ds-text-field[*|data-kind=search][*|data-variant=plain] .ds-input,
+.ds-pick-list .ds-text-field[*|data-kind=search][*|data-variant=plain] .ds-input-placeholder{ font-size:var(--fs-control); }
+.ds-pick-list-rows{ overflow-y:auto; scrollbar-width:none; max-height:264px; padding:var(--s-8); outline:none; }
 .ds-pick-list-empty{ padding:var(--s-8); font-size:var(--fs-meta); color:var(--ink-faint); }
 /* -- pdf_thumb -- */
 /* PdfThumb (design/04-COMPONENTS.md section 45; sill M9's launcher preview, design/20 section
@@ -2508,6 +2548,50 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-skeleton-row[*|data-presence=entering][*|data-pulse=b],.ds-skeleton-row[*|data-presence=present][*|data-pulse=b]{ animation-name:fade--b; }
 .ds-skeleton-row[*|data-presence=present][*|data-pulse=held]{ animation:hold var(--t-quick) var(--e-linear); }
 .ds-skeleton-row[*|data-presence=leaving]{ animation:menu-out var(--t-quick) var(--e-exit) forwards; }
+/* -- spaces_bar -- */
+/* SpacesBar (design/04-COMPONENTS.md section 62): Mission Control's strip of Spaces along the top
+   edge. The bar is a row across its root: an empty side, the Spaces centred, and a side holding
+   the plus at the right edge. It drops in from above with `drop-in` (`--t-overview --e-out`) and
+   lifts away with `lift-out` (`--t-overview --e-exit`), holding its last frame until the host
+   unmaps it; a hide taken back plays `hold`, which moves nothing. Under the pointer
+   (`data-expansion=expanded`) each Space shows a thumbnail with its name under it; collapsed it is
+   a row of names and the current one sits on the frame's pill with the current-item shadow. The
+   current thumbnail is ringed in the accent. `data-drop=target` lights the Space a drag is over
+   (accent wash, ringed thumbnail), `data-drop=accepts` outlines one that could take the drop with
+   a quiet dashed hairline, `data-drag=source` dims the one being dragged. Attribute selectors carry
+   `*|` (spike S2). */
+
+.ds-spaces-bar{ --drop-dy:calc(var(--s-48) * -1); box-sizing:border-box; width:100%; display:flex; align-items:flex-start; justify-content:center; gap:var(--s-12); padding:var(--s-8) var(--s-20);
+  color:var(--f-ink); font:inherit; font-size:var(--fs-meta); font-weight:500; }
+.ds-spaces-bar[*|data-presence=entering],.ds-spaces-bar[*|data-presence=present]{ animation:drop-in var(--t-overview) var(--e-out); }
+.ds-spaces-bar[*|data-presence=entering][*|data-pulse=b],.ds-spaces-bar[*|data-presence=present][*|data-pulse=b]{ animation-name:drop-in--b; }
+.ds-spaces-bar[*|data-presence=present][*|data-pulse=held]{ animation:hold var(--t-quick) var(--e-linear); }
+.ds-spaces-bar[*|data-presence=leaving]{ animation:lift-out var(--t-overview) var(--e-exit) forwards; pointer-events:none; }
+
+.ds-spaces-bar-side{ flex:1; min-width:0; display:flex; align-items:flex-start; justify-content:flex-end; }
+.ds-spaces-bar-row{ display:flex; align-items:flex-start; justify-content:center; gap:var(--s-16); }
+.ds-spaces-bar-add{ display:inline-flex; }
+
+.ds-spaces-bar-space{ display:flex; flex-direction:column; align-items:center; gap:var(--s-6); box-sizing:border-box; padding:var(--s-4) var(--s-10); border:0; border-radius:var(--r-small);
+  background:transparent; color:var(--f-ink-soft); font:inherit; cursor:default;
+  transition:background-color var(--t-quick) var(--e-out), color var(--t-quick) var(--e-out); }
+.ds-spaces-bar-space:hover{ color:var(--f-ink); }
+.ds-spaces-bar-space[*|data-selected=selected]{ background:var(--f-pill); color:var(--f-ink); box-shadow:var(--shadow-current); }
+.ds-spaces-bar-space[*|data-drag=source]{ opacity:.35; }
+.ds-spaces-bar-space[*|data-drop=accepts]{ box-shadow:inset 0 0 0 var(--hair) var(--accent); }
+.ds-spaces-bar-space[*|data-drop=target]{ background:var(--accent-soft); color:var(--f-ink); }
+.ds-spaces-bar-name{ white-space:nowrap; }
+
+/* Expanded: the thumbnails carry the mark, so the name's pill goes. */
+.ds-spaces-bar[*|data-expansion=expanded] .ds-spaces-bar-space{ padding:var(--s-4); }
+.ds-spaces-bar[*|data-expansion=expanded] .ds-spaces-bar-space[*|data-selected=selected]{ background:transparent; box-shadow:none; }
+.ds-spaces-bar-thumb{ position:relative; box-sizing:border-box; width:160px; height:100px; overflow:hidden; border-radius:var(--r-tiny);
+  background:var(--f-pill-hover); box-shadow:var(--shadow-mark); animation:fade var(--t-quick) var(--e-out); }
+.ds-spaces-bar-picture{ position:absolute; left:0; top:0; display:block; width:100%; height:100%; object-fit:cover; pointer-events:none; user-select:none; }
+.ds-spaces-bar-space[*|data-selected=selected] .ds-spaces-bar-thumb{ box-shadow:0 0 0 var(--s-2) var(--accent); }
+.ds-spaces-bar-space[*|data-drop=target] .ds-spaces-bar-thumb{ box-shadow:0 0 0 var(--s-2) var(--accent); }
+.ds-spaces-bar[*|data-expansion=expanded] .ds-spaces-bar-space[*|data-drop=accepts]{ box-shadow:none; }
+.ds-spaces-bar[*|data-expansion=expanded] .ds-spaces-bar-space[*|data-drop=accepts] .ds-spaces-bar-thumb{ box-shadow:0 0 0 var(--hair) var(--accent); }
 /* -- slider -- */
 /* Slider (design/30 section 2.1, `NSSlider`; sized by design/29-SIZING.md). Attribute selectors
    carry `*|` (spike S2); the focus ring is the global one, on `.ds-slider` (spike S12). The level
@@ -2741,8 +2825,8 @@ html,body{margin:0;padding:0;background:transparent}
   background:linear-gradient(135deg,var(--dot-c1) 0%,var(--dot-c2) 50%,var(--dot-c3) 100%); }
 .ds-handle, .ds-stop-disc{ background:var(--dot-c1); }
 /* -- spaces -- */
-/* Spaces (design/21-SPACES.md section 13): the sidebar head and foot, and the parts of a
-   Space's menu. Colours are the frame's own (`--f-*`) and tokens; nothing is Space-tinted here
+/* Spaces (design/21-SPACES.md section 13): the sidebar head and foot, the parts of a Space's
+   menu, and its Edit Space sheet. Colours are the frame's own (`--f-*`) and tokens; nothing is Space-tinted here
    but through them. */
 
 .ds-space-head{ display:flex; align-items:center; min-width:0; padding:0 var(--s-6); }
@@ -2759,11 +2843,18 @@ html,body{margin:0;padding:0;background:transparent}
 
 .ds-space-part{ display:grid; gap:var(--s-10); padding:var(--s-12); }
 .ds-space-rename{ width:240px; }
-.ds-space-colour{ width:340px; }
 .ds-space-delete{ width:300px; }
 .ds-space-delete h3{ margin:0; }
 .ds-space-delete-body{ margin:0; }
 .ds-space-part-acts{ display:flex; justify-content:flex-end; gap:var(--s-6); }
+
+/* The Edit Space sheet (design/34 section 3.8): the title, the grouped form (the name row, then
+   the colour on the group's ground at the row's side inset), and the buttons at the end, Cancel
+   before Save. The form brings its own 20 margin; the title and the buttons share it. */
+.ds-space-edit{ display:flex; flex-direction:column; min-width:0; }
+.ds-space-edit-title{ margin:0; padding:var(--s-20) var(--s-20) 0; font-size:var(--fs-subject); font-weight:700; color:var(--ink); }
+.ds-space-edit-colour{ padding:var(--s-14); }
+.ds-space-edit-acts{ display:flex; justify-content:flex-end; gap:var(--s-8); padding:0 var(--s-20) var(--s-20); }
 /* -- progress -- */
 /* ProgressIndicator (design/30 section 2.9). Attribute selectors carry `*|` (spike S2). Sized
    by the ladder: the bar's thickness is `--progress-*`, the spinner's and the ring's box
@@ -3239,18 +3330,20 @@ html,body{margin:0;padding:0;background:transparent}
    `panel-in` (`--t-move --e-out`) and out with `panel-out` (`--t-quick --e-exit`), holding its
    last frame until the host drops it; a swipe to the right carries it along (`--swipe-dx`, its
    exit starts there). Nothing is laid out while the hub is empty. The action is a quiet button
-   inside the pill, in the accent's ink on the pill. A hide taken back plays `hold`. */
+   inside the pill, in the accent's ink on the pill. A hide taken back plays `hold`. A short notice
+   stays on one line; a long one wraps inside a column of about 28em (never wider than the window
+   less its margins), and the action keeps its one line beside it. */
 
 .ds-toast{ position:absolute; right:var(--s-14); bottom:var(--s-14); transform:translateX(var(--swipe-dx,0px));
   display:flex; align-items:center; gap:var(--s-8); background:var(--ink); color:var(--paper); border-radius:var(--r-pill);
-  padding:var(--s-6) var(--s-6) var(--s-6) var(--s-15); box-shadow:var(--shadow-2); font-size:var(--fs-meta); font-weight:600; white-space:nowrap; pointer-events:auto; touch-action:none; }
+  padding:var(--s-6) var(--s-6) var(--s-6) var(--s-15); box-shadow:var(--shadow-2); font-size:var(--fs-meta); font-weight:600; box-sizing:border-box; max-width:min(28em, calc(100% - var(--s-14) * 2)); pointer-events:auto; touch-action:none; }
 .ds-toast[*|data-presence=entering],.ds-toast[*|data-presence=present]{ animation:panel-in var(--t-move) var(--e-out); }
 .ds-toast[*|data-presence=entering][*|data-pulse=b],.ds-toast[*|data-presence=present][*|data-pulse=b]{ animation-name:panel-in--b; }
 .ds-toast[*|data-presence=present][*|data-pulse=held]{ animation:hold var(--t-quick) var(--e-linear); }
 .ds-toast[*|data-presence=leaving]{ animation:panel-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }
-.ds-toast-body{ min-width:0; overflow:hidden; }
+.ds-toast-body{ min-width:0; overflow:hidden; white-space:normal; overflow-wrap:anywhere; line-height:1.35; }
 .ds-toast .ds-toast-action{ display:flex; align-items:center; gap:var(--s-6); background:var(--paper); color:var(--ink); border:0; border-radius:var(--r-pill);
-  padding:var(--s-5) var(--s-12) var(--s-5) var(--s-9); font-size:var(--fs-small); font-weight:700; cursor:default;
+  flex:none; white-space:nowrap; padding:var(--s-5) var(--s-12) var(--s-5) var(--s-9); font-size:var(--fs-small); font-weight:700; cursor:default;
   transition:background-color var(--t-quick) var(--e-out); }
 /* -- texture_layer -- */
 /* TextureLayer (the `ds-blitz` component that shows a GPU texture): an `object` that fills the box
@@ -3372,12 +3465,40 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-vtable[*|data-look] .ds-table-column[*|aria-disabled=true]:hover{ color:var(--ink-soft); }
 .ds-vtable[*|data-look] .ds-vtable-item > .ds-row{ margin:0 var(--s-6); }
 .ds-vtable[*|data-look=striped] .ds-vtable-item[*|data-stripe=odd]{ background:var(--stripe); }
-.ds-vtable[*|data-look] .ds-vtable-item[*|data-row]:hover{ background:var(--sel-neutral); }
+.ds-vtable[*|data-look] .ds-vtable-item[*|data-row]:hover,
+.ds-vtable[*|data-look] .ds-vtable-item[*|data-hover=yes]{ background:var(--sel-neutral); }
 .ds-vtable[*|data-look] .ds-vtable-item[*|data-selected=yes],
 .ds-vtable[*|data-look] .ds-vtable-item[*|data-selected=yes]:hover{ background:transparent; }
 .ds:not([*|data-activity=inactive]) .ds-vtable[*|data-look]:not([*|data-focus=away]) .ds-row[*|data-focus=highlight][*|aria-selected=true]{
   --ink-soft:var(--sel-ink); --ink-faint:var(--sel-ink);
 }
+
+/* Pinned columns (`pinned` > 0, `data-pinned=yes`; split.rs): two panes side by side under the
+   header, both in the table's one scroller so the rows of each move together. The held pane is as
+   wide as its columns; the other pane scrolls sideways itself (its offset moves the scrolling
+   header, which sits in a clip). `--pin-inset` is the list looks' row inset, so a pane's width
+   counts the inset its rows keep on the table's edge and not on the seam. A row is one block
+   across the seam: rounded on the left in the held pane and on the right in the scrolling one.
+   Once the columns are scrolled (`data-across=yes`) a hairline marks the seam. */
+.ds-vtable[*|data-pinned]{ overflow:hidden; }
+.ds-vtable[*|data-look]{ --pin-inset:var(--s-6); }
+.ds-vtable-heads{ display:flex; flex:none; }
+.ds-vtable-held-head{ flex:none; position:relative; }
+.ds-vtable-head-clip{ flex:1 1 0; min-width:0; overflow:hidden; }
+.ds-vtable-split{ display:flex; flex-direction:row; }
+.ds-vtable-held{ flex:none; position:relative; overflow:hidden; }
+.ds-vtable-columns{ flex:1 1 0; min-width:0; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
+.ds-vtable[*|data-pinned] .ds-vtable-held .ds-row{ border-radius:var(--r-shell-highlight) 0 0 var(--r-shell-highlight); }
+.ds-vtable[*|data-pinned] .ds-vtable-columns .ds-row{ border-radius:0 var(--r-shell-highlight) var(--r-shell-highlight) 0; }
+.ds-vtable[*|data-pinned][*|data-look] .ds-vtable-held-head .ds-table-header{ padding:0 0 0 var(--s-6); }
+.ds-vtable[*|data-pinned][*|data-look] .ds-vtable-head-track .ds-table-header{ padding:0 var(--s-6) 0 0; }
+.ds-vtable[*|data-pinned][*|data-look] .ds-vtable-held .ds-vtable-item > .ds-row{ margin:0 0 0 var(--s-6); }
+.ds-vtable[*|data-pinned][*|data-look] .ds-vtable-columns .ds-vtable-item > .ds-row{ margin:0 var(--s-6) 0 0; }
+.ds-vtable[*|data-pinned][*|data-rules=hairline] .ds-vtable-columns .ds-table-cell:first-child{ border-left:var(--hair) solid var(--line); }
+.ds-vtable-held::after,
+.ds-vtable-held-head::after{ content:""; position:absolute; top:0; bottom:0; right:0; width:var(--hair); background:var(--line); opacity:0; pointer-events:none; }
+.ds-vtable[*|data-across=yes] .ds-vtable-held::after,
+.ds-vtable[*|data-across=yes] .ds-vtable-held-head::after{ opacity:1; }
 /* -- voice_orb -- */
 /* The voice orb (design/30 section 2.9). Three glows, six conic gradients turning at different
    speeds and directions about their own centres, behind a fine dot grid. The turn `--orb-turn`
