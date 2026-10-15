@@ -21,12 +21,13 @@ use ds::prelude::*;
 use ds::root::common::Common;
 use shell_host::{OutputInfo, use_watch};
 use sill_model::intents::sheet::{SheetChoice, SheetFact, SheetView, sheet_view};
-use sill_model::intents::{ConfirmOffer, Gesture};
+use sill_model::intents::{ConfirmOffer, Gesture, NeverOffer};
 use sill_services::IntentsService;
 
 use super::CONFIRM_SHEET_CSS;
 use super::gate::{AnswerGate, GateIn};
-use super::io::use_gate;
+use super::held::held_line;
+use super::io::{use_gate, use_undo};
 use super::layer::PANEL_ID;
 use sill_ui_kit::hooks::use_service_part;
 use sill_ui_kit::links::BannerLink;
@@ -53,6 +54,7 @@ pub(super) fn confirm_sheet(output: OutputInfo) -> Element {
 #[component]
 fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>) -> Element {
     let gate = use_gate(view.id.clone());
+    let undo = use_undo();
     let state = gate.state();
     let mut focus_target = use_signal(|| None::<std::rc::Rc<MountedData>>);
     let mut landed = use_signal(|| Landed::Not);
@@ -120,8 +122,10 @@ fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>
                         div { key: "{place}", class: "sill-confirm-note", "{note}" }
                     }
                 }
+                {held_line(&view, undo, input)}
                 {offered(&view, gate, input)}
                 div { class: "sill-confirm-footer",
+                    {never(&view, gate, input)}
                     Button {
                         label: "Don't Allow",
                         answers: Answers::Escape,
@@ -147,6 +151,7 @@ fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>
 const ALLOW_ID: &str = "confirm-allow";
 const DENY_ID: &str = "confirm-deny";
 const OFFER_ID: &str = "confirm-offer";
+const NEVER_ID: &str = "confirm-never";
 
 /// Whether the keyboard has landed on its button yet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -196,6 +201,23 @@ fn offered(view: &SheetView, gate: MachineRef<AnswerGate>, input: Availability) 
                 common: Common { id: Some(OFFER_ID.to_owned()), ..Common::default() },
             }
         }
+    }
+}
+
+/// Never, when the request offers it: this call is refused and the action is not asked again. It
+/// is neither the default button nor Escape's, answers no key of its own, and is reached by Tab
+/// and pressed by Return or Space like the offer button.
+fn never(view: &SheetView, gate: MachineRef<AnswerGate>, input: Availability) -> Element {
+    match view.never {
+        NeverOffer::Withheld => rsx! {},
+        NeverOffer::Offered => rsx! {
+            Button {
+                label: "Never",
+                availability: input,
+                onclick: move |_| gate.send(GateIn::Press(SheetChoice::Never)),
+                common: Common { id: Some(NEVER_ID.to_owned()), ..Common::default() },
+            }
+        },
     }
 }
 

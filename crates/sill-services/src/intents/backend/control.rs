@@ -2,7 +2,7 @@
 //! breaker. The connection owns `org.quire.Shell`, which the shipped `intentd.toml` gives the
 //! `control` role, so these members answer it and nobody else.
 
-use docket_core::ActionRef;
+use docket_core::{ActionRef, StandingGrantId};
 use docket_dbus::{ControlProxy, INTENTS_BUS};
 use prov::{SpaceId, SpaceScope};
 use tokio::sync::mpsc::UnboundedSender;
@@ -36,6 +36,17 @@ pub(super) async fn revoke(connection: &Connection, grant: &ActionRef) -> Result
     let proxy = running(connection).await?;
     let json = serde_json::to_string(grant).map_err(text)?;
     proxy.revoke_terminal_grant(&json).await.map_err(text)
+}
+
+/// Take away the "always ask" entry `id` names (a sheet's Undo): the next call it covered runs
+/// by the ordinary rules again.
+pub(super) async fn undo_limit(
+    connection: &Connection,
+    id: &StandingGrantId,
+) -> Result<(), String> {
+    let proxy = running(connection).await?;
+    let json = serde_json::to_string(id).map_err(text)?;
+    proxy.revoke_standing_grant(&json).await.map_err(text)
 }
 
 /// Let the terminal's paused sessions take calls again.

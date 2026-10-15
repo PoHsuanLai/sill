@@ -10,7 +10,8 @@ use std::time::Duration;
 
 use docket_core::{
     ActionRef, Anchor, AskReason, ConfirmAnswer, ConfirmDetail, ConfirmEnd, ConfirmId,
-    ConfirmOffer, ConfirmParts, ConfirmRequest, Gesture, GrantScope, LabelText, Seconds, TaintNote,
+    ConfirmOffer, ConfirmParts, ConfirmRequest, Gesture, GrantScope, LabelText, LimitLevel,
+    LimitNote, NeverOffer, Seconds, SheetLimits, StandingGrantId, TaintNote, UndoOffer,
 };
 use docket_dbus::{CONFIRM_BUS, ConfirmProxy, INTENTS_BUS};
 use porter_core::Count;
@@ -74,6 +75,7 @@ fn request(id: &str, offer: ConfirmOffer, expires: u32) -> ConfirmRequest {
 struct Held {
     grants: Vec<ActionRef>,
     revoked: Vec<ActionRef>,
+    unheld: Vec<StandingGrantId>,
     resumed: Vec<String>,
 }
 
@@ -92,6 +94,17 @@ impl StandInControl {
         let mut held = self.0.lock().unwrap_or_else(|e| panic!("{e}"));
         held.grants.retain(|g| *g != grant);
         held.revoked.push(grant);
+        Ok(())
+    }
+
+    async fn revoke_standing_grant(&self, id: String) -> fdo::Result<()> {
+        let id: StandingGrantId =
+            serde_json::from_str(&id).map_err(|e| fdo::Error::InvalidArgs(e.to_string()))?;
+        self.0
+            .lock()
+            .unwrap_or_else(|e| panic!("{e}"))
+            .unheld
+            .push(id);
         Ok(())
     }
 
@@ -341,6 +354,83 @@ async fn allow_from_the_terminal_is_answered_and_the_grants_are_read_again() {
         s.terminal.grants == vec![grant("mail.thread.archive")]
     })
     .await;
+}
+
+/// A question that offers "never" and asks because of the always-ask entry `sg-<hex>`.
+fn limited_request(id: &str, hex: &str) -> ConfirmRequest {
+    let held = LimitNote {
+        id: StandingGrantId::parse(&format!("sg-{hex}")).unwrap_or_else(|e| panic!("{e}")),
+        level: LimitLevel::AlwaysAsk,
+        why: "You said: \u{201c}don't touch Work\u{201d}".to_owned(),
+        undo: UndoOffer::Offered,
+    };
+    let limits = SheetLimits {
+        never: NeverOffer::Offered,
+        held: Some(held),
+    };
+    request(id, ConfirmOffer::OnceOnly, 120).limiting(limits)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn never_goes_back_as_never_with_the_sheets_receipt() {
+    let Some(desk) = desk().await else { return };
+    let state = desk.serving().await;
+    let (control, mut watching) = (desk.seat.control.clone(), state.clone());
+    let answerer = tokio::spawn(async move {
+        until(&mut watching, "the sheet", |s| s.sheets.current().is_some()).await;
+        let id = ConfirmId::parse("c-1").unwrap_or_else(|e| panic!("{e}"));
+        control
+            .send(IntentsCommand::Answer {
+                id,
+                choice: SheetChoice::Never,
+            })
+            .unwrap_or_else(|e| panic!("{e}"));
+    });
+    let (code, body) = desk.ask(limited_request("c-1", "00000000000000a1")).await;
+    assert_eq!(code, 0);
+    let ConfirmAnswer::Never { receipt } = answer_of(&body) else {
+        panic!("{body}");
+    };
+    assert_eq!(receipt.id.as_str(), "c-1");
+    assert_eq!(receipt.input, InputProof::SheetFallback);
+    answerer.await.unwrap_or_else(|e| panic!("{e}"));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn undo_reaches_intentd_and_only_then_the_sheet_loses_its_line() {
+    let Some(desk) = desk().await else { return };
+    let mut state = desk.serving().await;
+    let proxy = ConfirmProxy::new(&desk.intentd)
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    let text = serde_json::to_string(&limited_request("c-1", "00000000000000a1"))
+        .unwrap_or_else(|e| panic!("{e}"));
+    proxy.confirm(&text).await.unwrap_or_else(|e| panic!("{e}"));
+    until(&mut state, "the sheet with its line", |s| {
+        s.sheets
+            .current()
+            .is_some_and(|p| p.request.limits.held.is_some())
+    })
+    .await;
+    let entry = StandingGrantId::parse("sg-00000000000000a1").unwrap_or_else(|e| panic!("{e}"));
+    desk.seat
+        .control
+        .send(IntentsCommand::UndoLimit(entry.clone()))
+        .unwrap_or_else(|e| panic!("{e}"));
+    until(&mut state, "the line gone", |s| {
+        s.sheets
+            .current()
+            .is_some_and(|p| p.request.limits.held.is_none())
+    })
+    .await;
+    let unheld = desk
+        .held
+        .lock()
+        .unwrap_or_else(|e| panic!("{e}"))
+        .unheld
+        .clone();
+    assert_eq!(unheld, vec![entry], "intentd was told, once");
+    assert_eq!(state.borrow().sheets.queue.len(), 1, "the question stays");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

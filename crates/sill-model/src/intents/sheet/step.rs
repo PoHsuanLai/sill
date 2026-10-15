@@ -1,6 +1,8 @@
 //! The queue's transition.
 
-use docket_core::{ConfirmAnswer, ConfirmEnd, ConfirmId, ConfirmRequest, GrantScope, Seconds};
+use docket_core::{
+    ConfirmAnswer, ConfirmEnd, ConfirmId, ConfirmRequest, GrantScope, Seconds, StandingGrantId,
+};
 use prov::{Confidentiality, ConfirmReceipt, InputProof, UnixSeconds};
 
 use super::model::{Pending, Reply, Serial, SheetChoice, Sheets, permits};
@@ -16,6 +18,8 @@ pub enum SheetEvent {
         choice: SheetChoice,
         at: UnixSeconds,
     },
+    /// The limit entry that made a sheet ask was undone: no sheet names it as its reason any more.
+    LimitUndone(StandingGrantId),
     /// The router withdrew `id` (`Cancel`).
     Withdrawn(ConfirmId),
     /// A question's time ran out.
@@ -38,6 +42,7 @@ pub fn step(sheets: Sheets, event: SheetEvent) -> (Sheets, Vec<SheetEffect>) {
     match event {
         SheetEvent::Asked(serial, request) => asked(sheets, serial, *request),
         SheetEvent::Answered { id, choice, at } => answered(sheets, &id, choice, at),
+        SheetEvent::LimitUndone(id) => (unheld(sheets, &id), Vec::new()),
         SheetEvent::Withdrawn(id) => ended(sheets, |p| p.request.id == id, Reply::Withdrawn),
         SheetEvent::Expired(serial) => ended(
             sheets,
@@ -75,7 +80,7 @@ fn answered(
     let Some(place) = sheets.queue.iter().position(|p| &p.request.id == id) else {
         return (sheets, Vec::new());
     };
-    if !permits(sheets.queue[place].request.offer, choice) {
+    if !permits(&sheets.queue[place].request, choice) {
         return (sheets, Vec::new());
     }
     let mut queue = sheets.queue;
@@ -107,8 +112,27 @@ fn answer_of(request: &ConfirmRequest, choice: SheetChoice, at: UnixSeconds) -> 
             receipt,
         },
         SheetChoice::AllowFromTerminal => ConfirmAnswer::AllowedFromTerminal { receipt },
+        SheetChoice::Never => ConfirmAnswer::Never { receipt },
         SheetChoice::Deny => ConfirmAnswer::Ended(ConfirmEnd::Refused),
     }
+}
+
+/// `sheets` with the limit `id` taken off every question that named it as its reason: the entry
+/// is gone, so the line and its Undo no longer describe anything. The questions stay; the call
+/// still waits for the person's answer.
+fn unheld(sheets: Sheets, id: &StandingGrantId) -> Sheets {
+    let queue = sheets
+        .queue
+        .into_iter()
+        .map(|mut pending| {
+            let named = pending.request.limits.held.as_ref().map(|note| &note.id);
+            if named == Some(id) {
+                pending.request.limits.held = None;
+            }
+            pending
+        })
+        .collect();
+    Sheets { queue }
 }
 
 /// The first question `which` picks leaves the queue with `reply`.

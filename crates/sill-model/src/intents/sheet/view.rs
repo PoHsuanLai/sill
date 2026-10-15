@@ -3,7 +3,10 @@
 //! the asker and the app, the facts are the arguments and the concrete change as the router
 //! formatted them, and the notes are the router's reasons and what the session read.
 
-use docket_core::{ConfirmDetail, ConfirmId, ConfirmOffer, ConfirmRequest, Gesture, TaintNote};
+use docket_core::{
+    ConfirmDetail, ConfirmId, ConfirmOffer, ConfirmRequest, Gesture, LimitNote, NeverOffer,
+    StandingGrantId, TaintNote, UndoOffer,
+};
 use prov::Effect;
 
 use super::model::{Pending, Sheets};
@@ -18,6 +21,28 @@ pub struct SheetFact {
     pub source: Option<String>,
 }
 
+/// The limit that made the sheet appear, as the sheet says it: the person's own words or a plain
+/// reason, and the entry Undo takes away.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SheetHeld {
+    /// The entry Undo removes.
+    pub id: StandingGrantId,
+    /// You said: “don't touch Work”
+    pub why: String,
+    /// Whether the entry may be undone here (an administrator's may not).
+    pub undo: UndoOffer,
+}
+
+impl From<&LimitNote> for SheetHeld {
+    fn from(note: &LimitNote) -> SheetHeld {
+        SheetHeld {
+            id: note.id.clone(),
+            why: note.why.clone(),
+            undo: note.undo,
+        }
+    }
+}
+
 /// The question on screen, as the surface draws it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SheetView {
@@ -30,6 +55,10 @@ pub struct SheetView {
     /// The reasons it asks and what the session read, each a short sentence.
     pub notes: Vec<String>,
     pub offer: ConfirmOffer,
+    /// Whether "Never" is a button beside the allow choices.
+    pub never: NeverOffer,
+    /// The limit that made it ask, when one did.
+    pub held: Option<SheetHeld>,
     pub gesture: Gesture,
     pub effect: Effect,
     /// How many more questions wait behind this one.
@@ -56,6 +85,8 @@ fn view_of(pending: &Pending, waiting: usize) -> SheetView {
         facts: facts_of(request),
         notes: notes_of(request),
         offer: request.offer,
+        never: request.limits.never,
+        held: request.limits.held.as_ref().map(SheetHeld::from),
         gesture: request.gesture,
         effect: request.effect,
         waiting,

@@ -17,11 +17,11 @@ use sill_overlays::ConfirmSheet;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{BannerLink, BannerOutput};
 
-type Running = SurfaceHarness<ConfirmSheet>;
+pub(crate) type Running = SurfaceHarness<ConfirmSheet>;
 
-const ALLOW: &str = "#confirm-allow";
-const DENY: &str = "#confirm-deny";
-const OFFER: &str = "#confirm-offer";
+pub(crate) const ALLOW: &str = "#confirm-allow";
+pub(crate) const DENY: &str = "#confirm-deny";
+pub(crate) const OFFER: &str = "#confirm-offer";
 
 const VIEWPORT: Viewport = Viewport {
     width: 1280,
@@ -30,7 +30,7 @@ const VIEWPORT: Viewport = Viewport {
 };
 
 /// The wire form of a `ConfirmRequest`: a terminal call to archive a thread.
-fn wire(id: &str, offer: &str, gesture: &str, effect: &str) -> String {
+pub(crate) fn wire(id: &str, offer: &str, gesture: &str, effect: &str) -> String {
     format!(
         r#"{{"id":"{id}","space":"desktop","actor":{{"kind":"cli"}},"app":"org.quire.Mail",
         "action":"Archive a thread","effect":"{effect}","count":1,"detail":{{"kind":"plain"}},
@@ -59,7 +59,7 @@ fn start(on: OutputId) -> Running {
         .start()
 }
 
-fn ask(running: &mut Running, queue: Vec<Pending>) {
+pub(crate) fn ask(running: &mut Running, queue: Vec<Pending>) {
     running.feeds.intents.send_replace(Intents {
         link: IntentsLink::Serving,
         sheets: Sheets { queue },
@@ -68,11 +68,11 @@ fn ask(running: &mut Running, queue: Vec<Pending>) {
 }
 
 /// What the sheet has sent the service since the last call.
-fn sent(running: &mut Running) -> Vec<IntentsCommand> {
+pub(crate) fn sent(running: &mut Running) -> Vec<IntentsCommand> {
     std::iter::from_fn(|| running.feeds.intents_commands.try_recv().ok()).collect()
 }
 
-fn answer(id: &str, choice: SheetChoice) -> IntentsCommand {
+pub(crate) fn answer(id: &str, choice: SheetChoice) -> IntentsCommand {
     IntentsCommand::Answer {
         id: ConfirmId::parse(id).unwrap_or_else(|e| panic!("{e}")),
         choice,
@@ -85,7 +85,7 @@ fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
 }
 
 /// The sheet showing `queue`, once it has entered but still arming (200 ms in).
-fn arming(queue: Vec<Pending>) -> Running {
+pub(crate) fn arming(queue: Vec<Pending>) -> Running {
     let mut running = start(fake::output().id);
     running.harness.advance(Duration::from_millis(40));
     ask(&mut running, queue);
@@ -94,7 +94,7 @@ fn arming(queue: Vec<Pending>) -> Running {
 }
 
 /// The sheet once it is armed (past the 500 ms arming).
-fn armed(queue: Vec<Pending>) -> Running {
+pub(crate) fn armed(queue: Vec<Pending>) -> Running {
     let mut running = arming(queue);
     running.harness.advance(Duration::from_millis(700));
     running
@@ -107,7 +107,7 @@ fn centre(running: &Running, selector: &str) -> Point {
         .unwrap_or_else(|| panic!("{selector} is not laid out: {}", running.harness.html()))
 }
 
-fn click(running: &mut Running, selector: &str) {
+pub(crate) fn click(running: &mut Running, selector: &str) {
     let at = centre(running, selector);
     running.harness.send(Input::click(at));
     running.harness.advance(Duration::from_millis(40));

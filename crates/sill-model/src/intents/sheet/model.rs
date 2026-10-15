@@ -1,6 +1,6 @@
 //! The queue and the words around it (data only, and the one rule about what an offer allows).
 
-use docket_core::{ConfirmAnswer, ConfirmOffer, ConfirmRequest};
+use docket_core::{ConfirmAnswer, ConfirmOffer, ConfirmRequest, NeverOffer};
 
 /// One `Confirm` call, as the service counts them. It names the request object the answer goes
 /// to; a `ConfirmId` is the router's and can repeat if the router is wrong.
@@ -41,6 +41,9 @@ pub enum SheetChoice {
     AllowAlways,
     /// Yes, and the same action may run from the terminal until logout.
     AllowFromTerminal,
+    /// No, and not again: this call is refused and a "never" is kept for the action (offered only
+    /// when the request says so).
+    Never,
     /// No.
     Deny,
 }
@@ -54,13 +57,14 @@ pub enum Reply {
     Withdrawn,
 }
 
-/// Whether the sheet may be answered with `choice` when it offered `offer`: "always" only when
-/// the router offered it, "from the terminal" only when it offered that, and a plain yes or no
-/// whatever was offered.
-pub fn permits(offer: ConfirmOffer, choice: SheetChoice) -> bool {
+/// Whether the sheet may be answered with `choice` when it asked `request`: "always" only when
+/// the router offered it, "from the terminal" only when it offered that, "never" only when the
+/// request's limits offer it, and a plain yes or no whatever was offered.
+pub fn permits(request: &ConfirmRequest, choice: SheetChoice) -> bool {
     match choice {
         SheetChoice::Deny | SheetChoice::AllowOnce => true,
-        SheetChoice::AllowAlways => offer == ConfirmOffer::OnceOrAlways,
-        SheetChoice::AllowFromTerminal => offer == ConfirmOffer::OnceOrFromTerminal,
+        SheetChoice::AllowAlways => request.offer == ConfirmOffer::OnceOrAlways,
+        SheetChoice::AllowFromTerminal => request.offer == ConfirmOffer::OnceOrFromTerminal,
+        SheetChoice::Never => request.limits.never == NeverOffer::Offered,
     }
 }

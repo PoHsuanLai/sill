@@ -2,8 +2,9 @@
 //! intents service. The card is keyed by the question's id, so each question starts its own gate
 //! (and its arming) afresh.
 
+use dioxus::prelude::{Callback, use_callback};
 use ds::machine::{MachineRef, use_machine};
-use sill_model::intents::{ConfirmId, IntentsCommand};
+use sill_model::intents::{ConfirmId, IntentsCommand, StandingGrantId};
 use sill_services::IntentsService;
 use sill_ui_kit::hooks::use_control;
 
@@ -28,4 +29,13 @@ pub(super) fn use_gate(id: ConfirmId) -> MachineRef<AnswerGate> {
             }
         },
     )
+}
+
+/// Where Undo goes: the entry that made the sheet ask is taken away. A stopped service has no one
+/// to tell; the sheet goes with it.
+pub(super) fn use_undo() -> Callback<StandingGrantId> {
+    let control = use_control::<IntentsService>();
+    use_callback(move |id: StandingGrantId| {
+        let _ = control.send(IntentsCommand::UndoLimit(id));
+    })
 }

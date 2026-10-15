@@ -2,6 +2,7 @@
 //! A separate test target needs a stated reason (CONVENTIONS.md, Tests).
 
 mod accounts_sheet;
+mod confirm_limits;
 mod confirm_sheet;
 mod eyedropper;
 mod force_quit;

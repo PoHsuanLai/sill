@@ -10,13 +10,17 @@
 //! is ignored, so a key typed for something else cannot answer it; Escape denies at any time. A
 //! destructive action asks for a hold ([`gate::HOLD_MS`]) on its Allow button, never a press. The
 //! second button of a question offered `OnceOrFromTerminal` is "Allow from the terminal: this
-//! action, until logout"; of `OnceOrAlways`, "Always allow".
+//! action, until logout"; of `OnceOrAlways`, "Always allow". A question whose limits offer it
+//! has a "Never" button beside Don't Allow and Allow: not the default, no key of its own. A
+//! question that appeared because of an "ask first" entry says so in a line with Undo
+//! ([`held`]), and is offered no "Always allow".
 //!
 //! This is phase A: a layer surface on a stock compositor, so it is not unforgeable and its
 //! receipt says `SheetFallback`, never `HardwareSeat`. Phase B places the same surface on the
 //! compositor's trusted surface.
 
 mod gate;
+mod held;
 mod io;
 mod layer;
 mod surface;

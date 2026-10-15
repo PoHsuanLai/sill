@@ -29,10 +29,11 @@ fn ids(sheets: &Sheets) -> Vec<&str> {
 #[test]
 fn what_an_offer_allows() {
     use ConfirmOffer::{OnceOnly, OnceOrAlways, OnceOrFromTerminal};
-    use SheetChoice::{AllowAlways, AllowFromTerminal, AllowOnce, Deny};
+    use SheetChoice::{AllowAlways, AllowFromTerminal, AllowOnce, Deny, Never};
     #[rustfmt::skip]
     let cases = [
         (OnceOnly,           Deny,              true),
+        (OnceOnly,           Never,             false),
         (OnceOnly,           AllowOnce,       true),
         (OnceOnly,           AllowAlways,     false),
         (OnceOnly,           AllowFromTerminal, false),
@@ -44,7 +45,8 @@ fn what_an_offer_allows() {
         (OnceOrFromTerminal, Deny,              true),
     ];
     for (offer, choice, want) in cases {
-        assert_eq!(permits(offer, choice), want, "{offer:?} {choice:?}");
+        let asked = request("c-1", offer, 120);
+        assert_eq!(permits(&asked, choice), want, "{offer:?} {choice:?}");
     }
 }
 
@@ -139,6 +141,7 @@ fn a_choice_the_offer_does_not_allow_or_an_unknown_id_changes_nothing() {
     for event in [
         answer("c-1", SheetChoice::AllowAlways),
         answer("c-1", SheetChoice::AllowFromTerminal),
+        answer("c-1", SheetChoice::Never),
         answer("c-9", SheetChoice::Deny),
         SheetEvent::Withdrawn(id("c-9")),
         SheetEvent::Expired(Serial(9)),

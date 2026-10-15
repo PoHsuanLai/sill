@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use docket_core::ActionRef;
+use docket_core::{ActionRef, StandingGrantId};
 use docket_dbus::INTENTS_BUS;
 use prov::UnixSeconds;
 use sill_model::intents::sheet::{Reply, Serial, SheetChoice, SheetEffect, SheetEvent};
@@ -60,6 +60,7 @@ enum Inner {
     AskerGone,
     Grants(Result<Vec<ActionRef>, String>),
     Resumed(Result<(), String>),
+    LimitUndone(StandingGrantId, Result<(), String>),
     Signal(Signalled),
 }
 
@@ -200,6 +201,7 @@ impl Live {
             IntentsCommand::Serve => {}
             IntentsCommand::Answer { id, choice } => self.answer(id, choice),
             IntentsCommand::RevokeGrant(grant) => self.revoke(grant),
+            IntentsCommand::UndoLimit(id) => self.undo_limit(id),
             IntentsCommand::ResumeTerminal => self.resume(),
             IntentsCommand::RefreshGrants => self.reload(),
         }
@@ -254,6 +256,13 @@ impl Live {
                 )));
             }
             Inner::Resumed(Err(why)) => eprintln!("sill: intents: resuming the terminal: {why}"),
+            Inner::LimitUndone(id, Ok(())) => {
+                self.feed(IntentsEvent::Sheet(SheetEvent::LimitUndone(id)));
+            }
+            // The sheet keeps its line and its Undo: the entry is still there.
+            Inner::LimitUndone(_, Err(why)) => {
+                eprintln!("sill: intents: undoing a limit: {why}");
+            }
             Inner::Signal(Signalled::Tripped) => {
                 self.feed(IntentsEvent::Terminal(TerminalEvent::Breaker(
                     Breaker::Tripped,
@@ -299,6 +308,15 @@ impl Live {
                 eprintln!("sill: intents: revoking a terminal grant: {why}");
             }
             let _ = inner.send(Inner::Reload);
+        });
+    }
+
+    /// Take away the limit `id`; the sheets drop their line once intentd has said it is gone.
+    fn undo_limit(&self, id: StandingGrantId) {
+        let (connection, inner) = (self.connection.clone(), self.inner.clone());
+        tokio::spawn(async move {
+            let done = control::undo_limit(&connection, &id).await;
+            let _ = inner.send(Inner::LimitUndone(id, done));
         });
     }
 

@@ -1,6 +1,6 @@
 //! What tells the seat things, what happens in it, and what that asks of the outside.
 
-use docket_core::{ActionRef, ConfirmId};
+use docket_core::{ActionRef, ConfirmId, StandingGrantId};
 use serde::{Deserialize, Serialize};
 
 use super::IntentsLink;
@@ -16,6 +16,8 @@ pub enum IntentsCommand {
     Answer { id: ConfirmId, choice: SheetChoice },
     /// Withdraw one standing terminal grant.
     RevokeGrant(ActionRef),
+    /// Take away the "always ask" entry that made a sheet appear (its Undo).
+    UndoLimit(StandingGrantId),
     /// Let the terminal's sessions the breaker paused take calls again.
     ResumeTerminal,
     /// Read the standing grants again (the control center opened).

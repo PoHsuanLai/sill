@@ -1,6 +1,6 @@
 /* The confirmation sheet (design/32 section 8, phase A). The sheet, the fact list and the buttons
    are quire's (Sheet, FactList, Button); this lays out what sill puts in the sheet: the title,
-   who asks, the reasons, the footer. Tokens only. */
+   who asks, the reasons, the limit's line, the footer. Tokens only. */
 
 .sill-confirm{ display:flex; flex-direction:column; gap:var(--s-10); padding:var(--s-16); color:var(--ink); outline:none; }
 .sill-confirm-title{ font-size:var(--fs-title); font-weight:700; }
@@ -8,6 +8,8 @@
 .sill-confirm-notes{ display:flex; flex-direction:column; gap:var(--s-2); }
 .sill-confirm-note{ font-size:var(--fs-small); color:var(--ink-soft); }
 .sill-confirm-offer{ display:flex; flex-direction:column; }
+.sill-confirm-held{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8); }
+.sill-confirm-held-why{ font-size:var(--fs-small); color:var(--ink-soft); }
 .sill-confirm-footer{ display:flex; justify-content:flex-end; gap:var(--s-8); }
 .sill-confirm-hold{ display:flex; }
 .sill-confirm-waiting{ font-size:var(--fs-small); color:var(--ink-faint); text-align:right; }
