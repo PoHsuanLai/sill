@@ -108,7 +108,7 @@ mod tests {
         assert_eq!(link.latest().show, BarShow::Hide);
         link.set_show(BarShow::Show);
         assert_eq!(follower.has_changed().ok(), Some(true));
-        let _seen = follower.borrow_and_update();
+        drop(follower.borrow_and_update());
         link.set_show(BarShow::Show);
         link.set_view(&DesktopView::default());
         assert_eq!(follower.has_changed().ok(), Some(false));

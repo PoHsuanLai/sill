@@ -20,7 +20,8 @@ mod tests;
 
 pub use backend::{DesktopBackend, GlobalOffer};
 pub use casement_protocols::vocab::{
-    Corner, KeyGesture, OverviewMode, OverviewState, ShellRole, SplitSide, WindowEntry, WireCode,
+    Corner, KeyGesture, OverviewMode, OverviewState, ShellRole, Shown, SpaceKind, SplitSide,
+    WindowEntry, WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};

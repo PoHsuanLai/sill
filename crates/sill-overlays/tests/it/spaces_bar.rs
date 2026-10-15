@@ -5,10 +5,9 @@
 
 use std::time::Duration;
 
-use casement_protocols::vocab::{Shown, SpaceKind};
-use ds_harness::{Harness, Input, Viewport};
+use ds_harness::{Driver, Harness, Input, Query, Viewport};
 use porter_core::SpaceId;
-use sill_model::desktop::{BarPick, BarShow, DesktopView, SpaceView};
+use sill_model::desktop::{BarPick, BarShow, DesktopView, Shown, SpaceKind, SpaceView};
 use sill_overlays::SpacesBar;
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::SpacesBarLink;
