@@ -23,7 +23,7 @@
 .sill-cc-night-line{ font-size:var(--fs-help); color:var(--ink-faint); }
 .sill-cc-night-warmth{ display:flex; flex-direction:column; gap:var(--s-2); }
 .sill-cc-night-ends{ display:flex; justify-content:space-between; font-size:var(--fs-help); color:var(--ink-faint); }
-.sill-cc[*|data-drop=module] .ds-module-panel + .ds-module-panel{ margin-top:var(--s-10); }
+.sill-cc[*|data-drop=module] .sill-cc-night{ margin-top:var(--s-10); }
 
 /* Appearance: the theme row and the accent row, one under the other. */
 .sill-cc-appearance{ display:grid; gap:var(--s-14); }

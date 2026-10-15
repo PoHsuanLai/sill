@@ -76,11 +76,13 @@ fn apply(tx: &watch::Sender<DockPins>, event: PinEvent) {
     tx.send_modify(|pins| *pins = step(std::mem::take(pins), event));
 }
 
+/// Saved before it is published: whoever sees the new pins finds them on disk too.
 fn apply_and_save(dir: &Path, tx: &watch::Sender<DockPins>, event: PinEvent) {
-    apply(tx, event);
-    if let Err(error) = save(dir, &tx.borrow()) {
+    let next = step(tx.borrow().clone(), event);
+    if let Err(error) = save(dir, &next) {
         eprintln!("sill: saving {}: {error}", dir.display());
     }
+    tx.send_replace(next);
 }
 
 /// An external edit settled: re-read and publish only if it actually changed the value (our

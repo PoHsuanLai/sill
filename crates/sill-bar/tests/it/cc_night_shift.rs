@@ -16,7 +16,7 @@ use sill_model::night_shift::{
 const ROW: &str = "#night-shift";
 const SWITCH: &str = "#night-shift .ds-toggle";
 const SLIDER: &str = "#night-shift .ds-slider";
-const RAIL: &str = "#night-shift .ds-slider-rail";
+const RAIL: &str = "#night-shift .ds-slider-track";
 
 fn ready(schedule: Schedule, manual: Option<Manual>, backend: Backend) -> NightShift {
     NightShift {
@@ -91,10 +91,10 @@ fn a_press_on_the_warmth_slider_sets_the_warmth_between_less_and_more_warm() {
             .night_shift
             .send_replace(ready(Schedule::Always, None, Backend::Software));
     });
-    let rail = running
-        .harness
-        .centre(RAIL)
-        .expect("the slider is laid out");
+    running.harness.advance(ms(100));
+    let Some(rail) = running.harness.centre(RAIL) else {
+        panic!("the slider is not laid out:\n{}", running.harness.html());
+    };
     running.harness.send(ds_harness::Input::click(rail));
     running.harness.advance(ms(100));
     let Some(NightShiftCommand::SetWarmth(warmth)) =

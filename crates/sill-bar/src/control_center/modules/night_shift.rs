@@ -7,6 +7,7 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
+use ds::root::pass_through::ExtraClass;
 use sill_model::night_shift::{
     MinuteOfDay, NightShift, NightShiftCommand, Shown, shown, warmth_at, warmth_fraction,
 };
@@ -97,7 +98,11 @@ pub(crate) fn NightShiftRow() -> Element {
             title: TextLine::from("Night Shift"),
             plate: use_plate(),
             availability: face.availability,
-            common: Common { id: Some(ROW_ID.to_owned()), ..Common::default() },
+            common: Common {
+                id: Some(ROW_ID.to_owned()),
+                extra_class: ExtraClass::parse("sill-cc-night").ok(),
+                ..Common::default()
+            },
             trailing: rsx! {
                 Toggle {
                     label: "Night Shift".to_owned(),
