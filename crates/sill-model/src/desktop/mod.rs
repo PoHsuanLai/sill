@@ -41,5 +41,7 @@ pub use casement_protocols::vocab::{
 pub use command::{DesktopCommand, Supports, supports};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};
 pub use note::{OverviewNote, ShellNote, SwitcherNote};
-pub use spaces_bar::{BarPick, BarShow, BarSpace, bar_show, bar_spaces, commands_of};
+pub use spaces_bar::{
+    BarPick, BarShow, BarSpace, bar_show, bar_space_ids, bar_spaces, commands_of,
+};
 pub use split::{SplitCard, cards_of, output_of};

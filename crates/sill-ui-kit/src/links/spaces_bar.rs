@@ -1,8 +1,15 @@
-//! Mission Control's Spaces bar, two channels: the daemon writes whether the bar is up (from the
-//! compositor's overview state) and the desktop's view, and every output's bar surface follows
-//! them; the surface writes what the person clicked, and the daemon carries it out.
+//! Mission Control's Spaces bar, two channels. The feed: the daemon writes whether the bar is up
+//! (from the compositor's overview state, and per output), the desktop's view, the pictures of
+//! Spaces and the Space a dragged window is over, and the bar surfaces follow them; the surfaces
+//! write back where their cards lie on the same feed, which the daemon reads to place the drop
+//! targets and to ask for pictures. The picks: the surface writes what the person clicked, and
+//! the daemon carries it out.
 
-use sill_model::desktop::{BarPick, BarShow, DesktopView};
+use porter_core::SpaceId;
+use sill_model::desktop::{
+    BarDrops, BarLayout, BarLayouts, BarOutputs, BarPick, BarPictures, BarShow, DesktopView, Shown,
+    SpacePicture,
+};
 use tokio::sync::watch;
 
 /// What the bar surfaces draw from.
@@ -12,6 +19,14 @@ pub struct SpacesBarFeed {
     pub show: BarShow,
     /// The desktop, for its Spaces and their windows.
     pub view: DesktopView,
+    /// On which outputs Mission Control is up.
+    pub outputs: BarOutputs,
+    /// The pictures of Spaces that have arrived.
+    pub pictures: BarPictures,
+    /// The Space a dragged window is over, per output.
+    pub drops: BarDrops,
+    /// Where each laid-out bar's cards lie (written by the surfaces).
+    pub layouts: BarLayouts,
 }
 
 /// A click in the bar.
@@ -66,6 +81,56 @@ impl SpacesBarLink {
         });
     }
 
+    /// Change one part of the feed; nothing is sent when the part comes out the same.
+    fn edit<T: Clone + PartialEq>(
+        &self,
+        part: fn(&mut SpacesBarFeed) -> &mut T,
+        change: impl FnOnce(T) -> T,
+    ) {
+        self.feed.send_if_modified(|feed| {
+            let slot = part(feed);
+            let next = change(slot.clone());
+            let changed = next != *slot;
+            *slot = next;
+            changed
+        });
+    }
+
+    /// The compositor says Mission Control is up or closed on `output`.
+    pub fn set_output(&self, output: &str, shown: Shown) {
+        self.edit(
+            |feed| &mut feed.outputs,
+            |outputs| outputs.with(output, shown),
+        );
+    }
+
+    /// The dragged window is over `space` on `output`, or over none.
+    pub fn set_drop(&self, output: &str, space: Option<SpaceId>) {
+        self.edit(|feed| &mut feed.drops, |drops| drops.with(output, space));
+    }
+
+    /// The compositor answered a request for the picture of `space` on `output`.
+    pub fn set_picture(&self, output: &str, space: SpaceId, answer: &SpacePicture) {
+        self.edit(
+            |feed| &mut feed.pictures,
+            |pictures| pictures.with(output, space, answer),
+        );
+    }
+
+    /// The bar on `output` has its cards at `layout`, or is gone (`None`).
+    pub fn set_layout(&self, output: &str, layout: Option<BarLayout>) {
+        self.edit(
+            |feed| &mut feed.layouts,
+            |mut layouts| {
+                match layout {
+                    Some(layout) => layouts.0.insert(output.to_owned(), layout),
+                    None => layouts.0.remove(output),
+                };
+                layouts
+            },
+        );
+    }
+
     /// What the surfaces draw now.
     pub fn latest(&self) -> SpacesBarFeed {
         self.feed.borrow().clone()
@@ -97,7 +162,9 @@ impl SpacesBarLink {
 
 #[cfg(test)]
 mod tests {
-    use sill_model::desktop::{BarPick, BarShow, DesktopView};
+    use ds_core::vocab::DropState;
+    use porter_core::SpaceId;
+    use sill_model::desktop::{BarLayout, BarPick, BarShow, DesktopView, Shown, SpacePicture};
 
     use super::SpacesBarLink;
 
@@ -113,6 +180,33 @@ mod tests {
         link.set_view(&DesktopView::default());
         assert_eq!(follower.has_changed().ok(), Some(false));
         assert_eq!(link.latest().show, BarShow::Show);
+    }
+
+    #[test]
+    fn the_wire_parts_are_written_one_by_one_and_a_repeat_wakes_no_one() {
+        let link = SpacesBarLink::new();
+        let mut follower = link.subscribe();
+        let space = SpaceId::parse("ws-1").unwrap_or_else(|e| panic!("{e}"));
+        link.set_output("DP-1", Shown::Shown);
+        link.set_drop("DP-1", Some(space.clone()));
+        link.set_picture("DP-1", space.clone(), &SpacePicture::Png(vec![1]));
+        link.set_layout("DP-1", Some(BarLayout::default()));
+        let now = link.latest();
+        assert_eq!(
+            now.outputs.bar_on(BarShow::Show, Some("DP-1")),
+            BarShow::Show
+        );
+        assert_eq!(now.drops.state_of(Some("DP-1"), &space), DropState::Target);
+        assert_eq!(now.pictures.seq_of("DP-1", &space), 1);
+        assert_eq!(now.layouts.0.len(), 1);
+        drop(follower.borrow_and_update());
+        link.set_output("DP-1", Shown::Shown);
+        link.set_drop("DP-1", Some(space));
+        link.set_layout("DP-1", Some(BarLayout::default()));
+        assert_eq!(follower.has_changed().ok(), Some(false));
+        link.set_layout("DP-1", None);
+        assert_eq!(follower.has_changed().ok(), Some(true));
+        assert!(link.latest().layouts.0.is_empty());
     }
 
     #[test]

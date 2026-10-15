@@ -10,8 +10,8 @@ use porter_core::SpaceId;
 
 use super::{
     BarDrops, BarLayout, BarLayouts, BarOutputs, BarPictures, BarShow, DesktopCommand, DesktopView,
-    SpacePicture, SpacePlaceView, SpaceView, ThumbAsks, ThumbRequest, WindowView, target_commands,
-    thumb_size, thumbs_wanted, tiles_of,
+    SpacePicture, SpacePlaceView, SpaceView, ThumbAsks, ThumbRequest, WindowView, bar_space_ids,
+    target_commands, thumb_size, thumbs_wanted, tiles_of,
 };
 
 fn id(text: &str) -> SpaceId {
@@ -244,4 +244,13 @@ fn the_tile_under_the_dragged_window_is_lit() {
     }
     let over = drops.with("DP-1", None);
     assert_eq!(over.state_of(Some("DP-1"), &id("ws-2")), DropState::Idle);
+}
+
+#[test]
+fn the_ids_are_the_outputs_spaces_in_order() {
+    let mut seen = view("ws-1", 0);
+    seen.spaces[0].position = 1;
+    seen.spaces[1].position = 0;
+    assert_eq!(bar_space_ids(&seen, Some("DP-1")), [id("ws-2"), id("ws-1")]);
+    assert!(bar_space_ids(&seen, Some("DP-2")).is_empty());
 }

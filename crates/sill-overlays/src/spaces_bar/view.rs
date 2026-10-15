@@ -1,25 +1,19 @@
-//! The bar's render: one transparent viewport root holding, from the moment Mission Control
-//! starts to open until its leave has settled, a strip with quire's `WorkspacePills` (one pill
-//! per Space of this output, the one on show marked) centred, and a toolbar `Button` with a plus
-//! at the right edge. The strip's top padding is the menu bar's height, so the pills sit under
-//! it. [`super::io`] follows the link and writes the clicks; this file only draws.
+//! The bar's render: one transparent viewport root holding, under the menu bar's height, quire's
+//! `SpacesBar` with the output's Spaces (the one on show marked, a picture on each that has
+//! one) and the plus. quire's bar plays its own drop-in and lift; [`super::io`] follows the link,
+//! writes the clicks and publishes where the cards lie; this file only draws.
 
 use dioxus::prelude::*;
-use ds::base::press::{PointerButton, Press};
-use ds::components::controls::button_model::{Bezel, ImagePosition};
 use ds::prelude::*;
 use shell_host::OutputInfo;
-use sill_model::desktop::BarSpace;
 use sill_services::AppsService;
 use sill_shell_kit::prelude::*;
 
-use super::io::use_bar;
+use super::io::{use_bar, use_unmap};
+use super::layer::BAR_ID;
 use sill_ui_kit::hooks::{use_service, use_settings};
 use sill_ui_kit::links::SpacesBarLink;
 use sill_ui_kit::root::SurfaceRoot;
-
-/// The bar's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
-pub const SPACES_BAR_CSS: &str = include_str!("style.css");
 
 pub(super) fn spaces_bar(output: OutputInfo) -> Element {
     rsx! {
@@ -28,74 +22,43 @@ pub(super) fn spaces_bar(output: OutputInfo) -> Element {
             material: Material::Sheet,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            AppStyle { css: SPACES_BAR_CSS }
             SpacesStrip { output }
         }
     }
 }
 
-/// The strip itself, inside the root: its motion reads the motion level the root provides.
+/// The strip itself, inside the root: quire's bar reads the motion level the root provides.
 #[component]
 fn SpacesStrip(output: OutputInfo) -> Element {
     let link = use_context::<SpacesBarLink>();
     let bar = use_bar(&link, &output);
-    let apps = use_service::<AppsService>()();
+    let apps = use_service::<AppsService>();
     let menu_bar = use_settings()().bar.height_px.0;
-    let drawn = bar.presented.presence.drawn_slug();
-    let spaces = bar.spaces(&apps);
+    let on_hidden = use_unmap();
+    let tiles = use_memo({
+        let bar = bar.clone();
+        move || bar.tiles(&apps())
+    });
+    let probe = bar.probe;
+    let mounted =
+        use_hook(|| EventHandler::new(move |event: MountedEvent| probe.on_mounted(event)));
+    let (by_pick, by_add) = (bar.clone(), bar.clone());
     rsx! {
-            if let Some(drawn) = drawn {
-                div {
-                    class: "sill-spaces-bar",
-                    "data-presence": drawn,
-                    "data-pulse": bar.presented.alias.slug(),
-                    style: "padding-top:{menu_bar}px;",
-                    div { class: "sill-spaces-side" }
-                    WorkspacePills { label: "Spaces",
-                        for space in spaces {
-                            {pill(&bar, space)}
-                        }
-                    }
-                    div { class: "sill-spaces-side",
-                        Button {
-                            label: "Add Space",
-                            bezel: Bezel::Toolbar,
-                            image: ImagePosition::Only,
-                            icon: Some(IconSource::from(Icon::Plus)),
-                            onclick: {
-                                let bar = bar.clone();
-                                move |press: Press| {
-                                    if press.button == PointerButton::Primary {
-                                        bar.add();
-                                    }
-                                }
-                            },
-                        }
-                    }
-                }
+        div { style: "padding-top:{menu_bar}px;",
+            SpacesBar {
+                label: "Spaces",
+                spaces: tiles(),
+                shown: bar.shown(),
+                expansion: Some(BarExpansion::Expanded),
+                on_pick: move |key: BarSpaceKey| by_pick.switch(&key),
+                on_add: move |()| by_add.add(),
+                on_hidden: move |()| on_hidden.call(()),
+                common: Common {
+                    id: Some(BAR_ID.to_owned()),
+                    mounted: Some(mounted),
+                    ..Common::default()
+                },
             }
-    }
-}
-
-/// The pill for one Space: marked when it is the one on show; a primary press switches to it.
-fn pill(bar: &super::io::Bar, space: BarSpace) -> Element {
-    let current = if space.current {
-        Selection::Selected
-    } else {
-        Selection::Unselected
-    };
-    let by_press = bar.clone();
-    let pressed = space.clone();
-    rsx! {
-        WorkspacePill {
-            key: "{space.id}",
-            label: space.label,
-            current,
-            onclick: move |press: Press| {
-                if press.button == PointerButton::Primary {
-                    by_press.switch(&pressed);
-                }
-            },
         }
     }
 }

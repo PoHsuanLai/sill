@@ -152,7 +152,7 @@ const SURFACES: &[SurfaceCase] = &[
     SurfaceCase {
         name: "spaces_bar",
         surface: <SpacesBar as Surface>::NAME,
-        css: sill_overlays::spaces_bar::SPACES_BAR_CSS,
+        css: "",
         states: spaces_bar_states,
     },
     SurfaceCase {
@@ -364,7 +364,7 @@ fn spaces_bar_states() -> Vec<(&'static str, String)> {
     bar.link.set_show(sill_model::desktop::BarShow::Show);
     bar.harness.advance(Duration::from_millis(400));
     let up = bar.harness.html();
-    assert!(up.contains("sill-spaces-bar"), "{up}");
+    assert!(up.contains("ds-spaces-bar"), "{up}");
     vec![("down", down), ("up", up)]
 }
 

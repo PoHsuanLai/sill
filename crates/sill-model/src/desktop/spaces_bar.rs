@@ -5,7 +5,7 @@
 use casement_protocols::vocab::{OverviewMode, OverviewState, Shown, SpaceKind, Toggle};
 use porter_core::SpaceId;
 
-use super::{DesktopCommand, DesktopView, SpacePlaceView};
+use super::{DesktopCommand, DesktopView, SpacePlaceView, SpaceView};
 use crate::apps::AppIndex;
 use sill_launcher::AppId;
 
@@ -42,17 +42,32 @@ pub struct BarSpace {
     pub current: bool,
 }
 
-/// The Spaces on the output called `output` (`None` for an unnamed output), left to right. A
-/// Space the desktop does not place on an output is listed on every output.
-pub fn bar_spaces(view: &DesktopView, output: Option<&str>, apps: &AppIndex) -> Vec<BarSpace> {
+/// The Spaces the desktop places on the output called `output` (`None` for an unnamed output),
+/// left to right. A Space the desktop does not place on an output is on every output.
+fn spaces_here<'a>(view: &'a DesktopView, output: Option<&str>) -> Vec<&'a SpaceView> {
     let mut here: Vec<_> = view
         .spaces
         .iter()
         .filter(|space| space.output.is_empty() || Some(space.output.as_str()) == output)
         .collect();
     here.sort_by_key(|space| space.position);
+    here
+}
+
+/// The ids of the Spaces on the output called `output`, left to right.
+pub fn bar_space_ids(view: &DesktopView, output: Option<&str>) -> Vec<SpaceId> {
+    spaces_here(view, output)
+        .into_iter()
+        .map(|space| space.id.clone())
+        .collect()
+}
+
+/// The Spaces on the output called `output` (`None` for an unnamed output), left to right. A
+/// Space the desktop does not place on an output is listed on every output.
+pub fn bar_spaces(view: &DesktopView, output: Option<&str>, apps: &AppIndex) -> Vec<BarSpace> {
     let mut desktops = 0_u32;
-    here.into_iter()
+    spaces_here(view, output)
+        .into_iter()
         .map(|space| {
             let label = match space.kind {
                 SpaceKind::Desktop => {
