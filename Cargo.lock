@@ -389,6 +389,8 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=c73d323f8e8d281455f6d909d308fac9bbe597f3)",
+ "rustix",
 ]
 
 [[package]]
@@ -423,6 +425,7 @@ dependencies = [
  "ds",
  "ds-blitz",
  "ds-core",
+ "log",
  "matroska-demuxer",
  "mp4parse",
  "symphonia",
@@ -440,10 +443,13 @@ dependencies = [
  "dirs 6.0.0",
  "docket-client",
  "docket-core",
+ "docket-dbus",
  "ds-core",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=c73d323f8e8d281455f6d909d308fac9bbe597f3)",
  "freedesktop-desktop-entry",
  "futures-util",
- "latchkey 0.1.0 (git+https://github.com/PoHsuanLai/latchkey?rev=ef0117ada46854702057c79515516da43b271455)",
+ "latchkey",
+ "log",
  "md-5 0.10.6",
  "memfd",
  "percent-encoding",
@@ -482,6 +488,8 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=c73d323f8e8d281455f6d909d308fac9bbe597f3)",
+ "log",
  "rustix",
  "serde",
  "serde_json",
@@ -504,6 +512,7 @@ dependencies = [
  "syntect",
  "thiserror 2.0.21",
  "unicode-segmentation",
+ "zip",
 ]
 
 [[package]]
@@ -2530,7 +2539,7 @@ dependencies = [
  "dioxus-native-dom",
  "ds",
  "ds-desktop",
- "ds-helpers",
+ "ds-helpers 0.1.0",
  "image",
  "keyboard-types 0.7.0",
  "parley",
@@ -2575,7 +2584,7 @@ dependencies = [
 name = "ds-desktop"
 version = "0.1.0"
 dependencies = [
- "ds-peer",
+ "ds-peer 0.1.0",
 ]
 
 [[package]]
@@ -2612,7 +2621,19 @@ dependencies = [
 name = "ds-helpers"
 version = "0.1.0"
 dependencies = [
- "ds-peer",
+ "ds-peer 0.1.0",
+ "rustix",
+ "serde",
+ "thiserror 2.0.21",
+ "toml",
+]
+
+[[package]]
+name = "ds-helpers"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=c73d323f8e8d281455f6d909d308fac9bbe597f3#c73d323f8e8d281455f6d909d308fac9bbe597f3"
+dependencies = [
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=c73d323f8e8d281455f6d909d308fac9bbe597f3)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2653,14 +2674,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ds-peer"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=c73d323f8e8d281455f6d909d308fac9bbe597f3#c73d323f8e8d281455f6d909d308fac9bbe597f3"
+dependencies = [
+ "futures-timer",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "ds-settings"
 version = "0.1.0"
 dependencies = [
  "dioxus",
  "ds-behaviour",
  "ds-core",
- "ds-helpers",
- "ds-peer",
+ "ds-helpers 0.1.0",
+ "ds-peer 0.1.0",
  "ds-settings-derive",
  "ds-style",
  "futures-timer",
@@ -4405,14 +4435,6 @@ source = "git+https://github.com/PoHsuanLai/latchkey?rev=99cc9deb198860293253c53
 dependencies = [
  "interprocess",
  "rustix",
-]
-
-[[package]]
-name = "latchkey"
-version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/latchkey?rev=ef0117ada46854702057c79515516da43b271455#ef0117ada46854702057c79515516da43b271455"
-dependencies = [
- "interprocess",
 ]
 
 [[package]]
@@ -7036,7 +7058,7 @@ dependencies = [
  "ds-lint",
  "ds-settings",
  "keyboard-types 0.7.0",
- "latchkey 0.1.0 (git+https://github.com/PoHsuanLai/latchkey?rev=99cc9deb198860293253c534c4d26b382ec8b87e)",
+ "latchkey",
  "prov",
  "rustix",
  "serde",
