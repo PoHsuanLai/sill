@@ -443,7 +443,7 @@ dependencies = [
  "ds-core",
  "freedesktop-desktop-entry",
  "futures-util",
- "latchkey",
+ "latchkey 0.1.0 (git+https://github.com/PoHsuanLai/latchkey?rev=ef0117ada46854702057c79515516da43b271455)",
  "md-5 0.10.6",
  "memfd",
  "percent-encoding",
@@ -2530,6 +2530,7 @@ dependencies = [
  "dioxus-native-dom",
  "ds",
  "ds-desktop",
+ "ds-helpers",
  "image",
  "keyboard-types 0.7.0",
  "parley",
@@ -2573,6 +2574,9 @@ dependencies = [
 [[package]]
 name = "ds-desktop"
 version = "0.1.0"
+dependencies = [
+ "ds-peer",
+]
 
 [[package]]
 name = "ds-harness"
@@ -2605,6 +2609,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ds-helpers"
+version = "0.1.0"
+dependencies = [
+ "ds-peer",
+ "serde",
+ "thiserror 2.0.21",
+ "toml",
+]
+
+[[package]]
 name = "ds-intents"
 version = "0.1.0"
 dependencies = [
@@ -2630,12 +2644,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ds-peer"
+version = "0.1.0"
+dependencies = [
+ "futures-timer",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "ds-settings"
 version = "0.1.0"
 dependencies = [
  "dioxus",
  "ds-behaviour",
  "ds-core",
+ "ds-helpers",
+ "ds-peer",
  "ds-settings-derive",
  "ds-style",
  "futures-timer",
@@ -2666,6 +2690,7 @@ dependencies = [
  "ds-motion",
  "ds-style",
  "serde",
+ "zeroize",
 ]
 
 [[package]]
@@ -4369,6 +4394,15 @@ checksum = "b5baa5e9ff84f1aefd264e6869907646538a52147a755d494517a8007fb48733"
 dependencies = [
  "regex-automata",
  "rustversion",
+]
+
+[[package]]
+name = "latchkey"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/latchkey?rev=99cc9deb198860293253c534c4d26b382ec8b87e#99cc9deb198860293253c534c4d26b382ec8b87e"
+dependencies = [
+ "interprocess",
+ "rustix",
 ]
 
 [[package]]
@@ -6964,7 +6998,7 @@ dependencies = [
  "ds-lint",
  "ds-settings",
  "keyboard-types 0.7.0",
- "latchkey",
+ "latchkey 0.1.0 (git+https://github.com/PoHsuanLai/latchkey?rev=99cc9deb198860293253c534c4d26b382ec8b87e)",
  "prov",
  "rustix",
  "serde",
