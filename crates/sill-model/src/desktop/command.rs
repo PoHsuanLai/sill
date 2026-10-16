@@ -1,7 +1,7 @@
 //! What the shell asks of the desktop, and which backend can carry it.
 
 use casement_protocols::vocab::{
-    Answer, AskId, Assign, OverviewMode, PlaceTarget, Toggle, WindowEntry,
+    Answer, AskId, Assign, OverviewMode, PlaceTarget, Toggle, TrialAnswer, TrialId, WindowEntry,
 };
 use porter_core::SpaceId;
 
@@ -131,6 +131,15 @@ pub enum DesktopCommand {
         ask: AskId,
         /// What the person said.
         answer: Answer,
+    },
+    /// The person kept or reverted a changed display setup
+    /// ([`super::ShellNote::DisplaysTrial`]); a question taken down with no answer is
+    /// [`TrialAnswer::Revert`]. Quire only, on the connection that holds the shell role.
+    AnswerTrial {
+        /// The trial, by the number it came with.
+        trial: TrialId,
+        /// What the person said.
+        answer: TrialAnswer,
     },
 }
 

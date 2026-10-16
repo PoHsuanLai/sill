@@ -127,6 +127,10 @@ pub fn quire_wire_of(
             ask: *ask,
             answer: *answer,
         }),
+        DesktopCommand::AnswerTrial { trial, answer } => one(Wire::AnswerTrial {
+            trial: *trial,
+            answer: *answer,
+        }),
     }
 }
 

@@ -12,7 +12,7 @@ use casement_protocols::vocab::{
 };
 use porter_core::SpaceId;
 
-use super::{Consent, ConsentId, OutputPicture, SpacePicture};
+use super::{Consent, ConsentId, DisplayTrial, OutputPicture, SpacePicture, TrialId};
 
 /// One thing the shell protocol said.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -136,6 +136,14 @@ pub enum ShellNote {
     /// The compositor no longer needs the answer to this question: take its sheet down without
     /// answering.
     PermissionWithdraw(ConsentId),
+    /// A program other than the shell changed the displays and the compositor asks whether to
+    /// keep them. The answer is [`super::DesktopCommand::AnswerTrial`]. Sent again, with the same
+    /// number or a new one, when a further change restarts the time; a shell that starts while a
+    /// trial is open is told at once with the time left.
+    DisplaysTrial(DisplayTrial),
+    /// The trial is over (answered, timed out and reverted, replaced): take its question down
+    /// without answering.
+    DisplaysTrialEnd(TrialId),
     /// The kill chord was pressed.
     Killed,
 }

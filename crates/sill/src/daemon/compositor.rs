@@ -251,6 +251,9 @@ pub fn apply(shell: &Shell, note: ShellNote) {
                 .control
                 .send(CaptureCommand::Consent(consent));
         }
+        trial @ (ShellNote::DisplaysTrial(_) | ShellNote::DisplaysTrialEnd(_)) => {
+            crate::display_trial::apply(&shell.links.display_trial, trial);
+        }
         ShellNote::PermissionWithdraw(ask) => {
             let _capture_may_be_gone = shell
                 .services

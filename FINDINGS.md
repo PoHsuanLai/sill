@@ -1666,3 +1666,51 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   that `Alert`'s `on_dismiss` is passed as `Some(EventHandler)` the way `message` is passed as
   `Some(..)`; that the sheet's HTML carries the typographic apostrophes unescaped (a test asserts
   `can\u{2019}t` and `Don\u{2019}t Allow` in it).
+
+## pa3-sill/display-trial: the display trial (`quire_shell_v1` version 6, 2026-10-17)
+
+- **What it is.** When a program other than the shell changes the displays, casement applies the
+  change, sends `displays_trial(trial, seconds)` and reverts by itself when the time runs out;
+  sill shows "Keep these display settings?" and answers `displays_trial_answer`. The wire is
+  `ShellNote::DisplaysTrial` / `DisplaysTrialEnd` and `DesktopCommand::AnswerTrial`; the Wlr arm
+  refuses the command (`Refusal::Unsupported`), as it does the permission answer.
+- **A surface and a link, not a service.** The trial needs no state of its own beyond the open
+  question, so it follows the Split View picker's shape: `DisplayTrialLink` in `sill-ui-kit`, written by
+  the daemon's `apply`, followed by the `display-trial` surface (`sill_overlays::display_trial`), with
+  the answer going back on the link and out through `spawn_answers`. It does not share the
+  permission line (`CapturePicker`): a trial is time-critical and must not wait behind permission
+  questions, and a permission sheet must not wait behind a trial.
+- **Words.** Headline "Keep these display settings?", the line "Reverting in N seconds" (singular
+  "1 second", "Reverting now" at zero), buttons Revert and Keep Changes. Revert comes first on
+  purpose: it is the default (Return) and the Cancel button (Escape, and the sheet closing), so a
+  stray key can never leave a screen the person cannot see. The Mac's own alert makes Keep
+  Changes the default; this is a decision of this brief, recorded here. No icon.
+- **Same wait as the permission sheet.** The alert is armed after `QUESTION_ARM_AFTER` (600 ms),
+  now defined once in `sill_overlays::arming` and re-exported as `PERMISSION_ARM_AFTER`. casement
+  may refuse an answer sooner than 500 ms after the question (`answered_too_soon`); 600 ms stays
+  above that.
+- **Restarts.** A `displays_trial` for a trial that is already shown (same number or another) is a
+  restart: the link's serial counts every send, the card is keyed by the serial, so the sheet is
+  remounted with the new time and is armed again (the displays just changed once more, so the
+  person should be given the moment to read it). A `displays_trial_end` for the open trial takes
+  the sheet down unanswered; an end for another number changes nothing. A person's answer takes the
+  question off the link at once; the compositor's end that follows finds nothing open.
+- **Countdown.** Counted from when the card mounts on quire's clock (`ds::base::time::clock::sleep`
+  to each whole second, `seconds_left` / `until_next_second` in `sill-model`). It is a display of the
+  time given, not the compositor's clock: the card mounts a frame after the event, so it can lag the
+  compositor's own deadline by a frame or two. It decides nothing: the compositor reverts.
+- **A shell that binds while a trial is open** is told at once with the time left (casement's
+  replay); the sheet shows that time and counts from there.
+- **Not done / open.** The sheet draws on the banners' output only (the compositor does not name the
+  output a change was made on); a person with the sheet on another monitor than the one that went
+  blank sees it on the banners' output, not the blank one. The exit animation of a restarted card
+  is not played (a remount is immediate). The `dev/accept` scripts have no step for it: it needs
+  a program that changes the displays under casement (`docs/manual-checks.md`, "The display trial").
+- **Could not be checked by reading.** That `ds::base::time::clock::sleep` and `FrameClock::now().0`
+  behave under the harness's virtual clock the way the OSD's use of them does (the tests assume the
+  countdown line is changed by the time the harness has advanced a whole second, and that the card
+  mounts less than a second after `begin`); that `use_future` accepts an `async move` block over a
+  `Signal` written with `set`; that the lint's `display_trial` row passes `Profile::Strict` with
+  `css: ""` as the permission sheet's does; that `desktop_client::quire::DisplayTrial::new` is public
+  and `FakeDesktop::script` takes the two new `ShellEvent` variants (read from casement-protocols
+  8cebc9b, not compiled).

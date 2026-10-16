@@ -27,17 +27,17 @@ use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, ForceQuit, HotCorners, IdleDim, Lock,
-    Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher,
-    VoiceConsentSheet, Wallpaper,
+    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, DisplayTrialSheet, ForceQuit,
+    HotCorners, IdleDim, Lock, Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar,
+    SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
-    EditWidgetsLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind,
-    OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput, SpacesBarLink, SplitPickerLink,
-    SwitcherAsk, SwitcherLink,
+    DisplayTrialLink, EditWidgetsLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource,
+    LockLink, OsdKind, OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput,
+    SpacesBarLink, SplitPickerLink, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::surface::{LockSurface, Surface};
 use sill_widgets_ui::{DesktopWidgets, EditWidgets};
@@ -203,6 +203,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <PermissionSheet as Surface>::NAME,
         css: "",
         states: permission_sheet_states,
+    },
+    SurfaceCase {
+        name: "display_trial",
+        surface: <DisplayTrialSheet as Surface>::NAME,
+        css: "",
+        states: display_trial_states,
     },
     SurfaceCase {
         name: "eyedropper",
@@ -603,6 +609,25 @@ fn permission_sheet_states() -> Vec<(&'static str, String)> {
             by: AskedBy::Portal,
         }),
         ..CapturePicker::default()
+    });
+    sheet.harness.advance(Duration::from_millis(700));
+    let shown = sheet.harness.html();
+    assert!(shown.contains("ds-alert"), "{shown}");
+    vec![("hidden", hidden), ("shown", shown)]
+}
+
+/// The display trial: hidden, then asking whether to keep the displays.
+fn display_trial_states() -> Vec<(&'static str, String)> {
+    use sill_model::desktop::{DisplayTrial, TrialId};
+    let banners = BannerLink::new();
+    banners.set(BannerOutput::On(fake::output().id));
+    let link = DisplayTrialLink::new(banners);
+    let mut sheet = SurfaceHarness::<DisplayTrialSheet>::setup(link, ()).start();
+    sheet.harness.advance(Duration::from_millis(40));
+    let hidden = sheet.harness.html();
+    sheet.link.begin(DisplayTrial {
+        trial: TrialId::new(1),
+        seconds: 15,
     });
     sheet.harness.advance(Duration::from_millis(700));
     let shown = sheet.harness.html();

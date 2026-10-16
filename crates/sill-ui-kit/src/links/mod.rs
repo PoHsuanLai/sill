@@ -5,6 +5,7 @@
 
 mod banners;
 mod control_center;
+mod display_trial;
 mod edit_widgets;
 mod eyedropper;
 mod focus;
@@ -24,6 +25,7 @@ mod window_menu;
 
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
+pub use display_trial::{DisplayTrialLink, TrialAnswered, TrialRun, TrialSerial};
 pub use edit_widgets::{
     DesktopView, EditShown, EditWidgetsLink, WidgetsChange, WidgetsWrite, WidgetsWriter, Written,
 };
@@ -80,4 +82,8 @@ pub struct Links {
     /// The colour picker's eyedropper: the daemon holds the still pictures of the screens for
     /// the colour being asked for, the eyedropper surfaces draw them.
     pub eyedropper: EyedropperLink,
+    /// The display trial (a program changed the displays and the compositor asks whether to keep
+    /// them): the daemon opens it, the surface on the banners' output shows it, and the answer
+    /// goes back to the daemon.
+    pub display_trial: DisplayTrialLink,
 }

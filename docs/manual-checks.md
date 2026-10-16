@@ -514,3 +514,17 @@ the real daemons or a real keyboard.
   screen, `grim`'s shot is not refused, `wl-copy`/`wl-paste` work, and `casement.log` has no line saying the floor was not
   believed. If a step is asked or refused, the program is probably one the floor cannot name (an image under the checkout):
   FINDINGS pa2-sill, "Dev sessions start casement with a floor".
+
+## The display trial (a program changes the displays under casement)
+
+- [ ] **Keep or revert**: change a display's mode with a tool that is not the shell (`wlr-randr --output <name> --mode ...` in
+  the jail). A sheet "Keep these display settings?" appears on the banners' output with "Reverting in 15 seconds" counting down
+  each second. Press Revert (or Return, or Escape): the old mode returns at once. Try again and press Keep Changes: the new mode
+  stays and the sheet goes. Try a third time and press nothing: the old mode returns when the count reaches zero and the sheet
+  goes with it.
+- [ ] **Too early**: change the mode and press Return the moment the sheet appears (within half a second): nothing is answered.
+  After it has been up for about a second the same key answers.
+- [ ] **Changed again**: change the mode a second time while the sheet is up; the count starts again from 15 and the sheet is
+  asked once, not twice.
+- [ ] **Blank screen**: set a mode the monitor cannot show; with no key pressed the screen comes back by itself.
+

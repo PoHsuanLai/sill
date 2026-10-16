@@ -5,6 +5,7 @@ pub mod cli;
 pub mod companion;
 pub mod corners;
 pub mod daemon;
+pub mod display_trial;
 pub mod door_guard;
 pub mod edit_widgets;
 pub mod eyedropper;

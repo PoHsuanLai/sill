@@ -14,9 +14,9 @@ use sill_model::locker::LockPhase;
 use sill_services::env::{Dirs, Env};
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
-    BannerLink, CenterLink, ControlCenterLink, CornerLink, EditWidgetsLink, EyedropperLink,
-    ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PlacementFile, PowerMenuLink,
-    SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
+    BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink, EditWidgetsLink,
+    EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PlacementFile,
+    PowerMenuLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
@@ -217,6 +217,7 @@ fn build_links(
     store: &Store,
 ) -> Links {
     let places = PlacementFile::in_dirs(&env.dirs);
+    let banners = BannerLink::new();
     Links {
         focus: settings::spawn_focus(
             runtime.handle(),
@@ -228,7 +229,8 @@ fn build_links(
         power_menu: PowerMenuLink::new(),
         control_center: ControlCenterLink::new(),
         notification_center: CenterLink::new(),
-        banners: BannerLink::new(),
+        display_trial: DisplayTrialLink::new(banners.clone()),
+        banners,
         corners: CornerLink::new(),
         switcher: SwitcherLink::new(),
         lock: LockLink::new(),
@@ -264,6 +266,7 @@ fn spawn_followers(
     settings::spawn_user_style_watch(runtime, store, host.clone());
     crate::window_menu::spawn_picks(runtime.handle(), links, host.clone());
     crate::split_picker::spawn_answers(runtime.handle(), links, host.clone());
+    crate::display_trial::spawn_answers(runtime.handle(), links, host.clone());
     crate::force_quit::spawn_asks(runtime.handle(), links, host.clone());
     crate::spaces_bar::spawn_picks(runtime.handle(), links, host.clone());
     crate::spaces_bar::spawn_outbox(runtime.handle(), links, host.clone());

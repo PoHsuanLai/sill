@@ -12,13 +12,13 @@ use std::sync::{Arc, Mutex};
 use casement_protocols::vocab::{
     ActorKind, AppLifeKind, Corner, DragOutcome, Emphasis, KeyGesture, MacMods, OverviewMode,
     OverviewState, PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide,
-    Toggle, WindowEntry, WindowStateKind,
+    Toggle, TrialAnswer, TrialId, WindowEntry, WindowStateKind,
 };
 use desktop_client::capture::{CaptureEvent, ShmFormat};
 use desktop_client::fake::FakeDesktop;
 use desktop_client::quire::{
-    AppChange, AppEvent, MenuSource, QuireEvent, ShellEvent, SpaceChange, SpaceEvent, SpacePlace,
-    WindowChange, WindowEvent,
+    AppChange, AppEvent, DisplayTrial as WireTrial, MenuSource, QuireEvent, ShellEvent,
+    SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent,
 };
 use desktop_client::toplevel::{ToplevelChange, ToplevelEvent, ToplevelFlags};
 use desktop_client::workspace::{
@@ -32,8 +32,8 @@ use desktop_client::{
 };
 use porter_core::SpaceId;
 use sill_model::desktop::{
-    Answer, Consent, ConsentId, DesktopCommand, Memory, OverviewNote, Power, ShellNote,
-    SpacePlaceView, SubjectKind, SwitcherNote,
+    Answer, Consent, ConsentId, DesktopCommand, DisplayTrial, Memory, OverviewNote, Power,
+    ShellNote, SpacePlaceView, SubjectKind, SwitcherNote,
 };
 use sill_services::desktop_wl::quire::{
     ArmError, ConnectionRole, FakeHandout, Handout, HandoutError, QuireArm, role_of_surface,
@@ -437,6 +437,28 @@ fn the_shells_commands_become_quire_requests() {
                 answer: Answer::Dismissed,
             }],
         ),
+        (
+            "keep the changed displays",
+            DesktopCommand::AnswerTrial {
+                trial: TrialId::new(2),
+                answer: TrialAnswer::Keep,
+            },
+            vec![Wire::AnswerTrial {
+                trial: TrialId::new(2),
+                answer: TrialAnswer::Keep,
+            }],
+        ),
+        (
+            "revert the changed displays",
+            DesktopCommand::AnswerTrial {
+                trial: TrialId::new(2),
+                answer: TrialAnswer::Revert,
+            },
+            vec![Wire::AnswerTrial {
+                trial: TrialId::new(2),
+                answer: TrialAnswer::Revert,
+            }],
+        ),
     ];
     for (name, command, want) in cases {
         assert_eq!(sent(&mut arm, command), want, "{name}");
@@ -714,6 +736,34 @@ fn the_compositors_permission_question_and_its_withdrawal_become_notes() {
             ShellNote::PermissionWithdraw(ConsentId::new(7)),
         ],
         "the program's text lost its direction mark on the way in"
+    );
+}
+
+#[test]
+fn the_displays_trial_and_its_end_become_notes() {
+    let mut arm = shell_arm();
+    let _settled = arm.sync();
+    for event in [
+        ShellEvent::DisplaysTrial(WireTrial::new(TrialId::new(4), 15)),
+        ShellEvent::DisplaysTrial(WireTrial::new(TrialId::new(4), 15)),
+        ShellEvent::DisplaysTrialEnd(TrialId::new(4)),
+    ] {
+        arm.desktop_mut().script(quire(QuireEvent::Shell(event)));
+    }
+    arm.desktop_mut().advance_all();
+    let _view = arm.sync();
+    let trial = DisplayTrial {
+        trial: TrialId::new(4),
+        seconds: 15,
+    };
+    assert_eq!(
+        arm.sink().as_slice(),
+        [
+            ShellNote::DisplaysTrial(trial),
+            ShellNote::DisplaysTrial(trial),
+            ShellNote::DisplaysTrialEnd(TrialId::new(4)),
+        ],
+        "a restart is the same note again; the shell tells it by the id and the order"
     );
 }
 

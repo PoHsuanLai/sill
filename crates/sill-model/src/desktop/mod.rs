@@ -28,6 +28,7 @@ pub mod target;
 mod target_tests;
 #[cfg(test)]
 mod tests;
+mod trial;
 
 pub use backend::{DesktopBackend, GlobalOffer};
 pub use bar_drops::BarDrops;
@@ -41,8 +42,8 @@ pub use bar_thumbs::{
 };
 pub use casement_protocols::vocab::{
     Answer, AskId as ConsentId, Corner, DragOutcome, KeyGesture, Memory, OverviewMode,
-    OverviewState, Power, ShellRole, Shown, SpaceKind, SplitSide, SubjectKind, WindowEntry,
-    WireCode,
+    OverviewState, Power, ShellRole, Shown, SpaceKind, SplitSide, SubjectKind, TrialAnswer,
+    TrialId, WindowEntry, WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
 pub use consent::{Consent, ConsentSubject, SUBJECT_MAX_CHARS};
@@ -55,3 +56,7 @@ pub use spaces_bar::{
     BarPick, BarShow, BarSpace, bar_show, bar_space_ids, bar_spaces, commands_of,
 };
 pub use split::{SplitCard, cards_of, output_of};
+pub use trial::{
+    DisplayTrial, KEEP_LABEL, REVERT_LABEL, TRIAL_TITLE, countdown_line, seconds_left,
+    until_next_second,
+};

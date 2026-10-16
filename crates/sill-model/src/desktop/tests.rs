@@ -101,6 +101,10 @@ fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
             output: "DP-1".to_owned(),
             rect: Some((0, 0, 28, 28)),
         },
+        DesktopCommand::AnswerTrial {
+            trial: super::TrialId::new(3),
+            answer: super::TrialAnswer::Keep,
+        },
     ];
     for command in &commands {
         assert_eq!(supports(DesktopBackend::Quire, command), Supports::Yes);
