@@ -340,8 +340,12 @@ mod tests {
             [Desktop Action unnamed]\nExec=x --unnamed\n\
             [Desktop Action noexec]\nName=No Exec\n\
             [Desktop Action unlisted]\nName=Unlisted\nExec=x --unlisted\n";
-        // `(locales, [(id, name, exec)])`.
-        const CASES: &[(&[&str], &[(&str, &str, &str)])] = &[
+        /// `(locales, [(id, name, exec)])`.
+        type Case = (
+            &'static [&'static str],
+            &'static [(&'static str, &'static str, &'static str)],
+        );
+        const CASES: &[Case] = &[
             (
                 &[],
                 &[
