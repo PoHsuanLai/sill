@@ -10,7 +10,7 @@ use std::time::Duration;
 use docket_core::Keep;
 use ds_harness::{Driver, Query};
 use launcher_harness::launcher_support::companion::{
-    HAIKU, companion, declined, draft, fresh, routed, task, thinking,
+    CLAUDE_CODE, HAIKU, companion, declined, draft, fresh, routed, task, thinking,
 };
 use launcher_harness::{Open, Press, is_open, open, open_in, selected_title, titles};
 use sill_launcher::{LauncherMode, ProviderKind, WindowKey};
@@ -73,6 +73,18 @@ fn the_card_footer_says_how_the_answer_was_reached_in_the_wire_crates_words() {
         h.text_of(".sill-route-line").as_deref(),
         Some(HAIKU_LINE),
         "exactly the line companion_wire::footer_line prints"
+    );
+}
+
+#[test]
+fn an_answer_a_coding_agent_gave_says_so_by_the_name_the_person_knows_it() {
+    let open = open_in("", LauncherMode::Companion, |bar| {
+        bar.companion
+            .send_replace(companion(vec![routed(draft(), CLAUDE_CODE)], fresh()));
+    });
+    assert_eq!(
+        open.harness.text_of(".sill-route-line").as_deref(),
+        Some("Answered by Claude Code (you chose it)")
     );
 }
 

@@ -110,6 +110,9 @@ pub fn routed(answer: AnswerFacts, notes: &str) -> AnswerFacts {
 /// The notes of one answering stage on a hosted model.
 pub const HAIKU: &str = r#"[{"stage":"answer","served":{"account":"openrouter","model":"claude-haiku-4-5","locality":{"kind":"cloud","v":{"region":null}}},"why":[{"kind":"warm"}],"reached":{"provider":"openrouter","door":"gateway"}}]"#;
 
+/// The notes of an answer the person's chosen coding agent gave: named by the label it goes by.
+pub const CLAUDE_CODE: &str = r#"[{"stage":"answer","served":{"account":"agent","model":"claude-code","locality":{"kind":"on_device"}},"name":"Claude Code","why":[{"kind":"named"}],"reached":null}]"#;
+
 /// An answer that failed because the named model could not serve, with the reason as the
 /// companion words it.
 pub fn declined(why: &str) -> AnswerFacts {
