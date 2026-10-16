@@ -5,7 +5,7 @@
 //! arm. The compositor reverts by itself when the time runs out, so nothing here keeps time.
 
 use shell_host::HostHandle;
-use sill_model::desktop::{DesktopCommand, DisplayTrial, ShellNote, TrialId};
+use sill_model::desktop::{DesktopCommand, ShellNote};
 use sill_ui_kit::links::{DisplayTrialLink, Links, TrialAnswered};
 use tokio::runtime::Handle;
 
