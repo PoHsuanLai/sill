@@ -91,6 +91,13 @@ fn the_rules_in_the_module_doc() {
             vec![GateOut::Check, GateOut::Unavailable],
         ),
         (
+            "an expired password reopens, counts nothing and does not unlock",
+            at(Gate::Open, 2),
+            vec![GateIn::Submit, GateIn::Verdict(Outcome::Expired)],
+            at(Gate::Open, 2),
+            vec![GateOut::Check, GateOut::Expired],
+        ),
+        (
             "reset reopens a check and keeps the count",
             at(Gate::Checking, 3),
             vec![GateIn::Reset],

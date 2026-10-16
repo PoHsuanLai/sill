@@ -60,6 +60,9 @@ pub enum Outcome {
     Accepted,
     /// The secret was wrong (or the account refused): counts as a failure.
     Refused,
+    /// The secret was right but the password has expired and must be changed before it signs
+    /// anyone in again: not the person's mistake, so not a failure, and not an unlock.
+    Expired,
     /// Nothing could be checked: not the person's fault, never counted.
     Unavailable(AuthFault),
 }

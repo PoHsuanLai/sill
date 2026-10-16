@@ -226,9 +226,10 @@ fn phase_of(said: GateOut, verdict: &Verdict) -> Option<AuthPhase> {
         GateOut::Busy => None,
         GateOut::Accepted => Some(AuthPhase::Accepted),
         GateOut::Wrong => Some(AuthPhase::Wrong),
+        GateOut::Expired => Some(AuthPhase::Expired),
         GateOut::Unavailable => match verdict.outcome {
             Outcome::Unavailable(fault) => Some(AuthPhase::Unavailable(fault)),
-            Outcome::Accepted | Outcome::Refused => Some(AuthPhase::Idle),
+            Outcome::Accepted | Outcome::Refused | Outcome::Expired => Some(AuthPhase::Idle),
         },
     }
 }

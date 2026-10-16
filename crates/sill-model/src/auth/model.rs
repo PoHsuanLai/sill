@@ -15,6 +15,8 @@ pub enum AuthPhase {
     Checking,
     /// The last secret was wrong; typing again goes back to `Idle` on the surface's side.
     Wrong,
+    /// The last secret was right but the password has expired; it does not unlock.
+    Expired,
     /// The secret was right: the daemon unlocks. Stays until `Reset`.
     Accepted,
     /// The last check could not run.

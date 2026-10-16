@@ -8,6 +8,8 @@
 //! - `Verdict(Accepted)` resets the count to 0 and says `Accepted`.
 //! - `Verdict(Refused)` counts one failure and reopens the gate at once (`Wrong`), however many
 //!   came before.
+//! - `Verdict(Expired)` (the password was right but has run out) reopens the gate at once and
+//!   counts nothing (`Expired`): it is not a wrong password, and it does not unlock.
 //! - `Verdict(Unavailable)` is not the person's fault: the gate reopens, nothing is counted
 //!   (`Unavailable`).
 //! - `Reset` (a new lock) reopens the gate and keeps the count.
@@ -51,6 +53,8 @@ pub enum GateOut {
     Busy,
     Accepted,
     Wrong,
+    /// The password has expired: the person is told so.
+    Expired,
     Unavailable,
 }
 
@@ -94,6 +98,13 @@ fn verdict(checks: Checks, outcome: &Outcome) -> (Checks, Vec<GateOut>) {
                 failures: Attempts(checks.failures.0.saturating_add(1)),
             },
             vec![GateOut::Wrong],
+        ),
+        Outcome::Expired => (
+            Checks {
+                gate: Gate::Open,
+                ..checks
+            },
+            vec![GateOut::Expired],
         ),
     }
 }

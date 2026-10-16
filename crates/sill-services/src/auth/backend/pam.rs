@@ -71,10 +71,11 @@ fn outcome_of(result: PamResult<()>) -> Outcome {
             | ErrorCode::UserUnknown
             | ErrorCode::MaxTries
             | ErrorCode::AccountExpired
-            | ErrorCode::NewAuthTokRequired
             | ErrorCode::CredentialsInsufficient
             | ErrorCode::ConversationError,
         ) => Outcome::Refused,
+        // The password was right and has run out: said apart, never counted as a wrong one.
+        Err(ErrorCode::NewAuthTokRequired) => Outcome::Expired,
         Err(_) => Outcome::Unavailable(AuthFault::ServiceError),
     }
 }
@@ -155,6 +156,7 @@ mod tests {
             (Ok(()), Outcome::Accepted),
             (Err(ErrorCode::AuthenticationError), Outcome::Refused),
             (Err(ErrorCode::MaxTries), Outcome::Refused),
+            (Err(ErrorCode::NewAuthTokRequired), Outcome::Expired),
             (
                 Err(ErrorCode::ServiceError),
                 Outcome::Unavailable(AuthFault::ServiceError),

@@ -24,7 +24,7 @@ pub fn caps_of(key: shell_host::LockKey) -> CapsLock {
 /// `LockedOut` is never shown: there is no lockout.
 pub fn prompt_state(phase: &AuthPhase) -> PromptState {
     match phase {
-        AuthPhase::Idle | AuthPhase::Unavailable(_) => PromptState::Idle,
+        AuthPhase::Idle | AuthPhase::Expired | AuthPhase::Unavailable(_) => PromptState::Idle,
         AuthPhase::Checking => PromptState::Checking,
         AuthPhase::Accepted => PromptState::Accepted,
         AuthPhase::Wrong => PromptState::Wrong,
@@ -129,6 +129,7 @@ mod tests {
             (AuthPhase::Idle, PromptState::Idle),
             (AuthPhase::Checking, PromptState::Checking),
             (AuthPhase::Wrong, PromptState::Wrong),
+            (AuthPhase::Expired, PromptState::Idle),
             (AuthPhase::Accepted, PromptState::Accepted),
             (
                 AuthPhase::Unavailable(AuthFault::TimedOut),

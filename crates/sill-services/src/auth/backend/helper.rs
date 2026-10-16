@@ -18,6 +18,9 @@ use crate::env::Authenticator;
 /// `pam_unix`'s 2 s fail delay and a slow directory lookup, short of a person giving up.
 pub const CHECK_TIMEOUT: Duration = Duration::from_secs(15);
 
+/// The running program's own image, as the kernel names it for the calling process.
+const THIS_EXE: &str = "/proc/self/exe";
+
 /// Runs `program args` with the request on stdin and reads the verdict from stdout.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PamHelper {
@@ -27,10 +30,12 @@ pub struct PamHelper {
 }
 
 impl PamHelper {
-    /// This executable's own `auth-check` subcommand (`sill auth-check`).
+    /// This running executable's own `auth-check` subcommand (`sill auth-check`). Started through
+    /// `/proc/self/exe`, which names the program image this process runs even after an update has
+    /// replaced or removed its file, so the daemon and its helper are always the same build.
     pub fn this_exe() -> PamHelper {
         PamHelper {
-            program: std::env::current_exe().unwrap_or_else(|_| PathBuf::from("sill")),
+            program: PathBuf::from(THIS_EXE),
             args: vec!["auth-check".to_owned()],
             timeout: CHECK_TIMEOUT,
         }
@@ -129,5 +134,23 @@ fn collect(lines: &Receiver<Result<HelperLine, ProtocolError>>, deadline: Instan
             Err(RecvTimeoutError::Disconnected) => return Collected::Whole(got),
             Err(RecvTimeoutError::Timeout) => return Collected::TimedOut,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::PamHelper;
+
+    #[test]
+    fn the_helper_is_the_running_programs_own_image() {
+        let helper = PamHelper::this_exe();
+        assert_eq!(helper.program, Path::new("/proc/self/exe"));
+        assert_eq!(helper.args, vec!["auth-check".to_owned()]);
+        assert!(
+            helper.program.exists(),
+            "the kernel names this program's image"
+        );
     }
 }

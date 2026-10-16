@@ -39,12 +39,17 @@ fn leaving(phase: &AuthPhase, host: HostLock) -> Option<&'static str> {
     }
 }
 
+/// What the line under the field says when the password was right but has expired: the login
+/// screen asks for a new one, which the lock screen cannot.
+const EXPIRED_HINT: &str = "Your password has expired. Sign in again to choose a new one.";
+
 /// The line under the field: the last PAM message, else a word for a check that could not run.
 fn hint_of(auth: &Auth) -> Option<TextLine> {
     let note = auth.notes.last().map(|note| match note {
         PamNote::Info(text) | PamNote::Error(text) => TextLine::from(text.as_str()),
     });
     note.or(match auth.phase {
+        AuthPhase::Expired => Some(TextLine::from(EXPIRED_HINT)),
         AuthPhase::Unavailable(AuthFault::TimedOut) => {
             Some(TextLine::from("The check took too long"))
         }

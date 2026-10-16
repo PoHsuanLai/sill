@@ -81,6 +81,7 @@ pub fn render_line(line: &HelperLine) -> String {
         HelperLine::Note(PamNote::Error(text)) => format!("error {}", one_line(text)),
         HelperLine::Done(Outcome::Accepted) => "accepted".to_owned(),
         HelperLine::Done(Outcome::Refused) => "refused".to_owned(),
+        HelperLine::Done(Outcome::Expired) => "expired".to_owned(),
         HelperLine::Done(Outcome::Unavailable(fault)) => format!("fault {}", fault_word(*fault)),
     }
 }
@@ -103,6 +104,7 @@ pub fn parse_line(line: &str) -> Result<HelperLine, ProtocolError> {
         None => match line {
             "accepted" => Ok(HelperLine::Done(Outcome::Accepted)),
             "refused" => Ok(HelperLine::Done(Outcome::Refused)),
+            "expired" => Ok(HelperLine::Done(Outcome::Expired)),
             _ => Err(unknown()),
         },
     }
@@ -194,6 +196,7 @@ mod tests {
         let cases = [
             (HelperLine::Done(Outcome::Accepted), "accepted"),
             (HelperLine::Done(Outcome::Refused), "refused"),
+            (HelperLine::Done(Outcome::Expired), "expired"),
             (
                 HelperLine::Done(Outcome::Unavailable(AuthFault::ServiceError)),
                 "fault service_error",
