@@ -62,6 +62,8 @@ percent-encoding = { workspace = true }
 desktop-client = { workspace = true, features = ["fake"] }
 # A caller that is only a claim (`BusPeers::introduce`): the tests name who their stand-ins are.
 peephole-bus = { workspace = true, features = ["fake"] }
+# intentd is named from a fixture tree (`<root>/<pid>/cgroup`) in the private-bus tests.
+docket-dbus = { workspace = true, features = ["fixture-callers"] }
 sill-testkit = { workspace = true }
 porter-infer = { workspace = true }
 docket-router = { workspace = true }

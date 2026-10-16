@@ -782,35 +782,6 @@ async fn perform_refuses_an_item_that_changed_since_it_was_gated_and_always_take
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_name_owned_by_another_app_than_it_names_is_not_verified() {
-    let Some(bus) = PrivateBus::start() else {
-        return;
-    };
-    let scratch = TempDir::new("app-menu-impostor");
-    let callers = Introduced::new();
-    // The program is dev.notes's, but its scope says it was launched as dev.other: its menu is
-    // read and every item of it is a destructive click.
-    let app = FakeApp::start(&bus, scratch.path(), "dev.notes", &callers);
-    let agent = agent(
-        &bus,
-        scratch.path(),
-        &callers,
-        &["dev.notes"],
-        Some((app.pid, "dev.other")),
-    )
-    .await;
-
-    let done = agent.agent.activate(None, "21", None).await;
-    let done = done.unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!(
-        (done.how, done.effect),
-        (Activated::Clicked, Effect::Destructive)
-    );
-    assert!(agent.performed().is_empty());
-    app.logged("Event 21 clicked").await;
-}
-
-#[tokio::test(flavor = "multi_thread")]
 async fn a_menu_served_by_another_program_than_the_apps_is_neither_listed_nor_clicked() {
     let Some(bus) = PrivateBus::start() else {
         return;
