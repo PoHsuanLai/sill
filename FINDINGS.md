@@ -1470,3 +1470,19 @@ Fixed by reading, not built: the gate run is the first compile.
   `permission_sheet` looks the name up in the app index (case-insensitive) and falls back to the
   Window glyph. Two installed apps with one name get the first by id. An id from transom in the
   call would make this exact.
+- **latchkey at 99cc9de.** The pin moved from ef0117a. `Error::Unsafe` and `Error::WrongOwner` need no
+  code: `take_door` prints the library's own words for any error other than `AlreadyRunning`, and the
+  command line prints `ClientError::Agent` as it is. `is_running` is not called by sill. An empty
+  connection (what a knock is) reaches `serve_one_with`, fails to read a request and writes an
+  error line to a socket that is already closed; nothing is dispatched or logged. quire's
+  `docs/workspace-deps.toml` still pins latchkey at 335d7a7, so the pinned block in this
+  `Cargo.toml` no longer matches it; quire's file takes the new revision when this lands.
+- **The daemon does not poll `Listening::standing()` (deferred).** A cache cleaner that deletes the
+  lock file lets a second daemon start beside this one. Polling needs a timer the daemon does not
+  have (its work is on the host thread, tokio services and the IPC thread, which owns the
+  `Listening` and blocks in `accept`), a share of the `Listening` between that thread and the
+  timer, and an answer to what a displaced daemon should do: `dist/sill.service` restarts on
+  failure only, so a clean exit leaves the session with no shell until the next `sill` call starts
+  one, and `Quit` is refused while the session is locked. Open until the owner decides that; the
+  lock file lives in `$XDG_RUNTIME_DIR`, which a cache cleaner does not visit, and the fallback
+  under `$HOME/.cache` is the case that matters.

@@ -18,7 +18,7 @@ its traits, its recipes and its repo rules. Where they disagree, this file wins 
 | cua (`../cua`, path deps) | `cua-bus` (a run's state, outcome, budget and window as serde data, for `sill-model`'s run rows) and `cua-dbus` (the `org.quire.Cua1` proxies, `sill-services` only) |
 | almanac (`../almanac`, path deps) | `almanac-core` (memoryd's vocabulary: `MemoryItem`, the timeline) and `almanac-dbus` (the `org.quire.Memory1` proxies, `sill-services` only) |
 | casement-protocols (`../casement-protocols`, path deps) | `casement-protocols` (the desktop's private protocols; `sill-model` and `sill-services` take only its pure `vocab` enums: `WindowStateKind`, `ProofKind`, `PlaceTarget`, …, no Wayland) and `desktop-client` (one typed client for wlroots-style compositors: toplevels from the ext list and wlr management, workspaces from ext-workspace, outputs from wlr-output-management; `sill-services` takes it with the `client` feature, its tests with `fake`). Taken by path like the other siblings |
-| latchkey (git) | the single-instance agent socket |
+| latchkey (git) | the single-instance agent socket: the daemon holds `Agent::new("sill").listen()`, the command line `connect_or_start`. The agent's directory is private and checked (`Error::Unsafe` for a link or another user's), a socket whose peer is another user's process is `Error::WrongOwner`, and `is_running` knocks, so the IPC server sees an empty connection now and then and answers it with nothing |
 
 Consumers of quire import `ds::prelude::*` plus the named crate for anything outside it.
 
