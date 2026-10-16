@@ -213,3 +213,27 @@ fn a_refusal_is_not_held_and_a_lock_in_progress_is_adopted() {
     );
     assert_eq!(held.id, Some(LockId(3)));
 }
+
+#[test]
+fn the_prompt_leaves_an_output_that_went_away() {
+    use sill_ui_kit::links::PromptOutput;
+
+    use super::prompt_among;
+
+    let both = outputs();
+    assert_eq!(
+        prompt_among(PromptOutput::On(OutputId(2)), &both),
+        PromptOutput::On(OutputId(2)),
+        "an output that is still there keeps the prompt"
+    );
+    assert_eq!(
+        prompt_among(PromptOutput::Nowhere, &both),
+        PromptOutput::Nowhere,
+        "no prompt is none"
+    );
+    let moved = prompt_among(PromptOutput::On(OutputId(9)), &both);
+    assert!(
+        matches!(moved, PromptOutput::On(id) if both.get(id).is_some()),
+        "the prompt of an unplugged output is on one that is plugged in: {moved:?}"
+    );
+}

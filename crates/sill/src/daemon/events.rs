@@ -259,6 +259,10 @@ fn spawn_missing(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>) {
         .links
         .banners
         .set(crate::notifications::banner_output(&shell.outputs));
+    shell.links.lock.set(crate::lock::prompt_among(
+        shell.links.lock.now(),
+        &shell.outputs,
+    ));
 }
 
 /// Outputs coming, going or changing make the displays service rescan.

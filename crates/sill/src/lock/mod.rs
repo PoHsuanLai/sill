@@ -169,6 +169,17 @@ fn main_display(outputs: &Outputs) -> PromptOutput {
     }
 }
 
+/// Where the prompt is once the outputs are `outputs`: where it was while that output is still
+/// there, else the main display. A prompt named for an output that was unplugged would otherwise
+/// be drawn nowhere, and the session would have no field to type a password into until the
+/// compositor happened to move the keyboard.
+pub fn prompt_among(now: PromptOutput, outputs: &Outputs) -> PromptOutput {
+    match now {
+        PromptOutput::On(id) if outputs.get(id).is_none() => main_display(outputs),
+        PromptOutput::On(_) | PromptOutput::Nowhere => now,
+    }
+}
+
 /// A host event about the lock ([`host::lock_event`]): `Locked`, `Unlocked`, `Finished` to the
 /// locker service as `ShellLockEvent`s (and on `Unlocked` / `Finished` `AuthCommand::Reset`,
 /// forgetting the id); a lock surface gaining the keyboard ([`host::SessionLockHost::
