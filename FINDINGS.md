@@ -1477,15 +1477,20 @@ Fixed by reading, not built: the gate run is the first compile.
   error line to a socket that is already closed; nothing is dispatched or logged. quire's
   `docs/workspace-deps.toml` still pins latchkey at 335d7a7, so the pinned block in this
   `Cargo.toml` no longer matches it; quire's file takes the new revision when this lands.
-- **The daemon does not poll `Listening::standing()` (deferred).** A cache cleaner that deletes the
-  lock file lets a second daemon start beside this one. Polling needs a timer the daemon does not
-  have (its work is on the host thread, tokio services and the IPC thread, which owns the
-  `Listening` and blocks in `accept`), a share of the `Listening` between that thread and the
-  timer, and an answer to what a displaced daemon should do: `dist/sill.service` restarts on
-  failure only, so a clean exit leaves the session with no shell until the next `sill` call starts
-  one, and `Quit` is refused while the session is locked. Open until the owner decides that; the
-  lock file lives in `$XDG_RUNTIME_DIR`, which a cache cleaner does not visit, and the fallback
-  under `$HOME/.cache` is the case that matters.
+- **The daemon polls `Listening::standing()`.** `sill::door_guard` asks every
+  `STANDING_EVERY` (60 s, latchkey's "once a minute is plenty") on the daemon's runtime; a lock file
+  that is gone or replaced (a cache cleaner ran; the fallback under `$HOME/.cache` is the case that
+  matters) ends the host with a failure and one line, through the channel `name_guard` already
+  uses. A failure, not a clean exit: `dist/sill.service` restarts on failure only, so the unit
+  starts the shell again a second later and it takes the lock file that is there now; a clean exit
+  would leave the session with no shell. A shell started by hand (not under the unit) simply ends.
+  The IPC thread owns no timer and the `Listening` is shared as `ipc::door::Door` (an `Arc`): a
+  `Door` dropped while displaced is leaked on purpose, because latchkey's `Listening` unlinks its
+  socket path on drop and that path may now be a second daemon's. The accept loop ends on
+  `Serving::stop`: a flag read after each accept and a knock to wake the blocked one. The knock
+  is skipped while displaced (the path is not ours), so a displaced daemon's loop ends with the
+  process. *Ask of latchkey:* `Listening::set_nonblocking` (or a `wake`) would let a displaced
+  daemon's accept loop end without the process ending; not needed while the daemon exits.
 
 ## pa2-sill: who calls the shell's bus objects, and the compositor's permission question (2026-10-16)
 

@@ -6,6 +6,11 @@
 //! [`READ_DEADLINE`] is cut, at most [`MAX_CONNECTIONS`] are served at once (more are closed
 //! unanswered), and only processes of the same user are served at all.
 //!
+//! The accept loop ends when asked ([`Serving::stop`]): a flag the loop reads after every accept,
+//! and a knock on the socket to wake the accept that is blocking. A daemon whose lock file was
+//! removed cannot be knocked (its path may now be another daemon's), so it does not try and the
+//! loop ends with the process.
+//!
 //! The accept loop and the per-connection read/dispatch/write are generic over how a request is
 //! answered ([`spawn_with`]) so `crates/sill/tests/it/ipc.rs` can drive them with a fake
 //! dispatcher instead of a running [`HostHandle`] and [`shell_host::Host`], which need a live
@@ -18,13 +23,15 @@ use std::sync::{Arc, mpsc};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use latchkey::{Listening, Stream};
+use latchkey::lock::Standing;
+use latchkey::{Agent, Stream};
 use shell_host::HostHandle;
 use sill_ipc::error::IpcError;
 use sill_ipc::line::{read_message, write_message};
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 
+use super::door::Door;
 use crate::daemon::msg::ShellMsg;
 
 /// How long a client waits for the host thread's answer.
@@ -42,12 +49,34 @@ const WRITE_DEADLINE: Duration = Duration::from_secs(2);
 /// plenty; past it a connection is closed unanswered rather than given a thread.
 pub const MAX_CONNECTIONS: usize = 16;
 
-/// Serve `door` until the host exits (its accept loop then blocks forever on a closed listener;
-/// nothing more will connect, and the process exits with the host).
-pub fn spawn(door: Listening, host: HostHandle<ShellMsg>) -> JoinHandle<()> {
+/// Serve `door` until [`Serving::stop`] or until the process exits with the host.
+pub fn spawn(door: Door, host: HostHandle<ShellMsg>) -> Serving {
     spawn_with(door, move |request, reply| {
         dispatch_via_host(&host, request, reply)
     })
+}
+
+/// A running accept loop, and what ends it.
+#[derive(Debug)]
+pub struct Serving {
+    door: Door,
+    end: mpsc::Sender<()>,
+    thread: JoinHandle<()>,
+}
+
+impl Serving {
+    /// Ask the accept loop to end, and wake it if the socket can still be reached: it is knocked
+    /// on through `agent` only while the lock file is still this daemon's, because otherwise the
+    /// path is no longer ours to knock on. The thread's handle is returned for a caller that wants
+    /// to wait for it; a displaced daemon's loop ends only with the process, so waiting on it
+    /// there would wait for ever.
+    pub fn stop(self, agent: &Agent) -> JoinHandle<()> {
+        let _ = self.end.send(());
+        if matches!(self.door.standing(), Standing::Ours) {
+            let _ = agent.connect();
+        }
+        self.thread
+    }
 }
 
 /// [`spawn`], but answering every request through `dispatch` instead of a running host. `dispatch`
@@ -55,18 +84,28 @@ pub fn spawn(door: Listening, host: HostHandle<ShellMsg>) -> JoinHandle<()> {
 /// another thread, exactly as [`dispatch_via_host`] hands it to [`HostHandle::send`]. Each
 /// connection gets its own clone.
 pub fn spawn_with(
-    door: Listening,
+    door: impl Into<Door>,
     dispatch: impl Fn(Request, mpsc::SyncSender<Response>) + Clone + Send + 'static,
-) -> JoinHandle<()> {
-    std::thread::spawn(move || {
+) -> Serving {
+    let door: Door = door.into();
+    let (end, ended) = mpsc::channel();
+    let accepting = door.clone();
+    let thread = std::thread::spawn(move || {
         let live = Arc::new(AtomicUsize::new(0));
-        for stream in door.incoming() {
-            match stream {
+        loop {
+            let accepted = accepting.accept();
+            // Read after the accept returns: the knock that wakes a blocked accept arrives as a
+            // connection like any other, and is dropped here unanswered.
+            if ended.try_recv().is_ok() {
+                break;
+            }
+            match accepted {
                 Ok(stream) => serve_off_loop(stream, &dispatch, &live),
                 Err(error) => eprintln!("sill: ipc accept: {error}"),
             }
         }
-    })
+    });
+    Serving { door, end, thread }
 }
 
 /// Give `stream` a thread of its own, unless [`MAX_CONNECTIONS`] are being served.

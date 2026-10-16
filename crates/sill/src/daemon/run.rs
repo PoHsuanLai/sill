@@ -27,6 +27,7 @@ use super::events::{Shell, handle};
 use super::msg::ShellMsg;
 use super::{services, settings};
 use crate::ipc::dispatch::quit::{Leaving, leaving_at};
+use crate::ipc::door::Door;
 use crate::ipc::server;
 use crate::outputs::Outputs;
 
@@ -38,8 +39,8 @@ const BLOCKING_THREADS: usize = 48;
 /// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
 pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     super::hardening::forbid_core_files();
-    let door = match take_door() {
-        Ok(door) => door,
+    let (agent, door) = match take_door() {
+        Ok(taken) => taken,
         Err(exit) => return exit,
     };
     let runtime = match tokio::runtime::Builder::new_multi_thread()
@@ -102,12 +103,17 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         ),
         false => super::compositor::ShellSeat::absent(),
     };
-    // Detached: it accepts connections until the process exits with the host (doc on
-    // `ipc::server::spawn`).
-    let _ipc_thread = server::spawn(door, host_handle.clone());
+    // It accepts connections until it is stopped after the host ends, or the process exits.
+    let ipc = server::spawn(door.clone(), host_handle.clone());
 
     crate::permission_answers::spawn(runtime.handle(), answers, host_handle.clone());
     let (stopped_tx, stopped) = std::sync::mpsc::channel();
+    crate::door_guard::spawn(
+        runtime.handle(),
+        door,
+        host_handle.clone(),
+        stopped_tx.clone(),
+    );
     crate::name_guard::spawn(
         runtime.handle(),
         services.intents.state.clone(),
@@ -152,8 +158,11 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 
     shutdown_runtime(runtime);
+    // The handle is not waited on: a displaced daemon's loop ends only with the process.
+    drop(ipc.stop(&agent));
 
-    // A name the shell needs is held by another program: the host was ended for it.
+    // A name the shell needs is held by another program, or the single-instance lock file went:
+    // the host was ended for it.
     if let Ok(said) = stopped.try_recv() {
         return fatal(&said);
     }
@@ -177,14 +186,16 @@ fn exit_clean_at(phase: LockPhase) -> ExitCode {
     }
 }
 
-/// The single-instance lock: another daemon already running exits 0.
-fn take_door() -> Result<latchkey::Listening, ExitCode> {
+/// The single-instance lock: another daemon already running exits 0. The agent is returned with
+/// the door because stopping the IPC server knocks on it.
+fn take_door() -> Result<(latchkey::Agent, Door), ExitCode> {
     let agent = latchkey::Agent::new("sill")
         .map_err(|error| fatal(&format!("naming this agent: {error}")))?;
-    agent.listen().map_err(|error| match error {
+    let listening = agent.listen().map_err(|error| match error {
         latchkey::Error::AlreadyRunning => ExitCode::SUCCESS,
         error => fatal(&format!("taking the single-instance lock: {error}")),
-    })
+    })?;
+    Ok((agent, Door::from(listening)))
 }
 
 /// The host's configuration: shell-host's, with the first-mouse window from `first`'s settings

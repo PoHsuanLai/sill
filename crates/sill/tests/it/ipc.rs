@@ -141,6 +141,27 @@ fn a_client_that_never_finishes_its_line_is_cut_at_the_deadline() {
     );
 }
 
+#[test]
+fn a_stopped_server_ends_its_accept_loop_and_serves_no_more() {
+    let (agent, door) = temp_door("stopped");
+    let serving = server::spawn_with(door, |_request, reply| {
+        let _ = reply.send(Response::Pong);
+    });
+    assert_eq!(round_trip(&agent, &Request::Ping), Response::Pong);
+    let thread = serving.stop(&agent);
+    let waited = Instant::now();
+    while !thread.is_finished() {
+        assert!(
+            waited.elapsed() < Duration::from_secs(5),
+            "the accept loop was still blocked 5 s after it was stopped"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    thread
+        .join()
+        .unwrap_or_else(|_| panic!("the accept thread panicked"));
+}
+
 /// `sill ping` against a real, already-running daemon. Not run by `cargo test --workspace`
 /// (no daemon exists in that environment); a developer with one running invokes it with
 /// `cargo test -p sill --test it ipc -- --ignored`.

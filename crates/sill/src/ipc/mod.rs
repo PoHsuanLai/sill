@@ -2,5 +2,6 @@
 //! the launcher toggle's latency line ([`latency`]).
 
 pub mod dispatch;
+pub mod door;
 pub mod latency;
 pub mod server;
