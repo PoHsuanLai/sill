@@ -5867,7 +5867,17 @@ name = "peephole"
 version = "0.1.2"
 source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.2#f111ee0c32461d72173bb591079a1fbe0fca1953"
 dependencies = [
- "peephole-core",
+ "peephole-core 0.1.2",
+ "rustix",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "peephole"
+version = "0.1.4"
+source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.4#5a2e742fb12cd78b4555ff07d8d96681fa0bbeb8"
+dependencies = [
+ "peephole-core 0.1.4",
  "rustix",
  "thiserror 2.0.21",
 ]
@@ -5878,8 +5888,21 @@ version = "0.1.2"
 source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.2#f111ee0c32461d72173bb591079a1fbe0fca1953"
 dependencies = [
  "futures-timer",
- "peephole",
- "peephole-core",
+ "peephole 0.1.2",
+ "peephole-core 0.1.2",
+ "thiserror 2.0.21",
+ "tokio",
+ "zbus",
+]
+
+[[package]]
+name = "peephole-bus"
+version = "0.1.4"
+source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.4#5a2e742fb12cd78b4555ff07d8d96681fa0bbeb8"
+dependencies = [
+ "futures-timer",
+ "peephole 0.1.4",
+ "peephole-core 0.1.4",
  "thiserror 2.0.21",
  "tokio",
  "zbus",
@@ -5889,6 +5912,16 @@ dependencies = [
 name = "peephole-core"
 version = "0.1.2"
 source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.2#f111ee0c32461d72173bb591079a1fbe0fca1953"
+dependencies = [
+ "serde",
+ "thiserror 2.0.21",
+ "toml",
+]
+
+[[package]]
+name = "peephole-core"
+version = "0.1.4"
+source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.4#5a2e742fb12cd78b4555ff07d8d96681fa0bbeb8"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -6179,9 +6212,9 @@ dependencies = [
 name = "porter-dbus"
 version = "0.1.0"
 dependencies = [
- "peephole",
- "peephole-bus",
- "peephole-core",
+ "peephole 0.1.2",
+ "peephole-bus 0.1.2",
+ "peephole-core 0.1.2",
  "porter-core",
  "serde",
  "serde_json",
@@ -7332,7 +7365,7 @@ dependencies = [
  "logind-zbus",
  "nonstick",
  "notify",
- "peephole-bus",
+ "peephole-bus 0.1.4",
  "percent-encoding",
  "policy-point",
  "porter-client",
