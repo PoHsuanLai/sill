@@ -696,6 +696,12 @@ Each ends with its tests. Name the concept once and use it in every file name be
    untracked, or the jail's scratch dir under `dev/accept.sh --compositor casement`, where
    nothing calls cargo: `build` only checks what `dev/accept.sh --build` built outside). What
    needs a person goes to `docs/manual-checks.md`.
+   `start_casement` starts casement with `--system-dir` naming a floor it writes in the script's
+   output folder (`casement-floor/privacy.toml`, removed by `stop_casement`), allowing exactly the
+   programs the scripts run, each for the one power it takes (`CASEMENT_FLOOR_ROWS`: `grim` the
+   screen, `wl-copy` and `wl-paste` the clipboard). A floor row names an image the system owns; a
+   program built under the checkout (the daemon, `secret_source`) cannot be named and is asked like
+   any stranger. A script that runs another program with a power adds its row there.
 5. `dev/accept.sh [--compositor casement|kwin] [--jobs N] [NAME...]` runs scripts and
    prints one PASS, SKIP (and why) or FAIL line each; on casement each in its own jail.
 

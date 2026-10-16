@@ -505,3 +505,12 @@ the real daemons or a real keyboard.
   a colour request (a portal `PickColor` caller) with the pointer over a known colour: the loupe appears, and a click returns
   exactly the colour under the pointer (compare with the same spot on a screenshot). Only the region asked for is read back, not
   the whole output (casement `cas34`): the click still lands on the right pixel on a 4K output without a pause.
+
+## The dev scripts under casement's per-app consent (a casement jail)
+
+- [ ] **Run `dev/accept/{clipboard,screenshot,launcher}.sh` under casement**: `dev/accept.sh --compositor casement clipboard
+  screenshot launcher` in the jail. Each starts casement with the floor `start_casement` writes (`casement-floor/privacy.toml` in
+  the script's output folder: `grim` the screen, `wl-copy` and `wl-paste` the clipboard). Look for: no permission sheet left on
+  screen, `grim`'s shot is not refused, `wl-copy`/`wl-paste` work, and `casement.log` has no line saying the floor was not
+  believed. If a step is asked or refused, the program is probably one the floor cannot name (an image under the checkout):
+  FINDINGS pa2-sill, "Dev sessions start casement with a floor".

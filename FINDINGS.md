@@ -1506,12 +1506,45 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   and `.d/`). A table that cannot be read (missing, or writable by someone other than root) is an
   empty one: the shell then refuses every call to these objects and shows no app menu, and says so
   once on stderr. A table installed after the shell started is read at the next start.
-- **Stand-in services in the dev scripts are refused (deferred).** `dev/accept/accounts.sh` and the
-  other scripts that run the shell against `sill-testkit`'s stand-ins (`accountd_standin`,
-  `app_menu_app`) put a user-built binary on the bus, which the table cannot call a service. They
-  need a `debug`-build seam that introduces named stand-ins (peephole's `fake` feature, which a
-  shipped binary never has). Not added: the desktop gate greps for `fake`, and the owner has not
-  said whether a `debug` build may carry it.
+- **Stand-in services in the dev scripts are refused (open: interface ask of peephole).** The shell
+  reads the desktop's table once (`/etc/quire/desktop-callers.toml`; a jail has none, so it is empty),
+  and peephole judges an image the person can write `Unverified` before it looks at any row
+  (`peephole_core::judge`, rule 3), and a stand-in has no unit and so never reaches `Proof::Full`,
+  which `callers::claim` asks for. The scripts that break: `dev/accept/accounts.sh` (the
+  `accountd_standin` example opens, updates and closes `org.quire.AccountsSheet1` from `target/`;
+  every call is refused, so the sheet never shows) and `dev/accept/confirm.sh` (docket's
+  `accept-intentd`, built under `$OUT_DIR/docket-target`, is the caller of `org.quire.Confirm1`;
+  every question is refused, so steps 3 to 8 fail). `dev/demo.sh` runs with the table empty too: a
+  `mailo` built in a checkout is `Unverified`, so its menu is not in the bar. No script calls
+  `org.quire.Shell1` or serves an app menu name. Not added: a `#[cfg(debug_assertions)]`
+  `--dev-callers FILE` on `sill run` needs peephole to take rows whose image may be user-owned, and
+  peephole's `Table` and `judge` cannot say that. Peephole's `fake` feature stays out of the
+  binary (the desktop gate greps for it). Ask of peephole (nothing is worked around here): a cargo
+  feature `dev-rows` on `peephole-core` and `peephole` (off in every shipped build, the gate greps
+  for it) with `Table::from_toml_dev(text)`, whose rows carry `Row::origin = RowOrigin::Dev`;
+  `TableFiles::load_dev(path)` to read the file with the user's ownership accepted; in `judge`, a
+  native process whose image matches a Dev row (and whose cgroup leaf matches the row's unit, when it
+  has one) is `Standing::Service` with a new `Proof::Dev` that sorts below `Proof::Cgroup`, checked
+  before rule 3; and `Table::merge` adds Dev rows after the shipped ones, never over a unit the
+  shipped table names. sill's side then: `sill run --dev-callers FILE` (a clap argument present only
+  under `debug_assertions`, with the daemon's `Env::callers` merging the file into
+  `DesktopCallers::from_system`), a claim's proof `Proof::Dev` in that build only, a test that the
+  argument is absent from the release-shaped parser, and the two scripts writing their rows into
+  `$SCRATCH` (`app = "org.quire.Accounts"`, `role = "accounts"`, `exe = [<stand-in>]`).
+- **Dev sessions start casement with a floor.** casement asks before a program captures the screen,
+  reads the clipboard, types and so on. `dev/lib/compositor.sh`'s `start_casement` writes a floor
+  (`casement-floor/privacy.toml` in the script's output folder, mode 600 in a 700 folder) with an
+  allow row for `grim` (screen) and `wl-copy` and `wl-paste` (clipboard), resolved to their images, and
+  passes `--system-dir`. casement reads a folder given that way as the user's own only in a build with
+  `testing` or `debug-inject` (the jail's); a release casement would not believe it. Limit: a
+  floor row cannot name an image the person can write (casement's `Identity::Unnamed`), so the
+  programs these scripts build (the daemon on a public connection, `secret_source`, `mailo` in
+  `demo.sh`) are asked, not allowed. The daemon avoids that as the shell: casement hands it the shell
+  connection when the bus peer's unit is `sill.service`, which in the jail is
+  `CASEMENT_DEBUG_PEER_UNITS="sill=sill.service"` before `start_compositor`; the scripts do not set it
+  (it changes which arm the scripts exercise), so a power the daemon takes over a public
+  connection is asked until they do. Clipboard, input-method and the toplevel list are not gated by
+  casement yet, so today only the screen and the keys can ask.
 - **`org.quire.Shell` is asked for without queueing, and the shell exits when it is taken
   (PORTAL-10, sill's half).** The name was already asked for with `DoNotQueue` (docket's
   `serve_on_with`); a taken name was only the seat's `NameTaken` trouble and the shell went on
@@ -1567,6 +1600,11 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   keycap's user layer refuses a rule on a key with no modifier. sill ships no system file, so
   the rule is an ask of the desktop's packaging: put it in `/etc/keycap/keycap.toml`
   (`[profile.default] rules = [ { when = "capslock", then = "ctrl+space" } ]`). `shift+capslock` stays.
+- **Also not run (arming test).** `permission_sheet.rs`' `nothing_answers_until_the_sheet_has_been_up_for_the_arming_time`
+  assumes the harness's clock is virtual (about 30 ms pass between the alert mounting and the test's first
+  input, 200 ms before the early inputs end, and the late click comes `PERMISSION_ARM_AFTER` later), that a click on
+  a disabled `AlertButton` still finds the button laid out (`centre`), and that `ShortcutKey::Enter` is
+  what the alert hears as Return.
 - **Could not be checked by reading.** `peephole-bus` 0.1.2's `BusPeers::new`, `with_offload(Tokio)`,
   `who`, `require`, `owner_of` and `introduce` against the sources of that tag (read, not compiled);
   that `Standing::Sandboxed { app, .. }` and `Standing::Program { exe, scope_app }` can be built from
