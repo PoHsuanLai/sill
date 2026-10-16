@@ -8,6 +8,7 @@
 
 mod compositor;
 mod events;
+mod hardening;
 pub mod msg;
 mod run;
 pub(crate) mod services;

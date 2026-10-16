@@ -37,6 +37,7 @@ const BLOCKING_THREADS: usize = 48;
 
 /// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
 pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
+    super::hardening::forbid_core_files();
     let door = match take_door() {
         Ok(door) => door,
         Err(exit) => return exit,
