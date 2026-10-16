@@ -26,8 +26,19 @@ pub(crate) struct Claim<T> {
 }
 
 impl<T> Claim<T> {
-    fn requirement(&self) -> Requirement {
-        Requirement::new(self.role.clone(), PROOF)
+    /// What lets a caller in: the role, proved `Full`; and, in a build with `dev-callers`, the
+    /// role at `Proof::Dev` as well, which only a stand-in named in the person's own rows file
+    /// (`sill run --dev-callers`) has at that standing.
+    fn requirements(&self) -> Vec<Requirement> {
+        let real = Requirement::new(self.role.clone(), PROOF);
+        #[cfg(feature = "dev-callers")]
+        {
+            vec![real, Requirement::dev(self.role.clone())]
+        }
+        #[cfg(not(feature = "dev-callers"))]
+        {
+            vec![real]
+        }
     }
 }
 
@@ -45,11 +56,11 @@ pub(crate) async fn admit<T: Copy>(
         eprintln!("sill: callers: {sender:?} refused for {wanted:?}: {refused}");
         access_denied(refused)
     };
-    let need: Vec<Requirement> = claims.iter().map(Claim::requirement).collect();
+    let need: Vec<Requirement> = claims.iter().flat_map(Claim::requirements).collect();
     let standing = peers.require(sender, &need).await.map_err(refuse)?;
     let claim = claim_held(&standing, claims).ok_or_else(|| refuse(Refused::NotAllowed))?;
     let owner = peers
-        .owner_of(claim.name, &[claim.requirement()])
+        .owner_of(claim.name, &claim.requirements())
         .await
         .map_err(refuse)?;
     match Some(owner.as_str()) == sender {

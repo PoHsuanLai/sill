@@ -1549,31 +1549,31 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   and `.d/`). A table that cannot be read (missing, or writable by someone other than root) is an
   empty one: the shell then refuses every call to these objects and shows no app menu, and says so
   once on stderr. A table installed after the shell started is read at the next start.
-- **Stand-in services in the dev scripts are refused (open: interface ask of peephole).** The shell
-  reads the desktop's table once (`/etc/quire/desktop-callers.toml`; a jail has none, so it is empty),
-  and peephole judges an image the person can write `Unverified` before it looks at any row
-  (`peephole_core::judge`, rule 3), and a stand-in has no unit and so never reaches `Proof::Full`,
-  which `callers::claim` asks for. The scripts that break: `dev/accept/accounts.sh` (the
-  `accountd_standin` example opens, updates and closes `org.quire.AccountsSheet1` from `target/`;
-  every call is refused, so the sheet never shows) and `dev/accept/confirm.sh` (docket's
-  `accept-intentd`, built under `$OUT_DIR/docket-target`, is the caller of `org.quire.Confirm1`;
-  every question is refused, so steps 3 to 8 fail). `dev/demo.sh` runs with the table empty too: a
-  `mailo` built in a checkout is `Unverified`, so its menu is not in the bar. No script calls
-  `org.quire.Shell1` or serves an app menu name. Not added: a `#[cfg(debug_assertions)]`
-  `--dev-callers FILE` on `sill run` needs peephole to take rows whose image may be user-owned, and
-  peephole's `Table` and `judge` cannot say that. Peephole's `fake` feature stays out of the
-  binary (the desktop gate greps for it). Ask of peephole (nothing is worked around here): a cargo
-  feature `dev-rows` on `peephole-core` and `peephole` (off in every shipped build, the gate greps
-  for it) with `Table::from_toml_dev(text)`, whose rows carry `Row::origin = RowOrigin::Dev`;
-  `TableFiles::load_dev(path)` to read the file with the user's ownership accepted; in `judge`, a
-  native process whose image matches a Dev row (and whose cgroup leaf matches the row's unit, when it
-  has one) is `Standing::Service` with a new `Proof::Dev` that sorts below `Proof::Cgroup`, checked
-  before rule 3; and `Table::merge` adds Dev rows after the shipped ones, never over a unit the
-  shipped table names. sill's side then: `sill run --dev-callers FILE` (a clap argument present only
-  under `debug_assertions`, with the daemon's `Env::callers` merging the file into
-  `DesktopCallers::from_system`), a claim's proof `Proof::Dev` in that build only, a test that the
-  argument is absent from the release-shaped parser, and the two scripts writing their rows into
-  `$SCRATCH` (`app = "org.quire.Accounts"`, `role = "accounts"`, `exe = [<stand-in>]`).
+- **Stand-in services in the dev scripts are let in by `--dev-callers` (closed 2026-10-17).** The
+  shell reads the desktop's table once (`/etc/quire/desktop-callers.toml`; a jail has none, so it is
+  empty), and peephole judges an image the person can write `Unverified` before it looks at any row,
+  so a stand-in built in a checkout is never a service: `dev/accept/accounts.sh` (the
+  `accountd_standin` example) and `dev/accept/confirm.sh` (docket's `accept-intentd`) were refused on
+  every call. peephole v0.1.4 added the seam (feature `dev-rows`: `Table::from_toml_dev`,
+  `TableFiles::load_dev`, `RowOrigin::Dev`, `Proof::Dev` below `Proof::Cgroup`, `Requirement::dev`).
+  sill's side: `sill run --dev-callers FILE` exists only in a build with the sill crate's `debug`
+  feature, which alone turns on `sill-services/dev-callers`, which alone turns on
+  `peephole-bus/dev-rows`; none is a default feature or a dependency of a shipped build, so a release
+  build has neither the flag nor the feature (the desktop gate greps for `dev-rows`; a table test
+  in `run_args.rs` shows the release-shaped parser refuses the flag). The file is read through
+  `DesktopCallers::with_dev_rows`: a plain file (a link is refused) of this user or root that group
+  and others cannot write, within peephole's size cap; anything else adds nothing and says so on
+  stderr (`tests/it/dev_callers.rs`). Its rows are added after the desktop's table, never over a unit
+  it names. `callers::claim` asks for the role at `Proof::Full` as before and, in a `dev-callers`
+  build, also at `Proof::Dev` (`Requirement::dev`); that also lets in the real service at any
+  proof, which a debug build wants, and is why the flag is not the only thing that separates the
+  two builds. Limits: a debug build is not a security boundary (the person's own file names who is a
+  service); the app-menu check (`menu_shown`) does not take dev rows. The scripts write the row
+  into `$SCRATCH/dev-callers.toml` (`dev_caller` in `dev/lib/bus.sh`, mode 600, refuses without a
+  scratch tree, resolves the image path because `/proc` names the real one) and `launch_daemon`
+  passes `--dev-callers`. `dev/demo.sh` still runs with the table empty: a `mailo` built in a
+  checkout is `Unverified`, so its menu is not in the bar. Not verified here (no compile, no run):
+  the two scripts end to end, and the `Cargo.lock` move from peephole v0.1.2 to v0.1.4.
 - **Dev sessions start casement with a floor.** casement asks before a program captures the screen,
   reads the clipboard, types and so on. `dev/lib/compositor.sh`'s `start_casement` writes a floor
   (`casement-floor/privacy.toml` in the script's output folder, mode 600 in a 700 folder) with an

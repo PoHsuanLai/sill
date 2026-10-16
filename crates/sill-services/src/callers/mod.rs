@@ -22,6 +22,8 @@
 //! reads, shows or clicks its menu.
 
 mod claim;
+#[cfg(feature = "dev-callers")]
+mod dev;
 mod menu;
 mod source;
 

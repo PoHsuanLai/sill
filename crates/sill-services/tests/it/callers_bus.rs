@@ -148,6 +148,40 @@ async fn only_the_portal_backend_that_owns_its_name_asks_the_picker() {
     }
 }
 
+/// A build with `dev-callers` lets in a stand-in named in the person's own rows (`Proof::Dev`) as
+/// the portal backend, and only as the role it is named for; the build without the feature has no
+/// such standing.
+#[cfg(feature = "dev-callers")]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_stand_in_named_in_the_persons_rows_is_let_in_only_as_its_own_role() {
+    use Verdict::{LetIn, Refused};
+    let cases = [
+        (
+            "a stand-in named as the portal backend",
+            Who::StandIn(Role::Portal),
+            LetIn,
+        ),
+        (
+            "a stand-in named as another service that took the name",
+            Who::StandIn(Role::Settings),
+            Refused,
+        ),
+    ];
+    for (name, owner, want) in cases {
+        let Some(bus) = PrivateBus::start() else {
+            eprintln!("skipped: no dbus-daemon");
+            return;
+        };
+        let scratch = TempDir::new("callers-dev-rows");
+        let rig = rig_as(&bus, &scratch, owner).await;
+        let proxy = Shell1Proxy::new(&rig.transom)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+        let colour = proxy.pick_color("Screenshot").await;
+        assert_eq!(verdict(&colour), want, "{name}: pick_color");
+    }
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn only_an_account_service_that_owns_its_own_name_drives_the_accounts_sheet() {
     use Verdict::{LetIn, Refused};

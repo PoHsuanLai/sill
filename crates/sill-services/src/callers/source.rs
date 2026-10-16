@@ -25,7 +25,7 @@ pub trait CallerSource: Debug + Send + Sync {
 /// the manager's own image is the system's (role `manager`, proved by its image).
 #[derive(Debug, Clone)]
 pub struct DesktopCallers {
-    table: Table,
+    pub(super) table: Table,
 }
 
 impl DesktopCallers {

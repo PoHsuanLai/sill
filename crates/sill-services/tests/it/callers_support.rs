@@ -31,6 +31,10 @@ pub(crate) enum Role {
 
 impl Role {
     fn standing(self) -> Standing {
+        self.standing_at(Proof::Full)
+    }
+
+    fn standing_at(self, proof: Proof) -> Standing {
         let (app, role) = match self {
             Role::Portal => ("org.quire.Portal", "portal"),
             Role::Accounts => ("org.quire.Accounts", "accounts"),
@@ -39,7 +43,7 @@ impl Role {
             Role::Router => ("org.quire.Intents", "router"),
             Role::Settings => ("org.quire.Settings", "settings"),
         };
-        introduced_service(app, role, Proof::Full, Pin::AtConnect)
+        introduced_service(app, role, proof, Pin::AtConnect)
             .unwrap_or_else(|| panic!("a valid standing")) // test-only
     }
 }
@@ -49,6 +53,10 @@ impl Role {
 pub(crate) enum Who {
     /// One of the desktop's services.
     Service(Role),
+    /// A stand-in named in the person's own rows file (`--dev-callers`): the role at the lowest
+    /// standing, `Proof::Dev`. Only a build with `dev-callers` has that standing.
+    #[cfg(feature = "dev-callers")]
+    StandIn(Role),
     /// A program the system owns, which is no service of the desktop.
     Program,
     /// Nobody the system can name: an image the person can write.
@@ -114,6 +122,8 @@ impl Introduced {
     pub(crate) fn make(&self, who: &Connection, as_: Who) {
         match as_ {
             Who::Service(role) => self.service(who, role),
+            #[cfg(feature = "dev-callers")]
+            Who::StandIn(role) => self.introduce(who, role.standing_at(Proof::Dev)),
             Who::Program => self.program(who, "/usr/bin/stranger"),
             Who::Nobody => self.introduce(who, introduced_unverified(WhyNot::ImageWritable)),
         }

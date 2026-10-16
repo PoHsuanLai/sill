@@ -43,6 +43,12 @@ pub struct DebugSeams {
     /// What the dry run offers: every action, or logind's answers (read only).
     #[arg(long, value_enum, default_value_t = DryRunOffersArg::Everything, requires = "session_dry_run")]
     pub session_dry_run_offers: DryRunOffersArg,
+    /// Callers named in this file (the person's own, mode 600 or 644; peephole's `[[peer]]` rows)
+    /// are let in as the services they stand for, at a standing below every real proof: a stand-in
+    /// built in a checkout (`accountd_standin`, docket's `accept-intentd`) is the accounts service
+    /// or the router for this daemon only. The desktop's table is read as usual and wins.
+    #[arg(long, value_name = "FILE")]
+    pub dev_callers: Option<std::path::PathBuf>,
 }
 
 /// `--session-dry-run-offers`' words.
@@ -59,6 +65,32 @@ pub enum DryRunOffersArg {
 fn idle_times(text: &str) -> Result<sill_model::idle::IdleTimes, String> {
     crate::policy::idle::test_times(text)
         .ok_or_else(|| format!("{text:?} is not <screen_off_s>,<suspend_s>"))
+}
+
+/// The desktop's callers with the developer rows in `path` added after them. A file that is not
+/// the person's own plain file, or does not parse, adds nothing (one line says why): the stand-ins
+/// are then refused like any stranger.
+#[cfg(feature = "debug")]
+fn dev_callers(path: &std::path::Path) -> std::sync::Arc<dyn sill_services::callers::CallerSource> {
+    use sill_services::callers::DesktopCallers;
+
+    let shipped = DesktopCallers::from_system();
+    match shipped.clone().with_dev_rows(path) {
+        Ok(callers) => {
+            eprintln!(
+                "sill: callers: stand-ins named in {} are let in below every real proof (--dev-callers)",
+                path.display()
+            );
+            std::sync::Arc::new(callers)
+        }
+        Err(error) => {
+            eprintln!(
+                "sill: callers: --dev-callers {} adds nothing ({error})",
+                path.display()
+            );
+            std::sync::Arc::new(shipped)
+        }
+    }
 }
 
 impl RunArgs {
@@ -82,6 +114,7 @@ impl DebugSeams {
         use std::sync::Arc;
 
         use sill_model::polkit_agent::HelperRoute;
+        use sill_services::callers::CallerSource;
         use sill_services::env::ddc::FileBus;
         use sill_services::env::{
             Bus, BusRoute, DryRunActions, DryRunOffers, IdleTimesSource, SessionActions,
@@ -132,11 +165,16 @@ impl DebugSeams {
             }
             None => env.session_actions,
         };
+        let callers: Arc<dyn CallerSource> = match &self.dev_callers {
+            Some(path) => dev_callers(path),
+            None => env.callers,
+        };
         Env {
             ddc,
             idle_times,
             polkit,
             session_actions,
+            callers,
             ..env
         }
     }
@@ -237,6 +275,19 @@ mod tests {
     }
 
     #[test]
+    fn run_takes_a_dev_callers_file() {
+        let cli = Cli::try_parse_from(["sill", "run", "--dev-callers", "/tmp/rows.toml"])
+            .unwrap_or_else(|e| panic!("{e}"));
+        let Some(Command::Run(args)) = cli.command else {
+            panic!("not run: {:?}", cli.command);
+        };
+        assert_eq!(
+            args.debug.dev_callers.as_deref(),
+            Some(std::path::Path::new("/tmp/rows.toml"))
+        );
+    }
+
+    #[test]
     fn run_takes_a_fake_ddc_file() {
         let cli = Cli::try_parse_from(["sill", "run", "--fake-ddc", "/tmp/ddc.json"])
             .unwrap_or_else(|e| panic!("{e}"));
@@ -247,5 +298,19 @@ mod tests {
             args.debug.fake_ddc.as_deref(),
             Some(std::path::Path::new("/tmp/ddc.json"))
         );
+    }
+}
+
+/// A release-shaped build has no `--dev-callers` at all, nor the stand-in flags beside it.
+#[cfg(all(test, not(feature = "debug")))]
+mod release_tests {
+    use clap::Parser;
+
+    use crate::cli::Cli;
+
+    #[test]
+    fn run_has_no_dev_callers_flag() {
+        assert!(Cli::try_parse_from(["sill", "run"]).is_ok());
+        assert!(Cli::try_parse_from(["sill", "run", "--dev-callers", "/tmp/rows.toml"]).is_err());
     }
 }

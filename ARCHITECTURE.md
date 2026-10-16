@@ -758,7 +758,10 @@ The daemon exits with a failure and one line when another program owns `org.quir
 `org.quire.Confirm1` (`name_guard.rs`) or when its single-instance lock file is removed
 (`door_guard.rs`); callers of the shell's bus objects are told apart from
 `/etc/quire/desktop-callers.toml` (`Env::callers`, loaded once at start, an empty table when it
-cannot be read: every call is then refused).
+cannot be read: every call is then refused). A build with the `debug` feature also takes
+`sill run --dev-callers FILE`: the person's own rows file (peephole's developer rows, `Proof::Dev`,
+`callers/dev.rs`, feature `sill-services/dev-callers`) names the stand-ins a checkout built, for that
+daemon only; a release build has no flag and no `dev-rows` feature.
 
 The desktop's own compositor (`daemon/compositor.rs`, `daemon/targets.rs`): `ShellSeat` holds the
 Quire arm when the compositor handed the shell a connection, and `ShellSeat::command` is its one

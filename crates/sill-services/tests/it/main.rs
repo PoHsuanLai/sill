@@ -18,6 +18,7 @@ mod companion_session_bus;
 mod companion_support;
 mod desktop_quire;
 mod desktop_wl;
+mod dev_callers;
 mod events_live;
 mod guest_asks_bus;
 mod icons;

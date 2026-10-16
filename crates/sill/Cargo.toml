@@ -54,8 +54,9 @@ default = ["media"]
 # pure-Rust header parsers). `--no-default-features` leaves them out of the daemon.
 media = ["sill-launcher-ui/media"]
 # `sill debug pointer|leave|capture|key` act on surfaces (shell-host's per-surface injection).
-# Without it those requests answer `Failed(Unsupported)`; `debug stats` always works.
-debug = ["shell-host/debug-inject"]
+# Without it those requests answer `Failed(Unsupported)`; `debug stats` always works. It also gives
+# `sill run` the stand-in flags (`--fake-ddc`, `--dev-callers`, ...); a release build has none.
+debug = ["shell-host/debug-inject", "sill-services/dev-callers"]
 
 [lints]
 workspace = true

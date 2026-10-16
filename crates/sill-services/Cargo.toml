@@ -8,6 +8,12 @@ rust-version.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+[features]
+# `sill run --dev-callers FILE`: callers named in a person's own rows file are let in at
+# `Proof::Dev` (peephole's `dev-rows`). Off by default; only the sill binary's `debug` feature turns
+# it on, so no shipped build has it (the desktop gate refuses `dev-rows` in any release shape).
+dev-callers = ["peephole-bus/dev-rows"]
+
 [dependencies]
 anyview-core = { workspace = true }
 anyview-platform = { workspace = true }
