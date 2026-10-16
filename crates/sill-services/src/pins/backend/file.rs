@@ -5,6 +5,7 @@ use std::path::Path;
 use sill_model::pins::DockPins;
 
 use crate::ServiceError;
+use crate::durable::{self, Access};
 
 /// The file's name inside `$XDG_CONFIG_HOME/sill`.
 pub(crate) const FILE_NAME: &str = "dock.json";
@@ -12,23 +13,29 @@ pub(crate) const FILE_NAME: &str = "dock.json";
 /// The pins in `dir`; a missing or damaged file is no pins (the dock still shows running
 /// apps).
 pub(crate) fn load(dir: &Path) -> DockPins {
-    std::fs::read_to_string(dir.join(FILE_NAME))
-        .map(|text| parse(&text))
-        .unwrap_or_default()
+    let path = dir.join(FILE_NAME);
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        return DockPins::default();
+    };
+    match serde_json::from_str(&text) {
+        Ok(pins) => pins,
+        // The next save would replace it: keep what the person had.
+        Err(_) => {
+            durable::set_aside(&path);
+            DockPins::default()
+        }
+    }
 }
 
-/// Write `pins` to `dir` (created if needed) through a temporary file and a rename, so a
-/// directory watch sees one rename and a crash leaves no half-written file.
+/// Write `pins` to `dir` (created if needed) durably, so a directory watch sees one rename and a
+/// crash leaves no half-written file ([`crate::durable`]). The file keeps the permissions it has:
+/// a person may keep their dock in a shared dotfiles folder.
 pub(crate) fn save(dir: &Path, pins: &DockPins) -> Result<(), ServiceError> {
-    let io = |path: &Path| {
-        let path = path.to_path_buf();
-        move |source| ServiceError::Io { path, source }
-    };
-    std::fs::create_dir_all(dir).map_err(io(dir))?;
-    let path = dir.join(FILE_NAME);
-    let tmp = path.with_extension("part");
-    std::fs::write(&tmp, render(pins)).map_err(io(&tmp))?;
-    std::fs::rename(&tmp, &path).map_err(io(&path))
+    durable::write_file(
+        &dir.join(FILE_NAME),
+        render(pins).as_bytes(),
+        Access::AsFound,
+    )
 }
 
 /// The file's contents; a damaged file is no pins (the dock still shows running apps).
@@ -69,6 +76,10 @@ mod tests {
         std::fs::write(dir.path().join(super::FILE_NAME), b"not json")
             .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(load(dir.path()), DockPins::default(), "damaged file");
+        assert!(
+            dir.path().join("dock.json.damaged").exists(),
+            "the damaged file is kept for the person"
+        );
     }
 
     #[test]

@@ -4,30 +4,33 @@ use std::path::Path;
 
 use sill_launcher::Frecency;
 
+use sill_services::durable::{self, Access};
 use sill_services::error::ServiceError;
 
 /// The file's name inside `$XDG_STATE_HOME/sill`.
 pub const FILE_NAME: &str = "frecency.json";
 
-/// The history in `dir`; missing or damaged is empty.
+/// The history in `dir`; missing is empty, and so is one that cannot be read, which is kept as
+/// `.damaged` (the next save would replace it).
 pub fn load_frecency(dir: &Path) -> Frecency {
-    std::fs::read_to_string(dir.join(FILE_NAME))
-        .map(|text| Frecency::from_json(&text))
-        .unwrap_or_default()
+    let path = dir.join(FILE_NAME);
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        return Frecency::default();
+    };
+    Frecency::parse(&text).unwrap_or_else(|_| {
+        durable::set_aside(&path);
+        Frecency::default()
+    })
 }
 
-/// Write `frecency` to `dir` (created if needed) by temp file and rename, so a crash never
-/// leaves half a file.
+/// Write `frecency` to `dir` (created if needed) durably and for the person alone, so a crash
+/// never leaves half a file and the history is nobody else's to read.
 pub fn save_frecency(dir: &Path, frecency: &Frecency) -> Result<(), ServiceError> {
-    let io = |path: &Path| {
-        let path = path.to_path_buf();
-        move |source| ServiceError::Io { path, source }
-    };
-    std::fs::create_dir_all(dir).map_err(io(dir))?;
-    let path = dir.join(FILE_NAME);
-    let tmp = path.with_extension("part");
-    std::fs::write(&tmp, frecency.to_json()).map_err(io(&tmp))?;
-    std::fs::rename(&tmp, &path).map_err(io(&path))
+    durable::write_file(
+        &dir.join(FILE_NAME),
+        frecency.to_json().as_bytes(),
+        Access::OwnerOnly,
+    )
 }
 
 #[cfg(test)]
@@ -69,6 +72,11 @@ mod tests {
         for text in ["", "not json", r#"{"entries":{"apps:x":{"count":-1}}}"#] {
             std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(load_frecency(dir.path()), Frecency::default(), "{text:?}");
+            assert!(
+                dir.path().join("frecency.json.damaged").exists(),
+                "{text:?} is kept for the person, not left for the next save to replace"
+            );
+            let _ = std::fs::remove_file(dir.path().join("frecency.json.damaged"));
         }
     }
 

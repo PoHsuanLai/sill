@@ -1,6 +1,7 @@
 //! `$XDG_STATE_HOME/sill/notifications.json`: the history, kept across restarts (effects: the
-//! filesystem). Written whole through a temporary file and a rename after every change that
-//! touches the history (`NotificationsEffect::SaveHistory`); read once at start.
+//! filesystem). Written whole and durably after every change that
+//! touches the history (`NotificationsEffect::SaveHistory`); read once at start. A file that cannot
+//! be read is kept as `.damaged` rather than written over.
 //!
 //! An image the sender sent as pixels (`image-data`) is not written: the file would grow by
 //! megabytes for a contact photo, and an image path or icon name is kept as it was.
@@ -9,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use sill_model::notifications::{STORED_VERSION, StoredHistory};
 
+use crate::durable::{self, Access};
 use crate::error::ServiceError;
 
 /// The file's name inside `$XDG_STATE_HOME/sill`.
@@ -22,29 +24,27 @@ pub fn path_in(dirs: &crate::env::Dirs) -> PathBuf {
 /// The file at `path`; empty when there is none, it cannot be read, or it is another version
 /// (a lost history costs the list, never a failed start).
 pub fn load(path: &Path) -> StoredHistory {
-    std::fs::read_to_string(path)
-        .ok()
-        .and_then(|text| serde_json::from_str::<StoredHistory>(&text).ok())
-        .filter(|stored| stored.version == STORED_VERSION)
-        .unwrap_or_default()
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return StoredHistory::default();
+    };
+    match serde_json::from_str::<StoredHistory>(&text) {
+        Ok(stored) if stored.version == STORED_VERSION => stored,
+        // Not this version's, or not readable: the next save would replace it, so it is kept.
+        Ok(_) | Err(_) => {
+            crate::durable::set_aside(path);
+            StoredHistory::default()
+        }
+    }
 }
 
-/// Write `stored` to `path` (its directory created) through a temporary file and a rename.
+/// Write `stored` to `path` (its directory created) durably: private to the person, whole or not
+/// at all ([`crate::durable`]).
 pub fn save(path: &Path, stored: &StoredHistory) -> Result<(), ServiceError> {
-    let io = |at: &Path| {
-        let path = at.to_path_buf();
-        move |source| ServiceError::Io { path, source }
-    };
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir).map_err(io(dir))?;
-    }
     let text = serde_json::to_string(stored).map_err(|e| ServiceError::Io {
         path: path.to_path_buf(),
         source: std::io::Error::other(e),
     })?;
-    let tmp = path.with_extension("json.part");
-    std::fs::write(&tmp, text).map_err(io(&tmp))?;
-    std::fs::rename(&tmp, path).map_err(io(path))
+    durable::write_file(path, text.as_bytes(), Access::OwnerOnly)
 }
 
 #[cfg(test)]
@@ -114,7 +114,13 @@ mod tests {
         );
         save(&path, &stored).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(load(&path), stored);
-        assert!(!path.with_extension("json.part").exists());
+        assert_eq!(
+            std::fs::read_dir(path.parent().unwrap_or(&dir))
+                .map(|entries| entries.count())
+                .unwrap_or_default(),
+            1,
+            "no temporary file is left beside the history"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -126,6 +132,10 @@ mod tests {
         let broken = dir.join("broken.json");
         std::fs::write(&broken, "{ not json").unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(load(&broken), StoredHistory::default());
+        assert!(
+            dir.join("broken.json.damaged").exists(),
+            "the unreadable history is kept, not left for the next save to replace"
+        );
         let foreign = dir.join("foreign.json");
         let other = StoredHistory {
             version: STORED_VERSION + 1,

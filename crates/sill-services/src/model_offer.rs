@@ -12,6 +12,7 @@ use sill_model::launch::LaunchCommand;
 use sill_model::seed::{ModelOffered, first_model_offer};
 
 use crate::control::Control;
+use crate::durable::{self, Access};
 use crate::env::Dirs;
 use crate::error::ServiceError;
 use crate::first_run::store_of;
@@ -33,20 +34,11 @@ pub fn offer_first_run(dirs: &Dirs, launch: &Control<LaunchCommand>) -> Result<(
     launch.send(LaunchCommand::OpenSettingsPage(page))
 }
 
-/// Write `offered` to `path` through a temporary file and a rename.
+/// Write `offered` to `path` durably ([`crate::durable`]).
 fn save(path: &Path, offered: &ModelOffered) -> Result<(), ServiceError> {
-    let io = |at: &Path| {
-        let path = at.to_path_buf();
-        move |source| ServiceError::Io { path, source }
-    };
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir).map_err(io(dir))?;
-    }
     let text = serde_json::to_string_pretty(offered).map_err(|error| ServiceError::Io {
         path: path.to_path_buf(),
         source: std::io::Error::other(error),
     })?;
-    let tmp = path.with_extension("json.part");
-    std::fs::write(&tmp, text).map_err(io(&tmp))?;
-    std::fs::rename(&tmp, path).map_err(io(path))
+    durable::write_file(path, text.as_bytes(), Access::OwnerOnly)
 }

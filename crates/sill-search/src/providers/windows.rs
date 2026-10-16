@@ -90,14 +90,17 @@ impl Provider for WindowsProvider {
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
+        let Some(window) = window_key_of(item) else {
+            return Activation::Nothing;
+        };
         match choice {
-            Choice::Primary => Activation::FocusWindow {
-                window: window_key_of(item),
-            },
+            Choice::Primary => Activation::FocusWindow { window },
             // The runner routes `CloseWindow` to `WlCommand::Close`.
-            Choice::Action(_) => Activation::CloseWindow {
-                window: window_key_of(item),
-            },
+            Choice::Action(action) if action.0 == CLOSE_ACTION => {
+                Activation::CloseWindow { window }
+            }
+            // An action this provider does not offer closes nothing.
+            Choice::Action(_) => Activation::Nothing,
         }
     }
 }
@@ -147,10 +150,10 @@ fn icon_of(icon: Option<&AppIcon>) -> IconRef {
 }
 
 /// The [`WindowKey`] a row's id encodes (`query` only ever produces one from
-/// `window.key.0.to_string()`; a malformed id — never produced by this provider — activates
-/// key 0 rather than panicking).
-fn window_key_of(item: &Item) -> WindowKey {
-    WindowKey(item.id.0.parse().unwrap_or(0))
+/// `window.key.0.to_string()`); a malformed id, which this provider never produces, is none, so
+/// it is never taken for some window's key.
+fn window_key_of(item: &Item) -> Option<WindowKey> {
+    item.id.0.parse().ok().map(WindowKey)
 }
 
 #[cfg(test)]
@@ -365,5 +368,33 @@ mod tests {
                 window: WindowKey(42)
             }
         );
+    }
+
+    #[test]
+    fn an_action_it_does_not_offer_or_a_malformed_id_does_nothing() {
+        let provider = provider(Vec::new(), Vec::new());
+        let row = |id: &str| Item {
+            id: ItemId(id.to_owned()),
+            provider: ProviderKind::Windows,
+            title: "term".to_owned(),
+            subtitle: String::new(),
+            icon: IconRef::None,
+            score: Score(0),
+            actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
+        };
+        let other = Choice::Action(sill_launcher::ActionId("minimize".to_owned()));
+        assert_eq!(
+            provider.activate(&row("42"), &other),
+            sill_launcher::Activation::Nothing,
+            "an action this provider does not offer"
+        );
+        for malformed in ["", "not a number", "-1"] {
+            assert_eq!(
+                provider.activate(&row(malformed), &Choice::Primary),
+                sill_launcher::Activation::Nothing,
+                "{malformed:?}"
+            );
+        }
     }
 }

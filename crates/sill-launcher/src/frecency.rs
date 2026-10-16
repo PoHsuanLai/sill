@@ -79,8 +79,14 @@ pub struct Frecency {
     pub entries: BTreeMap<ItemKey, Use>,
 }
 
+/// The most results the history keeps. Years of use name a few thousand different results at
+/// most; past this the ones not used for longest go, so the file and the cost of every choice
+/// stay bounded.
+pub const MAX_ENTRIES: usize = 2000;
+
 impl Frecency {
-    /// `self` with one more use of `key` at `now`.
+    /// `self` with one more use of `key` at `now`, the history kept within [`MAX_ENTRIES`] by
+    /// dropping the results used least recently.
     pub fn record(mut self, key: ItemKey, now: UnixTime) -> Frecency {
         let entry = self.entries.entry(key).or_insert(Use {
             count: 0,
@@ -88,6 +94,23 @@ impl Frecency {
         });
         entry.count = entry.count.saturating_add(1);
         entry.last = entry.last.max(now);
+        self.pruned()
+    }
+
+    /// `self` within [`MAX_ENTRIES`]: the results used least recently are dropped first.
+    fn pruned(mut self) -> Frecency {
+        let over = self.entries.len().saturating_sub(MAX_ENTRIES);
+        if over > 0 {
+            let mut by_age: Vec<(UnixTime, ItemKey)> = self
+                .entries
+                .iter()
+                .map(|(key, used)| (used.last, key.clone()))
+                .collect();
+            by_age.sort();
+            for (_, key) in by_age.into_iter().take(over) {
+                self.entries.remove(&key);
+            }
+        }
         self
     }
 
@@ -99,10 +122,15 @@ impl Frecency {
         })
     }
 
+    /// The file's contents, within [`MAX_ENTRIES`]; an error when they are not a history.
+    pub fn parse(text: &str) -> Result<Frecency, serde_json::Error> {
+        serde_json::from_str::<Frecency>(text).map(Frecency::pruned)
+    }
+
     /// The file's contents; a damaged or foreign file is an empty history, never an error (a
     /// lost ranking hint is not worth a failed launcher).
     pub fn from_json(text: &str) -> Frecency {
-        serde_json::from_str(text).unwrap_or_default()
+        Frecency::parse(text).unwrap_or_default()
     }
 
     /// The file's contents to write.
@@ -132,9 +160,11 @@ pub fn counting(provider: ProviderKind) -> Counting {
         | ProviderKind::Companion
         | ProviderKind::Runs
         | ProviderKind::Memory => Counting::NotCounted,
+        // What a person calculated is in the row's id, and it must not be kept in a file; a
+        // result is not a habit to rank by either.
+        ProviderKind::Calculator => Counting::NotCounted,
         ProviderKind::Apps
         | ProviderKind::Windows
-        | ProviderKind::Calculator
         | ProviderKind::Settings
         | ProviderKind::System
         | ProviderKind::Files
@@ -174,9 +204,53 @@ mod tests {
         }
         let clip = ItemKey::of(ProviderKind::Clipboard, &ItemId("7".to_owned()));
         assert_eq!(clip.counting(), Counting::NotCounted);
+        let sum = ItemKey::of(ProviderKind::Calculator, &ItemId("calc:42".to_owned()));
+        assert_eq!(
+            sum.counting(),
+            Counting::NotCounted,
+            "what was calculated is not kept"
+        );
         let app = ItemKey::of(ProviderKind::Apps, &ItemId("foot".to_owned()));
         assert_eq!(app.counting(), Counting::Counted);
         assert_eq!(ItemKey("odd".to_owned()).counting(), Counting::Counted);
+    }
+
+    #[test]
+    fn the_history_stays_within_its_cap_by_dropping_the_least_recently_used() {
+        use super::MAX_ENTRIES;
+        let mut history = Frecency::default();
+        for n in 0..=MAX_ENTRIES {
+            history = history.record(key(&format!("app-{n}")), UnixTime(NOW.0 + n as u64));
+        }
+        assert_eq!(history.entries.len(), MAX_ENTRIES);
+        assert!(
+            !history.entries.contains_key(&key("app-0")),
+            "the oldest went"
+        );
+        assert!(
+            history
+                .entries
+                .contains_key(&key(&format!("app-{MAX_ENTRIES}")))
+        );
+        let big = serde_json::to_string(&Frecency {
+            entries: (0..MAX_ENTRIES + 10)
+                .map(|n| {
+                    (
+                        key(&format!("a{n}")),
+                        Use {
+                            count: 1,
+                            last: UnixTime(n as u64),
+                        },
+                    )
+                })
+                .collect(),
+        })
+        .unwrap_or_default();
+        assert_eq!(
+            Frecency::parse(&big).map(|f| f.entries.len()).ok(),
+            Some(MAX_ENTRIES),
+            "a file longer than the cap is cut when it is read"
+        );
     }
 
     fn key(id: &str) -> ItemKey {

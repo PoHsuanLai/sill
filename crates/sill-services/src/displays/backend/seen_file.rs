@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use sill_model::displays::seen::SeenDisplays;
 
+use crate::durable::{self, Access};
 use crate::error::ServiceError;
 
 /// `displays.json` in sill's folder of `dirs`' state directory.
@@ -21,22 +22,13 @@ pub fn load(path: &Path) -> SeenDisplays {
         .unwrap_or_default()
 }
 
-/// Write `seen` to `path` through a temporary file and a rename.
+/// Write `seen` to `path` durably ([`crate::durable`]).
 pub fn save(path: &Path, seen: &SeenDisplays) -> Result<(), ServiceError> {
-    let io = |at: &Path| {
-        let path = at.to_path_buf();
-        move |source| ServiceError::Io { path, source }
-    };
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir).map_err(io(dir))?;
-    }
     let text = serde_json::to_string_pretty(seen).map_err(|e| ServiceError::Io {
         path: path.to_path_buf(),
         source: std::io::Error::other(e),
     })?;
-    let tmp = path.with_extension("json.part");
-    std::fs::write(&tmp, text).map_err(io(&tmp))?;
-    std::fs::rename(&tmp, path).map_err(io(path))
+    durable::write_file(path, text.as_bytes(), Access::OwnerOnly)
 }
 
 #[cfg(test)]

@@ -28,6 +28,7 @@ pub mod control;
 pub mod deadline;
 pub mod desktop_wl;
 pub mod displays;
+pub mod durable;
 pub mod env;
 pub mod error;
 pub mod events;

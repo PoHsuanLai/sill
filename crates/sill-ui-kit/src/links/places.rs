@@ -12,6 +12,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sill_services::durable::{self, Access};
 use sill_settings::WidgetKind;
 
 use crate::widgets::grid::{GridSlot, OutputKey, Placement};
@@ -70,7 +71,8 @@ impl PlacementFile {
         self.write(output, Some(kinds.to_vec()), places)
     }
 
-    /// Replace `output`'s record through a temporary file and a rename.
+    /// Replace `output`'s record, durably ([`sill_services::durable`]). A file that cannot be
+    /// read is kept aside first, so merging over it does not destroy what the person had.
     fn write(
         &self,
         output: &OutputKey,
@@ -82,13 +84,13 @@ impl PlacementFile {
             kinds,
             places: places.to_vec(),
         };
-        let outputs = with_output(self.outputs(), record);
-        if let Some(dir) = self.0.parent() {
-            std::fs::create_dir_all(dir)?;
+        if let Ok(text) = std::fs::read_to_string(&self.0)
+            && serde_json::from_str::<Value>(&text).is_err()
+        {
+            durable::set_aside(&self.0);
         }
-        let tmp = self.0.with_extension("part");
-        std::fs::write(&tmp, encode(&outputs))?;
-        std::fs::rename(&tmp, &self.0)
+        let outputs = with_output(self.outputs(), record);
+        durable::write(&self.0, encode(&outputs).as_bytes(), Access::OwnerOnly)
     }
 }
 
