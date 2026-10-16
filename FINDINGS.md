@@ -1285,32 +1285,16 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
   fractional scale and the rounding of the logical size are exact; it floors. The picture is read
   as the compositor composed it (sRGB), which is what an app asked for on a wide-gamut panel.
 - **Known limits, only a live casement run proves.** (1) casement's capture is "the last presented
-  frame", and its tty backend has no read-back yet (casement FINDINGS p1-c1: a frame request there
-  fails with `unknown`): on real hardware every picture fails until that lands, and the picker then
-  cancels. (2) A frame whose transform is not `Normal` is refused (`shot_of`), not turned, so a
+  frame"; its tty backend reads it back since P1-T (GLES capture scenes), and cas34 reads only the
+  asked region, so the eyedropper works on real hardware (manual check in docs/manual-checks.md). (2) A frame whose transform is not `Normal` is refused (`shot_of`), not turned, so a
   rotated monitor has no eyedropper. (3) Two data-URI copies of one multi-megabyte PNG are decoded
   by Blitz per question (the still and the magnifier); the first frame after the picture arrives
   may take a moment on a 4K output. (4) The magnifier's round clip relies on Blitz clipping
   `overflow: hidden` to the rounded border box, and the enlarged pixels on `image-rendering:
   pixelated`; if either fails the magnifier is square or soft.
-- **No eyedropper is drawn yet, so every call is answered with an empty array at once.** The state
-  says so (`CapturePicker::eyedropper` is `Absent` until a surface sends
-  `CaptureCommand::Eyedropper(Present)`); nothing is asked of the person and nothing opens. What is
-  missing for the real thing, exactly:
-  1. *A picture of the whole output.* `desktop-client` can already capture an output as shown
-     (`CaptureRequest::new(output)` through `DesktopCommand::CaptureOutput`, ext-image-copy-capture
-     with shm), but sill only asks for a Space picture. It needs a `DesktopCommand::CaptureOutput`
-     (`sill-model`), its arm in `desktop_wl/quire/command.rs`, `QuireArm::pending` to hold an output
-     capture beside a Space capture, and a `ShellNote::OutputPicture` that carries the frame's RGBA
-     bytes (`picture_of` PNG-encodes at the Space thumbnail size, so it cannot be reused as it is).
-  2. *The surface.* An Overlay layer surface per output, keyboard `Exclusive`, shown over the frozen
-     picture (taken before the surface maps, so the pointer and the surface are not in it): a
-     magnifier loupe following the pointer (about 9 by 9 source pixels, a grid, the centre pixel
-     boxed, its hex value under it), a click sends `CaptureCommand::ColorAnswer(id, Picked(Rgb8))`
-     from the pixel under the pointer (logical position times the output's scale), Escape sends
-     `Cancel`. It sends `Eyedropper(Present)` when it starts.
-  3. *Gamut.* The pixel is the output's sRGB as casement composes it; on a wide-gamut panel with the
-     colour pass the value read is the sRGB picture, which is what an app asked for.
+- **The eyedropper is drawn by `sill/src/eyedropper.rs`.** It sends `CaptureCommand::Eyedropper`
+  `Present` while a surface is up and `Absent` when the last one goes; until then every call is
+  answered with an empty array at once and nothing is asked of the person (`CapturePicker::eyedropper`).
 
 ## wave-6/night-shift: Night Shift on casement's night light
 
