@@ -67,7 +67,7 @@ pub(super) struct PickerObject {
 impl PickerObject {
     /// Lets the call with `header` through when it is the portal backend: the program the table
     /// names as `portal`, which owns the portal backend's name.
-    async fn from_transom(&self, header: &Header<'_>) -> fdo::Result<()> {
+    async fn admit_transom(&self, header: &Header<'_>) -> fdo::Result<()> {
         let claims = [Claim {
             name: PORTAL_BUS,
             role: roles::PORTAL,
@@ -87,7 +87,7 @@ impl PickerObject {
         cursor_modes: Vec<u32>,
         #[zbus(header)] header: Header<'_>,
     ) -> fdo::Result<(Vec<(String, String)>, u32)> {
-        self.from_transom(&header).await?;
+        self.admit_transom(&header).await?;
         let label: String = app_label.chars().take(MAX_LABEL).collect();
         let modes: Vec<u32> = cursor_modes.into_iter().take(MAX_MODES).collect();
         let ask = Ask::from_wire(&label, kinds, multiple, &modes)
@@ -108,7 +108,7 @@ impl PickerObject {
         app_label: String,
         #[zbus(header)] header: Header<'_>,
     ) -> fdo::Result<Vec<(f64, f64, f64)>> {
-        self.from_transom(&header).await?;
+        self.admit_transom(&header).await?;
         let ask = ColorAsk {
             app_label: app_label.chars().take(MAX_LABEL).collect(),
         };
@@ -135,7 +135,7 @@ impl PickerObject {
         deny_label: String,
         #[zbus(header)] header: Header<'_>,
     ) -> fdo::Result<u32> {
-        self.from_transom(&header).await?;
+        self.admit_transom(&header).await?;
         let ask = PermissionAsk::from_wire(
             &app_label,
             &title,

@@ -64,7 +64,7 @@ impl ConfirmObject {
     /// The unique name of the caller, when it is intentd: the program the table names as the
     /// router, which owns intentd's name. Nobody else may ask the person a question in intentd's
     /// name, withdraw one, or answer for it.
-    async fn from_intentd(&self, header: &Header<'_>) -> fdo::Result<OwnedUniqueName> {
+    async fn admit_intentd(&self, header: &Header<'_>) -> fdo::Result<OwnedUniqueName> {
         let claims = [Claim {
             name: INTENTS_BUS,
             role: roles::ROUTER,
@@ -84,7 +84,7 @@ impl ConfirmObject {
         #[zbus(header)] header: Header<'_>,
         #[zbus(connection)] connection: &Connection,
     ) -> fdo::Result<OwnedObjectPath> {
-        let asker = self.from_intentd(&header).await?;
+        let asker = self.admit_intentd(&header).await?;
         let parsed: ConfirmRequest = serde_json::from_str(&request)
             .map_err(|e| fdo::Error::InvalidArgs(format!("not a ConfirmRequest: {e}")))?;
         let serial = Serial(self.serials.fetch_add(1, Ordering::Relaxed) + 1);
@@ -111,7 +111,7 @@ impl ConfirmObject {
     }
 
     async fn cancel(&self, id: String, #[zbus(header)] header: Header<'_>) -> fdo::Result<()> {
-        self.from_intentd(&header).await?;
+        self.admit_intentd(&header).await?;
         let id = ConfirmId::parse(&id).map_err(|e| fdo::Error::InvalidArgs(e.to_string()))?;
         self.calls
             .send(Call::Cancel(id))

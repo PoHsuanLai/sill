@@ -384,6 +384,7 @@ mod tests {
             calls,
             summons,
             consents,
+            tokio::sync::mpsc::unbounded_channel().0,
         );
 
         assert_eq!(

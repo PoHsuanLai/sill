@@ -106,6 +106,7 @@ fn started(rt: &tokio::runtime::Runtime, scratch: &Scratch) -> sill_ui_kit::serv
         tokio::sync::mpsc::unbounded_channel().0,
         tokio::sync::mpsc::unbounded_channel().0,
         tokio::sync::mpsc::unbounded_channel().0,
+        tokio::sync::mpsc::unbounded_channel().0,
     )
 }
 
