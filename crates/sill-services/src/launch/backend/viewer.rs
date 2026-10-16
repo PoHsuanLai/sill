@@ -14,6 +14,7 @@ use anyview_platform::linux::forward_over;
 use anyview_platform::{Handoff, Request};
 use sill_launcher::{OpenTarget, ViewerOpen};
 
+use crate::deadline::{BUS_CALL, within};
 use crate::env::Bus;
 
 /// Whether the viewer took the request.
@@ -63,9 +64,9 @@ pub(crate) async fn hand_over(session: &Bus, request: &Request) -> Handed {
         Ok(Some(connection)) => connection,
         Ok(None) | Err(_) => return Handed::No,
     };
-    match forward_over(&connection, request).await {
-        Ok(()) => Handed::Yes,
-        Err(_) => Handed::No,
+    match within(BUS_CALL, "the viewer", forward_over(&connection, request)).await {
+        Ok(Ok(())) => Handed::Yes,
+        Ok(Err(_)) | Err(_) => Handed::No,
     }
 }
 

@@ -7,12 +7,14 @@
 //! names the seam. The seam supplies no `Ds` boilerplate of its own: a surface's `root` is its
 //! view, which puts its material, chrome and extent on a [`crate::root::SurfaceRoot`].
 
+mod activation;
 mod lock;
 mod mount;
 mod naming;
 mod place;
 mod start;
 
+pub use activation::{ACTIVATION_DEADLINE, activation_token};
 pub use lock::{LockSurface, MountLockProps, mount_lock};
 pub use mount::{MountProps, mount};
 pub use naming::namespace;

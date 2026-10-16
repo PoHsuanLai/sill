@@ -147,7 +147,9 @@ fn carry_out(outward: &Outward, command: DesktopCommand) {
 fn open_picker(outward: Outward, app: AppId) {
     spawn(async move {
         let token = match &outward.surface {
-            Some(surface) => surface.activation_token(Some(app.0.clone())).await,
+            Some(surface) => {
+                sill_ui_kit::surface::activation_token(surface, Some(app.0.clone())).await
+            }
             None => None,
         };
         let _gone_is_dropped =

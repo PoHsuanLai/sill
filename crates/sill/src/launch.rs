@@ -15,7 +15,7 @@ pub async fn launch(
     app: AppId,
     action: DesktopAction,
 ) -> Result<(), ServiceError> {
-    let token = surface.activation_token(Some(app.0.clone())).await;
+    let token = sill_ui_kit::surface::activation_token(surface, Some(app.0.clone())).await;
     service.send(LaunchCommand::Launch(LaunchRequest {
         app,
         action,

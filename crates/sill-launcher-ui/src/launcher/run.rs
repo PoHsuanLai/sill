@@ -32,7 +32,9 @@ pub async fn run_effect(
     match effect {
         LauncherEffect::Launch { app, action } => {
             let token = match &from.surface {
-                Some(surface) => surface.activation_token(Some(app.0.clone())).await,
+                Some(surface) => {
+                    sill_ui_kit::surface::activation_token(surface, Some(app.0.clone())).await
+                }
                 None => None,
             };
             services
@@ -48,7 +50,7 @@ pub async fn run_effect(
         }
         LauncherEffect::Open(target) => {
             let token = match &from.surface {
-                Some(surface) => surface.activation_token(None).await,
+                Some(surface) => sill_ui_kit::surface::activation_token(surface, None).await,
                 None => None,
             };
             services

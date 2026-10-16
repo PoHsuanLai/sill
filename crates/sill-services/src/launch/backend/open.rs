@@ -27,6 +27,7 @@ use sill_model::launch::{OpenRequest, ScopeUnit, scope_unit};
 use super::Reach;
 use super::uri::file_uri;
 use super::viewer::{Handed, hand_over, viewer_request};
+use crate::deadline::{BUS_CALL, within};
 use crate::env::{Bus, Children, NameState, ProcessGroup, Start, name_state};
 
 const FILE_MANAGER: &str = "org.freedesktop.FileManager1";
@@ -139,7 +140,10 @@ async fn show_items(session: &Bus, path: &Path, token: Option<&str>) -> Shown {
             .await?;
         Ok(Shown::Yes)
     };
-    shown.await.unwrap_or(Shown::No)
+    match within(BUS_CALL, "the file manager", shown).await {
+        Ok(Ok(shown)) => shown,
+        Ok(Err(_)) | Err(_) => Shown::No,
+    }
 }
 
 /// Whether a file manager in `state` is asked to show the item: running or activatable, since

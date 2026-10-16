@@ -16,6 +16,7 @@ use super::LaunchLinks;
 use super::notice::Tell;
 use super::open::{Manager, user_manager};
 use super::{Reach, dbus};
+use crate::deadline::{BUS_CALL, LAUNCH_COMMAND, call, within};
 use crate::env::Bus;
 
 /// Run until `commands` closes (the `Control` was dropped).
@@ -34,31 +35,68 @@ pub(crate) async fn run(
     let terminal = super::terminal::detect();
     let mut nonce: u32 = 0;
     while let Some(command) = commands.recv().await {
-        match command {
-            LaunchCommand::Launch(request) => {
-                nonce += 1;
-                launch_one(
-                    &rt,
-                    &setup,
-                    &Outcomes {
-                        tx: tx.clone(),
-                        tell: tell.clone(),
-                        apps: apps.clone(),
-                    },
-                    &terminal,
-                    request,
-                    nonce,
-                )
-                .await;
+        let what = match &command {
+            LaunchCommand::Launch(_) => "launching an app",
+            LaunchCommand::ShowInFiles(_) => "showing an app in Files",
+            LaunchCommand::ForceQuit(_) => "force quitting an app",
+            LaunchCommand::Open(_) => "opening an item",
+            LaunchCommand::OpenSettings(_) | LaunchCommand::OpenSettingsPage(_) => {
+                "opening Settings"
             }
-            LaunchCommand::ShowInFiles(app_id) => {
-                show_in_files(&setup.session, &apps, &app_id).await
-            }
-            LaunchCommand::ForceQuit(app_id) => force_quit(&tx, &app_id).await,
-            LaunchCommand::Open(request) => super::open::open(&setup, request).await,
-            LaunchCommand::OpenSettings(account) => open_settings(&setup.session, &account).await,
-            LaunchCommand::OpenSettingsPage(page) => open_settings_page(&setup.session, page).await,
+        };
+        let handled = within(
+            LAUNCH_COMMAND,
+            what,
+            handle(
+                &rt,
+                &setup,
+                &outcomes_for(&tx, &tell, &apps),
+                &terminal,
+                &mut nonce,
+                command,
+            ),
+        )
+        .await;
+        if let Err(error) = handled {
+            eprintln!("sill: launch: {error}");
         }
+    }
+}
+
+/// What the outcomes of a command are recorded into.
+fn outcomes_for(
+    tx: &watch::Sender<Launches>,
+    tell: &Tell,
+    apps: &watch::Receiver<AppIndex>,
+) -> Outcomes {
+    Outcomes {
+        tx: tx.clone(),
+        tell: tell.clone(),
+        apps: apps.clone(),
+    }
+}
+
+/// Carry out one command.
+async fn handle(
+    rt: &Handle,
+    setup: &Reach,
+    outcomes: &Outcomes,
+    terminal: &[String],
+    nonce: &mut u32,
+    command: LaunchCommand,
+) {
+    match command {
+        LaunchCommand::Launch(request) => {
+            *nonce += 1;
+            launch_one(rt, setup, outcomes, terminal, request, *nonce).await;
+        }
+        LaunchCommand::ShowInFiles(app_id) => {
+            show_in_files(&setup.session, &outcomes.apps, &app_id).await
+        }
+        LaunchCommand::ForceQuit(app_id) => force_quit(&outcomes.tx, &app_id).await,
+        LaunchCommand::Open(request) => super::open::open(setup, request).await,
+        LaunchCommand::OpenSettings(account) => open_settings(&setup.session, &account).await,
+        LaunchCommand::OpenSettingsPage(page) => open_settings_page(&setup.session, page).await,
     }
 }
 
@@ -95,7 +133,13 @@ async fn activate_over_dbus(
     app_id: AppId,
 ) -> LaunchOutcome {
     match session.connect().await {
-        Ok(Some(connection)) => match dbus::activate(&connection, app, request).await {
+        Ok(Some(connection)) => match call(
+            BUS_CALL,
+            "the app",
+            dbus::activate(&connection, app, request),
+        )
+        .await
+        {
             Ok(()) => LaunchOutcome::Activated(app_id),
             Err(error) => failed(app_id, FailureCause::NoAnswer, &error.to_string()),
         },
@@ -224,7 +268,12 @@ async fn show_in_files(session: &Bus, apps: &watch::Receiver<AppIndex>, app_id: 
         return;
     };
     if let Ok(Some(connection)) = session.connect().await {
-        let _ = dbus::show_in_files(&connection, &app).await;
+        let _ = call(
+            BUS_CALL,
+            "the file manager",
+            dbus::show_in_files(&connection, &app),
+        )
+        .await;
     }
 }
 
@@ -282,7 +331,12 @@ fn record(tx: &watch::Sender<Launches>, outcome: LaunchOutcome) {
 /// Settings at `account`, started by the bus when it is not running.
 async fn open_settings(session: &Bus, account: &SettingsAccount) {
     if let Some(connection) = session_connection(session).await
-        && let Err(error) = dbus::open_settings(&connection, account).await
+        && let Err(error) = call(
+            BUS_CALL,
+            "Settings",
+            dbus::open_settings(&connection, account),
+        )
+        .await
     {
         eprintln!("sill: launch: opening Settings: {error}");
     }
@@ -291,7 +345,12 @@ async fn open_settings(session: &Bus, account: &SettingsAccount) {
 /// Settings at `page`, started by the bus when it is not running.
 async fn open_settings_page(session: &Bus, page: SettingsPage) {
     if let Some(connection) = session_connection(session).await
-        && let Err(error) = dbus::open_settings_page(&connection, page).await
+        && let Err(error) = call(
+            BUS_CALL,
+            "Settings",
+            dbus::open_settings_page(&connection, page),
+        )
+        .await
     {
         eprintln!("sill: launch: opening Settings: {error}");
     }

@@ -161,7 +161,7 @@ impl CenterCtx {
         );
         spawn(async move {
             let token = match &surface {
-                Some(surface) => surface.activation_token(app).await,
+                Some(surface) => sill_ui_kit::surface::activation_token(surface, app).await,
                 None => None,
             };
             let token = token.map_or(Activation::NoToken, |t| {

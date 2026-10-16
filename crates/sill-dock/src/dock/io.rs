@@ -368,7 +368,9 @@ fn send_all(outward: &Outward, commands: Vec<DockCommand>) {
 fn launch(outward: Outward, app: AppId, action: DesktopAction, uris: Vec<String>) {
     spawn(async move {
         let token = match &outward.surface {
-            Some(surface) => surface.activation_token(Some(app.0.clone())).await,
+            Some(surface) => {
+                sill_ui_kit::surface::activation_token(surface, Some(app.0.clone())).await
+            }
             None => None,
         };
         let _gone_is_dropped =
