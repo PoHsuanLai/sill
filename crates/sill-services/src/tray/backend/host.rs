@@ -14,15 +14,23 @@
 //! both the doc comment's shape and the only path `Client::activate` can reach — the test
 //! fixtures in `model.rs` already use exactly this shape (`":1.{name}/StatusNotifierItem"`).
 
+use std::sync::Arc;
+
 use sill_model::tray::{ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayItemId, step};
 use system_tray::client::{ActivateRequest, Client, Event, UpdateEvent};
 use tokio::sync::{broadcast, mpsc, watch};
+use tokio::task::JoinSet;
 
 use super::items::{destination_of, item_id, seed, to_tray_icon, to_tray_item, to_tray_status};
 use super::menu::{cached_menu, menu_path_of};
+use crate::deadline::{TRAY_CALL, within};
 use crate::env::{Bus, BusRoute};
 
 pub(super) const ITEM_PATH: &str = "/StatusNotifierItem";
+
+/// The most commands waiting on apps at once. A tray click is one at a time; this many unanswered
+/// means apps are hung, and further clicks are dropped until some end at their deadline.
+const MAX_CALLS_IN_FLIGHT: usize = 16;
 
 /// The interface `Scroll` is a method of.
 const ITEM_INTERFACE: &str = "org.kde.StatusNotifierItem";
@@ -60,6 +68,10 @@ pub(crate) async fn run(
     let mut state = seed(&client);
     let _ = tray_tx.send(state.clone());
 
+    let client = Arc::new(client);
+    // Every command runs as a task of its own, so an app that stopped answering holds up only its
+    // own call, which ends at [`TRAY_CALL`].
+    let mut calls: JoinSet<()> = JoinSet::new();
     let mut commands_open = true;
     loop {
         tokio::select! {
@@ -70,13 +82,31 @@ pub(crate) async fn run(
                         let _ = tray_tx.send(state.clone());
                     }
                 }
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                // Events were missed (a removal among them, perhaps): start from what the client
+                // holds now instead of keeping an icon for an app that is gone.
+                Err(broadcast::error::RecvError::Lagged(_)) => {
+                    state = seed(&client);
+                    let _ = tray_tx.send(state.clone());
+                }
                 Err(broadcast::error::RecvError::Closed) => break,
             },
             command = commands.recv(), if commands_open => match command {
-                Some(command) => handle_command(&client, bus.as_ref(), command).await,
+                Some(command) if calls.len() >= MAX_CALLS_IN_FLIGHT => {
+                    eprintln!("sill-services: tray: {} calls are waiting on apps; dropped {command:?}", calls.len());
+                }
+                Some(command) => {
+                    let client = Arc::clone(&client);
+                    let bus = bus.clone();
+                    calls.spawn(async move {
+                        let sent = within(TRAY_CALL, "a tray app", handle_command(&client, bus.as_ref(), command)).await;
+                        if let Err(error) = sent {
+                            eprintln!("sill-services: tray: {error}");
+                        }
+                    });
+                }
                 None => commands_open = false,
             },
+            Some(_) = calls.join_next() => {}
         }
     }
 }
