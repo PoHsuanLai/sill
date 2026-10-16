@@ -6,8 +6,10 @@
 //! arguments, the reasons) on quire's `Sheet`, centred, with quire's `FactList` and `Button`s, and
 //! answers through `IntentsCommand::Answer`.
 //!
-//! Arming: the buttons are drawn disabled for [`gate::ARM_MS`] after the sheet appears and Return
-//! is ignored, so a key typed for something else cannot answer it; Escape denies at any time. A
+//! Arming: the buttons are drawn disabled until the sheet has been on screen for [`gate::ARM_MS`]
+//! with no key pressed and the pointer still, and Return is ignored meanwhile, so a key typed for
+//! something else cannot answer it and a person still typing elsewhere never arms it; Escape
+//! denies at any time. A
 //! destructive action asks for a hold ([`gate::HOLD_MS`]) on its Allow button, never a press. The
 //! second button of a question offered `OnceOrFromTerminal` is "Allow from the terminal: this
 //! action, until logout"; of `OnceOrAlways`, "Always allow". A question whose limits offer it

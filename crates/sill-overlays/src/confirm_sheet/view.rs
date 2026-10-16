@@ -102,14 +102,18 @@ fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>
             div {
                 class: "sill-confirm",
                 // The keyboard starts on the card, so Escape denies while it arms (nothing else
-                // takes focus then: the buttons are disabled).
+                // takes focus then: the buttons are disabled). A key or a pointer move here
+                // makes the sheet wait again before it arms.
                 tabindex: "0",
                 onmounted: move |event: MountedEvent| focus_soon(event.data()),
                 onkeydown: move |event: KeyboardEvent| {
                     if event.key() == Key::Escape {
                         gate.send(GateIn::Escape);
+                    } else {
+                        gate.send(GateIn::Activity);
                     }
                 },
+                onmousemove: move |_| gate.send(GateIn::Activity),
                 "data-gesture": gesture_word(view.gesture),
                 "data-arm": if input == Availability::Enabled { "armed" } else { "arming" },
                 div { class: "sill-confirm-title", "{title}" }

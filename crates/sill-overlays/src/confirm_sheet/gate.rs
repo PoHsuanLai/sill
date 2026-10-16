@@ -2,9 +2,11 @@
 //! destructive action asks for. `ds::machine::use_machine` runs it; the surface feeds it the
 //! buttons' presses and carries out its one output.
 //!
-//! - **Arming.** For [`ARM_MS`] after the sheet appears nothing answers but Escape: the buttons
-//!   are disabled and a press, Return or a hold is ignored, so a key or a click meant for the
-//!   window behind cannot allow anything.
+//! - **Arming.** The sheet takes answers only once it has been on screen for [`ARM_MS`] with no
+//!   key pressed and the pointer still. Until then nothing answers but Escape: the buttons are
+//!   disabled and a press, Return or a hold is ignored, and every key or pointer move on the
+//!   sheet starts the wait again. A key or a click meant for the window behind, or a person still
+//!   typing there, cannot allow anything; only someone who stopped and looked can.
 //! - **Armed.** A press on a button answers with its choice; Escape denies.
 //! - **Holding.** A destructive action's Allow takes a hold: it begins when the button goes down
 //!   and answers `AllowOnce` once [`HOLD_MS`] have passed with it still down; letting go or
@@ -59,6 +61,8 @@ pub enum AnswerGate {
 pub enum GateIn {
     /// The clock: the time the gate asked to be woken at has come.
     Elapsed,
+    /// A key went down or the pointer moved on the sheet: while arming, the wait starts again.
+    Activity,
     /// A button was pressed.
     Press(SheetChoice),
     /// The Allow button of a destructive action went down.
@@ -116,6 +120,12 @@ impl Machine for AnswerGate {
             (AnswerGate::Arming { until }, GateIn::Elapsed) if at >= until => {
                 (AnswerGate::Armed, Vec::new())
             }
+            (AnswerGate::Arming { .. }, GateIn::Activity) => (
+                AnswerGate::Arming {
+                    until: at.after(params.arm_ms),
+                },
+                Vec::new(),
+            ),
             (AnswerGate::Armed, GateIn::Press(choice)) => answer(choice),
             (AnswerGate::Armed, GateIn::HoldBegan) => (
                 AnswerGate::Holding {
