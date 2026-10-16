@@ -1556,12 +1556,13 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   sandboxed app's id); a program it cannot vouch for is named by its file name, because the person
   could otherwise write an entry that calls their own program "Firefox". The sheet's icon is found by
   that name in the app index, as for the portal's.
-- **No arming delay on this sheet (deferred).** The confirmation sheet ignores answers until it has
-  been still for `ARM_MS`; the permission sheet (both kinds) has no such delay, and its keyboard is
-  exclusive with Return as the default. A Return meant for the window behind it can allow a power.
-  The delay needs quire's `Alert` to disable its buttons, or this sheet to move onto the
-  confirmation sheet's gate. The compositor's design says a shell that answers faster than the
-  sheet's delay is a protocol error for that shell; casement should not enforce that until this exists.
+- **The permission sheet arms after a delay.** Both kinds of question (the portal's
+  `AskPermission` and the compositor's `permission_ask`) are one component, quire's `Alert` with
+  `arm_after: Some(PERMISSION_ARM_AFTER)` (600 ms, `sill_overlays::permission_sheet`): the buttons
+  are disabled and Return, Escape and clicks do nothing until it has been up that long, and each
+  question in the line starts its own wait when drawn. casement may refuse an answer sooner than
+  500 ms after its question; it does not enforce that yet. The confirmation sheet (intentd's
+  questions) is a different component with its own gate (`ARM_MS`, 500 ms) and is unchanged.
 - **Caps Lock.** `{ when = "capslock", then = "ctrl+space" }` is out of `dist/keycap/keycap.toml`:
   keycap's user layer refuses a rule on a key with no modifier. sill ships no system file, so
   the rule is an ask of the desktop's packaging: put it in `/etc/keycap/keycap.toml`

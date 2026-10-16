@@ -5,7 +5,8 @@
 //! Viewport }` holds one quire `Alert` per question, keyed by its id: the app's icon, the
 //! headline, the app's name set strong with what it says, and the two buttons. The yes button
 //! comes first, so it is the default (Return); Escape answers what `escape_answer` says (the no
-//! button for a portal question, a dismissal for the compositor's). Nothing is styled under
+//! button for a portal question, a dismissal for the compositor's). The alert answers nothing for
+//! `PERMISSION_ARM_AFTER` after it mounts. Nothing is styled under
 //! `.ds-alert*`, `.ds-sheet*` or `.ds-button*`.
 
 use dioxus::prelude::*;
@@ -22,6 +23,7 @@ use sill_ui_kit::links::BannerLink;
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
+use super::arming::PERMISSION_ARM_AFTER;
 use super::io::use_end;
 use super::layer::PANEL_ID;
 use super::words::{app_named, escape_answer, words};
@@ -107,6 +109,8 @@ fn QuestionCard(
             // Escape is heard here, not pressed as a button: what it answers is the sheet's
             // (`escape_answer`).
             on_dismiss: Some(EventHandler::new(move |()| end.call(escape))),
+            // A key or click already on its way to the window behind answers nothing.
+            arm_after: Some(PERMISSION_ARM_AFTER),
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
             // The sheet carries the blur region's id, so `layer.rs`'s element region resolves.

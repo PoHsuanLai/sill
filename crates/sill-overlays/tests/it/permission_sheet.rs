@@ -17,6 +17,7 @@ use sill_model::capture_pick::{
 };
 use sill_model::desktop::{Consent, ConsentId, Memory, Power, SubjectKind};
 use sill_overlays::PermissionSheet;
+use sill_overlays::permission_sheet::PERMISSION_ARM_AFTER;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{BannerLink, BannerOutput};
 
@@ -89,12 +90,21 @@ fn up() -> Running {
     up_with(question())
 }
 
-fn up_with(asking: CapturePicker) -> Running {
+/// The sheet drawn for `asking`, with no time passed beyond what drawing took.
+fn drawn_with(asking: CapturePicker) -> Running {
     let mut running = start(fake::output().id);
     running.harness.advance(Duration::from_millis(40));
     running.feeds.capture.send_replace(asking);
     settle(&mut running.harness, |h| h.count(".ds-alert") == 1);
-    running.harness.advance(Duration::from_millis(700));
+    running
+}
+
+/// The sheet once it takes answers.
+fn up_with(asking: CapturePicker) -> Running {
+    let mut running = drawn_with(asking);
+    running
+        .harness
+        .advance(PERMISSION_ARM_AFTER + Duration::from_millis(100));
     running
 }
 
@@ -222,6 +232,41 @@ fn the_compositors_buttons_allow_and_refuse() {
             sent(&mut running),
             vec![CaptureCommand::PermissionAnswer(AskId(8), outcome)],
             "{button}"
+        );
+    }
+}
+
+#[test]
+fn nothing_answers_until_the_sheet_has_been_up_for_the_arming_time() {
+    // Three inputs and their settling take about 120 ms, well inside the arming time.
+    const EARLY: Duration = Duration::from_millis(200);
+    for (name, asking, id) in [
+        ("a portal question", question(), AskId(7)),
+        ("the compositor's question", consent_question(), AskId(8)),
+    ] {
+        let mut running = drawn_with(asking);
+        running.harness.advance(EARLY);
+        click(&mut running, GRANT);
+        click(&mut running, DENY);
+        running.harness.send(Input::key(ShortcutKey::Enter));
+        running.harness.send(Input::key(ShortcutKey::Escape));
+        running.harness.advance(Duration::from_millis(40));
+        assert_eq!(
+            sent(&mut running),
+            Vec::new(),
+            "{name}: a click, Return or Escape before the arming time answers nothing: {}",
+            running.harness.html()
+        );
+        assert_eq!(running.harness.count(".ds-alert"), 1, "{name}: still asked");
+        running.harness.advance(PERMISSION_ARM_AFTER);
+        click(&mut running, GRANT);
+        assert_eq!(
+            sent(&mut running),
+            vec![CaptureCommand::PermissionAnswer(
+                id,
+                PermissionOutcome::Grant
+            )],
+            "{name}: the same click after the arming time answers"
         );
     }
 }

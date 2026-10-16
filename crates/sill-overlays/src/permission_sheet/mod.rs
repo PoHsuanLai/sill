@@ -15,11 +15,16 @@
 //! time (`sill_model::capture_pick::{consent_ask, consent_words}` make its words). Its buttons are
 //! Allow (Allow Once for a program the desktop cannot recognise) and Don't Allow; Escape is a
 //! dismissal that nothing keeps, not the no button.
+//!
+//! No question takes an answer for [`PERMISSION_ARM_AFTER`] after it is drawn: the buttons are
+//! disabled and Return, Escape and clicks do nothing until then (quire's `Alert` `arm_after`).
 
+mod arming;
 mod io;
 mod layer;
 mod surface;
 mod view;
 mod words;
 
+pub use arming::PERMISSION_ARM_AFTER;
 pub use surface::PermissionSheet;
