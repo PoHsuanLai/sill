@@ -98,6 +98,12 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     // `ipc::server::spawn`).
     let _ipc_thread = server::spawn(door, host_handle.clone());
 
+    crate::release::spawn_confirmation(
+        runtime.handle(),
+        env.buses.session.route(),
+        host_handle.clone(),
+        env.children.clone(),
+    );
     spawn_followers(
         &runtime,
         &services,

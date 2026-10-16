@@ -17,6 +17,7 @@ pub mod notifications;
 pub mod osd;
 pub mod outputs;
 pub mod policy;
+pub mod release;
 pub mod run_args;
 pub mod scroll;
 pub mod spaces_bar;
