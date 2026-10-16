@@ -147,7 +147,7 @@ fn a_post_shows_a_banner_enters_its_group_and_sounds() {
 }
 
 #[test]
-fn do_not_disturb_keeps_banners_and_sounds_back_except_critical() {
+fn do_not_disturb_keeps_banners_and_sounds_back_except_the_shells_critical() {
     let dnd = NotificationsPolicy {
         quiet: Quiet::DoNotDisturb,
         ..NotificationsPolicy::default()
@@ -155,19 +155,26 @@ fn do_not_disturb_keeps_banners_and_sounds_back_except_critical() {
     let (state, effects) = run(NotesState::default(), vec![posted(note(1, "a"))], &dnd);
     assert_eq!(shape(&state), (vec![], groups(&[("a", &[1])])));
     same_effects(&effects, &[SaveHistory], "dnd");
-    let critical = with_hints(
-        note(2, "a"),
-        Hints {
-            urgency: NotifyUrgency::Critical,
-            ..Hints::default()
-        },
+    let critical = Hints {
+        urgency: NotifyUrgency::Critical,
+        ..Hints::default()
+    };
+    let mut app_critical = with_hints(note(2, "a"), critical);
+    let (state, effects) = run(state, vec![posted(app_critical.clone())], &dnd);
+    assert_eq!(shape(&state), (vec![], groups(&[("a", &[2, 1])])));
+    same_effects(&effects, &[SaveHistory], "an app's critical is held back");
+
+    app_critical.id = NotificationId(3);
+    app_critical.app.desktop_entry = Some("sill-keycap".to_owned());
+    let (state, effects) = run(state, vec![posted(app_critical)], &dnd);
+    assert_eq!(
+        shape(&state),
+        (vec![3], groups(&[("sill-keycap", &[3]), ("a", &[2, 1])]))
     );
-    let (state, effects) = run(state, vec![posted(critical)], &dnd);
-    assert_eq!(shape(&state), (vec![2], groups(&[("a", &[2, 1])])));
     same_effects(
         &effects,
         &[SaveHistory, Sound(SoundHint::Default)],
-        "critical",
+        "the shell's critical",
     );
 }
 

@@ -2,7 +2,11 @@
 //! how deep each style is open, and turns text between tags into runs (five tags and the entities,
 //! no XML crate).
 
-use super::markup::{Body, BodyRun, Href, RunLink, RunStyle, Slant, Underline, Weight};
+use super::limits::{BODY_MAX_BYTES, BODY_RUNS_MAX, HREF_MAX_BYTES, LINK_NESTING_MAX};
+use super::markup::{
+    Body, BodyRun, Href, LINK_SCHEMES, RunLink, RunStyle, Slant, Underline, Weight,
+};
+use crate::untrusted::cut_bytes;
 
 /// One piece the scan meets.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,27 +42,44 @@ struct Open {
     bold: u32,
     italic: u32,
     underline: u32,
+    /// The targets of the links open, outermost first; at most [`LINK_NESTING_MAX`].
     links: Vec<Href>,
+    /// How many links are open inside the last one beyond that: they keep its target.
+    nested: u32,
 }
 
 impl Open {
+    fn weight(&self) -> Weight {
+        if self.bold > 0 {
+            Weight::Bold
+        } else {
+            Weight::Regular
+        }
+    }
+
+    fn slant(&self) -> Slant {
+        if self.italic > 0 {
+            Slant::Italic
+        } else {
+            Slant::Upright
+        }
+    }
+
+    fn underlining(&self) -> Underline {
+        if self.underline > 0 {
+            Underline::Single
+        } else {
+            Underline::None
+        }
+    }
+
+    /// The style of text here. It holds a copy of the link's target, so it is made only for a
+    /// run that is started, never for text that joins one.
     fn style(&self) -> RunStyle {
         RunStyle {
-            weight: if self.bold > 0 {
-                Weight::Bold
-            } else {
-                Weight::Regular
-            },
-            slant: if self.italic > 0 {
-                Slant::Italic
-            } else {
-                Slant::Upright
-            },
-            underline: if self.underline > 0 {
-                Underline::Single
-            } else {
-                Underline::None
-            },
+            weight: self.weight(),
+            slant: self.slant(),
+            underline: self.underlining(),
             link: self
                 .links
                 .last()
@@ -66,15 +87,36 @@ impl Open {
         }
     }
 
+    /// Whether text here is in `style`, without making one.
+    fn is_style(&self, style: &RunStyle) -> bool {
+        let same_link = match (&style.link, self.links.last()) {
+            (RunLink::Plain, None) => true,
+            (RunLink::To(shown), Some(open)) => shown == open,
+            _ => false,
+        };
+        same_link
+            && style.weight == self.weight()
+            && style.slant == self.slant()
+            && style.underline == self.underlining()
+    }
+
     fn enter(mut self, tag: Tag) -> Open {
         match tag {
             Tag::Styling(TagName::Bold) => self.bold += 1,
             Tag::Styling(TagName::Italic) => self.italic += 1,
             Tag::Styling(TagName::Underline) => self.underline += 1,
-            Tag::Styling(TagName::Link) => self.links.push(Href(String::new())),
-            Tag::Link(href) => self.links.push(href),
+            Tag::Styling(TagName::Link) => self.link(Href::empty()),
+            Tag::Link(href) => self.link(href),
         }
         self
+    }
+
+    fn link(&mut self, href: Href) {
+        if self.links.len() < LINK_NESTING_MAX {
+            self.links.push(href);
+        } else {
+            self.nested += 1;
+        }
     }
 
     /// A close of a tag that is not open changes nothing.
@@ -83,6 +125,7 @@ impl Open {
             TagName::Bold => self.bold = self.bold.saturating_sub(1),
             TagName::Italic => self.italic = self.italic.saturating_sub(1),
             TagName::Underline => self.underline = self.underline.saturating_sub(1),
+            TagName::Link if self.nested > 0 => self.nested -= 1,
             TagName::Link => {
                 self.links.pop();
             }
@@ -91,13 +134,14 @@ impl Open {
     }
 }
 
-/// `raw` as runs.
+/// `raw` as runs: its first [`BODY_MAX_BYTES`] bytes, in at most [`BODY_RUNS_MAX`] runs (the
+/// text past the last run joins it).
 pub(super) fn parse(raw: &str) -> Body {
     let mut runs: Vec<BodyRun> = Vec::new();
     let mut open = Open::default();
-    for piece in pieces(raw) {
+    for piece in pieces(cut_bytes(raw, BODY_MAX_BYTES)) {
         match piece {
-            Piece::Text(text) | Piece::Stands(text) => push(&mut runs, text, open.style()),
+            Piece::Text(text) | Piece::Stands(text) => push(&mut runs, text, &open),
             Piece::Open(tag) => open = open.enter(tag),
             Piece::Close(name) => open = open.leave(name),
             Piece::Dropped => {}
@@ -106,14 +150,19 @@ pub(super) fn parse(raw: &str) -> Body {
     Body { runs }
 }
 
-/// Append `text` in `style`, joining the last run when it has the same style.
-fn push(runs: &mut Vec<BodyRun>, text: String, style: RunStyle) {
+/// Append `text` in the style `open` stands for, joining the last run when it has the same style
+/// or when the runs are full.
+fn push(runs: &mut Vec<BodyRun>, text: String, open: &Open) {
     if text.is_empty() {
         return;
     }
+    let full = runs.len() >= BODY_RUNS_MAX;
     match runs.last_mut() {
-        Some(last) if last.style == style => last.text.push_str(&text),
-        _ => runs.push(BodyRun { text, style }),
+        Some(last) if full || open.is_style(&last.style) => last.text.push_str(&text),
+        _ => runs.push(BodyRun {
+            text,
+            style: open.style(),
+        }),
     }
 }
 
@@ -197,7 +246,7 @@ fn piece_of(name: &str, attributes: &str, closing: Closing) -> Piece {
         (Some(tag), Closing::Close, _) => Piece::Close(tag),
         (Some(TagName::Link), Closing::Open, _) => {
             Piece::Open(match attribute(attributes, "href") {
-                Some(href) => Tag::Link(Href(href)),
+                Some(href) => Tag::Link(link_target(&href)),
                 None => Tag::Styling(TagName::Link),
             })
         }
@@ -207,6 +256,22 @@ fn piece_of(name: &str, attributes: &str, closing: Closing) -> Piece {
             Piece::Stands(attribute(attributes, "alt").unwrap_or_default())
         }
         (None, _, _) => Piece::Dropped,
+    }
+}
+
+/// `href` as a link target: empty (no link to follow) when it is longer than [`HREF_MAX_BYTES`] or
+/// its scheme is not one of [`LINK_SCHEMES`].
+fn link_target(href: &str) -> Href {
+    let allowed = href.len() <= HREF_MAX_BYTES
+        && href.split_once(':').is_some_and(|(scheme, _)| {
+            LINK_SCHEMES
+                .iter()
+                .any(|known| scheme.eq_ignore_ascii_case(known))
+        });
+    if allowed {
+        Href::new(href)
+    } else {
+        Href::empty()
     }
 }
 

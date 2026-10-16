@@ -28,6 +28,7 @@ mod model_offer;
 mod night_shift;
 mod nm_bus;
 mod notifications_bus;
+mod notifications_limits_bus;
 mod pins_seed;
 mod polkit_bus;
 mod scan;

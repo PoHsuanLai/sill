@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     ActionKey, Activation, AppKey, Notification, NotificationId, NotificationsPolicy, Posting,
-    ServerStatus, SoundHint, StoredHistory,
+    ServerStatus, SoundHint, StoredHistory, UnixMs,
 };
 
 /// What the notifications service can be told: by the daemon (the policy, a debug post), by the
@@ -60,6 +60,8 @@ pub enum NotificationsEvent {
         token: Activation,
     },
     HistoryCleared(Clear),
+    /// The clock at `now`: an app's critical banner that has stood too long leaves.
+    Swept(UnixMs),
     /// The history file, read at start.
     Loaded(StoredHistory),
     Server(ServerStatus),

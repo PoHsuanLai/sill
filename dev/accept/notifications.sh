@@ -24,7 +24,7 @@
 #      from five apps make three cards (three cards' height). Then three from one app and two
 #      others: dev/out/banners-stack-casement.png, a stack with a group.
 #   6. notifications.dnd = "on" and `sill reload`: a normal one shows no banner but kept rises;
-#      a critical one shows and is still up after 10 s.
+#      so does an app's critical one (only the shell's own notices pass Do Not Disturb).
 #   7. `sill debug click` on the body of one sent with `--action default=Open`: the card leaves
 #      and kept falls by one.
 #   8. 5 s after the last card leaves: 0 frames on the column.
@@ -36,7 +36,9 @@
 #   2. GetServerInformation answers ('sill', 'sill', <version>, '1.2'); GetCapabilities the six
 #      words.
 #   3. `notify-send -a accept Hello`: status counts 1 banner and 1 kept.
-#   4. CloseNotification <id>: `gdbus monitor` beside it records NotificationClosed (<id>, 3).
+#   4. CloseNotification <id> from another connection than the sender's is refused and the card
+#      stays; `sill notifications dismiss-all` then closes it and `gdbus monitor` beside it records
+#      NotificationClosed (<id>, 2).
 #   5. notifications.server = "passive" and `sill reload`: the name is released (holder nobody)
 #      and nothing answers Notify.
 #   6. With another holder started first, mode own reports holder other with that pid, and the
@@ -364,7 +366,7 @@ step_grouping() {
 
 # 6.
 step_dnd() {
-  local kept up=no
+  local kept
   dnd_setting on
   sill_sent reload >>"$OUT_DIR/notify.log" 2>&1 || return 1
   sleep 0.5
@@ -373,14 +375,13 @@ step_dnd() {
   sleep 1
   if shows; then echo "a banner showed under Do Not Disturb" >&2; return 1; fi
   await_status kept $((kept + 1)) || return 1
-  notify "Critical" --app accept --urgency critical --body "Shows through Do Not Disturb." || return 1
-  await_shows || { echo "the critical one did not show" >&2; return 1; }
-  sleep 10
-  shows && up=yes
-  echo "DND: a normal one kept without a banner (kept $kept -> $((kept + 1))); a critical one up after 10 s: $up" >&2
+  notify "Critical" --app accept --urgency critical --body "An app's critical one waits too." || return 1
+  sleep 1
+  if shows; then echo "an app's critical banner showed under Do Not Disturb" >&2; return 1; fi
+  await_status kept $((kept + 2)) || return 1
+  echo "DND: a normal and a critical one kept without a banner (kept $kept -> $((kept + 2)))" >&2
   dnd_setting off
   sill_sent reload >>"$OUT_DIR/notify.log" 2>&1
-  [ "$up" = yes ] && clear_banners
 }
 
 # 7.
@@ -454,16 +455,21 @@ step_close() {
   in_env gdbus monitor --session --dest "$DBUS_NAME" >"$monitor" 2>&1 &
   local watcher=$!
   sleep 0.5
-  call --method "$DBUS_NAME.CloseNotification" "$ID" >/dev/null || { kill "$watcher"; return 1; }
+  # gdbus is not the connection that posted it (notify-send was): only the sender may close.
+  if call --method "$DBUS_NAME.CloseNotification" "$ID" >/dev/null 2>&1; then
+    kill "$watcher"; echo "another connection closed $ID" >&2; return 1
+  fi
+  await_status banners 1 || { kill "$watcher"; return 1; }
+  sill notifications dismiss-all >/dev/null 2>&1 || { kill "$watcher"; return 1; }
   local heard=no
   for _ in $(seq 30); do
-    grep -q "NotificationClosed (uint32 $ID, uint32 3)" "$monitor" && { heard=yes; break; }
+    grep -q "NotificationClosed (uint32 $ID, uint32 2)" "$monitor" && { heard=yes; break; }
     sleep 0.1
   done
   kill "$watcher" 2>/dev/null
   wait "$watcher" 2>/dev/null
-  echo "gdbus monitor heard NotificationClosed ($ID, 3): $heard" >&2
-  [ "$heard" = yes ] && await_status banners 0 && await_status kept 0
+  echo "gdbus monitor heard NotificationClosed ($ID, 2): $heard" >&2
+  [ "$heard" = yes ] && await_status banners 0 && await_status kept 1
 }
 
 # 5.
@@ -501,17 +507,19 @@ step_other_holder() {
 
 # 7.
 step_history_survives() {
+  local base
+  base=$(status_field kept)
   in_env timeout 5 notify-send -a accept "Kept" || return 1
   # The same Notify step 5 sent, answered now that sill holds the name.
   call --method "$DBUS_NAME.Notify" -- other 0 '' 'Also kept' '' '@as []' '@a{sv} {}' -1 \
     >"$OUT_DIR/notify.log" 2>&1 || { cat "$OUT_DIR/notify.log" >&2; return 1; }
-  await_status kept 2 || return 1
+  await_status kept $((base + 2)) || return 1
   local file="$STATE/sill/notifications.json"
   [ -s "$file" ] || { echo "no history file at $file" >&2; return 1; }
   stop_daemon
   launch_daemon || return 1
-  await_status kept 2 || return 1
-  echo "kept 2 before and after a restart ($file)" >&2
+  await_status kept $((base + 2)) || return 1
+  echo "kept $((base + 2)) before and after a restart ($file)" >&2
 }
 
 # --- the real-input run (--real-input) ---

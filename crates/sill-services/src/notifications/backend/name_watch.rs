@@ -1,6 +1,7 @@
 //! The bus half of the live loop: the connection, who holds `org.freedesktop.Notifications`
 //! (`GetNameOwner`, `GetConnectionUnixProcessID`, `/proc/<pid>/comm`), and asking for or giving
-//! back the name (`AllowReplacement | DoNotQueue`, never `ReplaceExisting`).
+//! back the name (`DoNotQueue`, never `ReplaceExisting`, and without `AllowReplacement`: another
+//! program cannot take the name from sill and read what the apps send).
 //!
 //! The holder is always read back from the bus rather than inferred from a reply, so a
 //! `NameOwnerChanged`, a `NameLost` (another daemon replaced sill) and a policy change all
@@ -110,10 +111,9 @@ impl Bus {
             eprintln!("sill: notifications: serving {OBJECT_PATH}: {error}");
             return;
         }
-        let flags = RequestNameFlags::AllowReplacement | RequestNameFlags::DoNotQueue;
         match self
             .connection
-            .request_name_with_flags(BUS_NAME, flags)
+            .request_name_with_flags(BUS_NAME, RequestNameFlags::DoNotQueue.into())
             .await
         {
             Ok(_) | Err(zbus::Error::NameTaken) => {}

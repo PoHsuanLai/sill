@@ -248,7 +248,7 @@ mod tests {
                 Some(RowAct::Invoke(id, reply.clone())),
             ),
             (&header, CardPress::Action(reply), None),
-            (&alone, CardPress::Link(Href("https://x".to_owned())), None),
+            (&alone, CardPress::Link(Href::new("https://x")), None),
         ];
         for (row, card, want) in presses {
             assert_eq!(press(row, card.clone()), want, "{row:?} {card:?}");

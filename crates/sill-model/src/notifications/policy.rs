@@ -10,6 +10,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::content::{Expiry, Notification, NotifyUrgency, Residency, SoundHint};
+use super::origin::Origin;
 use super::{BannerLife, ServerMode};
 
 /// Everything the service is told by the daemon.
@@ -44,7 +45,8 @@ pub enum Swipe {
 pub enum Quiet {
     #[default]
     Off,
-    /// No banners and no sounds, except urgency critical; everything still enters the history.
+    /// No banners and no sounds, except the shell's own critical notices; everything still enters
+    /// the history.
     DoNotDisturb,
 }
 
@@ -89,18 +91,22 @@ pub enum Chime {
     Silent,
 }
 
-/// How `note` shows under `policy`: a critical one always as a persisting banner (through Do
-/// Not Disturb and a history-only style); otherwise nothing but the history while Do Not
-/// Disturb is on or the style is history-only; else a banner that persists for `resident`,
-/// `expire_timeout == 0` or the Alert style, and expires otherwise.
+/// How `note` shows under `policy`. The shell's own critical notice always shows, as a persisting
+/// banner, through Do Not Disturb and a history-only style. An app's critical one persists the
+/// same way (until `APP_CRITICAL_HOLD_MS`, see `rules::sweep`) but holds back like any other
+/// while Do Not Disturb is on or the style is history-only. Otherwise: nothing but the history
+/// while held back; else a banner that persists for `resident`, `expire_timeout == 0` or the
+/// Alert style, and expires otherwise.
 pub fn presented(note: &Notification, policy: &NotificationsPolicy) -> Presented {
     let critical = note.hints.urgency == NotifyUrgency::Critical;
+    let through = critical && Origin::of(&note.app) == Origin::System;
     let held_back =
         policy.quiet == Quiet::DoNotDisturb || policy.style == Presentation::HistoryOnly;
-    let persists = note.hints.residency == Residency::Resident
+    let persists = critical
+        || note.hints.residency == Residency::Resident
         || note.expiry == Expiry::Never
         || policy.style == Presentation::Alert;
-    match (critical, held_back, persists) {
+    match (through, held_back, persists) {
         (true, _, _) => Presented::Banner(BannerLife::Persists),
         (false, true, _) => Presented::HistoryOnly,
         (false, false, true) => Presented::Banner(BannerLife::Persists),
@@ -109,12 +115,14 @@ pub fn presented(note: &Notification, policy: &NotificationsPolicy) -> Presented
 }
 
 /// Whether `note`'s arrival plays a sound: never when the sender suppressed it, nor while Do
-/// Not Disturb holds it back (a critical one still sounds); else its hint (or the default).
+/// Not Disturb holds it back (the shell's own critical notice still sounds); else its hint (or
+/// the default).
 pub fn chime(note: &Notification, policy: &NotificationsPolicy) -> Chime {
-    let critical = note.hints.urgency == NotifyUrgency::Critical;
+    let through =
+        note.hints.urgency == NotifyUrgency::Critical && Origin::of(&note.app) == Origin::System;
     match (&note.hints.sound, policy.quiet) {
         (SoundHint::Suppressed, _) => Chime::Silent,
-        (_, Quiet::DoNotDisturb) if !critical => Chime::Silent,
+        (_, Quiet::DoNotDisturb) if !through => Chime::Silent,
         (hint, _) => Chime::Play(hint.clone()),
     }
 }
@@ -128,6 +136,11 @@ mod tests {
         AppRef, Expiry, Hints, IconRef, Notification, NotifyUrgency, Residency, SoundHint,
     };
     use crate::notifications::{NotificationId, UnixMs};
+
+    fn system(mut note: Notification) -> Notification {
+        note.app.desktop_entry = Some("sill-keycap".to_owned());
+        note
+    }
 
     fn note(urgency: NotifyUrgency, residency: Residency, expiry: Expiry) -> Notification {
         Notification {
@@ -204,8 +217,14 @@ mod tests {
                 Presented::Banner(Persists),
             ),
             (
-                "critical",
+                "an app's critical persists",
                 plain(Critical),
+                policy(Off, Banner),
+                Presented::Banner(Persists),
+            ),
+            (
+                "the shell's critical",
+                system(plain(Critical)),
                 policy(Off, Banner),
                 Presented::Banner(Persists),
             ),
@@ -222,8 +241,14 @@ mod tests {
                 Presented::HistoryOnly,
             ),
             (
-                "dnd critical",
+                "dnd holds an app's critical back",
                 plain(Critical),
+                policy(DoNotDisturb, Banner),
+                Presented::HistoryOnly,
+            ),
+            (
+                "dnd lets the shell's critical through",
+                system(plain(Critical)),
                 policy(DoNotDisturb, Banner),
                 Presented::Banner(Persists),
             ),
@@ -234,8 +259,14 @@ mod tests {
                 Presented::HistoryOnly,
             ),
             (
-                "history only critical",
+                "history only holds an app's critical back",
                 plain(Critical),
+                policy(Off, HistoryOnly),
+                Presented::HistoryOnly,
+            ),
+            (
+                "history only lets the shell's critical through",
+                system(plain(Critical)),
                 policy(Off, HistoryOnly),
                 Presented::Banner(Persists),
             ),
@@ -279,14 +310,20 @@ mod tests {
                 Chime::Silent,
             ),
             (
-                "dnd critical",
+                "dnd holds an app's critical sound back",
                 with_sound(NotifyUrgency::Critical, named.clone()),
+                Quiet::DoNotDisturb,
+                Chime::Silent,
+            ),
+            (
+                "dnd lets the shell's critical sound through",
+                system(with_sound(NotifyUrgency::Critical, named.clone())),
                 Quiet::DoNotDisturb,
                 Chime::Play(named),
             ),
             (
                 "critical suppressed",
-                with_sound(NotifyUrgency::Critical, SoundHint::Suppressed),
+                system(with_sound(NotifyUrgency::Critical, SoundHint::Suppressed)),
                 Quiet::DoNotDisturb,
                 Chime::Silent,
             ),

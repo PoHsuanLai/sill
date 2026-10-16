@@ -4,6 +4,8 @@ mod dbus;
 mod history_file;
 mod live;
 mod name_watch;
+mod picture;
+mod senders;
 mod wire;
 
 pub use dbus::{BUS_NAME, OBJECT_PATH};

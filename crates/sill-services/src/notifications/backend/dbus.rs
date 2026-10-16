@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 use sill_model::notifications::{CAPABILITIES, NotificationId, Posting, SERVER_INFORMATION};
 use tokio::sync::{mpsc, oneshot};
+use zbus::message::Header;
 use zbus::object_server::SignalEmitter;
 use zbus::zvariant::OwnedValue;
 use zbus::{fdo, interface};
@@ -18,19 +19,35 @@ pub const BUS_NAME: &str = "org.freedesktop.Notifications";
 /// The object path the spec fixes.
 pub const OBJECT_PATH: &str = "/org/freedesktop/Notifications";
 
+/// A caller's unique connection name (`:1.42`): who a notification belongs to. Only its sender
+/// may replace or close it.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Sender(pub String);
+
 /// A method call the object hands to the live loop, which owns the state.
 #[derive(Debug)]
 pub enum Call {
     /// `Notify`: the id is sent back on `reply` once the loop has assigned it.
     Notify {
         posting: Box<Posting>,
-        reply: oneshot::Sender<NotificationId>,
+        sender: Sender,
+        reply: oneshot::Sender<NotifyAnswer>,
     },
-    /// `CloseNotification`: the loop answers whether it held the id.
+    /// `CloseNotification`: the loop answers whether it held the id for `sender`.
     Close {
         id: NotificationId,
+        sender: Sender,
         reply: oneshot::Sender<CloseAnswer>,
     },
+}
+
+/// What `Notify` finds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NotifyAnswer {
+    /// Held under this id.
+    Posted(NotificationId),
+    /// The sender has posted too many too fast: refused.
+    TooMany,
 }
 
 /// What `CloseNotification` finds.
@@ -38,8 +55,15 @@ pub enum Call {
 pub enum CloseAnswer {
     /// Closed, and `NotificationClosed` (reason 3) emitted.
     Closed,
-    /// No longer held: the spec's empty D-Bus error.
+    /// Not held, or held for another sender: the spec's empty D-Bus error.
     NotHeld,
+}
+
+/// Why a `Notify` was turned away before it was read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WireRefusal {
+    /// More than `HINTS_MAX` hints.
+    TooManyHints,
 }
 
 /// `Notify`'s eight arguments as they arrived.
@@ -60,13 +84,22 @@ pub struct WireNotify {
 /// `image-data` / `image_data` / `icon_data` (converted to straight RGBA; a malformed one is
 /// no image), else `image-path`, `transient` and `resident` (booleans; some senders send a
 /// byte or an int, read as non-zero), `sound-name`, `sound-file`, `suppress-sound`. Unknown
-/// hints are ignored; a hint of the wrong type is as if absent.
-pub fn posting_from_wire(call: WireNotify) -> Posting {
+/// hints are ignored; a hint of the wrong type is as if absent. Every field is cut to its ceiling
+/// (`sill_model::notifications::limits`); more than `HINTS_MAX` hints is refused.
+pub fn posting_from_wire(call: WireNotify) -> Result<Posting, WireRefusal> {
     super::wire::posting(call)
 }
 
 fn stopped() -> fdo::Error {
     fdo::Error::Failed("the notifications service has stopped".to_owned())
+}
+
+/// The unique name of whoever made the call.
+fn sender_of(header: &Header<'_>) -> fdo::Result<Sender> {
+    header
+        .sender()
+        .map(|name| Sender(name.to_string()))
+        .ok_or_else(|| fdo::Error::Failed("no sender".to_owned()))
 }
 
 /// The served object.
@@ -81,6 +114,7 @@ impl Server {
     #[allow(clippy::too_many_arguments)]
     async fn notify(
         &self,
+        #[zbus(header)] header: Header<'_>,
         app_name: String,
         replaces_id: u32,
         app_icon: String,
@@ -90,6 +124,7 @@ impl Server {
         hints: HashMap<String, OwnedValue>,
         expire_timeout: i32,
     ) -> fdo::Result<u32> {
+        let sender = sender_of(&header)?;
         let posting = posting_from_wire(WireNotify {
             app_name,
             replaces_id,
@@ -99,23 +134,39 @@ impl Server {
             actions,
             hints,
             expire_timeout,
-        });
+        })
+        .map_err(|WireRefusal::TooManyHints| {
+            fdo::Error::InvalidArgs("too many hints".to_owned())
+        })?;
         let (reply, answer) = oneshot::channel();
         self.calls
             .send(Call::Notify {
                 posting: Box::new(posting),
+                sender,
                 reply,
             })
             .map_err(|_| stopped())?;
-        answer.await.map(|id| id.0).map_err(|_| stopped())
+        match answer.await.map_err(|_| stopped())? {
+            NotifyAnswer::Posted(id) => Ok(id.0),
+            NotifyAnswer::TooMany => Err(fdo::Error::LimitsExceeded(
+                "too many notifications too fast".to_owned(),
+            )),
+        }
     }
 
-    /// `CloseNotification(u)`: an id no longer held answers the spec's empty error.
-    async fn close_notification(&self, id: u32) -> fdo::Result<()> {
+    /// `CloseNotification(u)`: an id no longer held, or held for another sender, answers the
+    /// spec's empty error.
+    async fn close_notification(
+        &self,
+        #[zbus(header)] header: Header<'_>,
+        id: u32,
+    ) -> fdo::Result<()> {
+        let sender = sender_of(&header)?;
         let (reply, answer) = oneshot::channel();
         self.calls
             .send(Call::Close {
                 id: NotificationId(id),
+                sender,
                 reply,
             })
             .map_err(|_| stopped())?;
@@ -177,7 +228,7 @@ mod tests {
     use super::{WireNotify, posting_from_wire};
     use sill_model::notifications::NotificationId;
     use sill_model::notifications::{
-        IconRef, NoteImage, NotifyUrgency, Pixels, Residency, SoundHint, Transience,
+        IconRef, NoteImage, NotifyUrgency, Pixels, Posting, Residency, SoundHint, Transience,
     };
 
     fn owned(value: Value<'_>) -> OwnedValue {
@@ -202,6 +253,10 @@ mod tests {
         }
     }
 
+    fn posting_of(call: WireNotify) -> Posting {
+        posting_from_wire(call).unwrap_or_else(|e| panic!("{e:?}"))
+    }
+
     #[test]
     fn the_wire_becomes_a_posting() {
         let rgb = owned(Value::from((
@@ -213,7 +268,7 @@ mod tests {
             3i32,
             vec![10u8, 20, 30],
         )));
-        let posting = posting_from_wire(call(vec![
+        let posting = posting_of(call(vec![
             ("urgency", owned(Value::from(2u8))),
             ("category", owned(Value::from("email.arrived"))),
             (
@@ -258,7 +313,7 @@ mod tests {
             ("urgency", owned(Value::from("high"))),
         ]);
         replacing.replaces_id = 5;
-        let posting = posting_from_wire(replacing);
+        let posting = posting_of(replacing);
         assert_eq!(posting.replaces, Some(NotificationId(5)));
         assert_eq!(
             posting.hints.image,

@@ -69,7 +69,7 @@ pub(super) fn card(
                 actions: card_actions(&note, on_press),
                 on_close: move |_| on_press.call(CardPress::Close),
                 on_open: move |_| on_press.call(CardPress::Body),
-                on_link: move |href: String| on_press.call(CardPress::Link(Href(href))),
+                on_link: move |href: String| on_press.call(CardPress::Link(Href::new(&href))),
                 on_hover: wiring.on_hover,
                 material,
                 icon_size: side,

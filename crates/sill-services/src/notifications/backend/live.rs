@@ -1,16 +1,19 @@
 //! The live loop: connect to the session bus it is given, follow
 //! who holds `org.freedesktop.Notifications`, own it only while the policy says `Own` (never
-//! replacing a holder: `AllowReplacement | DoNotQueue`, and ask again when the name falls
-//! free), serve [`super::dbus::Server`] while owned, load the history, and run every call and
-//! command through [`sill_model::notifications::step`], carrying out its effects (signals,
-//! `history_file::save`; a `Sound` is dropped, as sill plays no sounds yet) and
-//! publishing the result.
+//! replacing a holder: `DoNotQueue`, and ask again when the name falls free; once held, the
+//! name cannot be taken away), serve [`super::dbus::Server`] while owned, load the history, and
+//! run every call and command through [`sill_model::notifications::step`], carrying out its
+//! effects (signals, `history_file::save`; a `Sound` is dropped, as sill plays no sounds yet) and
+//! publishing the result. Each bus caller is held to its allowance and may replace or close only
+//! what it posted ([`super::senders`]); a clock tick sweeps an app's critical banners that have
+//! stood too long.
 //!
 //! Nothing here may ever touch the real session bus from a test: tests pass
 //! `BusRoute::Address` of a private `dbus-daemon` (`sill-testkit/src/private_bus.rs`).
 
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use sill_model::notifications::{
     NameHolder, NotesState, Notification, NotificationId, NotificationsCommand,
@@ -19,11 +22,16 @@ use sill_model::notifications::{
 };
 use tokio::sync::{mpsc, watch};
 
-use super::dbus::{Call, CloseAnswer};
+use super::dbus::{Call, CloseAnswer, NotifyAnswer, Sender};
 use super::history_file;
 use super::name_watch::Bus;
+use super::senders::{Admission, Senders};
 use crate::env::{Bus as BusRoute, WallClock};
 use crate::stream::next_opt;
+
+/// How often an app's critical banners are checked against their hold: the hold is minutes long,
+/// so a minute's slack is not seen.
+const SWEEP_EVERY: Duration = Duration::from_secs(60);
 
 /// Run the service until every control is dropped.
 pub(crate) async fn run(
@@ -39,6 +47,7 @@ pub(crate) async fn run(
         file,
         published,
         clock,
+        senders: Senders::default(),
     };
     core.apply(
         NotificationsEvent::Loaded(history_file::load(&core.file)),
@@ -53,6 +62,8 @@ pub(crate) async fn run(
         None => (None, None),
     };
     core.settle(bus.as_ref()).await;
+    let mut sweep = tokio::time::interval(SWEEP_EVERY);
+    sweep.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     loop {
         tokio::select! {
             command = commands.recv() => match command {
@@ -61,6 +72,7 @@ pub(crate) async fn run(
             },
             Some(call) = calls.recv() => core.call(call, bus.as_ref()).await,
             Some(_) = next_opt(&mut owner_changes) => core.settle(bus.as_ref()).await,
+            _ = sweep.tick() => core.sweep(bus.as_ref()).await,
         }
     }
     if let Some(bus) = &bus
@@ -80,6 +92,8 @@ struct Core {
     published: watch::Sender<NotesState>,
     /// What stamps a posting's arrival.
     clock: Arc<dyn WallClock>,
+    /// Who posted what, and how much each caller may still post.
+    senders: Senders,
 }
 
 impl Core {
@@ -91,7 +105,8 @@ impl Core {
                 return;
             }
             NotificationsCommand::Post(posting) => {
-                self.post(*posting, bus).await;
+                let id = self.post(*posting, bus).await;
+                self.senders.record(id, None);
                 return;
             }
             NotificationsCommand::Dismiss(id) => NotificationsEvent::Dismissed(id),
@@ -108,13 +123,18 @@ impl Core {
 
     async fn call(&mut self, call: Call, bus: Option<&Bus>) {
         match call {
-            Call::Notify { posting, reply } => {
-                let id = self.post(*posting, bus).await;
-                let _ = reply.send(id);
+            Call::Notify {
+                posting,
+                sender,
+                reply,
+            } => {
+                let answer = self.notify(*posting, sender, bus).await;
+                let _ = reply.send(answer);
             }
-            Call::Close { id, reply } => {
-                let answer = if holds(&self.state, id) {
+            Call::Close { id, sender, reply } => {
+                let answer = if holds(&self.state, id) && self.senders.owns(&sender, id) {
                     self.apply(NotificationsEvent::ClosedByApp(id), bus).await;
+                    self.senders.forget_gone(&self.state);
                     CloseAnswer::Closed
                 } else {
                     CloseAnswer::NotHeld
@@ -122,6 +142,31 @@ impl Core {
                 let _ = reply.send(answer);
             }
         }
+    }
+
+    /// A `Notify` from `sender`: refused past its allowance; it replaces only what it posted.
+    async fn notify(
+        &mut self,
+        mut posting: Posting,
+        sender: Sender,
+        bus: Option<&Bus>,
+    ) -> NotifyAnswer {
+        let now = unix_ms(&self.clock.now());
+        if self.senders.admit(&sender, now) == Admission::TooMany {
+            return NotifyAnswer::TooMany;
+        }
+        posting.replaces = self.senders.replaceable(&sender, posting.replaces);
+        let id = self.post(posting, bus).await;
+        self.senders.record(id, Some(sender));
+        self.senders.forget_gone(&self.state);
+        NotifyAnswer::Posted(id)
+    }
+
+    /// The clock reached the next sweep.
+    async fn sweep(&mut self, bus: Option<&Bus>) {
+        let now = unix_ms(&self.clock.now());
+        self.apply(NotificationsEvent::Swept(now), bus).await;
+        self.senders.forget_gone(&self.state);
     }
 
     /// Give `posting` its id and time, and post it.

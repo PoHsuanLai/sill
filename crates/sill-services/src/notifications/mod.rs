@@ -3,11 +3,18 @@
 //! `$XDG_STATE_HOME/sill/notifications.json`.
 //!
 //! **It never fights another daemon.** The service asks for the name only while the daemon's
-//! policy says `notifications.server = "own"` (the setting's default), with `AllowReplacement |
-//! DoNotQueue` and never `ReplaceExisting`: when mako or plasmashell holds
-//! it, sill stays passive, reports the holder (`NameHolder::Other`), and asks again only when
-//! the name falls free. Until the daemon's first [`NotificationsCommand::Policy`] the service is
-//! passive, so a test or a headless render that spawns `crate::Services` never takes the name.
+//! policy says `notifications.server = "own"` (the setting's default), with `DoNotQueue` and
+//! never `ReplaceExisting`: when mako or plasmashell holds it, sill stays passive, reports the
+//! holder (`NameHolder::Other`), and asks again only when the name falls free. Once sill holds
+//! the name it is not offered for replacement, so no other program can take it and read what apps
+//! send. Until the daemon's first [`NotificationsCommand::Policy`] the service is passive, so a
+//! test or a headless render that spawns `crate::Services` never takes the name.
+//!
+//! **Apps are held to limits.** Every field an app sends is cut to a ceiling
+//! (`sill_model::notifications::limits`); each caller has an allowance of notifications per
+//! second and is refused past it; the live banners are capped per app and in all; and a caller may
+//! replace or close only what it posted. The shell's own notices have no caller and are out of
+//! every app's reach.
 //!
 //! **Where the time goes.** The banner's hold (`notifications.banner_hold_ms`, paused while
 //! hovered) is counted by the banner surface's machine, which says so with

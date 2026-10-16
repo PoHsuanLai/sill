@@ -20,10 +20,10 @@ use tokio::sync::watch;
 use zbus::Message;
 use zbus::zvariant::OwnedValue;
 
-const SETTLE: Duration = Duration::from_secs(3);
+pub(crate) const SETTLE: Duration = Duration::from_secs(3);
 
 /// Whether `receiver` satisfies `want` within `limit`.
-async fn wait_for<T>(
+pub(crate) async fn wait_for<T>(
     receiver: &mut watch::Receiver<T>,
     limit: Duration,
     want: impl Fn(&T) -> bool,
@@ -33,7 +33,7 @@ async fn wait_for<T>(
         .is_ok_and(|seen| seen.is_ok())
 }
 
-async fn connect(bus: &PrivateBus) -> zbus::Connection {
+pub(crate) async fn connect(bus: &PrivateBus) -> zbus::Connection {
     zbus::connection::Builder::address(bus.address.as_str())
         .unwrap_or_else(|e| panic!("{e}"))
         .build()
@@ -173,7 +173,11 @@ fn owning_serves_notify_and_close_with_their_signal() {
 }
 
 /// Call a method of the notifications object on `connection`.
-async fn call<B>(connection: &zbus::Connection, method: &str, body: &B) -> zbus::Result<Message>
+pub(crate) async fn call<B>(
+    connection: &zbus::Connection,
+    method: &str,
+    body: &B,
+) -> zbus::Result<Message>
 where
     B: serde::Serialize + zbus::zvariant::DynamicType,
 {
@@ -189,7 +193,7 @@ where
 }
 
 /// A `Notify` from `app` with `actions`, answering its id.
-async fn notify(connection: &zbus::Connection, app: &str, actions: Vec<&str>) -> u32 {
+pub(crate) async fn notify(connection: &zbus::Connection, app: &str, actions: Vec<&str>) -> u32 {
     let hints: HashMap<&str, OwnedValue> = HashMap::new();
     let body = (app, 0u32, "", "Hello", "world", actions, hints, -1i32);
     call(connection, "Notify", &body)
@@ -201,7 +205,7 @@ async fn notify(connection: &zbus::Connection, app: &str, actions: Vec<&str>) ->
 }
 
 /// A service owning the name on `bus`, its history kept under `scratch`.
-fn owning(
+pub(crate) fn owning(
     runtime: &tokio::runtime::Runtime,
     bus: &PrivateBus,
     scratch: &TempDir,
@@ -345,7 +349,7 @@ fn notify_send_and_gdbus_reach_the_server() {
         return;
     };
     let scratch = TempDir::new("notes-notify-send");
-    let (mut notes, _control) = owning(&runtime, &bus, &scratch);
+    let (mut notes, control) = owning(&runtime, &bus, &scratch);
     // Only the child's environment names the private bus; this process never uses it.
     let run = |program: &str, args: &[&str]| {
         let out = std::process::Command::new(program)
@@ -374,19 +378,29 @@ fn notify_send_and_gdbus_reach_the_server() {
     );
     assert!(info.starts_with("('sill', 'sill', '"), "{info}");
     assert!(info.ends_with("'1.2')"), "{info}");
-    run(
-        "gdbus",
-        &[
-            &dest[..],
-            &path[..],
-            &[
-                "--method",
-                "org.freedesktop.Notifications.CloseNotification",
-                &id,
-            ],
-        ]
-        .concat(),
-    );
+    // gdbus is not the connection notify-send posted from, so it may not close it.
+    let refused = std::process::Command::new("gdbus")
+        .args(
+            [
+                &dest[..],
+                &path[..],
+                &[
+                    "--method",
+                    "org.freedesktop.Notifications.CloseNotification",
+                    &id,
+                ],
+            ]
+            .concat(),
+        )
+        .env("DBUS_SESSION_BUS_ADDRESS", &bus.address)
+        .output()
+        .unwrap_or_else(|e| panic!("gdbus: {e}"));
+    assert!(!refused.status.success(), "another connection closed it");
+    control
+        .send(NotificationsCommand::Dismiss(NotificationId(
+            id.parse().unwrap_or(0),
+        )))
+        .unwrap_or_else(|e| panic!("{e}"));
     assert!(runtime.block_on(wait_for(&mut notes, SETTLE, |n| n.live.banners.is_empty())));
 }
 

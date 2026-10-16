@@ -30,6 +30,12 @@
 //!   notification is then removed everywhere and `Closed` with `Dismissed`. An action it does
 //!   not offer, or an id not held, changes nothing.
 //! - **HistoryCleared**: every notification in the cleared groups is dismissed (its banner too).
+//! - **Banner limits.** After a banner is added, the oldest past `BANNERS_PER_APP_MAX` for its app
+//!   (the shell's own notices not counted) and then past `LIVE_BANNERS_MAX` in all leave, an app's
+//!   before the shell's; one the history does not hold is `Closed` with `Expired`.
+//! - **Swept** (the live loop's clock, a minute apart): an app's critical banner that has stood
+//!   `APP_CRITICAL_HOLD_MS` leaves as for a timeout. An app's critical notice persists until then
+//!   but does not pass Do Not Disturb; the shell's own does both and never leaves by itself.
 //! - **Loaded**: the stored history replaces the history (capped), `last_id` becomes the larger
 //!   of the two. No `SaveHistory`.
 //! - **Server**: the bus name's news.
@@ -84,6 +90,7 @@ pub fn step(
             let ids = rules::cleared_ids(&state, &clear);
             rules::dismiss_each(state, ids)
         }
+        NotificationsEvent::Swept(now) => rules::sweep(state, now),
         NotificationsEvent::Loaded(stored) => rules::load(state, stored, policy),
         NotificationsEvent::Server(status) => {
             let mut state = state;

@@ -1,8 +1,10 @@
 //! The reducer's rules, one function each (`reduce.rs`'s module doc is the list): small pure
 //! steps over [`NotesState`] that return the state and the effects they imply.
 
-use super::content::{Notification, Residency, Transience};
-use super::ids::{ActionKey, Activation, NotificationId};
+use super::content::{Notification, NotifyUrgency, Residency, Transience};
+use super::ids::{ActionKey, Activation, NotificationId, UnixMs};
+use super::limits::{APP_CRITICAL_HOLD_MS, BANNERS_PER_APP_MAX, LIVE_BANNERS_MAX};
+use super::origin::Origin;
 use super::policy::{Chime, HistoryCap, NotificationsPolicy, Presented, chime, presented};
 use super::stored::StoredHistory;
 use super::{
@@ -52,10 +54,83 @@ pub(super) fn post(state: NotesState, note: Notification, policy: &Notifications
                 life,
             },
         );
+        effects.extend(enforce_banner_limits(&mut state, &note));
     }
     if let Chime::Play(sound) = chime(&note, policy) {
         effects.push(NotificationsEffect::Sound(sound));
     }
+    (state, effects)
+}
+
+/// The oldest banners past the limits leave, so one app's flood neither buries the others nor
+/// grows what the shell holds: at most [`BANNERS_PER_APP_MAX`] for the app of `newest` (the
+/// shell's own notices are not counted against it), then at most [`LIVE_BANNERS_MAX`] in all,
+/// an app's banner before a shell notice. A banner that leaves and is not in the history (a
+/// transient one) closes as expired.
+fn enforce_banner_limits(
+    state: &mut NotesState,
+    newest: &Notification,
+) -> Vec<NotificationsEffect> {
+    let key = newest.app.key();
+    let oldest_first = || state.live.banners.iter().rev();
+    let mine: Vec<NotificationId> = oldest_first()
+        .filter(|banner| {
+            banner.note.app.key() == key && Origin::of(&banner.note.app) == Origin::App
+        })
+        .map(|banner| banner.note.id)
+        .collect();
+    let over_app = mine.len().saturating_sub(BANNERS_PER_APP_MAX);
+    let mut gone: Vec<NotificationId> = mine.into_iter().take(over_app).collect();
+    let over_all = state
+        .live
+        .banners
+        .len()
+        .saturating_sub(gone.len())
+        .saturating_sub(LIVE_BANNERS_MAX);
+    let (apps, shell): (Vec<_>, Vec<_>) = oldest_first()
+        .filter(|banner| !gone.contains(&banner.note.id))
+        .map(|banner| (banner.note.id, Origin::of(&banner.note.app)))
+        .partition(|(_, origin)| *origin == Origin::App);
+    let evicted: Vec<NotificationId> = apps
+        .into_iter()
+        .chain(shell)
+        .take(over_all)
+        .map(|(id, _)| id)
+        .collect();
+    gone.extend(evicted);
+    leave_banners(state, &gone)
+}
+
+/// `ids` off the banners; one the history does not hold closes as expired.
+fn leave_banners(state: &mut NotesState, ids: &[NotificationId]) -> Vec<NotificationsEffect> {
+    state
+        .live
+        .banners
+        .retain(|banner| !ids.contains(&banner.note.id));
+    ids.iter()
+        .filter(|id| state.history.find(**id).is_none())
+        .map(|id| NotificationsEffect::Closed {
+            id: *id,
+            reason: CloseReason::Expired,
+        })
+        .collect()
+}
+
+/// An app's critical banners that have stood for [`APP_CRITICAL_HOLD_MS`] at `now` leave: an app
+/// cannot keep a banner on the screen for ever. The shell's own stay until acted on.
+pub(super) fn sweep(mut state: NotesState, now: UnixMs) -> Step {
+    let stale: Vec<NotificationId> = state
+        .live
+        .banners
+        .iter()
+        .filter(|banner| {
+            banner.note.hints.urgency == NotifyUrgency::Critical
+                && Origin::of(&banner.note.app) == Origin::App
+                && now.since(banner.note.arrived) >= APP_CRITICAL_HOLD_MS.unsigned_abs()
+        })
+        .map(|banner| banner.note.id)
+        .collect();
+    let effects = leave_banners(&mut state, &stale);
     (state, effects)
 }
 
