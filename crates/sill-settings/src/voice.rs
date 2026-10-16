@@ -20,7 +20,7 @@ pub use sill_model::voice::{HoldToTalk, VoiceConsent};
 pub struct VoiceSettings {
     #[settings(
         label = "Hold ⌘ to talk",
-        help = "`hold_command` listens while the command key is held and asks the companion what it heard; `off` never listens.",
+        help = "`hold_command` listens while the command key is held and asks the assistant what it heard; `off` never listens.",
         section = "Voice"
     )]
     pub hold_to_talk: HoldToTalk,

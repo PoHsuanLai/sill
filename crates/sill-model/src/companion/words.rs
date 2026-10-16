@@ -15,7 +15,7 @@ use super::progress::row_progress;
 /// The answer's row: what was asked, and where the answer stands.
 pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
     let title = match answer.prompt.trim() {
-        "" => "Companion".to_owned(),
+        "" => "Assistant".to_owned(),
         asked => asked.to_owned(),
     };
     (title, standing(answer))
@@ -111,7 +111,7 @@ fn refusal_words(body: &AnswerBody) -> String {
 pub fn activity_line(entry: &UndoEntry) -> (String, String) {
     let who = match &entry.actor {
         Actor::User { .. } => "You",
-        Actor::Companion { .. } => "Companion",
+        Actor::Companion { .. } => "Assistant",
         Actor::Mcp { .. } => "An outside assistant",
         Actor::Acp { .. } => "An assistant",
         Actor::Cli => "A terminal",
@@ -137,7 +137,7 @@ pub fn activity_line(entry: &UndoEntry) -> (String, String) {
 pub fn memory_line(entry: &TimelineEntry, programs: &ProgramLabels) -> (String, String) {
     let who = match &entry.actor {
         Actor::User { .. } => "You".to_owned(),
-        Actor::Companion { .. } => "Companion".to_owned(),
+        Actor::Companion { .. } => "Assistant".to_owned(),
         Actor::Mcp { .. } => "An outside assistant".to_owned(),
         Actor::Acp { program, label } => match programs.name_of(program.as_str(), label.as_ref()) {
             Some(name) => format!("{name} (assistant)"),

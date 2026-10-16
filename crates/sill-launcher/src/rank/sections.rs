@@ -61,7 +61,7 @@ impl Section {
             Section::Things => "Things",
             Section::Runs => "Runs",
             Section::Memory => "Memory",
-            Section::Companion => "Companion",
+            Section::Companion => "Assistant",
             Section::Web => "Web",
         }
     }

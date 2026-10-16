@@ -66,9 +66,9 @@ pub enum WidgetsAction {
 pub enum CompanionAction {
     /// One tap of the double-tap key; the second within `companion.double_tap_ms` summons.
     Tap,
-    /// Summon the companion now (a double tap already detected).
+    /// Summon the assistant now (a double tap already detected).
     Summon,
-    /// Put the companion away.
+    /// Put the assistant away.
     Dismiss,
     /// Pause every run in the focused Space.
     StopAll,
@@ -77,7 +77,7 @@ pub enum CompanionAction {
 /// `sill voice ...`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
 pub enum VoiceAction {
-    /// The hold began: open the companion and listen.
+    /// The hold began: open the assistant and listen.
     #[command(name = "hold-start")]
     Start,
     /// The key was let go: finish and send what was said.

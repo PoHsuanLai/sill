@@ -44,20 +44,20 @@ pub enum NotifyWhen {
 pub struct CompanionSettings {
     #[settings(
         label = "Press ⌘ twice to ask",
-        help = "`double_tap_command` opens the companion when the command key is pressed twice; `off` leaves the key alone.",
-        section = "Companion"
+        help = "`double_tap_command` opens the assistant when the command key is pressed twice; `off` leaves the key alone.",
+        section = "Asking"
     )]
     pub summon: SummonKey,
     #[settings(
         label = "In a text field",
         help = "Whether a summon in a text field makes the field the prompt (`prompt`) or opens the launcher (`launcher`).",
-        section = "Companion"
+        section = "Asking"
     )]
     pub in_field: InField,
     #[settings(
         label = "Double-tap speed",
         help = "How long the second press of the command key may follow the first.",
-        section = "Companion",
+        section = "Asking",
         range = "150..=600",
         unit = "ms",
         advanced
@@ -66,7 +66,7 @@ pub struct CompanionSettings {
     #[settings(
         label = "Time an app has to take a summon",
         help = "How long the focused app has to take a summon into its own prompt before the launcher opens instead.",
-        section = "Companion",
+        section = "Asking",
         range = "40..=500",
         unit = "ms",
         advanced
@@ -75,7 +75,7 @@ pub struct CompanionSettings {
     #[settings(
         label = "Notify when it needs you",
         help = "`needs_you` posts a notification when a task waits for you; `never` does not.",
-        section = "Companion"
+        section = "Asking"
     )]
     pub notify: NotifyWhen,
     #[settings(

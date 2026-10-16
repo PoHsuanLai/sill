@@ -1,4 +1,4 @@
-//! The companion's rows: "Ask the companion" for what is typed, the answers it has made, and the
+//! The companion's rows: "Ask the assistant" for what is typed, the answers it has made, and the
 //! journal's recent activity. Nothing shows while the service has no seat at the companion (no
 //! `org.quire.Companion1` to ask), so a desktop without the companion has no such row.
 //!
@@ -123,7 +123,7 @@ fn ask_row(text: &str) -> Item {
     Item {
         id: ItemId(format!("{ASK}{text}")),
         provider: ProviderKind::Companion,
-        title: "Ask the companion".to_owned(),
+        title: "Ask the assistant".to_owned(),
         subtitle: text.to_owned(),
         icon: IconRef::Glyph("sparkles".to_owned()),
         score: Score(1000),
@@ -337,7 +337,7 @@ mod tests {
     #[test]
     fn typed_text_offers_the_ask_row_and_nothing_else_in_a_search() {
         let found = rows(state(), "what time is it", Scope::All);
-        assert_eq!(titles(&found), [("Ask the companion", "what time is it")]);
+        assert_eq!(titles(&found), [("Ask the assistant", "what time is it")]);
         assert!(
             rows(state(), "  ", Scope::All).is_empty(),
             "nothing typed, nothing offered"
@@ -350,7 +350,7 @@ mod tests {
         assert_eq!(
             titles(&found),
             [
-                ("Ask the companion", "hi"),
+                ("Ask the assistant", "hi"),
                 ("what is on today", "Thinking"),
                 ("reply to Sam", "Done"),
                 ("Archived 3 threads", "A terminal"),
@@ -407,7 +407,7 @@ mod tests {
         };
         let primary = |item: &Item| provider.activate(item, &Choice::Primary);
         assert_eq!(
-            primary(&by_title("Ask the companion", 0)),
+            primary(&by_title("Ask the assistant", 0)),
             Activation::Companion(CompanionAct::Ask {
                 prompt: "hi".to_owned()
             })

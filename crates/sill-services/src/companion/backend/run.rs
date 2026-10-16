@@ -430,7 +430,7 @@ impl Live {
         tokio::spawn(async move {
             let asked = within(
                 COMPANION_CALL,
-                "the companion",
+                "the assistant",
                 answer::ask(&connection, input, at, &events),
             )
             .await;

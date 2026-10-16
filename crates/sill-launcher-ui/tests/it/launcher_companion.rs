@@ -135,7 +135,7 @@ fn an_answer_row_is_selected_into_the_pane_and_a_search_row_is_not() {
     });
     assert_eq!(
         selected_title(&open.harness).as_deref(),
-        Some("Ask the companion")
+        Some("Ask the assistant")
     );
     assert_eq!(
         open.harness.count(".ds-answer-card"),
@@ -217,7 +217,7 @@ fn escape_in_an_answer_goes_back_to_the_ask_row() {
     open.press(Press::Escape);
     assert_eq!(
         selected_title(&open.harness).as_deref(),
-        Some("Ask the companion")
+        Some("Ask the assistant")
     );
     assert!(
         commands(&mut open).is_empty(),
@@ -273,7 +273,7 @@ fn enter_on_the_ask_row_sends_the_prompt_with_the_window_it_was_summoned_over() 
     });
     assert_eq!(
         selected_title(&open.harness).as_deref(),
-        Some("Ask the companion")
+        Some("Ask the assistant")
     );
     open.press(Press::Enter);
     settled(&mut open);

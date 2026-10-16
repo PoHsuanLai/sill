@@ -140,7 +140,7 @@ fn answer_card(task: &prov::TaskId, companion: &Companion) -> PaneContent {
     let Some(answer) = companion.answers.get(task) else {
         return facts(
             Icon::Sparkles,
-            "Companion",
+            "Assistant",
             vec![("Answer", "Gone".to_owned())],
         );
     };

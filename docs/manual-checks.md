@@ -382,20 +382,20 @@ need a person, a real compositor or real eyes.
   terminal again (the sheet's `Exclusive` keyboard is released when it leaves).
 - [ ] **Phase A is forgeable**: a key typed by uinput answers the sheet. Known; Phase B closes it.
 
-## The companion (a sill session with intentd, companiond, cuad and memoryd installed)
+## The assistant (a sill session with intentd, companiond, cuad and memoryd installed)
 
 The service, the machines and the launcher's mode are tested on stand-ins and fakes; these need
 the real daemons or a real keyboard.
 
 - [ ] **Double tap, route B** (a lone Cmd tap mapped to the unique chord that runs `sill companion
   tap`; Toshy did this and keycap does not emit that chord yet, so this waits for a sender): tap Cmd twice within `companion.double_tap_ms` with the launcher closed: the launcher opens as a
-  prompt ("Ask the companion", no rows). Cmd-click and Cmd-drag in a terminal and a browser are
+  prompt ("Ask the assistant", no rows). Cmd-click and Cmd-drag in a terminal and a browser are
   unharmed (spike T). One tap does nothing; two taps a second apart do nothing.
 - [ ] **Double tap with the launcher open in search**: type `mail` in the launcher, tap Cmd twice: the
   same panel (no remount, no flash) becomes the prompt; the field is empty and the rows are the
-  companion's. Escape puts `mail` back in the search with its rows. Tap Cmd twice again from a fresh
+  assistant's. Escape puts `mail` back in the search with its rows. Tap Cmd twice again from a fresh
   prompt: it closes.
-- [ ] **A summon over an app that serves the companion** (mailo with docket-ds): with mailo focused,
+- [ ] **A summon over an app that serves the assistant** (mailo with docket-ds): with mailo focused,
   tap Cmd twice: mailo's own search field becomes the prompt and the launcher stays shut; with a
   window that is not a quire app, the launcher opens instead, within a blink of `app_wait`.
 - [ ] **Ask from the launcher** (flows (a) and (b), real companiond): ask "what is on my calendar
@@ -408,7 +408,7 @@ the real daemons or a real keyboard.
   ones alone.
 - [ ] **A run's row** (a real cua run): the row follows the run's phase; "Take Over" and "Hand Back"
   change the state; "Watch" does nothing from sill (the compositor's) and must not close the panel.
-- [ ] **Undo**: after a companion action, the Companion filter lists it under recent activity with
+- [ ] **Undo**: after an assistant action, the Assistant filter lists it under recent activity with
   "Undo"; Enter undoes it and the row reads "Undone".
 - [ ] **Memory filter**: Tab to Memory: the newest events read "You archived ...", newest first, each
   row's app below.
@@ -426,7 +426,7 @@ the real daemons or a real keyboard.
   which is Super on our desktop; if keycap rewrites Cmd to Ctrl for the focused window the click
   reads as plain.
 - [ ] **temor** (profile `keymap-aware`): Cmd+H reaches temor as Super+H (hide), not Ctrl+H.
-- [ ] **Companion answer text**: a handle that holds mail or web text shows between curly quotes; one
+- [ ] **Assistant answer text**: a handle that holds mail or web text shows between curly quotes; one
   the person typed shows plain; against an older intentd every handle is quoted.
 - [ ] **Screen-sharing picker**: from an app that shares (a browser's "share screen"), the sheet
   appears centred on the main display with Screens and Windows when both are allowed; arrows move,

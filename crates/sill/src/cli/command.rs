@@ -125,7 +125,7 @@ pub enum Command {
         #[command(subcommand)]
         action: WidgetsAction,
     },
-    /// The companion: summon it, put it away, or pause what it is doing.
+    /// The assistant: summon it, put it away, or pause what it is doing.
     Companion {
         #[command(subcommand)]
         action: CompanionAction,

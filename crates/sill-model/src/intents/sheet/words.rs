@@ -12,7 +12,7 @@ use crate::untrusted::for_display;
 pub fn asker_words(actor: &Actor) -> &'static str {
     match actor {
         Actor::Cli => "The terminal",
-        Actor::Companion { .. } => "The companion",
+        Actor::Companion { .. } => "The assistant",
         Actor::Mcp { .. } => "An outside assistant",
         Actor::Acp { .. } => "An assistant",
         Actor::User { .. } => "You",
@@ -22,10 +22,13 @@ pub fn asker_words(actor: &Actor) -> &'static str {
 }
 
 /// The app's name as people say it: the last element of its reverse-DNS name (`org.quire.Mail` is
-/// "Mail").
+/// "Mail"). The assistant's own app is called by the person's word for it.
 pub fn app_words(app: &AppName) -> String {
     let name = app.as_str();
-    name.rsplit('.').next().unwrap_or(name).to_owned()
+    match name.rsplit('.').next().unwrap_or(name) {
+        "Companion" | "Companion1" | "Companiond" => "Assistant".to_owned(),
+        last => last.to_owned(),
+    }
 }
 
 /// What the action does to the world, in a few words.

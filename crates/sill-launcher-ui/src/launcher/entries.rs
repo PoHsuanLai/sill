@@ -98,7 +98,7 @@ pub(crate) fn kind_note(kind: ProviderKind) -> &'static str {
         ProviderKind::Emoji => "Emoji",
         ProviderKind::Web => "Web",
         ProviderKind::Things => "Thing",
-        ProviderKind::Companion => "Companion",
+        ProviderKind::Companion => "Assistant",
         ProviderKind::Runs => "Run",
         ProviderKind::Memory => "Memory",
     }

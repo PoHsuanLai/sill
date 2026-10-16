@@ -89,7 +89,7 @@ fn the_sheet_says_what_listening_means_and_offers_two_answers() {
     let html = running.harness.html();
     assert_eq!(running.harness.count(".ds-sheet"), 1, "{html}");
     assert!(
-        html.contains("Companion listens only while you hold"),
+        html.contains("The assistant listens only while you hold"),
         "{html}"
     );
     assert!(html.contains("is not kept"), "{html}");

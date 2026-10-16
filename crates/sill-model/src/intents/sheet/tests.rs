@@ -312,6 +312,7 @@ mod view_tests {
         );
         let name: AppName = app("org.quire.Mail");
         assert_eq!(app_words(&name), "Mail");
+        assert_eq!(app_words(&app("org.quire.Companion")), "Assistant");
         assert!(!why_words(&docket_core::AskReason::Mass(porter_core::Count(3))).is_empty());
     }
 }

@@ -168,7 +168,7 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 ### The agent stack (none of it blocks the session)
 
 - Do not install or enable `voiced.service`: its binary is still a skeleton that exits 2.
-- Summon the companion once with no model installed (`sill companion summon`): it must
+- Summon the assistant once with no model installed (`sill companion summon`): it must
   end with a plain failure within a few seconds, and the session keeps working.
 - `journalctl --user -u memoryd -b`: no crash loop. With the keyring locked or absent, memoryd reports the
   Space locked and intentd counts audit records as lost; that is expected.
@@ -177,7 +177,7 @@ Write the results next to the boxes in `docs/manual-checks.md`, and the surprise
 
 ## 4. Known gaps (decided, not bugs)
 
-- No Toshy: the Mac layout is keycap's. Without keycap running, Cmd is Cmd. A lone Cmd tap has no sender yet (the companion's
+- No Toshy: the Mac layout is keycap's. Without keycap running, Cmd is Cmd. A lone Cmd tap has no sender yet (the assistant's
   Cmd double-tap); use `sill companion summon`.
 - `sill workspace next` and `prev` stop at the first and last workspace (no wrap).
 - Option+Cmd+Esc (Force Quit Applications) does nothing until casement runs `sill force-quit toggle`

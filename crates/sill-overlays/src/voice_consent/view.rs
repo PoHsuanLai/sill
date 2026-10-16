@@ -23,8 +23,8 @@ use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
 /// The sheet's words: what is asked, and what listening means.
-const TITLE: &str = "Talk to Companion?";
-const BODY: &str = "Companion listens only while you hold \u{2318}. What you say is turned into text on this computer and is not kept.";
+const TITLE: &str = "Talk to the assistant?";
+const BODY: &str = "The assistant listens only while you hold \u{2318}. What you say is turned into text on this computer and is not kept.";
 
 /// The one thing the stage holds: the consent question is up (it has no value of its own).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

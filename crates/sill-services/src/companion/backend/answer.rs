@@ -175,7 +175,7 @@ pub(super) async fn card(
 ) {
     let pressed = match within(
         COMPANION_CALL,
-        "the companion",
+        "the assistant",
         press(&connection, &task, &action),
     )
     .await

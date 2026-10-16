@@ -339,7 +339,7 @@ fn palette(
                 LauncherMode::Companion => shown
                     .voice_line
                     .clone()
-                    .unwrap_or_else(|| "Ask the companion".to_owned()),
+                    .unwrap_or_else(|| "Ask the assistant".to_owned()),
             },
             query: session.query.clone(),
             tokens: Vec::new(),

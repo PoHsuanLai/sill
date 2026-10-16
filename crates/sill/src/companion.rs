@@ -53,7 +53,7 @@ pub fn dispatch(reach: &Reach, request: CompanionRequest) -> Response {
         CompanionRequest::Dismiss => CompanionCommand::Dismiss,
         CompanionRequest::StopAll => CompanionCommand::StopAll,
     };
-    sent(reach.services.companion.control.send(command), "companion")
+    sent(reach.services.companion.control.send(command), "assistant")
 }
 
 /// Carry out one launcher effect of a summon on the host thread.

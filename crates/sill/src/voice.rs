@@ -46,7 +46,7 @@ pub fn dispatch(reach: &Reach, request: VoiceRequest) -> Response {
 
 /// The failure response when the companion could not be told, else nothing.
 fn sentless<E: std::fmt::Display>(result: Result<(), E>) -> Option<Response> {
-    match sent(result, "companion") {
+    match sent(result, "assistant") {
         Response::Done => None,
         failed => Some(failed),
     }
