@@ -4,8 +4,13 @@
 //! The source is read, rasterised at the key's size (an SVG through resvg, a PNG or JPEG
 //! decoded and fitted), put through `ds::style::icon::retint::retint_in` for its scheme and written as a PNG,
 //! atomically.
+//!
+//! The source is another program's file, so it is bounded before it is trusted: a regular file
+//! (a pipe would block the thread for ever), at most [`ICON_MAX_BYTES`] (an SVG [`SVG_MAX_BYTES`])
+//! and, as a raster, at most [`ICON_MAX_SIDE`] pixels either way and [`DECODE_MAX_BYTES`] of memory
+//! while decoding.
 
-use std::io::Cursor;
+use std::io::{Cursor, Read};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -14,9 +19,22 @@ use ds::style::icon::retint::IconStyle;
 use ds::style::icon::retint::Tint;
 use ds::style::icon::retint::retint_in;
 use image::imageops::FilterType;
-use image::{ImageFormat, RgbaImage};
+use image::{ImageFormat, ImageReader, Limits, RgbaImage};
 
 use crate::app_icons::size::AssetPx;
+
+/// The largest icon file read: an app icon is a few kilobytes, a large one a few hundred.
+pub const ICON_MAX_BYTES: u64 = 8 * 1024 * 1024;
+
+/// The largest SVG read: a drawing of an icon, not a document.
+pub const SVG_MAX_BYTES: u64 = 1024 * 1024;
+
+/// The most pixels a raster icon may have along either side: icons are drawn at most a few
+/// hundred pixels across.
+pub const ICON_MAX_SIDE: u32 = 4096;
+
+/// The most memory decoding one raster may use.
+pub const DECODE_MAX_BYTES: u64 = 128 * 1024 * 1024;
 
 /// Why an icon could not be made; the cache then keeps showing the untinted file.
 #[derive(Debug, thiserror::Error)]
@@ -27,6 +45,8 @@ pub enum RenderError {
     Image(#[from] image::ImageError),
     #[error("icon svg: {0}")]
     Svg(String),
+    #[error("icon file is not a plain file of a sane size")]
+    Unfit,
 }
 
 /// How a raster is re-coloured: the style, its tint and the scheme it shows in.
@@ -39,10 +59,16 @@ pub struct Recolour {
 
 /// `source` at `px`, re-coloured as `recolour` says, as PNG bytes.
 pub fn render(source: &Path, px: AssetPx, recolour: Recolour) -> Result<Vec<u8>, RenderError> {
-    let bytes = std::fs::read(source)?;
-    let mut raster = match source.extension().and_then(|ext| ext.to_str()) {
-        Some(ext) if ext.eq_ignore_ascii_case("svg") => rasterize_svg(&bytes, px)?,
-        _ => fit(image::load_from_memory(&bytes)?.to_rgba8(), px),
+    let svg = source
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("svg"));
+    let ceiling = if svg { SVG_MAX_BYTES } else { ICON_MAX_BYTES };
+    let bytes = read_bounded(source, ceiling)?;
+    let mut raster = if svg {
+        rasterize_svg(&bytes, px)?
+    } else {
+        fit(decode(&bytes)?, px)
     };
     retint_in(
         raster.as_mut(),
@@ -53,6 +79,35 @@ pub fn render(source: &Path, px: AssetPx, recolour: Recolour) -> Result<Vec<u8>,
     let mut png = Vec::new();
     raster.write_to(&mut Cursor::new(&mut png), ImageFormat::Png)?;
     Ok(png)
+}
+
+/// The bytes of the plain file `path` when it is at most `ceiling` long; anything else (a pipe, a
+/// device, a directory, a larger file) is [`RenderError::Unfit`].
+fn read_bounded(path: &Path, ceiling: u64) -> Result<Vec<u8>, RenderError> {
+    let meta = std::fs::metadata(path)?;
+    if !meta.is_file() || meta.len() > ceiling {
+        return Err(RenderError::Unfit);
+    }
+    let mut bytes = Vec::new();
+    // A file that grows after the check is still read no further than the ceiling.
+    std::fs::File::open(path)?
+        .take(ceiling + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > usize::try_from(ceiling).unwrap_or(usize::MAX) {
+        return Err(RenderError::Unfit);
+    }
+    Ok(bytes)
+}
+
+/// `bytes` decoded as a raster within [`ICON_MAX_SIDE`] and [`DECODE_MAX_BYTES`].
+fn decode(bytes: &[u8]) -> Result<RgbaImage, RenderError> {
+    let mut limits = Limits::no_limits();
+    limits.max_image_width = Some(ICON_MAX_SIDE);
+    limits.max_image_height = Some(ICON_MAX_SIDE);
+    limits.max_alloc = Some(DECODE_MAX_BYTES);
+    let mut reader = ImageReader::new(Cursor::new(bytes)).with_guessed_format()?;
+    reader.limits(limits);
+    Ok(reader.decode()?.to_rgba8())
 }
 
 /// An SVG drawn into a `px` square, fitted and centred, as straight-alpha RGBA.
@@ -117,6 +172,28 @@ pub fn write_atomic(dir: &Path, name: &str, bytes: &[u8]) -> std::io::Result<Pat
     Ok(target)
 }
 
+/// `dir` held to its `keep` newest PNGs; the oldest are removed. A cache is a convenience: what
+/// goes is made again the next time it is drawn.
+pub fn prune(dir: &Path, keep: usize) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let mut files: Vec<(std::time::SystemTime, PathBuf)> = entries
+        .filter_map(Result::ok)
+        .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "png"))
+        .filter_map(|entry| {
+            let meta = entry.metadata().ok()?;
+            let modified = meta.modified().ok()?;
+            meta.is_file().then(|| (modified, entry.path()))
+        })
+        .collect();
+    files.sort();
+    let excess = files.len().saturating_sub(keep);
+    for (_, path) in files.into_iter().take(excess) {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
 /// Whether `target` was written after `source` last changed (a theme update re-renders).
 pub fn fresh(target: &Path, source: &Path) -> bool {
     let modified = |path: &Path| std::fs::metadata(path).and_then(|m| m.modified()).ok();
@@ -128,7 +205,10 @@ pub fn fresh(target: &Path, source: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{Recolour, fresh, render, write_atomic};
+    use super::{
+        ICON_MAX_BYTES, ICON_MAX_SIDE, Recolour, RenderError, SVG_MAX_BYTES, fresh, render,
+        write_atomic,
+    };
     use crate::app_icons::size::AssetPx;
     use ds::prelude::*;
     use ds::style::icon::retint::IconStyle;
@@ -228,6 +308,31 @@ mod tests {
     }
 
     #[test]
+    fn pruning_keeps_the_newest_pngs_and_leaves_other_files() {
+        let dir = temp("prune");
+        for n in 0..6u64 {
+            let path = dir.join(format!("{n}.png"));
+            std::fs::write(&path, b"x").unwrap_or_else(|e| panic!("{e}"));
+            let when = std::time::SystemTime::now() - std::time::Duration::from_secs((6 - n) * 60);
+            std::fs::File::options()
+                .write(true)
+                .open(&path)
+                .and_then(|file| file.set_modified(when))
+                .unwrap_or_else(|e| panic!("{e}"));
+        }
+        std::fs::write(dir.join("note.txt"), b"x").unwrap_or_else(|e| panic!("{e}"));
+        super::prune(&dir, 4);
+        let mut left: Vec<String> = std::fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("{e}"))
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.file_name().to_string_lossy().into_owned())
+            .collect();
+        left.sort();
+        assert_eq!(left, ["2.png", "3.png", "4.png", "5.png", "note.txt"]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn an_atomic_write_leaves_only_the_file_and_it_is_fresh() {
         let dir = temp("write");
         let src = dir.join("source.png");
@@ -255,5 +360,52 @@ mod tests {
             scheme: Scheme::Light,
         };
         assert!(render(missing, AssetPx(48), recolour).is_err());
+    }
+
+    fn recolour() -> Recolour {
+        Recolour {
+            style: IconStyle::Muted,
+            tint: Tint::NEUTRAL,
+            scheme: Scheme::Light,
+        }
+    }
+
+    #[test]
+    fn a_raster_wider_than_the_ceiling_is_refused_and_one_at_it_is_not() {
+        let dir = temp("wide");
+        let save = |name: &str, width: u32| {
+            let path = dir.join(name);
+            image::RgbaImage::from_pixel(width, 1, image::Rgba([1, 2, 3, 255]))
+                .save(&path)
+                .unwrap_or_else(|e| panic!("{e}"));
+            path
+        };
+        let over = save("over.png", ICON_MAX_SIDE + 1);
+        let refused = render(&over, AssetPx(16), recolour());
+        assert!(matches!(refused, Err(RenderError::Image(_))), "{refused:?}");
+        let at = save("at.png", ICON_MAX_SIDE);
+        assert!(render(&at, AssetPx(16), recolour()).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_file_past_its_ceiling_or_not_a_plain_file_is_not_read() {
+        let dir = temp("unfit");
+        let big_png = dir.join("big.png");
+        std::fs::File::create(&big_png)
+            .and_then(|file| file.set_len(ICON_MAX_BYTES + 1))
+            .unwrap_or_else(|e| panic!("{e}"));
+        let big_svg = dir.join("big.svg");
+        std::fs::File::create(&big_svg)
+            .and_then(|file| file.set_len(SVG_MAX_BYTES + 1))
+            .unwrap_or_else(|e| panic!("{e}"));
+        for path in [&big_png, &big_svg, &dir] {
+            let refused = render(path, AssetPx(48), recolour());
+            assert!(
+                matches!(refused, Err(RenderError::Unfit)),
+                "{path:?}: {refused:?}"
+            );
+        }
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

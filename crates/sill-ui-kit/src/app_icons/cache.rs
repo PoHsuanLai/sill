@@ -15,6 +15,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex, MutexGuard};
 
 use dioxus::prelude::*;
@@ -23,7 +24,18 @@ use tokio::sync::watch;
 
 use crate::app_icons::key::IconKey;
 use crate::app_icons::plan::Art;
-use crate::app_icons::render::{Recolour, fresh, render, write_atomic};
+use crate::app_icons::render::{Recolour, fresh, prune, render, write_atomic};
+
+/// How many rasters the folder keeps: a dock and a launcher's icons at a few sizes, tints and
+/// schemes; the oldest go first.
+const FILES_MAX: usize = 512;
+
+/// How many keys the map remembers; past it, the finished ones are forgotten (their files are
+/// found again, newer than their source, the next time they are drawn).
+const SLOTS_MAX: usize = 2048;
+
+/// How many rasters are made between two prunings of the folder.
+const PRUNE_EVERY: u64 = 32;
 
 /// How many rasters the cache has finished, successfully or not: what a resolver re-renders on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -99,6 +111,9 @@ fn styled(key: &IconKey, source: &Path) -> PathBuf {
             // No runtime (a headless render) or no cache directory: show the source, and try
             // again on a later render rather than marking the key.
             if let (Ok(runtime), Some(dir)) = (tokio::runtime::Handle::try_current(), cache_dir()) {
+                if slots.len() >= SLOTS_MAX {
+                    slots.retain(|_, slot| *slot == Slot::Pending);
+                }
                 slots.insert(key.clone(), Slot::Pending);
                 let (key, source) = (key.clone(), source.to_owned());
                 runtime.spawn_blocking(move || make(key, source, dir));
@@ -133,6 +148,10 @@ fn make(key: IconKey, source: PathBuf, dir: PathBuf) {
         }
     };
     slots().insert(key, slot);
+    static MADE: AtomicU64 = AtomicU64::new(0);
+    if MADE.fetch_add(1, Ordering::Relaxed) % PRUNE_EVERY == 0 {
+        prune(&dir, FILES_MAX);
+    }
     CACHE.done.send_modify(|generation| generation.0 += 1);
 }
 

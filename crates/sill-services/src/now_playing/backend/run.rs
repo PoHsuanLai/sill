@@ -19,7 +19,7 @@ use zbus::names::{BusName, OwnedUniqueName};
 use zbus::zvariant::OwnedValue;
 use zbus::{Connection, MatchRule, MessageStream};
 
-use super::art::{apply_art, resolve_art, spawn_art_fetch};
+use super::art::{ArtFetcher, apply_art, resolve_art};
 use super::mpris::{MediaPlayer2Proxy, PLAYER_INTERFACE, PlayerProxy};
 use crate::env::Bus;
 use crate::error::ServiceError;
@@ -42,14 +42,14 @@ pub(crate) async fn run(
     let mut seeks = MessageStream::for_match_rule(seeked_rule()?, &connection, None).await?;
 
     let origin = Instant::now();
-    let (art_tx, mut art_rx) = mpsc::unbounded_channel::<(PlayerId, PathBuf)>();
+    let (art, mut art_rx) = ArtFetcher::new();
     let mut owners: HashMap<OwnedUniqueName, PlayerId> = HashMap::new();
 
     discover(
         &connection,
         &dbus,
         &tx,
-        &art_tx,
+        &art,
         &mut owners,
         Some(cache_dir.as_path()),
         origin,
@@ -59,10 +59,10 @@ pub(crate) async fn run(
     loop {
         tokio::select! {
             Some(signal) = next(&mut owner_changes) => {
-                handle_owner_change(&signal, &connection, &tx, &art_tx, &mut owners, Some(cache_dir.as_path()), origin).await;
+                handle_owner_change(&signal, &connection, &tx, &art, &mut owners, Some(cache_dir.as_path()), origin).await;
             }
             Some(Ok(message)) = next(&mut prop_changes) => {
-                handle_properties_changed(&message, &connection, &tx, &art_tx, &owners, Some(cache_dir.as_path()), origin).await;
+                handle_properties_changed(&message, &connection, &tx, &art, &owners, Some(cache_dir.as_path()), origin).await;
             }
             Some(Ok(message)) = next(&mut seeks) => {
                 handle_seeked(&message, &connection, &tx, &owners, origin).await;
@@ -73,7 +73,7 @@ pub(crate) async fn run(
             command = commands.recv() => match command {
                 Some(MediaCommand::Press { player, verb }) => press(&connection, &tx, &player, verb).await,
                 Some(MediaCommand::Refresh) => {
-                    discover(&connection, &dbus, &tx, &art_tx, &mut owners, Some(cache_dir.as_path()), origin).await;
+                    discover(&connection, &dbus, &tx, &art, &mut owners, Some(cache_dir.as_path()), origin).await;
                 }
                 Some(MediaCommand::Position(id)) => {
                     reread_timeline(&connection, &tx, id, origin).await;
@@ -115,7 +115,7 @@ async fn discover(
     connection: &Connection,
     dbus: &DBusProxy<'_>,
     tx: &watch::Sender<Media>,
-    art_tx: &mpsc::UnboundedSender<(PlayerId, PathBuf)>,
+    art: &ArtFetcher,
     owners: &mut HashMap<OwnedUniqueName, PlayerId>,
     cache_dir: Option<&Path>,
     origin: Instant,
@@ -139,7 +139,7 @@ async fn discover(
             continue;
         };
         if let Some((url, path)) = pending {
-            spawn_art_fetch(player.id.clone(), url, path, art_tx.clone());
+            art.spawn(player.id.clone(), url, path);
         }
         media.players.push(player);
     }
@@ -151,7 +151,7 @@ async fn handle_owner_change(
     signal: &NameOwnerChanged,
     connection: &Connection,
     tx: &watch::Sender<Media>,
-    art_tx: &mpsc::UnboundedSender<(PlayerId, PathBuf)>,
+    art: &ArtFetcher,
     owners: &mut HashMap<OwnedUniqueName, PlayerId>,
     cache_dir: Option<&Path>,
     origin: Instant,
@@ -173,7 +173,7 @@ async fn handle_owner_change(
             {
                 apply(tx, MediaEvent::Player(player));
                 if let Some((url, path)) = pending {
-                    spawn_art_fetch(id, url, path, art_tx.clone());
+                    art.spawn(id, url, path);
                 }
             }
         }
@@ -187,7 +187,7 @@ async fn handle_properties_changed(
     message: &Message,
     connection: &Connection,
     tx: &watch::Sender<Media>,
-    art_tx: &mpsc::UnboundedSender<(PlayerId, PathBuf)>,
+    art: &ArtFetcher,
     owners: &HashMap<OwnedUniqueName, PlayerId>,
     cache_dir: Option<&Path>,
     origin: Instant,
@@ -219,7 +219,7 @@ async fn handle_properties_changed(
         apply(tx, MediaEvent::Player(fresh));
     }
     if let Some((url, path)) = pending {
-        spawn_art_fetch(id, url, path, art_tx.clone());
+        art.spawn(id, url, path);
     }
 }
 
