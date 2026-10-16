@@ -17,8 +17,17 @@
 
 use zbus::Connection;
 use zbus::fdo::{DBusProxy, NameOwnerChangedStream};
+use zbus::names::{BusName, OwnedUniqueName};
 
 use crate::stream::next;
+
+/// The unique name that owns `name` right now, when anyone does and the bus answers.
+pub(crate) async fn current(connection: &Connection, name: &str) -> Option<OwnedUniqueName> {
+    let dbus = DBusProxy::new(connection).await.ok()?;
+    dbus.get_name_owner(BusName::try_from(name).ok()?)
+        .await
+        .ok()
+}
 
 /// A `NameOwnerChanged` stream for `name` alone, and whether it has an owner right now (the
 /// stream is opened first, so no change falls between the two).

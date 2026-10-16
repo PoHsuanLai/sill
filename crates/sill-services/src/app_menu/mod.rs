@@ -6,7 +6,10 @@
 //!
 //! The service follows an app only while some bar names it ([`AppMenuCommand::Follow`]). The bus
 //! name is made by `AppMenuDeps::name_of`, which the daemon fills with quire's `AppMenuAddress`
-//! (a services crate links no design system). The agent's two actions, `shell.menu.list` and
+//! (a services crate links no design system). Owning the name proves nothing, so a menu is read
+//! only when its owner is the program of the app the bar follows
+//! (`sill_model::app_menu::menu_trust`, [`crate::callers`]); an owner that is not has no menu in
+//! the bar, as if nobody owned the name. The agent's two actions, `shell.menu.list` and
 //! `shell.menu.activate`, are [`MenuAgent`]'s: they read the menu fresh and never use this
 //! service's state.
 
@@ -47,8 +50,9 @@ impl Service for AppMenuService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.session.clone();
+        let callers = std::sync::Arc::clone(&env.callers);
         async move {
-            backend::run(bus, deps, io).await;
+            backend::run(bus, callers, deps, io).await;
             Ok(())
         }
     }

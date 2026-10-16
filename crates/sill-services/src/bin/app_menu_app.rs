@@ -1,7 +1,9 @@
 //! A fake app that exports its menu bar as quire apps do (`org.quire.AppMenu.<app_id>` at
 //! `/org/quire/AppMenu`, `com.canonical.dbusmenu`), for the app-menu tests and dev scripts. It
 //! owns the bus name it is given on the private bus at the address it is given, prints its pid,
-//! and logs every call it receives, one line each, to the file it is given.
+//! and logs every call it receives, one line each, to the file it is given. With `--handshake` it
+//! connects first, prints its unique name, and takes the bus name only after a line arrives on its
+//! standard input, so a test can say who the connection is before anyone looks at the name.
 //!
 //! The address is an argument, never `DBUS_SESSION_BUS_ADDRESS`, so this cannot reach the real
 //! session bus by accident.
@@ -14,7 +16,7 @@
 //!
 //! Log lines: `Event <id> <event>`, `AboutToShow <id>`.
 //!
-//! Usage: `cargo run -p sill-services --bin app_menu_app -- <bus address> <log file> <bus name>`
+//! Usage: `cargo run -p sill-services --bin app_menu_app -- <bus address> <log file> <bus name> [--handshake]`
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -34,22 +36,42 @@ const EDIT: i32 = 20;
 async fn main() {
     let mut args = std::env::args().skip(1);
     let (Some(address), Some(log), Some(name)) = (args.next(), args.next(), args.next()) else {
-        eprintln!("usage: app_menu_app <private bus address> <log file> <bus name>");
+        eprintln!("usage: app_menu_app <private bus address> <log file> <bus name> [--handshake]");
         std::process::exit(2);
     };
+    let handshake = args.next().as_deref() == Some("--handshake");
     let menu = Menu {
         log: Log(PathBuf::from(log)),
         grown: Arc::new(Mutex::new(false)),
     };
-    let _connection = zbus::connection::Builder::address(address.as_str())
+    let builder = zbus::connection::Builder::address(address.as_str())
         .unwrap_or_else(|e| panic!("{e}"))
         .serve_at(MENU_PATH, menu)
-        .unwrap_or_else(|e| panic!("{e}"))
-        .name(name.as_str())
-        .unwrap_or_else(|e| panic!("{e}"))
-        .build()
-        .await
-        .unwrap_or_else(|e| panic!("connecting to {address}: {e}"));
+        .unwrap_or_else(|e| panic!("{e}"));
+    let connection = match handshake {
+        true => builder.build().await,
+        false => {
+            builder
+                .name(name.as_str())
+                .unwrap_or_else(|e| panic!("{e}"))
+                .build()
+                .await
+        }
+    }
+    .unwrap_or_else(|e| panic!("connecting to {address}: {e}"));
+    if handshake {
+        let unique = connection
+            .unique_name()
+            .map(ToString::to_string)
+            .unwrap_or_default();
+        println!("app_menu_app: connected {unique}");
+        let mut go = String::new();
+        let _ = std::io::stdin().read_line(&mut go);
+        connection
+            .request_name(name.as_str())
+            .await
+            .unwrap_or_else(|e| panic!("taking {name}: {e}"));
+    }
     println!("app_menu_app: serving {name} as pid {}", std::process::id());
     std::future::pending::<()>().await;
 }

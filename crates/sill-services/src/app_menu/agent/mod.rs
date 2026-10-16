@@ -11,6 +11,7 @@ mod identity;
 mod read;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use docket_client::{DbusTransport, Intents, Transport};
 use sill_model::app_menu::MenuApp;
@@ -19,6 +20,7 @@ use tokio::sync::watch;
 use zbus::Connection;
 
 use super::MenuNameOf;
+use crate::callers::Peers;
 use crate::control::Control;
 
 pub use activate::{Activated, Activation, MenuFault};
@@ -42,15 +44,23 @@ pub struct MenuAgent<T: Transport> {
     links: MenuLinks,
     proc_root: PathBuf,
     intents: Intents<T>,
+    /// Tells the owner of an app's menu name apart from a program that claimed it.
+    peers: Arc<Peers>,
 }
 
 impl MenuAgent<DbusTransport> {
     /// The agent speaking to intentd on `connection`, which is the one that owns
     /// `org.quire.Shell`: intentd names the caller's role from the names it owns. `proc_root` is
-    /// where a process's cgroup is read to prove who owns a menu's name.
-    pub fn over(connection: Connection, links: MenuLinks, proc_root: PathBuf) -> Self {
+    /// where a process's cgroup is read to prove who owns a menu's name, and `peers` says whether
+    /// the owner is the app the window belongs to.
+    pub fn over(
+        connection: Connection,
+        links: MenuLinks,
+        proc_root: PathBuf,
+        peers: Arc<Peers>,
+    ) -> Self {
         let intents = Intents::over(DbusTransport::new(connection.clone()));
-        MenuAgent::with_intents(connection, links, proc_root, intents)
+        MenuAgent::with_intents(connection, links, proc_root, intents, peers)
     }
 }
 
@@ -61,12 +71,14 @@ impl<T: Transport> MenuAgent<T> {
         links: MenuLinks,
         proc_root: PathBuf,
         intents: Intents<T>,
+        peers: Arc<Peers>,
     ) -> Self {
         MenuAgent {
             connection,
             links,
             proc_root,
             intents,
+            peers,
         }
     }
 

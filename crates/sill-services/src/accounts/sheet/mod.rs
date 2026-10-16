@@ -7,10 +7,13 @@
 //! ([`AccountsSheets`]) for the accounts-sheet surface to draw, and sends what the person does
 //! (an [`AccountsSheetCommand::Act`]) back through the pure step.
 //!
-//! - **Only the account services.** Every call is checked against the current owners of
-//!   `org.quire.Accounts1` (accountd), `org.quire.Inference1` (inferd: AI keys, the AI permit and
-//!   agent key sheets) and `org.quire.Sync1` (syncd's own sign-in): a call from any other connection is refused (`AccessDenied`) and draws nothing. `Update` and `Close`
-//!   also must come from the connection that opened the handle.
+//! - **Only the account services.** A call is let in only from accountd (`org.quire.Accounts1`),
+//!   inferd (`org.quire.Inference1`: AI keys, the AI permit and agent key sheets) or syncd
+//!   (`org.quire.Sync1`: its own sign-in), and only when the system shows the caller to be that
+//!   service: the program the table of the desktop's own programs names for its role, owning
+//!   the name ([`crate::callers`]). A call from any other connection is refused
+//!   (`AccessDenied`) and draws nothing. `Update` and `Close` also must come from the connection
+//!   that opened the handle.
 //! - **`Input` goes to accountd alone.** It is sent to the opener's unique name, never broadcast,
 //!   because it may carry a typed password; nothing here logs it or keeps it after it is sent.
 //! - **Passive until [`AccountsSheetCommand::Serve`]**: a test's `start` never claims a name.
@@ -51,8 +54,9 @@ impl Service for AccountsSheetService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.session.clone();
+        let callers = std::sync::Arc::clone(&env.callers);
         async move {
-            backend::run(bus, deps, io).await;
+            backend::run(bus, callers, deps, io).await;
             Ok(())
         }
     }

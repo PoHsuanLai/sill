@@ -2,6 +2,7 @@
 //! [`SheetEvent`] fed to the pure step; what the step asks (an `Input` signal) is carried out here.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use porter_core::sheet::SheetInput;
 use porter_dbus::SHEET_PATH;
@@ -19,12 +20,18 @@ use super::callers::{Caller, Host};
 use super::objects::Call;
 use super::serve;
 use crate::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
+use crate::callers::CallerSource;
 use crate::control::Control;
 use crate::env::Bus;
 use crate::owner;
 use crate::service::ServiceIo;
 
-pub(crate) async fn run(bus: Bus, links: AccountsSheetLinks, io: ServiceIo<AccountsSheetService>) {
+pub(crate) async fn run(
+    bus: Bus,
+    callers: Arc<dyn CallerSource>,
+    links: AccountsSheetLinks,
+    io: ServiceIo<AccountsSheetService>,
+) {
     let ServiceIo {
         state: tx,
         mut commands,
@@ -38,7 +45,7 @@ pub(crate) async fn run(bus: Bus, links: AccountsSheetLinks, io: ServiceIo<Accou
         }
     }
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
-    let connection = match serve::take(&bus, calls_tx).await {
+    let connection = match serve::take(&bus, callers.as_ref(), calls_tx).await {
         Ok(connection) => connection,
         Err(trouble) => {
             tx.send_modify(|state| state.link = SheetLink::Unavailable(trouble));

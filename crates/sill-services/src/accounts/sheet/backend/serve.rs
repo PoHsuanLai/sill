@@ -7,12 +7,14 @@ use zbus::Connection;
 use zbus::fdo::{RequestNameFlags, RequestNameReply};
 
 use super::objects::{Call, SheetObject};
+use crate::callers::CallerSource;
 use crate::env::Bus;
 
 /// Connect to `bus`, export the sheet and claim `org.quire.AccountsSheet1` (never queued: a name
 /// someone else owns is `NameTaken`, not a wait).
 pub(super) async fn take(
     bus: &Bus,
+    callers: &dyn CallerSource,
     calls: UnboundedSender<Call>,
 ) -> Result<Connection, SheetTrouble> {
     let connection = match bus.connect().await {
@@ -20,9 +22,10 @@ pub(super) async fn take(
         Ok(None) => return Err(SheetTrouble::NoBus),
         Err(error) => return Err(SheetTrouble::Refused(error.to_string())),
     };
+    let peers = callers.peers_on(connection.clone());
     connection
         .object_server()
-        .at(SHEET_PATH, SheetObject { calls })
+        .at(SHEET_PATH, SheetObject { calls, peers })
         .await
         .map_err(|error| SheetTrouble::Refused(error.to_string()))?;
     let reply = connection

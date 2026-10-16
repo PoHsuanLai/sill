@@ -18,6 +18,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::auth::PamHelper;
+use crate::callers::{CallerSource, DesktopCallers};
 use crate::polkit_agent;
 use ddc::{DdcBus, FileBus, I2cBuses};
 use sill_model::idle::IdleTimes;
@@ -69,6 +70,9 @@ pub struct Env {
     /// (porter's caller identity): `/proc`, or a fixture tree in a test, or a folder with
     /// nothing in it, where no process is proven to be any app.
     pub proc_root: PathBuf,
+    /// How the callers of the shell's bus objects and the owners of the apps' menu names are
+    /// told apart: the desktop's table and the system's `/proc`, or a stand-in in a test.
+    pub callers: Arc<dyn CallerSource>,
     /// `XDG_CURRENT_DESKTOP` as the process was started with it (colon-separated names): read
     /// once at the edge, so a library never reads the environment.
     pub current_desktop: String,
@@ -123,6 +127,7 @@ impl Env {
             keycap_socket: Some(PathBuf::from(keycap_protocol::SOCKET_PATH)),
             keycap_unit_wait: UnitWait::default(),
             proc_root: PathBuf::from("/proc"),
+            callers: Arc::new(DesktopCallers::from_system()),
             current_desktop: std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
         }
     }
@@ -130,9 +135,11 @@ impl Env {
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not exist,
     /// every directory inside `scratch`, the system clock (read only), DDC monitors from a file
     /// that is not there (none), no polkit helper, session actions that are only recorded, and a
-    /// password check that refuses everything, no processes running, no child started (each is recorded) and no keycap socket. For
-    /// tests that start services and must never reach the person's session or files. `scratch` must exist: the wallpaper service watches the
-    /// nearest existing folder above the wallpaper's source file.
+    /// password check that refuses everything, no processes running, no child started (each is
+    /// recorded), no keycap socket and callers judged against an empty table (every call to a
+    /// shell object is refused until a test says who its stand-ins are). For tests that start
+    /// services and must never reach the person's session or files. `scratch` must exist: the
+    /// wallpaper service watches the nearest existing folder above the wallpaper's source file.
     pub fn isolated(scratch: &Path) -> Env {
         Env {
             buses: Buses::absent(),
@@ -158,6 +165,10 @@ impl Env {
             keycap_socket: None,
             keycap_unit_wait: UnitWait::default(),
             proc_root: scratch.join("no-proc"),
+            // An empty table: nobody is a service, so nothing is let in until a test says who.
+            callers: Arc::new(DesktopCallers::new(
+                peephole_bus::peephole_core::Table::empty(),
+            )),
             current_desktop: String::new(),
         }
     }

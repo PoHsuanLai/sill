@@ -1,15 +1,18 @@
 //! `org.quire.AccountsSheet1`, as the shell exports it. The object only checks who is calling and
 //! hands the call to the loop, which decides and answers.
 
+use std::sync::Arc;
+
 use porter_core::sheet::SheetView;
 use sill_model::accounts::sheet::SheetHandle;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use zbus::fdo;
+use zbus::interface;
 use zbus::message::Header;
+use zbus::object_server::SignalEmitter;
 
 use super::callers::{Caller, from_service};
-use zbus::object_server::SignalEmitter;
-use zbus::{Connection, interface};
+use crate::callers::Peers;
 
 /// The largest view taken, in bytes: a provider list or a review is a few kilobytes.
 const MAX_VIEW: usize = 64 * 1024;
@@ -39,6 +42,8 @@ pub(super) enum Call {
 /// The sheet object.
 pub(super) struct SheetObject {
     pub calls: UnboundedSender<Call>,
+    /// Tells the callers on the sheet's connection apart.
+    pub peers: Arc<Peers>,
 }
 
 fn handle_of(text: &str) -> fdo::Result<SheetHandle> {
@@ -75,9 +80,8 @@ impl SheetObject {
         _parent_window: String,
         view: String,
         #[zbus(header)] header: Header<'_>,
-        #[zbus(connection)] connection: &Connection,
     ) -> fdo::Result<()> {
-        let opener = from_service(connection, &header).await?;
+        let opener = from_service(&self.peers, &header).await?;
         let (handle, view) = (handle_of(&handle)?, view_of(&view)?);
         asked(&self.calls, |answer| Call::Open {
             handle,
@@ -93,9 +97,8 @@ impl SheetObject {
         handle: String,
         view: String,
         #[zbus(header)] header: Header<'_>,
-        #[zbus(connection)] connection: &Connection,
     ) -> fdo::Result<()> {
-        let from = from_service(connection, &header).await?;
+        let from = from_service(&self.peers, &header).await?;
         let (handle, view) = (handle_of(&handle)?, view_of(&view)?);
         asked(&self.calls, |answer| Call::Update {
             handle,
@@ -106,13 +109,8 @@ impl SheetObject {
         .await
     }
 
-    async fn close(
-        &self,
-        handle: String,
-        #[zbus(header)] header: Header<'_>,
-        #[zbus(connection)] connection: &Connection,
-    ) -> fdo::Result<()> {
-        let from = from_service(connection, &header).await?;
+    async fn close(&self, handle: String, #[zbus(header)] header: Header<'_>) -> fdo::Result<()> {
+        let from = from_service(&self.peers, &header).await?;
         let handle = handle_of(&handle)?;
         asked(&self.calls, |answer| Call::Close {
             handle,

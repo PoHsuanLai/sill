@@ -5,7 +5,8 @@
 //!
 //! Everything an app sends (labels, titles, `x-quire-command-id`) is a claim, so [`route`] never
 //! lets one lower an item's effect unless the app is proven to be the app whose manifest names
-//! the command.
+//! the command. Owning the menu's bus name is a claim too: a menu is shown only when its owner
+//! is the program of the focused window ([`menu_trust`]).
 
 mod command;
 mod follow;
@@ -13,6 +14,7 @@ mod layout;
 mod listing;
 mod model;
 mod own;
+mod owner;
 mod route;
 mod step;
 mod titles;
@@ -27,6 +29,7 @@ pub use layout::{Node, NodeProps, NodeType, ToggleKind, rows_of};
 pub use listing::{LISTING_MAX, listing};
 pub use model::{AppMenus, Follower, MenuApp, MenuName, ServedMenu};
 pub use own::{OwnGroup, OwnItem, OwnRow, QuitRow, commands as own_commands, own_groups};
+pub use owner::{MenuClient, MenuOwner, MenuTrust, menu_trust};
 pub use route::{ActionIndex, Identity, ItemKey, Route, effect_of, route_of};
 pub use step::step;
 pub use titles::{TitledMenu, Titles, titles};

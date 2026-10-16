@@ -20,6 +20,7 @@ pub mod auth;
 pub mod badges;
 pub mod battery;
 pub mod bluetooth;
+pub mod callers;
 pub mod capture_pick;
 pub mod clipboard;
 pub mod clock;

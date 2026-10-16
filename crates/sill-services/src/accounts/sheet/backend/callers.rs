@@ -1,12 +1,15 @@
-//! Who may drive the sheet: the owners of the three account services' names. accountd holds
-//! the identities, inferd the AI keys and permits, syncd its own sign-in; each asks for the same
-//! sheets with the same words, so each is checked against its own name the same way.
+//! Who may drive the sheet: the account services. accountd holds the identities, inferd the AI
+//! keys and permits, syncd its own sign-in; each asks for the same sheets with the same words.
+//! A caller is let in when the system shows it to be the service whose well-known name it owns
+//! (`crate::callers`): a program that merely claimed an unowned name is a stranger.
 
+use peephole_bus::peephole_core::roles;
 use porter_dbus::ACCOUNTS_BUS;
-use zbus::Connection;
 use zbus::fdo;
 use zbus::message::Header;
-use zbus::names::{BusName, OwnedUniqueName};
+use zbus::names::OwnedUniqueName;
+
+use crate::callers::{Claim, Peers, admit};
 
 /// A service that may ask for a sheet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -31,36 +34,35 @@ impl Host {
             Host::Sync => "org.quire.Sync1",
         }
     }
+
+    /// The claim the service makes: its name, and the role the desktop's table gives its program.
+    fn claim(self) -> Claim<Host> {
+        let role = match self {
+            Host::Accounts => roles::ACCOUNTS,
+            Host::Inference => roles::INFERENCE,
+            Host::Sync => roles::SYNC,
+        };
+        Claim {
+            name: self.bus(),
+            role,
+            tag: self,
+        }
+    }
 }
 
-/// A caller that is the current owner of one of the services' names.
+/// A caller that is one of the services, by the unique name it was let in under.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Caller {
-    /// Its unique name on the bus.
+    /// Its unique name on the bus: the only address an `Input` signal is sent to.
     pub name: OwnedUniqueName,
-    /// The service it is the owner of.
+    /// The service it is.
     pub host: Host,
 }
 
-/// The caller of `header`, when it is the owner of one of the services' names; anyone else is
-/// refused (`AccessDenied`).
-pub(super) async fn from_service(
-    connection: &Connection,
-    header: &Header<'_>,
-) -> fdo::Result<Caller> {
-    let denied = || {
-        fdo::Error::AccessDenied("only the account services drive the accounts sheet".to_owned())
-    };
-    let sender = header.sender().ok_or_else(denied)?;
-    let bus = fdo::DBusProxy::new(connection).await?;
-    for host in Host::ALL {
-        let name = BusName::try_from(host.bus()).map_err(|e| fdo::Error::Failed(e.to_string()))?;
-        // A name nobody owns has no owner to match.
-        if let Ok(owner) = bus.get_name_owner(name).await
-            && sender.as_str() == owner.as_str()
-        {
-            return Ok(Caller { name: owner, host });
-        }
-    }
-    Err(denied())
+/// The caller of `header`, when it is one of the account services; anyone else is refused
+/// (`AccessDenied`).
+pub(super) async fn from_service(peers: &Peers, header: &Header<'_>) -> fdo::Result<Caller> {
+    let claims = Host::ALL.map(Host::claim);
+    let (name, host) = admit(peers, header, &claims).await?;
+    Ok(Caller { name, host })
 }

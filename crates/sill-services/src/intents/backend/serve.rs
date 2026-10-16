@@ -16,6 +16,7 @@ use zbus::fdo::RequestNameFlags;
 use super::objects::{Call, ConfirmObject};
 use super::provider::{NoSummon, ShellContext, ShellProvider, manifest};
 use crate::app_menu::{MenuAgent, MenuLinks};
+use crate::callers::CallerSource;
 use crate::env::Bus;
 use crate::intents::ShellCall;
 
@@ -29,6 +30,7 @@ pub(super) struct Seat {
 /// while it also owns the first, so the sheet is never reachable before it is trusted.
 pub(super) async fn take(
     bus: &Bus,
+    callers: &dyn CallerSource,
     calls: UnboundedSender<Call>,
     shell: UnboundedSender<ShellCall>,
     menus: MenuLinks,
@@ -42,11 +44,12 @@ pub(super) async fn take(
     };
     let manifest = manifest().map_err(LinkTrouble::Refused)?;
     let app = manifest.manifest().app.clone();
-    let callers = Arc::new(intentd_at(&connection, &proc_root));
+    let intentd = Arc::new(intentd_at(&connection, &proc_root));
+    let peers = callers.peers_on(connection.clone());
     let provider = ShellProvider {
         manifest,
         calls: shell,
-        menus: MenuAgent::over(connection.clone(), menus.clone(), proc_root),
+        menus: MenuAgent::over(connection.clone(), menus.clone(), proc_root, peers.clone()),
         windows: menus,
         shots,
     };
@@ -55,7 +58,7 @@ pub(super) async fn take(
         provider,
         ShellContext { app },
         NoSummon,
-        callers,
+        intentd,
     )
     .await
     .map_err(|error| trouble(error.to_string()))?;
@@ -66,6 +69,7 @@ pub(super) async fn take(
             ConfirmObject {
                 calls,
                 serials: Arc::new(AtomicU64::new(0)),
+                peers,
             },
         )
         .await

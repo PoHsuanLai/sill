@@ -27,6 +27,7 @@ use zbus::Connection;
 use super::control::{self, Signalled};
 use super::objects::{Asker, Call, REQUEST_INTERFACE, retire};
 use super::serve::{self, Seat};
+use crate::callers::CallerSource;
 use crate::env::{Bus, Env, WallClock};
 use crate::intents::{IntentsLinks, IntentsService};
 use crate::owner;
@@ -41,6 +42,7 @@ pub(crate) struct Reach {
     session: Bus,
     clock: Arc<dyn WallClock>,
     proc_root: PathBuf,
+    callers: Arc<dyn CallerSource>,
 }
 
 impl Reach {
@@ -49,6 +51,7 @@ impl Reach {
             session: env.buses.session.clone(),
             clock: Arc::clone(&env.clock),
             proc_root: env.proc_root.clone(),
+            callers: Arc::clone(&env.callers),
         }
     }
 }
@@ -81,6 +84,7 @@ pub(crate) async fn run(reach: Reach, links: IntentsLinks, io: ServiceIo<Intents
     let (inner_tx, mut inner) = mpsc::unbounded_channel();
     let seat = match serve::take(
         &reach.session,
+        reach.callers.as_ref(),
         calls_tx,
         links.calls,
         links.menus,

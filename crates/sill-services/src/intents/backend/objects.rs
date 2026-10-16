@@ -7,13 +7,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use docket_core::{ConfirmId, ConfirmRequest};
 use docket_dbus::INTENTS_BUS;
+use peephole_bus::peephole_core::roles;
 use sill_model::intents::sheet::Serial;
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 use zbus::fdo;
 use zbus::message::Header;
-use zbus::names::{BusName, OwnedUniqueName};
+use zbus::names::OwnedUniqueName;
 use zbus::zvariant::OwnedObjectPath;
+
+use crate::callers::{Claim, Peers, admit};
 
 /// Where `Confirm` answers a question and where its `Response` goes.
 pub(super) const REQUEST_PATH: &str = "/org/quire/Confirm1/request";
@@ -46,6 +49,8 @@ pub(super) enum Call {
 pub(super) struct ConfirmObject {
     pub calls: UnboundedSender<Call>,
     pub serials: Arc<AtomicU64>,
+    /// Tells the callers on the seat's connection apart.
+    pub peers: Arc<Peers>,
 }
 
 /// One question's request object. Only its asker may close it.
@@ -55,19 +60,19 @@ pub(super) struct RequestObject {
     calls: UnboundedSender<Call>,
 }
 
-/// The unique name of the caller, when it is the owner of intentd's name: nobody else may ask the
-/// person a question in intentd's name, withdraw one, or answer for it.
-async fn from_intentd(
-    connection: &Connection,
-    header: &Header<'_>,
-) -> fdo::Result<OwnedUniqueName> {
-    let denied = || fdo::Error::AccessDenied("only intentd asks the sheet".to_owned());
-    let dbus = fdo::DBusProxy::new(connection).await?;
-    let name = BusName::try_from(INTENTS_BUS).map_err(|e| fdo::Error::Failed(e.to_string()))?;
-    let owner = dbus.get_name_owner(name).await.map_err(|_| denied())?;
-    match header.sender() {
-        Some(sender) if sender.as_str() == owner.as_str() => Ok(owner),
-        Some(_) | None => Err(denied()),
+impl ConfirmObject {
+    /// The unique name of the caller, when it is intentd: the program the table names as the
+    /// router, which owns intentd's name. Nobody else may ask the person a question in intentd's
+    /// name, withdraw one, or answer for it.
+    async fn from_intentd(&self, header: &Header<'_>) -> fdo::Result<OwnedUniqueName> {
+        let claims = [Claim {
+            name: INTENTS_BUS,
+            role: roles::ROUTER,
+            tag: (),
+        }];
+        admit(&self.peers, header, &claims)
+            .await
+            .map(|(name, ())| name)
     }
 }
 
@@ -79,7 +84,7 @@ impl ConfirmObject {
         #[zbus(header)] header: Header<'_>,
         #[zbus(connection)] connection: &Connection,
     ) -> fdo::Result<OwnedObjectPath> {
-        let asker = from_intentd(connection, &header).await?;
+        let asker = self.from_intentd(&header).await?;
         let parsed: ConfirmRequest = serde_json::from_str(&request)
             .map_err(|e| fdo::Error::InvalidArgs(format!("not a ConfirmRequest: {e}")))?;
         let serial = Serial(self.serials.fetch_add(1, Ordering::Relaxed) + 1);
@@ -105,13 +110,8 @@ impl ConfirmObject {
         Ok(path)
     }
 
-    async fn cancel(
-        &self,
-        id: String,
-        #[zbus(header)] header: Header<'_>,
-        #[zbus(connection)] connection: &Connection,
-    ) -> fdo::Result<()> {
-        from_intentd(connection, &header).await?;
+    async fn cancel(&self, id: String, #[zbus(header)] header: Header<'_>) -> fdo::Result<()> {
+        self.from_intentd(&header).await?;
         let id = ConfirmId::parse(&id).map_err(|e| fdo::Error::InvalidArgs(e.to_string()))?;
         self.calls
             .send(Call::Cancel(id))

@@ -1,11 +1,14 @@
 //! Reading an app's menu on demand.
 
-use sill_model::app_menu::{MenuApp, MenuName, QuitRow, ServedMenu, listing, own_groups, rows_of};
+use sill_model::app_menu::{
+    MenuApp, MenuClient, MenuName, MenuTrust, QuitRow, ServedMenu, listing, own_groups, rows_of,
+};
 use zbus::fdo::DBusProxy;
 use zbus::names::{BusName, OwnedUniqueName};
 
 use super::{MenuAgent, MenuFault};
 use crate::app_menu::wire::read_layout;
+use crate::callers::menu_shown;
 use docket_client::Transport;
 
 /// The menus of one app, as text for the planner.
@@ -45,7 +48,9 @@ impl<T: Transport> MenuAgent<T> {
         })
     }
 
-    /// The app's menu as its current owner serves it, or `None` when nobody owns the name.
+    /// The app's menu as its current owner serves it, or `None` when nobody owns the name or the
+    /// owner is not the app the window belongs to: a program that only claimed the name has no
+    /// menu here, for the planner or for a click.
     pub(super) async fn serve(&self, app: &MenuApp) -> Result<Option<Served>, MenuFault> {
         let Some(name) = (self.links.name_of)(app) else {
             return Ok(None);
@@ -53,6 +58,10 @@ impl<T: Transport> MenuAgent<T> {
         let Some(owner) = self.owner_of(&name).await? else {
             return Ok(None);
         };
+        let client = MenuClient::unreported(app);
+        if menu_shown(&self.peers, &owner, &client).await == MenuTrust::Hidden {
+            return Ok(None);
+        }
         let nodes = read_layout(&self.connection, owner.as_str())
             .await
             .map_err(|_| MenuFault::Failed("the app's menu could not be read".to_owned()))?;

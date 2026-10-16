@@ -30,12 +30,15 @@ use sill_model::windows::{
 use sill_services::app_menu::{
     Activated, AppMenuDeps, AppMenuService, MenuAgent, MenuFault, MenuLinks,
 };
+use sill_services::callers::CallerSource;
 use sill_services::control::Control;
 use sill_services::env::{BusRoute, Buses, Env};
 use sill_services::service::{Handle, spawn};
 use sill_testkit::{PrivateBus, TempDir};
 use tokio::sync::watch;
 use zbus::Connection;
+
+use crate::callers_support::Introduced;
 
 const WAIT: Duration = Duration::from_secs(20);
 
@@ -63,22 +66,47 @@ struct FakeApp {
 }
 
 impl FakeApp {
-    fn start(bus: &PrivateBus, scratch: &Path, app_id: &str) -> FakeApp {
-        use std::io::{BufRead, BufReader};
+    /// The app `app_id`, which the system shows to have been started as `app_id`.
+    fn start(bus: &PrivateBus, scratch: &Path, app_id: &str, callers: &Introduced) -> FakeApp {
+        FakeApp::start_as(bus, scratch, app_id, callers, app_id)
+    }
+
+    /// The app `app_id`, which the system shows to have been started as `launched_as`. The app
+    /// connects first and takes its menu name only after the test has said who the connection is,
+    /// so the service never looks at the name before it can know the owner.
+    fn start_as(
+        bus: &PrivateBus,
+        scratch: &Path,
+        app_id: &str,
+        callers: &Introduced,
+        launched_as: &str,
+    ) -> FakeApp {
+        use std::io::{BufRead, BufReader, Write};
         let log = scratch.join(format!("{app_id}.log"));
         let mut child = Command::new(app_menu_app())
             .arg(&bus.address)
             .arg(&log)
             .arg(name_of(&MenuApp(app_id.to_owned())).map_or_else(String::new, |n| n.0))
+            .arg("--handshake")
+            .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
             .unwrap_or_else(|e| panic!("starting app_menu_app: {e}"));
         let stdout = child.stdout.take().unwrap_or_else(|| panic!("no stdout"));
+        let mut stdin = child.stdin.take().unwrap_or_else(|| panic!("no stdin"));
+        let mut lines = BufReader::new(stdout);
         let mut line = String::new();
-        BufReader::new(stdout)
-            .read_line(&mut line)
-            .unwrap_or_else(|e| panic!("{e}"));
+        lines.read_line(&mut line).unwrap_or_else(|e| panic!("{e}"));
+        let unique = line
+            .trim()
+            .strip_prefix("app_menu_app: connected ")
+            .unwrap_or_else(|| panic!("{line:?}"))
+            .to_owned();
+        callers.launched_as(&unique, "/usr/bin/app_menu_app", launched_as);
+        stdin.write_all(b"go\n").unwrap_or_else(|e| panic!("{e}"));
+        line.clear();
+        lines.read_line(&mut line).unwrap_or_else(|e| panic!("{e}"));
         assert!(line.starts_with("app_menu_app: serving"), "{line:?}");
         let pid = child.id();
         FakeApp { child, log, pid }
@@ -117,9 +145,10 @@ impl Drop for FakeApp {
 }
 
 /// The service on `bus`, in this process.
-fn service(bus: &PrivateBus, scratch: &Path) -> Handle<AppMenuService> {
+fn service(bus: &PrivateBus, scratch: &Path, callers: &Arc<Introduced>) -> Handle<AppMenuService> {
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        callers: callers.clone(),
         ..Env::isolated(scratch)
     };
     spawn::<AppMenuService>(
@@ -183,8 +212,9 @@ async fn a_followed_apps_titles_clicks_and_changes_reach_the_bar_and_back() {
         return;
     };
     let scratch = TempDir::new("app-menu-follow");
-    let app = FakeApp::start(&bus, scratch.path(), "test.app");
-    let handle = service(&bus, scratch.path());
+    let callers = Introduced::new();
+    let app = FakeApp::start(&bus, scratch.path(), "test.app", &callers);
+    let handle = service(&bus, scratch.path(), &callers);
     let test_app = MenuApp("test.app".to_owned());
 
     follow(&handle, Some("test.app"));
@@ -252,7 +282,8 @@ async fn an_app_with_no_owner_has_no_menu_until_one_appears_and_none_after_it_le
         return;
     };
     let scratch = TempDir::new("app-menu-owner");
-    let handle = service(&bus, scratch.path());
+    let callers = Introduced::new();
+    let handle = service(&bus, scratch.path(), &callers);
     let late = MenuApp("test.app".to_owned());
 
     follow(&handle, Some("test.app"));
@@ -263,7 +294,7 @@ async fn an_app_with_no_owner_has_no_menu_until_one_appears_and_none_after_it_le
         "no owner, no menu"
     );
 
-    let app = FakeApp::start(&bus, scratch.path(), "test.app");
+    let app = FakeApp::start(&bus, scratch.path(), "test.app", &callers);
     menus_where(&handle, "the menu once its app is there", |m| {
         m.served.contains_key(&late)
     })
@@ -377,6 +408,7 @@ struct Agent {
 async fn agent(
     bus: &PrivateBus,
     scratch: &Path,
+    callers: &Arc<Introduced>,
     apps: &[&str],
     proof: Option<(u32, &str)>,
 ) -> Agent {
@@ -417,6 +449,7 @@ async fn agent(
         links,
         proc_root,
         Intents::over(intentd.clone()),
+        callers.peers_on(connection.clone()),
     );
     Agent {
         agent,
@@ -443,8 +476,9 @@ async fn the_listing_names_every_row_and_carries_the_apps_commands() {
         return;
     };
     let scratch = TempDir::new("app-menu-list");
-    let _app = FakeApp::start(&bus, scratch.path(), "test.app");
-    let agent = agent(&bus, scratch.path(), &["test.app", "other"], None).await;
+    let callers = Introduced::new();
+    let _app = FakeApp::start(&bus, scratch.path(), "test.app", &callers);
+    let agent = agent(&bus, scratch.path(), &callers, &["test.app", "other"], None).await;
 
     let listed = agent
         .agent
@@ -493,8 +527,9 @@ async fn an_unverified_apps_items_are_destructive_whatever_their_titles_or_comma
         return;
     };
     let scratch = TempDir::new("app-menu-spoof");
-    let app = FakeApp::start(&bus, scratch.path(), "test.app");
-    let mut agent = agent(&bus, scratch.path(), &["test.app"], None).await;
+    let callers = Introduced::new();
+    let app = FakeApp::start(&bus, scratch.path(), "test.app", &callers);
+    let mut agent = agent(&bus, scratch.path(), &callers, &["test.app"], None).await;
 
     // An item that names another app's harmless Read action: a claim, so a destructive click.
     let spoof = agent.agent.activate(None, "22", None).await;
@@ -555,10 +590,12 @@ async fn a_verified_apps_own_command_is_handed_back_as_the_next_call_and_never_c
         return;
     };
     let scratch = TempDir::new("app-menu-verified");
-    let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
+    let callers = Introduced::new();
+    let app = FakeApp::start(&bus, scratch.path(), "dev.notes", &callers);
     let agent = agent(
         &bus,
         scratch.path(),
+        &callers,
         &["dev.notes"],
         Some((app.pid, "dev.notes")),
     )
@@ -615,10 +652,12 @@ async fn classify_answers_read_destructive_or_delegates_as_the_table_says() {
     };
     // Verified: a declared command delegates; a spoof and a View item are destructive.
     let scratch = TempDir::new("app-menu-classify-verified");
-    let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
+    let callers = Introduced::new();
+    let app = FakeApp::start(&bus, scratch.path(), "dev.notes", &callers);
     let verified = agent(
         &bus,
         scratch.path(),
+        &callers,
         &["dev.notes"],
         Some((app.pid, "dev.notes")),
     )
@@ -649,8 +688,9 @@ async fn classify_answers_read_destructive_or_delegates_as_the_table_says() {
 
     // Unverified: even the declared command is a claim.
     let scratch = TempDir::new("app-menu-classify-unverified");
-    let _app = FakeApp::start(&bus, scratch.path(), "test.app");
-    let unverified = agent(&bus, scratch.path(), &["test.app"], None).await;
+    let callers = Introduced::new();
+    let _app = FakeApp::start(&bus, scratch.path(), "test.app", &callers);
+    let unverified = agent(&bus, scratch.path(), &callers, &["test.app"], None).await;
     for item in ["21", "22", "42"] {
         assert_eq!(
             unverified.agent.classify(None, item).await,
@@ -670,10 +710,12 @@ async fn perform_refuses_an_item_that_changed_since_it_was_gated_and_always_take
         return;
     };
     let scratch = TempDir::new("app-menu-changed");
-    let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
+    let callers = Introduced::new();
+    let app = FakeApp::start(&bus, scratch.path(), "dev.notes", &callers);
     let mut agent = agent(
         &bus,
         scratch.path(),
+        &callers,
         &["dev.notes"],
         Some((app.pid, "dev.notes")),
     )
@@ -745,11 +787,14 @@ async fn a_name_owned_by_another_app_than_it_names_is_not_verified() {
         return;
     };
     let scratch = TempDir::new("app-menu-impostor");
-    // The process serves dev.notes's menu name but was launched as dev.other.
-    let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
+    let callers = Introduced::new();
+    // The program is dev.notes's, but its scope says it was launched as dev.other: its menu is
+    // read and every item of it is a destructive click.
+    let app = FakeApp::start(&bus, scratch.path(), "dev.notes", &callers);
     let agent = agent(
         &bus,
         scratch.path(),
+        &callers,
         &["dev.notes"],
         Some((app.pid, "dev.other")),
     )
@@ -766,12 +811,62 @@ async fn a_name_owned_by_another_app_than_it_names_is_not_verified() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn a_menu_served_by_another_program_than_the_apps_is_neither_listed_nor_clicked() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("app-menu-squatter");
+    let callers = Introduced::new();
+    // The program that owns dev.notes's menu name is the system's, and was launched as dev.other.
+    let squatter = FakeApp::start_as(&bus, scratch.path(), "dev.notes", &callers, "dev.other");
+    let agent = agent(&bus, scratch.path(), &callers, &["dev.notes"], None).await;
+
+    let listed = agent
+        .agent
+        .list(None)
+        .await
+        .unwrap_or_else(|e| panic!("{e:?}"));
+    assert!(
+        !listed.text.contains("Undo"),
+        "the squatter's menu was listed: {}",
+        listed.text
+    );
+    let clicked = agent.agent.activate(None, "21", None).await;
+    assert!(matches!(clicked, Err(MenuFault::NoMenu)), "{clicked:?}");
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(
+        !squatter.lines().iter().any(|l| l.starts_with("Event ")),
+        "the squatter was clicked: {:?}",
+        squatter.lines()
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_bar_shows_no_menu_for_a_name_another_program_owns() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("app-menu-bar-squatter");
+    let callers = Introduced::new();
+    let _squatter = FakeApp::start_as(&bus, scratch.path(), "test.app", &callers, "dev.other");
+    let handle = service(&bus, scratch.path(), &callers);
+    follow(&handle, Some("test.app"));
+    tokio::time::sleep(Duration::from_millis(800)).await;
+    assert_eq!(
+        *handle.state.borrow(),
+        AppMenus::default(),
+        "a menu from a program that is not the app was shown"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn the_shells_own_rows_do_what_the_table_calls_cheap() {
     let Some(bus) = PrivateBus::start() else {
         return;
     };
     let scratch = TempDir::new("app-menu-own");
-    let mut agent = agent(&bus, scratch.path(), &["foot", "files"], None).await;
+    let callers = Introduced::new();
+    let mut agent = agent(&bus, scratch.path(), &callers, &["foot", "files"], None).await;
 
     let cases = [
         (
@@ -1166,10 +1261,12 @@ mod routed {
             return;
         };
         let scratch = TempDir::new("app-menu-routed");
-        let app = FakeApp::start(&bus, scratch.path(), "dev.notes");
+        let callers = Introduced::new();
+        let app = FakeApp::start(&bus, scratch.path(), "dev.notes", &callers);
         let shell = agent(
             &bus,
             scratch.path(),
+            &callers,
             &["dev.notes"],
             Some((app.pid, "dev.notes")),
         )

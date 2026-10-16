@@ -218,6 +218,13 @@ casement-protocols = { path = "../casement-protocols" }
 # wayland-client; its wire layer behind the `client` feature, its fake behind `fake`): the
 # `desktop_wl` arm of sill-services is built on it. MIT OR Apache-2.0, a sibling checkout.
 desktop-client = { path = "../casement-protocols/desktop-client" }
+# Which program is calling a bus method: the pinned process behind a sender (pidfd), its unit as the
+# unit manager states it, judged against the root-owned table at /etc/quire/desktop-callers.toml
+# (`sill-services::callers`: the callers of Shell1, AccountsSheet1 and Confirm1, and the owner of an
+# app's menu name). zbus runs on tokio here, so the default executor feature is off; `desktop` names
+# the desktop's roles; `fake` (a caller that is only a claim) is a dev-only addition of sill-services.
+# MIT OR Apache-2.0, own repo.
+peephole-bus = { git = "https://github.com/PoHsuanLai/peephole", tag = "v0.1.2", default-features = false, features = ["tokio", "desktop"] }
 prov = { path = "../porter/crates/prov" }
 porter-core = { path = "../porter/crates/porter-core" }
 # Test-only: the `ServedBy` a stand-in voiced stamps on a transcript.

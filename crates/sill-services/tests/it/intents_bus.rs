@@ -36,6 +36,8 @@ use zbus::fdo;
 use zbus::object_server::SignalEmitter;
 use zbus::{Connection, interface};
 
+use crate::callers_support::{Introduced, Role, Who};
+
 /// How long a test waits for something that must happen.
 const WAIT: Duration = Duration::from_secs(8);
 
@@ -50,7 +52,7 @@ fn grant(action: &str) -> ActionRef {
     }
 }
 
-fn request(id: &str, offer: ConfirmOffer, expires: u32) -> ConfirmRequest {
+pub(crate) fn request(id: &str, offer: ConfirmOffer, expires: u32) -> ConfirmRequest {
     ConfirmRequest::new(ConfirmParts {
         id: ConfirmId::parse(id).unwrap_or_else(|e| panic!("{id}: {e}")),
         space: SpaceId::parse("desktop").unwrap_or_else(|e| panic!("{e}")),
@@ -122,13 +124,15 @@ impl StandInControl {
 }
 
 /// The seat under test, its bus and the stand-in intentd.
-struct Desk {
+pub(crate) struct Desk {
     procs: TempDir,
-    bus: PrivateBus,
-    seat: Handle<IntentsService>,
+    pub(crate) bus: PrivateBus,
+    pub(crate) seat: Handle<IntentsService>,
     shell_calls: mpsc::UnboundedReceiver<ShellCall>,
-    intentd: Connection,
+    pub(crate) intentd: Connection,
     held: Arc<Mutex<Held>>,
+    /// Who the stand-ins are, to the seat.
+    pub(crate) callers: Arc<Introduced>,
 }
 
 /// A fake proc root in which this process is `intentd.service`'s main process: every connection
@@ -149,7 +153,7 @@ fn intentd_is_this_process() -> TempDir {
     procs
 }
 
-async fn connect(address: &str) -> Connection {
+pub(crate) async fn connect(address: &str) -> Connection {
     zbus::connection::Builder::address(address)
         .unwrap_or_else(|e| panic!("{e}"))
         .build()
@@ -164,11 +168,22 @@ async fn desk() -> Option<Desk> {
 
 /// As [`desk`], with `menus` for the windows and `shots` for the screenshots the shell has seen.
 async fn desk_with(menus: MenuLinks, shots: watch::Receiver<Shots>) -> Option<Desk> {
+    desk_as(menus, shots, Who::Service(Role::Router)).await
+}
+
+/// As [`desk_with`], the owner of intentd's name being `who` to the seat.
+pub(crate) async fn desk_as(
+    menus: MenuLinks,
+    shots: watch::Receiver<Shots>,
+    who: Who,
+) -> Option<Desk> {
     let bus = PrivateBus::start()?;
     let procs = intentd_is_this_process();
+    let callers = Introduced::new();
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
         proc_root: procs.path().to_owned(),
+        callers: callers.clone(),
         ..Env::isolated(Path::new("/nonexistent/sill-intents-bus"))
     };
     let (calls, shell_calls) = mpsc::unbounded_channel();
@@ -184,6 +199,7 @@ async fn desk_with(menus: MenuLinks, shots: watch::Receiver<Shots>) -> Option<De
     );
     let held = Arc::new(Mutex::new(Held::default()));
     let intentd = connect(&bus.address).await;
+    callers.make(&intentd, who);
     intentd
         .object_server()
         .at("/org/quire/Intents1", StandInControl(held.clone()))
@@ -200,6 +216,7 @@ async fn desk_with(menus: MenuLinks, shots: watch::Receiver<Shots>) -> Option<De
         shell_calls,
         intentd,
         held,
+        callers,
     })
 }
 
@@ -216,7 +233,7 @@ async fn until(rx: &mut watch::Receiver<Intents>, what: &str, ok: impl FnMut(&In
 
 impl Desk {
     /// Serve, and wait until the seat says so.
-    async fn serving(&self) -> watch::Receiver<Intents> {
+    pub(crate) async fn serving(&self) -> watch::Receiver<Intents> {
         let mut state = self.seat.state.clone();
         self.seat
             .control
@@ -257,7 +274,7 @@ fn answer_of(body: &str) -> ConfirmAnswer {
 }
 
 /// The agent's links with no windows and no compositor: these tests never ask a menu.
-fn no_menus() -> MenuLinks {
+pub(crate) fn no_menus() -> MenuLinks {
     MenuLinks {
         toplevels: watch::channel(WindowModel::default()).1,
         wl: Control::channel().0,

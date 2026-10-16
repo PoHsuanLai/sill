@@ -1,6 +1,7 @@
 //! The service's loop: the bars' wishes in, one followed session per wanted app, the menus out.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use sill_model::app_menu::{AppMenuCommand, AppMenuEvent, Followers, MenuApp, MenuName, step};
 use tokio::sync::mpsc;
@@ -9,6 +10,7 @@ use zbus::Connection;
 
 use super::serve;
 use crate::app_menu::{AppMenuDeps, AppMenuService, wire};
+use crate::callers::CallerSource;
 use crate::env::Bus;
 use crate::service::ServiceIo;
 
@@ -18,7 +20,12 @@ struct Followed {
     task: JoinHandle<()>,
 }
 
-pub(crate) async fn run(bus: Bus, deps: AppMenuDeps, io: ServiceIo<AppMenuService>) {
+pub(crate) async fn run(
+    bus: Bus,
+    callers: Arc<dyn CallerSource>,
+    deps: AppMenuDeps,
+    io: ServiceIo<AppMenuService>,
+) {
     let connection = match bus.connect().await {
         Ok(Some(connection)) => connection,
         Ok(None) => return,
@@ -27,6 +34,7 @@ pub(crate) async fn run(bus: Bus, deps: AppMenuDeps, io: ServiceIo<AppMenuServic
             return;
         }
     };
+    let peers = callers.peers_on(connection.clone());
     let ServiceIo {
         state,
         mut commands,
@@ -50,6 +58,7 @@ pub(crate) async fn run(bus: Bus, deps: AppMenuDeps, io: ServiceIo<AppMenuServic
                         if let Some(name) = (deps.name_of)(&app) {
                             let task = tokio::spawn(serve::follow(
                                 connection.clone(),
+                                peers.clone(),
                                 app.clone(),
                                 name.clone(),
                                 events_tx.clone(),

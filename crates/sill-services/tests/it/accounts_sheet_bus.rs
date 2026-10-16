@@ -1,9 +1,10 @@
 //! The accounts sheet's host side on a private bus: a stand-in accountd drives it (`Open`,
 //! `Update`, `Close`) and hears `Input`; the shell's own part is stepped through `Act`. Only the
-//! owner of `org.quire.Accounts1` may drive it (a forged caller is refused and draws nothing), and
-//! what the person typed reaches accountd alone. A test skips, saying so, without a `dbus-daemon`.
-//! Never the person's session bus.
+//! account services may drive it (a forged caller is refused and draws nothing; who counts as a
+//! service is `callers_bus.rs`'s), and what the person typed reaches accountd alone. A test skips,
+//! saying so, without a `dbus-daemon`. Never the person's session bus.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use porter_core::sheet::{
@@ -27,6 +28,8 @@ use zbus::Connection;
 use zbus::connection::Builder;
 use zbus::export::futures_core::Stream;
 
+use crate::callers_support::{Introduced, Role, Who};
+
 const SETTLE: Duration = Duration::from_secs(5);
 /// How long a thing that must not happen is given to happen.
 const QUIET: Duration = Duration::from_millis(500);
@@ -45,7 +48,7 @@ fn handle(text: &str) -> SheetHandle {
     SheetHandle::parse(text).unwrap_or_else(|| panic!("{text}"))
 }
 
-fn providers() -> String {
+pub(crate) fn providers() -> String {
     json(&SheetView::Providers(vec![ProviderRow {
         id: provider("nextcloud"),
         label: "Nextcloud".to_owned(),
@@ -79,17 +82,21 @@ fn json(view: &SheetView) -> String {
     serde_json::to_string(view).unwrap_or_else(|e| panic!("{e}"))
 }
 
-struct Shell {
-    sheet: Handle<AccountsSheetService>,
+pub(crate) struct Shell {
+    pub(crate) sheet: Handle<AccountsSheetService>,
+    /// Who the stand-ins are, to the sheet.
+    pub(crate) callers: Arc<Introduced>,
     /// What the sheet asked the launch service to do.
     launched: tokio::sync::mpsc::UnboundedReceiver<LaunchCommand>,
     _scratch: TempDir,
 }
 
-fn shell(bus: &PrivateBus) -> Shell {
+pub(crate) fn shell(bus: &PrivateBus) -> Shell {
     let scratch = TempDir::new("accounts-sheet-bus");
+    let callers = Introduced::new();
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        callers: callers.clone(),
         ..Env::isolated(scratch.path())
     };
     let (launch, launched) = Control::channel();
@@ -100,12 +107,13 @@ fn shell(bus: &PrivateBus) -> Shell {
     );
     Shell {
         sheet,
+        callers,
         launched,
         _scratch: scratch,
     }
 }
 
-async fn serving(shell: &mut Shell) {
+pub(crate) async fn serving(shell: &mut Shell) {
     let _ = shell.sheet.control.send(AccountsSheetCommand::Serve);
     assert!(
         wait_for(&mut shell.sheet.state, |s: &AccountsSheets| s.link
@@ -117,7 +125,7 @@ async fn serving(shell: &mut Shell) {
 }
 
 /// A connection on `bus`, holding `name` when given.
-async fn connect(bus: &PrivateBus, name: Option<&str>) -> Connection {
+pub(crate) async fn connect(bus: &PrivateBus, name: Option<&str>) -> Connection {
     let builder = Builder::address(bus.address.as_str()).unwrap_or_else(|e| panic!("{e}"));
     let builder = match name {
         Some(name) => builder
@@ -131,7 +139,24 @@ async fn connect(bus: &PrivateBus, name: Option<&str>) -> Connection {
         .unwrap_or_else(|e| panic!("connecting: {e}"))
 }
 
-async fn host(connection: &Connection) -> AccountsSheetProxy<'static> {
+/// A stand-in holding `name`, whom the sheet takes for the service `role`.
+async fn serviced(bus: &PrivateBus, shell: &Shell, name: &str, role: Role) -> Connection {
+    standing_in(bus, shell, name, Who::Service(role)).await
+}
+
+/// A stand-in holding `name`, whom the sheet takes for `who`.
+pub(crate) async fn standing_in(
+    bus: &PrivateBus,
+    shell: &Shell,
+    name: &str,
+    who: Who,
+) -> Connection {
+    let connection = connect(bus, Some(name)).await;
+    shell.callers.make(&connection, who);
+    connection
+}
+
+pub(crate) async fn host(connection: &Connection) -> AccountsSheetProxy<'static> {
     AccountsSheetProxy::new(connection)
         .await
         .unwrap_or_else(|e| panic!("{e}"))
@@ -173,8 +198,8 @@ async fn accountd_opens_updates_and_closes_and_hears_what_the_person_does() {
         eprintln!("skipped: no dbus-daemon");
         return;
     };
-    let accountd = connect(&bus, Some("org.quire.Accounts1")).await;
     let mut shell = shell(&bus);
+    let accountd = serviced(&bus, &shell, "org.quire.Accounts1", Role::Accounts).await;
     serving(&mut shell).await;
     let mut inputs = inputs_of(&accountd).await;
     let sheet = host(&accountd).await;
@@ -265,8 +290,8 @@ async fn a_browser_step_opens_its_page_and_shown_again_opens_it_again() {
         eprintln!("skipped: no dbus-daemon");
         return;
     };
-    let accountd = connect(&bus, Some("org.quire.Accounts1")).await;
     let mut shell = shell(&bus);
+    let accountd = serviced(&bus, &shell, "org.quire.Accounts1", Role::Accounts).await;
     serving(&mut shell).await;
     let mut inputs = inputs_of(&accountd).await;
     let sheet = host(&accountd).await;
@@ -318,8 +343,8 @@ async fn a_forged_caller_is_refused_and_draws_nothing() {
         eprintln!("skipped: no dbus-daemon");
         return;
     };
-    let accountd = connect(&bus, Some("org.quire.Accounts1")).await;
     let mut shell = shell(&bus);
+    let accountd = serviced(&bus, &shell, "org.quire.Accounts1", Role::Accounts).await;
     serving(&mut shell).await;
     let forger = connect(&bus, None).await;
     let forged = host(&forger).await;
@@ -366,14 +391,6 @@ async fn a_forged_caller_is_refused_and_draws_nothing() {
         "a forged Update changed the sheet"
     );
     assert_eq!(state.open.len(), 1, "a forged Close took it down");
-
-    // Not even a stranger that claimed a look-alike name gets in.
-    let lookalike = connect(&bus, Some("org.quire.Accounts2")).await;
-    refused(
-        host(&lookalike).await.open("evil2", "", &providers()).await,
-        "look-alike Open",
-    );
-    assert_eq!(shell.sheet.state.borrow().open.len(), 1);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -382,8 +399,8 @@ async fn what_the_person_typed_reaches_accountd_and_nobody_else() {
         eprintln!("skipped: no dbus-daemon");
         return;
     };
-    let accountd = connect(&bus, Some("org.quire.Accounts1")).await;
     let mut shell = shell(&bus);
+    let accountd = serviced(&bus, &shell, "org.quire.Accounts1", Role::Accounts).await;
     serving(&mut shell).await;
     let bystander = connect(&bus, None).await;
     let mut overheard = inputs_of(&bystander).await;
@@ -412,8 +429,8 @@ async fn a_bad_call_is_refused_and_accountd_leaving_takes_the_sheets_down() {
         eprintln!("skipped: no dbus-daemon");
         return;
     };
-    let accountd = connect(&bus, Some("org.quire.Accounts1")).await;
     let mut shell = shell(&bus);
+    let accountd = serviced(&bus, &shell, "org.quire.Accounts1", Role::Accounts).await;
     serving(&mut shell).await;
     let sheet = host(&accountd).await;
     assert!(sheet.open("bad handle", "", &providers()).await.is_err());
@@ -483,13 +500,13 @@ async fn each_account_service_is_served_and_its_sheets_go_when_it_leaves() {
     let mut shell = shell(&bus);
     serving(&mut shell).await;
     let owners = [
-        ("org.quire.Accounts1", "accounts-0"),
-        ("org.quire.Inference1", "inference-0"),
-        ("org.quire.Sync1", "sync-0"),
+        ("org.quire.Accounts1", "accounts-0", Role::Accounts),
+        ("org.quire.Inference1", "inference-0", Role::Inference),
+        ("org.quire.Sync1", "sync-0", Role::Sync),
     ];
     let mut held = Vec::new();
-    for (name, handle) in owners {
-        let owner = connect(&bus, Some(name)).await;
+    for (name, handle, role) in owners {
+        let owner = serviced(&bus, &shell, name, role).await;
         host(&owner)
             .await
             .open(handle, "", &providers())
@@ -511,28 +528,4 @@ async fn each_account_service_is_served_and_its_sheets_go_when_it_leaves() {
         .await,
         "inferd's sheet outlived it"
     );
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn a_caller_that_owns_none_of_the_service_names_is_refused() {
-    let Some(bus) = PrivateBus::start() else {
-        eprintln!("skipped: no dbus-daemon");
-        return;
-    };
-    let mut shell = shell(&bus);
-    serving(&mut shell).await;
-    let _syncd = connect(&bus, Some("org.quire.Sync1")).await;
-    for name in ["org.quire.Inference2", "org.quire.Sync10"] {
-        let other = connect(&bus, Some(name)).await;
-        let refused = host(&other).await.open("evil", "", &providers()).await;
-        assert!(
-            matches!(&refused, Err(zbus::Error::MethodError(n, ..))
-                if n.as_str() == "org.freedesktop.DBus.Error.AccessDenied")
-                || matches!(&refused, Err(zbus::Error::FDO(e))
-                    if matches!(**e, zbus::fdo::Error::AccessDenied(_))),
-            "{name}: {refused:?}"
-        );
-    }
-    tokio::time::sleep(QUIET).await;
-    assert!(shell.sheet.state.borrow().open.is_empty());
 }

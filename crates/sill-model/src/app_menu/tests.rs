@@ -6,8 +6,9 @@ use sill_launcher::WindowKey;
 
 use super::{
     ActionIndex, AppMenuEvent, AppMenus, Follower, Followers, Following, Identity, ItemKey,
-    MenuApp, MenuName, Node, NodeProps, NodeType, OwnItem, QuitRow, Route, ServedMenu, ToggleKind,
-    effect_of, listing, own_commands, own_groups, route_of, rows_of, step, titles,
+    MenuApp, MenuClient, MenuName, MenuOwner, MenuTrust, Node, NodeProps, NodeType, OwnItem,
+    QuitRow, Route, ServedMenu, ToggleKind, effect_of, listing, menu_trust, own_commands,
+    own_groups, route_of, rows_of, step, titles,
 };
 use crate::ids::OutputName;
 use crate::tray::{Check, Chord, MenuCommand, TrayMenuEntry, TrayMenuIcon, TrayMenuKind};
@@ -527,4 +528,119 @@ fn a_layout_is_read_for_a_few_rows_and_levels_and_short_labels() {
         TrayMenuKind::Item { label, .. } => assert!(label.chars().count() <= 121),
         TrayMenuKind::Separator => panic!("a row"),
     }
+}
+
+#[test]
+fn a_menu_is_shown_only_when_its_owner_is_the_windows_program() {
+    let client = |reported: Option<&str>| MenuClient {
+        key: "dev.notes".to_owned(),
+        reported: reported.map(str::to_owned),
+    };
+    let sandboxed = |app: &str| MenuOwner::Sandboxed {
+        app: app.to_owned(),
+    };
+    let program = |exe: &str, scope: Option<&str>| MenuOwner::Program {
+        exe: exe.to_owned(),
+        scope_app: scope.map(str::to_owned),
+    };
+    let service = |app: &str| MenuOwner::Service {
+        app: app.to_owned(),
+    };
+    use MenuTrust::{Hidden, Shown};
+    // `(case, owner, the window's client, trusted)`
+    let cases = [
+        // What the desktop sends today: no subject, so the app key is what is compared.
+        (
+            "a sandbox that is the app",
+            sandboxed("dev.notes"),
+            client(None),
+            Shown,
+        ),
+        (
+            "a sandbox that is another app",
+            sandboxed("dev.other"),
+            client(None),
+            Hidden,
+        ),
+        (
+            "a program launched as the app",
+            program("/usr/bin/notes", Some("dev.notes")),
+            client(None),
+            Shown,
+        ),
+        (
+            "a program launched as another app",
+            program("/usr/bin/notes", Some("dev.other")),
+            client(None),
+            Hidden,
+        ),
+        (
+            "a program with no launcher name",
+            program("/usr/bin/notes", None),
+            client(None),
+            Hidden,
+        ),
+        (
+            "a service that is the app",
+            service("dev.notes"),
+            client(None),
+            Shown,
+        ),
+        (
+            "a service that is another app",
+            service("org.quire.Settings"),
+            client(None),
+            Hidden,
+        ),
+        (
+            "an owner nobody can name",
+            MenuOwner::Unknown,
+            client(None),
+            Hidden,
+        ),
+        // Once the compositor reports the client's subject, the subject decides, not the key.
+        (
+            "the image that is the window's",
+            program("/usr/bin/notes", None),
+            client(Some("/usr/bin/notes")),
+            Shown,
+        ),
+        (
+            "another image under the app's scope name",
+            program("/usr/bin/evil", Some("dev.notes")),
+            client(Some("/usr/bin/notes")),
+            Hidden,
+        ),
+        (
+            "the sandbox that is the window's",
+            sandboxed("dev.notes"),
+            client(Some("dev.notes")),
+            Shown,
+        ),
+        (
+            "another sandbox",
+            sandboxed("dev.other"),
+            client(Some("dev.notes")),
+            Hidden,
+        ),
+        (
+            "a service is known by its key",
+            service("dev.notes"),
+            client(Some("/usr/bin/notes")),
+            Shown,
+        ),
+        (
+            "an unknown owner stays hidden",
+            MenuOwner::Unknown,
+            client(Some("/usr/bin/notes")),
+            Hidden,
+        ),
+    ];
+    for (name, owner, client, want) in cases {
+        assert_eq!(menu_trust(&owner, &client), want, "{name}");
+    }
+    assert_eq!(
+        MenuClient::unreported(&MenuApp("dev.notes".to_owned())),
+        client(None)
+    );
 }
