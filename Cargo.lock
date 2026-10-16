@@ -389,7 +389,7 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=b9ced242eaf1f1777de2c8c4d7823e7499ac4e13)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9234da1dc89bfe98516d77f7dc5c6bd05d18fd07)",
  "rustix",
 ]
 
@@ -445,8 +445,7 @@ dependencies = [
  "docket-core",
  "docket-dbus",
  "ds-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=b9ced242eaf1f1777de2c8c4d7823e7499ac4e13)",
- "freedesktop-desktop-entry",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9234da1dc89bfe98516d77f7dc5c6bd05d18fd07)",
  "futures-util",
  "latchkey",
  "log",
@@ -488,7 +487,7 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=b9ced242eaf1f1777de2c8c4d7823e7499ac4e13)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9234da1dc89bfe98516d77f7dc5c6bd05d18fd07)",
  "log",
  "rustix",
  "serde",
@@ -862,7 +861,7 @@ dependencies = [
  "app_units",
  "atomic_refcell",
  "bitflags 2.13.2",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-traits",
  "color",
  "cssparser",
  "cursor-icon",
@@ -885,51 +884,7 @@ dependencies = [
  "stylo",
  "stylo_dom",
  "stylo_static_prefs",
- "stylo_taffy 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "stylo_traits",
- "svgtypes",
- "taffy",
- "thin-vec",
- "thread_local",
- "url",
- "usvg",
- "web-time",
-]
-
-[[package]]
-name = "blitz-dom"
-version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623#5c75536652955da94704bddee09f5928a2ca9623"
-dependencies = [
- "accesskit",
- "anyrender",
- "app_units",
- "atomic_refcell",
- "bitflags 2.13.2",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
- "color",
- "cssparser",
- "cursor-icon",
- "debug_timer 0.1.3 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
- "euclid",
- "html-escape",
- "image",
- "keyboard-types 0.7.0",
- "kurbo",
- "linebender_resource_handle",
- "markup5ever",
- "objc2 0.6.4",
- "parley",
- "percent-encoding",
- "rayon",
- "selectors",
- "skrifa 0.44.0",
- "slotmap",
- "smallvec",
- "stylo",
- "stylo_dom",
- "stylo_static_prefs",
- "stylo_taffy 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
+ "stylo_taffy",
  "stylo_traits",
  "svgtypes",
  "taffy",
@@ -945,8 +900,8 @@ name = "blitz-html"
 version = "0.3.0-beta.2"
 source = "git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90#4ca21b12aa309007d5ff42a900c55d1205185f90"
 dependencies = [
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-dom",
+ "blitz-traits",
  "html5ever",
  "xml5ever",
 ]
@@ -955,8 +910,8 @@ dependencies = [
 name = "blitz-kit"
 version = "0.1.0"
 dependencies = [
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-dom",
+ "blitz-traits",
  "keyboard-types 0.7.0",
  "parley",
  "serde",
@@ -971,29 +926,8 @@ source = "git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900
 dependencies = [
  "anyrender",
  "anyrender_svg",
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "color",
- "euclid",
- "kurbo",
- "parley",
- "peniko",
- "skrifa 0.44.0",
- "smallvec",
- "stylo",
- "taffy",
- "usvg",
-]
-
-[[package]]
-name = "blitz-paint"
-version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623#5c75536652955da94704bddee09f5928a2ca9623"
-dependencies = [
- "anyrender",
- "anyrender_svg",
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
+ "blitz-dom",
+ "blitz-traits",
  "color",
  "euclid",
  "kurbo",
@@ -1017,9 +951,9 @@ dependencies = [
  "anyrender",
  "arboard",
  "atomic_refcell",
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "blitz-paint 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-dom",
+ "blitz-paint",
+ "blitz-traits",
  "futures-util",
  "keyboard-types 0.7.0",
  "wasm-bindgen",
@@ -1043,28 +977,6 @@ dependencies = [
  "smol_str",
  "url",
 ]
-
-[[package]]
-name = "blitz-traits"
-version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623#5c75536652955da94704bddee09f5928a2ca9623"
-dependencies = [
- "atomic_refcell",
- "bitflags 2.13.2",
- "bytes",
- "cursor-icon",
- "http",
- "keyboard-types 0.7.0",
- "serde",
- "smol_str",
- "url",
-]
-
-[[package]]
-name = "block"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
 name = "block-buffer"
@@ -1151,17 +1063,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf88ba1141d185c399bee5288d850d63b8369520c1eafc32a0430b5b6c287bf4"
 dependencies = [
  "tinyvec",
-]
-
-[[package]]
-name = "bstr"
-version = "1.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bb31b46c14244e20ee9984b11bf5c992b91fb6939fea616e3512c8baecdbe5f"
-dependencies = [
- "memchr",
- "regex-automata",
- "serde_core",
 ]
 
 [[package]]
@@ -1974,11 +1875,6 @@ version = "0.1.3"
 source = "git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90#4ca21b12aa309007d5ff42a900c55d1205185f90"
 
 [[package]]
-name = "debug_timer"
-version = "0.1.3"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623#5c75536652955da94704bddee09f5928a2ca9623"
-
-[[package]]
 name = "debug_unsafe"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2260,11 +2156,11 @@ dependencies = [
  "anyrender",
  "anyrender_vello_cpu",
  "anyrender_vello_hybrid",
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-dom",
  "blitz-html",
- "blitz-paint 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-paint",
  "blitz-shell",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-traits",
  "cfg-if",
  "dioxus-asset-resolver",
  "dioxus-cli-config",
@@ -2272,7 +2168,7 @@ dependencies = [
  "dioxus-document",
  "dioxus-history",
  "dioxus-html",
- "dioxus-native-dom 0.7.0 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "dioxus-native-dom",
  "futures-util",
  "keyboard-types 0.7.0",
  "peniko",
@@ -2288,22 +2184,8 @@ name = "dioxus-native-dom"
 version = "0.7.0"
 source = "git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90#4ca21b12aa309007d5ff42a900c55d1205185f90"
 dependencies = [
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "dioxus-core",
- "dioxus-html",
- "futures-util",
- "keyboard-types 0.7.0",
- "rustc-hash 2.1.3",
-]
-
-[[package]]
-name = "dioxus-native-dom"
-version = "0.7.0"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623#5c75536652955da94704bddee09f5928a2ca9623"
-dependencies = [
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
+ "blitz-dom",
+ "blitz-traits",
  "dioxus-core",
  "dioxus-html",
  "futures-util",
@@ -2624,19 +2506,19 @@ dependencies = [
  "anyrender",
  "anyrender_vello_hybrid",
  "arboard",
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-dom",
  "blitz-html",
  "blitz-kit",
- "blitz-paint 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-paint",
  "blitz-shell",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-traits",
  "chordkit",
  "chordkit-gnome",
  "chordkit-kde",
  "dioxus",
  "dioxus-asset-resolver",
  "dioxus-native",
- "dioxus-native-dom 0.7.0 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "dioxus-native-dom",
  "ds",
  "ds-desktop",
  "ds-helpers 0.1.0",
@@ -2694,14 +2576,14 @@ dependencies = [
  "anyrender",
  "anyrender_vello_cpu",
  "anyrender_vello_hybrid",
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-dom",
  "blitz-html",
  "blitz-kit",
- "blitz-paint 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-paint",
+ "blitz-traits",
  "chordkit",
  "dioxus",
- "dioxus-native-dom 0.7.0 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "dioxus-native-dom",
  "ds",
  "ds-blitz",
  "ds-core",
@@ -2731,9 +2613,9 @@ dependencies = [
 [[package]]
 name = "ds-helpers"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=b9ced242eaf1f1777de2c8c4d7823e7499ac4e13#b9ced242eaf1f1777de2c8c4d7823e7499ac4e13"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=9234da1dc89bfe98516d77f7dc5c6bd05d18fd07#9234da1dc89bfe98516d77f7dc5c6bd05d18fd07"
 dependencies = [
- "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=b9ced242eaf1f1777de2c8c4d7823e7499ac4e13)",
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9234da1dc89bfe98516d77f7dc5c6bd05d18fd07)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2776,7 +2658,7 @@ dependencies = [
 [[package]]
 name = "ds-peer"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=b9ced242eaf1f1777de2c8c4d7823e7499ac4e13#b9ced242eaf1f1777de2c8c4d7823e7499ac4e13"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=9234da1dc89bfe98516d77f7dc5c6bd05d18fd07#9234da1dc89bfe98516d77f7dc5c6bd05d18fd07"
 dependencies = [
  "futures-timer",
  "thiserror 2.0.21",
@@ -3239,21 +3121,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "freedesktop-desktop-entry"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cfa09933e03f1ced380ad639822d65cb59a1914217da6c72aa8db3563e94214"
-dependencies = [
- "bstr",
- "gettext-rs",
- "log",
- "memchr",
- "thiserror 2.0.21",
- "unicase",
- "xdg 3.0.0",
-]
-
-[[package]]
 name = "freedesktop-icons"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3264,7 +3131,7 @@ dependencies = [
  "once_cell",
  "thiserror 1.0.69",
  "tracing",
- "xdg 2.5.2",
+ "xdg",
 ]
 
 [[package]]
@@ -3411,26 +3278,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "r-efi",
-]
-
-[[package]]
-name = "gettext-rs"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9df5e3fa8c077b15fdfa8ce130e2bc73d663b8aaa6d51b71421b8659980b1d80"
-dependencies = [
- "gettext-sys",
- "locale_config",
-]
-
-[[package]]
-name = "gettext-sys"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4caa7e4460b196107cc1bb2629488e8b6dbb7f34f6683ea6753c4ac22f590785"
-dependencies = [
- "cc",
- "temp-dir",
 ]
 
 [[package]]
@@ -4760,19 +4607,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
-name = "locale_config"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08d2c35b16f4483f6c26f0e4e9550717a2f6575bcd6f12a53ff0c490a94a6934"
-dependencies = [
- "lazy_static",
- "objc",
- "objc-foundation",
- "regex",
- "winapi",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4842,15 +4676,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca93e534d1142d1d0dcca6d25fe302508a5dfb40b302802904577725ea0b695b"
 dependencies = [
  "sha2",
-]
-
-[[package]]
-name = "malloc_buf"
-version = "0.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
-dependencies = [
- "libc",
 ]
 
 [[package]]
@@ -5303,26 +5128,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "objc"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "915b1b472bc21c53464d6c8461c9d3af805ba1ef837e1cac254428f4a77177b1"
-dependencies = [
- "malloc_buf",
-]
-
-[[package]]
-name = "objc-foundation"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1add1b659e36c9607c7aab864a76c7a4c2760cd0cd2e120f3fb8b952c7e22bf9"
-dependencies = [
- "block",
- "objc",
- "objc_id",
-]
-
-[[package]]
 name = "objc-sys"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5548,15 +5353,6 @@ dependencies = [
  "objc2 0.6.4",
  "objc2-core-foundation",
  "objc2-foundation 0.3.2",
-]
-
-[[package]]
-name = "objc_id"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c92d4ddb4bd7b50d730c215ff871754d0da6b2178849f8a2a2ab69712d0c073b"
-dependencies = [
- "objc",
 ]
 
 [[package]]
@@ -5964,35 +5760,12 @@ dependencies = [
 
 [[package]]
 name = "peephole"
-version = "0.1.2"
-source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.2#f111ee0c32461d72173bb591079a1fbe0fca1953"
-dependencies = [
- "peephole-core 0.1.2",
- "rustix",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "peephole"
 version = "0.1.4"
 source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.4#5a2e742fb12cd78b4555ff07d8d96681fa0bbeb8"
 dependencies = [
- "peephole-core 0.1.4",
+ "peephole-core",
  "rustix",
  "thiserror 2.0.21",
-]
-
-[[package]]
-name = "peephole-bus"
-version = "0.1.2"
-source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.2#f111ee0c32461d72173bb591079a1fbe0fca1953"
-dependencies = [
- "futures-timer",
- "peephole 0.1.2",
- "peephole-core 0.1.2",
- "thiserror 2.0.21",
- "tokio",
- "zbus",
 ]
 
 [[package]]
@@ -6001,21 +5774,11 @@ version = "0.1.4"
 source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.4#5a2e742fb12cd78b4555ff07d8d96681fa0bbeb8"
 dependencies = [
  "futures-timer",
- "peephole 0.1.4",
- "peephole-core 0.1.4",
+ "peephole",
+ "peephole-core",
  "thiserror 2.0.21",
  "tokio",
  "zbus",
-]
-
-[[package]]
-name = "peephole-core"
-version = "0.1.2"
-source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.2#f111ee0c32461d72173bb591079a1fbe0fca1953"
-dependencies = [
- "serde",
- "thiserror 2.0.21",
- "toml",
 ]
 
 [[package]]
@@ -6312,9 +6075,9 @@ dependencies = [
 name = "porter-dbus"
 version = "0.1.0"
 dependencies = [
- "peephole 0.1.2",
- "peephole-bus 0.1.2",
- "peephole-core 0.1.2",
+ "peephole",
+ "peephole-bus",
+ "peephole-core",
  "porter-core",
  "serde",
  "serde_json",
@@ -7130,17 +6893,17 @@ dependencies = [
  "anyrender",
  "anyrender_vello_cpu",
  "anyrender_vello_hybrid",
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
+ "blitz-dom",
  "blitz-kit",
- "blitz-paint 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
+ "blitz-paint",
+ "blitz-traits",
  "calloop",
  "calloop-wayland-source",
  "casement-protocols",
  "cursor-icon",
  "dioxus",
  "dioxus-document",
- "dioxus-native-dom 0.7.0 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
+ "dioxus-native-dom",
  "image",
  "keyboard-types 0.7.0",
  "palmrest-protocol",
@@ -7464,7 +7227,7 @@ dependencies = [
  "logind-zbus",
  "nonstick",
  "notify",
- "peephole-bus 0.1.4",
+ "peephole-bus",
  "percent-encoding",
  "policy-point",
  "porter-client",
@@ -8005,17 +7768,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stylo_taffy"
-version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623#5c75536652955da94704bddee09f5928a2ca9623"
-dependencies = [
- "bitflags 2.13.2",
- "stylo",
- "stylo_atoms",
- "taffy",
-]
-
-[[package]]
 name = "stylo_traits"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8345,12 +8097,6 @@ dependencies = [
  "libc",
  "xattr",
 ]
-
-[[package]]
-name = "temp-dir"
-version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83176759e9416cf81ee66cb6508dbfe9c96f20b8b56265a39917551c23c70964"
 
 [[package]]
 name = "tempfile"
@@ -10269,12 +10015,6 @@ name = "xdg"
 version = "2.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213b7324336b53d2414b2db8537e56544d981803139155afa84f76eeebb7a546"
-
-[[package]]
-name = "xdg"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fb433233f2df9344722454bc7e96465c9d03bff9d77c248f9e7523fe79585b5"
 
 [[package]]
 name = "xkbcommon"
