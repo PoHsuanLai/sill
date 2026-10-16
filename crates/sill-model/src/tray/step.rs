@@ -8,8 +8,8 @@ use super::{Tray, TrayEvent, TrayItem, TrayItemId};
 pub fn step(tray: Tray, event: TrayEvent) -> Tray {
     let Tray { mut items } = tray;
     match event {
-        TrayEvent::Registered(item) => match items.iter_mut().find(|i| i.id == item.id) {
-            Some(known) => *known = item,
+        TrayEvent::Registered(item) => match items.iter().position(|i| i.id == item.id) {
+            Some(at) => items[at] = item,
             None if items.len() < TRAY_ITEMS_MAX => items.push(item),
             None => {}
         },
