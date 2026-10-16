@@ -15,7 +15,7 @@ const ALLOWED: [(&str, &str); 6] = [
         "an app launch, tracked to its exit; only an `#[ignore]`d test runs it",
     ),
     (
-        "now_playing/backend/art.rs",
+        "now_playing/backend/art/curl.rs",
         "curl into the cache directory",
     ),
     (

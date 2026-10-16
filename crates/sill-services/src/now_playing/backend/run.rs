@@ -1,5 +1,5 @@
 //! MPRIS over the session bus: finds every `org.mpris.MediaPlayer2.*` name, follows their
-//! `PropertiesChanged` and `Seeked`, fetches remote art into the cache, feeds every change
+//! `PropertiesChanged` and `Seeked`, brings cover art into the cache, feeds every change
 //! through [`sill_model::now_playing::step`], and carries out [`MediaCommand`]s.
 
 use std::collections::HashMap;
@@ -19,7 +19,7 @@ use zbus::names::{BusName, OwnedUniqueName};
 use zbus::zvariant::OwnedValue;
 use zbus::{Connection, MatchRule, MessageStream};
 
-use super::art::{ArtFetcher, apply_art, resolve_art};
+use super::art::{ArtFetcher, ArtJob, apply_art, resolve_art};
 use super::mpris::{MediaPlayer2Proxy, PLAYER_INTERFACE, PlayerProxy};
 use crate::env::Bus;
 use crate::error::ServiceError;
@@ -138,8 +138,8 @@ async fn discover(
         else {
             continue;
         };
-        if let Some((url, path)) = pending {
-            art.spawn(player.id.clone(), url, path);
+        if let Some(job) = pending {
+            art.spawn(player.id.clone(), job);
         }
         media.players.push(player);
     }
@@ -172,8 +172,8 @@ async fn handle_owner_change(
                 snapshot(connection, name, stamp(origin), cache_dir).await
             {
                 apply(tx, MediaEvent::Player(player));
-                if let Some((url, path)) = pending {
-                    art.spawn(id, url, path);
+                if let Some(job) = pending {
+                    art.spawn(id, job);
                 }
             }
         }
@@ -218,8 +218,8 @@ async fn handle_properties_changed(
     if fresh != before {
         apply(tx, MediaEvent::Player(fresh));
     }
-    if let Some((url, path)) = pending {
-        art.spawn(id, url, path);
+    if let Some(job) = pending {
+        art.spawn(id, job);
     }
 }
 
@@ -299,14 +299,14 @@ fn ability_allows(abilities: &Abilities, verb: MediaVerb) -> bool {
     availability == Availability::Enabled
 }
 
-/// One player's full state, read fresh from the bus, and a remote art job still to run (the
-/// cache had no file for it yet).
+/// One player's full state, read fresh from the bus, and a cover job still to run (the cache had
+/// no file for it yet).
 async fn snapshot(
     connection: &Connection,
     name: &str,
     at: Stamp,
     cache_dir: Option<&Path>,
-) -> Option<(MediaPlayer, Option<(String, PathBuf)>)> {
+) -> Option<(MediaPlayer, Option<ArtJob>)> {
     let root = MediaPlayer2Proxy::builder(connection)
         .destination(name.to_owned())
         .ok()?

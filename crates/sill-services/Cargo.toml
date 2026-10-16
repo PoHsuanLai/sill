@@ -14,6 +14,7 @@ anyview-platform = { workspace = true }
 sill-model = { workspace = true }
 sill-launcher = { workspace = true }
 ds-core = { workspace = true }
+ds-helpers = { workspace = true }
 keycap-protocol = { workspace = true }
 docket-core = { workspace = true }
 docket-dbus = { workspace = true }

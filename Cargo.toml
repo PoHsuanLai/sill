@@ -50,6 +50,8 @@ ds-core    = { path = "../quire/crates/ds-core" }
 ds         = { path = "../quire/crates/ds" }
 ds-lint    = { path = "../quire/crates/ds-lint" }
 ds-shell   = { path = "../quire/crates/ds-shell" }
+# quire's safe file reads and writes (`read_capped`, `write_atomic`); the PackageKit half is not needed.
+ds-helpers = { path = "../quire/crates/ds-helpers", default-features = false }
 ds-settings = { path = "../quire/crates/ds-settings", features = ["tokio"] }  # the shell runs zbus on tokio everywhere (quire CONSUMING §1)
 # The Blitz host glue: sill takes only its rect measurer (`ds_blitz::measure`), and the test driver
 # (`ds-harness`) for its surface tests.
