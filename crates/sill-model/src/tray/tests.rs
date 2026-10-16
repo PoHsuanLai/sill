@@ -1,6 +1,6 @@
 use super::{
-    Check, Tray, TrayEvent, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon,
-    TrayMenuKind, TrayStatus, step,
+    Check, TRAY_ITEMS_MAX, Tray, TrayEvent, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry,
+    TrayMenuIcon, TrayMenuKind, TrayStatus, step,
 };
 use crate::units::{Availability, Visibility};
 
@@ -193,4 +193,22 @@ fn a_menu_with_a_submenu_and_icons_round_trips() {
     let json = serde_json::to_string(&menu).unwrap_or_else(|e| panic!("{e}"));
     let back: Vec<TrayMenuEntry> = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(back, menu);
+}
+
+#[test]
+fn a_program_cannot_register_the_tray_full() {
+    let crowd: Vec<String> = (0..TRAY_ITEMS_MAX + 20).map(|n| n.to_string()).collect();
+    let names: Vec<&str> = crowd.iter().map(String::as_str).collect();
+    let full = names.iter().fold(Tray::default(), |tray, name| {
+        step(tray, TrayEvent::Registered(item(name)))
+    });
+    assert_eq!(full.items.len(), TRAY_ITEMS_MAX);
+    let first = item(names[0]);
+    let again = step(full.clone(), TrayEvent::Registered(first));
+    assert_eq!(again, full, "a re-registration still replaces in place");
+    let later = step(full.clone(), TrayEvent::Registered(item("late")));
+    assert_eq!(later, full, "a new one is turned away");
+    let room = step(full, TrayEvent::Removed(id(names[0])));
+    let made = step(room, TrayEvent::Registered(item("late")));
+    assert_eq!(made.items.len(), TRAY_ITEMS_MAX, "room freed, room taken");
 }

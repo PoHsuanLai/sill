@@ -1,9 +1,12 @@
-//! dbusmenu rows as the tray's menu entries.
+//! dbusmenu rows as the tray's menu entries, within the tree's limits: at most
+//! [`MENU_ROWS_MAX`] rows in all and [`MENU_DEPTH_MAX`] levels, labels cut, icons of a sane size.
 
 use sill_model::tray::{
-    Check, Chord, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind, plain_label,
+    Check, Chord, MENU_DEPTH_MAX, MENU_ICON_MAX_BYTES, MENU_LABEL_MAX_CHARS, MENU_ROWS_MAX,
+    TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind, plain_label,
 };
 use sill_model::units::{Availability, Visibility};
+use sill_model::untrusted::for_display;
 use system_tray::client::Client;
 use system_tray::menu::{MenuItem, MenuType, ToggleState, ToggleType};
 
@@ -23,17 +26,47 @@ pub(super) fn to_check(item: &MenuItem) -> Check {
 /// `icon-data` (PNG bytes) when the row carries any, else `icon-name`.
 pub(super) fn to_menu_icon(item: &MenuItem) -> TrayMenuIcon {
     match (item.icon_data.as_deref(), item.icon_name.as_deref()) {
-        (Some(png), _) if !png.is_empty() => TrayMenuIcon::Png(png.to_vec()),
+        (Some(png), _) if !png.is_empty() && png.len() <= MENU_ICON_MAX_BYTES => {
+            TrayMenuIcon::Png(png.to_vec())
+        }
         (_, Some(name)) if !name.is_empty() => TrayMenuIcon::Named(name.to_owned()),
         _ => TrayMenuIcon::None,
     }
 }
 
-pub(super) fn to_menu_entry(item: &MenuItem) -> TrayMenuEntry {
+/// How many rows may still be taken from the tree being read.
+#[derive(Debug, Clone, Copy)]
+struct RowsLeft(usize);
+
+/// `items` as entries: the first rows of each level, in order, while the tree's budget lasts, and
+/// no level deeper than [`MENU_DEPTH_MAX`].
+pub(super) fn to_menu_entries(items: &[MenuItem]) -> Vec<TrayMenuEntry> {
+    entries(items, 1, &mut RowsLeft(MENU_ROWS_MAX))
+}
+
+fn entries(items: &[MenuItem], depth: usize, rows: &mut RowsLeft) -> Vec<TrayMenuEntry> {
+    if depth > MENU_DEPTH_MAX {
+        return Vec::new();
+    }
+    let mut taken = Vec::new();
+    for item in items {
+        let Some(left) = rows.0.checked_sub(1) else {
+            break;
+        };
+        rows.0 = left;
+        taken.push(entry(item, depth, rows));
+    }
+    taken
+}
+
+fn entry(item: &MenuItem, depth: usize, rows: &mut RowsLeft) -> TrayMenuEntry {
     let kind = match item.menu_type {
         MenuType::Separator => TrayMenuKind::Separator,
         MenuType::Standard => TrayMenuKind::Item {
-            label: plain_label(item.label.as_deref().unwrap_or_default()),
+            label: for_display(
+                &plain_label(item.label.as_deref().unwrap_or_default()),
+                MENU_LABEL_MAX_CHARS,
+            ),
             enabled: if item.enabled {
                 Availability::Enabled
             } else {
@@ -46,7 +79,7 @@ pub(super) fn to_menu_entry(item: &MenuItem) -> TrayMenuEntry {
             },
             check: to_check(item),
             icon: to_menu_icon(item),
-            children: item.submenu.iter().map(to_menu_entry).collect(),
+            children: entries(&item.submenu, depth + 1, rows),
             shortcut: item
                 .shortcut
                 .as_ref()
@@ -69,7 +102,7 @@ pub(super) fn cached_menu(client: &Client, destination: &str) -> Vec<TrayMenuEnt
     items
         .get(destination)
         .and_then(|(_, menu)| menu.as_ref())
-        .map(|menu| menu.submenus.iter().map(to_menu_entry).collect())
+        .map(|menu| to_menu_entries(&menu.submenus))
         .unwrap_or_default()
 }
 

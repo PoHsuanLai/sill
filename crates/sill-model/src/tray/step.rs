@@ -1,14 +1,17 @@
 //! The tray state's pure transition.
 
+use super::limits::TRAY_ITEMS_MAX;
 use super::{Tray, TrayEvent, TrayItem, TrayItemId};
 
-/// `tray` after `event`. A change for an unknown item is dropped (it raced its removal).
+/// `tray` after `event`. A change for an unknown item is dropped (it raced its removal), and so is
+/// the registration of a new item once [`TRAY_ITEMS_MAX`] are held.
 pub fn step(tray: Tray, event: TrayEvent) -> Tray {
     let Tray { mut items } = tray;
     match event {
         TrayEvent::Registered(item) => match items.iter_mut().find(|i| i.id == item.id) {
             Some(known) => *known = item,
-            None => items.push(item),
+            None if items.len() < TRAY_ITEMS_MAX => items.push(item),
+            None => {}
         },
         TrayEvent::Title { item, title } => edit(&mut items, &item, |i| i.title = title),
         TrayEvent::Icon { item, icon } => edit(&mut items, &item, |i| i.icon = icon),

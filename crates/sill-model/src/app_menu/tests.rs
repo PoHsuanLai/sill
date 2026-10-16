@@ -495,3 +495,34 @@ fn the_new_tray_row_fields_round_trip() {
     let back: TrayMenuEntry = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(back, row);
 }
+
+#[test]
+fn a_layout_is_read_for_a_few_rows_and_levels_and_short_labels() {
+    use crate::tray::{MENU_DEPTH_MAX, MENU_ROWS_MAX};
+    let wide: Vec<Node> = (0..10_000)
+        .map(|n| node(n, &"x".repeat(900), Vec::new()))
+        .collect();
+    assert_eq!(rows_of(wide).len(), MENU_ROWS_MAX);
+
+    let mut nested = node(0, "leaf", Vec::new());
+    for level in 1..40 {
+        nested = node(level, "level", vec![nested]);
+    }
+    let mut depth = 0;
+    let mut level = rows_of(vec![nested]);
+    while let Some(TrayMenuEntry {
+        kind: TrayMenuKind::Item { children, .. },
+        ..
+    }) = level.pop()
+    {
+        depth += 1;
+        level = children;
+    }
+    assert_eq!(depth, MENU_DEPTH_MAX);
+
+    let long = rows_of(vec![node(1, &"y".repeat(5_000), Vec::new())]);
+    match &long[0].kind {
+        TrayMenuKind::Item { label, .. } => assert!(label.chars().count() <= 121),
+        TrayMenuKind::Separator => panic!("a row"),
+    }
+}

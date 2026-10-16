@@ -226,7 +226,7 @@ fn scroll_args(delta: ScrollDelta) -> (i32, &'static str) {
 
 #[cfg(test)]
 mod tests {
-    use super::super::menu::{to_check, to_menu_entry, to_menu_icon};
+    use super::super::menu::{to_check, to_menu_entries, to_menu_icon};
     use super::{destination_of, item_id, scroll_args, to_tray_icon, to_tray_status};
     use sill_model::tray::{
         Check, ScrollAxis, ScrollDelta, TrayIcon, TrayItemId, TrayMenuIcon, TrayMenuKind,
@@ -235,6 +235,10 @@ mod tests {
     use sill_model::units::{Availability, Visibility};
     use system_tray::item::{IconPixmap as SniPixmap, Status as SniStatus};
     use system_tray::menu::{MenuItem, MenuType, ToggleState, ToggleType};
+
+    fn to_menu_entry(item: &MenuItem) -> sill_model::tray::TrayMenuEntry {
+        to_menu_entries(std::slice::from_ref(item)).remove(0)
+    }
 
     #[test]
     fn a_scroll_becomes_sni_arguments() {
@@ -414,5 +418,58 @@ mod tests {
             TrayMenuKind::Item { label, .. } => assert_eq!(label, "Quit"),
             other => panic!("expected an Item, got {other:?}"),
         }
+    }
+
+    /// Rows counted anywhere in `entries`, and the deepest level reached.
+    fn measure(entries: &[sill_model::tray::TrayMenuEntry], depth: usize) -> (usize, usize) {
+        let top = if entries.is_empty() { 0 } else { depth };
+        entries.iter().fold((0, top), |(rows, deepest), entry| {
+            let children = match &entry.kind {
+                TrayMenuKind::Item { children, .. } => children.as_slice(),
+                TrayMenuKind::Separator => &[],
+            };
+            let (below, reached) = measure(children, depth + 1);
+            (rows + 1 + below, deepest.max(reached))
+        })
+    }
+
+    #[test]
+    fn a_huge_or_deep_menu_is_cut_to_its_limits() {
+        let leaf = |id: i32| MenuItem {
+            id,
+            label: Some("x".repeat(1000)),
+            ..menu_item(MenuType::Standard)
+        };
+        let wide: Vec<MenuItem> = (0..100_000).map(leaf).collect();
+        let (rows, _) = measure(&to_menu_entries(&wide), 1);
+        assert_eq!(rows, sill_model::tray::MENU_ROWS_MAX);
+
+        let mut nested = leaf(0);
+        for level in 1..50 {
+            nested = MenuItem {
+                submenu: vec![nested],
+                ..leaf(level)
+            };
+        }
+        let (_, deepest) = measure(&to_menu_entries(&[nested]), 1);
+        assert_eq!(deepest, sill_model::tray::MENU_DEPTH_MAX);
+
+        match to_menu_entry(&leaf(1)).kind {
+            TrayMenuKind::Item { label, .. } => {
+                assert!(label.chars().count() <= sill_model::tray::MENU_LABEL_MAX_CHARS + 1);
+            }
+            other => panic!("expected an Item, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_pixmap_past_the_ceiling_is_not_used() {
+        let side = i32::try_from(sill_model::tray::PIXMAP_MAX_SIDE).unwrap_or(0) + 1;
+        let pixmaps = vec![SniPixmap {
+            width: side,
+            height: side,
+            pixels: vec![0; (side * side * 4) as usize],
+        }];
+        assert_eq!(to_tray_icon(None, Some(&pixmaps)), TrayIcon::None);
     }
 }
