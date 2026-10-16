@@ -1,6 +1,7 @@
-//! `Debug`: the development probes. Every one is answered even in a release build; the ones that
-//! act on a surface, unlock a session or wake idle are refused unless the daemon was built with
-//! the `debug` feature.
+//! `Debug`: the development probes. Only the read-only ones (`stats`, `launcher-rows`) are answered
+//! in a release build; every probe that acts (injects input, makes up a notification, a request
+//! to approve, a verdict that unlocks) is refused unless the daemon was built with the `debug`
+//! feature.
 
 mod fakes;
 mod inject;
@@ -12,11 +13,60 @@ use sill_ipc::debug::DebugRequest;
 use sill_ipc::response::Response;
 
 use super::reach::Reach;
+use super::reply::unsupported;
 use crate::daemon::msg::ShellMsg;
 use inject::Injection;
 
 /// The probe `request` asks for.
 pub fn dispatch(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: DebugRequest) -> Response {
+    match (probe_of(&request), BUILD) {
+        (Probe::Acts, Build::Release) => unsupported("built without the debug feature"),
+        (Probe::Acts, Build::Debug) | (Probe::Reads, _) => run_probe(ctx, reach, request),
+    }
+}
+
+/// Whether the daemon was built with the `debug` feature.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Build {
+    Debug,
+    Release,
+}
+
+const BUILD: Build = if cfg!(feature = "debug") {
+    Build::Debug
+} else {
+    Build::Release
+};
+
+/// Whether a probe only reads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Probe {
+    Reads,
+    Acts,
+}
+
+fn probe_of(request: &DebugRequest) -> Probe {
+    match request {
+        DebugRequest::Stats | DebugRequest::LauncherRows => Probe::Reads,
+        DebugRequest::Pointer { .. }
+        | DebugRequest::Leave { .. }
+        | DebugRequest::Capture { .. }
+        | DebugRequest::Click { .. }
+        | DebugRequest::PointerPress { .. }
+        | DebugRequest::PointerRelease { .. }
+        | DebugRequest::Key { .. }
+        | DebugRequest::Osd { .. }
+        | DebugRequest::Notify(_)
+        | DebugRequest::Screenshot { .. }
+        | DebugRequest::Corner(_)
+        | DebugRequest::Auth(_)
+        | DebugRequest::Polkit(_)
+        | DebugRequest::Switcher { .. }
+        | DebugRequest::IdleWake => Probe::Acts,
+    }
+}
+
+fn run_probe(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: DebugRequest) -> Response {
     match request {
         DebugRequest::Stats => Response::Stats(stats::collect(ctx, reach.outputs)),
         DebugRequest::Pointer { surface, at } => {
@@ -59,5 +109,29 @@ pub fn dispatch(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: DebugReques
         DebugRequest::Switcher { apps } => fakes::switcher(reach, apps),
         DebugRequest::IdleWake => fakes::idle_wake(reach),
         DebugRequest::LauncherRows => launcher::rows(&reach.links.launcher),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sill_ipc::debug::{CornerName, DebugRequest};
+
+    use super::{Probe, probe_of};
+
+    #[test]
+    fn only_the_read_only_probes_are_answered_in_a_release_build() {
+        let cases = [
+            ("stats", DebugRequest::Stats, Probe::Reads),
+            ("launcher rows", DebugRequest::LauncherRows, Probe::Reads),
+            (
+                "corner",
+                DebugRequest::Corner(CornerName::BottomRight),
+                Probe::Acts,
+            ),
+            ("idle wake", DebugRequest::IdleWake, Probe::Acts),
+        ];
+        for (name, request, want) in cases {
+            assert_eq!(probe_of(&request), want, "{name}");
+        }
     }
 }

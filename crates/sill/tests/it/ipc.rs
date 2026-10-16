@@ -1,6 +1,6 @@
 //! The IPC server's public surface, against a fake dispatcher on a temp socket: no running host, no
 //! Wayland display, no `Services`. Checks Ping -> Pong, an over-long line -> `Failed`, and the 2 s
-//! reply timeout.
+//! reply timeout, and that a client that says nothing holds up nobody.
 
 use std::io::BufReader;
 use std::time::{Duration, Instant};
@@ -91,6 +91,53 @@ fn a_silent_dispatcher_times_out_within_the_budget() {
     assert!(
         elapsed < Duration::from_secs(3),
         "took {elapsed:?}, expected close to the 2 s reply timeout"
+    );
+}
+
+#[test]
+fn a_silent_client_does_not_hold_up_the_next_one() {
+    let (agent, door) = temp_door("silent");
+    server::spawn_with(door, |_request, reply| {
+        let _ = reply.send(Response::Pong);
+    });
+    // Connects and sends nothing, and stays connected for the whole test.
+    let _silent = agent
+        .connect()
+        .unwrap_or_else(|e| panic!("connecting: {e}"))
+        .unwrap_or_else(|| panic!("nobody is listening"));
+    let started = Instant::now();
+    assert_eq!(round_trip(&agent, &Request::Ping), Response::Pong);
+    assert!(
+        started.elapsed() < server::READ_DEADLINE,
+        "the second client waited {:?} behind the silent one",
+        started.elapsed()
+    );
+}
+
+#[test]
+fn a_client_that_never_finishes_its_line_is_cut_at_the_deadline() {
+    use std::io::Read;
+    let (agent, door) = temp_door("stalled");
+    server::spawn_with(door, |_request, reply| {
+        let _ = reply.send(Response::Done);
+    });
+    let mut stalled = agent
+        .connect()
+        .unwrap_or_else(|e| panic!("connecting: {e}"))
+        .unwrap_or_else(|| panic!("nobody is listening"));
+    std::io::Write::write_all(&mut stalled, b"{\"kind\":").unwrap_or_else(|e| panic!("{e}"));
+    let started = Instant::now();
+    let mut reply = String::new();
+    // The server answers the half line with a failure and closes: the read ends.
+    let _ = stalled.read_to_string(&mut reply);
+    assert!(
+        started.elapsed() < server::READ_DEADLINE + Duration::from_secs(2),
+        "the half line was still held after {:?}",
+        started.elapsed()
+    );
+    assert!(
+        reply.contains("failed"),
+        "a failure is the answer: {reply:?}"
     );
 }
 
