@@ -448,8 +448,10 @@ View
 
 #[test]
 fn a_long_listing_ends_at_a_whole_line_with_a_mark() {
+    // Rows are capped at MENU_ROWS_MAX where they enter, so long labels are what fill the listing.
+    let label = "A row with some words ".repeat(4);
     let rows: Vec<Node> = (0..2000)
-        .map(|i| node(i, "A row with some words", Vec::new()))
+        .map(|i| node(i, label.trim_end(), Vec::new()))
         .collect();
     let big = ServedMenu {
         name: MenuName(String::new()),
