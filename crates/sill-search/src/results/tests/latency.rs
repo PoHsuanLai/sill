@@ -17,7 +17,7 @@ use sill_model::apps::{AppIndex, AppsEvent, Listing};
 use sill_model::results::SearchCommand;
 
 use super::{TempDir, search, send};
-use sill_services::apps::{IconTheme, scan};
+use sill_services::apps::{IconRoots, IconTheme, scan};
 
 /// Every query matches at least one fixture app.
 const QUERIES: &[&str] = &[
@@ -81,6 +81,7 @@ fn fixture_index() -> AppIndex {
     let found = scan(
         &[root.join("home"), root.join("system")],
         &IconTheme("hicolor".to_owned()),
+        &IconRoots::default(),
         &[],
     );
     sill_model::apps::step(AppIndex::default(), AppsEvent::Scanned(found))

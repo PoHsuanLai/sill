@@ -177,8 +177,8 @@ A settled item is deleted, not marked closed.
   `Terminal=true` runs `$TERMINAL`, else ghostty, wezterm, foot, wrapped `-e`.
 - **Desktop entries**: `OnlyShowIn`/`NotShowIn` are matched against `quire`, not the live
   `XDG_CURRENT_DESKTOP`. `TryExec` that resolves nowhere drops the entry. Flatpak's export
-  directories are added even when `XDG_DATA_DIRS` lacks them. An absolute `Icon=` is taken on
-  trust. The SVG-over-largest-PNG preference is a heuristic over `freedesktop_icons`' first
+  directories are added even when `XDG_DATA_DIRS` lacks them. An absolute `Icon=` is kept
+  only as an image file of a sane size inside the icon folders or an app store's (`IconRoots`). The SVG-over-largest-PNG preference is a heuristic over `freedesktop_icons`' first
   matching directory.
 - **Calendar**: `.ics` files and vdir directories, parsed by hand (unfolding, VEVENT, DATE/UTC/
   TZID/floating, DURATION, EXDATE, RECURRENCE-ID; RRULE FREQ daily-yearly, INTERVAL, COUNT,
@@ -1472,10 +1472,17 @@ Fixed by reading, not built: the gate run is the first compile.
     an SVG 1 MiB, the same numbers the tinted-icon render reads with). A root rather than a copy
     because the scan runs on every change to an applications folder and a copy would read every
     icon each time. The root is the whole of `/opt`, so the extension and size rules are the scan's,
-    not the host's; the only pictures the host is asked for there are the ones the scan kept. Open:
-    an absolute `Icon=` that is in no root (say `/usr/share/<app>/icon.png`) still passes the scan
-    and is not drawn; the fix is to hand the roots to `scan` so it can answer `AppIcon::None` and
-    the dock can draw its fallback glyph.
+    not the host's; the only pictures the host is asked for there are the ones the scan kept. Closed
+    2026-10-17: an absolute `Icon=` in no root (say `/usr/share/<app>/icon.png`) used to pass the
+    scan and draw nothing. The scan now takes the roots (`IconRoots`, from `Dirs::icon_file_roots`:
+    `icon_dirs` then `app_stores`, the list the host's file roots begin with, so there is one list)
+    and answers `AppIcon::None` for a file that is in none, so the dock draws its fallback glyph. The
+    test is the host's own: the file's real place (links and `..` resolved) under a root's real
+    place, whole components, so `/opt-evil/i.png` is not in `/opt` and a link inside `/opt` to a
+    file outside it is refused. Roots are resolved on each scan, so a folder that appears later
+    counts at the next rescan. The notification card's theme lookup takes the same list. Limit: the
+    host serves more roots than these (the cache, Pictures, `~/.face`); an `Icon=` into those is
+    refused, which is right, an entry has no business naming them.
   A screenshot folder the person sets outside Pictures shows its thumbnail from the preview in
   sill's cache, never from the original. The tinted app-icon cache still reads its folder with
   `dirs::cache_dir()` rather than `Dirs`; the two agree in a real session.

@@ -19,8 +19,7 @@ const ACCOUNT_PICTURES: &str = "/var/lib/AccountsService/icons";
 /// in a launcher row); the Pictures folder (a screenshot before its preview is made); the
 /// person's `~/.face` and the account pictures folder.
 fn file_root_paths(dirs: &Dirs) -> Vec<PathBuf> {
-    let mut roots = dirs.icon_dirs();
-    roots.extend(dirs.app_stores.clone());
+    let mut roots = dirs.icon_file_roots();
     roots.push(dirs.sill_cache());
     roots.push(dirs.thumbnails());
     roots.extend(dirs.pictures.clone());

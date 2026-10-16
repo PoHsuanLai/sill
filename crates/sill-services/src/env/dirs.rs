@@ -92,6 +92,15 @@ impl Dirs {
         dirs
     }
 
+    /// Every folder an absolute `Icon=` of a desktop entry may name a file in: the icon folders
+    /// ([`Dirs::icon_dirs`]) and the app stores' ([`Dirs::app_stores`]). The scan of the apps
+    /// and the host's file roots take it from here, so what the scan keeps is what the host serves.
+    pub fn icon_file_roots(&self) -> Vec<PathBuf> {
+        let mut roots = self.icon_dirs();
+        roots.extend(self.app_stores.clone());
+        roots
+    }
+
     /// Every folder a notification's picture may be read from: the icon folders
     /// ([`Dirs::icon_dirs`]) and `notifications` in sill's cache folder.
     pub fn notification_image_dirs(&self) -> Vec<PathBuf> {
@@ -211,6 +220,14 @@ mod tests {
         .map(PathBuf::from)
         .collect();
         assert_eq!(dirs.icon_dirs(), want);
+    }
+
+    #[test]
+    fn an_absolute_icon_may_lie_in_the_icon_folders_then_the_app_stores() {
+        let dirs = Dirs::under(Path::new("/s"));
+        let mut want = dirs.icon_dirs();
+        want.push(PathBuf::from("/s/opt"));
+        assert_eq!(dirs.icon_file_roots(), want);
     }
 
     #[test]

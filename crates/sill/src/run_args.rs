@@ -180,6 +180,20 @@ impl DebugSeams {
     }
 }
 
+/// A release-shaped build has no `--dev-callers` at all, nor the stand-in flags beside it.
+#[cfg(all(test, not(feature = "debug")))]
+mod release_tests {
+    use clap::Parser;
+
+    use crate::cli::Cli;
+
+    #[test]
+    fn run_has_no_dev_callers_flag() {
+        assert!(Cli::try_parse_from(["sill", "run"]).is_ok());
+        assert!(Cli::try_parse_from(["sill", "run", "--dev-callers", "/tmp/rows.toml"]).is_err());
+    }
+}
+
 #[cfg(all(test, feature = "debug"))]
 mod tests {
     use clap::Parser;
@@ -298,19 +312,5 @@ mod tests {
             args.debug.fake_ddc.as_deref(),
             Some(std::path::Path::new("/tmp/ddc.json"))
         );
-    }
-}
-
-/// A release-shaped build has no `--dev-callers` at all, nor the stand-in flags beside it.
-#[cfg(all(test, not(feature = "debug")))]
-mod release_tests {
-    use clap::Parser;
-
-    use crate::cli::Cli;
-
-    #[test]
-    fn run_has_no_dev_callers_flag() {
-        assert!(Cli::try_parse_from(["sill", "run"]).is_ok());
-        assert!(Cli::try_parse_from(["sill", "run", "--dev-callers", "/tmp/rows.toml"]).is_err());
     }
 }

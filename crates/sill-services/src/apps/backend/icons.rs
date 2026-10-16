@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sill_model::apps::{AppIcon, icon_file_fits};
 
+use super::icon_roots::IconRoots;
+
 /// The icon theme lookups use.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -51,18 +53,18 @@ fn theme_named(settings: &str) -> Option<IconTheme> {
 /// `icon` (a name or an absolute path) as a file, the largest size up to [`MAX_SIZE`] px,
 /// preferring an SVG over a PNG/XPM of the same or a smaller size. An absolute path is the entry's
 /// own word for where its icon is, and is used when the file there is a regular file with an image
-/// extension within the size cap (`sill_model::apps::icon_file_fits`): the entry is another
-/// program's text, so a pipe, a folder, a document or a huge file is no icon. Whether the shell
-/// may draw from the folder it is in is the host's list of roots (`Dirs::icon_dirs` and
-/// `Dirs::app_stores`); a name goes through `freedesktop_icons` at `theme`, caching every lookup
-/// (`freedesktop_icons`'s own process-wide cache).
-pub fn resolve_icon(icon: &str, theme: &IconTheme) -> AppIcon {
+/// extension within the size cap (`sill_model::apps::icon_file_fits`) and lies in one of `roots`
+/// (`Dirs::icon_file_roots`, the folders the host serves; a link out of them does not count): the
+/// entry is another program's text, so a pipe, a folder, a document, a huge file or a file the
+/// shell may not draw from is no icon. A name goes through `freedesktop_icons` at `theme`, caching
+/// every lookup (`freedesktop_icons`'s own process-wide cache).
+pub fn resolve_icon(icon: &str, theme: &IconTheme, roots: &IconRoots) -> AppIcon {
     if icon.is_empty() {
         return AppIcon::None;
     }
     let as_path = Path::new(icon);
     if as_path.is_absolute() {
-        return named_icon_file(as_path);
+        return named_icon_file(as_path, roots);
     }
     svg_lookup(icon, theme)
         .or_else(|| raster_lookup(icon, theme))
@@ -70,9 +72,9 @@ pub fn resolve_icon(icon: &str, theme: &IconTheme) -> AppIcon {
 }
 
 /// `path` as the icon it names, when it is one (see [`resolve_icon`]).
-fn named_icon_file(path: &Path) -> AppIcon {
+fn named_icon_file(path: &Path, roots: &IconRoots) -> AppIcon {
     match std::fs::metadata(path) {
-        Ok(meta) if meta.is_file() && icon_file_fits(path, meta.len()) => {
+        Ok(meta) if meta.is_file() && icon_file_fits(path, meta.len()) && roots.holds(path) => {
             AppIcon::File(path.to_owned())
         }
         _ => AppIcon::None,
@@ -112,7 +114,7 @@ pub fn pixmap_dirs() -> Vec<PathBuf> {
 mod tests {
     use std::path::Path;
 
-    use super::{IconTheme, icon_theme_path, pixmap_dirs, resolve_icon, theme_named};
+    use super::{IconRoots, IconTheme, icon_theme_path, pixmap_dirs, resolve_icon, theme_named};
     use sill_model::apps::{AppIcon, ICON_FILE_MAX_BYTES};
     use std::fs;
     use std::path::PathBuf;
@@ -151,44 +153,96 @@ mod tests {
     }
 
     #[test]
-    fn an_absolute_icon_is_used_only_when_it_is_an_image_file_of_a_sane_size() {
+    fn an_absolute_icon_is_used_only_when_it_is_an_image_file_of_a_sane_size_inside_a_root() {
         let temp = TempDir::new("icons-abs");
         let theme = IconTheme("Fixture".to_owned());
-        let write = |name: &str, len: u64| {
-            let file = temp.path().join(name);
+        let root = temp.path().join("root");
+        let outside = temp.path().join("outside");
+        let lookalike = temp.path().join("root-evil");
+        for dir in [&root, &outside, &lookalike, &root.join("nested")] {
+            fs::create_dir_all(dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
+        }
+        let write = |dir: &Path, name: &str, len: u64| {
+            let file = dir.join(name);
             fs::File::create(&file)
                 .and_then(|file| file.set_len(len))
                 .unwrap_or_else(|e| panic!("{e}"));
             file
         };
-        let png = write("app.png", 3);
-        let svg = write("app.SVG", 3);
-        let note = write("app.txt", 3);
-        let bare = write("app", 3);
-        let huge = write("huge.png", ICON_FILE_MAX_BYTES + 1);
-        let folder = temp.path().join("folder.png");
+        let png = write(&root, "app.png", 3);
+        let nested = write(&root.join("nested"), "app.png", 3);
+        let svg = write(&root, "app.SVG", 3);
+        let note = write(&root, "app.txt", 3);
+        let bare = write(&root, "app", 3);
+        let huge = write(&root, "huge.png", ICON_FILE_MAX_BYTES + 1);
+        let folder = root.join("folder.png");
         fs::create_dir(&folder).unwrap_or_else(|e| panic!("{e}"));
-        let link = temp.path().join("link.png");
-        std::os::unix::fs::symlink(&png, &link).unwrap_or_else(|e| panic!("{e}"));
+        let stranger = write(&outside, "app.png", 3);
+        let evil = write(&lookalike, "app.png", 3);
+        let link = |name: &str, to: &Path| {
+            let link = root.join(name);
+            std::os::unix::fs::symlink(to, &link).unwrap_or_else(|e| panic!("{e}"));
+            link
+        };
+        let inner_link = link("inner.png", &png);
+        let escaping_link = link("escape.png", &stranger);
+        let escaping_folder = link("elsewhere", &outside);
+        let through_dotdot = root.join("../outside/app.png");
+        let through_folder_link = escaping_folder.join("app.png");
         let cases = [
-            ("a png", png.clone(), AppIcon::File(png)),
+            ("a png in a root", png.clone(), AppIcon::File(png)),
+            (
+                "a png in a folder of a root",
+                nested.clone(),
+                AppIcon::File(nested),
+            ),
             ("an svg, whatever the case", svg.clone(), AppIcon::File(svg)),
-            ("a link to a png", link.clone(), AppIcon::File(link)),
+            (
+                "a link to a png inside the root",
+                inner_link.clone(),
+                AppIcon::File(inner_link),
+            ),
+            ("a png outside every root", stranger, AppIcon::None),
+            ("a folder named like a root", evil, AppIcon::None),
+            (
+                "a link out of the root to a png",
+                escaping_link,
+                AppIcon::None,
+            ),
+            (
+                "a path through a link to a folder outside",
+                through_folder_link,
+                AppIcon::None,
+            ),
+            (
+                "a path that climbs out with ..",
+                through_dotdot,
+                AppIcon::None,
+            ),
             ("a document", note, AppIcon::None),
             ("no extension", bare, AppIcon::None),
             ("past the size cap", huge, AppIcon::None),
             ("a folder named like an image", folder, AppIcon::None),
             (
                 "a file that is not there",
-                temp.path().join("missing.png"),
+                root.join("missing.png"),
                 AppIcon::None,
             ),
         ];
+        let roots = IconRoots::new([root]);
         for (name, path, want) in cases {
             let icon = path.to_str().unwrap_or_else(|| panic!("utf8 path"));
-            assert_eq!(resolve_icon(icon, &theme), want, "{name}");
+            assert_eq!(resolve_icon(icon, &theme, &roots), want, "{name}");
         }
-        assert_eq!(resolve_icon("", &theme), AppIcon::None);
+        let nowhere = IconRoots::default();
+        let inside = temp.path().join("root/app.png");
+        let icon = inside.to_str().unwrap_or_else(|| panic!("utf8 path"));
+        assert_eq!(
+            resolve_icon(icon, &theme, &nowhere),
+            AppIcon::None,
+            "no roots, no absolute icon"
+        );
+        assert_eq!(resolve_icon("", &theme, &roots), AppIcon::None);
     }
 
     #[test]

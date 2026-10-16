@@ -3,7 +3,7 @@
 //! [`CardPress`]. The card's look (the plate, the clamp, hover, the close button, the group's
 //! layers, the swipe) is quire's.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::SystemTime;
 
 use dioxus::prelude::*;
@@ -12,7 +12,8 @@ use ds::root::common::Common;
 use ds::style::icon::url::IconUrl;
 use sill_model::apps::AppIcon;
 use sill_model::notifications::{AppRef, Href, Notification, UnixMs};
-use sill_services::apps::{icon_theme, resolve_icon};
+use sill_services::apps::{IconRoots, icon_theme, resolve_icon};
+use sill_services::env::Dirs;
 use sill_settings::{BannerMaterial, NotificationsSettings};
 use sill_shell_kit::notifications::parts::{AppMark, Hover};
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
@@ -85,10 +86,10 @@ pub(super) fn card(
 /// and the center's group header show.
 pub fn use_app_mark(app: &AppRef, size: IconSize) -> AppMark {
     let apps = use_service::<AppsService>()();
-    let config = use_services().dirs.config;
+    let dirs = use_services().dirs;
     let entry = entry_for(app, &apps);
     let art = use_art(app, entry.map(|e| &e.icon), || {
-        card_art(app, entry, |name| theme_icon(name, &config))
+        card_art(app, entry, |name| theme_icon(name, &dirs))
     });
     AppMark {
         icon: icon_source(&art, size),
@@ -130,9 +131,11 @@ fn use_art(app: &AppRef, entry: Option<&AppIcon>, look: impl FnOnce() -> CardArt
 }
 
 /// A theme icon name as a file, through the apps service's lookup (the theme is the apps service's
-/// setting under the config directory `config`).
-fn theme_icon(name: &str, config: &Path) -> Option<PathBuf> {
-    match resolve_icon(name, &icon_theme(config)) {
+/// setting under the config directory of `dirs`; a file is drawn only from the folders the host
+/// serves, `Dirs::icon_file_roots`).
+fn theme_icon(name: &str, dirs: &Dirs) -> Option<PathBuf> {
+    let roots = IconRoots::new(dirs.icon_file_roots());
+    match resolve_icon(name, &icon_theme(&dirs.config), &roots) {
         AppIcon::File(path) => Some(path),
         AppIcon::None => None,
     }

@@ -10,7 +10,7 @@
 use std::path::{Path, PathBuf};
 
 use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
-use sill_services::apps::{IconTheme, scan};
+use sill_services::apps::{IconRoots, IconTheme, scan};
 
 fn fixture_dirs() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/applications");
@@ -32,7 +32,7 @@ fn find<'a>(apps: &'a [App], id: &str) -> &'a App {
 
 #[test]
 fn scan_walks_every_dir_and_yields_them_in_precedence_order() {
-    let found = scan(&fixture_dirs(), &theme(), &[]);
+    let found = scan(&fixture_dirs(), &theme(), &IconRoots::default(), &[]);
 
     let firefoxes: Vec<_> = found.iter().filter(|a| a.id.0 == "firefox").collect();
     assert_eq!(firefoxes.len(), 2, "both firefox.desktop files are yielded");
@@ -55,13 +55,13 @@ fn scan_walks_every_dir_and_yields_them_in_precedence_order() {
 
 #[test]
 fn a_nested_directory_becomes_a_dashed_id() {
-    let found = scan(&fixture_dirs(), &theme(), &[]);
+    let found = scan(&fixture_dirs(), &theme(), &IconRoots::default(), &[]);
     assert_eq!(find(&found, "kde-settings").name, "KDE Settings");
 }
 
 #[test]
 fn visibility_rules_hide_but_do_not_exclude_except_a_non_application_type_and_a_dead_try_exec() {
-    let found = scan(&fixture_dirs(), &theme(), &[]);
+    let found = scan(&fixture_dirs(), &theme(), &IconRoots::default(), &[]);
 
     let cases: &[(&str, Listing)] = &[
         ("hidden-app", Listing::Hidden),
@@ -87,7 +87,7 @@ fn visibility_rules_hide_but_do_not_exclude_except_a_non_application_type_and_a_
 
 #[test]
 fn actions_without_a_name_are_dropped_and_the_rest_keep_their_declared_order() {
-    let found = scan(&fixture_dirs(), &theme(), &[]);
+    let found = scan(&fixture_dirs(), &theme(), &IconRoots::default(), &[]);
     let app = find(&found, "actions-app");
     assert_eq!(app.actions.len(), 1, "the nameless action is dropped");
     assert_eq!(app.actions[0].id, "new-window");
@@ -97,7 +97,7 @@ fn actions_without_a_name_are_dropped_and_the_rest_keep_their_declared_order() {
 
 #[test]
 fn every_other_field_round_trips_through_parse_entry() {
-    let found = scan(&fixture_dirs(), &theme(), &[]);
+    let found = scan(&fixture_dirs(), &theme(), &IconRoots::default(), &[]);
     let app = find(&found, "rich-app");
 
     assert_eq!(app.generic_name, "Text Editor");

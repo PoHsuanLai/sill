@@ -24,7 +24,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use sill_model::apps::AppIcon;
-use sill_services::apps::{IconTheme, resolve_icon};
+use sill_services::apps::{IconRoots, IconTheme, resolve_icon};
 
 const FIXTURE_THEME: &str = "SillM2ApfixtureTheme";
 
@@ -104,19 +104,20 @@ fn resolve_icon_prefers_svg_then_the_largest_raster() {
         .unwrap_or_else(|| panic!("bad fixture dir name"))
         .to_owned();
     let theme = IconTheme(theme_name);
+    let roots = IconRoots::default();
 
     assert_eq!(
-        resolve_icon("both", &theme),
+        resolve_icon("both", &theme, &roots),
         AppIcon::File(theme_dir.join("scalable/apps/both.svg")),
         "svg beats every raster size"
     );
     assert_eq!(
-        resolve_icon("raster-only", &theme),
+        resolve_icon("raster-only", &theme, &roots),
         AppIcon::File(theme_dir.join("256x256/apps/raster-only.png")),
         "the larger of two pngs wins when there is no svg"
     );
     assert_eq!(
-        resolve_icon("no-such-icon-in-the-fixture", &theme),
+        resolve_icon("no-such-icon-in-the-fixture", &theme, &roots),
         AppIcon::None
     );
 }

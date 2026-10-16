@@ -21,7 +21,7 @@ use sill_model::apps::{AppIndex, AppsEvent, Listing};
 use sill_model::results::SearchCommand;
 use sill_search::ResultsService;
 use sill_search::results;
-use sill_services::apps::{IconTheme, scan};
+use sill_services::apps::{IconRoots, IconTheme, scan};
 use sill_services::env::Env;
 use sill_services::service::spawn;
 
@@ -82,6 +82,7 @@ fn fixture() -> AppIndex {
     let found = scan(
         &[root.join("home"), root.join("system")],
         &IconTheme("hicolor".to_owned()),
+        &IconRoots::default(),
         &[],
     );
     sill_model::apps::step(AppIndex::default(), AppsEvent::Scanned(found))

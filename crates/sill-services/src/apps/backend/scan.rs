@@ -8,6 +8,7 @@ use keycap_protocol::ProfileName;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
 
+use super::icon_roots::IconRoots;
 use super::icons::{IconTheme, resolve_icon};
 
 /// The desktop names this scan targets. sill runs as the desktop's own session
@@ -42,16 +43,21 @@ fn store_export_dirs(data_home: &Path) -> Vec<PathBuf> {
     ]
 }
 
-/// Every entry under `dirs`, in precedence order, icons resolved in `theme`, with the
-/// desktop's current locales. A directory that does not exist, or a `.desktop` file that
+/// Every entry under `dirs`, in precedence order, icons resolved in `theme` (an absolute `Icon=`
+/// only inside `roots`), with the desktop's current locales. A directory that does not exist, or a `.desktop` file that
 /// cannot be read or parsed, is skipped rather than failing the scan (`freedesktop_desktop_entry::Iter`
 /// already skips a directory it cannot read).
-pub fn scan(dirs: &[PathBuf], theme: &IconTheme, locales: &[String]) -> Vec<App> {
+pub fn scan(
+    dirs: &[PathBuf],
+    theme: &IconTheme,
+    roots: &IconRoots,
+    locales: &[String],
+) -> Vec<App> {
     freedesktop_desktop_entry::Iter::new(dirs.iter().cloned())
         .filter_map(|path| {
             let text = std::fs::read_to_string(&path).ok()?;
             let id = entry_id(&path, dirs)?;
-            parse_entry(&path, &id, &text, theme, locales)
+            parse_entry(&path, &id, &text, theme, roots, locales)
         })
         .collect()
 }
@@ -86,6 +92,7 @@ pub fn parse_entry(
     id: &str,
     text: &str,
     theme: &IconTheme,
+    roots: &IconRoots,
     locales: &[String],
 ) -> Option<App> {
     let entry = DesktopEntry::from_str(path, text, Some(locales)).ok()?;
@@ -106,7 +113,7 @@ pub fn parse_entry(
         exec,
         icon: entry
             .icon()
-            .map_or(AppIcon::None, |icon| resolve_icon(icon, theme)),
+            .map_or(AppIcon::None, |icon| resolve_icon(icon, theme, roots)),
         startup_wm_class: entry.startup_wm_class().map(str::to_owned),
         flatpak: entry.flatpak().map(str::to_owned),
         terminal: if entry.terminal() {
@@ -238,6 +245,7 @@ fn actions(entry: &DesktopEntry, locales: &[String]) -> Vec<DesktopActionEntry> 
 
 #[cfg(test)]
 mod tests {
+    use super::super::icon_roots::IconRoots;
     use super::super::icons::IconTheme;
     use super::{entry_id, is_application, is_listed, on_path, parse_entry, store_export_dirs};
     use freedesktop_desktop_entry::DesktopEntry;
@@ -356,7 +364,17 @@ mod tests {
         let text =
             "[Desktop Entry]\nType=Application\nName=X\nExec=x\nTryExec=/no/such/binary-xyz\n";
         let theme = IconTheme("hicolor".to_owned());
-        assert!(parse_entry(Path::new("/a/x.desktop"), "x", text, &theme, &[]).is_none());
+        assert!(
+            parse_entry(
+                Path::new("/a/x.desktop"),
+                "x",
+                text,
+                &theme,
+                &IconRoots::default(),
+                &[]
+            )
+            .is_none()
+        );
     }
 
     #[test]
@@ -364,16 +382,43 @@ mod tests {
         let theme = IconTheme("hicolor".to_owned());
         let no_name = "[Desktop Entry]\nType=Application\nExec=x\n";
         let no_exec = "[Desktop Entry]\nType=Application\nName=X\n";
-        assert!(parse_entry(Path::new("/a/x.desktop"), "x", no_name, &theme, &[]).is_none());
-        assert!(parse_entry(Path::new("/a/x.desktop"), "x", no_exec, &theme, &[]).is_none());
+        assert!(
+            parse_entry(
+                Path::new("/a/x.desktop"),
+                "x",
+                no_name,
+                &theme,
+                &IconRoots::default(),
+                &[]
+            )
+            .is_none()
+        );
+        assert!(
+            parse_entry(
+                Path::new("/a/x.desktop"),
+                "x",
+                no_exec,
+                &theme,
+                &IconRoots::default(),
+                &[]
+            )
+            .is_none()
+        );
     }
 
     #[test]
     fn parse_entry_marks_a_hidden_entry_shown_as_listing_hidden_but_still_yields_it() {
         let text = "[Desktop Entry]\nType=Application\nName=X\nExec=x\nNoDisplay=true\n";
         let theme = IconTheme("hicolor".to_owned());
-        let app = parse_entry(Path::new("/a/x.desktop"), "x", text, &theme, &[])
-            .unwrap_or_else(|| panic!("expected an App"));
+        let app = parse_entry(
+            Path::new("/a/x.desktop"),
+            "x",
+            text,
+            &theme,
+            &IconRoots::default(),
+            &[],
+        )
+        .unwrap_or_else(|| panic!("expected an App"));
         assert_eq!(app.listing, Listing::Hidden);
         assert_eq!(app.name, "X");
     }
@@ -417,8 +462,15 @@ mod tests {
         let theme = IconTheme("hicolor".to_owned());
         for &(name, extra, categories, profile) in CASES {
             let text = format!("{HEAD}{extra}");
-            let app = parse_entry(Path::new("/a/x.desktop"), "x", &text, &theme, &[])
-                .unwrap_or_else(|| panic!("{name}: expected an App"));
+            let app = parse_entry(
+                Path::new("/a/x.desktop"),
+                "x",
+                &text,
+                &theme,
+                &IconRoots::default(),
+                &[],
+            )
+            .unwrap_or_else(|| panic!("{name}: expected an App"));
             assert_eq!(app.categories, categories, "{name}");
             assert_eq!(
                 app.keyboard_profile,

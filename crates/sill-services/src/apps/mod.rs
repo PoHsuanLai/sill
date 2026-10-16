@@ -12,7 +12,8 @@ use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
 pub use backend::{
-    IconTheme, applications_dirs, icon_theme, parse_entry, pixmap_dirs, resolve_icon, scan,
+    IconRoots, IconTheme, applications_dirs, icon_theme, parse_entry, pixmap_dirs, resolve_icon,
+    scan,
 };
 
 /// The desktop entries and their icons as a [`Service`]: scanned once and published, then every
@@ -32,8 +33,9 @@ impl Service for AppsService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let (config, data) = (env.dirs.config.clone(), env.dirs.data.clone());
+        let roots = env.dirs.icon_file_roots();
         async move {
-            backend::run(io.state, io.commands, config, data).await;
+            backend::run(io.state, io.commands, config, data, roots).await;
             Ok(())
         }
     }

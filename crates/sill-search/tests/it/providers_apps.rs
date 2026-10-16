@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use sill_launcher::{Cancel, Frecency, Provider, Query, VecSink};
 use sill_model::apps::{AppIndex, AppsEvent};
 use sill_search::providers::AppsProvider;
-use sill_services::apps::{IconTheme, scan};
+use sill_services::apps::{IconRoots, IconTheme, scan};
 
 fn fixture_dirs() -> Vec<PathBuf> {
     let root =
@@ -19,7 +19,12 @@ fn fixture_dirs() -> Vec<PathBuf> {
 }
 
 fn provider() -> AppsProvider {
-    let found = scan(&fixture_dirs(), &IconTheme("hicolor".to_owned()), &[]);
+    let found = scan(
+        &fixture_dirs(),
+        &IconTheme("hicolor".to_owned()),
+        &IconRoots::default(),
+        &[],
+    );
     let index = sill_model::apps::step(AppIndex::default(), AppsEvent::Scanned(found));
     let (_tx, rx) = tokio::sync::watch::channel(index);
     AppsProvider {

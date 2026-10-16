@@ -8,7 +8,7 @@ use sill_model::apps::{AppIndex, AppsCommand, AppsEvent, step};
 use tokio::sync::{mpsc, watch};
 
 use super::icons;
-use crate::apps::{applications_dirs, icon_theme, scan};
+use crate::apps::{IconRoots, applications_dirs, icon_theme, scan};
 
 /// How long the applications directories (and the icon theme file) must be quiet before a
 /// rescan.
@@ -22,10 +22,11 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<AppsCommand>,
     config: PathBuf,
     data: PathBuf,
+    roots: Vec<PathBuf>,
 ) {
     let dirs = applications_dirs(&data);
     let locales = freedesktop_desktop_entry::get_languages_from_env();
-    publish(&tx, &config, &dirs, &locales).await;
+    publish(&tx, &config, &dirs, &roots, &locales).await;
 
     let (signal, mut signals) = mpsc::unbounded_channel::<()>();
     let _watchers = watch_dirs(&config, &dirs, signal);
@@ -38,15 +39,15 @@ pub(crate) async fn run(
                     if !changed {
                         return;
                     }
-                    publish(&tx, &config, &dirs, &locales).await;
+                    publish(&tx, &config, &dirs, &roots, &locales).await;
                 }
                 command = commands.recv() => match command {
-                    Some(AppsCommand::Rescan) => publish(&tx, &config, &dirs, &locales).await,
+                    Some(AppsCommand::Rescan) => publish(&tx, &config, &dirs, &roots, &locales).await,
                     None => listening = false,
                 },
             }
         } else if settle(&mut signals).await {
-            publish(&tx, &config, &dirs, &locales).await;
+            publish(&tx, &config, &dirs, &roots, &locales).await;
         } else {
             return;
         }
@@ -60,14 +61,16 @@ async fn publish(
     tx: &watch::Sender<AppIndex>,
     config: &Path,
     dirs: &[PathBuf],
+    roots: &[PathBuf],
     locales: &[String],
 ) {
     let config = config.to_path_buf();
     let dirs = dirs.to_vec();
+    let roots = roots.to_vec();
     let locales = locales.to_vec();
     let found = tokio::task::spawn_blocking(move || {
         let theme = icon_theme(&config);
-        scan(&dirs, &theme, &locales)
+        scan(&dirs, &theme, &IconRoots::new(roots), &locales)
     })
     .await
     .unwrap_or_default();
