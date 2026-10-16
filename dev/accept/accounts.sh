@@ -255,6 +255,8 @@ echo "headless KWin at $WL, private bus $BUS" >&2
 write_views
 backdrop_seed "$CONFIG" || exit 1
 : >"$CONFIG/sill/settings.toml"
+# The stand-in is the accounts service for this daemon only (a debug build's `--dev-callers`).
+dev_caller org.quire.Accounts accounts "$STANDIN_BIN" || exit 1
 start_standin || exit 1
 launch_daemon || exit 1
 NAME=$(output_name) || exit 1

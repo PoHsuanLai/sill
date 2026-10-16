@@ -365,6 +365,8 @@ cp "$DOCKET_DIR/manifests/org.quire.Memory.toml" "$DATA/quire/intents/"
 backdrop_seed "$CONFIG" || exit 1
 : >"$CONFIG/sill/settings.toml"
 status=0
+# The stand-in intentd is the router for this daemon only (a debug build's `--dev-callers`).
+dev_caller org.quire.Intents router "$INTENTD" || exit 1
 if start_intentd && launch_daemon; then
   NAME=$(output_name) || exit 1
   SHEET="sill-confirm-$NAME"

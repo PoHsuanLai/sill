@@ -100,12 +100,13 @@ prebuilt() {
 }
 
 # Starts `sill run` in the background on the private buses with the fake DDC, its log in
-# $OUT_DIR/daemon.log and the arguments "$@" after `run`; sets DAEMON and waits for `ping`.
+# $OUT_DIR/daemon.log and the arguments "$@" after `run` (`--dev-callers` first when dev_caller named
+# any stand-in); sets DAEMON and waits for `ping`.
 launch_daemon() {
   use_fake_ddc "$CONFIG" >/dev/null
   require_private_system_bus "$BUS" || return 1
   require_fake_ddc || return 1
-  in_env "${LAUNCH_PREFIX[@]}" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" "$@" >"$OUT_DIR/daemon.log" 2>&1 &
+  in_env "${LAUNCH_PREFIX[@]}" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" "${DEV_CALLERS_FLAGS[@]}" "$@" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   wait_ping
 }

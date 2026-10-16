@@ -84,6 +84,23 @@ require_fake_ddc() {
   }
 }
 
+# Names a stand-in a script built in this checkout as the desktop's service APP in the role ROLE
+# (accounts, router, ...), for the daemon under test only: the row goes into $SCRATCH/dev-callers.toml
+# (mode 600, never anywhere else) and DEV_CALLERS_FLAGS becomes `--dev-callers FILE`, the `sill run`
+# option of a debug build that reads that file as the person's own rows (peephole's developer rows,
+# `Proof::Dev`, below every real proof). The release table is never read or written. Needs
+# scratch_new first. $1 APP, $2 ROLE, $3 the stand-in's image (resolved: /proc names the real path).
+DEV_CALLERS_FLAGS=()
+dev_caller() {
+  local app="$1" role="$2" image file
+  [ -n "${SCRATCH:-}" ] && [ -d "$SCRATCH" ] || { echo "dev_caller: call scratch_new first" >&2; return 1; }
+  image=$(realpath -e -- "$3") || { echo "dev_caller: $3 does not exist" >&2; return 1; }
+  file="$SCRATCH/dev-callers.toml"
+  [ -e "$file" ] || install -m 600 /dev/null "$file" || return 1
+  printf '[[peer]]\napp = "%s"\nrole = "%s"\nexe = ["%s"]\n\n' "$app" "$role" "$image" >>"$file" || return 1
+  DEV_CALLERS_FLAGS=(--dev-callers "$file")
+}
+
 # Makes the scratch tree every daemon runs in: SCRATCH with its own HOME (HOME_DIR), XDG
 # runtime (RUNTIME, mode 700), config (CONFIG), data (DATA), state (STATE) and cache (CACHE)
 # directories, so nothing a script starts reads or writes the real ones. in_env (daemon.sh)
