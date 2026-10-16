@@ -1439,19 +1439,57 @@ Fixed by reading, not built: the gate run is the first compile.
 
 - **File roots (HOST-09).** shell-host reads `file:` URLs only inside `HostConfig::file_roots`; sill
   names them in one place (`sill_ui_kit::root::file_roots`, ARCHITECTURE.md's one-home table). Three
-  pictures can sit outside every root and so no longer load; each is open:
-  - *Cover art a player names by a local file* (`mpris:artUrl` as `file:`) is drawn from where the
-    player put it (often a temporary folder). The fix is for the now-playing service to copy a local
-    cover into its art cache, as it already does for a remote one, and publish the copy.
-  - *A picture file's thumbnail in a launcher row* is drawn from the file itself, anywhere in the
-    home folder. Rows for files outside the Pictures folder show no thumbnail until the thumbnail
-    comes from the freedesktop thumbnail cache or a copy in sill's cache.
+  pictures sat outside every root and so did not load; each is closed. The roots are folders the
+  host canonicalises and compares by whole components (`FileRoots::admit`); they cannot name an
+  extension or a pattern, so the rules that need one are applied where the path is chosen.
+  - *Cover art a player names by a local file* (`mpris:artUrl` as `file:`) is copied into the
+    now-playing art cache and drawn from the copy (a root already). A root would have been the
+    wrong tool: the file is anywhere (often a temporary folder), and a player that rewrites one
+    file for each track would be drawn stale. The copy goes through quire's `read_capped` (a
+    regular file of at most 5 MiB; a device, a socket, a folder or a pipe is refused and a pipe is
+    never waited on) and `write_atomic` (own temporary name, synced, renamed, owner-only). Its name
+    is a hash of the path, the time and the size (`local_art_cache_name`), so a rewritten file is a
+    new copy. A `file:` address that is not an absolute path, or holds a control character, is no
+    art. New dependency: `ds-helpers` (path, `default-features = false`) in `sill-services`.
+  - *A picture file's thumbnail in a launcher row* outside Pictures comes from the freedesktop
+    thumbnail cache, and `Dirs::thumbnails` (`$XDG_CACHE_HOME/thumbnails`) is a root. A root, not a
+    copy, because the thumbnail specification already is the shared copy: a file manager or a
+    thumbnailer keeps a 128 or 256 pixel picture under `<size>/<md5 of the file's address>.png`,
+    owner-only, for any program to show instead of the file; sill copying would hold whole
+    pictures in its cache and need a scaler. The row validates what the specification asks
+    (`FreedesktopThumbnails::lookup` checks the address and the modification time the picture says,
+    so an edited file has no thumbnail until it is made again), then draws the cache's file
+    (`sill_launcher_ui::launcher::row_thumb`). A file nothing has made a thumbnail of shows none.
+    A file in Pictures is drawn from itself, as before. `row_thumb` repeats the cache's naming
+    (`thumbnail_file`: md5 of `file_uri`) because anyview does not expose the path; a test makes a
+    thumbnail with anyview's own writer and looks for the file under that name. *Ask of anyview:*
+    make `FreedesktopThumbnails::path` public, then delete `thumbnail_file`.
   - *An app icon the desktop entry names by an absolute path* outside the data directories (an
-    `/opt` or `/snap` path) is not drawn. The apps service can copy such an icon into sill's cache
-    when it scans, or `Dirs::icon_dirs` can list the app stores' icon folders.
+    `/opt` or `/snap` path) is drawn: `Dirs::app_stores` (`/opt` and each `/snap/<name>/current`,
+    listed once at start; a snap installed later is seen at the next start) is a root, and the
+    apps scan keeps such an icon only when it is a regular file with an image extension (png, jpg,
+    jpeg, webp, gif, svg) within the cap for its kind (`sill_model::apps::icon_file_fits`, 8 MiB,
+    an SVG 1 MiB, the same numbers the tinted-icon render reads with). A root rather than a copy
+    because the scan runs on every change to an applications folder and a copy would read every
+    icon each time. The root is the whole of `/opt`, so the extension and size rules are the scan's,
+    not the host's; the only pictures the host is asked for there are the ones the scan kept. Open:
+    an absolute `Icon=` that is in no root (say `/usr/share/<app>/icon.png`) still passes the scan
+    and is not drawn; the fix is to hand the roots to `scan` so it can answer `AppIcon::None` and
+    the dock can draw its fallback glyph.
   A screenshot folder the person sets outside Pictures shows its thumbnail from the preview in
   sill's cache, never from the original. The tinted app-icon cache still reads its folder with
   `dirs::cache_dir()` rather than `Dirs`; the two agree in a real session.
+- **Cover fetches (SILLS-15).** Most of the verified fix was already on master (`curl` with
+  `--globoff`, `--max-time`, `--max-filesize`, `--proto` and `--proto-redir =http,https`, a part file
+  renamed into place, at most two fetches at once, one task per player, a pruned cache). What this
+  adds: one fetch per cover however many players name it (`bring_once`, a lock per cover, taken
+  before a slot so a waiter holds none), a gap of 3 s between one player's jobs with a newer cover
+  taking the place of a waiting one (`next_start`), an address is taken only when it is one line,
+  has a host and is at most 2048 characters (`art_source`), and the cache is held to 64 files and
+  128 MiB by `evictions` (pure, newest kept) after each cover arrives rather than before the next
+  fetch. Not done, on purpose: refusing loopback and private addresses. Local cover servers
+  (a media server on the LAN, a bridge on `127.0.0.1`) are real; the blind GET is bounded by the
+  size, time and rate rules above.
 - **Notification pictures (SILLN image paths).** A bus caller's `app_icon` and `image-path` are kept
   only inside the icon and pixmap folders or `notifications` in sill's cache
   (`sill_model::notifications::ImageDirs`). Nothing writes that cache folder yet; it is allowed so
