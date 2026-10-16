@@ -171,7 +171,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                     class: "sill-launcher-body",
                     style: "margin-left:{left}px;width:{width}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
-                        {palette(&panel, &shown, foot, &icons, (&thumb_of, &clip_image), Beside { aside })}
+                        {palette(&panel, &shown, foot, &icons, Images { thumb_of: &thumb_of, clip_image: &clip_image }, Beside { aside })}
                     }
                 }
             }
@@ -280,6 +280,12 @@ fn card_key(shown: Option<&Shown>, aside: Option<&Aside>) -> CardKey {
     }
 }
 
+/// Where the palette's rows get their pictures: a file's thumbnail, a clipboard item's image.
+struct Images<'a> {
+    thumb_of: &'a dyn Fn(&str, &std::path::Path) -> Option<ImageSource>,
+    clip_image: &'a dyn Fn(ClipKey) -> Option<ImageSource>,
+}
+
 /// The palette, keyed by its opening so each opening mounts one, the preview pane as its
 /// `aside` while shown or leaving, and the actions menu while it is open.
 fn palette(
@@ -287,12 +293,13 @@ fn palette(
     shown: &Shown,
     foot: Foot,
     icons: &RowIcons,
-    (thumb_of, clip_image): (
-        &dyn Fn(&str, &std::path::Path) -> Option<ImageSource>,
-        &dyn Fn(ClipKey) -> Option<ImageSource>,
-    ),
+    images: Images<'_>,
     beside: Beside,
 ) -> Element {
+    let Images {
+        thumb_of,
+        clip_image,
+    } = images;
     let Beside { aside } = beside;
     let session = &shown.session;
     let selected_item = shown.selected();

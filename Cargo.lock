@@ -7322,6 +7322,7 @@ dependencies = [
  "docket-fake",
  "docket-router",
  "ds-core",
+ "ds-helpers 0.1.0",
  "freedesktop-desktop-entry",
  "freedesktop-icons",
  "image",
