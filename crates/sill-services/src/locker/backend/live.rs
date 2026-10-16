@@ -1,8 +1,9 @@
 //! The locker service's loop: turns commands, logind's signals, the shell's lock reports and the
 //! clock into [`LockerEvent`]s, steps the machine, performs its effects and publishes [`Lock`].
 //!
-//! In `LockerMode::Own` the loop also keeps [`super::marker`]'s file (written on
-//! `Shell(Locked)`, removed on `Shell(Unlocked | Finished | Refused)`) and, right after a mode
+//! In `LockerMode::Own` the loop also keeps [`super::marker`]'s file (written when the phase
+//! leaves `Unlocked`, before the lock is published and so before the session is covered; removed
+//! when it returns to `Unlocked`) and, right after a mode
 //! resolves to `Own`, locks at once when [`super::marker::restore_on_start`] says so.
 
 use std::path::PathBuf;
@@ -10,15 +11,17 @@ use std::time::Instant;
 
 use ds_core::time::stamp::Stamp;
 use sill_model::locker::{
-    Cause, Host, Lock, LockCause, Locker, LockerCommand, LockerEffect, LockerEvent, LockerMode,
-    ShellLockEvent, cause_after, cause_of, next_deadline, step,
+    Cause, Host, Lock, LockCause, LockPhase, Locker, LockerCommand, LockerEffect, LockerEvent,
+    LockerMode, ShellLockEvent, cause_after, cause_of, next_deadline, step,
 };
 use tokio::sync::{mpsc, watch};
 use zbus::zvariant::OwnedFd;
 
 use super::logind;
 use super::logind::Logind;
-use super::marker::{LockMarker, Restore, marker_path, restore_on_start};
+use super::marker::{
+    LockMarker, MarkerChange, Restore, marker_change, marker_path, restore_on_start,
+};
 use crate::env::Bus;
 use crate::stream::next_opt;
 
@@ -117,7 +120,6 @@ impl Live {
                 self.feed(LockerEvent::Requested(Cause::Idle, now)).await;
             }
             LockerCommand::Shell(event) => {
-                self.keep_marker(event);
                 let event = match event {
                     ShellLockEvent::Locked => LockerEvent::Reported,
                     ShellLockEvent::Unlocked
@@ -150,12 +152,12 @@ impl Live {
     }
 
     /// Keep the crash marker while the own lock is held (module doc of [`super::marker`]).
-    fn keep_marker(&self, event: ShellLockEvent) {
+    fn keep_marker(&self, was: LockPhase, now: LockPhase) {
         let (LockerMode::Own { .. }, Some(path)) = (&self.mode, &self.marker) else {
             return;
         };
-        match event {
-            ShellLockEvent::Locked => {
+        match marker_change(was, now) {
+            MarkerChange::Write => {
                 let written = path
                     .parent()
                     .map_or(Ok(()), std::fs::create_dir_all)
@@ -164,9 +166,10 @@ impl Live {
                     eprintln!("sill: writing the lock marker {}: {error}", path.display());
                 }
             }
-            ShellLockEvent::Unlocked | ShellLockEvent::Finished | ShellLockEvent::Refused => {
+            MarkerChange::Remove => {
                 let _ = std::fs::remove_file(path);
             }
+            MarkerChange::Keep => {}
         }
     }
 
@@ -186,7 +189,9 @@ impl Live {
                 pending.extend(self.perform(effect).await);
             }
         }
-        self.cause = cause_after(self.cause, was, self.machine.phase.public(), why);
+        let now = self.machine.phase.public();
+        self.keep_marker(was, now);
+        self.cause = cause_after(self.cause, was, now, why);
         self.publish();
     }
 
