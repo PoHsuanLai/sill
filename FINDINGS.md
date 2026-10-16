@@ -1397,3 +1397,39 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
 - **Consolidated.** The capture, confirm, Force Quit, polkit and voice consent sheets share
   `sill-ui-kit::sheet_stage`; the power menu's sheet uses its answer-carrying `SheetExit<Then>`.
 
+## pa-silllive: production audit fixes (SILLS and SILLM, 2026-10-16)
+
+Fixed by reading, not built: the gate run is the first compile. Where the fix lives is in
+ARCHITECTURE.md's one-home table (deadlines, supervision, durable writes, quit while locked, release
+confirmation).
+
+- **Durable writer.** `sill_services::durable` is a local copy of what quire's pa-qfiles lane is
+  adding as a public writer. Switch to quire's when it lands and delete this file. Open until then.
+- **Dry-run power menu backend (SILLM-17, deferred).** `PowerMenuBackend::dry_run` and
+  `DryRunSession` are still `pub`: `power_menu::io` falls back to them when a surface is mounted
+  with neither the live service nor a provided backend, which is non-test code. Closing it needs
+  that fallback to become "no actions offered" and the dry run to move behind a `testing` feature.
+  Owner of the call: sill-overlays.
+- **Expired password (SILLS-11).** Told apart (`Outcome::Expired`, `AuthPhase::Expired`): not
+  counted as wrong, and it does not unlock. The lock screen says to sign in again to choose a new
+  one, because PAM's change-password conversation is not offered here. Whether an expired password
+  should ever unlock the lock screen is still the owner's decision; this keeps it locked.
+  `getpwuid_r` in place of parsing `/etc/passwd` is deferred: `rustix` has no passwd lookup and no
+  new dependency was added for it.
+- **No `PR_SET_DUMPABLE=0` (SILLS-21).** Core files are forbidden (`RLIMIT_CORE=0`), but the process
+  stays dumpable: the desktop's daemons read `/proc/<pid>/exe` to identify callers, which a
+  not-dumpable process hides. The text field's own copy in blitz is not wiped.
+- **Debug probes (SILLS-19).** Probes that act are refused unless built with `debug`; `stats` and
+  `launcher-rows` stay. The IPC server serves only the same user (`SO_PEERCRED`).
+- **Wallpaper (SILLS-01).** The window of the source that fills the output is cut first and only it
+  is resized; sources are decoded within 32768 px a side and 1 GiB; outputs above 100 Mpx are refused.
+- **Night Shift (SILLS-16).** `settings.toml` is edited with `toml_edit`: comments, layout, mode and
+  links are kept, and nothing is written when the text is unchanged. `toml_edit` 0.25 is a new
+  workspace dependency (already in the lockfile through `toml`); it needs adding to quire's
+  `docs/workspace-deps.toml` if that file pins it.
+- **Launcher close (SILLM-01).** A close request is held back for 1 s after a pick starts, never
+  longer; `opened` clears it. The unhandled half, a refused `ask()` publishing an event so the UI
+  shows the failure, is not done: the service only logs it.
+- **Not mine, not touched.** Notifications, consent-sheet caps, media fetches, inhibitors, tray caps
+  and log escaping belong to pa-sillnote.
+
