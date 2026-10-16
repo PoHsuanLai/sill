@@ -45,8 +45,10 @@ fn run() -> Result<(), String> {
     let windows = feeds.windows;
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
-    let host =
-        Host::<DemoMsg>::connect(sill_ui_kit::root::host_config()).map_err(|e| e.to_string())?;
+    let host = Host::<DemoMsg>::connect(sill_ui_kit::root::host_config(
+        &sill_services::env::Dirs::from_process(),
+    ))
+    .map_err(|e| e.to_string())?;
     read_stdin(host.handle());
     let mut docks = HashSet::<OutputId>::new();
     host.run(move |ctx, event| match event {

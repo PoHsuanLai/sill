@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use ds_settings::Store;
 use shell_host::{Host, HostConfig, HostHandle};
 use sill_model::locker::LockPhase;
-use sill_services::env::Env;
+use sill_services::env::{Dirs, Env};
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     BannerLink, CenterLink, ControlCenterLink, CornerLink, EditWidgetsLink, EyedropperLink,
@@ -75,7 +75,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     ));
     let handed_by_compositor = handed.is_some();
     let route = super::compositor::host_route(handed);
-    let host = match Host::<ShellMsg>::connect(host_config(&first, route)) {
+    let host = match Host::<ShellMsg>::connect(host_config(&first, &env.dirs, route)) {
         Ok(host) => host,
         Err(error) => return fatal(&format!("connecting to the compositor: {error}")),
     };
@@ -169,11 +169,11 @@ fn take_door() -> Result<latchkey::Listening, ExitCode> {
 
 /// The host's configuration: shell-host's, with the first-mouse window from `first`'s settings
 /// and the connection `route` names.
-fn host_config(first: &ShellFile, route: shell_host::WaylandRoute) -> HostConfig {
+fn host_config(first: &ShellFile, dirs: &Dirs, route: shell_host::WaylandRoute) -> HostConfig {
     HostConfig {
         first_mouse_window_ms: shell_host::Ms(u32::from(first.menus.first_mouse_window_ms.0)),
         route,
-        ..sill_ui_kit::root::host_config()
+        ..sill_ui_kit::root::host_config(dirs)
     }
 }
 

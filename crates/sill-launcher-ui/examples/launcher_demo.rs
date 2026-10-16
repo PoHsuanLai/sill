@@ -63,8 +63,10 @@ fn run() -> Result<(), String> {
         providers: launcher_support::providers(),
         panels: Vec::new(),
     };
-    let host =
-        Host::<DemoMsg>::connect(sill_ui_kit::root::host_config()).map_err(|e| e.to_string())?;
+    let host = Host::<DemoMsg>::connect(sill_ui_kit::root::host_config(
+        &sill_services::env::Dirs::from_process(),
+    ))
+    .map_err(|e| e.to_string())?;
     read_stdin(host.handle());
     let _keep_results = feeds.results;
     host.run(move |ctx, event| match event {

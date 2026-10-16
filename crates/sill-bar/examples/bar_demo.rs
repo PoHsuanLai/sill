@@ -56,7 +56,10 @@ fn run() -> Result<(), String> {
     media.send_replace(fake::media());
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
-    let host = Host::<()>::connect(sill_ui_kit::root::host_config()).map_err(|e| e.to_string())?;
+    let host = Host::<()>::connect(sill_ui_kit::root::host_config(
+        &sill_services::env::Dirs::from_process(),
+    ))
+    .map_err(|e| e.to_string())?;
     // `Started` sees the initial outputs, which may also arrive as `OutputAdded`: one bar each.
     let mut barred = HashSet::<OutputId>::new();
     host.run(move |ctx, event| match event {

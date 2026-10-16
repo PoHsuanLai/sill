@@ -1433,3 +1433,22 @@ confirmation).
 - **Not mine, not touched.** Notifications, consent-sheet caps, media fetches, inhibitors, tray caps
   and log escaping belong to pa-sillnote.
 
+## pa-sillif: production audit fixes (sill's side of shell-host, notifications, the portal and latchkey, 2026-10-16)
+
+Fixed by reading, not built: the gate run is the first compile.
+
+- **File roots (HOST-09).** shell-host reads `file:` URLs only inside `HostConfig::file_roots`; sill
+  names them in one place (`sill_ui_kit::root::file_roots`, ARCHITECTURE.md's one-home table). Three
+  pictures can sit outside every root and so no longer load; each is open:
+  - *Cover art a player names by a local file* (`mpris:artUrl` as `file:`) is drawn from where the
+    player put it (often a temporary folder). The fix is for the now-playing service to copy a local
+    cover into its art cache, as it already does for a remote one, and publish the copy.
+  - *A picture file's thumbnail in a launcher row* is drawn from the file itself, anywhere in the
+    home folder. Rows for files outside the Pictures folder show no thumbnail until the thumbnail
+    comes from the freedesktop thumbnail cache or a copy in sill's cache.
+  - *An app icon the desktop entry names by an absolute path* outside the data directories (an
+    `/opt` or `/snap` path) is not drawn. The apps service can copy such an icon into sill's cache
+    when it scans, or `Dirs::icon_dirs` can list the app stores' icon folders.
+  A screenshot folder the person sets outside Pictures shows its thumbnail from the preview in
+  sill's cache, never from the original. The tinted app-icon cache still reads its folder with
+  `dirs::cache_dir()` rather than `Dirs`; the two agree in a real session.

@@ -345,6 +345,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Surface test driver | `sill_ui_kit::harness::SurfaceHarness<S>` |
 | Lint of surface markup | `crates/sill/tests/lint.rs`, one table |
 | Dev script helpers | `dev/lib/*.sh` |
+| Which folders a document may read pictures from (the host serves a `file:` URL only inside them) | `sill_ui_kit::root::file_roots(&Dirs)`, passed to shell-host as `HostConfig::file_roots` by `host_config(&Dirs)`: `Dirs::icon_dirs` (icons and pixmaps of the data directories, `~/.icons`, `/usr/share/pixmaps`), sill's cache folder (tinted app icons, wallpaper and its blurred copy, now-playing covers, screenshot previews), the Pictures folder, `~/.face` and AccountsService's icons folder. A new place that draws a file adds its folder to this list, never a second list; `Dirs::data_dirs` is `$XDG_DATA_DIRS` read once at the edge |
 | A demo desktop (nested, scratch, left running) with a scripted tour, shots and a video | `dev/demo.sh start\|tour\|video\|shot\|stop` |
 
 ---
