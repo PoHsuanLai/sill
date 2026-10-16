@@ -1,6 +1,6 @@
 use super::{
-    BusPeer, InhibitCookie, InhibitMsg, InhibitReply, Inhibition, Inhibitors, LogindIdle,
-    inhibit_step, inhibition, logind_idle,
+    BusPeer, INHIBIT_TEXT_MAX_BYTES, INHIBITORS_PER_PEER_MAX, InhibitCookie, InhibitMsg,
+    InhibitReply, Inhibition, Inhibitors, LogindIdle, inhibit_step, inhibition, logind_idle,
 };
 
 fn peer(name: &str) -> BusPeer {
@@ -80,4 +80,36 @@ fn either_kind_holds_idle_off() {
     for (inhibitors, logind, want) in cases {
         assert_eq!(inhibition(&inhibitors, logind), want, "{logind:?}");
     }
+}
+
+#[test]
+fn a_peer_holds_a_few_inhibitors_and_is_refused_past_them() {
+    let flood = (0..INHIBITORS_PER_PEER_MAX).fold(Inhibitors::default(), |held, _| {
+        inhibit_step(held, inhibit(":1.1")).0
+    });
+    assert_eq!(flood.held.len(), INHIBITORS_PER_PEER_MAX);
+    let (refused, reply) = inhibit_step(flood.clone(), inhibit(":1.1"));
+    assert_eq!(reply, InhibitReply::TooMany);
+    assert_eq!(refused, flood, "a refusal changes nothing");
+    let (other, reply) = inhibit_step(flood, inhibit(":1.2"));
+    assert!(
+        matches!(reply, InhibitReply::Cookie(_)),
+        "another peer is not held back"
+    );
+    assert_eq!(other.held.len(), INHIBITORS_PER_PEER_MAX + 1);
+}
+
+#[test]
+fn what_a_peer_says_of_itself_is_cut() {
+    let long = "x".repeat(10_000);
+    let (held, _) = inhibit_step(
+        Inhibitors::default(),
+        InhibitMsg::Inhibit {
+            peer: peer(":1.1"),
+            app: long.clone(),
+            reason: long,
+        },
+    );
+    assert!(held.held[0].app.len() <= INHIBIT_TEXT_MAX_BYTES + 3);
+    assert!(held.held[0].reason.len() <= INHIBIT_TEXT_MAX_BYTES + 3);
 }

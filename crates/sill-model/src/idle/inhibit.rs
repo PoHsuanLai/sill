@@ -14,6 +14,16 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::untrusted::clip_bytes;
+
+/// How many inhibitors one peer may hold: a browser holds one per playing tab, and nothing real
+/// holds many more. A peer past it is refused, so it cannot grow what is held or keep the
+/// displays on by a flood of cookies.
+pub const INHIBITORS_PER_PEER_MAX: usize = 8;
+
+/// The longest `application_name` or reason kept: they are for the log and a later status.
+pub const INHIBIT_TEXT_MAX_BYTES: usize = 128;
+
 /// A cookie `Inhibit` handed out. Never zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct InhibitCookie(pub u32);
@@ -64,6 +74,8 @@ pub enum InhibitReply {
     Done,
     /// `UnInhibit` of a cookie that peer does not hold (ignored, as the spec's servers do).
     Unknown,
+    /// `Inhibit` from a peer that already holds [`INHIBITORS_PER_PEER_MAX`]: refused.
+    TooMany,
 }
 
 /// Whether idle is held off by an inhibitor sill honours.
@@ -85,17 +97,24 @@ pub enum LogindIdle {
 }
 
 /// `inhibitors` after `msg`, and the reply. Cookies count up from 1 and skip 0 on wrap; an
-/// `UnInhibit` only releases a cookie its own peer holds.
+/// `UnInhibit` only releases a cookie its own peer holds; an `Inhibit` from a peer holding
+/// [`INHIBITORS_PER_PEER_MAX`] changes nothing and is refused. The texts are cut to
+/// [`INHIBIT_TEXT_MAX_BYTES`].
 pub fn inhibit_step(inhibitors: Inhibitors, msg: InhibitMsg) -> (Inhibitors, InhibitReply) {
     let Inhibitors { mut held, last } = inhibitors;
     match msg {
+        InhibitMsg::Inhibit { peer, .. }
+            if held.iter().filter(|held| held.peer == peer).count() >= INHIBITORS_PER_PEER_MAX =>
+        {
+            (Inhibitors { held, last }, InhibitReply::TooMany)
+        }
         InhibitMsg::Inhibit { peer, app, reason } => {
             let cookie = next_cookie(last, &held);
             held.push(Inhibitor {
                 cookie,
                 peer,
-                app,
-                reason,
+                app: clip_bytes(&app, INHIBIT_TEXT_MAX_BYTES),
+                reason: clip_bytes(&reason, INHIBIT_TEXT_MAX_BYTES),
             });
             let next = Inhibitors {
                 held,

@@ -71,6 +71,9 @@ impl Saver {
         };
         match self.ask(msg).await? {
             InhibitReply::Cookie(InhibitCookie(cookie)) => Ok(cookie),
+            InhibitReply::TooMany => Err(fdo::Error::LimitsExceeded(
+                "too many inhibitors held".to_owned(),
+            )),
             InhibitReply::Done | InhibitReply::Unknown => Err(stopped()),
         }
     }
