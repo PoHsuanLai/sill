@@ -149,7 +149,7 @@ fn make(key: IconKey, source: PathBuf, dir: PathBuf) {
     };
     slots().insert(key, slot);
     static MADE: AtomicU64 = AtomicU64::new(0);
-    if MADE.fetch_add(1, Ordering::Relaxed) % PRUNE_EVERY == 0 {
+    if MADE.fetch_add(1, Ordering::Relaxed).is_multiple_of(PRUNE_EVERY) {
         prune(&dir, FILES_MAX);
     }
     CACHE.done.send_modify(|generation| generation.0 += 1);
