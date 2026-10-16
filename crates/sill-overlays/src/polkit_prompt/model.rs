@@ -4,6 +4,7 @@ use ds::components::content::avatar::{
     AvatarFace, AvatarShape, AvatarSize, AvatarTone, person_hue,
 };
 use sill_model::polkit_agent::{Cookie, LastTry, Polkit, PromptPhase, PromptView};
+use sill_model::untrusted::for_display;
 use sill_shell_kit::lock::vocab::{LockUser, PromptState};
 
 /// quire's `PolkitPrompt` props that follow the request (the rest are the surface's handlers).
@@ -34,15 +35,28 @@ pub fn prompt_view(polkit: &Polkit) -> Option<PolkitPromptView> {
     })
 }
 
-/// The detail line block for `view` (see [`PolkitPromptView::detail`]).
+/// How many `key: value` lines of the caller's details the prompt shows; the rest are counted.
+/// The caller chooses them, so they are not allowed to fill the prompt.
+const DETAIL_LINES_MAX: usize = 8;
+
+/// How many characters one detail line shows.
+const DETAIL_LINE_MAX_CHARS: usize = 200;
+
+/// The detail line block for `view` (see [`PolkitPromptView::detail`]): each line one plain line
+/// of at most [`DETAIL_LINE_MAX_CHARS`] characters, at most [`DETAIL_LINES_MAX`] of the caller's,
+/// then a count of the rest.
 pub fn detail_of(view: &PromptView) -> Option<String> {
+    let more = view.details.len().saturating_sub(DETAIL_LINES_MAX);
     let lines: Vec<String> = std::iter::once(view.action_id.0.clone())
         .filter(|id| !id.is_empty())
         .chain(
             view.details
                 .iter()
+                .take(DETAIL_LINES_MAX)
                 .map(|(key, value)| format!("{key}: {value}")),
         )
+        .map(|line| for_display(&line, DETAIL_LINE_MAX_CHARS))
+        .chain((more > 0).then(|| format!("and {more} more")))
         .collect();
     (!lines.is_empty()).then(|| lines.join("\n"))
 }
@@ -138,5 +152,23 @@ mod tests {
         let mut bare = view(PromptPhase::Starting, LastTry::None);
         bare.details.clear();
         assert_eq!(detail_of(&bare).as_deref(), Some("org.example.run"));
+    }
+
+    #[test]
+    fn a_callers_details_cannot_fill_the_prompt_or_pass_for_another_line() {
+        let mut crowded = view(PromptPhase::Starting, LastTry::None);
+        crowded.details = (0..500)
+            .map(|n| (format!("key{n}"), "x".repeat(5000)))
+            .collect();
+        crowded.details[0].1 = "real\nProgram: /bin/evil".to_owned();
+        let shown = detail_of(&crowded).unwrap_or_default();
+        let lines: Vec<&str> = shown.lines().collect();
+        assert_eq!(lines.len(), 1 + 8 + 1, "{shown}");
+        assert_eq!(lines[1], "key0: realProgram: /bin/evil");
+        assert_eq!(lines[9], "and 492 more");
+        assert!(
+            lines.iter().all(|line| line.chars().count() <= 201),
+            "{shown}"
+        );
     }
 }

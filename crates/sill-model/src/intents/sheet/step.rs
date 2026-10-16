@@ -5,7 +5,7 @@ use docket_core::{
 };
 use prov::{Confidentiality, ConfirmReceipt, InputProof, UnixSeconds};
 
-use super::model::{Pending, Reply, Serial, SheetChoice, Sheets, permits};
+use super::model::{Pending, Reply, SHEET_QUEUE_MAX, Serial, SheetChoice, Sheets, permits};
 
 /// What happens to the queue.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,9 +54,11 @@ pub fn step(sheets: Sheets, event: SheetEvent) -> (Sheets, Vec<SheetEffect>) {
 }
 
 /// A question joins the queue and starts its clock; a second one under an id already waiting is
-/// the router's mistake, and is dismissed rather than shown twice.
+/// the router's mistake, and is dismissed rather than shown twice, and so is one that arrives
+/// when [`SHEET_QUEUE_MAX`] already wait.
 fn asked(sheets: Sheets, serial: Serial, request: ConfirmRequest) -> (Sheets, Vec<SheetEffect>) {
-    if sheets.queue.iter().any(|p| p.request.id == request.id) {
+    let waiting = sheets.queue.len() >= SHEET_QUEUE_MAX;
+    if waiting || sheets.queue.iter().any(|p| p.request.id == request.id) {
         let dismissed = Reply::Answer(ConfirmAnswer::Ended(ConfirmEnd::Dismissed));
         return (sheets, vec![SheetEffect::Respond(serial, dismissed)]);
     }

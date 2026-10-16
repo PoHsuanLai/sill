@@ -5,6 +5,9 @@
 use docket_core::{AskReason, Shown};
 use prov::{Actor, AppName, Effect, Source};
 
+use super::model::SHEET_VALUE_MAX_CHARS;
+use crate::untrusted::for_display;
+
 /// Who is asking.
 pub fn asker_words(actor: &Actor) -> &'static str {
     match actor {
@@ -80,12 +83,16 @@ pub fn source_words(source: &Source) -> &'static str {
 }
 
 /// A shown value as text and, for somebody else's words, where they came from. Their words are
-/// drawn in quotes, as data.
+/// drawn in quotes, as data. Either way the text is one line of at most [`SHEET_VALUE_MAX_CHARS`]
+/// characters with no control or bidirectional marks, so a value cannot pass for another row.
 pub fn shown_words(shown: &Shown) -> (String, Option<String>) {
     match shown {
-        Shown::Plain(text) => (text.clone(), None),
+        Shown::Plain(text) => (for_display(text, SHEET_VALUE_MAX_CHARS), None),
         Shown::Quoted { text, from } => (
-            format!("\u{201c}{text}\u{201d}"),
+            format!(
+                "\u{201c}{}\u{201d}",
+                for_display(text, SHEET_VALUE_MAX_CHARS)
+            ),
             Some(source_words(from).to_owned()),
         ),
     }

@@ -3,6 +3,8 @@
 //! expiry, never an allow: the only way to a yes is a [`SheetChoice`] the offer allows.
 
 #[cfg(test)]
+mod crowd_tests;
+#[cfg(test)]
 mod limit_tests;
 mod model;
 mod step;

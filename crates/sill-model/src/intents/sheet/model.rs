@@ -2,6 +2,17 @@
 
 use docket_core::{ConfirmAnswer, ConfirmOffer, ConfirmRequest, NeverOffer};
 
+/// How many rows of one list (the arguments, the recipients, the things affected) the sheet
+/// draws; the rest are counted in one line. A list long enough to bury the real destination
+/// among look-alikes is not read by the person anyway.
+pub const SHEET_ROWS_MAX: usize = 8;
+
+/// How many characters of one value the sheet draws: a name, an address, a line of text.
+pub const SHEET_VALUE_MAX_CHARS: usize = 200;
+
+/// How many questions may wait at once: more than a person can answer in the time each lives for.
+pub const SHEET_QUEUE_MAX: usize = 16;
+
 /// One `Confirm` call, as the service counts them. It names the request object the answer goes
 /// to; a `ConfirmId` is the router's and can repeat if the router is wrong.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]

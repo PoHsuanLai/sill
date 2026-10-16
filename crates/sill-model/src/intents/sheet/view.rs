@@ -9,8 +9,12 @@ use docket_core::{
 };
 use prov::Effect;
 
-use super::model::{Pending, Sheets};
+use super::model::{Pending, SHEET_ROWS_MAX, SHEET_VALUE_MAX_CHARS, Sheets};
 use super::words::{app_words, asker_words, effect_words, shown_words, source_words, why_words};
+use crate::untrusted::for_display;
+
+/// How many reasons the sheet gives.
+const SHEET_NOTES_MAX: usize = 8;
 
 /// One line of the sheet: what it is, what it says, and for somebody else's words where they
 /// came from.
@@ -76,7 +80,10 @@ fn view_of(pending: &Pending, waiting: usize) -> SheetView {
     let request = &pending.request;
     SheetView {
         id: request.id.clone(),
-        title: format!("{}?", request.action.as_str()),
+        title: format!(
+            "{}?",
+            for_display(request.action.as_str(), SHEET_VALUE_MAX_CHARS)
+        ),
         byline: format!(
             "{} wants to do this in {}.",
             asker_words(&request.actor),
@@ -101,13 +108,23 @@ fn fact(label: &str, value: String, source: Option<String>) -> SheetFact {
     }
 }
 
+/// The first [`SHEET_ROWS_MAX`] of `total` rows, then one under `label` that counts the rest.
+fn capped(rows: impl Iterator<Item = SheetFact>, total: usize, label: &str) -> Vec<SheetFact> {
+    let mut shown: Vec<SheetFact> = rows.take(SHEET_ROWS_MAX).collect();
+    if total > SHEET_ROWS_MAX {
+        let more = total - SHEET_ROWS_MAX;
+        shown.push(fact(label, format!("and {more} more"), None));
+    }
+    shown
+}
+
 /// The arguments, then the concrete change.
 fn facts_of(request: &ConfirmRequest) -> Vec<SheetFact> {
     let lines = request.lines.iter().map(|line| {
         let (value, source) = shown_words(&line.value);
         fact(line.label.as_str(), value, source)
     });
-    let mut facts: Vec<SheetFact> = lines.collect();
+    let mut facts = capped(lines, request.lines.len(), "More");
     if request.count.0 > 1 {
         facts.push(fact("How many", request.count.0.to_string(), None));
     }
@@ -118,13 +135,13 @@ fn facts_of(request: &ConfirmRequest) -> Vec<SheetFact> {
 fn detail_facts(detail: &ConfirmDetail) -> Vec<SheetFact> {
     match detail {
         ConfirmDetail::Plain => Vec::new(),
-        ConfirmDetail::Recipients(who) => who
-            .iter()
-            .map(|shown| {
+        ConfirmDetail::Recipients(who) => {
+            let rows = who.iter().map(|shown| {
                 let (value, source) = shown_words(shown);
                 fact("To", value, source)
-            })
-            .collect(),
+            });
+            capped(rows, who.len(), "To")
+        }
         ConfirmDetail::Destination(shown) => {
             let (value, source) = shown_words(shown);
             vec![fact("To", value, source)]
@@ -135,23 +152,31 @@ fn detail_facts(detail: &ConfirmDetail) -> Vec<SheetFact> {
             vec![fact("Now", was, was_from), fact("Becomes", now, now_from)]
         }
         ConfirmDetail::Moves(moves) => vec![fact("Moves", format!("{} files", moves.len()), None)],
-        ConfirmDetail::Entities(things) => things
-            .iter()
-            .map(|thing| {
+        ConfirmDetail::Entities(things) => {
+            let rows = things.iter().map(|thing| {
                 fact(
                     "Affects",
-                    format!("\u{201c}{}\u{201d}", thing.title.value),
+                    format!(
+                        "\u{201c}{}\u{201d}",
+                        for_display(&thing.title.value, SHEET_VALUE_MAX_CHARS)
+                    ),
                     None,
                 )
-            })
-            .collect(),
+            });
+            capped(rows, things.len(), "Affects")
+        }
         ConfirmDetail::Preview(_) => Vec::new(),
     }
 }
 
 /// The reasons, then what the session read; the effect only when no reason already said it.
 fn notes_of(request: &ConfirmRequest) -> Vec<String> {
-    let mut notes: Vec<String> = request.why.iter().map(why_words).collect();
+    let mut notes: Vec<String> = request
+        .why
+        .iter()
+        .take(SHEET_NOTES_MAX)
+        .map(why_words)
+        .collect();
     if let TaintNote::ReadUntrusted(sources) = &request.taint {
         let from: Vec<&str> = sources.iter().map(source_words).collect();
         notes.push(format!("It read something from {}.", from.join(", ")));
