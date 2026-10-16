@@ -49,9 +49,10 @@ pub fn result_of(response: Response) -> Result<(), ShellFault> {
         Response::Done => Ok(()),
         Response::Failed(failure) => match failure.kind {
             FailureKind::Unsupported => Err(ShellFault::Unsupported),
-            FailureKind::UnknownSurface | FailureKind::Timeout | FailureKind::Internal => {
-                Err(ShellFault::Failed(failure.message))
-            }
+            FailureKind::UnknownSurface
+            | FailureKind::Refused
+            | FailureKind::Timeout
+            | FailureKind::Internal => Err(ShellFault::Failed(failure.message)),
         },
         Response::Pong | Response::Status(_) | Response::Stats(_) | Response::LauncherRows(_) => {
             Err(ShellFault::Failed(

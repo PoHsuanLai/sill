@@ -10,10 +10,16 @@ Documentation=https://github.com/PoHsuanLai/sill
 PartOf=graphical-session.target
 After=graphical-session.target
 Requisite=graphical-session.target
+# A crash loop must never leave a locked session blank: the default limit (5 starts in 10 s)
+# would stop restarting, and the compositor keeps the session covered with nobody to unlock it.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
 ExecStart=/usr/bin/sill run
+# `sill quit` is refused while the session is locked, and a shell that ends on its own while
+# locked exits with a failure, so on-failure restarts every exit that must not leave the session
+# covered; a clean `sill quit` or `systemctl --user stop` is an intended stop and stays stopped.
 Restart=on-failure
 RestartSec=1
 # The shell draws on the user's session compositor; nothing here needs more than the user.

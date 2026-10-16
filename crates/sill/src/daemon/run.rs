@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use ds_settings::Store;
 use shell_host::{Host, HostConfig, HostHandle};
+use sill_model::locker::LockPhase;
 use sill_services::env::Env;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
@@ -25,6 +26,7 @@ use tokio::sync::watch;
 use super::events::{Shell, handle};
 use super::msg::ShellMsg;
 use super::{services, settings};
+use crate::ipc::dispatch::quit::{Leaving, leaving_at};
 use crate::ipc::server;
 use crate::outputs::Outputs;
 
@@ -111,6 +113,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         &links.launcher,
         services.companion.control.clone(),
     );
+    let locker = services.locker.state.clone();
     let mut shell = Shell {
         outputs: Outputs::default(),
         shell_lock: crate::lock::ShellLock::default(),
@@ -127,9 +130,23 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
 
     shutdown_runtime(runtime);
 
+    let phase = locker.borrow().phase;
     match result {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(()) => exit_clean_at(phase),
         Err(error) => fatal(&format!("{error}")),
+    }
+}
+
+/// The status of a host that ended on its own (not an error): a session that is locked or being
+/// locked is still covered, and the compositor keeps it covered with nobody to take a password,
+/// so the exit is a failure and the unit starts the shell again, which locks at once.
+fn exit_clean_at(phase: LockPhase) -> ExitCode {
+    match leaving_at(phase) {
+        Leaving::Allowed => ExitCode::SUCCESS,
+        Leaving::Refused => {
+            eprintln!("sill: leaving while the session is locked; the shell is restarted");
+            ExitCode::FAILURE
+        }
     }
 }
 

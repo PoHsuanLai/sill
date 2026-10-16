@@ -2,9 +2,11 @@
 
 use shell_host::HostCtx;
 use sill_ipc::request::Request;
-use sill_ipc::response::Response;
+use sill_ipc::response::{FailureKind, Response};
 
+use super::quit::{Leaving, REFUSED, leaving_at};
 use super::reach::Reach;
+use super::reply::failed;
 use super::{act, debug, show, status};
 use crate::daemon::msg::ShellMsg;
 
@@ -13,10 +15,7 @@ use crate::daemon::msg::ShellMsg;
 pub fn route(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: Request) -> Response {
     match request {
         Request::Ping => Response::Pong,
-        Request::Quit => {
-            ctx.exit();
-            Response::Done
-        }
+        Request::Quit => quit(ctx, reach),
         Request::Reload => reload(ctx, reach),
         Request::Show(request) => show::dispatch(reach, request),
         Request::Status(request) => status::dispatch(reach, request),
@@ -33,4 +32,17 @@ fn reload(ctx: &mut HostCtx<ShellMsg>, reach: &Reach) -> Response {
     crate::daemon::settings::reload_user_style(reach.store, reach.user_style);
     ctx.set_scroll_config(crate::scroll::config(&reach.settings.borrow()));
     Response::Done
+}
+
+/// End the shell, unless the session is covered: a locked session needs the shell to take the
+/// password, so the request is refused until it is unlocked.
+fn quit(ctx: &mut HostCtx<ShellMsg>, reach: &Reach) -> Response {
+    let phase = reach.services.locker.state.borrow().phase;
+    match leaving_at(phase) {
+        Leaving::Allowed => {
+            ctx.exit();
+            Response::Done
+        }
+        Leaving::Refused => failed(FailureKind::Refused, REFUSED.to_owned()),
+    }
 }

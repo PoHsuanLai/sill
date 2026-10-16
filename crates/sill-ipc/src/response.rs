@@ -39,6 +39,8 @@ pub enum FailureKind {
     UnknownSurface,
     /// This build or this compositor cannot do it (no `debug` feature, no layer-shell, ...).
     Unsupported,
+    /// The shell will not do this now (`quit` while the session is locked); the message says why.
+    Refused,
     /// The daemon did not finish within the reply timeout (2 s); it may still finish.
     Timeout,
     /// Anything else; the message says what.

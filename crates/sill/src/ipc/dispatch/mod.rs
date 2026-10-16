@@ -4,6 +4,7 @@
 mod act;
 mod debug;
 mod keys;
+pub(crate) mod quit;
 mod reach;
 mod reply;
 mod route;
