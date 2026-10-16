@@ -106,47 +106,71 @@ impl View {
 
     /// The line of `section`'s "Show More" or "Show Less", when it has one.
     pub fn more_line(&self, section: Section) -> Option<usize> {
-        self.lines()
-            .iter()
-            .position(|line| matches!(line, Line::More { section: at, .. } if *at == section))
+        let mut offset = 0;
+        for shown in &self.sections {
+            offset += shown.rows.len();
+            if has_action(shown) {
+                if shown.section == section {
+                    return Some(offset);
+                }
+                offset += 1;
+            }
+        }
+        None
     }
 
     /// The line of the first row `wanted` says yes to.
     pub fn line_of(&self, wanted: impl Fn(&Item) -> bool) -> Option<usize> {
-        self.lines()
-            .iter()
-            .position(|line| matches!(line, Line::Row(item) if wanted(item)))
+        let mut offset = 0;
+        for shown in &self.sections {
+            if let Some(at) = shown.rows.iter().position(&wanted) {
+                return Some(offset + at);
+            }
+            offset += line_count(shown);
+        }
+        None
     }
 
     /// The row on line `index`, when that line is a row.
     pub fn row(&self, index: usize) -> Option<Item> {
-        match self.lines().into_iter().nth(index)? {
-            Line::Row(item) => Some(item),
-            Line::More { .. } => None,
+        match self.spot(index)? {
+            Spot::Row(section, at) => section.rows.get(at).cloned(),
+            Spot::Action => None,
         }
     }
 
     /// How line `index` is laid out: a grid cell for an Emoji row (the palette draws that
     /// section as `PaletteGroup::grid`), else a list line (a header's action included).
     pub fn layout(&self, index: usize) -> Layout {
-        let at = self
-            .sections
-            .iter()
-            .flat_map(|s| {
-                section_lines(s)
-                    .into_iter()
-                    .map(move |line| (s.section, line))
-            })
-            .nth(index);
-        match at {
-            Some((Section::Emoji, Line::Row(_))) => Layout::Grid,
+        match self.spot(index) {
+            Some(Spot::Row(section, _)) if section.section == Section::Emoji => Layout::Grid,
             _ => Layout::List,
         }
     }
 
     /// How many lines there are.
     pub fn len(&self) -> usize {
-        self.sections.iter().map(|s| section_lines(s).len()).sum()
+        self.sections.iter().map(line_count).sum()
+    }
+
+    /// What line `index` is, found by counting each section's lines: no line is built, so a
+    /// section of thousands of rows costs a walk over its sections, not a copy of its rows.
+    fn spot(&self, index: usize) -> Option<Spot<'_>> {
+        let mut left = index;
+        for section in &self.sections {
+            let rows = section.rows.len();
+            if left < rows {
+                return Some(Spot::Row(section, left));
+            }
+            left -= rows;
+            if has_action(section) {
+                if left == 0 {
+                    return Some(Spot::Action);
+                }
+                left -= 1;
+            }
+        }
+        None
     }
 
     /// Whether nothing shows.
@@ -187,6 +211,24 @@ impl View {
             preview: None,
         }
     }
+}
+
+/// What a line is, within the section that holds it.
+enum Spot<'a> {
+    /// The row at this place in the section.
+    Row(&'a ShownSection, usize),
+    /// The section's "Show More" or "Show Less".
+    Action,
+}
+
+/// Whether `section` ends in a "Show More" or "Show Less" line.
+fn has_action(section: &ShownSection) -> bool {
+    !matches!(HeaderAction::of(section.more), HeaderAction::None)
+}
+
+/// How many lines `section` has: its rows and its action line, if any.
+fn line_count(section: &ShownSection) -> usize {
+    section.rows.len() + usize::from(has_action(section))
 }
 
 fn section_lines(section: &ShownSection) -> Vec<Line> {

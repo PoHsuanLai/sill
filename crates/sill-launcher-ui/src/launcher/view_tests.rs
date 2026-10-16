@@ -100,6 +100,37 @@ fn the_runners_sections_show_capped_with_a_show_more_line() {
 }
 
 #[test]
+fn the_line_accessors_agree_with_the_lines_they_stand_for() {
+    for expanded in [Expanded::default(), Expanded(vec![Section::Documents])] {
+        let shown = view(&results(), Generation(1), "d", Filter::All, &expanded);
+        let lines = shown.lines();
+        assert_eq!(shown.len(), lines.len());
+        for (index, line) in lines.iter().enumerate() {
+            match line {
+                Line::Row(item) => {
+                    assert_eq!(shown.row(index).as_ref(), Some(item), "row {index}");
+                    assert_eq!(
+                        shown.line_of(|found| found.id == item.id),
+                        Some(index),
+                        "line_of {index}"
+                    );
+                }
+                Line::More { section, .. } => {
+                    assert_eq!(shown.row(index), None, "row {index}");
+                    assert_eq!(shown.more_line(*section), Some(index), "more_line {index}");
+                }
+            }
+        }
+        assert_eq!(shown.row(lines.len()), None, "past the last line");
+        assert_eq!(
+            shown.layout(lines.len()),
+            Layout::List,
+            "past the last line"
+        );
+    }
+}
+
+#[test]
 fn a_filter_shows_its_provider_alone_and_stale_results_nothing() {
     let only = view(
         &results(),
