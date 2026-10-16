@@ -288,6 +288,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         HostEvent::KeyboardFocus { .. } | HostEvent::Lock { .. } => {}
         // A surface's first frame after a map; nothing here waits on it yet.
         HostEvent::SurfaceMapped { .. } => {}
+        // The shell is not an app the person quits: it stays up, and logging out stops its unit.
+        HostEvent::QuitAsked => {}
         HostEvent::App(ShellMsg::Settings(file)) => {
             resize_bars(ctx, outputs, &file);
             ctx.set_scroll_config(crate::scroll::config(&file));
