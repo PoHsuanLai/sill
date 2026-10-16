@@ -1327,8 +1327,9 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
   come and go; nothing is written before the policy has said who warms them, so a start does not
   undo the last run's list). casement keeps warming every other output, and the switch works as
   anywhere. Entries with a colon (`edid:...`, `connector:...`) are the person's own and are kept;
-  a plain connector name the person typed there is sill's to replace. Open: a DDC monitor whose
-  connector sill could not match to a bus is not listed, so casement warms it too (twice); this
+  a plain connector name the person typed there is sill's to replace. A DDC monitor whose
+  connector sill could not match to a bus is not listed, so casement warms it too
+  (`sill_model::night_shift::unmatched`; logged once per bus). Open: this
   needs casement's `skip_outputs` to be in the casement sill runs against (branch
   `lane/cas28-daily`), and an older casement ignores the key, which leaves every output warmed by
   casement as well.

@@ -314,6 +314,42 @@ fn casement_leaves_the_monitors_sill_warms_over_ddc_alone() {
 }
 
 #[test]
+fn a_monitor_sill_cannot_name_is_left_to_the_software_light() {
+    let gain = Some(RgbGain::default());
+    let monitors = [
+        monitor(7, None, gain),
+        monitor(3, None, gain),
+        monitor(4, Some("DP-1"), gain),
+        monitor(6, None, None),
+    ];
+    let cases: &[(&str, Backend, &[DdcDisplay], &[u16])] = &[
+        (
+            "software: nothing to say",
+            Backend::Software,
+            &monitors,
+            &[],
+        ),
+        (
+            "hardware: those with gains and no connector, by bus",
+            Backend::Hardware,
+            &monitors,
+            &[3, 7],
+        ),
+        (
+            "hardware: all matched",
+            Backend::Hardware,
+            &monitors[2..3],
+            &[],
+        ),
+        ("hardware: no monitors", Backend::Hardware, &[], &[]),
+    ];
+    for (name, backend, ddc, want) in cases {
+        let want: Vec<DdcId> = want.iter().copied().map(DdcId).collect();
+        assert_eq!(unmatched(*backend, ddc), want, "{name}");
+    }
+}
+
+#[test]
 fn the_switch_says_what_the_light_is_doing() {
     let on = |schedule, manual| ready(light(schedule), manual, Backend::Software);
     let manual = Manual {

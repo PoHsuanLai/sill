@@ -18,5 +18,5 @@ pub use model::{
     Backend, Manual, MinuteOfDay, NightLight, NightShift, Reach, Schedule, UnixSeconds, Warmth,
 };
 pub use shown::{Shown, shown, warmth_at, warmth_fraction};
-pub use skip::skip_outputs;
+pub use skip::{skip_outputs, unmatched};
 pub use step::{step, until_tomorrow};

@@ -3,14 +3,16 @@
 //! (a write of either file) is carried out here. Beside it, casement's `skip_outputs` is kept to
 //! the monitors sill warms (`sill_model::night_shift::skip_outputs`) as the displays come and go.
 
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
 use sill_model::displays::Displays;
+use sill_model::ids::DdcId;
 use sill_model::night_shift::{
     MinuteOfDay, NightShift, NightShiftCommand, NightShiftEffect, NightShiftEvent, Now, Reach,
-    UnixSeconds, skip_outputs, step,
+    UnixSeconds, skip_outputs, step, unmatched,
 };
 use tokio::sync::watch;
 
@@ -48,6 +50,7 @@ pub(crate) async fn run(
     let mut live = Live {
         current: NightShift::default(),
         heard: Heard::Not,
+        said: BTreeSet::new(),
         tx,
         casement,
         state,
@@ -117,6 +120,8 @@ enum Heard {
 struct Live {
     current: NightShift,
     heard: Heard,
+    /// The buses already reported as unmatched, so each is said once.
+    said: BTreeSet<DdcId>,
     tx: watch::Sender<NightShift>,
     /// casement's config directory.
     casement: PathBuf,
@@ -167,11 +172,25 @@ impl Live {
 
     /// Make casement's `skip_outputs` list the monitors sill warms, once the shell has said who
     /// warms them and casement's settings are readable.
-    fn sync_skip(&self) {
+    fn sync_skip(&mut self) {
         if self.heard == Heard::Not || self.current.reach != Reach::Ready {
             return;
         }
-        let skip = skip_outputs(self.current.backend, &self.displays.borrow().ddc);
+        let (skip, lost) = {
+            let displays = self.displays.borrow();
+            (
+                skip_outputs(self.current.backend, &displays.ddc),
+                unmatched(self.current.backend, &displays.ddc),
+            )
+        };
+        for bus in lost {
+            if self.said.insert(bus) {
+                eprintln!(
+                    "sill: night shift: DDC monitor {} has no known connector; the software light warms it too",
+                    bus.0
+                );
+            }
+        }
         if let Err(error) = write_skip(&self.casement, &skip) {
             eprintln!("sill: night shift: casement's skip list: {error}");
         }
