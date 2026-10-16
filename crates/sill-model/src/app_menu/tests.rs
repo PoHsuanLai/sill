@@ -549,7 +549,7 @@ fn a_menu_is_shown_only_when_its_owner_is_the_windows_program() {
     use MenuTrust::{Hidden, Shown};
     // `(case, owner, the window's client, trusted)`
     let cases = [
-        // What the desktop sends today: no subject, so the app key is what is compared.
+        // No subject reported: the app key is what is compared.
         (
             "a sandbox that is the app",
             sandboxed("dev.notes"),
@@ -639,8 +639,11 @@ fn a_menu_is_shown_only_when_its_owner_is_the_windows_program() {
     for (name, owner, client, want) in cases {
         assert_eq!(menu_trust(&owner, &client), want, "{name}");
     }
+    let notes = MenuApp("dev.notes".to_owned());
+    assert_eq!(MenuClient::unreported(&notes), client(None));
+    assert_eq!(MenuClient::new(&notes, None), client(None));
     assert_eq!(
-        MenuClient::unreported(&MenuApp("dev.notes".to_owned())),
-        client(None)
+        MenuClient::new(&notes, Some("/usr/bin/notes")),
+        client(Some("/usr/bin/notes"))
     );
 }

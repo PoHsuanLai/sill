@@ -120,6 +120,7 @@ pub fn services() -> (Services, Feeds) {
     let (windows, windows_io) = Handle::channel(WindowModel {
         workspaces: workspaces(),
         toplevels: toplevels(),
+        ..WindowModel::default()
     });
     let (wifi, wifi_io) = Handle::channel(wifi());
     let (bluetooth, bluetooth_io) = Handle::channel(bluetooth());

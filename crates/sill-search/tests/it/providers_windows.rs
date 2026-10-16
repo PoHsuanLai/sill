@@ -93,6 +93,7 @@ fn provider() -> WindowsProvider {
     let (_wtx, wrx) = tokio::sync::watch::channel(WindowModel {
         workspaces,
         toplevels,
+        ..WindowModel::default()
     });
     let (_atx, arx) = tokio::sync::watch::channel(apps);
     WindowsProvider {

@@ -25,8 +25,8 @@ use desktop_client::workspace::{
     GroupChange, WorkspaceAbility, WorkspaceChange, WorkspaceEvent, WorkspaceFlag,
 };
 use desktop_client::{
-    AppId, AppKey, CaptureRequest, CommandError, Desktop, DesktopCommand as Wire, DesktopConfig,
-    DesktopEvent, GroupKey, OutputName, Point, Protocol, ProtocolSet, Rect, Size,
+    AppId, AppKey, AppSubject, CaptureRequest, CommandError, Desktop, DesktopCommand as Wire,
+    DesktopConfig, DesktopEvent, GroupKey, OutputName, Point, Protocol, ProtocolSet, Rect, Size,
     SpaceId as WireSpaceId, SpaceKey, SpaceTarget, SurfaceKey, ToplevelIdentifier, ToplevelKey,
     WorkspaceKey,
 };
@@ -35,11 +35,11 @@ use sill_model::desktop::{
     Answer, Consent, ConsentId, DesktopCommand, Memory, OverviewNote, Power, ShellNote,
     SpacePlaceView, SubjectKind, SwitcherNote,
 };
-use sill_services::desktop_wl::Refusal;
 use sill_services::desktop_wl::quire::{
     ArmError, ConnectionRole, FakeHandout, Handout, HandoutError, QuireArm, role_of_surface,
     shell_connection,
 };
+use sill_services::desktop_wl::{Refusal, project_subjects};
 use sill_services::env::{Bus, BusRoute};
 use sill_testkit::PrivateBus;
 
@@ -978,4 +978,59 @@ fn finish_capture_in(desktop: &mut FakeDesktop, id: desktop_client::CaptureId) {
         desktop.script(DesktopEvent::Capture { id, event });
     }
     desktop.advance_all();
+}
+
+/// An app's burst with the program the compositor says is behind it, before its `done`.
+fn with_subject(mut burst: Vec<DesktopEvent>, n: u64, subject: &str) -> Vec<DesktopEvent> {
+    let done = burst.pop();
+    burst.push(quire(QuireEvent::App(AppEvent::Changed {
+        key: ak(n),
+        change: AppChange::Subject(AppSubject::new(subject)),
+    })));
+    burst.extend(done);
+    burst
+}
+
+/// A session of the given bursts and windows, read as the windows service publishes subjects.
+fn subjects_of(bursts: Vec<Vec<DesktopEvent>>) -> sill_model::windows::Subjects {
+    let mut desktop = FakeDesktop::with_config(quire_offer(), DesktopConfig::holding_shell());
+    let desk = [space(1, "desktop", 0, "DP-1"), desktop_workspace()];
+    desk.into_iter()
+        .chain(bursts)
+        .flatten()
+        .for_each(|e| desktop.script(e));
+    desktop.advance_all();
+    project_subjects(desktop.state())
+}
+
+/// QUIRE-12: the subject the compositor reports for an app reaches the app id its windows
+/// declare, and an app that has none has none.
+#[test]
+fn a_windows_app_id_has_the_subject_the_compositor_reported_for_its_app() {
+    let on = || SpacePlace::On(sk(1));
+    let floating = WindowStateKind::Floating;
+    let subjects = subjects_of(vec![
+        with_subject(app(1, "org.example.term", 0), 1, "/usr/bin/term"),
+        app(2, "org.example.notes", 1),
+        window(1, 1, "org.example.term", on(), floating),
+        window(2, 2, "org.example.notes", on(), floating),
+    ]);
+    assert_eq!(subjects.of("org.example.term"), Some("/usr/bin/term"));
+    assert_eq!(subjects.of("org.example.notes"), None);
+    assert_eq!(subjects.of("org.example.other"), None);
+}
+
+/// A second program that declares the same app id as a real one cannot make it vouch for either:
+/// the app id has no subject while its windows disagree.
+#[test]
+fn an_app_id_two_programs_declare_has_no_subject() {
+    let on = || SpacePlace::On(sk(1));
+    let floating = WindowStateKind::Floating;
+    let subjects = subjects_of(vec![
+        with_subject(app(1, "org.example.term", 0), 1, "/usr/bin/term"),
+        with_subject(app(2, "org.example.imposter", 1), 2, "/usr/bin/imposter"),
+        window(1, 1, "org.example.term", on(), floating),
+        window(2, 2, "org.example.term", on(), floating),
+    ]);
+    assert_eq!(subjects.of("org.example.term"), None);
 }

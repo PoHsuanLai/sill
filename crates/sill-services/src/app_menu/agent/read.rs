@@ -58,7 +58,7 @@ impl<T: Transport> MenuAgent<T> {
         let Some(owner) = self.owner_of(&name).await? else {
             return Ok(None);
         };
-        let client = MenuClient::unreported(app);
+        let client = MenuClient::new(app, self.links.toplevels.borrow().subjects.of(&app.0));
         if menu_shown(&self.peers, &owner, &client).await == MenuTrust::Hidden {
             return Ok(None);
         }

@@ -1,5 +1,6 @@
 //! What the windows service publishes: the compositor's workspaces and windows.
 
+use super::subjects::Subjects;
 use super::toplevels::Toplevels;
 use super::workspaces::Workspaces;
 
@@ -9,4 +10,6 @@ use super::workspaces::Workspaces;
 pub struct WindowModel {
     pub workspaces: Workspaces,
     pub toplevels: Toplevels,
+    /// The program behind each app id on screen, where the compositor says (the Quire arm).
+    pub subjects: Subjects,
 }

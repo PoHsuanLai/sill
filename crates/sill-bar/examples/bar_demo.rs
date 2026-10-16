@@ -73,6 +73,7 @@ fn run() -> Result<(), String> {
                 windows.send_replace(sill_model::windows::WindowModel {
                     workspaces: fake::workspaces_on(&name),
                     toplevels: fake::toplevels_on(&name),
+                    ..sill_model::windows::WindowModel::default()
                 });
             }
             for output in ctx.outputs() {

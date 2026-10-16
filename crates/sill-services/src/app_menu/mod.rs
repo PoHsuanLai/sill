@@ -8,7 +8,8 @@
 //! name is made by `AppMenuDeps::name_of`, which the daemon fills with quire's `AppMenuAddress`
 //! (a services crate links no design system). Owning the name proves nothing, so a menu is read
 //! only when its owner is the program of the app the bar follows
-//! (`sill_model::app_menu::menu_trust`, [`crate::callers`]); an owner that is not has no menu in
+//! (`sill_model::app_menu::menu_trust`, [`crate::callers`]), compared with the program the
+//! compositor reports for the window (`WindowModel::subjects`) when it reports one; an owner that is not has no menu in
 //! the bar, as if nobody owned the name. The agent's two actions, `shell.menu.list` and
 //! `shell.menu.activate`, are [`MenuAgent`]'s: they read the menu fresh and never use this
 //! service's state.
@@ -18,6 +19,8 @@ mod backend;
 mod wire;
 
 use sill_model::app_menu::{AppMenuCommand, AppMenus, MenuApp, MenuName};
+use sill_model::windows::WindowModel;
+use tokio::sync::watch;
 
 use crate::env::Env;
 use crate::error::ServiceError;
@@ -28,10 +31,12 @@ pub use agent::{Activated, Activation, MenuAgent, MenuFault, MenuLinks, MenuList
 /// The bus name of `app`'s menu, or `None` for an id no name can be made from.
 pub type MenuNameOf = fn(&MenuApp) -> Option<MenuName>;
 
-/// What the service needs: how an app's menu name is made.
-#[derive(Debug, Clone, Copy)]
+/// What the service needs: how an app's menu name is made, and the compositor's windows, which
+/// say the program behind each app on screen (`WindowModel::subjects`).
+#[derive(Debug, Clone)]
 pub struct AppMenuDeps {
     pub name_of: MenuNameOf,
+    pub windows: watch::Receiver<WindowModel>,
 }
 
 /// The followed apps' menus as a [`Service`]. Without a session bus it publishes nothing.

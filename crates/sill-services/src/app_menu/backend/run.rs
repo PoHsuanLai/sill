@@ -59,6 +59,7 @@ pub(crate) async fn run(
                             let task = tokio::spawn(serve::follow(
                                 connection.clone(),
                                 peers.clone(),
+                                deps.windows.clone(),
                                 app.clone(),
                                 name.clone(),
                                 events_tx.clone(),

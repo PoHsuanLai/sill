@@ -7,7 +7,9 @@ use std::sync::Arc;
 use sill_model::app_menu::{
     AppMenuEvent, MenuApp, MenuClient, MenuName, MenuTrust, ServedMenu, rows_of,
 };
+use sill_model::windows::WindowModel;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::watch;
 use zbus::{Connection, Proxy};
 
 use crate::app_menu::wire::{MENU_INTERFACE, MENU_PATH, read_layout};
@@ -19,6 +21,7 @@ use crate::stream::next;
 pub(super) async fn follow(
     connection: Connection,
     peers: Arc<Peers>,
+    windows: watch::Receiver<WindowModel>,
     app: MenuApp,
     name: MenuName,
     events: UnboundedSender<AppMenuEvent>,
@@ -26,7 +29,7 @@ pub(super) async fn follow(
     loop {
         owner::appeared(&connection, &name.0).await;
         tokio::select! {
-            () = session(&connection, &peers, &app, &name, &events) => {
+            () = session(&connection, &peers, &windows, &app, &name, &events) => {
                 // The app answered badly: nothing to show until its owner changes.
                 owner::changed(&connection, &name.0).await;
             }
@@ -44,6 +47,7 @@ pub(super) async fn follow(
 async fn session(
     connection: &Connection,
     peers: &Peers,
+    windows: &watch::Receiver<WindowModel>,
     app: &MenuApp,
     name: &MenuName,
     events: &UnboundedSender<AppMenuEvent>,
@@ -51,7 +55,9 @@ async fn session(
     let Some(owner) = owner::current(connection, &name.0).await else {
         return;
     };
-    let client = MenuClient::unreported(app);
+    // The program the compositor reports for the app's windows, as of now: an owner is trusted
+    // against it when there is one.
+    let client = MenuClient::new(app, windows.borrow().subjects.of(&app.0));
     if menu_shown(peers, &owner, &client).await == MenuTrust::Hidden {
         return;
     }

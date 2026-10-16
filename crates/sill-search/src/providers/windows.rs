@@ -36,6 +36,7 @@ impl Provider for WindowsProvider {
         let WindowModel {
             workspaces,
             toplevels,
+            ..
         } = self.windows.borrow().clone();
         let apps = self.apps.borrow().clone();
 
@@ -207,6 +208,7 @@ mod tests {
                 }],
             },
             toplevels: toplevels(windows),
+            ..WindowModel::default()
         });
         WindowsProvider {
             windows: srx,

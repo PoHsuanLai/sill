@@ -56,6 +56,7 @@ fn published(desktop: &FakeDesktop, recency: Toplevels) -> (WindowModel, Topleve
     let wl = WindowModel {
         workspaces: project_workspaces(desktop.state()),
         toplevels: toplevels.clone(),
+        ..WindowModel::default()
     };
     (wl, toplevels)
 }

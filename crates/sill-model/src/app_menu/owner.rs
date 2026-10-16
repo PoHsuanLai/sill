@@ -7,10 +7,12 @@
 //! [`menu_trust`] before they read a menu, show it or click it for an agent.
 //!
 //! **The seam.** The window's client is known by the app key the desktop names it by. The
-//! compositor's identity event is to carry the client's own *subject* (the program's image path
-//! or the sandboxed app's id): until it does, [`MenuClient::reported`] is `None` and the key is
-//! compared with what the owner's standing says of its app. Once it is `Some`, the subject is
-//! compared instead, which is the stronger test (a launcher's scope name is only a claim).
+//! compositor reports the client's own *subject* (the program's image path or the sandboxed
+//! app's id, `quire_desktop_app_v1.subject`) once it has established one; it reaches here as
+//! [`MenuClient::reported`]. With a subject the subject is compared, which is the stronger test
+//! (a launcher's scope name is only a claim). Without one (a program the compositor cannot name,
+//! a compositor older than protocol version 2, or an app id two programs declare) the key is
+//! compared with what the owner's standing says of its app.
 
 use super::model::MenuApp;
 
@@ -38,16 +40,22 @@ pub struct MenuClient {
     /// The app key the desktop names the window's client by.
     pub key: String,
     /// The client's own subject from the compositor (the program's image path or the sandboxed
-    /// app's id), once the compositor sends one; `None` until then.
+    /// app's id), when the compositor has established one; `None` otherwise.
     pub reported: Option<String>,
 }
 
 impl MenuClient {
-    /// The client of a window of `app`, with no subject reported (what the desktop sends today).
+    /// The client of a window of `app`, with no subject reported.
     pub fn unreported(app: &MenuApp) -> MenuClient {
+        MenuClient::new(app, None)
+    }
+
+    /// The client of a window of `app`, whose program the compositor reports as `reported`
+    /// (`None` when it reported none).
+    pub fn new(app: &MenuApp, reported: Option<&str>) -> MenuClient {
         MenuClient {
             key: app.0.clone(),
-            reported: None,
+            reported: reported.map(str::to_owned),
         }
     }
 }

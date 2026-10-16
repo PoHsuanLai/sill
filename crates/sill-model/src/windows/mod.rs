@@ -5,6 +5,7 @@ mod caps;
 mod command;
 mod ids;
 mod model;
+mod subjects;
 pub mod toplevels;
 pub mod workspaces;
 
@@ -12,5 +13,6 @@ pub use caps::{WorkspaceCap, WorkspaceCaps};
 pub use command::{Relative, WlCommand};
 pub use ids::{Activity, Pinning};
 pub use model::WindowModel;
+pub use subjects::Subjects;
 pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState};
 pub use workspaces::{Step, Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces};

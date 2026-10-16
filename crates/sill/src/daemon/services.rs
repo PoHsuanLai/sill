@@ -205,6 +205,7 @@ pub(crate) fn start(
             env,
             AppMenuDeps {
                 name_of: menu_name_of,
+                windows: windows.state.clone(),
             },
         ),
         pins: spawn(rt, env, apps.state.clone()),

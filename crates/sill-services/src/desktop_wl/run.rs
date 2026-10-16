@@ -17,7 +17,7 @@ use wayland_client::backend::WaylandError;
 use super::command::{Refusal, desktop_of, wire_of};
 use super::commands::{forward_commands, park_commands};
 use super::publish::Publish;
-use super::{toplevels, workspaces};
+use super::{subjects, toplevels, workspaces};
 
 /// The thread's body: follow the compositor until every `Control` is dropped or the connection
 /// ends, then publish empty values.
@@ -62,6 +62,7 @@ impl Wlr {
         self.publish.replace(WindowModel {
             workspaces: workspaces::project(state),
             toplevels: recency.clone(),
+            subjects: subjects::project(state),
         });
         self.recency = recency;
     }

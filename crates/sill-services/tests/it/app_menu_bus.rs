@@ -25,7 +25,7 @@ use sill_model::app_menu::{
 };
 use sill_model::ids::OutputName;
 use sill_model::windows::{
-    Activity, Sizing, Toplevel, Toplevels, WindowModel, WindowState, WlCommand,
+    Activity, Sizing, Subjects, Toplevel, Toplevels, WindowModel, WindowState, WlCommand,
 };
 use sill_services::app_menu::{
     Activated, AppMenuDeps, AppMenuService, MenuAgent, MenuFault, MenuLinks,
@@ -144,8 +144,19 @@ impl Drop for FakeApp {
     }
 }
 
-/// The service on `bus`, in this process.
+/// The service on `bus`, in this process, whose windows say nothing of any program.
 fn service(bus: &PrivateBus, scratch: &Path, callers: &Arc<Introduced>) -> Handle<AppMenuService> {
+    let (_windows, receiver) = watch::channel(WindowModel::default());
+    service_seeing(bus, scratch, callers, receiver)
+}
+
+/// The service on `bus`, in this process, reading the compositor's windows from `windows`.
+fn service_seeing(
+    bus: &PrivateBus,
+    scratch: &Path,
+    callers: &Arc<Introduced>,
+    windows: watch::Receiver<WindowModel>,
+) -> Handle<AppMenuService> {
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
         callers: callers.clone(),
@@ -154,7 +165,7 @@ fn service(bus: &PrivateBus, scratch: &Path, callers: &Arc<Introduced>) -> Handl
     spawn::<AppMenuService>(
         &tokio::runtime::Handle::current(),
         &env,
-        AppMenuDeps { name_of },
+        AppMenuDeps { name_of, windows },
     )
 }
 
@@ -412,6 +423,18 @@ async fn agent(
     apps: &[&str],
     proof: Option<(u32, &str)>,
 ) -> Agent {
+    agent_reporting(bus, scratch, callers, apps, proof, Subjects::default()).await
+}
+
+/// As [`agent`], whose windows also say which program is behind each app (`subjects`).
+async fn agent_reporting(
+    bus: &PrivateBus,
+    scratch: &Path,
+    callers: &Arc<Introduced>,
+    apps: &[&str],
+    proof: Option<(u32, &str)>,
+    subjects: Subjects,
+) -> Agent {
     let connection = zbus::connection::Builder::address(bus.address.as_str())
         .unwrap_or_else(|e| panic!("{e}"))
         .build()
@@ -432,6 +455,7 @@ async fn agent(
                 .map(|(app, key)| window(key, app))
                 .collect(),
         },
+        subjects,
         ..WindowModel::default()
     };
     let (windows_tx, toplevels) = watch::channel(windows);
@@ -810,6 +834,100 @@ async fn a_menu_served_by_another_program_than_the_apps_is_neither_listed_nor_cl
         "the squatter was clicked: {:?}",
         squatter.lines()
     );
+}
+
+/// The subject of `app` that the compositor reports, as the windows service publishes it.
+fn reporting(app: &str, subject: &str) -> Subjects {
+    Subjects::collect([(app.to_owned(), Some(subject.to_owned()))])
+}
+
+/// QUIRE-12: with a subject the compositor established, the program that owns the name is
+/// compared with it, not with the scope name its launcher claimed.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_bar_shows_the_menu_of_the_program_the_compositor_reports_whatever_its_scope_says() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("app-menu-reported");
+    let callers = Introduced::new();
+    // Launched under another app's scope name, but it is the image the compositor reports.
+    let _app = FakeApp::start_as(&bus, scratch.path(), "test.app", &callers, "dev.other");
+    let (_windows, receiver) = watch::channel(WindowModel {
+        subjects: reporting("test.app", "/usr/bin/app_menu_app"),
+        ..WindowModel::default()
+    });
+    let handle = service_seeing(&bus, scratch.path(), &callers, receiver);
+    follow(&handle, Some("test.app"));
+    menus_where(&handle, "the reported program's menu", |m| {
+        m.served.contains_key(&MenuApp("test.app".to_owned()))
+    })
+    .await;
+}
+
+/// QUIRE-12: a program that launched under the app's own scope name is still not shown when the
+/// compositor says the window belongs to another program.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_bar_shows_no_menu_for_a_program_other_than_the_one_the_compositor_reports() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("app-menu-reported-other");
+    let callers = Introduced::new();
+    let _squatter = FakeApp::start(&bus, scratch.path(), "test.app", &callers);
+    let (_windows, receiver) = watch::channel(WindowModel {
+        subjects: reporting("test.app", "/usr/bin/notes"),
+        ..WindowModel::default()
+    });
+    let handle = service_seeing(&bus, scratch.path(), &callers, receiver);
+    follow(&handle, Some("test.app"));
+    tokio::time::sleep(Duration::from_millis(800)).await;
+    assert_eq!(
+        *handle.state.borrow(),
+        AppMenus::default(),
+        "a menu from a program the compositor does not report was shown"
+    );
+}
+
+/// QUIRE-12 for the agent: the same comparison decides what it may list.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_agent_lists_the_menu_of_the_program_the_compositor_reports_and_no_other() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("app-menu-agent-reported");
+    let callers = Introduced::new();
+    let _app = FakeApp::start_as(&bus, scratch.path(), "dev.notes", &callers, "dev.other");
+    let reported = agent_reporting(
+        &bus,
+        scratch.path(),
+        &callers,
+        &["dev.notes"],
+        None,
+        reporting("dev.notes", "/usr/bin/app_menu_app"),
+    )
+    .await;
+    let listed = reported
+        .agent
+        .list(None)
+        .await
+        .unwrap_or_else(|e| panic!("{e:?}"));
+    assert!(listed.text.contains("Undo"), "{}", listed.text);
+
+    let other = agent_reporting(
+        &bus,
+        scratch.path(),
+        &callers,
+        &["dev.notes"],
+        None,
+        reporting("dev.notes", "/usr/bin/notes"),
+    )
+    .await;
+    let listed = other
+        .agent
+        .list(None)
+        .await
+        .unwrap_or_else(|e| panic!("{e:?}"));
+    assert!(!listed.text.contains("Undo"), "{}", listed.text);
 }
 
 #[tokio::test(flavor = "multi_thread")]

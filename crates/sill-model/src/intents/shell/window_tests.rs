@@ -227,6 +227,7 @@ fn desk() -> WindowModel {
                 ],
             }],
         },
+        ..WindowModel::default()
     }
 }
 

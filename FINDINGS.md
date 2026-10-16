@@ -1555,15 +1555,19 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   waits longer is the unit's, not this change's.
 - **App menus (QUIRE-12, sill's half).** The bar reads, shows and an agent clicks a menu only when
   the owner of `org.quire.AppMenu.<id>` is the program of the focused window
-  (`sill_model::app_menu::menu_trust`). The compositor's `quire_desktop` identity event does not
-  carry a client `subject` yet (casement-protocols asks for it in wave 2, 3.2), so the comparison
-  is the one that exists: the window's app key against what the owner's standing says of its app
-  (a sandbox's app id, a desktop service's app, or the scope name a launcher gave a program the
-  system owns). `MenuClient::reported` is the typed seam: when the identity event carries the
-  subject, the sill side fills it (one place, `MenuClient::unreported` is the only constructor
-  today) and the stronger rule applies at once, with its table test already written.
-  *Ask of casement: add `subject` (the image path or the sandboxed app's id, as `permission_ask`
-  names it) to `quire_desktop_app_v1.identity`.* Consequences, all stated: a program whose image the
+  (`sill_model::app_menu::menu_trust`). Since `quire_desktop_app_v1` version 2 the compositor
+  reports each app's `subject` (the image path or the sandboxed app's id it established; absent for a
+  program it cannot name), and the comparison uses it when there is one: `desktop-client` reads it
+  into `QuireApp::subject`, the windows service projects it per app id into `WindowModel::subjects`
+  (`sill_model::windows::Subjects::collect`: an app id whose windows disagree, or only some of them
+  report one, has none, because two programs declaring one id cannot vouch for it), and the app-menu
+  service and the agent build `MenuClient::new(app, subjects.of(app_id))` before asking `menu_trust`.
+  Without a subject (a program the compositor cannot name, an older compositor, a standard-protocol
+  desktop, a sandbox on a security-context socket) the comparison is the one that existed: the
+  window's app key against what the owner's standing says of its app (a sandbox's app id, a desktop
+  service's app, or the scope name a launcher gave a program the system owns). The subject is read
+  when a menu session starts or restarts (the owner appears or changes), not on every windows
+  update. Consequences, all stated: a program whose image the
   person can write (a `cargo build` under the home folder) is `Unverified`, so its menu is not
   shown; a desktop service's standing carries no image, so it is known by its app key even once a
   subject is reported (peephole could return the image on `Standing::Service`); the bar reads the
