@@ -1,10 +1,10 @@
 //! Proving who owns a menu's bus name. Owning `org.quire.AppMenu.<id>` proves nothing: any
-//! process may claim it. Porter's caller identity (the owner's cgroup scope, read through the
-//! pid the bus reports) names the app that launched the process, and the name counts only when
-//! it is the menu name quire derives for that app.
+//! process may claim it. The system's account of the owner (peephole's standing for the unique
+//! name) names its app, and the name counts only when it is the menu name quire derives for that
+//! app.
 
 use docket_client::Transport;
-use porter_dbus::{CallerTable, ProcCallers};
+use peephole_bus::peephole_core::Standing;
 use sill_model::app_menu::{Identity, MenuApp, MenuName};
 use zbus::fdo::DBusProxy;
 use zbus::names::BusName;
@@ -17,10 +17,17 @@ use std::path::Path;
 impl<T: Transport> MenuAgent<T> {
     /// Whom `served`'s owner is proven to be.
     pub(super) async fn identity(&self, served: &Served) -> Identity {
-        let Some(pid) = self.pid_of(served).await else {
-            return Identity::Unverified;
+        let app = match self.peers.who(served.owner.as_str()).await {
+            Ok(standing) => app_of(&standing),
+            Err(_) => None,
         };
-        proven(&self.proc_root, pid, &served.menu.name, self.links.name_of)
+        match app {
+            Some(app) => verified(&app, &served.menu.name, self.links.name_of),
+            None => match self.pid_of(served).await {
+                Some(pid) => unknown(&self.proc_root, pid),
+                None => Identity::Unverified,
+            },
+        }
     }
 
     async fn pid_of(&self, served: &Served) -> Option<u32> {
@@ -33,27 +40,46 @@ impl<T: Transport> MenuAgent<T> {
     }
 }
 
-/// Whom process `pid` of `proc_root` is proven to be, given the menu name `claimed` its owner
-/// holds. A Flatpak app's name comes from its sandbox's metadata; when its scope says it is a
-/// Flatpak app and the metadata cannot be read (this process is Landlock-confined), the owner is
-/// [`Identity::Unreadable`] and the reason is logged, never silently taken for a native app.
-fn proven(proc_root: &Path, pid: u32, claimed: &MenuName, name_of: MenuNameOf) -> Identity {
-    let Some(caller) = ProcCallers::caller_of_pid(proc_root, pid, &CallerTable::default()) else {
-        return match flatpak_scope(proc_root, pid) {
-            FlatpakScope::Unreadable => {
-                eprintln!(
-                    "sill: app menu: process {pid} is a Flatpak app whose /proc/{pid}/root/.flatpak-info \
-                     cannot be read from here; it is shown as an unknown app"
-                );
-                Identity::Unreadable
-            }
-            FlatpakScope::NotOne => Identity::Unverified,
-        };
+/// The app a standing names: a table row, a sandbox, or the scope a root-owned program was
+/// started in. A user-writable image names nobody.
+fn app_of(standing: &Standing) -> Option<String> {
+    match standing {
+        Standing::Service { app, .. } | Standing::Sandboxed { app, .. } => {
+            Some(app.as_str().to_owned())
+        }
+        Standing::Program {
+            scope_app: Some(app),
+            ..
+        } => Some(app.as_str().to_owned()),
+        _ => None,
+    }
+}
+
+/// Whether `app` is the app whose menu name is `claimed`.
+fn verified(app: &str, claimed: &MenuName, name_of: MenuNameOf) -> Identity {
+    let Ok(name) = porter_core::AppName::parse(app) else {
+        return Identity::Unverified;
     };
-    let app = caller.app.name;
-    match name_of(&MenuApp(app.as_str().to_owned())) {
-        Some(name) if name == *claimed => Identity::Verified(app),
+    match name_of(&MenuApp(app.to_owned())) {
+        Some(menu) if menu == *claimed => Identity::Verified(name),
         Some(_) | None => Identity::Unverified,
+    }
+}
+
+/// Whom process `pid` of `proc_root` is, when its standing names no app. When its scope says it
+/// is a Flatpak app and the metadata cannot be read (this process is Landlock-confined), the
+/// owner is [`Identity::Unreadable`] and the reason is logged, never silently taken for a native
+/// app.
+fn unknown(proc_root: &Path, pid: u32) -> Identity {
+    match flatpak_scope(proc_root, pid) {
+        FlatpakScope::Unreadable => {
+            eprintln!(
+                "sill: app menu: process {pid} is a Flatpak app whose /proc/{pid}/root/.flatpak-info \
+                 cannot be read from here; it is shown as an unknown app"
+            );
+            Identity::Unreadable
+        }
+        FlatpakScope::NotOne => Identity::Unverified,
     }
 }
 
@@ -88,7 +114,7 @@ mod tests {
     use sill_model::app_menu::{Identity, MenuApp, MenuName};
     use sill_testkit::TempDir;
 
-    use super::proven;
+    use super::{unknown, verified};
 
     fn name_of(app: &MenuApp) -> Option<MenuName> {
         Some(MenuName(format!("org.quire.AppMenu.{}", app.0)))
@@ -106,31 +132,37 @@ mod tests {
     }
 
     #[test]
-    fn a_flatpak_app_is_known_by_its_metadata_and_an_unreadable_one_is_an_unknown_app() {
-        const INFO: &str = "[Application]\nname=dev.notes\n[Instance]\ninstance-id=1\n";
+    fn an_app_counts_only_under_its_own_menu_name() {
         let claimed = MenuName("org.quire.AppMenu.dev.notes".to_owned());
-        let flatpak = "app-flatpak-dev.notes-4242.scope";
+        let notes = porter_core::AppName::parse("dev.notes").unwrap_or_else(|e| panic!("{e}"));
+        let cases = [
+            ("its own name", "dev.notes", Identity::Verified(notes)),
+            ("another app's name", "dev.other", Identity::Unverified),
+            ("not an app name", "", Identity::Unverified),
+        ];
+        for (name, app, want) in cases {
+            assert_eq!(verified(app, &claimed, name_of), want, "{name}");
+        }
+    }
+
+    #[test]
+    fn an_unreadable_flatpak_app_is_an_unknown_app_and_anything_else_is_unverified() {
         let cases = [
             (
-                "metadata readable",
-                flatpak,
-                Some(INFO),
-                Identity::Verified(
-                    porter_core::AppName::parse("dev.notes").unwrap_or_else(|e| panic!("{e}")),
-                ),
+                "metadata unreadable",
+                "app-flatpak-dev.notes-4242.scope",
+                Identity::Unreadable,
             ),
-            ("metadata unreadable", flatpak, None, Identity::Unreadable),
             (
                 "a native scope is not a Flatpak app",
                 "app-dev.other-4242.scope",
-                None,
                 Identity::Unverified,
             ),
         ];
-        for (name, leaf, info, want) in cases {
+        for (name, leaf, want) in cases {
             let scratch = TempDir::new("app-menu-identity");
-            proc_with(scratch.path(), leaf, info);
-            assert_eq!(proven(scratch.path(), 7, &claimed, name_of), want, "{name}");
+            proc_with(scratch.path(), leaf, None);
+            assert_eq!(unknown(scratch.path(), 7), want, "{name}");
         }
     }
 }
