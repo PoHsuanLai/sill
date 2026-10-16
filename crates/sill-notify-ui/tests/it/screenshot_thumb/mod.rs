@@ -39,8 +39,13 @@ enum Done {
 fn start(file: ShellFile) -> Running {
     let link = BannerLink::new();
     link.set(BannerOutput::On(fake::output().id));
+    let shots = std::path::Path::new(FIXTURE)
+        .parent()
+        .expect("the fixture is in a folder")
+        .to_path_buf();
     SurfaceHarness::<ScreenshotThumb>::setup(link, ())
         .settings(file)
+        .file_roots(shell_host::FileRoots::new([shots]))
         .start()
 }
 

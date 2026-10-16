@@ -81,6 +81,7 @@ pub struct SurfaceSetup<S: Surface> {
     root_hook: Option<Rc<dyn Fn()>>,
     user_style: UserStyle,
     focus: FocusFallback,
+    file_roots: shell_host::FileRoots,
 }
 
 impl<S: Surface> fmt::Debug for SurfaceSetup<S> {
@@ -117,6 +118,7 @@ impl<S: Surface> SurfaceHarness<S> {
             root_hook: None,
             user_style: UserStyle::default(),
             focus: FocusFallback::default(),
+            file_roots: shell_host::FileRoots::default(),
         }
     }
 }
@@ -174,6 +176,13 @@ impl<S: Surface> SurfaceSetup<S> {
         self
     }
 
+    /// The folders the surface may read `file:` pictures from (none by default, as a surface with
+    /// no roots reads none); a test that draws a fixture names the fixture's folder.
+    pub fn file_roots(mut self, roots: shell_host::FileRoots) -> Self {
+        self.file_roots = roots;
+        self
+    }
+
     /// Mount the surface and draw its first frame.
     pub fn start(self) -> SurfaceHarness<S> {
         let SurfaceSetup {
@@ -187,6 +196,7 @@ impl<S: Surface> SurfaceSetup<S> {
             root_hook,
             user_style,
             focus,
+            file_roots,
         } = self;
         let viewport = viewport.unwrap_or_else(|| layer_viewport::<S>(&output, &settings, slot));
         let (services, feeds) = services.unwrap_or_else(fake::services);
@@ -214,7 +224,8 @@ impl<S: Surface> SurfaceSetup<S> {
             app,
             HarnessConfig::new(viewport)
                 .with_clock(Clock::Virtual)
-                .with_focus_fallback(focus),
+                .with_focus_fallback(focus)
+                .with_file_roots(file_roots),
         );
         SurfaceHarness {
             harness,

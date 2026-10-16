@@ -98,6 +98,7 @@ fn fixture(tag: &str) -> PathBuf {
 fn paint(fed: Wallpapers, done: impl Fn(&image::RgbaImage) -> bool) -> image::RgbaImage {
     let mut run = SurfaceHarness::<Wallpaper>::setup((), ())
         .viewport(VIEWPORT)
+        .file_roots(shell_host::FileRoots::new([std::env::temp_dir()]))
         .start();
     run.feeds.wallpaper.send_replace(fed);
     let until = run.harness.now() + Duration::from_secs(2);
