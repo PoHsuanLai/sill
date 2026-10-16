@@ -21,7 +21,7 @@ pub fn rich_body(body: &Body) -> Option<Rich> {
 
 fn rich_run(run: &BodyRun) -> RichRun {
     match &run.style.link {
-        RunLink::To(href) => RichRun::link(run.text.clone(), href.0.clone()),
+        RunLink::To(href) => RichRun::link(run.text.clone(), href.0.to_string()),
         RunLink::Plain => RichRun::Run(TextRun::new(run.text.clone(), tone(&run.style))),
     }
 }

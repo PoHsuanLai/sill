@@ -33,7 +33,7 @@ async fn notify_with(
 ) -> zbus::Result<u32> {
     let body = (app, replaces, "", text.0, text.1, actions, hints, -1i32);
     let reply = call(connection, "Notify", &body).await?;
-    Ok(reply.body().deserialize()?)
+    reply.body().deserialize()
 }
 
 #[test]
