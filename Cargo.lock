@@ -955,8 +955,8 @@ dependencies = [
 name = "blitz-kit"
 version = "0.1.0"
 dependencies = [
- "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
- "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=5c75536652955da94704bddee09f5928a2ca9623)",
+ "blitz-dom 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
+ "blitz-traits 0.3.0-beta.2 (git+https://github.com/PoHsuanLai/blitz?rev=4ca21b12aa309007d5ff42a900c55d1205185f90)",
  "keyboard-types 0.7.0",
  "parley",
  "serde",
