@@ -6,11 +6,12 @@
 use std::collections::HashMap;
 
 use sill_model::notifications::{
-    ACTIONS_MAX, BANNERS_PER_APP_MAX, BODY_MAX_BYTES, HINTS_MAX, NoteImage, NotificationId,
-    SENDER_BURST, SUMMARY_MAX_BYTES,
+    ACTIONS_MAX, BANNERS_PER_APP_MAX, BODY_MAX_BYTES, HINTS_MAX, IconRef, NoteImage, NotesState,
+    Notification, NotificationId, SENDER_BURST, SUMMARY_MAX_BYTES,
 };
 use sill_services::notifications::BUS_NAME;
 use sill_testkit::PrivateBus;
+use tokio::sync::watch;
 use zbus::fdo::RequestNameFlags;
 use zbus::zvariant::{OwnedValue, Value};
 
@@ -100,6 +101,78 @@ fn oversize_fields_are_cut_and_a_flood_of_hints_is_refused() {
         }
         let refused = notify_with(&connection, "big", 0, ("s", "b"), Vec::new(), many).await;
         assert!(refused.is_err(), "a flood of hints is refused: {refused:?}");
+    });
+}
+
+/// A `Notify` from `app` with `app_icon` and an `image-path` hint.
+async fn notify_with_pictures(
+    connection: &zbus::Connection,
+    app: &str,
+    app_icon: &str,
+    image_path: &str,
+) -> zbus::Result<u32> {
+    let mut hints = Hints::new();
+    hints.insert("image-path".to_owned(), owned(Value::from(image_path)));
+    let body = (
+        app,
+        0u32,
+        app_icon,
+        "s",
+        "b",
+        Vec::<String>::new(),
+        hints,
+        -1i32,
+    );
+    call(connection, "Notify", &body)
+        .await?
+        .body()
+        .deserialize()
+}
+
+/// The live banner `app` posted.
+fn banner_of(notes: &watch::Receiver<NotesState>, app: &str) -> Notification {
+    notes
+        .borrow()
+        .live
+        .banners
+        .iter()
+        .find(|banner| banner.note.app.name == app)
+        .map(|banner| banner.note.clone())
+        .unwrap_or_else(|| panic!("no banner from {app}"))
+}
+
+#[test]
+fn a_picture_a_caller_names_is_drawn_only_from_the_icon_folders() {
+    let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = sill_testkit::TempDir::new("notes-pictures");
+    let (mut notes, _control) = owning(&runtime, &bus, &scratch);
+    let themed = scratch.path().join("data/icons/hicolor/48x48/apps/a.png");
+    let themed = themed.to_string_lossy().into_owned();
+    runtime.block_on(async {
+        let connection = connect(&bus).await;
+        // A file outside every folder is no picture, whichever field named it.
+        notify_with_pictures(&connection, "outside", "/etc/passwd", "file:///etc/shadow")
+            .await
+            .unwrap_or_else(|e| panic!("Notify: {e}"));
+        assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 1).await);
+        let held = banner_of(&notes, "outside");
+        assert_eq!(held.app.icon, IconRef::None, "app_icon outside the folders");
+        assert_eq!(held.hints.image, NoteImage::None, "image-path outside");
+
+        // A file in the icon folders, and a theme name, are kept.
+        notify_with_pictures(&connection, "inside", "mail-unread", &themed)
+            .await
+            .unwrap_or_else(|e| panic!("Notify: {e}"));
+        assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 2).await);
+        let held = banner_of(&notes, "inside");
+        assert_eq!(held.app.icon, IconRef::Name("mail-unread".to_owned()));
+        assert_eq!(
+            held.hints.image,
+            NoteImage::Icon(IconRef::File(themed.clone().into()))
+        );
     });
 }
 

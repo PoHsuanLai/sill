@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use sill_model::notifications::{
-    NameHolder, NotesState, Notification, NotificationId, NotificationsCommand,
+    ImageDirs, NameHolder, NotesState, Notification, NotificationId, NotificationsCommand,
     NotificationsEffect, NotificationsEvent, NotificationsPolicy, Posting, ServerMode,
     ServerStatus, UnixMs, assign_id, for_disk, holds, step,
 };
@@ -38,6 +38,7 @@ pub(crate) async fn run(
     route: BusRoute,
     file: PathBuf,
     clock: Arc<dyn WallClock>,
+    images: ImageDirs,
     published: watch::Sender<NotesState>,
     mut commands: mpsc::UnboundedReceiver<NotificationsCommand>,
 ) {
@@ -47,6 +48,7 @@ pub(crate) async fn run(
         file,
         published,
         clock,
+        images,
         senders: Senders::default(),
     };
     core.apply(
@@ -92,6 +94,8 @@ struct Core {
     published: watch::Sender<NotesState>,
     /// What stamps a posting's arrival.
     clock: Arc<dyn WallClock>,
+    /// Where a bus caller's pictures may come from.
+    images: ImageDirs,
     /// Who posted what, and how much each caller may still post.
     senders: Senders,
 }
@@ -145,7 +149,7 @@ impl Core {
     }
 
     /// A `Notify` from `sender`: refused past its allowance; it replaces only what it posted or
-    /// what was posted for the same app.
+    /// what was posted for the same app; its pictures stay only where [`ImageDirs`] allow.
     async fn notify(
         &mut self,
         mut posting: Posting,
@@ -156,6 +160,7 @@ impl Core {
         if self.senders.admit(&sender, now) == Admission::TooMany {
             return NotifyAnswer::TooMany;
         }
+        posting = posting.within(&self.images);
         let app = posting.app.key();
         posting.replaces = self.senders.replaceable(&sender, &app, posting.replaces);
         let id = self.post(posting, bus).await;

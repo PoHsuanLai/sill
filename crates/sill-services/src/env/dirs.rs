@@ -80,6 +80,14 @@ impl Dirs {
         dirs
     }
 
+    /// Every folder a notification's picture may be read from: the icon folders
+    /// ([`Dirs::icon_dirs`]) and `notifications` in sill's cache folder.
+    pub fn notification_image_dirs(&self) -> Vec<PathBuf> {
+        let mut dirs = self.icon_dirs();
+        dirs.push(self.sill_cache().join("notifications"));
+        dirs
+    }
+
     /// `sill`'s own folder under the state directory.
     pub fn sill_state(&self) -> PathBuf {
         self.state.join("sill")

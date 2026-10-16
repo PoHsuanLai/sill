@@ -31,7 +31,7 @@
 
 mod backend;
 
-use sill_model::notifications::{NotesState, NotificationsCommand};
+use sill_model::notifications::{ImageDirs, NotesState, NotificationsCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
@@ -59,8 +59,9 @@ impl Service for NotificationsService {
         let bus = env.buses.session.clone();
         let file = backend::history_path(&env.dirs);
         let clock = std::sync::Arc::clone(&env.clock);
+        let images = ImageDirs::new(env.dirs.notification_image_dirs());
         async move {
-            backend::run(bus, file, clock, io.state, io.commands).await;
+            backend::run(bus, file, clock, images, io.state, io.commands).await;
             Ok(())
         }
     }

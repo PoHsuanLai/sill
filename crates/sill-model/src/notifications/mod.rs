@@ -5,6 +5,7 @@ mod capabilities;
 mod command;
 mod content;
 mod ids;
+mod image_dirs;
 mod limits;
 #[cfg(test)]
 mod limits_tests;
@@ -29,6 +30,7 @@ pub use content::{
     Posting, Residency, SoundHint, Transience, pair_actions,
 };
 pub use ids::{ActionKey, Activation, ActivationToken, AppKey, NotificationId, UnixMs};
+pub use image_dirs::ImageDirs;
 pub use limits::{
     ACTION_KEY_MAX_BYTES, ACTION_LABEL_MAX_BYTES, ACTIONS_MAX, APP_CRITICAL_HOLD_MS,
     APP_NAME_MAX_BYTES, BANNERS_PER_APP_MAX, BODY_MAX_BYTES, HINT_PATH_MAX_BYTES,

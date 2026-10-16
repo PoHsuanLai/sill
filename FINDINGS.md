@@ -1452,3 +1452,10 @@ Fixed by reading, not built: the gate run is the first compile.
   A screenshot folder the person sets outside Pictures shows its thumbnail from the preview in
   sill's cache, never from the original. The tinted app-icon cache still reads its folder with
   `dirs::cache_dir()` rather than `Dirs`; the two agree in a real session.
+- **Notification pictures (SILLN image paths).** A bus caller's `app_icon` and `image-path` are kept
+  only inside the icon and pixmap folders or `notifications` in sill's cache
+  (`sill_model::notifications::ImageDirs`). Nothing writes that cache folder yet; it is allowed so
+  a later writer (a copy of a sender's picture made by the shell) needs no change here. The check
+  reads the path as written; a link inside an allowed folder that leaves it is refused by the host.
+  A history file saved before this change may hold a path outside the folders; it is not
+  re-checked on load, and the host refuses to read it.
