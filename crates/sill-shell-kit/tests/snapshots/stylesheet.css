@@ -85,6 +85,7 @@ html,body{margin:0;padding:0;background:transparent}
 .ds[*|data-theme=dark][*|data-material=toast]{--m-tint:color-mix(in srgb,rgba(20,24,19,calc(.74*var(--m-tint-alpha,.8)/.8)) calc(var(--m-vibrancy,1)*100%),rgba(21,24,20,calc(.74*var(--m-tint-alpha,.8)/.8)));--m-tint-solid:color-mix(in srgb,rgba(20,24,19,.94) calc(var(--m-vibrancy,1)*100%),rgba(21,24,20,.94));--m-edge:inset 0 0 0 var(--hairline) rgba(255,255,255,.09);--m-shadow:0 10px 30px -8px rgba(0,0,0,calc(.55*var(--m-shadow-strength,1)));--m-radius:16px;--m-box:var(--m-hairline),var(--m-highlight),var(--m-edge),var(--m-shadow-contact),var(--m-shadow-ambient);--m-frame-alpha:calc(.74*var(--m-tint-alpha,.8)/.8);--m-highlight:inset 0 var(--hair) 0 rgba(255,255,255,var(--m-highlight-dark,.12));--m-hairline:0 0 0 var(--hairline) rgba(0,0,0,var(--m-hairline-dark,.6));--m-shadow-contact:0 1px 2px rgba(0,0,0,calc(.3*var(--m-shadow-strength,1)));--m-shadow-ambient:0 10px 30px -8px rgba(0,0,0,calc(.55*var(--m-shadow-strength,1)));--m-inner:var(--m-highlight),var(--m-edge);border-radius:var(--m-radius);box-shadow:var(--m-box);}
 .ds[*|data-theme=dark][*|data-material=osd]{--m-tint:color-mix(in srgb,rgba(20,24,19,calc(.68*var(--m-tint-alpha,.8)/.8)) calc(var(--m-vibrancy,1)*100%),rgba(21,24,20,calc(.68*var(--m-tint-alpha,.8)/.8)));--m-tint-solid:color-mix(in srgb,rgba(20,24,19,.94) calc(var(--m-vibrancy,1)*100%),rgba(21,24,20,.94));--m-edge:inset 0 0 0 var(--hairline) rgba(255,255,255,.09);--m-shadow:0 10px 30px -8px rgba(0,0,0,calc(.55*var(--m-shadow-strength,1)));--m-radius:18px;--m-box:var(--m-hairline),var(--m-highlight),var(--m-edge),var(--m-shadow-contact),var(--m-shadow-ambient);--m-frame-alpha:calc(.68*var(--m-tint-alpha,.8)/.8);--m-highlight:inset 0 var(--hair) 0 rgba(255,255,255,var(--m-highlight-dark,.12));--m-hairline:0 0 0 var(--hairline) rgba(0,0,0,var(--m-hairline-dark,.6));--m-shadow-contact:0 1px 2px rgba(0,0,0,calc(.3*var(--m-shadow-strength,1)));--m-shadow-ambient:0 10px 30px -8px rgba(0,0,0,calc(.55*var(--m-shadow-strength,1)));--m-inner:var(--m-highlight),var(--m-edge);border-radius:var(--m-radius);box-shadow:var(--m-box);}
 .ds[*|data-theme=dark][*|data-material=widget]{--m-tint:color-mix(in srgb,rgba(20,24,19,calc(.55*var(--m-tint-alpha,.8)/.8)) calc(var(--m-vibrancy,1)*100%),rgba(21,24,20,calc(.55*var(--m-tint-alpha,.8)/.8)));--m-tint-solid:color-mix(in srgb,rgba(20,24,19,.94) calc(var(--m-vibrancy,1)*100%),rgba(21,24,20,.94));--m-edge:inset 0 0 0 var(--hairline) rgba(255,255,255,.09);--m-shadow:0 8px 20px -8px rgba(0,0,0,calc(.5*var(--m-shadow-strength,1)));--m-radius:20px;--m-box:var(--m-hairline),var(--m-highlight),var(--m-edge),var(--m-shadow-contact),var(--m-shadow-ambient);--m-frame-alpha:calc(.55*var(--m-tint-alpha,.8)/.8);--m-highlight:inset 0 var(--hair) 0 rgba(255,255,255,var(--m-highlight-dark,.12));--m-hairline:0 0 0 var(--hair) rgba(0,0,0,var(--m-hairline-dark,.6));--m-shadow-contact:0 1px 2px rgba(0,0,0,calc(.3*var(--m-shadow-strength,1)));--m-shadow-ambient:0 8px 20px -8px rgba(0,0,0,calc(.5*var(--m-shadow-strength,1)));--m-inner:var(--m-highlight),var(--m-edge);border-radius:var(--m-radius);box-shadow:var(--m-box);}
+.ds[*|data-material][*|data-transparency=reduced]{--m-vibrancy:0;--m-tint:var(--m-tint-solid);--m-frame-alpha:.94;}
 .ds[*|data-material]{background:var(--m-tint-solid);}
 .ds[*|data-material][*|data-blur=off]{background:var(--m-tint-solid);}
 .ds[*|data-material][*|data-blur=on]{background:var(--m-tint);}
@@ -538,9 +539,11 @@ html,body{margin:0;padding:0;background:transparent}
   color:var(--f-ink); font-family:var(--font-ui); font-size:var(--fs-control); font-weight:600; line-height:1.3; pointer-events:none; }
 /* -- helper_sheet -- */
 /* The missing-helper sheet: an alert (`alert.css`) whose installing phase carries a spinner in
-   place of its buttons. */
+   place of its buttons; the unsupported phase may carry an install command to copy. */
 
 .ds-helper-progress{ display:flex; justify-content:center; padding:var(--s-8) 0 var(--s-4); }
+/* The install command (`CommandLine`, `command_line.css`): set below the alert's words. */
+.ds-alert .ds-command-line{ margin-top:var(--s-12); }
 /* -- accounts -- */
 /* The account sheets (design/31 sections 4.5 and 5.6). A step is one column in a regular sheet:
    a bold title, the body in the soft ink, and a row of buttons at the end with the default last.
@@ -913,6 +916,12 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-column[*|data-extent=fixed][*|data-size=small]{ --column-extent:var(--ctl-h-s); }
 .ds-column[*|data-extent=fixed][*|data-size=large]{ --column-extent:var(--ctl-h-l); }
 .ds-column[*|data-extent=fixed][*|data-size=extra-large]{ --column-extent:var(--ctl-h-xl); }
+/* -- command_line -- */
+/* CommandLine: a command to copy. One selectable line in the data face on a quiet fill, the
+   Copy button beside it. Placement (margins) is the parent's. */
+
+.ds-command-line{ display:flex; align-items:center; align-self:stretch; gap:var(--s-8); }
+.ds-command-line-text{ flex:1; min-width:0; padding:var(--s-6) var(--s-10); border-radius:var(--r-small); background:var(--fill-quaternary); font-family:var(--font-data); font-variant-numeric:tabular-nums; font-size:var(--fs-small); line-height:1.45; color:var(--ink); text-align:left; word-break:break-all; user-select:text; }
 /* -- command_palette -- */
 /* CommandPalette (design/04-COMPONENTS.md section 25), `S:230-234` with the overrides
    `S:793-799`: a scrim that centres the panel near the top, the panel entering with
