@@ -40,7 +40,16 @@ pub fn load(store: &Store) -> ShellFile {
     loaded.value
 }
 
-/// Write `file`, creating its directory if needed.
+/// Write `file`, creating its directory if needed; a damaged file it replaced is logged with
+/// where it was kept.
 pub fn save(store: &Store, file: &ShellFile) -> Result<(), SettingsError> {
-    store.save(file)
+    let saved = store.save(file)?;
+    if let Some(kept) = saved.kept_at {
+        eprintln!(
+            "sill: {}: could not be read, kept at {}",
+            ShellFile::FILE.0,
+            kept.display()
+        );
+    }
+    Ok(())
 }
