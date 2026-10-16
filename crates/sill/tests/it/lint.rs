@@ -581,7 +581,9 @@ fn capture_sheet_states() -> Vec<(&'static str, String)> {
 
 /// The permission sheet: hidden, then asking an app's question.
 fn permission_sheet_states() -> Vec<(&'static str, String)> {
-    use sill_model::capture_pick::{AskId, CapturePicker, PermissionAsk, PermissionAsking};
+    use sill_model::capture_pick::{
+        AskId, AskedBy, CapturePicker, PermissionAsk, PermissionAsking,
+    };
     let link = BannerLink::new();
     link.set(BannerOutput::On(fake::output().id));
     let mut sheet = SurfaceHarness::<PermissionSheet>::setup(link, ()).start();
@@ -598,6 +600,7 @@ fn permission_sheet_states() -> Vec<(&'static str, String)> {
                 "",
                 "",
             ),
+            by: AskedBy::Portal,
         }),
         ..CapturePicker::default()
     });

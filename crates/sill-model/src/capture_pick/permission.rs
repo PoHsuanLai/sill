@@ -3,7 +3,9 @@
 //! app's, so each is cleaned and cut here, once, before anything holds or draws them.
 //! Pure.
 
+use super::consent_words::{ALLOW, DONT_ALLOW};
 use super::step::AskId;
+use crate::desktop::{Answer, ConsentId};
 use crate::untrusted::for_display;
 
 /// The longest app name taken, in characters.
@@ -22,9 +24,9 @@ pub const BUTTON_MAX_CHARS: usize = 32;
 const SCAN_MAX_CHARS: usize = 8 * BODY_MAX_CHARS;
 
 /// The yes button when the app names none.
-const GRANT_WORDS: &str = "Allow";
+const GRANT_WORDS: &str = ALLOW;
 /// The no button when the app names none.
-const DENY_WORDS: &str = "Don\u{2019}t Allow";
+const DENY_WORDS: &str = DONT_ALLOW;
 
 /// An app's question, in words made safe to draw.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,11 +82,22 @@ fn line(text: &str, max: usize) -> String {
     for_display(spaced.trim(), max)
 }
 
-/// The question on screen.
+/// Who put a question to the person.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AskedBy {
+    /// The portal backend, through `org.quire.Shell1.AskPermission`: a caller waits on the bus.
+    Portal,
+    /// The compositor, under this number: the answer goes back on its shell protocol.
+    Compositor(ConsentId),
+}
+
+/// A question on screen, or waiting its turn.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PermissionAsking {
     pub id: AskId,
     pub ask: PermissionAsk,
+    /// Who is waiting for the answer.
+    pub by: AskedBy,
 }
 
 /// How the person ended the question.
@@ -99,6 +112,16 @@ pub enum PermissionOutcome {
 }
 
 impl PermissionOutcome {
+    /// What the compositor is told: the yes button allows, the no button refuses and is kept,
+    /// and a sheet that went away is dismissed, which is never kept.
+    pub fn answer(self) -> Answer {
+        match self {
+            PermissionOutcome::Grant => Answer::Allow,
+            PermissionOutcome::Deny => Answer::Deny,
+            PermissionOutcome::Closed => Answer::Dismissed,
+        }
+    }
+
     /// The number `AskPermission` returns: 0 granted, 1 denied, 2 closed without answering.
     pub fn wire(self) -> u32 {
         match self {

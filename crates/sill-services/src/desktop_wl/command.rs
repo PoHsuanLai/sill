@@ -99,7 +99,8 @@ pub fn wire_of(command: &DesktopCommand, state: &DesktopState) -> Result<Vec<Wir
         | DesktopCommand::CaptureSpace { .. }
         | DesktopCommand::CaptureOutput { .. }
         | DesktopCommand::SetSpaceTargets { .. }
-        | DesktopCommand::SetNewSpaceTarget { .. } => Err(Refusal::Unsupported),
+        | DesktopCommand::SetNewSpaceTarget { .. }
+        | DesktopCommand::AnswerPermission { .. } => Err(Refusal::Unsupported),
     }
 }
 

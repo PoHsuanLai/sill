@@ -55,7 +55,15 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let (shell_calls, shell_actions) = tokio::sync::mpsc::unbounded_channel();
     let (summons_tx, summons) = tokio::sync::mpsc::unbounded_channel();
     let (consents_tx, consents) = tokio::sync::mpsc::unbounded_channel();
-    let services = services::start(runtime.handle(), &env, shell_calls, summons_tx, consents_tx);
+    let (answers_tx, answers) = tokio::sync::mpsc::unbounded_channel();
+    let services = services::start(
+        runtime.handle(),
+        &env,
+        shell_calls,
+        summons_tx,
+        consents_tx,
+        answers_tx,
+    );
     let store = settings::store(&env.dirs.config);
     let first = settings::load(&store);
     let (settings, settings_rx) = watch::channel(first.clone());
@@ -98,6 +106,14 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     // `ipc::server::spawn`).
     let _ipc_thread = server::spawn(door, host_handle.clone());
 
+    crate::permission_answers::spawn(runtime.handle(), answers, host_handle.clone());
+    let (stopped_tx, stopped) = std::sync::mpsc::channel();
+    crate::name_guard::spawn(
+        runtime.handle(),
+        services.intents.state.clone(),
+        host_handle.clone(),
+        stopped_tx,
+    );
     crate::release::spawn_confirmation(
         runtime.handle(),
         env.buses.session.route(),
@@ -137,6 +153,10 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
 
     shutdown_runtime(runtime);
 
+    // A name the shell needs is held by another program: the host was ended for it.
+    if let Ok(said) = stopped.try_recv() {
+        return fatal(&said);
+    }
     let phase = locker.borrow().phase;
     match result {
         Ok(()) => exit_clean_at(phase),

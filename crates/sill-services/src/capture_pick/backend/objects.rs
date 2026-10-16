@@ -1,16 +1,21 @@
 //! `org.quire.Shell1`, as the shell exports it on the seat. The object checks who is calling and
 //! hands the call to the loop, which decides, and waits for the loop's answer.
 
+use std::sync::Arc;
+
+use peephole_bus::peephole_core::roles;
 use sill_model::capture_pick::{
     Ask, ColorAsk, ColorReply, PermissionAsk, PermissionOutcome, Reply,
 };
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use zbus::fdo;
+use zbus::interface;
 use zbus::message::Header;
-use zbus::names::BusName;
-use zbus::{Connection, interface};
 
-/// The portal backend's name: transom owns it, and only its owner may ask the person.
+use crate::callers::{Claim, Peers, admit};
+
+/// The portal backend's name: transom owns it, and only its owner, holding the portal role, may
+/// ask the person.
 pub(super) const PORTAL_BUS: &str = "org.freedesktop.impl.portal.desktop.quire";
 /// Where the object is exported.
 pub(super) const PATH: &str = "/org/quire/Shell1";
@@ -55,19 +60,20 @@ pub(super) struct PermissionCall {
 /// The picker object.
 pub(super) struct PickerObject {
     pub calls: UnboundedSender<Call>,
+    /// Tells the callers on the seat's connection apart.
+    pub peers: Arc<Peers>,
 }
 
-async fn from_transom(connection: &Connection, header: &Header<'_>) -> fdo::Result<()> {
-    let denied = || fdo::Error::AccessDenied("only the portal backend asks the picker".to_owned());
-    let name = BusName::try_from(PORTAL_BUS).map_err(|e| fdo::Error::Failed(e.to_string()))?;
-    let owner = fdo::DBusProxy::new(connection)
-        .await?
-        .get_name_owner(name)
-        .await
-        .map_err(|_| denied())?;
-    match header.sender() {
-        Some(sender) if sender.as_str() == owner.as_str() => Ok(()),
-        Some(_) | None => Err(denied()),
+impl PickerObject {
+    /// Lets the call with `header` through when it is the portal backend: the program the table
+    /// names as `portal`, which owns the portal backend's name.
+    async fn from_transom(&self, header: &Header<'_>) -> fdo::Result<()> {
+        let claims = [Claim {
+            name: PORTAL_BUS,
+            role: roles::PORTAL,
+            tag: (),
+        }];
+        admit(&self.peers, header, &claims).await.map(|_| ())
     }
 }
 
@@ -80,9 +86,8 @@ impl PickerObject {
         multiple: u32,
         cursor_modes: Vec<u32>,
         #[zbus(header)] header: Header<'_>,
-        #[zbus(connection)] connection: &Connection,
     ) -> fdo::Result<(Vec<(String, String)>, u32)> {
-        from_transom(connection, &header).await?;
+        self.from_transom(&header).await?;
         let label: String = app_label.chars().take(MAX_LABEL).collect();
         let modes: Vec<u32> = cursor_modes.into_iter().take(MAX_MODES).collect();
         let ask = Ask::from_wire(&label, kinds, multiple, &modes)
@@ -102,9 +107,8 @@ impl PickerObject {
         &self,
         app_label: String,
         #[zbus(header)] header: Header<'_>,
-        #[zbus(connection)] connection: &Connection,
     ) -> fdo::Result<Vec<(f64, f64, f64)>> {
-        from_transom(connection, &header).await?;
+        self.from_transom(&header).await?;
         let ask = ColorAsk {
             app_label: app_label.chars().take(MAX_LABEL).collect(),
         };
@@ -130,9 +134,8 @@ impl PickerObject {
         grant_label: String,
         deny_label: String,
         #[zbus(header)] header: Header<'_>,
-        #[zbus(connection)] connection: &Connection,
     ) -> fdo::Result<u32> {
-        from_transom(connection, &header).await?;
+        self.from_transom(&header).await?;
         let ask = PermissionAsk::from_wire(
             &app_label,
             &title,

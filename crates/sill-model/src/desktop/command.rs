@@ -1,6 +1,8 @@
 //! What the shell asks of the desktop, and which backend can carry it.
 
-use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, Toggle, WindowEntry};
+use casement_protocols::vocab::{
+    Answer, AskId, Assign, OverviewMode, PlaceTarget, Toggle, WindowEntry,
+};
 use porter_core::SpaceId;
 
 use super::DesktopBackend;
@@ -120,6 +122,15 @@ pub enum DesktopCommand {
         output: String,
         /// The place; `None` removes it.
         rect: Option<super::target::Rect>,
+    },
+    /// The person answered a question the compositor asked
+    /// ([`super::ShellNote::PermissionAsk`]), or its sheet went away unanswered
+    /// ([`Answer::Dismissed`]). Quire only, on the connection that holds the shell role.
+    AnswerPermission {
+        /// The question, by the number it came with.
+        ask: AskId,
+        /// What the person said.
+        answer: Answer,
     },
 }
 

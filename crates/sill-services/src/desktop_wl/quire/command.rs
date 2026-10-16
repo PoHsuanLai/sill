@@ -123,6 +123,10 @@ pub fn quire_wire_of(
             output: OutputName::new(output.as_str()),
             rect: rect.map(|(x, y, w, h)| Rect::new(x, y, w, h)),
         }),
+        DesktopCommand::AnswerPermission { ask, answer } => one(Wire::AnswerPermission {
+            ask: *ask,
+            answer: *answer,
+        }),
     }
 }
 

@@ -6,6 +6,7 @@ use std::sync::Arc;
 use sill_model::accounts::sheet::AccountsSheetCommand;
 use sill_model::capture_pick::CaptureCommand;
 use sill_model::companion::SummonOut;
+use sill_model::desktop::DesktopCommand;
 use sill_model::intents::IntentsCommand;
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
@@ -59,13 +60,15 @@ use crate::policy::{
 /// against `env`'s seams, each after the ones it depends on. A service whose system half is
 /// missing still yields its receiver, at its default. `shell_calls` is where the shell's own
 /// actions go, `summons` where a summon's launcher effects go, `consents` where the answer to
-/// the voice consent sheet goes.
+/// the voice consent sheet goes and `permission_answers` where the answer to a question the
+/// compositor asked goes.
 pub(crate) fn start(
     rt: &Runtime,
     env: &Env,
     shell_calls: UnboundedSender<ShellCall>,
     summons: UnboundedSender<SummonOut>,
     consents: UnboundedSender<VoiceConsent>,
+    permission_answers: UnboundedSender<DesktopCommand>,
 ) -> Services {
     // The connection the intents service claims `org.quire.Shell` on, which the companion speaks
     // on as the launcher.
@@ -108,6 +111,8 @@ pub(crate) fn start(
         CaptureLinks {
             seat: seat_view,
             displays: displays.state.clone(),
+            apps: apps.state.clone(),
+            answers: permission_answers,
         },
     );
     let battery = spawn::<BatteryService>(rt, env, ());

@@ -1460,12 +1460,12 @@ Fixed by reading, not built: the gate run is the first compile.
   A history file saved before this change may hold a path outside the folders; it is not
   re-checked on load, and the host refuses to read it.
 - **`AskPermission` (served).** `org.quire.Shell1.AskPermission` is served by the capture service on
-  the seat's connection, for the portal backend's name only (the owner test of `PickCaptureSource`),
-  one question of any kind at a time. The sheet is quire's `Alert`, so Escape presses the no button
-  and answers 1; the contract's 2 (closed without answering) is in the model and the wire but the
-  sheet has no way to tell Escape from a press on that button. The portal reads 1 and 2 the same
-  (both are "cancelled by the user"). Telling them apart needs quire's `Alert` to let a sheet name
-  what Escape does when no button cancels; open until that is wanted.
+  the seat's connection, for the portal backend only (`sill_services::callers`, pa2-sill below),
+  in one line with the compositor's questions. The sheet is quire's `Alert`; a portal question
+  keeps Escape as the no button and answers 1 (`escape_answer`), while the contract's 2 (closed
+  without answering) is what the compositor's question is told on Escape. The portal reads 1 and
+  2 the same (both are "cancelled by the user"); `Alert`'s `on_dismiss` is what tells them apart,
+  so a portal question could answer 2 on Escape too if that is wanted.
 - **The sheet finds the app's icon by name.** The portal knows an app only by the name it shows, so
   `permission_sheet` looks the name up in the app index (case-insensitive) and falls back to the
   Window glyph. Two installed apps with one name get the first by id. An id from transom in the
@@ -1486,3 +1486,90 @@ Fixed by reading, not built: the gate run is the first compile.
   one, and `Quit` is refused while the session is locked. Open until the owner decides that; the
   lock file lives in `$XDG_RUNTIME_DIR`, which a cache cleaner does not visit, and the fallback
   under `$HOME/.cache` is the case that matters.
+
+## pa2-sill: who calls the shell's bus objects, and the compositor's permission question (2026-10-16)
+
+Fixed by reading, not built: the gate run is the first compile. Where each piece lives is in
+ARCHITECTURE.md's one-home table (the callers module, the compositor's permission question, the
+shell's names). New dependency: `peephole-bus` (git tag v0.1.2, features `tokio` and `desktop`; `fake`
+only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's to refresh.
+
+- **Callers (SILLS-07).** The three copies of "the sender is the owner of a name" are one module,
+  `sill_services::callers`: the caller holds the role of the service whose name it owns (`portal`
+  for `Shell1`; `accounts`, `inference` or `sync` for `AccountsSheet1`, each on its own name;
+  `router` for `Confirm1`), proved `Full` (its image and its unit as the manager states it). The
+  `Input` signal still goes to the opener's unique name, which is now a name that passed. A caller
+  that fails is `AccessDenied` with fixed words and one line on stderr naming the roles asked.
+  The services' units must unset the loader variables (the table says so for `Full`); one that does
+  not is refused until it does.
+- **The table is read once, at start** (`DesktopCallers::from_system`, `/etc/quire/desktop-callers.toml`
+  and `.d/`). A table that cannot be read (missing, or writable by someone other than root) is an
+  empty one: the shell then refuses every call to these objects and shows no app menu, and says so
+  once on stderr. A table installed after the shell started is read at the next start.
+- **Stand-in services in the dev scripts are refused (deferred).** `dev/accept/accounts.sh` and the
+  other scripts that run the shell against `sill-testkit`'s stand-ins (`accountd_standin`,
+  `app_menu_app`) put a user-built binary on the bus, which the table cannot call a service. They
+  need a `debug`-build seam that introduces named stand-ins (peephole's `fake` feature, which a
+  shipped binary never has). Not added: the desktop gate greps for `fake`, and the owner has not
+  said whether a `debug` build may carry it.
+- **`org.quire.Shell` is asked for without queueing, and the shell exits when it is taken
+  (PORTAL-10, sill's half).** The name was already asked for with `DoNotQueue` (docket's
+  `serve_on_with`); a taken name was only the seat's `NameTaken` trouble and the shell went on
+  without a seat. `sill::name_guard` now ends the host and the daemon exits with a failure and
+  one line. `dist/sill.service` restarts on failure every second with no start limit, so the line
+  repeats once a second while a program holds the name, which is the loud outcome asked for and the
+  one that gets the session its shell back as soon as the name is free. A restart policy that
+  waits longer is the unit's, not this change's.
+- **App menus (QUIRE-12, sill's half).** The bar reads, shows and an agent clicks a menu only when
+  the owner of `org.quire.AppMenu.<id>` is the program of the focused window
+  (`sill_model::app_menu::menu_trust`). The compositor's `quire_desktop` identity event does not
+  carry a client `subject` yet (casement-protocols asks for it in wave 2, 3.2), so the comparison
+  is the one that exists: the window's app key against what the owner's standing says of its app
+  (a sandbox's app id, a desktop service's app, or the scope name a launcher gave a program the
+  system owns). `MenuClient::reported` is the typed seam: when the identity event carries the
+  subject, the sill side fills it (one place, `MenuClient::unreported` is the only constructor
+  today) and the stronger rule applies at once, with its table test already written.
+  *Ask of casement: add `subject` (the image path or the sandboxed app's id, as `permission_ask`
+  names it) to `quire_desktop_app_v1.identity`.* Consequences, all stated: a program whose image the
+  person can write (a `cargo build` under the home folder) is `Unverified`, so its menu is not
+  shown; a desktop service's standing carries no image, so it is known by its app key even once a
+  subject is reported (peephole could return the image on `Standing::Service`); the bar reads the
+  menu from the verified owner's unique name, but a click is still addressed to the well-known name,
+  so a name taken over in the instant between the check and the click is clicked until the owner
+  change is seen.
+- **The compositor's permission question.** `quire_shell_v1` version 5 arrives as
+  `ShellNote::PermissionAsk` and `PermissionWithdraw` (the client crate binds up to 5 already) and
+  is answered with `DesktopCommand::AnswerPermission` (allow, deny, dismissed). It shares one line
+  with `AskPermission`: one sheet on screen, others waiting in the order they came, at most
+  `WAITING_MAX` (8); past that a portal call is refused (`LimitsExceeded`) and the compositor's
+  question is answered `dismissed`, which it never keeps. A portal call now waits behind another
+  sheet instead of being refused at once; a sharing or colour request still is refused while any
+  sheet is up. A question the compositor sends again after the shell restarted is the one already
+  held. The portal leaving takes down only its own questions. Open: a portal call whose caller gave
+  up (the bus call timed out) keeps its place in the line until the person answers it, as it did
+  when it was the only question.
+- **Words (3.7).** All of them are `sill_model::capture_pick::consent_words`, except the sentence
+  each power opens its body with, which is the shared vocabulary's `Power::blurb` (so Settings and the
+  sheet say the same thing). The headline's quotation marks and the apostrophes are typographic
+  (as "Don\u{2019}t Allow" already was), not the straight marks of the design table. A program is
+  named by its desktop entry only when the compositor vouches for it (a root-held image, or a
+  sandboxed app's id); a program it cannot vouch for is named by its file name, because the person
+  could otherwise write an entry that calls their own program "Firefox". The sheet's icon is found by
+  that name in the app index, as for the portal's.
+- **No arming delay on this sheet (deferred).** The confirmation sheet ignores answers until it has
+  been still for `ARM_MS`; the permission sheet (both kinds) has no such delay, and its keyboard is
+  exclusive with Return as the default. A Return meant for the window behind it can allow a power.
+  The delay needs quire's `Alert` to disable its buttons, or this sheet to move onto the
+  confirmation sheet's gate. The compositor's design says a shell that answers faster than the
+  sheet's delay is a protocol error for that shell; casement should not enforce that until this exists.
+- **Caps Lock.** `{ when = "capslock", then = "ctrl+space" }` is out of `dist/keycap/keycap.toml`:
+  keycap's user layer refuses a rule on a key with no modifier. sill ships no system file, so
+  the rule is an ask of the desktop's packaging: put it in `/etc/keycap/keycap.toml`
+  (`[profile.default] rules = [ { when = "capslock", then = "ctrl+space" } ]`). `shift+capslock` stays.
+- **Could not be checked by reading.** `peephole-bus` 0.1.2's `BusPeers::new`, `with_offload(Tokio)`,
+  `who`, `require`, `owner_of` and `introduce` against the sources of that tag (read, not compiled);
+  that `Standing::Sandboxed { app, .. }` and `Standing::Program { exe, scope_app }` can be built from
+  outside peephole in the tests (they are non-exhaustive enums, not non-exhaustive variants);
+  that `Alert`'s `on_dismiss` is passed as `Some(EventHandler)` the way `message` is passed as
+  `Some(..)`; that the sheet's HTML carries the typographic apostrophes unescaped (a test asserts
+  `can\u{2019}t` and `Don\u{2019}t Allow` in it).

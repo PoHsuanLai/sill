@@ -2,29 +2,42 @@
 //! [`CaptureEvent`] fed to the pure step; what the step asks (a reply) is carried out here.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
+use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
-    Admit, AskId, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut, CapturePicker,
-    ColorAsking, ColorReply, OutputCandidate, PermissionAsking, PermissionOutcome, Reply, admits,
-    step,
+    Admit, AskId, AskedBy, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut,
+    CapturePicker, ColorAsking, ColorReply, OutputCandidate, PermissionAsking, PermissionOutcome,
+    Reply, admits, consent_ask, holds_consent, permission_admits, step,
 };
+use sill_model::desktop::{Answer, Consent, ConsentId, DesktopCommand};
 use sill_model::displays::Displays;
 use tokio::sync::{mpsc, oneshot, watch};
 use zbus::Connection;
 use zbus::fdo;
 
 use super::objects::{Call, ColorCall, PATH, PORTAL_BUS, PermissionCall, PickerObject, SourceCall};
+use crate::callers::CallerSource;
 use crate::capture_pick::{CaptureLinks, CaptureService};
 use crate::owner;
 use crate::seat::SeatView;
 use crate::service::ServiceIo;
 
-pub(crate) async fn run(links: CaptureLinks, io: ServiceIo<CaptureService>) {
+pub(crate) async fn run(
+    links: CaptureLinks,
+    io: ServiceIo<CaptureService>,
+    callers: Arc<dyn CallerSource>,
+) {
     let ServiceIo {
         state: tx,
         mut commands,
     } = io;
-    let CaptureLinks { seat, displays } = links;
+    let CaptureLinks {
+        seat,
+        displays,
+        apps,
+        answers,
+    } = links;
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
     let (left_tx, mut left) = mpsc::unbounded_channel();
     let mut seat = Some(seat);
@@ -34,6 +47,9 @@ pub(crate) async fn run(links: CaptureLinks, io: ServiceIo<CaptureService>) {
         tx,
         calls: calls_tx,
         left: left_tx,
+        callers,
+        apps,
+        answers,
         exported: None,
         waiters: HashMap::new(),
         color_waiters: HashMap::new(),
@@ -84,6 +100,12 @@ struct Live {
     tx: watch::Sender<CapturePicker>,
     calls: mpsc::UnboundedSender<Call>,
     left: mpsc::UnboundedSender<()>,
+    /// Tells the callers on the exported connection apart.
+    callers: Arc<dyn CallerSource>,
+    /// The installed apps, which name a program the compositor asks about.
+    apps: watch::Receiver<AppIndex>,
+    /// Where the compositor hears the person's answer.
+    answers: mpsc::UnboundedSender<DesktopCommand>,
     /// The connection the object is exported on.
     exported: Option<Connection>,
     /// Who waits for each open request's answer.
@@ -124,6 +146,7 @@ impl Live {
                         let _ = waiter.send(Ok(outcome));
                     }
                 }
+                CaptureOut::ConsentReply(ask, answer) => self.tell_compositor(ask, answer),
             }
         }
     }
@@ -156,7 +179,38 @@ impl Live {
             CaptureCommand::PermissionAnswer(id, outcome) => {
                 self.feed(CaptureEvent::PermissionAnswered(id, outcome));
             }
+            CaptureCommand::Consent(consent) => self.consent(&consent),
+            CaptureCommand::ConsentWithdrawn(ask) => {
+                self.feed(CaptureEvent::PermissionWithdrawn(ask));
+            }
         }
+    }
+
+    /// The compositor's question: on the sheet, or waiting its turn. When the line is full the
+    /// compositor is told at once that nothing was answered, which it never remembers.
+    fn consent(&mut self, consent: &Consent) {
+        let full = permission_admits(&self.state) == Admit::Busy;
+        if full && !holds_consent(&self.state, consent.ask) {
+            self.tell_compositor(consent.ask, Answer::Dismissed);
+            return;
+        }
+        let ask = consent_ask(consent, &self.apps.borrow());
+        self.next += 1;
+        let id = AskId(self.next);
+        let by = AskedBy::Compositor(consent.ask);
+        self.feed(CaptureEvent::PermissionOpened(PermissionAsking {
+            id,
+            ask,
+            by,
+        }));
+    }
+
+    /// Say what the person answered to the compositor's question `ask`. A compositor that has
+    /// gone has nobody to hear it.
+    fn tell_compositor(&self, ask: ConsentId, answer: Answer) {
+        let _ = self
+            .answers
+            .send(DesktopCommand::AnswerPermission { ask, answer });
     }
 
     /// The displays as screens.
@@ -197,10 +251,11 @@ impl Live {
         self.exported = Some(connection.clone());
         let calls = self.calls.clone();
         let left = self.left.clone();
+        let peers = self.callers.peers_on(connection.clone());
         tokio::spawn(async move {
             let exported = connection
                 .object_server()
-                .at(PATH, PickerObject { calls })
+                .at(PATH, PickerObject { calls, peers })
                 .await;
             if let Err(error) = exported {
                 eprintln!("sill: capture picker: serving {PATH} failed: {error}");
@@ -220,17 +275,22 @@ impl Live {
 
     fn permission_call(&mut self, call: PermissionCall) {
         let PermissionCall { ask, answer } = call;
-        match admits(&self.state) {
+        match permission_admits(&self.state) {
             Admit::Busy => {
                 let _ = answer.send(Err(fdo::Error::LimitsExceeded(
-                    "a question is already open".to_owned(),
+                    "too many questions are waiting".to_owned(),
                 )));
             }
             Admit::Yes => {
                 self.next += 1;
                 let id = AskId(self.next);
                 self.permission_waiters.insert(id, answer);
-                self.feed(CaptureEvent::PermissionOpened(PermissionAsking { id, ask }));
+                let by = AskedBy::Portal;
+                self.feed(CaptureEvent::PermissionOpened(PermissionAsking {
+                    id,
+                    ask,
+                    by,
+                }));
             }
         }
     }

@@ -1,16 +1,18 @@
 //! The screen-sharing picker's host side on a private bus: a stand-in transom (the owner of the
 //! portal backend's name) calls `PickCaptureSource` on the connection the seat holds; the shell's
-//! own part is stepped through `Answer`. Only the portal backend may ask, and a second call while
-//! one is open is refused. `PickColor` is the same: only the portal backend, one question at a
-//! time, an empty array while nothing draws the eyedropper, the colour once it is clicked. A test skips, saying so, without a `dbus-daemon`. Never the person's
-//! session bus.
+//! own part is stepped through `Answer`. Only the portal backend may ask (who counts as it is
+//! `callers_bus.rs`'s), and a second call while one is open is refused. `PickColor` is the same:
+//! one question at a time, an empty array while nothing draws the eyedropper, the colour once it
+//! is clicked. A test skips, saying so, without a `dbus-daemon`. Never the person's session bus.
 
 use std::time::Duration;
 
+use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
     CaptureCommand, CaptureLink, CapturePicker, ColorOutcome, Eyedropper, Outcome, Picks,
     Plurality, Rgb8, Source, WindowCandidate, plan, toggle,
 };
+use sill_model::desktop::DesktopCommand;
 use sill_model::displays::Displays;
 use sill_services::capture_pick::{CaptureLinks, CaptureService};
 use sill_services::env::Env;
@@ -20,6 +22,8 @@ use sill_testkit::{PrivateBus, TempDir};
 use tokio::sync::watch;
 use zbus::Connection;
 use zbus::connection::Builder;
+
+use crate::callers_support::{Introduced, Role, Who};
 
 const SETTLE: Duration = Duration::from_secs(5);
 const PORTAL: &str = "org.freedesktop.impl.portal.desktop.quire";
@@ -90,29 +94,8 @@ async fn transom_asks_the_person_picks_and_the_answer_comes_back() {
         return;
     };
     let scratch = TempDir::new("capture-pick-bus");
-    let env = Env::isolated(scratch.path());
-    let transom = connect(&bus, Some(PORTAL)).await;
-    let shell = connect(&bus, Some("org.quire.Shell")).await;
-    let (publisher, view) = seat();
-    publisher.publish(shell);
-    let (_displays_tx, displays) = watch::channel(Displays::default());
-    let mut service = spawn::<CaptureService>(
-        &tokio::runtime::Handle::current(),
-        &env,
-        CaptureLinks {
-            seat: view,
-            displays,
-        },
-    );
+    let (mut service, transom) = serving(&bus, &scratch).await;
     let _ = service.control.send(CaptureCommand::Windows(vec![notes()]));
-    let _ = service.control.send(CaptureCommand::Serve);
-    assert!(
-        wait_for(&mut service.state, |s: &CapturePicker| s.link
-            == CaptureLink::Serving)
-        .await
-    );
-    // The object is exported a moment after the link says serving.
-    tokio::time::sleep(Duration::from_millis(300)).await;
 
     let proxy = Shell1Proxy::new(&transom)
         .await
@@ -155,64 +138,53 @@ async fn transom_asks_the_person_picks_and_the_answer_comes_back() {
     assert_eq!(answer, (vec![("window".to_owned(), "w-1".to_owned())], 1));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn a_caller_that_is_not_the_portal_backend_is_refused_and_draws_nothing() {
-    let Some(bus) = PrivateBus::start() else {
-        eprintln!("skipped: no dbus-daemon");
-        return;
-    };
-    let scratch = TempDir::new("capture-pick-forged");
-    let env = Env::isolated(scratch.path());
-    let _transom = connect(&bus, Some(PORTAL)).await;
-    let shell = connect(&bus, Some("org.quire.Shell")).await;
-    let forger = connect(&bus, None).await;
-    let (publisher, view) = seat();
-    publisher.publish(shell);
-    let (_displays_tx, displays) = watch::channel(Displays::default());
-    let mut service = spawn::<CaptureService>(
-        &tokio::runtime::Handle::current(),
-        &env,
-        CaptureLinks {
-            seat: view,
-            displays,
-        },
-    );
-    let _ = service.control.send(CaptureCommand::Serve);
-    assert!(
-        wait_for(&mut service.state, |s: &CapturePicker| s.link
-            == CaptureLink::Serving)
-        .await
-    );
-    tokio::time::sleep(Duration::from_millis(300)).await;
-    let proxy = Shell1Proxy::new(&forger)
-        .await
-        .unwrap_or_else(|e| panic!("{e}"));
-    assert!(
-        proxy
-            .pick_capture_source("Evil", 3, 0, vec![1])
-            .await
-            .is_err()
-    );
-    assert!(service.state.borrow().asking.is_none());
-}
-
 /// The service serving on a private bus, with a stand-in transom connected.
 pub(crate) async fn serving(
     bus: &PrivateBus,
     scratch: &TempDir,
 ) -> (sill_services::service::Handle<CaptureService>, Connection) {
-    let env = Env::isolated(scratch.path());
+    let rig = rig(bus, scratch).await;
+    (rig.service, rig.transom)
+}
+
+/// The service serving on a private bus: what stands in for transom, for the shell's seat, and
+/// for the compositor (the answers it hears).
+pub(crate) struct Rig {
+    pub service: sill_services::service::Handle<CaptureService>,
+    /// The portal backend: the owner of its name, introduced as the program that is.
+    pub transom: Connection,
+    /// What the compositor is told the person answered.
+    pub answers: tokio::sync::mpsc::UnboundedReceiver<DesktopCommand>,
+    /// Who the stand-ins are, to the shell.
+    pub callers: std::sync::Arc<Introduced>,
+}
+
+pub(crate) async fn rig(bus: &PrivateBus, scratch: &TempDir) -> Rig {
+    rig_as(bus, scratch, Who::Service(Role::Portal)).await
+}
+
+/// As [`rig`], the owner of the portal backend's name being `who` to the shell.
+pub(crate) async fn rig_as(bus: &PrivateBus, scratch: &TempDir, who: Who) -> Rig {
+    let callers = Introduced::new();
+    let env = Env {
+        callers: callers.clone(),
+        ..Env::isolated(scratch.path())
+    };
     let transom = connect(bus, Some(PORTAL)).await;
+    callers.make(&transom, who);
     let shell = connect(bus, Some("org.quire.Shell")).await;
     let (publisher, view) = seat();
     publisher.publish(shell);
     let (_displays_tx, displays) = watch::channel(Displays::default());
+    let (answers_tx, answers) = tokio::sync::mpsc::unbounded_channel();
     let mut service = spawn::<CaptureService>(
         &tokio::runtime::Handle::current(),
         &env,
         CaptureLinks {
             seat: view,
             displays,
+            apps: watch::channel(AppIndex::default()).1,
+            answers: answers_tx,
         },
     );
     let _ = service.control.send(CaptureCommand::Serve);
@@ -223,7 +195,12 @@ pub(crate) async fn serving(
     );
     // The object is exported a moment after the link says serving.
     tokio::time::sleep(Duration::from_millis(300)).await;
-    (service, transom)
+    Rig {
+        service,
+        transom,
+        answers,
+        callers,
+    }
 }
 
 #[tokio::test(flavor = "multi_thread")]

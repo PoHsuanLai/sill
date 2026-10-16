@@ -1,5 +1,6 @@
 mod ask;
 mod color;
+mod consent;
 mod desktop;
 mod eyedrop;
 mod permission;

@@ -1,17 +1,21 @@
 //! What the permission sheet draws and sends, on the harness over the fake capture service:
 //! nothing until a question is put, or while the banners are on another output; with a question,
 //! quire's `Alert` with the app's words and the two buttons the question names; each button, and
-//! Escape, sending its answer once; nothing after the question is gone. All on the harness's
-//! virtual clock; nothing here reaches a bus.
+//! Escape, sending its answer once; nothing after the question is gone. The compositor's question
+//! says what the program may do and ends with the Settings line; Escape dismisses it instead of
+//! refusing. All on the harness's virtual clock; nothing here reaches a bus.
 
 use std::time::Duration;
 
 use ds::prelude::*;
 use ds_harness::{Driver, Harness, Input, Query, Viewport};
 use shell_host::OutputId;
+use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
-    AskId, CaptureCommand, CapturePicker, PermissionAsk, PermissionAsking, PermissionOutcome,
+    AskId, AskedBy, CaptureCommand, CapturePicker, PermissionAsk, PermissionAsking,
+    PermissionOutcome, consent_ask,
 };
+use sill_model::desktop::{Consent, ConsentId, Memory, Power, SubjectKind};
 use sill_overlays::PermissionSheet;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{BannerLink, BannerOutput};
@@ -47,6 +51,26 @@ fn question() -> CapturePicker {
                 "Share",
                 "Not Now",
             ),
+            by: AskedBy::Portal,
+        }),
+        ..CapturePicker::default()
+    }
+}
+
+/// The compositor's question about a program it cannot recognise.
+fn consent_question() -> CapturePicker {
+    let consent = Consent::from_wire(
+        ConsentId::new(3),
+        Power::Screen,
+        SubjectKind::Unrecognised,
+        "/home/me/bin/grim",
+        Memory::ThisTimeOnly,
+    );
+    CapturePicker {
+        permission: Some(PermissionAsking {
+            id: AskId(8),
+            ask: consent_ask(&consent, &AppIndex::default()),
+            by: AskedBy::Compositor(consent.ask),
         }),
         ..CapturePicker::default()
     }
@@ -62,9 +86,13 @@ fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
 }
 
 fn up() -> Running {
+    up_with(question())
+}
+
+fn up_with(asking: CapturePicker) -> Running {
     let mut running = start(fake::output().id);
     running.harness.advance(Duration::from_millis(40));
-    running.feeds.capture.send_replace(question());
+    running.feeds.capture.send_replace(asking);
     settle(&mut running.harness, |h| h.count(".ds-alert") == 1);
     running.harness.advance(Duration::from_millis(700));
     running
@@ -153,4 +181,47 @@ fn the_sheet_leaves_once_the_question_is_gone() {
     running.feeds.capture.send_replace(CapturePicker::default());
     settle(&mut running.harness, |h| h.count(".ds-alert") == 0);
     assert_eq!(running.harness.count(".ds-sheet"), 0);
+}
+
+#[test]
+fn the_compositors_question_names_the_power_offers_allow_once_and_escape_dismisses_it() {
+    let mut running = up_with(consent_question());
+    let html = running.harness.html();
+    for word in [
+        "grim",
+        "would like to see your screen.",
+        "It will be able to see everything that is shown",
+        "This program can\u{2019}t be recognised, so you will be asked again next time.",
+        "You can change this later in Settings, under Privacy.",
+        "Allow Once",
+        "Don\u{2019}t Allow",
+    ] {
+        assert!(html.contains(word), "{word}: {html}");
+    }
+    running.harness.send(Input::key(ShortcutKey::Escape));
+    running.harness.advance(Duration::from_millis(40));
+    assert_eq!(
+        sent(&mut running),
+        vec![CaptureCommand::PermissionAnswer(
+            AskId(8),
+            PermissionOutcome::Closed
+        )],
+        "Escape is a dismissal, which the compositor never keeps"
+    );
+}
+
+#[test]
+fn the_compositors_buttons_allow_and_refuse() {
+    for (button, outcome) in [
+        (GRANT, PermissionOutcome::Grant),
+        (DENY, PermissionOutcome::Deny),
+    ] {
+        let mut running = up_with(consent_question());
+        click(&mut running, button);
+        assert_eq!(
+            sent(&mut running),
+            vec![CaptureCommand::PermissionAnswer(AskId(8), outcome)],
+            "{button}"
+        );
+    }
 }

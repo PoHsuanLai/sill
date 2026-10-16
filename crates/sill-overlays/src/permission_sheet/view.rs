@@ -4,8 +4,9 @@
 //! the surface maps itself (`SurfaceOp::SetVisibility`) and a `Ds { material: Sheet, extent:
 //! Viewport }` holds one quire `Alert` per question, keyed by its id: the app's icon, the
 //! headline, the app's name set strong with what it says, and the two buttons. The yes button
-//! comes first, so it is the default (Return); the no button is the one that cancels, so Escape
-//! presses it. Nothing is styled under `.ds-alert*`, `.ds-sheet*` or `.ds-button*`.
+//! comes first, so it is the default (Return); Escape answers what `escape_answer` says (the no
+//! button for a portal question, a dismissal for the compositor's). Nothing is styled under
+//! `.ds-alert*`, `.ds-sheet*` or `.ds-button*`.
 
 use dioxus::prelude::*;
 use ds::components::overlays::alert_model::{AlertButton, AlertRole};
@@ -23,7 +24,7 @@ use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
 use super::io::use_end;
 use super::layer::PANEL_ID;
-use super::words::{app_named, words};
+use super::words::{app_named, escape_answer, words};
 
 /// The app icon's side in points: quire's alert draws its hero icon at 64.
 const ICON_PX: u16 = 64;
@@ -59,15 +60,23 @@ fn QuestionCard(
 ) -> Element {
     let end = use_end(asking.id);
     let icons = use_tile_icons(&output, LogicalPx(ICON_PX));
+    let said = words(&asking);
+    let escape = escape_answer(asking.by);
     let ask = asking.ask;
-    let said = words(&ask);
     let icon = app_named(&icons.index, &ask.app_label).map_or_else(
         || IconSource::Glyph(Icon::Window),
         |id: &AppId| icons.source(id),
     );
-    let mut runs = vec![TextRun::new(said.app, RunTone::Strong)];
+    let mut runs = Vec::new();
+    if let Some(lead) = said.lead.clone() {
+        runs.push(TextRun::new(lead, RunTone::Strong));
+    }
     if !said.detail.is_empty() {
-        runs.push(TextRun::new(format!(": {}", said.detail), RunTone::Plain));
+        let text = match said.lead {
+            Some(_) => format!(": {}", said.detail),
+            None => said.detail.clone(),
+        };
+        runs.push(TextRun::new(text, RunTone::Plain));
     }
     let buttons = vec![
         AlertButton::new(
@@ -95,6 +104,9 @@ fn QuestionCard(
             message: Some(TextLine::Runs(runs)),
             icon: Some(icon),
             buttons,
+            // Escape is heard here, not pressed as a button: what it answers is the sheet's
+            // (`escape_answer`).
+            on_dismiss: Some(EventHandler::new(move |()| end.call(escape))),
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
             // The sheet carries the blur region's id, so `layer.rs`'s element region resolves.

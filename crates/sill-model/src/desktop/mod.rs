@@ -13,6 +13,7 @@ mod bar_outputs;
 mod bar_tests;
 mod bar_thumbs;
 mod command;
+mod consent;
 mod force_quit;
 mod model;
 mod note;
@@ -39,10 +40,12 @@ pub use bar_thumbs::{
     BarPicture, BarPictures, SpacePicture, ThumbAsks, ThumbRequest, thumbs_wanted,
 };
 pub use casement_protocols::vocab::{
-    Corner, DragOutcome, KeyGesture, OverviewMode, OverviewState, ShellRole, Shown, SpaceKind,
-    SplitSide, WindowEntry, WireCode,
+    Answer, AskId as ConsentId, Corner, DragOutcome, KeyGesture, Memory, OverviewMode,
+    OverviewState, Power, ShellRole, Shown, SpaceKind, SplitSide, SubjectKind, WindowEntry,
+    WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
+pub use consent::{Consent, ConsentSubject, SUBJECT_MAX_CHARS};
 pub use force_quit::{ForceQuitRow, Standing, force_quit_rows, hung_first};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};
 pub use note::{OverviewNote, ShellNote, SwitcherNote};

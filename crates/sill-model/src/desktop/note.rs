@@ -12,7 +12,7 @@ use casement_protocols::vocab::{
 };
 use porter_core::SpaceId;
 
-use super::{OutputPicture, SpacePicture};
+use super::{Consent, ConsentId, OutputPicture, SpacePicture};
 
 /// One thing the shell protocol said.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,6 +129,13 @@ pub enum ShellNote {
         /// The picture, or that none could be made.
         picture: OutputPicture,
     },
+    /// A program wants a power and the compositor asks the person. The answer is
+    /// [`super::DesktopCommand::AnswerPermission`]. A shell that starts while questions are open
+    /// is told each again with the same number.
+    PermissionAsk(Consent),
+    /// The compositor no longer needs the answer to this question: take its sheet down without
+    /// answering.
+    PermissionWithdraw(ConsentId),
     /// The kill chord was pressed.
     Killed,
 }

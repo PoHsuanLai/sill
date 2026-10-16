@@ -13,6 +13,7 @@
 use std::os::fd::OwnedFd;
 
 use shell_host::{HostCtx, HostEvent, HostHandle, SurfaceId, WaylandRoute};
+use sill_model::capture_pick::CaptureCommand;
 use sill_model::companion::CompanionCommand;
 use sill_model::desktop::target::{MinimiseTargets, OutputRects};
 use sill_model::desktop::{
@@ -242,6 +243,20 @@ pub fn apply(shell: &Shell, note: ShellNote) {
         | ShellNote::SplitCandidate(_)
         | ShellNote::SplitChoiceEnd(_) => {
             crate::split_picker::apply(&shell.links.split_picker, shell.seat.view(), note);
+        }
+        ShellNote::PermissionAsk(consent) => {
+            let _capture_may_be_gone = shell
+                .services
+                .capture
+                .control
+                .send(CaptureCommand::Consent(consent));
+        }
+        ShellNote::PermissionWithdraw(ask) => {
+            let _capture_may_be_gone = shell
+                .services
+                .capture
+                .control
+                .send(CaptureCommand::ConsentWithdrawn(ask));
         }
     }
 }

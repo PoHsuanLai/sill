@@ -2,7 +2,7 @@
 
 use desktop_client::quire::ShellEvent;
 use porter_core::SpaceId;
-use sill_model::desktop::{OverviewNote, ShellNote, SwitcherNote};
+use sill_model::desktop::{Consent, OverviewNote, ShellNote, SwitcherNote};
 
 /// `event` in the shell's words. `None` for what is state the desktop client keeps and a
 /// consumer reads from `DesktopState::quire` (one overview slot, one Space slot), and for an
@@ -84,6 +84,14 @@ pub fn note_of(event: &ShellEvent) -> Option<ShellNote> {
             window: window.as_str().to_owned(),
             outcome: *outcome,
         },
+        ShellEvent::PermissionAsk(ask) => ShellNote::PermissionAsk(Consent::from_wire(
+            ask.ask,
+            ask.power,
+            ask.subject_kind,
+            &ask.subject,
+            ask.memory,
+        )),
+        ShellEvent::PermissionWithdraw(ask) => ShellNote::PermissionWithdraw(*ask),
         ShellEvent::Killed => ShellNote::Killed,
         // Slots are collected into the overview's layout until `OverviewDone`.
         _ => return None,

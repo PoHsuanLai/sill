@@ -9,6 +9,12 @@
 //!
 //! The words are an app's, so the model has cleaned and cut them (`PermissionAsk::from_wire`)
 //! before they reach this surface.
+//!
+//! The compositor asks the same way when a program wants a power (the screen, the keys, the
+//! clipboard, ...): its question is the same sheet, in the same line as the portal's, one at a
+//! time (`sill_model::capture_pick::{consent_ask, consent_words}` make its words). Its buttons are
+//! Allow (Allow Once for a program the desktop cannot recognise) and Don't Allow; Escape is a
+//! dismissal that nothing keeps, not the no button.
 
 mod io;
 mod layer;

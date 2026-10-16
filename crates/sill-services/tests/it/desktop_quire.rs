@@ -31,7 +31,10 @@ use desktop_client::{
     WorkspaceKey,
 };
 use porter_core::SpaceId;
-use sill_model::desktop::{DesktopCommand, OverviewNote, ShellNote, SpacePlaceView, SwitcherNote};
+use sill_model::desktop::{
+    Answer, Consent, ConsentId, DesktopCommand, Memory, OverviewNote, Power, ShellNote,
+    SpacePlaceView, SubjectKind, SwitcherNote,
+};
 use sill_services::desktop_wl::Refusal;
 use sill_services::desktop_wl::quire::{
     ArmError, ConnectionRole, FakeHandout, Handout, HandoutError, QuireArm, role_of_surface,
@@ -423,6 +426,17 @@ fn the_shells_commands_become_quire_requests() {
                 rect: None,
             }],
         ),
+        (
+            "answer the compositor's question",
+            DesktopCommand::AnswerPermission {
+                ask: ConsentId::new(5),
+                answer: Answer::Dismissed,
+            },
+            vec![Wire::AnswerPermission {
+                ask: ConsentId::new(5),
+                answer: Answer::Dismissed,
+            }],
+        ),
     ];
     for (name, command, want) in cases {
         assert_eq!(sent(&mut arm, command), want, "{name}");
@@ -666,6 +680,41 @@ fn the_shell_protocols_events_become_notes_in_order() {
         "the layout's slot is state, not a note"
     );
     assert_eq!(view.windows.len(), 2, "the view is still the desktop's");
+}
+
+#[test]
+fn the_compositors_permission_question_and_its_withdrawal_become_notes() {
+    use desktop_client::quire::PermissionAsk;
+    let mut arm = shell_arm();
+    let _settled = arm.sync();
+    for event in [
+        ShellEvent::PermissionAsk(PermissionAsk::new(
+            ConsentId::new(7),
+            Power::Clipboard,
+            SubjectKind::Program,
+            "/usr/bin/wl-copy\u{202e}",
+            Memory::Remembered,
+        )),
+        ShellEvent::PermissionWithdraw(ConsentId::new(7)),
+    ] {
+        arm.desktop_mut().script(quire(QuireEvent::Shell(event)));
+    }
+    arm.desktop_mut().advance_all();
+    let _view = arm.sync();
+    assert_eq!(
+        arm.sink().as_slice(),
+        [
+            ShellNote::PermissionAsk(Consent::from_wire(
+                ConsentId::new(7),
+                Power::Clipboard,
+                SubjectKind::Program,
+                "/usr/bin/wl-copy",
+                Memory::Remembered,
+            )),
+            ShellNote::PermissionWithdraw(ConsentId::new(7)),
+        ],
+        "the program's text lost its direction mark on the way in"
+    );
 }
 
 #[test]
