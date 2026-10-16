@@ -1,6 +1,8 @@
 //! The two files: casement's `settings.toml`, of which only `[night_light]` is touched, and the
-//! manual turn-on's `night-shift.json`. Both are parsed once here into the model's types, and
-//! written through a temporary file and a rename.
+//! manual turn-on's `night-shift.json`. Both are parsed once here into the model's types. The
+//! person's `settings.toml` is edited in place (every comment, blank line and key order stays,
+//! and a link to a dotfiles copy is written through) and written durably with the permissions it
+//! had; the manual file is sill's own and private.
 
 use std::io::ErrorKind;
 use std::path::Path;
@@ -10,6 +12,9 @@ use serde::{Deserialize, Serialize};
 use sill_model::ids::OutputName;
 use sill_model::night_shift::{Manual, MinuteOfDay, NightLight, Schedule, UnixSeconds, Warmth};
 use toml::{Table, Value};
+use toml_edit::{DocumentMut, Item, Table as EditTable, TableLike, Value as EditValue};
+
+use crate::durable::{self, Access};
 
 /// casement's settings file, in its config directory.
 pub(super) const SETTINGS: &str = "settings.toml";
@@ -23,8 +28,8 @@ pub(super) enum FileError {
     Io(#[from] std::io::Error),
     #[error("not a settings table: {0}")]
     Toml(#[from] toml::de::Error),
-    #[error("{0}")]
-    Encode(#[from] toml::ser::Error),
+    #[error("not a settings file: {0}")]
+    Edit(#[from] toml_edit::TomlError),
 }
 
 /// casement's night light as `dir/settings.toml` says it; the defaults for a file that is not
@@ -71,33 +76,35 @@ fn light_of(section: Option<&Value>) -> NightLight {
 }
 
 /// Write `light` into `[night_light]` of `dir/settings.toml`, key by key, leaving every other
-/// key of the file and of the table as it was. A file that is not valid TOML is not overwritten.
+/// key of the file and of the table, and the file's comments and layout, as they were. Nothing is
+/// written when the file already says it. A file that is not valid TOML is not overwritten.
 pub(super) fn write_light(dir: &Path, light: &NightLight) -> Result<(), FileError> {
     let path = dir.join(SETTINGS);
-    let mut table = load_table(&path)?;
-    with_night_light(&mut table, |section| {
-        section.insert(
-            "mode".to_owned(),
-            Value::String(light.schedule.slug().to_owned()),
+    let (before, mut doc) = load_doc(&path)?;
+    if let Some(section) = night_light(&mut doc) {
+        set(section, "mode", EditValue::from(light.schedule.slug()));
+        set(
+            section,
+            "from",
+            EditValue::from(i64::from(light.from.minutes())),
         );
-        section.insert(
-            "from".to_owned(),
-            Value::Integer(i64::from(light.from.minutes())),
+        set(
+            section,
+            "to",
+            EditValue::from(i64::from(light.to.minutes())),
         );
-        section.insert(
-            "to".to_owned(),
-            Value::Integer(i64::from(light.to.minutes())),
+        set(
+            section,
+            "kelvin",
+            EditValue::from(i64::from(light.warmth.kelvin())),
         );
-        section.insert(
-            "kelvin".to_owned(),
-            Value::Integer(i64::from(light.warmth.kelvin())),
+        set(
+            section,
+            "fade_minutes",
+            EditValue::from(i64::from(light.fade_minutes)),
         );
-        section.insert(
-            "fade_minutes".to_owned(),
-            Value::Integer(i64::from(light.fade_minutes)),
-        );
-    });
-    atomically(&path, &toml::to_string(&table)?)
+    }
+    write_settings(&path, &before, &doc)
 }
 
 /// The key casement reads the outputs it leaves alone from.
@@ -124,30 +131,32 @@ pub(super) fn skip_list(existing: &[String], skip: &[OutputName]) -> Vec<String>
 }
 
 /// Make `[night_light] skip_outputs` of `dir/settings.toml` list the monitors `skip`, keeping the
-/// person's own entries ([`skip_list`]) and every other key. Nothing is written (so casement's
-/// watch is not woken) when the list is already that; an empty list removes the key. A file that
-/// is not valid TOML is not overwritten.
+/// person's own entries ([`skip_list`]) and every other key, comment and the layout of the file.
+/// Nothing is written (so casement's watch is not woken) when the list is already that; an empty
+/// list removes the key. A file that is not valid TOML is not overwritten.
 pub(super) fn write_skip(dir: &Path, skip: &[OutputName]) -> Result<Skipping, FileError> {
     let path = dir.join(SETTINGS);
-    let mut table = load_table(&path)?;
-    let changed = with_night_light(&mut table, |section| set_skip(section, skip));
-    match changed {
-        Some(Skipping::Changed) => {
-            atomically(&path, &toml::to_string(&table)?)?;
+    let (before, mut doc) = load_doc(&path)?;
+    let Some(section) = night_light(&mut doc) else {
+        return Ok(Skipping::AsWas);
+    };
+    match set_skip(section, skip) {
+        Skipping::AsWas => Ok(Skipping::AsWas),
+        Skipping::Changed => {
+            write_settings(&path, &before, &doc)?;
             Ok(Skipping::Changed)
         }
-        Some(Skipping::AsWas) | None => Ok(Skipping::AsWas),
     }
 }
 
-fn set_skip(section: &mut Table, skip: &[OutputName]) -> Skipping {
+fn set_skip(section: &mut dyn TableLike, skip: &[OutputName]) -> Skipping {
     let existing: Vec<String> = section
         .get(SKIP_KEY)
-        .and_then(Value::as_array)
+        .and_then(Item::as_array)
         .map(|entries| {
             entries
                 .iter()
-                .filter_map(Value::as_str)
+                .filter_map(|entry| entry.as_str())
                 .map(str::to_owned)
                 .collect()
         })
@@ -159,32 +168,64 @@ fn set_skip(section: &mut Table, skip: &[OutputName]) -> Skipping {
     if wanted.is_empty() {
         section.remove(SKIP_KEY);
     } else {
-        section.insert(
-            SKIP_KEY.to_owned(),
-            Value::Array(wanted.into_iter().map(Value::String).collect()),
+        set(
+            section,
+            SKIP_KEY,
+            EditValue::from(wanted.into_iter().collect::<toml_edit::Array>()),
         );
     }
     Skipping::Changed
 }
 
-/// `path` as a TOML table; empty for a file that is not there.
-fn load_table(path: &Path) -> Result<Table, FileError> {
+/// `path` as an editable document, with the text it was read from; an empty one for a file that
+/// is not there.
+fn load_doc(path: &Path) -> Result<(String, DocumentMut), FileError> {
     match std::fs::read_to_string(path) {
-        Ok(text) => Ok(toml::from_str::<Table>(&text)?),
-        Err(error) if error.kind() == ErrorKind::NotFound => Ok(Table::new()),
+        Ok(text) => {
+            let doc = text.parse::<DocumentMut>()?;
+            Ok((text, doc))
+        }
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            Ok((String::new(), DocumentMut::new()))
+        }
         Err(error) => Err(error.into()),
     }
 }
 
-/// `edit` applied to the `[night_light]` table of `table`, made (or made a table) first.
-fn with_night_light<R>(table: &mut Table, edit: impl FnOnce(&mut Table) -> R) -> Option<R> {
-    let section = table
+/// The `[night_light]` table of `doc`, made (or made a table) first.
+fn night_light(doc: &mut DocumentMut) -> Option<&mut dyn TableLike> {
+    let item = doc
+        .as_table_mut()
         .entry("night_light")
-        .or_insert_with(|| Value::Table(Table::new()));
-    if !section.is_table() {
-        *section = Value::Table(Table::new());
+        .or_insert(Item::Table(EditTable::new()));
+    if item.as_table_like().is_none() {
+        *item = Item::Table(EditTable::new());
     }
-    section.as_table_mut().map(edit)
+    item.as_table_like_mut()
+}
+
+/// `section[key] = value`, keeping the comment that sat beside the old value.
+fn set(section: &mut dyn TableLike, key: &str, value: EditValue) {
+    match section.get_mut(key).and_then(Item::as_value_mut) {
+        Some(old) => {
+            let decor = old.decor().clone();
+            *old = value;
+            *old.decor_mut() = decor;
+        }
+        None => {
+            section.insert(key, Item::Value(value));
+        }
+    }
+}
+
+/// Write `doc` over `path` when it differs from `before`, durably, with the file's permissions.
+fn write_settings(path: &Path, before: &str, doc: &DocumentMut) -> Result<(), FileError> {
+    let after = doc.to_string();
+    if after == before {
+        return Ok(());
+    }
+    durable::write(path, after.as_bytes(), Access::AsFound)?;
+    Ok(())
 }
 
 /// The manual turn-on's file.
@@ -241,21 +282,13 @@ pub(super) fn write_manual(dir: &Path, manual: Option<&Manual>) -> Result<(), Fi
         },
     };
     // Plain fields only: nothing here can fail to encode.
-    atomically(
+    durable::write(
         &path,
-        &serde_json::to_string_pretty(&file).unwrap_or_default(),
-    )
-}
-
-/// Write `text` to `path` (its folder created) through a temporary file and a rename, so a
-/// reader never sees half a file.
-fn atomically(path: &Path, text: &str) -> Result<(), FileError> {
-    if let Some(folder) = path.parent() {
-        std::fs::create_dir_all(folder)?;
-    }
-    let part = path.with_extension("part");
-    std::fs::write(&part, text)?;
-    std::fs::rename(&part, path)?;
+        serde_json::to_string_pretty(&file)
+            .unwrap_or_default()
+            .as_bytes(),
+        Access::OwnerOnly,
+    )?;
     Ok(())
 }
 
@@ -483,5 +516,61 @@ mod tests {
         assert!(write_skip(dir.path(), &outputs(&["DP-1"])).is_err());
         let kept = std::fs::read_to_string(dir.path().join(SETTINGS)).unwrap_or_default();
         assert_eq!(kept, "this = is = not toml");
+    }
+
+    #[test]
+    fn the_persons_comments_and_layout_survive_an_edit() {
+        let dir = TempDir::new("night-shift-comments");
+        std::fs::write(
+            dir.path().join(SETTINGS),
+            "# my settings\n[pointer]\ntap = \"on\"  # taps\n\n[night_light]\n# when it starts\nfrom = 1200 # evening\nmode = \"off\"\n",
+        )
+        .unwrap_or_else(|e| panic!("{e}"));
+        write_light(dir.path(), &warm()).unwrap_or_else(|e| panic!("{e}"));
+        let text = std::fs::read_to_string(dir.path().join(SETTINGS)).unwrap_or_default();
+        assert!(
+            text.starts_with("# my settings\n[pointer]\ntap = \"on\"  # taps\n\n[night_light]\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains("# when it starts\nfrom = 1380 # evening\nmode = \"scheduled\""),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn a_linked_settings_file_is_written_through_and_keeps_its_permissions() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+        let dir = TempDir::new("night-shift-link");
+        let real = dir.path().join("dotfiles.toml");
+        std::fs::write(&real, "[night_light]\nmode = \"off\"\n").unwrap_or_else(|e| panic!("{e}"));
+        std::fs::set_permissions(&real, std::fs::Permissions::from_mode(0o640))
+            .unwrap_or_else(|e| panic!("{e}"));
+        symlink(&real, dir.path().join(SETTINGS)).unwrap_or_else(|e| panic!("{e}"));
+        write_light(dir.path(), &warm()).unwrap_or_else(|e| panic!("{e}"));
+        assert!(
+            std::fs::symlink_metadata(dir.path().join(SETTINGS))
+                .map(|m| m.file_type().is_symlink())
+                .unwrap_or(false),
+            "the link is still a link"
+        );
+        let text = std::fs::read_to_string(&real).unwrap_or_default();
+        assert!(text.contains("mode = \"scheduled\""), "{text}");
+        let mode = std::fs::metadata(&real)
+            .map(|m| m.permissions().mode() & 0o777)
+            .unwrap_or_default();
+        assert_eq!(mode, 0o640);
+    }
+
+    #[test]
+    fn a_light_the_file_already_has_is_not_written_again() {
+        let dir = TempDir::new("night-shift-same");
+        write_light(dir.path(), &warm()).unwrap_or_else(|e| panic!("{e}"));
+        let path = dir.path().join(SETTINGS);
+        let first = std::fs::metadata(&path).and_then(|m| m.modified());
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        write_light(dir.path(), &warm()).unwrap_or_else(|e| panic!("{e}"));
+        let second = std::fs::metadata(&path).and_then(|m| m.modified());
+        assert_eq!(first.ok(), second.ok(), "casement's watch is not woken");
     }
 }
