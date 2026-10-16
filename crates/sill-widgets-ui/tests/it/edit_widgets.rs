@@ -8,6 +8,7 @@
 //! control, and Done closes it; every moment settles to zero frames.
 
 use ds::prelude::*;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -59,9 +60,13 @@ impl Running {
     }
 }
 
-/// A scratch state file no other test shares.
+/// A scratch state file no other test, and no other call, shares: tests run side by side in one
+/// process, and a file named only by `name` and the process would be cleared and written by every
+/// test that opens a sheet at once.
 fn scratch_places(name: &str) -> PlacementFile {
-    let dir = std::env::temp_dir().join(format!("sill-ew-{name}-{}", std::process::id()));
+    static NEXT: AtomicU32 = AtomicU32::new(0);
+    let n = NEXT.fetch_add(1, Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("sill-ew-{name}-{}-{n}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     PlacementFile(dir.join("desktop-widgets.json"))
 }

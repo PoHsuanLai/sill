@@ -232,6 +232,21 @@ async fn a_colour_request_is_cancelled_at_once_while_nothing_draws_the_eyedroppe
     assert!(service.state.borrow().color.is_none());
 }
 
+/// Tell the service a surface draws the eyedropper and wait until it has taken that in. The
+/// service reads its commands and the bus calls on two channels and takes whichever is ready, so
+/// a call made straight after the command can be handled first and cancelled at once.
+async fn draw_eyedropper(service: &mut sill_services::service::Handle<CaptureService>) {
+    let _ = service
+        .control
+        .send(CaptureCommand::Eyedropper(Eyedropper::Present));
+    assert!(
+        wait_for(&mut service.state, |s: &CapturePicker| s.eyedropper
+            == Eyedropper::Present)
+        .await,
+        "the eyedropper was not taken in"
+    );
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn a_colour_is_asked_one_at_a_time_and_the_click_comes_back_as_floats() {
     let Some(bus) = PrivateBus::start() else {
@@ -240,9 +255,7 @@ async fn a_colour_is_asked_one_at_a_time_and_the_click_comes_back_as_floats() {
     };
     let scratch = TempDir::new("capture-pick-colour");
     let (mut service, transom) = serving(&bus, &scratch).await;
-    let _ = service
-        .control
-        .send(CaptureCommand::Eyedropper(Eyedropper::Present));
+    draw_eyedropper(&mut service).await;
     let proxy = Shell1Proxy::new(&transom)
         .await
         .unwrap_or_else(|e| panic!("{e}"));
@@ -295,10 +308,8 @@ async fn a_colour_request_from_anyone_but_the_portal_backend_is_refused() {
         return;
     };
     let scratch = TempDir::new("capture-pick-colour-forged");
-    let (service, _transom) = serving(&bus, &scratch).await;
-    let _ = service
-        .control
-        .send(CaptureCommand::Eyedropper(Eyedropper::Present));
+    let (mut service, _transom) = serving(&bus, &scratch).await;
+    draw_eyedropper(&mut service).await;
     let forger = connect(&bus, None).await;
     let proxy = Shell1Proxy::new(&forger)
         .await

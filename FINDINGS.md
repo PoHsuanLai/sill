@@ -714,6 +714,13 @@ a source; `assumed` means not yet checked.
   under load; a paused tokio clock would pin it.
 - `dev/accept/bar.sh --real-input`'s `step_center_then_menu` failed once on a
   center/menu focus race; not yet looked at.
+- Flake cause: `capture_pick_bus`'s colour test sent `Eyedropper(Present)` and called `PickColor` at once;
+  the service reads commands and bus calls on two channels and takes whichever is ready, so under
+  load the call could be handled first and cancelled as "nothing draws the eyedropper". The tests
+  now wait for the published `eyedropper` state before calling (`draw_eyedropper`).
+- Flake cause: `edit_widgets` tests shared one state file (`sill-ew-sheet-<pid>`), cleared by every
+  `start` and written by every Add, so a test starting while another saved read the other's widgets
+  and `settle_until` never saw its row count. `scratch_places` now names each file by a counter too.
 - **Three `companion.*` keys have no reader.** `companion.summon` (off must stop the tap and the
   summon), `companion.notify` (a notification when a task needs the person) and
   `companion.confirm_arm_ms` (the confirmation sheet's arm time) are in the domain and the schema;

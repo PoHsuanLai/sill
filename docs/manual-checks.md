@@ -501,5 +501,7 @@ the real daemons or a real keyboard.
 - [ ] **A fractional scale** (150 %): the pixel picked is the one the middle of the magnifier shows, not a neighbour.
 - [ ] **No cursor over the magnifier**: the arrow is hidden while the magnifier is up (FINDINGS `wave-6/colour-picker`, if it is
   drawn over the middle cell shell-host does not map `cursor: none`).
-- [ ] **Real hardware**: casement's tty backend has no capture read-back yet, so on a real screen the app is answered with no
-  colour at once and nothing is drawn (FINDINGS `wave-6/colour-picker`, known limits).
+- [ ] **On the tty session (KMS)**: casement reads the screen back on the tty backend, so on a real screen the picker opens. Start
+  a colour request (a portal `PickColor` caller) with the pointer over a known colour: the loupe appears, and a click returns
+  exactly the colour under the pointer (compare with the same spot on a screenshot). Only the region asked for is read back, not
+  the whole output (casement `cas34`): the click still lands on the right pixel on a 4K output without a pause.
