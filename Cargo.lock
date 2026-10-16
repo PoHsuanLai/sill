@@ -6966,6 +6966,7 @@ dependencies = [
  "keyboard-types 0.7.0",
  "latchkey",
  "prov",
+ "rustix",
  "serde",
  "serde_json",
  "shell-host",
@@ -7254,6 +7255,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "toml",
+ "toml_edit",
  "upower_dbus",
  "voice-dbus",
  "voice-wire",
@@ -8381,6 +8383,7 @@ dependencies = [
  "indexmap 2.14.2",
  "toml_datetime",
  "toml_parser",
+ "toml_writer",
  "winnow",
 ]
 
