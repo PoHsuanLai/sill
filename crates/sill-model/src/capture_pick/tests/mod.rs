@@ -2,6 +2,7 @@ mod ask;
 mod color;
 mod desktop;
 mod eyedrop;
+mod permission;
 mod reply;
 mod step;
 

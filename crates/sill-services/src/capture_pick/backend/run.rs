@@ -5,14 +5,15 @@ use std::collections::HashMap;
 
 use sill_model::capture_pick::{
     Admit, AskId, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut, CapturePicker,
-    ColorAsking, ColorReply, OutputCandidate, Reply, admits, step,
+    ColorAsking, ColorReply, OutputCandidate, PermissionAsking, PermissionOutcome, Reply, admits,
+    step,
 };
 use sill_model::displays::Displays;
 use tokio::sync::{mpsc, oneshot, watch};
 use zbus::Connection;
 use zbus::fdo;
 
-use super::objects::{Call, ColorCall, PATH, PORTAL_BUS, PickerObject, SourceCall};
+use super::objects::{Call, ColorCall, PATH, PORTAL_BUS, PermissionCall, PickerObject, SourceCall};
 use crate::capture_pick::{CaptureLinks, CaptureService};
 use crate::owner;
 use crate::seat::SeatView;
@@ -36,6 +37,7 @@ pub(crate) async fn run(links: CaptureLinks, io: ServiceIo<CaptureService>) {
         exported: None,
         waiters: HashMap::new(),
         color_waiters: HashMap::new(),
+        permission_waiters: HashMap::new(),
         next: 0,
     };
     if let Some(displays) = &displays {
@@ -88,6 +90,8 @@ struct Live {
     waiters: HashMap<AskId, oneshot::Sender<fdo::Result<Reply>>>,
     /// Who waits for each open colour request's answer.
     color_waiters: HashMap<AskId, oneshot::Sender<fdo::Result<ColorReply>>>,
+    /// Who waits for each open permission question's answer.
+    permission_waiters: HashMap<AskId, oneshot::Sender<fdo::Result<PermissionOutcome>>>,
     next: u64,
 }
 
@@ -113,6 +117,11 @@ impl Live {
                 CaptureOut::ColorReply(id, reply) => {
                     if let Some(waiter) = self.color_waiters.remove(&id) {
                         let _ = waiter.send(Ok(reply));
+                    }
+                }
+                CaptureOut::PermissionReply(id, outcome) => {
+                    if let Some(waiter) = self.permission_waiters.remove(&id) {
+                        let _ = waiter.send(Ok(outcome));
                     }
                 }
             }
@@ -143,6 +152,9 @@ impl Live {
             }
             CaptureCommand::ColorAnswer(id, outcome) => {
                 self.feed(CaptureEvent::ColorAnswered(id, outcome));
+            }
+            CaptureCommand::PermissionAnswer(id, outcome) => {
+                self.feed(CaptureEvent::PermissionAnswered(id, outcome));
             }
         }
     }
@@ -202,6 +214,24 @@ impl Live {
         match call {
             Call::Sources(call) => self.sources_call(call),
             Call::Color(call) => self.color_call(call),
+            Call::Permission(call) => self.permission_call(call),
+        }
+    }
+
+    fn permission_call(&mut self, call: PermissionCall) {
+        let PermissionCall { ask, answer } = call;
+        match admits(&self.state) {
+            Admit::Busy => {
+                let _ = answer.send(Err(fdo::Error::LimitsExceeded(
+                    "a question is already open".to_owned(),
+                )));
+            }
+            Admit::Yes => {
+                self.next += 1;
+                let id = AskId(self.next);
+                self.permission_waiters.insert(id, answer);
+                self.feed(CaptureEvent::PermissionOpened(PermissionAsking { id, ask }));
+            }
         }
     }
 
@@ -243,6 +273,7 @@ impl Live {
     fn caller_gone(&mut self) {
         self.waiters.clear();
         self.color_waiters.clear();
+        self.permission_waiters.clear();
         self.feed(CaptureEvent::CallerGone);
     }
 }

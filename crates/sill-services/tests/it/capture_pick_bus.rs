@@ -30,7 +30,7 @@ const PORTAL: &str = "org.freedesktop.impl.portal.desktop.quire";
     default_path = "/org/quire/Shell1",
     gen_blocking = false
 )]
-trait Shell1 {
+pub(crate) trait Shell1 {
     fn pick_capture_source(
         &self,
         app_label: &str,
@@ -40,15 +40,28 @@ trait Shell1 {
     ) -> zbus::Result<(Vec<(String, String)>, u32)>;
 
     fn pick_color(&self, app_label: &str) -> zbus::Result<Vec<(f64, f64, f64)>>;
+
+    fn ask_permission(
+        &self,
+        app_label: &str,
+        title: &str,
+        subtitle: &str,
+        body: &str,
+        grant_label: &str,
+        deny_label: &str,
+    ) -> zbus::Result<u32>;
 }
 
-async fn wait_for<T>(receiver: &mut watch::Receiver<T>, want: impl Fn(&T) -> bool) -> bool {
+pub(crate) async fn wait_for<T>(
+    receiver: &mut watch::Receiver<T>,
+    want: impl Fn(&T) -> bool,
+) -> bool {
     tokio::time::timeout(SETTLE, receiver.wait_for(|value| want(value)))
         .await
         .is_ok_and(|seen| seen.is_ok())
 }
 
-async fn connect(bus: &PrivateBus, name: Option<&str>) -> Connection {
+pub(crate) async fn connect(bus: &PrivateBus, name: Option<&str>) -> Connection {
     let builder = Builder::address(bus.address.as_str()).unwrap_or_else(|e| panic!("{e}"));
     let builder = match name {
         Some(name) => builder
@@ -184,7 +197,7 @@ async fn a_caller_that_is_not_the_portal_backend_is_refused_and_draws_nothing() 
 }
 
 /// The service serving on a private bus, with a stand-in transom connected.
-async fn serving(
+pub(crate) async fn serving(
     bus: &PrivateBus,
     scratch: &TempDir,
 ) -> (sill_services::service::Handle<CaptureService>, Connection) {

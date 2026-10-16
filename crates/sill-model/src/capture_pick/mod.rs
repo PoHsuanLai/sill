@@ -4,15 +4,17 @@
 //! backend asks on `org.quire.Shell1.PickCaptureSource`; `sill-services` serves it and
 //! `sill-overlays` draws the sheet. Everything here is pure and table-tested.
 //!
-//! One request is open at a time, of either kind (sources or a colour): a second while one is open
-//! is refused ([`admits`]). The colour request (`color`) is answered with a cancel until a surface
+//! One request is open at a time, of any kind (sources, a colour or a permission question): a
+//! second while one is open is refused ([`admits`]). The colour request (`color`) is answered with a cancel until a surface
 //! draws the eyedropper (`eyedrop`: the picture it points into, the pixel under the pointer, the
-//! magnifier).
+//! magnifier). The permission question (`permission`: `org.quire.Shell1.AskPermission`, the portal's
+//! yes-or-no question about an app) is answered by a button of its sheet.
 
 mod ask;
 mod color;
 mod eyedrop;
 mod from_desktop;
+mod permission;
 mod plan;
 mod reply;
 mod step;
@@ -26,6 +28,7 @@ pub use eyedrop::{
     loupe_at, pick_at, pixel_under,
 };
 pub use from_desktop::windows_of;
+pub use permission::{PermissionAsk, PermissionAsking, PermissionOutcome};
 pub use plan::{Candidates, Choice, OutputCandidate, Plan, Source, Tab, WindowCandidate, plan};
 pub use reply::{Picks, Reply, can_allow, reply, toggle};
 pub use step::{

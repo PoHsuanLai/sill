@@ -28,7 +28,8 @@ use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
     AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, ForceQuit, HotCorners, IdleDim, Lock,
-    Osd, PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
+    Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar, SplitPicker, Switcher,
+    VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
@@ -196,6 +197,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <CaptureSheet as Surface>::NAME,
         css: sill_overlays::capture_sheet::CAPTURE_SHEET_CSS,
         states: capture_sheet_states,
+    },
+    SurfaceCase {
+        name: "permission_sheet",
+        surface: <PermissionSheet as Surface>::NAME,
+        css: "",
+        states: permission_sheet_states,
     },
     SurfaceCase {
         name: "eyedropper",
@@ -570,6 +577,34 @@ fn capture_sheet_states() -> Vec<(&'static str, String)> {
     }
     assert!(states[1].1.contains("sill-capture"), "{}", states[1].1);
     states
+}
+
+/// The permission sheet: hidden, then asking an app's question.
+fn permission_sheet_states() -> Vec<(&'static str, String)> {
+    use sill_model::capture_pick::{AskId, CapturePicker, PermissionAsk, PermissionAsking};
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    let mut sheet = SurfaceHarness::<PermissionSheet>::setup(link, ()).start();
+    sheet.harness.advance(Duration::from_millis(40));
+    let hidden = sheet.harness.html();
+    sheet.feeds.capture.send_replace(CapturePicker {
+        permission: Some(PermissionAsking {
+            id: AskId(1),
+            ask: PermissionAsk::from_wire(
+                "Notes",
+                "Share your screen?",
+                "Notes wants to see it",
+                "Only while you share.",
+                "",
+                "",
+            ),
+        }),
+        ..CapturePicker::default()
+    });
+    sheet.harness.advance(Duration::from_millis(700));
+    let shown = sheet.harness.html();
+    assert!(shown.contains("ds-alert"), "{shown}");
+    vec![("hidden", hidden), ("shown", shown)]
 }
 
 fn confirm_sheet_states() -> Vec<(&'static str, String)> {

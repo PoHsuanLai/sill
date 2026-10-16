@@ -1459,3 +1459,14 @@ Fixed by reading, not built: the gate run is the first compile.
   reads the path as written; a link inside an allowed folder that leaves it is refused by the host.
   A history file saved before this change may hold a path outside the folders; it is not
   re-checked on load, and the host refuses to read it.
+- **`AskPermission` (served).** `org.quire.Shell1.AskPermission` is served by the capture service on
+  the seat's connection, for the portal backend's name only (the owner test of `PickCaptureSource`),
+  one question of any kind at a time. The sheet is quire's `Alert`, so Escape presses the no button
+  and answers 1; the contract's 2 (closed without answering) is in the model and the wire but the
+  sheet has no way to tell Escape from a press on that button. The portal reads 1 and 2 the same
+  (both are "cancelled by the user"). Telling them apart needs quire's `Alert` to let a sheet name
+  what Escape does when no button cancels; open until that is wanted.
+- **The sheet finds the app's icon by name.** The portal knows an app only by the name it shows, so
+  `permission_sheet` looks the name up in the app index (case-insensitive) and falls back to the
+  Window glyph. Two installed apps with one name get the first by id. An id from transom in the
+  call would make this exact.

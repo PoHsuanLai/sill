@@ -7,6 +7,7 @@ mod app_menu_bus;
 mod auth_live;
 mod bluetooth_bus;
 mod capture_pick_bus;
+mod capture_pick_permission_bus;
 mod clipboard_live;
 mod companion_bus;
 mod companion_cards_bus;

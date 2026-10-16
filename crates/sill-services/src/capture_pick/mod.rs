@@ -1,5 +1,6 @@
 //! sill serves the screen-sharing picker: `org.quire.Shell1.PickCaptureSource`, which transom (the
-//! portal backend) calls with what an app asked to share and which returns what the person picked.
+//! portal backend) calls with what an app asked to share and which returns what the person picked;
+//! and the questions beside it (`PickColor`, `AskPermission`).
 //!
 //! - **The name.** The object is exported on the connection the intents service already holds as
 //!   `org.quire.Shell` (the seat); this service claims no name of its own. Without the seat the
@@ -17,6 +18,11 @@
 //!   person cancelled. The daemon sends [`CaptureCommand::Eyedropper`] while an eyedropper
 //!   surface exists (`sill_overlays::eyedropper`); without one it is answered with an empty array
 //!   at once.
+//! - **Permission.** `AskPermission` is the portal's yes-or-no question about an app (transom asks
+//!   it before remote control and before a screenshot the person did not start): the texts are
+//!   cleaned and cut (`PermissionAsk::from_wire`), checked and admitted like the others, and
+//!   answered with 0 (the yes button), 1 (the no button) or 2 (the sheet went away unanswered).
+//!   Its sheet is `sill_overlays::permission_sheet`.
 //! - **Passive until [`CaptureCommand::Serve`]**: a test's `start` exports nothing.
 
 mod backend;

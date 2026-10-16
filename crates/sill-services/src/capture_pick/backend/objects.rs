@@ -1,7 +1,9 @@
 //! `org.quire.Shell1`, as the shell exports it on the seat. The object checks who is calling and
 //! hands the call to the loop, which decides, and waits for the loop's answer.
 
-use sill_model::capture_pick::{Ask, ColorAsk, ColorReply, Reply};
+use sill_model::capture_pick::{
+    Ask, ColorAsk, ColorReply, PermissionAsk, PermissionOutcome, Reply,
+};
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use zbus::fdo;
 use zbus::message::Header;
@@ -25,6 +27,8 @@ pub(super) enum Call {
     Sources(SourceCall),
     /// One colour from the screen.
     Color(ColorCall),
+    /// A yes-or-no question about an app.
+    Permission(PermissionCall),
 }
 
 /// A request for sources to share, and where its answer goes.
@@ -39,6 +43,13 @@ pub(super) struct SourceCall {
 pub(super) struct ColorCall {
     pub ask: ColorAsk,
     pub answer: oneshot::Sender<fdo::Result<ColorReply>>,
+}
+
+/// A permission question, and where its answer goes.
+#[derive(Debug)]
+pub(super) struct PermissionCall {
+    pub ask: PermissionAsk,
+    pub answer: oneshot::Sender<fdo::Result<PermissionOutcome>>,
 }
 
 /// The picker object.
@@ -104,5 +115,38 @@ impl PickerObject {
             .map_err(|_| stopped())?;
         let reply = answered.await.map_err(|_| stopped())??;
         Ok(reply.wire())
+    }
+
+    /// A yes-or-no question about an app, as the portal's Access backend asks it: the answer is
+    /// 0 when the person pressed the yes button, 1 the no button, 2 when the sheet went away
+    /// without an answer. The texts are cleaned and cut by [`PermissionAsk::from_wire`].
+    #[allow(clippy::too_many_arguments)]
+    async fn ask_permission(
+        &self,
+        app_label: String,
+        title: String,
+        subtitle: String,
+        body: String,
+        grant_label: String,
+        deny_label: String,
+        #[zbus(header)] header: Header<'_>,
+        #[zbus(connection)] connection: &Connection,
+    ) -> fdo::Result<u32> {
+        from_transom(connection, &header).await?;
+        let ask = PermissionAsk::from_wire(
+            &app_label,
+            &title,
+            &subtitle,
+            &body,
+            &grant_label,
+            &deny_label,
+        );
+        let (answer, answered) = oneshot::channel();
+        let stopped = || fdo::Error::Failed("the picker has stopped".to_owned());
+        self.calls
+            .send(Call::Permission(PermissionCall { ask, answer }))
+            .map_err(|_| stopped())?;
+        let outcome = answered.await.map_err(|_| stopped())??;
+        Ok(outcome.wire())
     }
 }

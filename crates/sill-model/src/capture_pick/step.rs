@@ -2,6 +2,7 @@
 
 use super::ask::Ask;
 use super::color::{ColorAsking, ColorOutcome, ColorReply, Eyedropper};
+use super::permission::{PermissionAsking, PermissionOutcome};
 use super::plan::Candidates;
 use super::reply::{Picks, Reply, outcome_reply};
 
@@ -36,6 +37,8 @@ pub struct CapturePicker {
     pub asking: Option<Asking>,
     /// The colour request on screen; open only while the eyedropper is drawn.
     pub color: Option<ColorAsking>,
+    /// The permission question on screen.
+    pub permission: Option<PermissionAsking>,
     pub eyedropper: Eyedropper,
 }
 
@@ -54,6 +57,8 @@ pub enum CaptureCommand {
     Eyedropper(Eyedropper),
     /// The person clicked a colour with the eyedropper or cancelled.
     ColorAnswer(AskId, ColorOutcome),
+    /// The person pressed a button of the permission sheet, or it closed.
+    PermissionAnswer(AskId, PermissionOutcome),
 }
 
 /// How the person ended the request.
@@ -73,6 +78,8 @@ pub enum CaptureEvent {
     Eyedropper(Eyedropper),
     ColorOpened(ColorAsking),
     ColorAnswered(AskId, ColorOutcome),
+    PermissionOpened(PermissionAsking),
+    PermissionAnswered(AskId, PermissionOutcome),
     /// The caller left the bus: nobody is waiting.
     CallerGone,
 }
@@ -84,6 +91,8 @@ pub enum CaptureOut {
     Reply(AskId, Reply),
     /// Return this to the caller of the colour request.
     ColorReply(AskId, ColorReply),
+    /// Return this to the caller of the permission question.
+    PermissionReply(AskId, PermissionOutcome),
 }
 
 /// Whether a request may be opened.
@@ -94,11 +103,12 @@ pub enum Admit {
     Busy,
 }
 
-/// Whether `Opened` or `ColorOpened` is taken now: one question of either kind at a time.
+/// Whether `Opened`, `ColorOpened` or `PermissionOpened` is taken now: one question of any kind
+/// at a time.
 pub fn admits(state: &CapturePicker) -> Admit {
-    match (&state.asking, &state.color) {
-        (None, None) => Admit::Yes,
-        (Some(_), _) | (_, Some(_)) => Admit::Busy,
+    match (&state.asking, &state.color, &state.permission) {
+        (None, None, None) => Admit::Yes,
+        (Some(_), _, _) | (_, Some(_), _) | (_, _, Some(_)) => Admit::Busy,
     }
 }
 
@@ -167,10 +177,31 @@ pub fn step(state: CapturePicker, event: CaptureEvent) -> (CapturePicker, Vec<Ca
             ),
             Some(_) | None => (state, Vec::new()),
         },
+        CaptureEvent::PermissionOpened(asking) => match admits(&state) {
+            Admit::Yes => (
+                CapturePicker {
+                    permission: Some(asking),
+                    ..state
+                },
+                Vec::new(),
+            ),
+            Admit::Busy => (state, Vec::new()),
+        },
+        CaptureEvent::PermissionAnswered(id, outcome) => match &state.permission {
+            Some(asking) if asking.id == id => (
+                CapturePicker {
+                    permission: None,
+                    ..state
+                },
+                vec![CaptureOut::PermissionReply(id, outcome)],
+            ),
+            Some(_) | None => (state, Vec::new()),
+        },
         CaptureEvent::CallerGone => (
             CapturePicker {
                 asking: None,
                 color: None,
+                permission: None,
                 ..state
             },
             Vec::new(),

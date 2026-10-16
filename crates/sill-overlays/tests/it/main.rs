@@ -10,6 +10,7 @@ mod hot_corners;
 mod idle_dim;
 mod lock;
 mod osd;
+mod permission_sheet;
 mod polkit_prompt;
 mod power_menu;
 mod spaces_bar;
