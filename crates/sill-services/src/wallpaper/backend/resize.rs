@@ -6,9 +6,21 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use image::imageops::FilterType;
-use sill_model::wallpaper::{WallpaperSource, cache_file_name, cover_fit, source_hash};
+use image::{ImageReader, Limits};
+use sill_model::wallpaper::{WallpaperSource, cache_file_name, cover_window, source_hash};
 
 use crate::error::ServiceError;
+
+/// The most pixels an output may have (an 8K wall of two monitors is about 66 million): the
+/// cached copy is `width * height` pixels of memory while it is cut, so a bogus size is refused.
+const MAX_TARGET_PIXELS: u64 = 100_000_000;
+
+/// The widest and tallest source decoded. A decoder checks a header's size against these before it
+/// allocates anything, so a hostile or accidental giant is refused cheaply.
+const MAX_SOURCE_SIDE: u32 = 32_768;
+
+/// The most memory a decoder may hold at once for one source (a 100 megapixel photo is 400 MiB).
+const MAX_DECODE_BYTES: u64 = 1024 * 1024 * 1024;
 
 /// `path`'s cache entry at `width` x `height` in `cache_dir`, resizing it there first if no
 /// entry by that name exists yet ("renders only on change": an unchanged source and size never
@@ -31,6 +43,7 @@ pub fn ensure_cached(
         .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
         .map(|since| since.as_nanos())
         .unwrap_or_default();
+    check_target(width, height, path)?;
     let hash = source_hash(path, metadata.len(), modified_unix_nanos);
     let cached = cache_dir.join(cache_file_name(hash, width, height));
     if cached.is_file() {
@@ -44,17 +57,50 @@ pub fn ensure_cached(
     Ok(cached)
 }
 
-/// Cover-fit `source` into `width` x `height` and write it to `dest` (a sibling temp file, then
-/// a rename, so a reader never opens a partial PNG).
-fn resize_into(source: &Path, width: u32, height: u32, dest: &Path) -> Result<(), ServiceError> {
-    let image = image::open(source).map_err(|error| ServiceError::Io {
+/// Refuse an output size that is empty or beyond [`MAX_TARGET_PIXELS`].
+fn check_target(width: u32, height: u32, path: &Path) -> Result<(), ServiceError> {
+    let pixels = u64::from(width) * u64::from(height);
+    if pixels == 0 || pixels > MAX_TARGET_PIXELS {
+        return Err(ServiceError::Io {
+            path: path.to_path_buf(),
+            source: std::io::Error::other(format!("an output of {width} x {height} pixels")),
+        });
+    }
+    Ok(())
+}
+
+/// `source` decoded within [`MAX_SOURCE_SIDE`] and [`MAX_DECODE_BYTES`].
+fn decode_within_limits(source: &Path) -> Result<image::DynamicImage, ServiceError> {
+    let failed = |error: &dyn std::fmt::Display| ServiceError::Io {
         path: source.to_path_buf(),
-        source: std::io::Error::other(error),
+        source: std::io::Error::other(error.to_string()),
+    };
+    let mut reader = ImageReader::open(source).map_err(|error| ServiceError::Io {
+        path: source.to_path_buf(),
+        source: error,
     })?;
-    let fit = cover_fit((image.width(), image.height()), (width, height));
+    let mut limits = Limits::no_limits();
+    limits.max_image_width = Some(MAX_SOURCE_SIDE);
+    limits.max_image_height = Some(MAX_SOURCE_SIDE);
+    limits.max_alloc = Some(MAX_DECODE_BYTES);
+    reader.limits(limits);
+    reader
+        .with_guessed_format()
+        .map_err(|error| failed(&error))?
+        .decode()
+        .map_err(|error| failed(&error))
+}
+
+/// Cover-fit `source` into `width` x `height` and write it to `dest` (a sibling temp file, then
+/// a rename, so a reader never opens a partial PNG). Only the window of the source that fills
+/// the target is cut out and resized, so a source of any aspect ratio costs at most the source
+/// and the target in memory.
+fn resize_into(source: &Path, width: u32, height: u32, dest: &Path) -> Result<(), ServiceError> {
+    let image = decode_within_limits(source)?;
+    let window = cover_window((image.width(), image.height()), (width, height));
     let cropped = image
-        .resize_exact(fit.scaled.0, fit.scaled.1, FilterType::Lanczos3)
-        .crop_imm(fit.crop_x, fit.crop_y, width, height);
+        .crop_imm(window.x, window.y, window.width, window.height)
+        .resize_exact(width, height, FilterType::Lanczos3);
     let mut temp = dest.to_path_buf();
     temp.set_extension("png.tmp");
     cropped
@@ -149,6 +195,36 @@ mod tests {
             .modified();
         assert_eq!(modified_before.ok(), modified_after.ok());
 
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_hair_thin_panorama_fills_the_target_without_a_huge_allocation() {
+        let dir = std::env::temp_dir().join(format!("sill-wallpaper-thin-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));
+        let source = dir.join("thin.png");
+        // 5000 x 1: scaled to cover a 400 x 225 output the old way it was about a gigabyte.
+        ImageBuffer::from_fn(5000, 1, |x, _| {
+            Rgba([u8::try_from(x % 256).unwrap_or_default(), 0, 0, 255])
+        })
+        .save(&source)
+        .unwrap_or_else(|e| panic!("{e}"));
+        let cached =
+            ensure_cached(&source, 400, 225, &dir.join("cache")).unwrap_or_else(|e| panic!("{e}"));
+        let filled = image::open(&cached).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!((filled.width(), filled.height()), (400, 225));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_output_beyond_the_pixel_cap_is_refused() {
+        let dir = std::env::temp_dir().join(format!("sill-wallpaper-huge-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));
+        let source = dir.join("source.png");
+        marked_source()
+            .save(&source)
+            .unwrap_or_else(|e| panic!("{e}"));
+        assert!(ensure_cached(&source, 20_000, 20_000, &dir.join("cache")).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
