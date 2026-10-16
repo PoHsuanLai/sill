@@ -96,6 +96,29 @@ const UNIT_WORDS: &[&str] = &[
 /// Operator and grouping characters that mark a string as arithmetic rather than a search term.
 const SYMBOLS: &str = "+-*/^%()";
 
+/// The longest query handed to fend. A real sum or conversion is a few dozen characters; a pasted
+/// page is not one, and fend's parser recurses once per nesting level, on a thread with a small
+/// stack.
+pub const MAX_QUERY_CHARS: usize = 256;
+
+/// The deepest parenthesis nesting handed to fend, for the same reason.
+pub const MAX_NESTING: usize = 24;
+
+/// The deepest run of open parentheses in `text`.
+fn nesting(text: &str) -> usize {
+    text.chars()
+        .scan(0_usize, |depth, c| {
+            *depth = match c {
+                '(' => depth.saturating_add(1),
+                ')' => depth.saturating_sub(1),
+                _ => *depth,
+            };
+            Some(*depth)
+        })
+        .max()
+        .unwrap_or(0)
+}
+
 /// Whether `text` reads as an expression fend should try to evaluate: it has digits, an
 /// operator, or an `=`, and every word in it is a number, a unit, a keyword or a known function
 /// — never a plain search term such as `"cd"` or `"ls -la"`. `rates` is the day's ECB table
@@ -103,7 +126,10 @@ const SYMBOLS: &str = "+-*/^%()";
 /// word.
 pub fn looks_like_expression(text: &str, rates: Option<&Rates>) -> bool {
     let trimmed = text.trim();
-    if trimmed.is_empty() {
+    if trimmed.is_empty()
+        || trimmed.chars().count() > MAX_QUERY_CHARS
+        || nesting(trimmed) > MAX_NESTING
+    {
         return false;
     }
     if trimmed.contains('=') {
@@ -217,6 +243,30 @@ mod tests {
         ("system-settings", false),
         ("rfc-2119", false),
     ];
+
+    #[test]
+    fn a_query_too_long_or_too_deep_for_fend_is_never_an_expression() {
+        use super::{MAX_NESTING, MAX_QUERY_CHARS};
+        let nested = |depth: usize| format!("{}1{}", "(".repeat(depth), ")".repeat(depth));
+        let cases = [
+            ("as deep as allowed", nested(MAX_NESTING), true),
+            ("one deeper", nested(MAX_NESTING + 1), false),
+            ("a pasted page of nesting", nested(50_000), false),
+            (
+                "as long as allowed",
+                "1+".repeat(MAX_QUERY_CHARS / 2 - 1) + "1",
+                true,
+            ),
+            (
+                "one character longer",
+                "1+".repeat(MAX_QUERY_CHARS / 2) + "1",
+                false,
+            ),
+        ];
+        for (name, text, want) in cases {
+            assert_eq!(looks_like_expression(&text, None), want, "{name}");
+        }
+    }
 
     #[test]
     fn a_query_is_read_as_an_expression_exactly_when_it_looks_like_one() {

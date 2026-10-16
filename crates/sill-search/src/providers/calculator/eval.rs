@@ -25,6 +25,15 @@ pub enum EvalOutcome {
     TimedOut,
 }
 
+/// The longest result shown. A power tower or a huge factorial evaluates to thousands of digits,
+/// which is no answer to read, and would become the row's title and the text copied.
+pub const MAX_RESULT_CHARS: usize = 120;
+
+/// Whether `value` is an answer worth showing: something, and short enough to read.
+fn readable(value: &str) -> bool {
+    !value.is_empty() && value.chars().count() <= MAX_RESULT_CHARS
+}
+
 /// A deadline fend polls cooperatively.
 struct Deadline(Instant);
 
@@ -51,7 +60,7 @@ pub fn evaluate(text: &str, budget: Duration, rates: Option<&Rates>) -> EvalOutc
     match evaluate_with_interrupt(text, &mut context, &deadline) {
         Ok(result) => {
             let value = result.get_main_result();
-            if value.is_empty() {
+            if !readable(value) {
                 EvalOutcome::NoMatch
             } else {
                 EvalOutcome::Value(value.to_owned())
@@ -80,6 +89,24 @@ mod tests {
             evaluate("2^10", budget, None),
             EvalOutcome::Value("1024".to_owned())
         );
+    }
+
+    #[test]
+    fn a_result_too_long_to_read_is_no_answer() {
+        use super::{MAX_RESULT_CHARS, readable};
+        let cases = [
+            ("a number", "1024".to_owned(), true),
+            ("as long as allowed", "9".repeat(MAX_RESULT_CHARS), true),
+            (
+                "one character longer",
+                "9".repeat(MAX_RESULT_CHARS + 1),
+                false,
+            ),
+            ("nothing", String::new(), false),
+        ];
+        for (name, value, want) in cases {
+            assert_eq!(readable(&value), want, "{name}");
+        }
     }
 
     #[test]

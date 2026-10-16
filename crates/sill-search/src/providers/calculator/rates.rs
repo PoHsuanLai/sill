@@ -54,7 +54,10 @@ pub fn parse_ecb(xml: &str) -> Result<Rates, RatesFault> {
         let (Some(code), Some(rate)) = (attribute(tag, "currency"), attribute(tag, "rate")) else {
             continue;
         };
-        if let Ok(rate) = rate.parse::<f64>() {
+        if let Ok(rate) = rate.parse::<f64>()
+            && rate.is_finite()
+            && rate > 0.0
+        {
             per_euro.insert(code.to_uppercase(), rate);
         }
     }
@@ -143,5 +146,21 @@ mod tests {
         assert!((usd - 1.0 / 1.1).abs() < 1e-12);
         assert_eq!(relative_to_euro(&rates, "XXX"), None);
         assert_eq!(parse_ecb("<html/>"), Err(RatesFault::NotEcb));
+    }
+
+    #[test]
+    fn a_rate_that_is_not_a_finite_positive_number_is_no_rate() {
+        let file = |rate: &str| {
+            format!(
+                "<Cube xmlns='http://www.ecb.int/vocabulary/2002-08-01/eurofxref'><Cube currency='USD' rate='1.1'/><Cube currency='XYZ' rate='{rate}'/></Cube>"
+            )
+        };
+        for rate in ["NaN", "inf", "-inf", "0", "-2.5", "abc"] {
+            let rates = parse_ecb(&file(rate)).expect("the good rate remains");
+            assert_eq!(rates.per_euro.get("XYZ"), None, "{rate}");
+            assert_eq!(rates.per_euro.get("USD"), Some(&1.1), "{rate}");
+        }
+        let rates = parse_ecb(&file("2.5")).expect("rates");
+        assert_eq!(rates.per_euro.get("XYZ"), Some(&2.5));
     }
 }

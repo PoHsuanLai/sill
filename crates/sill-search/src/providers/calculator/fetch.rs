@@ -63,6 +63,12 @@ pub fn due(cached_at: Option<UnixTime>, last_attempt: Option<Attempt>, now: Unix
     }
 }
 
+/// How long the whole download may take, in seconds, as `curl` is told it.
+const MAX_SECONDS: &str = "15";
+
+/// The most bytes the download may be, as `curl` is told it: the ECB's daily file is under 2 KiB.
+const MAX_BYTES: &str = "262144";
+
 /// Set while a fetch is in flight, so two keystrokes in a row never start a second one.
 static FETCHING: AtomicBool = AtomicBool::new(false);
 
@@ -81,6 +87,8 @@ pub fn refresh_if_due(rates: SharedRates, path: PathBuf, now: UnixTime) {
         return;
     }
     tokio::spawn(async move {
+        // However the task ends, even in a panic, the next due keystroke may start a fetch.
+        let _in_flight = InFlight;
         let outcome = match fetch_into(&path).await {
             Ok(()) => Outcome::Success,
             Err(_) => Outcome::Failure,
@@ -91,8 +99,16 @@ pub fn refresh_if_due(rates: SharedRates, path: PathBuf, now: UnixTime) {
         {
             *guard = loaded;
         }
-        FETCHING.store(false, Ordering::Release);
     });
+}
+
+/// A fetch in flight; clears [`FETCHING`] when dropped.
+struct InFlight;
+
+impl Drop for InFlight {
+    fn drop(&mut self) {
+        FETCHING.store(false, Ordering::Release);
+    }
 }
 
 /// Runs `curl` into a temporary file beside `path`, then renames it in: a reader never sees a
@@ -108,9 +124,15 @@ async fn fetch_into(path: &Path) -> std::io::Result<()> {
         .arg("--fail")
         .arg("--silent")
         .arg("--show-error")
+        // The file is a few kilobytes: a connection that stalls, a server that never stops or a
+        // redirect to anywhere but the ECB's own https address is given up on.
+        .args(["--max-time", MAX_SECONDS])
+        .args(["--max-filesize", MAX_BYTES])
+        .args(["--proto", "=https", "--proto-redir", "=https"])
         .arg("--output")
         .arg(&temp)
         .arg(ECB_DAILY_URL)
+        .kill_on_drop(true)
         .status()
         .await?;
     if !status.success() {
