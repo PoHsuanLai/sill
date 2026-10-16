@@ -21,6 +21,7 @@ use sill_model::idle::{
     ticket,
 };
 use sill_model::locker::{Lock, LockPhase, LockerCommand};
+use sill_model::untrusted::for_log;
 use tokio::sync::{mpsc, watch};
 use tokio::time::MissedTickBehavior;
 use zbus::fdo::NameOwnerChangedStream;
@@ -255,7 +256,11 @@ impl Live {
 
     async fn inhibit(&mut self, msg: InhibitMsg) -> sill_model::idle::InhibitReply {
         if let InhibitMsg::Inhibit { app, reason, .. } = &msg {
-            eprintln!("sill: idle: inhibited by {app:?} ({reason:?})");
+            eprintln!(
+                "sill: idle: inhibited by {} ({})",
+                for_log(app),
+                for_log(reason)
+            );
         }
         let (next, reply) = inhibit_step(std::mem::take(&mut self.inhibitors), msg);
         self.inhibitors = next;

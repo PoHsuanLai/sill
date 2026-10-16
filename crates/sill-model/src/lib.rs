@@ -42,6 +42,7 @@ pub mod session;
 pub mod sync_hold;
 pub mod tray;
 pub mod units;
+pub mod untrusted;
 pub mod voice;
 pub mod volume;
 pub mod wallpaper;
