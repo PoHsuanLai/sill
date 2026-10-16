@@ -30,6 +30,9 @@ use super::step::{DragEnd, ThumbExit, ThumbIn, ThumbOut, ThumbParams, ThumbState
 /// The card's press target, the element the keyboard lands on (quire's `ShotThumbnail`).
 const PICTURE: &str = ".ds-shot-picture";
 
+/// How long a drag out of the card may run before it is taken as lost.
+const DRAG_LIMIT: Duration = Duration::from_secs(120);
+
 /// Everything the thumbnail's handlers share. Copy: signals and cells only.
 #[derive(Clone, Copy)]
 pub(super) struct Thumb {
@@ -79,8 +82,16 @@ impl Thumb {
             return;
         };
         Runtime::current().in_scope(self.scope, || {
+            // A drag lasts seconds. If the compositor never reports its end, the card would stay
+            // in `Dragging` with its hold stopped, on screen for good: this ends it as cancelled.
+            let watchdog = spawn(async move {
+                sleep(DRAG_LIMIT).await;
+                eprintln!("sill: screenshot drag: no end after {DRAG_LIMIT:?}; the card stays");
+                self.input(ThumbIn::DragEnded(id, DragEnd::Cancelled));
+            });
             spawn(async move {
                 let outcome = surface.start_drag(spec).await;
+                watchdog.cancel();
                 eprintln!("sill: screenshot drag: {outcome:?}");
                 self.input(ThumbIn::DragEnded(id, drag_end(&outcome)));
             })
