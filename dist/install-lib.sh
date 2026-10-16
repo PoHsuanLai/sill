@@ -146,7 +146,7 @@ behind_siblings() {
 # check_lock: the build uses --locked, so Cargo.lock must already fit the sibling checkouts. When it
 # does not, say which siblings are behind (cargo's own message does not) and stop.
 check_lock() {
-  if cargo metadata --locked --format-version 1 --manifest-path "$ROOT/Cargo.toml" >/dev/null 2>&1; then
+  if cargo_outside metadata --locked --format-version 1 --manifest-path "$ROOT/Cargo.toml" >/dev/null 2>&1; then
     note "Cargo.lock fits the sibling checkouts"
     return 0
   fi
@@ -222,29 +222,20 @@ ddcutil_rule_present() {
   return 1
 }
 
-# target_rustflags: this repo's x86_64 linux rustflags from .cargo/config.toml minus the mold
-# `-fuse-ld` argument, space-separated. Reads only the one-line `rustflags = ["-C", "x", ...]` form.
-target_rustflags() {
-  local line tokens=() i tok
-  line="$(awk '/^\[target\.x86_64-unknown-linux-gnu\]/ { in_target = 1; next } /^\[/ { in_target = 0 } in_target && /^rustflags/ { print; exit }' "$ROOT/.cargo/config.toml" 2>/dev/null || true)"
-  mapfile -t tokens < <(grep -oE '"[^"]*"' <<<"$line" | tr -d '"' || true)
-  for ((i = 0; i < ${#tokens[@]}; i++)); do
-    tok="${tokens[i]}"
-    if [ "$tok" = -C ] && [[ "${tokens[i + 1]:-}" == *-fuse-ld=* ]]; then
-      i=$((i + 1))
-      continue
-    fi
-    [[ "$tok" == *-fuse-ld=* ]] && continue
-    printf '%s\n' "$tok"
-  done | paste -sd' ' -
-}
-
-# linker_fallback: .cargo/config.toml links with clang and mold (a developer-speed setup). Where both
-# are not installed, link with `cc` and the repo's other rustflags instead, for this build only (a
-# linker or rustflags variable you already set is kept). The file itself is not edited.
-linker_fallback() {
-  if command -v clang >/dev/null && command -v mold >/dev/null; then return 0; fi
-  export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="${CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER:-cc}"
-  export RUSTFLAGS="${RUSTFLAGS-$(target_rustflags)}"
-  note "clang and mold are not both installed: linking with cc, without mold, for this build"
+# cargo_outside SUBCOMMAND ARGS...: run cargo from / with the tree named by --manifest-path in ARGS, so the
+# build links with this system's own linker. The tree's .cargo/config.toml asks for clang and mold, which is
+# how sill is worked on, not something an install may ask the person to have; cargo reads that file (and
+# rustup the toolchain file) from the directory it runs in, never from the manifest's. So the pinned
+# toolchain is passed on through RUSTUP_TOOLCHAIN, and the one setting an install wants from that file
+# (the system git client) is given again. The target directory stays explicit. No RUSTFLAGS.
+cargo_outside() {
+  local sub=$1 toolchain
+  shift
+  toolchain="$(sed -n 's/^channel *= *"\(.*\)"/\1/p' "$ROOT/rust-toolchain.toml" 2>/dev/null | head -n 1)"
+  (
+    cd / || exit 1
+    if [ -n "$toolchain" ] && command -v rustup >/dev/null; then export RUSTUP_TOOLCHAIN="$toolchain"; fi
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
+    cargo "$sub" --config net.git-fetch-with-cli=true "$@"
+  )
 }

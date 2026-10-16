@@ -14,8 +14,9 @@
 #   --no-build                   do not run cargo; use the release binary already built
 #
 # Root: $SUDO if set, else sudo, doas or pkexec; with none of them the commands that need root are
-# printed at the end for you to run. The build links with clang and mold as .cargo/config.toml says,
-# or with cc when those are not both installed.
+# printed at the end for you to run. The build links with this system's own linker: it runs from /
+# with --manifest-path (install-lib.sh cargo_outside), so the repo's .cargo/config.toml, which asks for
+# clang and mold for development, is not read. Nothing is installed for the linker.
 #
 # Also installed, when no ddcutil rule exists on the machine (60-ddcutil*.rules): dist/udev and
 # dist/modules-load.d, so the i2c buses of external monitors open to the person at the seat (DDC/CI
@@ -47,8 +48,7 @@ step "3/8 build sill (release, from $ROOT)"
 if [ "$NO_BUILD" = 1 ]; then
   note "skipped: --no-build"
 else
-  linker_fallback
-  run cargo build --release --locked --manifest-path "$ROOT/Cargo.toml" -p sill
+  run cargo_outside build --release --locked --manifest-path "$ROOT/Cargo.toml" -p sill
 fi
 BUILT="${CARGO_TARGET_DIR:-$ROOT/target}/release/sill"
 [ "$DRY" = 1 ] || [ -x "$BUILT" ] || { echo "no binary at $BUILT" >&2; exit 1; }
