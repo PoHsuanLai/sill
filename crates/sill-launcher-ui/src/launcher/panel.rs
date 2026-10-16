@@ -32,6 +32,7 @@ use crate::launcher::pane_session::PaneSession;
 use crate::launcher::preview::keys::{Pane, PaneFocus};
 use crate::launcher::preview::{LauncherPane, PREVIEW_WIDTH_PX};
 use crate::launcher::row_icon::{row_art, row_tile};
+use crate::launcher::row_thumb::use_row_thumbs;
 use crate::launcher::sections_view::{Draw, palette_groups};
 use crate::launcher::session::Session;
 use crate::launcher::view::View;
@@ -145,6 +146,8 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
         None => (PANEL_WIDTH, CARD_INSET),
     };
     let left = SHADOW_SIDE + inset;
+    let thumbs = use_row_thumbs();
+    let thumb_of = move |mime: &str, path: &std::path::Path| thumbs.of(mime, path);
     let clip_image = move |key: ClipKey| {
         clip_image(&history.read(), key)
             .filter(|image| image.mime.0 == "image/png")
@@ -168,7 +171,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                     class: "sill-launcher-body",
                     style: "margin-left:{left}px;width:{width}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
-                        {palette(&panel, &shown, foot, &icons, &clip_image, Beside { aside })}
+                        {palette(&panel, &shown, foot, &icons, (&thumb_of, &clip_image), Beside { aside })}
                     }
                 }
             }
@@ -284,7 +287,10 @@ fn palette(
     shown: &Shown,
     foot: Foot,
     icons: &RowIcons,
-    clip_image: &dyn Fn(ClipKey) -> Option<ImageSource>,
+    (thumb_of, clip_image): (
+        &dyn Fn(&str, &std::path::Path) -> Option<ImageSource>,
+        &dyn Fn(ClipKey) -> Option<ImageSource>,
+    ),
     beside: Beside,
 ) -> Element {
     let Beside { aside } = beside;
@@ -304,6 +310,7 @@ fn palette(
     let hung = (row)();
     let draw = Draw {
         tile_of: &|item| icons.tile(item),
+        thumb_of,
         clip_image,
         now: now(),
     };

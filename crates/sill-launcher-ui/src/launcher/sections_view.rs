@@ -6,6 +6,8 @@
 //! action, the Emoji section quire's emoji grid, a file row quire's `RowShape::File` and a
 //! clipboard row `RowShape::Clip`.
 
+use std::path::Path;
+
 use dioxus::prelude::*;
 use ds::components::content::image_source::ImageSize;
 use ds::components::lists::emoji_grid::grid::{EMOJI_CELL, EMOJI_COLUMNS, EmojiCell, EmojiCells};
@@ -46,10 +48,12 @@ impl HeaderAction {
     }
 }
 
-/// What the rows are drawn with: each row's tile, a clipboard image's pixels and the clock.
-/// The selection's chord is quire's to place (`RowChord::on_selected`).
+/// What the rows are drawn with: each row's tile, a picture file's thumbnail
+/// ([`crate::launcher::row_thumb::RowThumbs`]), a clipboard image's pixels and the clock. The
+/// selection's chord is quire's to place (`RowChord::on_selected`).
 pub struct Draw<'a> {
     pub tile_of: &'a dyn Fn(&Item) -> RowLeading,
+    pub thumb_of: &'a dyn Fn(&str, &Path) -> Option<ImageSource>,
     pub clip_image: &'a dyn Fn(ClipKey) -> Option<ImageSource>,
     pub now: UnixTime,
 }
@@ -156,7 +160,7 @@ impl Draw<'_> {
         let words = row_detail(item, self.now);
         let shape = match &item.subject {
             Subject::File(file) => RowShape::File {
-                thumb: thumb_of(&file.mime.0, &file.path),
+                thumb: (self.thumb_of)(&file.mime.0, &file.path),
                 location: words.detail.clone(),
                 modified: words.trail.clone(),
             },
@@ -200,15 +204,6 @@ impl Draw<'_> {
 
 /// A clipboard text's lines in a row.
 const CLIP_LINES: u8 = 2;
-
-/// A picture file's own pixels as its row's thumbnail (the renderer decodes these).
-fn thumb_of(mime: &str, path: &std::path::Path) -> Option<ImageSource> {
-    const PICTURES: [&str; 4] = ["image/png", "image/jpeg", "image/webp", "image/gif"];
-    PICTURES
-        .contains(&mime)
-        .then(|| ImageSource::file(path).ok())
-        .flatten()
-}
 
 /// Whether a section mixes providers, so a row's kind is worth a note.
 fn mix_of(section: Section) -> Mix {

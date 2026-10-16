@@ -98,6 +98,7 @@ fn sample() -> Vec<ShownSection> {
 fn groups_carry_shapes_a_grid_and_header_actions() {
     let draw = Draw {
         tile_of: &tile,
+        thumb_of: &|_, _| None,
         clip_image: &|_| None,
         now: NOW,
     };
@@ -171,6 +172,7 @@ fn each_row_carries_its_chord_for_the_selection() {
     let reveal = RowChord::on_selected(Shortcut::standard(StandardAction::Reveal));
     let draw = Draw {
         tile_of: &tile,
+        thumb_of: &|_, _| None,
         clip_image: &|_| None,
         now: NOW,
     };
@@ -215,6 +217,7 @@ fn an_emoji_in_a_list_is_its_name_led_by_the_glyph() {
     );
     let draw = Draw {
         tile_of: &tile,
+        thumb_of: &|_, _| None,
         clip_image: &|_| None,
         now: NOW,
     };

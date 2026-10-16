@@ -19,6 +19,7 @@ pub mod keys;
 pub mod pane_session;
 pub mod preview;
 pub mod row_icon;
+pub mod row_thumb;
 pub mod rows;
 pub mod sections_view;
 pub mod session;

@@ -29,6 +29,8 @@ docket-core = { workspace = true }
 ds = { workspace = true }
 ds-blitz = { workspace = true, features = ["pdf"] }
 jiff = { workspace = true }
+# The name of a file's thumbnail in the freedesktop cache is the MD5 of its address.
+md-5 = { workspace = true }
 prov = { workspace = true }
 shell-host = { workspace = true }
 sill-launcher = { workspace = true }
@@ -40,7 +42,6 @@ sill-ui-kit = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
-md-5 = { workspace = true }
 serde_json = { workspace = true }
 png = { workspace = true }
 sill-testkit = { workspace = true }
