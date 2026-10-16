@@ -124,12 +124,14 @@ fn a_save_is_one_file_and_reads_back() {
         .unwrap_or_else(|e| panic!("{e}"))
         .filter_map(|e| e.ok())
         .map(|e| e.file_name().to_string_lossy().into_owned())
+        // The writers' lock stays beside the file (quire's update_atomic); no temp file does.
+        .filter(|name| name != ".settings.toml.lock")
         .collect();
     assert_eq!(names, ["settings.toml"], "the temp file was renamed away");
 }
 
 #[test]
-fn unknown_keys_are_reported_and_dropped() {
+fn unknown_keys_are_reported_and_kept() {
     let dir = TempDir::new("unknown");
     let text = "version = 1\nfuture = \"x\"\n[dock]\npuppy = true\ntile_size_px = 40\n\
                 [later]\nanswer = 42\n[control_center]\nmodules = [\"wifi\"]\n";
@@ -143,8 +145,10 @@ fn unknown_keys_are_reported_and_dropped() {
     store(&dir)
         .save(&loaded.value)
         .unwrap_or_else(|e| panic!("{e}"));
+    // A save keeps what this version does not know (a newer version's keys survive a round trip).
     let again = store(&dir).load::<ShellFile>();
-    assert!(again.unknown.is_empty(), "{:?}", again.unknown);
+    let kept: Vec<&str> = again.unknown.iter().map(|k| k.0.as_str()).collect();
+    assert_eq!(kept, unknown);
     assert_eq!(again.value, loaded.value);
 }
 
