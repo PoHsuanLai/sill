@@ -128,11 +128,23 @@ A settled item is deleted, not marked closed.
   logind waits only for delay inhibitors held when a sleep begins, so the locker holds its sleep
   delay inhibitor at all times in a followed session, not from `PrepareForSleep(true)`.
   `BlockInhibited` is not signalled; the idle service polls it.
-- **Notifications**: the name is asked for with `AllowReplacement | DoNotQueue`, never
-  `ReplaceExisting`, so another daemon keeps it and is reported. Until the daemon's first policy
-  the service is passive. A stock `session.conf` bus activates another desktop's notification
-  daemon on a `Notify` nobody answers; `dev/private-bus.conf` is `session.conf` without service
-  directories, and every live test and script uses it.
+- **Notifications**: the name is asked for with `DoNotQueue`, never `ReplaceExisting`, and without
+  `AllowReplacement`, so another daemon that holds it keeps it and is reported, and once sill holds it
+  no program can take it and read what apps send (the accounts notice also trusts only the holder's
+  `ActionInvoked`). Until the daemon's first policy the service is passive. A stock `session.conf`
+  bus activates another desktop's notification daemon on a `Notify` nobody answers;
+  `dev/private-bus.conf` is `session.conf` without service directories, and every live test and
+  script uses it.
+- **Notification limits**: an app chooses every field, so each has a ceiling in
+  `sill_model::notifications` (`limits.rs`): summary 256 bytes, body 4 KiB read in at most 128 runs,
+  app name 128, 8 actions of key 128 and label 64, 32 hints (more is refused), `image-data` 256 px a
+  side and 1 MiB, a link target 2 KiB with a scheme of http, https or mailto. A sender (its unique
+  bus name) may post 30 in a burst and then 4 a second, else the call fails with `LimitsExceeded`;
+  an app has at most 10 live banners and the shell 50, the oldest of an app's going first. Only
+  the shell's own notices (the `sill-` desktop-entry namespace, which the boundary strips from an
+  app's hint) pass Do Not Disturb as critical; an app's critical notice persists for ten minutes
+  and then leaves. A notification is replaced or closed over the bus only by the connection that
+  posted it, so `notify-send --replace-id` from a second process posts a new one.
 - **polkit**: an agent never checks a password. It hands the cookie to
   `polkit-agent-helper-1` (setuid, `/usr/lib/polkit-1/` on Fedora; or the socket-activated
   helper on polkit 124+ when enabled), which runs PAM and answers polkitd itself. The line
@@ -838,6 +850,32 @@ a source; `assumed` means not yet checked.
   absolutely placed box whose padding is the popup's transparent shadow room, so
   `PopupSize::FitContent` measures the card plus that room. shell-host should take the room in
   `PopupSize::FitContent` and lay the root itself, which deletes `PopupFrame` and its rule.
+
+### Production audit: notifications, media and untrusted text
+
+- **Oversize `image-data` still arrives whole.** zbus reads `a{sv}` into values before the boundary
+  sees it, so a 64 MiB `ay` costs its expansion once per call before it is refused. Cutting it
+  needs a raw read of the call body or a lower `max_message_size` on the session bus. The per-sender
+  allowance bounds how often.
+- **The history is saved with a blocking write per post, and every event deep-compares the state.**
+  The allowance bounds the rate; a debounced save on the blocking pool and a cheaper publish are
+  open.
+- **Identity is what the app claims.** `app_name` and the `desktop-entry` hint outside the `sill-`
+  namespace pick the name and icon on a card; a verified identity from the bus connection
+  (process, cgroup, desktop file) is open, and with it a list of system programs (the power daemon)
+  whose critical notices may pass Do Not Disturb. Today only the shell's own notices do.
+- **A tray menu is addressed by its item's index, not its id** (`BarMenu::Tray(TraySlot)`), so an
+  item registered before the open one can swap the popup to another app's menu.
+- **An inhibit handled after its owner left is not swept.** `NameOwnerChanged` and `Inhibit` take
+  different paths; a timed sweep of inhibitors whose owner is gone belongs to the idle service's
+  liveness work.
+- **Cover-art fetches may reach loopback and private addresses.** curl cannot refuse them; the
+  fetch is a single bounded GET.
+- **Link opener.** Body links are limited to http, https and mailto where the body is read; when an
+  opener lands, a card shows the target's host beside the text.
+- **docket should refuse or summarise an oversize recipient list before it asks.** The sheet shows
+  eight rows and counts the rest, but the router is the place that knows what a list means.
+- **`confirm.arm_ms` is still a constant** (500 ms of stillness before the sheet takes an answer).
 
 ## voice: what hold-to-talk waits on
 
