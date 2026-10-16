@@ -132,7 +132,10 @@ mod tests {
         assert_eq!(recorder.started(), [confirm_command()]);
         assert_eq!(
             confirm_command().argv,
-            vec!["slipway".to_owned(), "confirm".to_owned()]
+            vec![
+                std::ffi::OsString::from("slipway"),
+                std::ffi::OsString::from("confirm")
+            ]
         );
     }
 

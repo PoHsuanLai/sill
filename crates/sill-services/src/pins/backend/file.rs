@@ -39,6 +39,7 @@ pub(crate) fn save(dir: &Path, pins: &DockPins) -> Result<(), ServiceError> {
 }
 
 /// The file's contents; a damaged file is no pins (the dock still shows running apps).
+#[cfg(test)]
 fn parse(text: &str) -> DockPins {
     serde_json::from_str(text).unwrap_or_default()
 }
