@@ -143,8 +143,10 @@ A settled item is deleted, not marked closed.
   an app has at most 10 live banners and the shell 50, the oldest of an app's going first. Only
   the shell's own notices (the `sill-` desktop-entry namespace, which the boundary strips from an
   app's hint) pass Do Not Disturb as critical; an app's critical notice persists for ten minutes
-  and then leaves. A notification is replaced or closed over the bus only by the connection that
-  posted it, so `notify-send --replace-id` from a second process posts a new one.
+  and then leaves. A notification is closed over the bus only by the connection that posted it,
+  and replaced by that connection or by a later one naming the same app (so
+  `notify-send --replace-id` from a script's next run still replaces its notice); the shell's
+  own notices belong to no connection and are never replaced from the bus.
 - **polkit**: an agent never checks a password. It hands the cookie to
   `polkit-agent-helper-1` (setuid, `/usr/lib/polkit-1/` on Fedora; or the socket-activated
   helper on polkit 124+ when enabled), which runs PAM and answers polkitd itself. The line

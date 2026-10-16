@@ -25,7 +25,7 @@ use tokio::sync::{mpsc, watch};
 use super::dbus::{Call, CloseAnswer, NotifyAnswer, Sender};
 use super::history_file;
 use super::name_watch::Bus;
-use super::senders::{Admission, Senders};
+use super::senders::{Admission, Owner, Senders};
 use crate::env::{Bus as BusRoute, WallClock};
 use crate::stream::next_opt;
 
@@ -144,7 +144,8 @@ impl Core {
         }
     }
 
-    /// A `Notify` from `sender`: refused past its allowance; it replaces only what it posted.
+    /// A `Notify` from `sender`: refused past its allowance; it replaces only what it posted or
+    /// what was posted for the same app.
     async fn notify(
         &mut self,
         mut posting: Posting,
@@ -155,9 +156,10 @@ impl Core {
         if self.senders.admit(&sender, now) == Admission::TooMany {
             return NotifyAnswer::TooMany;
         }
-        posting.replaces = self.senders.replaceable(&sender, posting.replaces);
+        let app = posting.app.key();
+        posting.replaces = self.senders.replaceable(&sender, &app, posting.replaces);
         let id = self.post(posting, bus).await;
-        self.senders.record(id, Some(sender));
+        self.senders.record(id, Some(Owner { sender, app }));
         self.senders.forget_gone(&self.state);
         NotifyAnswer::Posted(id)
     }

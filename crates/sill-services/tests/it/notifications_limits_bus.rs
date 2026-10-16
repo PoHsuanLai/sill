@@ -137,7 +137,7 @@ fn a_sender_that_floods_is_refused_and_its_banners_are_capped() {
 }
 
 #[test]
-fn only_the_sender_may_replace_or_close_what_it_posted() {
+fn only_the_sender_or_the_same_app_may_replace_and_only_the_sender_may_close() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let Some(bus) = PrivateBus::start() else {
         return;
@@ -196,6 +196,22 @@ fn only_the_sender_may_replace_or_close_what_it_posted() {
                 .is_none())
             .await
         );
+
+        // A later run of the same script (a new connection naming the same app) replaces its
+        // own notice, as `notify-send -r` does; closing stays with the connection that posted.
+        let second = notify(&owner, "owner", Vec::new()).await;
+        let script = connect(&bus).await;
+        let rerun = notify_with(
+            &script,
+            "owner",
+            second,
+            ("volume 40%", ""),
+            Vec::new(),
+            Hints::new(),
+        )
+        .await
+        .unwrap_or_else(|e| panic!("Notify: {e}"));
+        assert_eq!(rerun, second, "the same app replaces across connections");
     });
 }
 

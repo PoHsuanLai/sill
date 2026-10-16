@@ -102,4 +102,3 @@ impl Shape {
         Some(out)
     }
 }
-
