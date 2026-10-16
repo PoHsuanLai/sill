@@ -9,7 +9,8 @@
 //! the launcher runs Lock and Suspend at once and opens the power menu for Log Out, Restart and
 //! Shut Down, which is their confirmation, so no row needs a confirm action of its own.
 
-use std::sync::OnceLock;
+use std::sync::{Mutex, PoisonError};
+use std::time::{Duration, Instant};
 
 use sill_services::env::Bus;
 
@@ -118,15 +119,31 @@ impl Availability {
 pub struct SystemProvider {
     /// logind's bus, asked what it allows (read only).
     system: Bus,
-    availability: OnceLock<Availability>,
+    availability: Mutex<Probed>,
+}
+
+/// How long logind is given to say what the session allows.
+const PROBE_DEADLINE: Duration = Duration::from_secs(2);
+
+/// How long after a probe that got no answer the next is held off: a logind that is not up yet
+/// is asked again soon, a hung one is not asked on every keystroke.
+const REPROBE_AFTER: Duration = Duration::from_secs(15);
+
+/// What the provider knows of logind's answer: nothing yet, an answer (kept for good), or the
+/// time of an attempt that got none.
+#[derive(Debug, Clone, Copy)]
+enum Probed {
+    Not,
+    Known(Availability),
+    Failed(Instant),
 }
 
 impl SystemProvider {
-    /// Rows whose availability logind on `system` answers, asked once.
+    /// Rows whose availability logind on `system` answers, asked once it answers.
     pub fn new(system: Bus) -> SystemProvider {
         SystemProvider {
             system,
-            availability: OnceLock::new(),
+            availability: Mutex::new(Probed::Not),
         }
     }
 
@@ -135,18 +152,35 @@ impl SystemProvider {
     /// happens to allow right now.
     #[cfg(test)]
     fn with_availability(availability: Availability) -> SystemProvider {
-        let cell = OnceLock::new();
-        let _ = cell.set(availability);
         SystemProvider {
             system: Bus::system(sill_services::env::BusRoute::Absent),
-            availability: cell,
+            availability: Mutex::new(Probed::Known(availability)),
         }
     }
 
+    /// What the session allows. Asked of logind while it is not known; an answer is kept, and a
+    /// missing one is not: nothing is offered meanwhile, and the next ask after
+    /// [`REPROBE_AFTER`] tries again. The lock is held through the probe, which has its own
+    /// deadline, so a second keystroke waits for it rather than asking again.
     fn availability(&self) -> Availability {
-        *self
+        let mut probed = self
             .availability
-            .get_or_init(|| probe_availability(&self.system))
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        match *probed {
+            Probed::Known(known) => known,
+            Probed::Failed(at) if at.elapsed() < REPROBE_AFTER => Availability::NONE,
+            Probed::Not | Probed::Failed(_) => match probe_availability(&self.system) {
+                Some(known) => {
+                    *probed = Probed::Known(known);
+                    known
+                }
+                None => {
+                    *probed = Probed::Failed(Instant::now());
+                    Availability::NONE
+                }
+            },
+        }
     }
 }
 
@@ -234,11 +268,12 @@ fn offer_of(supported: IsSupported) -> Offer {
 /// runs every provider's `query` inside `tokio::task::spawn_blocking`, and `Handle::block_on` from
 /// inside a blocking-pool task is the documented way back into async code there — this panics only
 /// if called directly from an async task instead (never done here).
-fn probe_availability(system: &Bus) -> Availability {
-    tokio::runtime::Handle::try_current()
+fn probe_availability(system: &Bus) -> Option<Availability> {
+    let handle = tokio::runtime::Handle::try_current().ok()?;
+    handle
+        .block_on(tokio::time::timeout(PROBE_DEADLINE, probe_logind(system)))
+        .ok()?
         .ok()
-        .and_then(|handle| handle.block_on(probe_logind(system)).ok())
-        .unwrap_or(Availability::NONE)
 }
 
 /// `CanSuspend`/`CanReboot`/`CanPowerOff` only: read-only properties, never `Suspend`,

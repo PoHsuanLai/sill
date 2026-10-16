@@ -75,10 +75,15 @@ impl FileIndex for TrackerIndex {
 /// Whether the miner is running (has an owner) or only activatable; asks the bus only, never
 /// the index, and starts nothing.
 pub(super) fn tracker_state(session: &Bus) -> IndexState {
-    block_on(miner_state(session))
+    block_on(tokio::time::timeout(STATE_DEADLINE, miner_state(session)))
+        // No answer in time, then an answer that is an error: either way, not known to be there.
+        .and_then(Result::ok)
         .and_then(Result::ok)
         .unwrap_or(IndexState::Absent)
 }
+
+/// How long the bus is given to say whether the miner is there.
+const STATE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// The SPARQL for `ask`, with the text and the folder as escaped string literals.
 pub fn sparql_for(ask: &FileAsk) -> String {

@@ -33,8 +33,8 @@ pub use index::{FileAnswer, FileAsk, FileHit, FileIndex, HitLimit, IndexFault, I
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, Mutex, PoisonError};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use anyview_core::FileAction;
 use anyview_store::read_history;
@@ -180,10 +180,27 @@ fn open_action() -> ActionId {
 /// the name match drops leaves room for another.
 const ASK_LIMIT: HitLimit = HitLimit(40);
 
-/// What this machine has, asked once per process ([`choice::detect`] makes a bus call):
+/// What this machine has, and when it was asked ([`choice::detect`] makes a bus call):
 /// `FilesProvider`'s fields have no slot for a cache, and the daemon builds one provider, so
-/// once per process is once per provider.
-static DETECTED: OnceLock<choice::Detected> = OnceLock::new();
+/// one per process is one per provider.
+static DETECTED: Mutex<Option<(Instant, choice::Detected)>> = Mutex::new(None);
+
+/// How long a detection is believed. An indexer that starts after the shell, or a bus that was
+/// not up yet at the first keystroke, is found within this; between asks nothing touches the bus.
+const DETECTION_TTL: Duration = Duration::from_secs(60);
+
+/// What this machine has, asked again once [`DETECTION_TTL`] has passed.
+fn detected(session: &Bus) -> choice::Detected {
+    let mut cache = DETECTED.lock().unwrap_or_else(PoisonError::into_inner);
+    match *cache {
+        Some((at, known)) if at.elapsed() < DETECTION_TTL => known,
+        Some(_) | None => {
+            let known = choice::detect(session);
+            *cache = Some((Instant::now(), known));
+            known
+        }
+    }
+}
 
 /// The index `source` and `files` name, or none (`Off`, or nothing on this machine fits).
 fn index_for(source: &IndexSource, files: FilesChoice) -> Option<Arc<dyn FileIndex>> {
@@ -193,8 +210,7 @@ fn index_for(source: &IndexSource, files: FilesChoice) -> Option<Arc<dyn FileInd
     match source {
         IndexSource::Given(index) => Some(Arc::clone(index)),
         IndexSource::Detect(session) => {
-            let detected = DETECTED.get_or_init(|| choice::detect(session));
-            choice::pick(files, detected).and_then(|kind| index_of(kind, session))
+            choice::pick(files, &detected(session)).and_then(|kind| index_of(kind, session))
         }
     }
 }

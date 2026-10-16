@@ -4,7 +4,7 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use sill_launcher::{
     Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, SectionPlan, UnixTime,
@@ -15,10 +15,17 @@ use sill_model::results::{
 };
 use sill_model::seed::{Store, first_frecency};
 use tokio::sync::{mpsc, watch};
+use tokio::time::Instant;
 
 use super::effect::{Outlets, effect};
 use super::history::{History, Persist};
 use super::sink::{Arrival, ChannelSink, FinishedOnDrop};
+
+/// How long a generation waits for its slowest provider. Past it the providers still running are
+/// no longer waited for: the rows that did arrive stand, an empty answer is shown as empty, and
+/// whatever a straggler sends later is dropped with its generation. A provider stuck in a call
+/// to a daemon or a stalled mount holds its thread, not the list.
+pub(crate) const PROVIDER_DEADLINE: Duration = Duration::from_secs(3);
 
 /// Everything the task holds between events.
 pub(crate) struct Search {
@@ -37,6 +44,8 @@ pub(crate) struct Search {
     plan: SectionPlan,
     /// Providers still running the newest generation.
     pending: usize,
+    /// When the newest generation stops waiting for them; none when none is running.
+    deadline: Option<Instant>,
     tx: watch::Sender<Results>,
     arrivals: mpsc::UnboundedSender<Arrival>,
     /// The installed apps, while a fresh account's history waits to start from them.
@@ -65,6 +74,7 @@ impl Search {
             asked: Asked::IDLE,
             plan: SectionPlan::default_plan(),
             pending: 0,
+            deadline: None,
             tx,
             arrivals,
             first_run: None,
@@ -81,6 +91,7 @@ pub(crate) async fn run(
     mut arrivals: mpsc::UnboundedReceiver<Arrival>,
 ) {
     loop {
+        let deadline = search.deadline;
         tokio::select! {
             biased;
             command = commands.recv() => match command {
@@ -90,7 +101,16 @@ pub(crate) async fn run(
             // `search` holds a sender, so this never yields `None`.
             Some(arrival) = arrivals.recv() => search.arrive(arrival),
             Some(installed) = installed(&mut search.first_run) => search.start_history(&installed),
+            () = until(deadline) => search.give_up_waiting(),
         }
+    }
+}
+
+/// Resolves at `deadline`; never when there is none.
+async fn until(deadline: Option<Instant>) {
+    match deadline {
+        Some(at) => tokio::time::sleep_until(at).await,
+        None => std::future::pending().await,
     }
 }
 
@@ -158,6 +178,7 @@ impl Search {
             ResultsEvent::Began(query.generation),
         );
         self.pending = asked.len();
+        self.deadline = (self.pending > 0).then(|| Instant::now() + PROVIDER_DEADLINE);
         // The previous rows stay up until this generation has something to show (or every
         // provider has finished with nothing), so typing does not flash an empty list.
         if self.pending == 0 {
@@ -177,7 +198,22 @@ impl Search {
         );
         self.asked = Asked::IDLE;
         self.pending = 0;
+        self.deadline = None;
         self.publish();
+    }
+
+    /// The newest generation's deadline passed with providers still running: stop waiting for
+    /// them and show what there is.
+    pub(super) fn give_up_waiting(&mut self) {
+        self.deadline = None;
+        if self.pending > 0 {
+            eprintln!(
+                "sill: search: {} provider(s) did not answer within {PROVIDER_DEADLINE:?}",
+                self.pending
+            );
+            self.pending = 0;
+            self.publish();
+        }
     }
 
     /// Count the choice (whichever of the row's choices it was), queue the file write, and
@@ -227,6 +263,7 @@ impl Search {
             Arrival::Finished(generation) if generation == self.merged.generation => {
                 self.pending = self.pending.saturating_sub(1);
                 if self.pending == 0 {
+                    self.deadline = None;
                     self.publish();
                 }
             }

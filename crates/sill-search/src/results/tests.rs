@@ -289,6 +289,38 @@ async fn the_runner_itself_drops_a_batch_of_an_older_generation() {
     assert_eq!(titles(&rx.borrow()), ["current"]);
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_provider_that_never_answers_is_given_up_on_and_the_list_is_shown() {
+    use super::history::Persist;
+    use super::run::Search;
+    use sill_launcher::Generation;
+
+    // Its first batch is empty and its second waits for a release that has not come.
+    let hung = Fake::new(ProviderKind::Apps).then(&[("Never", 1)]);
+    let (tx, rx) = watch::channel(Results::default());
+    let (mut search, _arrivals) = Search::new(
+        vec![hung.provider()],
+        History::default(),
+        Persist::Nowhere,
+        Outlets::default(),
+        watch::channel(super::LauncherPolicy::default()).0,
+        tx,
+    );
+    search.command(SearchCommand::Query("a".to_owned()));
+    assert_eq!(
+        rx.borrow().generation,
+        Generation(0),
+        "while a provider is pending nothing is published (the old rows stay up)"
+    );
+    search.give_up_waiting();
+    assert_eq!(
+        rx.borrow().generation,
+        Generation(1),
+        "past the deadline the generation is shown, empty as it is"
+    );
+    hung.release();
+}
+
 /// An index of installed apps with these ids.
 fn installed(ids: &[&str]) -> sill_model::apps::AppIndex {
     use sill_model::apps::{
