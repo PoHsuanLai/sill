@@ -210,22 +210,63 @@ casement_run() {
 }
 casementctl() { casement_run casementctl "$@"; }
 
+# The programs these scripts run on casement's socket and the one power each takes, as
+# "POWER PROGRAM". casement asks before a program captures the screen, reads the clipboard, types
+# and so on, so the floor the session starts with allows exactly these (read off
+# accept/clipboard.sh, accept/screenshot.sh, accept/launcher.sh and demo.sh; dev/shot.sh shoots
+# KWin or the host, which casement does not judge). A floor row names a program by its image, and
+# only an image the system owns can be named: a program built under this checkout (the daemon,
+# `secret_source`) is asked like any stranger, whatever the floor says.
+CASEMENT_FLOOR_ROWS=(
+  "screen grim"        # the output shot in screenshot.sh and demo.sh, and demo.sh's recorder
+  "clipboard wl-copy"  # clipboard.sh and launcher.sh put made-up text on the selection
+  "clipboard wl-paste" # and read it back
+)
+
+# Where start_casement puts the floor: inside the script's own output directory, so it goes with
+# the run and nothing is written anywhere else.
+casement_floor_dir() { echo "$OUT_DIR/casement-floor"; }
+
+# Writes the session's floor (privacy.toml in an empty folder only this user can enter, the shape
+# casement-core's floor_codec reads) and prints the folder. A program that is not installed is left
+# out: the script that needs it says so itself. Defaults stay "ask".
+write_casement_floor() {
+  local dir row power tool path
+  dir=$(casement_floor_dir)
+  [ -n "$OUT_DIR" ] || { echo "write_casement_floor: OUT_DIR is not set" >&2; return 1; }
+  rm -rf "$dir" && mkdir -m 700 "$dir" || return 1
+  {
+    echo "# The dev session's floor (sill dev/lib/compositor.sh): the programs the dev scripts run."
+    for row in "${CASEMENT_FLOOR_ROWS[@]}"; do
+      power=${row%% *}
+      tool=${row#* }
+      path=$(command -v "$tool" 2>/dev/null) && path=$(readlink -f "$path") || continue
+      printf '\n[[rule]]\npower = "%s"\nsubject = { program = "%s" }\nanswer = "allow"\n' "$power" "$path"
+    done
+  } >"$dir/privacy.toml" || return 1
+  chmod 600 "$dir/privacy.toml" || return 1
+  echo "$dir"
+}
+
 # Starts casement through its own dev/up.sh and sets WL, BUS, CASEMENT_ENV. $1 is a size "WxH"
 # (default $SIZE); KWIN_VIRTUAL_OUTPUTS=2 (widgets.sh) means two outputs side by side. The clock
 # is the wall clock: sill's animations and timers run on real time, and a stepped clock would
 # stand still until a script advanced it. Refuses a bus that would be the session's.
 start_casement() {
-  local size="${1:-$SIZE}" spec up_out env_file
+  local size="${1:-$SIZE}" spec up_out env_file floor
   mkdir -p "$OUT_DIR"
   spec="HEADLESS-1:$size@60000:120:0,0"
   if [ "${KWIN_VIRTUAL_OUTPUTS:-1}" = 2 ]; then
     spec="$spec;HEADLESS-2:$size@60000:120:${size%x*},0"
   fi
   [ -z "$CASEMENT_ENV" ] || { echo "start_casement: a casement session is already up ($CASEMENT_ENV)" >&2; return 1; }
-  up_out=$("$CASEMENT_REPO/dev/up.sh" --clock wall --outputs "$spec" 2>"$OUT_DIR/casement-up.log")
+  # --system-dir is read by casement's debug builds (the jail's) as a floor owned by this user.
+  floor=$(write_casement_floor) || { echo "start_casement: could not write the session's floor" >&2; return 1; }
+  up_out=$("$CASEMENT_REPO/dev/up.sh" --clock wall --outputs "$spec" --system-dir "$floor" 2>"$OUT_DIR/casement-up.log")
   local rc=$?
   if [ "$rc" != 0 ]; then
     cat "$OUT_DIR/casement-up.log" >&2
+    rm -rf "$floor"
     echo "start_casement: dev/up.sh exited $rc (2: not in the jail; 3: run dev/bootstrap.sh)" >&2
     return "$rc"
   fi
@@ -251,6 +292,7 @@ start_casement() {
 stop_casement() {
   [ -n "$CASEMENT_ENV" ] || return 0
   "$CASEMENT_REPO/dev/down.sh" "$CASEMENT_ENV" >>"$OUT_DIR/casement-up.log" 2>&1
+  rm -rf "$(casement_floor_dir)"
   CASEMENT_ENV=
   CASEMENT_BUS=
 }
