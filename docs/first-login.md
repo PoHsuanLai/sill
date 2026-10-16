@@ -38,8 +38,9 @@ screen's session list the whole time. Nothing below changes Plasma's files.
    Options: `--prefix DIR` (default `/usr/local`), `--destdir DIR` (stage under DIR for packaging; nothing
    is escalated), `--no-build` (install the release binary already built). Root comes from `$SUDO` if
    set, else `sudo`, `doas` or `pkexec`; with none of them the commands that need root are printed at the
-   end for you to run. The repo's `.cargo/config.toml` links with `clang` and `mold`; where they are not
-   both installed the install links with `cc` instead, for that build only.
+   end for you to run. The install links with your system's own linker: it builds from `/` with
+   `--manifest-path`, so the repo's `.cargo/config.toml` (`clang` and `mold`, for development) is not read.
+   Nothing is installed for the linker.
 
    It installs `/usr/local/bin/sill`, `/etc/pam.d/sill`, the intents manifest
    `/usr/local/share/quire/intents/org.quire.Shell.toml`, the skills and the settings schema; it also
