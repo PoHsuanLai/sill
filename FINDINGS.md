@@ -1714,3 +1714,22 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   `css: ""` as the permission sheet's does; that `desktop_client::quire::DisplayTrial::new` is public
   and `FakeDesktop::script` takes the two new `ShellEvent` variants (read from casement-protocols
   8cebc9b, not compiled).
+
+## dfile: .desktop files are read with ds_helpers::DesktopFile (2026-10-17)
+
+- **What changed.** The apps scan no longer uses `freedesktop-desktop-entry` (it pulled gettext-rs, C
+  and LGPL, into a permissive-only stack). `apps/backend/entry.rs` reads a file's text with
+  `ds_helpers::DesktopFile` (capped at `DESKTOP_ENTRY_CAP`, read by `read_text_capped`), `walk.rs`
+  finds the files, `locales.rs` reads the session's locales into `ds_helpers::EntryLocale`. `Exec`
+  field codes stay sill's own (`sill_model::apps::exec`).
+- **Behaviour kept.** The same keys, the same dedup order, `[Desktop Action x]` groups, the
+  locale list (`LANG`, then each item of `LANGUAGES`, as before). The `.desktop` file read is now
+  capped (it was unbounded).
+- **Behaviour that differs.** A translated value is picked from `lang_COUNTRY@MODIFIER` down to `lang`
+  (the old crate tried the exact text, then `lang_COUNTRY` cut at the first `_`); `Exec` and the other
+  values have their `\s`, `\n` and `\;` escapes taken; an empty `OnlyShowIn=` no longer hides the
+  entry (it names no desktop, so it limits none); sibling subfolders are walked by name (the old
+  walk visited them in reverse). `applications_dirs` takes the data directories from `Dirs`
+  (`data` and `data_dirs`), so a test's `Env::isolated` no longer reads the real `XDG_DATA_DIRS`.
+- **Open.** `LANG` and `LANGUAGES` are the old crate's variables; the usual order for a message
+  language is `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Changing it is one edit in `locales.rs`.

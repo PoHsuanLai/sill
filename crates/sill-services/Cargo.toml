@@ -50,7 +50,6 @@ wayland-protocols = { workspace = true }
 upower_dbus = { workspace = true }
 libpulse-binding = { workspace = true }
 system-tray = { workspace = true }
-freedesktop-desktop-entry = { workspace = true }
 freedesktop-icons = { workspace = true }
 notify = { workspace = true }
 image = { workspace = true }

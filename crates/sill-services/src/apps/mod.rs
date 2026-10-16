@@ -1,5 +1,5 @@
 //! The application index: desktop entries from every XDG applications directory, their icons
-//! resolved once, rescanned on change, through freedesktop-desktop-entry and freedesktop-icons; the
+//! resolved once, rescanned on change, through ds_helpers::DesktopFile and freedesktop-icons; the
 //! theme from GTK's settings, else hicolor;
 //! `notify` on the applications directories, 500 ms.
 
@@ -32,10 +32,11 @@ impl Service for AppsService {
         (): (),
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        let (config, data) = (env.dirs.config.clone(), env.dirs.data.clone());
+        let config = env.dirs.config.clone();
+        let dirs = applications_dirs(&env.dirs.data, &env.dirs.data_dirs);
         let roots = env.dirs.icon_file_roots();
         async move {
-            backend::run(io.state, io.commands, config, data, roots).await;
+            backend::run(io.state, io.commands, config, dirs, roots).await;
             Ok(())
         }
     }

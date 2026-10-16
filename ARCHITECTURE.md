@@ -126,7 +126,7 @@ code into `tests.rs`. Exceptions and renames:
 | `units.rs` | `sill-model/src/units.rs`; `Percent` becomes `ds_core`'s; `Presence` becomes `Found`, `Visibility` becomes `Revealed` (no clash with `ds-motion::Presence` or `shell_host::Visibility`) |
 | `attempt.rs` | `sill-model/src/attempt.rs` |
 | `apps/{exec,index,match_app}.rs` | `sill-model/src/apps/` |
-| `apps/{scan,icons}.rs` | `apps/backend/` |
+| `apps/{scan,icons}.rs` | `apps/backend/` (`scan.rs` the directories and the scan, `walk.rs` the `.desktop` files under them, `entry.rs` one file's text as an `App` through `ds_helpers::DesktopFile`, `locales.rs` the session's locales) |
 | `auth/{types,gate,protocol}.rs` | `sill-model/src/auth/` |
 | `auth/{account,helper,pam,live}.rs` | `auth/backend/` (`pam.rs` is public: `sill auth-check` calls it) |
 | `auth/authenticator.rs` | `env/authenticator.rs` (the `Authenticator` seam and `FakeAuthenticator`) |

@@ -3,12 +3,14 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use ds_helpers::EntryLocale;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use sill_model::apps::{AppIndex, AppsCommand, AppsEvent, step};
 use tokio::sync::{mpsc, watch};
 
 use super::icons;
-use crate::apps::{IconRoots, applications_dirs, icon_theme, scan};
+use super::locales::session_locales;
+use crate::apps::{IconRoots, icon_theme, scan};
 
 /// How long the applications directories (and the icon theme file) must be quiet before a
 /// rescan.
@@ -21,11 +23,10 @@ pub(crate) async fn run(
     tx: watch::Sender<AppIndex>,
     mut commands: mpsc::UnboundedReceiver<AppsCommand>,
     config: PathBuf,
-    data: PathBuf,
+    dirs: Vec<PathBuf>,
     roots: Vec<PathBuf>,
 ) {
-    let dirs = applications_dirs(&data);
-    let locales = freedesktop_desktop_entry::get_languages_from_env();
+    let locales = session_locales();
     publish(&tx, &config, &dirs, &roots, &locales).await;
 
     let (signal, mut signals) = mpsc::unbounded_channel::<()>();
@@ -62,7 +63,7 @@ async fn publish(
     config: &Path,
     dirs: &[PathBuf],
     roots: &[PathBuf],
-    locales: &[String],
+    locales: &[EntryLocale],
 ) {
     let config = config.to_path_buf();
     let dirs = dirs.to_vec();
