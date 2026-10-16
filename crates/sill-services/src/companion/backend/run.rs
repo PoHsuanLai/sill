@@ -33,6 +33,7 @@ use super::text::text;
 use super::{answer, cua, intents, memory, tell};
 use crate::companion::{CompanionLinks, CompanionService};
 use crate::control::Control;
+use crate::deadline::{COMPANION_CALL, within};
 use crate::env::{Env, WallClock};
 use crate::owner;
 use crate::seat::SeatView;
@@ -306,8 +307,10 @@ impl Live {
             return;
         };
         tokio::spawn(async move {
-            if let Err(why) = call(connection).await {
-                eprintln!("sill: companion: {what}: {why}");
+            match within(COMPANION_CALL, what, call(connection)).await {
+                Ok(Ok(())) => {}
+                Ok(Err(why)) => eprintln!("sill: companion: {what}: {why}"),
+                Err(silent) => eprintln!("sill: companion: {silent}"),
             }
         });
     }
@@ -425,11 +428,18 @@ impl Live {
         };
         let (inner, events, at) = (self.inner.clone(), self.events.clone(), self.unix());
         tokio::spawn(async move {
-            match answer::ask(&connection, input, at, &events).await {
-                Ok(path) => {
+            let asked = within(
+                COMPANION_CALL,
+                "the companion",
+                answer::ask(&connection, input, at, &events),
+            )
+            .await;
+            match asked {
+                Ok(Ok(path)) => {
                     let _ = inner.send(Inner::Follow(path));
                 }
-                Err(why) => eprintln!("sill: companion: asking: {why}"),
+                Ok(Err(why)) => eprintln!("sill: companion: asking: {why}"),
+                Err(silent) => eprintln!("sill: companion: asking: {silent}"),
             }
         });
     }

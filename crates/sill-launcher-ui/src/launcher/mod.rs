@@ -33,6 +33,7 @@ mod follow;
 mod layer;
 mod pane_keys;
 pub(crate) mod panel;
+mod picking;
 mod run;
 mod surface;
 

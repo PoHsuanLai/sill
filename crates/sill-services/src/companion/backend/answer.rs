@@ -18,6 +18,7 @@ use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
 use super::text::{from_json, text, to_json};
+use crate::deadline::{COMPANION_CALL, within};
 use crate::stream::next;
 
 /// The shell's window as the companion names it: `w` and the compositor's number.
@@ -172,7 +173,17 @@ pub(super) async fn card(
     action: CardActionId,
     events: UnboundedSender<CompanionEvent>,
 ) {
-    if let Err(why) = press(&connection, &task, &action).await {
+    let pressed = match within(
+        COMPANION_CALL,
+        "the companion",
+        press(&connection, &task, &action),
+    )
+    .await
+    {
+        Ok(done) => done,
+        Err(silent) => Err(silent.to_string()),
+    };
+    if let Err(why) = pressed {
         eprintln!("sill: companion: a card button: {why}");
         let _ = events.send(CompanionEvent::CardRefused { task, action });
     }

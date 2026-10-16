@@ -2,6 +2,8 @@
 //! switch of mode in place, the search that follows the companion's own state, and the selection
 //! that follows a new answer.
 
+use std::time::Duration;
+
 use dioxus::prelude::*;
 use ds::components::menus::palette::palette_claim::Claim;
 use prov::TaskId;
@@ -14,6 +16,10 @@ use crate::launcher::events::PanelCtx;
 use crate::launcher::keymap::companion_key;
 use crate::launcher::keys::LauncherState;
 use crate::launcher::session::{Session, filter_for};
+
+/// How long the selection waits for an ask's answer to become the front task. The companion
+/// answers in seconds when it answers at all.
+const ANSWER_DEADLINE: Duration = Duration::from_secs(10);
 
 impl PanelCtx {
     /// Whether the opening on this output is in companion mode.
@@ -147,11 +153,17 @@ impl PanelCtx {
     /// want the selection on it once the rows have it.
     pub(crate) async fn after_ask(&self, before: Option<TaskId>) {
         let mut state = self.services.companion.state.clone();
-        let front = state
-            .wait_for(|companion| companion.front.is_some() && companion.front != before)
-            .await
-            .ok()
-            .and_then(|companion| companion.front.clone());
+        // A companion that never answers (no connection, the ask refused) must not keep this
+        // waiting: past the deadline the selection simply stays where it is.
+        let waited = tokio::time::timeout(
+            ANSWER_DEADLINE,
+            state.wait_for(|companion| companion.front.is_some() && companion.front != before),
+        )
+        .await;
+        let front = match waited {
+            Ok(Ok(companion)) => companion.front.clone(),
+            Ok(Err(_)) | Err(_) => None,
+        };
         if let Some(task) = front {
             let mut wanted = self.wanted;
             wanted.set(Some(task));

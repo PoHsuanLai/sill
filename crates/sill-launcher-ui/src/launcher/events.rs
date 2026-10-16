@@ -26,6 +26,7 @@ use crate::launcher::keys::{
     step,
 };
 use crate::launcher::pane_session::{PaneSession, next_in_ring, ring_for};
+use crate::launcher::picking::Picking;
 use crate::launcher::preview::keys::{PreviewKey, PreviewState};
 use crate::launcher::run::{EffectFrom, run_effect};
 use crate::launcher::session::Session;
@@ -42,14 +43,6 @@ pub fn first_frame_line(elapsed: std::time::Duration) -> String {
         "launcher.open_to_frame_ms={:.3}",
         elapsed.as_secs_f64() * 1000.0
     )
-}
-
-/// Whether a pick is under way: the palette calls `onclose` just before `onpick`, and the
-/// launcher must stay mapped until the pick has its activation token.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Picking {
-    No,
-    Yes,
 }
 
 /// Everything the panel's handlers reach. Clone is cheap.
@@ -209,6 +202,9 @@ impl PanelCtx {
         });
         let mut row = self.row;
         row.set(None);
+        // Whatever a pick of the last opening was still waiting for is not this opening's.
+        let mut picking = self.picking;
+        picking.set(Picking::No);
         let filter = crate::launcher::session::filter_for(opening.mode);
         self.search(&opening.query, filter);
         if let Some(surface) = self.surface.clone() {
@@ -479,7 +475,7 @@ impl PanelCtx {
             }
             None => effect,
         };
-        picking.set(Picking::Yes);
+        picking.set(Picking::starting(std::time::Instant::now()));
         if let LauncherEffect::Insert(text) = &effect {
             // The field takes the text and the launcher stays; the palette's `onclose` that
             // came with an Enter is ignored for this turn.
@@ -537,7 +533,7 @@ impl PanelCtx {
             ));
         let (picking, link) = (self.picking, self.link.clone());
         spawn(async move {
-            if *picking.peek() == Picking::No {
+            if !picking.peek().holds_close(std::time::Instant::now()) {
                 link.close();
             }
         });
