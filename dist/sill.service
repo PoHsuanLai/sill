@@ -1,22 +1,36 @@
 # sill, the shell, as a systemd user service.
 #
-# Install: copy to ~/.config/systemd/user/sill.service (adjust ExecStart if sill is not in
-# /usr/bin), then `systemctl --user enable --now sill.service` inside a casement session.
+# Installed root-held under /usr/lib/systemd/user (or /usr/local/lib/systemd/user, /etc/systemd/user),
+# never under ~/.config: the account service and the companion's daemons treat the main process of
+# this unit as the shell, and they trust the unit only when its file, and every drop-in of it, sit
+# in those root-held places, so a copy in the person's own folder is not trusted. The desktop
+# repo's installer (install/install.sh) puts it there.
+#
+# The desktop session (desktop-session) starts it with `systemctl --user start sill.service` once
+# the compositor is up; other session managers may enable it for graphical-session.target.
 # `sill run` takes a single-instance lock (latchkey) and exits 0 when one is already running,
 # so a client that started the daemon on demand and this unit never race into two shells.
 [Unit]
 Description=sill, the shell (bar, wallpaper, dock, launcher)
 Documentation=https://github.com/PoHsuanLai/sill
-PartOf=graphical-session.target
-After=graphical-session.target
-Requisite=graphical-session.target
+# The shell is part of the graphical session and of the compositor it draws on: both stopping or
+# restarting take it along. It is not started on its own without them (Requisite=), and it starts
+# after the compositor is ready.
+PartOf=graphical-session.target casement.service
+After=casement.service graphical-session.target
+Requisite=casement.service graphical-session.target
 # A crash loop must never leave a locked session blank: the default limit (5 starts in 10 s)
 # would stop restarting, and the compositor keeps the session covered with nobody to unlock it.
 StartLimitIntervalSec=0
 
 [Service]
-Type=simple
+# exec: the start fails at once when the program is missing, and the main process is the shell.
+Type=exec
 ExecStart=/usr/bin/sill run
+# A loader variable from the person's environment (a library to preload, a folder of plug-ins or
+# drivers to load) must not load code into this trusted process: accountd gives this unit a fixed
+# role only when the unit clears them, so none of them comes in through the user manager.
+UnsetEnvironment=LD_PRELOAD LD_LIBRARY_PATH LD_AUDIT GCONV_PATH GIO_EXTRA_MODULES GTK_MODULES GTK_PATH GST_PLUGIN_PATH GST_PLUGIN_SYSTEM_PATH LIBGL_DRIVERS_PATH MESA_LOADER_DRIVER_OVERRIDE __EGL_VENDOR_LIBRARY_DIRS __EGL_VENDOR_LIBRARY_FILENAMES GBM_BACKENDS_PATH LIBVA_DRIVERS_PATH VK_ICD_FILENAMES VK_DRIVER_FILES VK_ADD_DRIVER_FILES VK_LAYER_PATH VK_ADD_LAYER_PATH VK_INSTANCE_LAYERS VK_LOADER_LAYERS_ENABLE
 # `sill quit` is refused while the session is locked, and a shell that ends on its own while
 # locked exits with a failure, so on-failure restarts every exit that must not leave the session
 # covered; a clean `sill quit` or `systemctl --user stop` is an intended stop and stays stopped.

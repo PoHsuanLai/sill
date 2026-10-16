@@ -109,7 +109,7 @@ screen's session list the whole time. Nothing below changes Plasma's files.
 8. **Mouse settings.** Plasma's per-mouse settings are not copied. casement's settings
    (`~/.config/casement/settings.toml`, `[pointer] natural_scroll`) hold the mouse options, and natural
    scroll is on by default. Change it there if you want the other direction.
-9. Do not install `dist/sill.service` and do not enable `voiced.service` (see "The agent stack" in
+9. Do not install `dist/sill.service` yourself (the desktop repo's installer puts it under `/etc/systemd/user`, root-held, and the session starts it; a copy under `~/.config` is not trusted) and do not enable `voiced.service` (see "The agent stack" in
    section 3). `dist/udev` and `dist/modules-load.d` (external monitor brightness) are installed by
    `dist/install.sh` itself, and only when no ddcutil udev rule exists on the machine.
 10. Log out of Plasma.

@@ -741,7 +741,7 @@ bare `style { {CSS} }`). A user rule written `[data-surface=bar]` (plain, no `*|
 `dist/` holds what sill adds to a login: `sill.service`, `intents/org.quire.Shell.toml` (what `quire-do shell` lists and intentd gates), the PAM service, the keycap layer and the DDC/CI
 rules. `dist/install.sh` (`--dry-run` prints) and `dist/uninstall.sh` put them in place and take
 them out, sharing `dist/install-lib.sh`; they never touch Plasma or Toshy, and skip the DDC rules
-and `sill.service`. The login itself, "sill (casement)", is the desktop repo's `session/`.
+and `sill.service`, which the desktop repo's installer puts, root-held, under `/etc/systemd/user` (the account service trusts the unit only from root-held places, and its `UnsetEnvironment` clears the loader variables). The login itself, "sill (casement)", is the desktop repo's `session/`.
 `docs/first-login.md` is the user's checklist.
 
 The desktop's own compositor (`daemon/compositor.rs`, `daemon/targets.rs`): `ShellSeat` holds the

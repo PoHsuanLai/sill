@@ -20,7 +20,8 @@
 #
 # Also installed, when no ddcutil rule exists on the machine (60-ddcutil*.rules): dist/udev and
 # dist/modules-load.d, so the i2c buses of external monitors open to the person at the seat (DDC/CI
-# brightness). Not installed, on purpose: dist/sill.service (the desktop session starts sill itself),
+# brightness). Not installed here, on purpose: dist/sill.service (the desktop repo's installer puts it root-held beside
+# casement.service and its session starts it; a copy under ~/.config is not trusted by the account service),
 # anything of Plasma's or Toshy's, and keycap's machine file /etc/keycap/keycap.toml.
 # dist/uninstall.sh undoes it. docs/first-login.md is next.
 set -euo pipefail
