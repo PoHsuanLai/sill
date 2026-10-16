@@ -27,7 +27,7 @@ pub(crate) async fn run(
     tx: watch::Sender<Network>,
     mut commands: mpsc::UnboundedReceiver<NetworkCommand>,
 ) -> Result<(), ServiceError> {
-    let connection = bus.connected().await?;
+    let connection = crate::supervise::connect_when_up(&bus).await?;
     loop {
         owner::appeared(&connection, SERVICE).await;
         tokio::select! {

@@ -14,6 +14,7 @@ use tokio::sync::{mpsc, watch};
 use crate::control::Control;
 use crate::env::Env;
 use crate::error::ServiceError;
+use crate::supervise::panic_text;
 
 /// One service: what it publishes, what it can be told, what it needs from other services, and
 /// the task that does the work.
@@ -98,18 +99,71 @@ impl<S: Service> Handle<S> {
     }
 }
 
-/// Start `S` on `rt` against `env`'s seams, reading or driving `deps`.
+/// Start `S` on `rt` against `env`'s seams, reading or driving `deps`. The service's task is
+/// watched by a second one, so a panic inside it is caught at this boundary and logged with the
+/// service's name instead of vanishing with the task.
 pub fn spawn<S: Service>(rt: &tokio::runtime::Handle, env: &Env, deps: S::Deps) -> Handle<S> {
     let (handle, io) = Handle::<S>::channel(S::initial(env, &deps));
-    let task = S::run(env, deps, io);
-    rt.spawn(async move { report(S::NAME, task.await) });
+    let work = rt.spawn(S::run(env, deps, io));
+    rt.spawn(async move {
+        if let Some(line) = ending_line(S::NAME, work.await) {
+            eprintln!("{line}");
+        }
+    });
     handle
 }
 
-/// Log why a service ended early; a bus absent by choice is not worth a line.
-fn report(name: &str, ended: Result<(), ServiceError>) {
+/// The log line for how a service's task ended, or none when that is not worth one: a clean end,
+/// a bus absent by choice, or the runtime shutting down.
+fn ending_line(
+    name: &str,
+    ended: Result<Result<(), ServiceError>, tokio::task::JoinError>,
+) -> Option<String> {
     match ended {
-        Ok(()) | Err(ServiceError::NoBus(_)) => {}
-        Err(error) => eprintln!("sill: {name}: {error}; it keeps its last value"),
+        Ok(Ok(())) | Ok(Err(ServiceError::NoBus(_))) => None,
+        Ok(Err(error)) => Some(format!("sill: {name}: {error}; it keeps its last value")),
+        Err(error) => error.try_into_panic().ok().map(|payload| {
+            format!(
+                "sill: {name}: panicked: {}; it keeps its last value",
+                panic_text(payload.as_ref())
+            )
+        }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ending_line;
+    use crate::env::BusKind;
+    use crate::error::ServiceError;
+
+    fn broken() -> Result<(), ServiceError> {
+        panic!("the thing broke")
+    }
+
+    #[tokio::test]
+    async fn how_a_service_ended_is_logged_only_when_it_matters() {
+        let panicked = tokio::spawn(async { broken() }).await;
+        let cases = [
+            ("a clean end", Ok(Ok(())), None),
+            (
+                "no bus by choice",
+                Ok(Err(ServiceError::NoBus(BusKind::System))),
+                None,
+            ),
+            (
+                "an error",
+                Ok(Err(ServiceError::Gone)),
+                Some("sill: svc: the service has stopped; it keeps its last value"),
+            ),
+            (
+                "a panic",
+                panicked,
+                Some("sill: svc: panicked: the thing broke; it keeps its last value"),
+            ),
+        ];
+        for (name, ended, want) in cases {
+            assert_eq!(ending_line("svc", ended).as_deref(), want, "{name}");
+        }
     }
 }

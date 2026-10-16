@@ -33,6 +33,9 @@ pub enum ServiceError {
     /// A service's own thread could not be started.
     #[error("no thread: {0}")]
     Thread(std::io::Error),
+    /// A peer did not answer within its deadline ([`crate::deadline`]); it is named.
+    #[error("{0} did not answer in time")]
+    TimedOut(&'static str),
     /// A program to launch could not be started.
     #[error("launch: {0}")]
     Launch(String),

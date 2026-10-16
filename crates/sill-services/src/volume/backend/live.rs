@@ -10,7 +10,7 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use libpulse_binding::callbacks::ListResult;
 use libpulse_binding::context::subscribe::InterestMaskSet;
@@ -21,6 +21,8 @@ use sill_model::units::Percent;
 use sill_model::volume::{Mute, Volume, VolumeCommand, VolumeEvent, step, stepped};
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::{mpsc, watch};
+
+use crate::supervise::Backoff;
 
 /// The default sink this service last saw: enough to address a volume or mute change back to
 /// it. Zero channels means "no sink": commands are dropped, matching `step`.
@@ -34,14 +36,63 @@ struct Sink {
 /// long enough not to spin a core for an idle sink.
 const POLL: Duration = Duration::from_millis(10);
 
-/// Runs until `commands` closes (the `Control` was dropped), then disconnects. Blocking
+/// How one connection to the sound server ended.
+enum Session {
+    /// The commands closed: the service is done.
+    Commands,
+    /// The server was not there, refused, or went away (a restart of PipeWire); connect again.
+    Lost,
+}
+
+/// Runs until `commands` closes (the `Control` was dropped), connecting again with a growing wait
+/// whenever the sound server is missing or goes away, and disconnecting at the end. Blocking
 /// throughout: call from a dedicated thread (`Handle::spawn_blocking`).
 pub(crate) fn run(tx: watch::Sender<Volume>, mut commands: mpsc::UnboundedReceiver<VolumeCommand>) {
+    let mut backoff = Backoff::default();
+    loop {
+        let started = Instant::now();
+        match session(&tx, &mut commands) {
+            Session::Commands => return,
+            Session::Lost => {
+                apply_event(&tx, VolumeEvent::SinkGone);
+                backoff.after_attempt(started.elapsed());
+                if let Waited::CommandsClosed = wait_out(backoff.wait(), &mut commands) {
+                    return;
+                }
+            }
+        }
+    }
+}
+
+/// Whether the commands closed while waiting to connect again.
+enum Waited {
+    Elapsed,
+    CommandsClosed,
+}
+
+/// Sleep `wait`, dropping the commands that come meanwhile (there is no sink to apply them to).
+fn wait_out(wait: Duration, commands: &mut mpsc::UnboundedReceiver<VolumeCommand>) -> Waited {
+    let until = Instant::now() + wait;
+    while Instant::now() < until {
+        match commands.try_recv() {
+            Err(TryRecvError::Disconnected) => return Waited::CommandsClosed,
+            Ok(_) | Err(TryRecvError::Empty) => {}
+        }
+        std::thread::sleep(POLL);
+    }
+    Waited::Elapsed
+}
+
+/// One connection to the sound server, from connecting to its end.
+fn session(
+    tx: &watch::Sender<Volume>,
+    commands: &mut mpsc::UnboundedReceiver<VolumeCommand>,
+) -> Session {
     let Some(mut mainloop) = Mainloop::new() else {
-        return;
+        return Session::Lost;
     };
     let Some(context) = Context::new(&mainloop, "sill") else {
-        return;
+        return Session::Lost;
     };
     let context = Rc::new(RefCell::new(context));
     let sink = Rc::new(RefCell::new(Sink::default()));
@@ -51,44 +102,45 @@ pub(crate) fn run(tx: watch::Sender<Volume>, mut commands: mpsc::UnboundedReceiv
         .connect(None, ContextFlagSet::NOAUTOSPAWN, None)
         .is_err()
     {
-        return;
+        return Session::Lost;
     }
 
     let mut ready = false;
-    loop {
+    let ended = loop {
         match commands.try_recv() {
-            Ok(command) if ready => apply(&context, &sink, &tx, command),
+            Ok(command) if ready => apply(&context, &sink, tx, command),
             Ok(_) => {}
             Err(TryRecvError::Empty) => {}
-            Err(TryRecvError::Disconnected) => break,
+            Err(TryRecvError::Disconnected) => break Session::Commands,
         }
 
         match mainloop.iterate(false) {
-            IterateResult::Quit(_) | IterateResult::Err(_) => break,
+            IterateResult::Quit(_) | IterateResult::Err(_) => break Session::Lost,
             IterateResult::Success(_) => {}
         }
 
-        if !ready {
-            // Bound to an owned value first: `context.borrow()` in a `match` scrutinee stays
-            // borrowed for every arm's body (Rust's temporary-lifetime rule for `match`), which
-            // would panic when `subscribe`/`refresh` below try to borrow it again.
-            let state = context.borrow().get_state();
-            match state {
-                ContextState::Ready => {
-                    ready = true;
-                    subscribe(&context, &tx, &sink);
-                    refresh(&context, &tx, &sink);
-                }
-                ContextState::Failed | ContextState::Terminated => break,
-                _ => {}
+        // Bound to an owned value first: `context.borrow()` in a `match` scrutinee stays
+        // borrowed for every arm's body (Rust's temporary-lifetime rule for `match`), which
+        // would panic when `subscribe`/`refresh` below try to borrow it again.
+        let state = context.borrow().get_state();
+        match state {
+            ContextState::Ready if !ready => {
+                ready = true;
+                subscribe(&context, tx, &sink);
+                refresh(&context, tx, &sink);
             }
+            // Checked for the whole life of the connection, so a server that restarts after a
+            // good start is noticed as well as one that never came up.
+            ContextState::Failed | ContextState::Terminated => break Session::Lost,
+            _ => {}
         }
 
         std::thread::sleep(POLL);
-    }
+    };
 
     context.borrow_mut().set_subscribe_callback(None);
     context.borrow_mut().disconnect();
+    ended
 }
 
 /// Subscribes to sink and server changes, refreshing the default sink on every one.

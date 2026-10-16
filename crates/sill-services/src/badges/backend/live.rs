@@ -29,7 +29,7 @@ pub(crate) async fn run(
     tx: watch::Sender<Badges>,
     mut commands: mpsc::UnboundedReceiver<BadgesCommand>,
 ) -> Result<(), ServiceError> {
-    let connection = bus.connected().await?;
+    let connection = crate::supervise::connect_when_up(&bus).await?;
     let rule = update_rule()?;
     let mut updates = MessageStream::for_match_rule(rule, &connection, None).await?;
     let dbus = DBusProxy::new(&connection).await?;

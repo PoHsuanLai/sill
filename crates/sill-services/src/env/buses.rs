@@ -57,14 +57,6 @@ impl Bus {
         &self.route
     }
 
-    /// A new connection to this bus, for a service that has nothing to do without one:
-    /// [`ServiceError::NoBus`](crate::ServiceError) when the route is [`BusRoute::Absent`].
-    pub async fn connected(&self) -> Result<Connection, crate::ServiceError> {
-        self.connect()
-            .await?
-            .ok_or(crate::ServiceError::NoBus(self.kind))
-    }
-
     /// A new connection to this bus; `Ok(None)` when the route is [`BusRoute::Absent`].
     pub async fn connect(&self) -> zbus::Result<Option<Connection>> {
         let connection = match (&self.route, self.kind) {

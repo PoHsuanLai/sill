@@ -73,7 +73,7 @@ pub(crate) async fn run(
     tx: watch::Sender<Bluetooth>,
     mut commands: mpsc::UnboundedReceiver<BluetoothCommand>,
 ) -> Result<(), ServiceError> {
-    let connection = bus.connected().await?;
+    let connection = crate::supervise::connect_when_up(&bus).await?;
     let dbus = DBusProxy::new(&connection).await?;
     let mut owner_changes = dbus
         .receive_name_owner_changed_with_args(&[(0, SERVICE)])

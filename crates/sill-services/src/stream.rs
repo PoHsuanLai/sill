@@ -24,3 +24,12 @@ where
         None => std::future::pending().await,
     }
 }
+
+/// Resolves at `deadline`; never when there is none, so the `tokio::select!` branch it backs
+/// only fires while something is waiting.
+pub(crate) async fn sleep_until_opt(deadline: Option<tokio::time::Instant>) {
+    match deadline {
+        Some(at) => tokio::time::sleep_until(at).await,
+        None => std::future::pending().await,
+    }
+}

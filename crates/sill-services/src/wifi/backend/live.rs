@@ -3,90 +3,229 @@
 //! connections' SSIDs, and the active access point; every change through
 //! [`sill_model::wifi::step`]; [`WifiCommand`]s carried out.
 //!
-//! Same bus and proxies as the network service (`crate::nm`); the wireless
-//! device is found once by its `DeviceType` and kept for the life of the task (a device that
-//! disappears mid-run is not re-found — `Refresh` is a later milestone's, per [`WifiCommand`]).
+//! Same bus and proxies as the network service (`crate::nm`). NetworkManager starting after sill
+//! or restarting under it is followed through its bus name ([`crate::owner`]), and the wireless
+//! device is looked for again whenever one is added or removed (a USB adapter plugged in later).
+//! Access point signals arrive in floods during a scan, so they are folded into one refresh a
+//! short while after the last; every call to NetworkManager has a deadline.
 
 use std::collections::HashMap;
+use std::time::Duration;
 
-use sill_model::units::{Percent, Presence};
-use sill_model::wifi::{
-    AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiCommand, WifiEvent, step,
-};
+use sill_model::units::Presence;
+use sill_model::wifi::{Radio, Wifi, WifiCommand, WifiEvent};
 use tokio::sync::{mpsc, watch};
+use tokio::time::Instant;
 use zbus::Connection;
 use zbus::zvariant::{ObjectPath, OwnedObjectPath};
 
+use super::reads::{apply, refresh_access_points, refresh_radio, refresh_saved, saved_ssid_of};
+use crate::deadline::{BUS_CALL, NETWORK_REFRESH, call, within};
 use crate::env::Bus;
 use crate::error::ServiceError;
-use crate::nm::{
-    AccessPointProxy, ConnectionSettingsProxy, DeviceProxy, DeviceState, DeviceType,
-    NetworkManagerProxy, SettingsProxy, WirelessDeviceProxy,
-};
-use crate::stream::next;
+use crate::nm::{DeviceProxy, DeviceType, NetworkManagerProxy, SettingsProxy, WirelessDeviceProxy};
+use crate::owner::{self, Ended};
+use crate::stream::{next, sleep_until_opt};
 
-/// Runs until `commands` closes. Without a bus, NetworkManager or a wireless device, `tx` stays
-/// at its default.
+const SERVICE: &str = "org.freedesktop.NetworkManager";
+
+/// How long after the last access point signal the list is read again: a scan reports every
+/// point it finds, one signal each, and one read after the burst shows the same list.
+const REFRESH_AFTER_SIGNALS: Duration = Duration::from_millis(250);
+
+/// Runs until `commands` closes. Without NetworkManager or a wireless device `tx` stays at its
+/// default, and it comes back by itself when either appears.
 pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Wifi>,
     mut commands: mpsc::UnboundedReceiver<WifiCommand>,
 ) -> Result<(), ServiceError> {
-    let connection = bus.connected().await?;
-    let nm = NetworkManagerProxy::new(&connection).await?;
-    let settings = SettingsProxy::new(&connection).await?;
-    let Some(device_path) = find_wireless_device(&connection, &nm).await else {
-        return Ok(());
-    };
-    let Some(wireless) = wireless_proxy(&connection, &device_path).await else {
-        return Ok(());
-    };
-    let Some(device) = device_proxy(&connection, &device_path).await else {
-        return Ok(());
-    };
-    let mut ap_added = wireless.receive_access_point_added().await?;
-    let mut ap_removed = wireless.receive_access_point_removed().await?;
-    let mut new_connection = settings.receive_new_connection().await?;
-    let mut connection_removed = settings.receive_connection_removed().await?;
+    let connection = crate::supervise::connect_when_up(&bus).await?;
+    loop {
+        owner::appeared(&connection, SERVICE).await;
+        tokio::select! {
+            ended = session(&connection, &tx, &mut commands) => match ended {
+                Ended::Commands => return Ok(()),
+                Ended::Unreadable => owner::changed(&connection, SERVICE).await,
+            },
+            () = owner::changed(&connection, SERVICE) => {}
+        }
+        apply(&tx, WifiEvent::Gone);
+    }
+}
 
-    apply(&tx, WifiEvent::Device(Presence::Present));
-    refresh_radio(&nm, &tx).await;
-    refresh_access_points(&connection, &wireless, &device, &tx).await;
-    refresh_saved(&connection, &settings, &tx).await;
+/// How following one wireless device ended.
+enum Followed {
+    /// The commands closed: the service is done.
+    Commands,
+    /// The device left, or another took its place.
+    DeviceGone,
+}
+
+/// One NetworkManager lifetime: find a wireless device, follow it, find one again when it goes.
+async fn session(
+    connection: &Connection,
+    tx: &watch::Sender<Wifi>,
+    commands: &mut mpsc::UnboundedReceiver<WifiCommand>,
+) -> Ended {
+    let (Ok(nm), Ok(settings)) = (
+        NetworkManagerProxy::new(connection).await,
+        SettingsProxy::new(connection).await,
+    ) else {
+        return Ended::Unreadable;
+    };
+    let (Ok(mut added), Ok(mut removed)) = (
+        nm.receive_device_added().await,
+        nm.receive_device_removed().await,
+    ) else {
+        return Ended::Unreadable;
+    };
+    loop {
+        let found = within(
+            NETWORK_REFRESH,
+            "NetworkManager",
+            find_wireless_device(connection, &nm),
+        )
+        .await
+        .ok()
+        .flatten();
+        let Some(device_path) = found else {
+            tokio::select! {
+                Some(_) = next(&mut added) => {}
+                command = commands.recv() => {
+                    if command.is_none() {
+                        return Ended::Commands;
+                    }
+                }
+            }
+            continue;
+        };
+        let followed = follow(
+            connection,
+            &nm,
+            &settings,
+            &device_path,
+            tx,
+            commands,
+            &mut removed,
+        )
+        .await;
+        match followed {
+            Followed::Commands => return Ended::Commands,
+            Followed::DeviceGone => {
+                apply(tx, WifiEvent::Device(Presence::Absent));
+                apply(tx, WifiEvent::AccessPoints(Vec::new()));
+            }
+        }
+    }
+}
+
+/// Follow the wireless device at `device_path` until it goes or the commands close.
+async fn follow(
+    connection: &Connection,
+    nm: &NetworkManagerProxy<'_>,
+    settings: &SettingsProxy<'_>,
+    device_path: &OwnedObjectPath,
+    tx: &watch::Sender<Wifi>,
+    commands: &mut mpsc::UnboundedReceiver<WifiCommand>,
+    removed: &mut (impl zbus::export::futures_core::Stream + Unpin),
+) -> Followed {
+    let (Some(wireless), Some(device)) = (
+        wireless_proxy(connection, device_path).await,
+        device_proxy(connection, device_path).await,
+    ) else {
+        return Followed::DeviceGone;
+    };
+    let (Ok(mut ap_added), Ok(mut ap_removed), Ok(mut new_connection), Ok(mut connection_removed)) = (
+        wireless.receive_access_point_added().await,
+        wireless.receive_access_point_removed().await,
+        settings.receive_new_connection().await,
+        settings.receive_connection_removed().await,
+    ) else {
+        return Followed::DeviceGone;
+    };
+
+    apply(tx, WifiEvent::Device(Presence::Present));
+    refresh_radio(nm, tx).await;
+    refresh_access_points(connection, &wireless, &device, tx).await;
+    refresh_saved(connection, settings, tx).await;
 
     let mut wireless_enabled = nm.receive_wireless_enabled_changed().await;
     let mut wireless_hw_enabled = nm.receive_wireless_hardware_enabled_changed().await;
     let mut last_scan = wireless.receive_last_scan_changed().await;
     let mut active_ap = wireless.receive_active_access_point_changed().await;
+    // When the access point list is next read, once the signals about it have died down.
+    let mut refresh_at: Option<Instant> = None;
 
     loop {
         tokio::select! {
-            Some(_) = next(&mut wireless_enabled) => refresh_radio(&nm, &tx).await,
-            Some(_) = next(&mut wireless_hw_enabled) => refresh_radio(&nm, &tx).await,
-            Some(_) = next(&mut ap_added) => refresh_access_points(&connection, &wireless, &device, &tx).await,
-            Some(_) = next(&mut ap_removed) => refresh_access_points(&connection, &wireless, &device, &tx).await,
-            Some(_) = next(&mut last_scan) => refresh_access_points(&connection, &wireless, &device, &tx).await,
-            Some(_) = next(&mut active_ap) => refresh_access_points(&connection, &wireless, &device, &tx).await,
-            Some(_) = next(&mut new_connection) => refresh_saved(&connection, &settings, &tx).await,
-            Some(_) = next(&mut connection_removed) => refresh_saved(&connection, &settings, &tx).await,
+            Some(_) = next(&mut wireless_enabled) => refresh_radio(nm, tx).await,
+            Some(_) = next(&mut wireless_hw_enabled) => refresh_radio(nm, tx).await,
+            Some(_) = next(&mut ap_added) => refresh_at = Some(Instant::now() + REFRESH_AFTER_SIGNALS),
+            Some(_) = next(&mut ap_removed) => refresh_at = Some(Instant::now() + REFRESH_AFTER_SIGNALS),
+            Some(_) = next(&mut last_scan) => refresh_at = Some(Instant::now() + REFRESH_AFTER_SIGNALS),
+            Some(_) = next(&mut active_ap) => refresh_at = Some(Instant::now() + REFRESH_AFTER_SIGNALS),
+            () = sleep_until_opt(refresh_at) => {
+                refresh_at = None;
+                refresh_access_points(connection, &wireless, &device, tx).await;
+            }
+            Some(_) = next(&mut new_connection) => refresh_saved(connection, settings, tx).await,
+            Some(_) = next(&mut connection_removed) => refresh_saved(connection, settings, tx).await,
+            Some(_) = next(removed) => {
+                let still = within(NETWORK_REFRESH, "NetworkManager", find_wireless_device(connection, nm))
+                    .await
+                    .ok()
+                    .flatten();
+                if still.as_ref() != Some(device_path) {
+                    return Followed::DeviceGone;
+                }
+            }
             command = commands.recv() => match command {
-                Some(WifiCommand::Radio(radio)) => {
-                    let _ = nm.set_wireless_enabled(radio == Radio::On).await;
-                }
-                Some(WifiCommand::Scan) => {
-                    let _ = wireless.request_scan(HashMap::new()).await;
-                }
-                Some(WifiCommand::Connect(ssid)) => {
-                    connect(&connection, &nm, &settings, &device_path, &ssid).await;
-                }
-                Some(WifiCommand::Disconnect) => {
-                    let _ = device.disconnect().await;
-                }
-                None => break,
+                Some(command) => carry_out(connection, nm, settings, &wireless, &device, device_path, command).await,
+                None => return Followed::Commands,
             }
         }
     }
-    Ok(())
+}
+
+/// Carry out one command; every call to NetworkManager has [`BUS_CALL`] to answer, and a refusal
+/// or silence leaves things as they were.
+async fn carry_out(
+    connection: &Connection,
+    nm: &NetworkManagerProxy<'_>,
+    settings: &SettingsProxy<'_>,
+    wireless: &WirelessDeviceProxy<'_>,
+    device: &DeviceProxy<'_>,
+    device_path: &OwnedObjectPath,
+    command: WifiCommand,
+) {
+    let _ = match command {
+        WifiCommand::Radio(radio) => {
+            call(
+                BUS_CALL,
+                "NetworkManager",
+                nm.set_wireless_enabled(radio == Radio::On),
+            )
+            .await
+        }
+        WifiCommand::Scan => {
+            call(
+                BUS_CALL,
+                "NetworkManager",
+                wireless.request_scan(HashMap::new()),
+            )
+            .await
+        }
+        WifiCommand::Connect(ssid) => {
+            within(
+                NETWORK_REFRESH,
+                "NetworkManager",
+                connect(connection, nm, settings, device_path, &ssid),
+            )
+            .await
+        }
+        WifiCommand::Disconnect => call(BUS_CALL, "NetworkManager", device.disconnect()).await,
+    };
 }
 
 /// The path of NetworkManager's first Wi-Fi device, or `None` without one.
@@ -128,137 +267,6 @@ async fn device_proxy<'a>(
         .ok()
 }
 
-/// Reads `WirelessEnabled` and `WirelessHardwareEnabled` and publishes the radio they describe.
-async fn refresh_radio(nm: &NetworkManagerProxy<'_>, tx: &watch::Sender<Wifi>) {
-    let enabled = nm.wireless_enabled().await.unwrap_or(false);
-    let hw_enabled = nm.wireless_hardware_enabled().await.unwrap_or(true);
-    apply(tx, WifiEvent::Radio(radio_of(enabled, hw_enabled)));
-}
-
-fn radio_of(enabled: bool, hw_enabled: bool) -> Radio {
-    if !hw_enabled {
-        Radio::Blocked
-    } else if enabled {
-        Radio::On
-    } else {
-        Radio::Off
-    }
-}
-
-/// Reads every access point the device currently sees and publishes the list.
-async fn refresh_access_points(
-    connection: &Connection,
-    wireless: &WirelessDeviceProxy<'_>,
-    device: &DeviceProxy<'_>,
-    tx: &watch::Sender<Wifi>,
-) {
-    let Ok(paths) = wireless.access_points().await else {
-        return;
-    };
-    let active_path = wireless.active_access_point().await.ok();
-    let state = device
-        .state()
-        .await
-        .map(DeviceState::from)
-        .unwrap_or_default();
-    let mut points = Vec::with_capacity(paths.len());
-    for path in paths {
-        if let Some(ap) = access_point_of(connection, &path, active_path.as_ref(), state).await {
-            points.push(ap);
-        }
-    }
-    apply(tx, WifiEvent::AccessPoints(points));
-}
-
-async fn access_point_of(
-    connection: &Connection,
-    path: &OwnedObjectPath,
-    active_path: Option<&OwnedObjectPath>,
-    state: DeviceState,
-) -> Option<AccessPoint> {
-    let ap = AccessPointProxy::builder(connection)
-        .path(path.clone())
-        .ok()?
-        .build()
-        .await
-        .ok()?;
-    let ssid = ap.ssid().await.unwrap_or_default();
-    let strength = ap.strength().await.unwrap_or(0);
-    let flags = ap.flags().await.unwrap_or(0);
-    let wpa_flags = ap.wpa_flags().await.unwrap_or(0);
-    let rsn_flags = ap.rsn_flags().await.unwrap_or(0);
-    let association = if active_path == Some(path) {
-        association_of(state)
-    } else {
-        Association::Idle
-    };
-    Some(AccessPoint {
-        ssid: Ssid(String::from_utf8_lossy(&ssid).into_owned()),
-        strength: Percent(u16::from(strength)),
-        security: security_of(flags, wpa_flags, rsn_flags),
-        association,
-    })
-}
-
-/// `Flags`' `NM_802_11_AP_FLAGS_PRIVACY` bit, or any `WpaFlags`/`RsnFlags` bit: a network with
-/// none of these needs no secret to join.
-fn security_of(flags: u32, wpa_flags: u32, rsn_flags: u32) -> Security {
-    const PRIVACY: u32 = 0x1;
-    if flags & PRIVACY != 0 || wpa_flags != 0 || rsn_flags != 0 {
-        Security::Secured
-    } else {
-        Security::Open
-    }
-}
-
-/// The active access point's association, from the device's own state (an access point has no
-/// state of its own).
-fn association_of(state: DeviceState) -> Association {
-    match state {
-        DeviceState::Activated => Association::Connected,
-        DeviceState::Prepare
-        | DeviceState::Config
-        | DeviceState::NeedAuth
-        | DeviceState::IpConfig
-        | DeviceState::IpCheck
-        | DeviceState::Secondaries => Association::Connecting,
-        _ => Association::Idle,
-    }
-}
-
-/// Reads every saved connection's `802-11-wireless` SSID and publishes the list.
-async fn refresh_saved(
-    connection: &Connection,
-    settings: &SettingsProxy<'_>,
-    tx: &watch::Sender<Wifi>,
-) {
-    let Ok(paths) = settings.connections().await else {
-        return;
-    };
-    let mut ssids = Vec::with_capacity(paths.len());
-    for path in paths {
-        if let Some(ssid) = saved_ssid_of(connection, &path).await {
-            ssids.push(ssid);
-        }
-    }
-    apply(tx, WifiEvent::Saved(ssids));
-}
-
-/// A saved connection's `802-11-wireless.ssid`, when it has one (a wired or VPN connection does
-/// not).
-async fn saved_ssid_of(connection: &Connection, path: &OwnedObjectPath) -> Option<Ssid> {
-    let settings = ConnectionSettingsProxy::builder(connection)
-        .path(path.clone())
-        .ok()?
-        .build()
-        .await
-        .ok()?;
-    let mut all = settings.get_settings().await.ok()?;
-    let ssid = all.remove("802-11-wireless")?.remove("ssid")?;
-    let bytes = Vec::<u8>::try_from(ssid).ok()?;
-    Some(Ssid(String::from_utf8_lossy(&bytes).into_owned()))
-}
-
 /// Activates the saved connection for `ssid`, if one is found; a network with none is dropped
 /// ([`WifiCommand::Connect`]'s own rule).
 async fn connect(
@@ -266,7 +274,7 @@ async fn connect(
     nm: &NetworkManagerProxy<'_>,
     settings: &SettingsProxy<'_>,
     device_path: &OwnedObjectPath,
-    ssid: &Ssid,
+    ssid: &sill_model::wifi::Ssid,
 ) {
     let Ok(paths) = settings.connections().await else {
         return;
@@ -282,10 +290,4 @@ async fn connect(
             .await;
         return;
     }
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-fn apply(tx: &watch::Sender<Wifi>, event: WifiEvent) {
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
 }

@@ -54,7 +54,7 @@ pub(crate) async fn run(
         state: tx,
         mut commands,
     } = io;
-    let connection = bus.connected().await?;
+    let connection = crate::supervise::connect_when_up(&bus).await?;
     let mut actions = actions::stream(&connection).await?;
     let (told, mut events) = unbounded_channel();
     let mut live = Live {

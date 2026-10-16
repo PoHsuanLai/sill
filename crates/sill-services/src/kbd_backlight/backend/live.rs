@@ -18,7 +18,7 @@ pub(crate) async fn run(
     tx: watch::Sender<KbdBacklight>,
     mut commands: mpsc::UnboundedReceiver<KbdCommand>,
 ) -> Result<(), ServiceError> {
-    let connection = bus.connected().await?;
+    let connection = crate::supervise::connect_when_up(&bus).await?;
     let proxy = KbdBacklightProxy::new(&connection).await?;
     seed(&tx, &proxy).await;
     let mut changes = proxy.receive_brightness_changed().await.ok();

@@ -18,6 +18,12 @@ pub(crate) trait NetworkManager {
         specific_object: &ObjectPath<'_>,
     ) -> zbus::Result<OwnedObjectPath>;
 
+    #[zbus(signal)]
+    fn device_added(&self, device: OwnedObjectPath) -> zbus::Result<()>;
+
+    #[zbus(signal)]
+    fn device_removed(&self, device: OwnedObjectPath) -> zbus::Result<()>;
+
     #[zbus(property)]
     fn primary_connection(&self) -> zbus::Result<OwnedObjectPath>;
 

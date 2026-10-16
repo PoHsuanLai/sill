@@ -326,3 +326,28 @@ fn wifi_reads_the_device_and_carries_out_commands() {
         panic!("WirelessEnabled was never set to false");
     });
 }
+
+#[test]
+fn wifi_follows_networkmanager_that_starts_after_the_shell() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("nm-wifi-late");
+    let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    rt.block_on(async {
+        let env = env_for(&bus, &scratch);
+        let handle = spawn::<WifiService>(&tokio::runtime::Handle::current(), &env, ());
+        let mut rx = handle.state;
+        // No NetworkManager yet: the service waits instead of ending.
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        assert_eq!(rx.borrow().device, Presence::Absent);
+
+        let (_nm, _shared) = serve(&bus).await;
+        until(
+            &mut rx,
+            "the device once NetworkManager is up",
+            |w: &Wifi| w.device == Presence::Present && w.access_points.len() == 1,
+        )
+        .await;
+    });
+}
