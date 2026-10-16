@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use sill_model::apps::AppIcon;
+use sill_model::apps::{AppIcon, icon_file_fits};
 
 /// The icon theme lookups use.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -49,23 +49,34 @@ fn theme_named(settings: &str) -> Option<IconTheme> {
 }
 
 /// `icon` (a name or an absolute path) as a file, the largest size up to [`MAX_SIZE`] px,
-/// preferring an SVG over a PNG/XPM of the same or a smaller size. An absolute path is used
-/// as-is, the way `IconSource::from_unknown` in `freedesktop_desktop_entry` itself treats one
-/// (the entry's own word for where its icon is; not re-checked against the filesystem here,
-/// same as every other field `parse_entry` takes on trust from the `.desktop` file); a name
-/// goes through `freedesktop_icons` at `theme`, caching every lookup (`freedesktop_icons`'s own
-/// process-wide cache).
+/// preferring an SVG over a PNG/XPM of the same or a smaller size. An absolute path is the entry's
+/// own word for where its icon is, and is used when the file there is a regular file with an image
+/// extension within the size cap (`sill_model::apps::icon_file_fits`): the entry is another
+/// program's text, so a pipe, a folder, a document or a huge file is no icon. Whether the shell
+/// may draw from the folder it is in is the host's list of roots (`Dirs::icon_dirs` and
+/// `Dirs::app_stores`); a name goes through `freedesktop_icons` at `theme`, caching every lookup
+/// (`freedesktop_icons`'s own process-wide cache).
 pub fn resolve_icon(icon: &str, theme: &IconTheme) -> AppIcon {
     if icon.is_empty() {
         return AppIcon::None;
     }
     let as_path = Path::new(icon);
     if as_path.is_absolute() {
-        return AppIcon::File(as_path.to_owned());
+        return named_icon_file(as_path);
     }
     svg_lookup(icon, theme)
         .or_else(|| raster_lookup(icon, theme))
         .map_or(AppIcon::None, AppIcon::File)
+}
+
+/// `path` as the icon it names, when it is one (see [`resolve_icon`]).
+fn named_icon_file(path: &Path) -> AppIcon {
+    match std::fs::metadata(path) {
+        Ok(meta) if meta.is_file() && icon_file_fits(path, meta.len()) => {
+            AppIcon::File(path.to_owned())
+        }
+        _ => AppIcon::None,
+    }
 }
 
 /// An SVG at (or covering) [`MAX_SIZE`], if the theme has one: `force_svg` still falls back to
@@ -102,7 +113,7 @@ mod tests {
     use std::path::Path;
 
     use super::{IconTheme, icon_theme_path, pixmap_dirs, resolve_icon, theme_named};
-    use sill_model::apps::AppIcon;
+    use sill_model::apps::{AppIcon, ICON_FILE_MAX_BYTES};
     use std::fs;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU32, Ordering};
@@ -140,22 +151,43 @@ mod tests {
     }
 
     #[test]
-    fn resolve_icon_uses_an_absolute_path_as_is_without_checking_it_exists() {
+    fn an_absolute_icon_is_used_only_when_it_is_an_image_file_of_a_sane_size() {
         let temp = TempDir::new("icons-abs");
-        let file = temp.path().join("app.png");
-        fs::write(&file, b"png").unwrap_or_else(|e| panic!("{e}"));
         let theme = IconTheme("Fixture".to_owned());
-
-        assert_eq!(
-            resolve_icon(file.to_str().unwrap_or_else(|| panic!("utf8 path")), &theme),
-            AppIcon::File(file)
-        );
-        assert_eq!(
-            resolve_icon("/does/not/exist.png", &theme),
-            AppIcon::File(PathBuf::from("/does/not/exist.png")),
-            "an absolute Icon= is taken on trust, the same as every other field parse_entry \
-             reads from the .desktop file"
-        );
+        let write = |name: &str, len: u64| {
+            let file = temp.path().join(name);
+            fs::File::create(&file)
+                .and_then(|file| file.set_len(len))
+                .unwrap_or_else(|e| panic!("{e}"));
+            file
+        };
+        let png = write("app.png", 3);
+        let svg = write("app.SVG", 3);
+        let note = write("app.txt", 3);
+        let bare = write("app", 3);
+        let huge = write("huge.png", ICON_FILE_MAX_BYTES + 1);
+        let folder = temp.path().join("folder.png");
+        fs::create_dir(&folder).unwrap_or_else(|e| panic!("{e}"));
+        let link = temp.path().join("link.png");
+        std::os::unix::fs::symlink(&png, &link).unwrap_or_else(|e| panic!("{e}"));
+        let cases = [
+            ("a png", png.clone(), AppIcon::File(png)),
+            ("an svg, whatever the case", svg.clone(), AppIcon::File(svg)),
+            ("a link to a png", link.clone(), AppIcon::File(link)),
+            ("a document", note, AppIcon::None),
+            ("no extension", bare, AppIcon::None),
+            ("past the size cap", huge, AppIcon::None),
+            ("a folder named like an image", folder, AppIcon::None),
+            (
+                "a file that is not there",
+                temp.path().join("missing.png"),
+                AppIcon::None,
+            ),
+        ];
+        for (name, path, want) in cases {
+            let icon = path.to_str().unwrap_or_else(|| panic!("utf8 path"));
+            assert_eq!(resolve_icon(icon, &theme), want, "{name}");
+        }
         assert_eq!(resolve_icon("", &theme), AppIcon::None);
     }
 

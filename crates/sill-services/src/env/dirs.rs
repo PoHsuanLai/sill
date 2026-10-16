@@ -12,6 +12,12 @@ const DEFAULT_DATA_DIRS: [&str; 2] = ["/usr/local/share", "/usr/share"];
 /// `/usr/share/pixmaps`, where an icon lookup ends.
 const SYSTEM_PIXMAPS: &str = "/usr/share/pixmaps";
 
+/// The folder app stores install programs under, outside the data directories.
+const OPT: &str = "/opt";
+
+/// The folder snap keeps each installed snap in, `<name>/current` being its active revision.
+const SNAP: &str = "/snap";
+
 /// Where the person's files, settings, state, caches and session sockets live.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Dirs {
@@ -32,6 +38,10 @@ pub struct Dirs {
     pub runtime: Option<PathBuf>,
     /// The XDG Pictures folder (`user-dirs.dirs`), when one is named.
     pub pictures: Option<PathBuf>,
+    /// The app stores' own folders, where a desktop entry may name its icon by absolute path:
+    /// `/opt` and each snap's `current` folder, listed once when the process started (a snap
+    /// installed later is seen at the next start).
+    pub app_stores: Vec<PathBuf>,
 }
 
 impl Dirs {
@@ -47,6 +57,7 @@ impl Dirs {
             cache: dirs::cache_dir().unwrap_or_else(|| home.join(".cache")),
             runtime: dirs::runtime_dir(),
             pictures: dirs::picture_dir(),
+            app_stores: app_stores_in(Path::new(OPT), Path::new(SNAP)),
             home,
         }
     }
@@ -63,6 +74,7 @@ impl Dirs {
             cache: root.join("cache"),
             runtime: Some(root.join("run")),
             pictures: None,
+            app_stores: vec![root.join("opt")],
         }
     }
 
@@ -88,6 +100,12 @@ impl Dirs {
         dirs
     }
 
+    /// The freedesktop thumbnail cache, `thumbnails` in the cache directory: the pictures other
+    /// programs (a file manager, a thumbnailer) made of files, by the size's folder.
+    pub fn thumbnails(&self) -> PathBuf {
+        self.cache.join("thumbnails")
+    }
+
     /// `sill`'s own folder under the state directory.
     pub fn sill_state(&self) -> PathBuf {
         self.state.join("sill")
@@ -109,6 +127,20 @@ impl Dirs {
     }
 }
 
+/// `opt` and the `current` folder of each snap under `snap`, in name order; a snap with no
+/// `current` folder is left out.
+fn app_stores_in(opt: &Path, snap: &Path) -> Vec<PathBuf> {
+    let mut currents: Vec<PathBuf> = std::fs::read_dir(snap)
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path().join("current"))
+        .filter(|current| current.is_dir())
+        .collect();
+    currents.sort();
+    std::iter::once(opt.to_path_buf()).chain(currents).collect()
+}
+
 /// The directories `$XDG_DATA_DIRS` (`raw`) names: colon-separated, absolute ones only; the
 /// specification's default when it is unset or names none.
 fn data_dirs_from(raw: Option<OsString>) -> Vec<PathBuf> {
@@ -128,7 +160,7 @@ mod tests {
     use std::ffi::OsString;
     use std::path::{Path, PathBuf};
 
-    use super::{Dirs, data_dirs_from};
+    use super::{Dirs, app_stores_in, data_dirs_from};
 
     #[test]
     fn a_scratch_root_holds_every_directory() {
@@ -179,5 +211,42 @@ mod tests {
         .map(PathBuf::from)
         .collect();
         assert_eq!(dirs.icon_dirs(), want);
+    }
+
+    #[test]
+    fn app_stores_are_opt_and_each_snaps_current_folder() {
+        let scratch = sill_testkit::TempDir::new("app-stores");
+        let snap = scratch.path().join("snap");
+        for current in [
+            "firefox/current",
+            "vlc/current",
+            "bare/123",
+            "core22/current",
+        ] {
+            std::fs::create_dir_all(snap.join(current)).unwrap_or_else(|e| panic!("{e}"));
+        }
+        std::fs::write(snap.join("README"), b"").unwrap_or_else(|e| panic!("{e}"));
+        let opt = scratch.path().join("opt");
+        let want: Vec<PathBuf> = [
+            opt.clone(),
+            snap.join("core22/current"),
+            snap.join("firefox/current"),
+            snap.join("vlc/current"),
+        ]
+        .into();
+        assert_eq!(app_stores_in(&opt, &snap), want);
+        assert_eq!(
+            app_stores_in(&opt, &scratch.path().join("no-snap")),
+            vec![opt],
+            "a machine without snap has only /opt"
+        );
+    }
+
+    #[test]
+    fn the_thumbnail_cache_is_thumbnails_in_the_cache_directory() {
+        assert_eq!(
+            Dirs::under(Path::new("/s")).thumbnails(),
+            Path::new("/s/cache/thumbnails")
+        );
     }
 }

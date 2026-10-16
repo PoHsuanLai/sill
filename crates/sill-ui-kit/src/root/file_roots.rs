@@ -12,13 +12,17 @@ use sill_services::env::Dirs;
 const ACCOUNT_PICTURES: &str = "/var/lib/AccountsService/icons";
 
 /// The folders and files the shell draws from, in the order of the table in ARCHITECTURE.md:
-/// the icon themes and pixmaps ([`Dirs::icon_dirs`]); sill's own cache (the tinted app icons,
-/// the wallpaper and its blurred copy, the now-playing covers, the screenshot previews); the
-/// Pictures folder (a screenshot before its preview is made); the person's `~/.face` and the
-/// account pictures folder.
+/// the icon themes and pixmaps ([`Dirs::icon_dirs`]); the app stores' folders, where a desktop
+/// entry may name its icon by absolute path ([`Dirs::app_stores`]); sill's own cache (the tinted
+/// app icons, the wallpaper and its blurred copy, the now-playing covers, the screenshot
+/// previews); the freedesktop thumbnail cache ([`Dirs::thumbnails`], a picture file's thumbnail
+/// in a launcher row); the Pictures folder (a screenshot before its preview is made); the
+/// person's `~/.face` and the account pictures folder.
 fn file_root_paths(dirs: &Dirs) -> Vec<PathBuf> {
     let mut roots = dirs.icon_dirs();
+    roots.extend(dirs.app_stores.clone());
     roots.push(dirs.sill_cache());
+    roots.push(dirs.thumbnails());
     roots.extend(dirs.pictures.clone());
     roots.push(dirs.home.join(".face"));
     roots.push(PathBuf::from(ACCOUNT_PICTURES));
@@ -43,7 +47,7 @@ mod tests {
     }
 
     #[test]
-    fn the_roots_are_the_icon_folders_sills_cache_pictures_the_face_and_account_pictures() {
+    fn the_roots_are_every_place_the_shell_draws_a_file_from() {
         let scratch = Dirs::under(Path::new("/s"));
         let with_pictures = Dirs {
             pictures: Some(PathBuf::from("/s/home/Pictures")),
@@ -60,7 +64,9 @@ mod tests {
                     "/s/share/pixmaps",
                     "/s/home/.icons",
                     "/usr/share/pixmaps",
+                    "/s/opt",
                     "/s/cache/sill",
+                    "/s/cache/thumbnails",
                     "/s/home/.face",
                     "/var/lib/AccountsService/icons",
                 ]),
@@ -75,7 +81,9 @@ mod tests {
                     "/s/share/pixmaps",
                     "/s/home/.icons",
                     "/usr/share/pixmaps",
+                    "/s/opt",
                     "/s/cache/sill",
+                    "/s/cache/thumbnails",
                     "/s/home/Pictures",
                     "/s/home/.face",
                     "/var/lib/AccountsService/icons",

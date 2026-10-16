@@ -23,11 +23,12 @@ use image::{ImageFormat, ImageReader, Limits, RgbaImage};
 
 use crate::app_icons::size::AssetPx;
 
-/// The largest icon file read: an app icon is a few kilobytes, a large one a few hundred.
-pub const ICON_MAX_BYTES: u64 = 8 * 1024 * 1024;
+/// The largest icon file read: what a desktop entry's absolute `Icon=` may name
+/// (`sill_model::apps::icon_file_fits`), so the scan and the render agree.
+pub const ICON_MAX_BYTES: u64 = sill_model::apps::ICON_FILE_MAX_BYTES;
 
-/// The largest SVG read: a drawing of an icon, not a document.
-pub const SVG_MAX_BYTES: u64 = 1024 * 1024;
+/// The largest SVG read.
+pub const SVG_MAX_BYTES: u64 = sill_model::apps::SVG_FILE_MAX_BYTES;
 
 /// The most pixels a raster icon may have along either side: icons are drawn at most a few
 /// hundred pixels across.
