@@ -93,6 +93,8 @@ fn heading_of(place: &PlaceRow, engines: &[String]) -> String {
         (PlaceKind::ThisComputer, [engine]) => format!("On this computer, with {engine}"),
         (PlaceKind::ThisComputer, _) => "On this computer".to_owned(),
         (PlaceKind::OwnComputer, _) => format!("On {}", place.name),
-        (PlaceKind::CloudAccount, _) => place.provider.clone().unwrap_or_else(|| place.name.clone()),
+        (PlaceKind::CloudAccount, _) => {
+            place.provider.clone().unwrap_or_else(|| place.name.clone())
+        }
     }
 }

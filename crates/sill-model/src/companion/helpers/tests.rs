@@ -6,9 +6,7 @@ use companion_wire::{
 };
 use docket_core::helper::{Ceiling, HelperModel, HelperName, HelperPhase};
 use porter_core::{AccountId, Count, ModelId};
-use porter_infer::{
-    ComputerName, ModelRef, PlaceId, PlaceKind, PlaceModel, PlaceRow, PlaceState,
-};
+use porter_infer::{ComputerName, ModelRef, PlaceId, PlaceKind, PlaceModel, PlaceRow, PlaceState};
 use prov::{AppName, HelperId, SpaceId};
 use sill_launcher::HelperControl;
 
@@ -212,7 +210,10 @@ fn offered_group() -> ModelGroup {
 fn asking_to_choose_a_model_reads_the_models_and_shows_them_with_nothing_picked() {
     let model = opened("h-1", HelperModel::Unset);
     let (model, sent) = update(model, HelpersMsg::PickModel);
-    assert_eq!((&model.models, sent), (&ModelList::Reading, vec![HelpersCommand::ReadModels]));
+    assert_eq!(
+        (&model.models, sent),
+        (&ModelList::Reading, vec![HelpersCommand::ReadModels])
+    );
     let (model, sent) = update(model, HelpersMsg::ModelsOffered(vec![offered_group()]));
     assert!(sent.is_empty());
     assert_eq!(model.models, ModelList::Offered(vec![offered_group()]));

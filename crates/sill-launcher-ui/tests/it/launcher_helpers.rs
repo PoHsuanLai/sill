@@ -7,12 +7,12 @@ use crate::launcher_harness;
 
 use std::time::Duration;
 
+use docket_core::helper::HelperModel;
 use ds_harness::{Driver, Input, Query};
 use launcher_harness::launcher_support::companion::helpers;
 use launcher_harness::{Open, Press, open_in, selected_title, titles};
 use prov::HelperId;
 use sill_launcher::LauncherMode;
-use docket_core::helper::HelperModel;
 use sill_model::companion::{CompanionCommand, HelpersMsg, ModelGroup, ModelOffer};
 
 fn research() -> HelperId {
@@ -164,7 +164,11 @@ fn a_model_in_the_list_is_chosen_for_the_helper_and_settings_stays_one_entry_awa
     };
     let mut open = on_research(offered(vec![group]));
     let html = open.harness.html();
-    for says in ["On this computer, with llama.cpp", "Qwen3 4B", "Add a model in Settings"] {
+    for says in [
+        "On this computer, with llama.cpp",
+        "Qwen3 4B",
+        "Add a model in Settings",
+    ] {
         assert!(html.contains(says), "the list says {says:?}: {html}");
     }
     commands(&mut open);
