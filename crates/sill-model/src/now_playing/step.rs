@@ -7,9 +7,10 @@ use super::{Media, MediaEvent, PLAYERS_MAX};
 pub fn step(mut media: Media, event: MediaEvent) -> Media {
     match event {
         MediaEvent::Player(player) => {
+            let listed = media.players.len();
             match media.players.iter_mut().find(|p| p.id == player.id) {
                 Some(existing) => *existing = player,
-                None if media.players.len() < PLAYERS_MAX => media.players.push(player),
+                None if listed < PLAYERS_MAX => media.players.push(player),
                 None => {}
             }
             media

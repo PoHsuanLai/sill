@@ -229,7 +229,14 @@ mod tests {
         let beside = PathBuf::from("/opt/quire/releases/1/bin/slipway");
         let exported = PathBuf::from(EXPORTED);
         let dir = PathBuf::from("/opt/quire/releases/1/bin");
-        let cases: [(&str, Option<&Path>, Vec<&PathBuf>, Option<&PathBuf>); 5] = [
+        // (case, the release's program folder, the programs that exist, the one found)
+        type Case<'a> = (
+            &'a str,
+            Option<&'a Path>,
+            Vec<&'a PathBuf>,
+            Option<&'a PathBuf>,
+        );
+        let cases: [Case<'_>; 5] = [
             (
                 "beside",
                 Some(&dir),

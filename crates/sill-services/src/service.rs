@@ -239,6 +239,10 @@ mod tests {
         type Command = u32;
         type Deps = Arc<AtomicU32>;
 
+        #[allow(
+            clippy::manual_async_fn,
+            reason = "an `async fn` would hold the `&Env` it never reads; the trait wants a 'static future"
+        )]
         fn run(
             _env: &Env,
             runs: Arc<AtomicU32>,
@@ -266,6 +270,10 @@ mod tests {
         type Command = u32;
         type Deps = Arc<AtomicU32>;
 
+        #[allow(
+            clippy::manual_async_fn,
+            reason = "an `async fn` would hold the `&Env` it never reads; the trait wants a 'static future"
+        )]
         fn run(
             _env: &Env,
             runs: Arc<AtomicU32>,
