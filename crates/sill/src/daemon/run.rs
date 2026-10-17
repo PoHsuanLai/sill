@@ -120,12 +120,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         host_handle.clone(),
         stopped_tx,
     );
-    crate::release::spawn_confirmation(
-        runtime.handle(),
-        env.buses.session.route(),
-        host_handle.clone(),
-        env.children.clone(),
-    );
+    crate::release::spawn_confirmation(runtime.handle(), &env, host_handle.clone());
     spawn_followers(
         &runtime,
         &services,

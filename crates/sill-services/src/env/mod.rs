@@ -9,6 +9,7 @@ mod children;
 pub mod ddc;
 mod dirs;
 mod processes;
+mod release;
 mod session_actions;
 mod wall_clock;
 mod wayland;
@@ -30,6 +31,7 @@ pub use buses::{Bus, BusKind, BusRoute, Buses};
 pub use children::{Children, ProcessGroup, RealChildren, RecordedChildren, Start};
 pub use dirs::Dirs;
 pub use processes::{NoProcesses, Pid, ProcScan, Processes};
+pub use release::{SESSION_MODE_VAR, SessionMode};
 pub use session_actions::{
     ActionReach, DryRunActions, DryRunOffers, LogindActions, SessionActions, dry_run_line,
 };
@@ -76,6 +78,12 @@ pub struct Env {
     /// `XDG_CURRENT_DESKTOP` as the process was started with it (colon-separated names): read
     /// once at the edge, so a library never reads the environment.
     pub current_desktop: String,
+    /// Whether the session fell back to the safe compositor (`QUIRE_SESSION_MODE`), read once at
+    /// the edge.
+    pub session_mode: SessionMode,
+    /// The folder of the program this process runs, where the release's other programs are;
+    /// `None` when it is not known (and in a test).
+    pub release_bin: Option<PathBuf>,
 }
 
 /// When the keycap service asks systemd about its unit.
@@ -129,6 +137,8 @@ impl Env {
             proc_root: PathBuf::from("/proc"),
             callers: Arc::new(DesktopCallers::from_system()),
             current_desktop: std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
+            session_mode: SessionMode::from_process(),
+            release_bin: release::running_bin_dir(),
         }
     }
 
@@ -170,6 +180,8 @@ impl Env {
                 peephole_bus::peephole_core::Table::empty(),
             )),
             current_desktop: String::new(),
+            session_mode: SessionMode::Normal,
+            release_bin: None,
         }
     }
 }
