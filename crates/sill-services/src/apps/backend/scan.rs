@@ -17,13 +17,18 @@ const APPLICATIONS: &str = "applications";
 /// with the app stores' own export directories (Flatpak's, snap's) added at the end when they are
 /// not already there (a login session that has sourced `/etc/profile.d/flatpak.sh` or snapd's
 /// profile script already has them on `XDG_DATA_DIRS`, at the same low precedence; this is a
-/// safety net for one that has not). `data_home` is where the user's own Flatpak installs.
-pub fn applications_dirs(data_home: &Path, data_dirs: &[PathBuf]) -> Vec<PathBuf> {
+/// safety net for one that has not). `data_home` is where the user's own Flatpak installs;
+/// `system_stores` are the system stores' folders ([`Dirs::store_exports`](crate::env::Dirs)).
+pub fn applications_dirs(
+    data_home: &Path,
+    data_dirs: &[PathBuf],
+    system_stores: &[PathBuf],
+) -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = std::iter::once(data_home)
         .chain(data_dirs.iter().map(PathBuf::as_path))
         .map(|dir| dir.join(APPLICATIONS))
         .collect();
-    for extra in store_export_dirs(data_home) {
+    for extra in store_export_dirs(data_home, system_stores) {
         if !dirs.contains(&extra) {
             dirs.push(extra);
         }
@@ -31,14 +36,11 @@ pub fn applications_dirs(data_home: &Path, data_dirs: &[PathBuf]) -> Vec<PathBuf
     dirs
 }
 
-/// The app stores' well-known export directories: Flatpak's user install, then its system one,
-/// then snap's (Ubuntu's Firefox is a snap).
-fn store_export_dirs(data_home: &Path) -> Vec<PathBuf> {
-    vec![
-        data_home.join("flatpak/exports/share/applications"),
-        PathBuf::from("/var/lib/flatpak/exports/share/applications"),
-        PathBuf::from("/var/lib/snapd/desktop/applications"),
-    ]
+/// The app stores' export directories: Flatpak's user install, then the system stores'.
+fn store_export_dirs(data_home: &Path, system_stores: &[PathBuf]) -> Vec<PathBuf> {
+    std::iter::once(data_home.join("flatpak/exports/share/applications"))
+        .chain(system_stores.iter().cloned())
+        .collect()
 }
 
 /// Every entry under `dirs`, in precedence order, icons resolved in `theme` (an absolute `Icon=`
@@ -86,6 +88,13 @@ mod tests {
     use super::{applications_dirs, entry_id, store_export_dirs};
     use std::path::{Path, PathBuf};
 
+    fn system_stores() -> [PathBuf; 2] {
+        [
+            PathBuf::from("/var/lib/flatpak/exports/share/applications"),
+            PathBuf::from("/var/lib/snapd/desktop/applications"),
+        ]
+    }
+
     #[test]
     fn entry_id_is_relative_to_its_own_applications_dir_with_slashes_dashed() {
         let dirs = [PathBuf::from("/usr/share/applications")];
@@ -105,7 +114,7 @@ mod tests {
 
     #[test]
     fn store_export_dirs_name_flatpak_user_and_system_then_snap() {
-        let dirs = store_export_dirs(Path::new("/home/a/.local/share"));
+        let dirs = store_export_dirs(Path::new("/home/a/.local/share"), &system_stores());
         let want = [
             "/home/a/.local/share/flatpak/exports/share/applications",
             "/var/lib/flatpak/exports/share/applications",
@@ -121,7 +130,7 @@ mod tests {
             PathBuf::from("/usr/local/share"),
             PathBuf::from("/usr/share"),
         ];
-        let plain = applications_dirs(home, &data_dirs);
+        let plain = applications_dirs(home, &data_dirs, &system_stores());
         let want = [
             "/home/a/.local/share/applications",
             "/usr/local/share/applications",
@@ -137,7 +146,7 @@ mod tests {
             PathBuf::from("/var/lib/flatpak/exports/share"),
             PathBuf::from("/usr/share"),
         ];
-        let got = applications_dirs(home, &listed);
+        let got = applications_dirs(home, &listed, &system_stores());
         let flatpak = PathBuf::from("/var/lib/flatpak/exports/share/applications");
         assert_eq!(got.iter().filter(|dir| **dir == flatpak).count(), 1);
         assert_eq!(got.get(1), Some(&flatpak));

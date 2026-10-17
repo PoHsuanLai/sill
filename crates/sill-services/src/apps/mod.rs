@@ -33,7 +33,7 @@ impl Service for AppsService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let config = env.dirs.config.clone();
-        let dirs = applications_dirs(&env.dirs.data, &env.dirs.data_dirs);
+        let dirs = applications_dirs(&env.dirs.data, &env.dirs.data_dirs, &env.dirs.store_exports);
         let roots = env.dirs.icon_file_roots();
         async move {
             backend::run(io.state, io.commands, config, dirs, roots).await;

@@ -18,6 +18,12 @@ const OPT: &str = "/opt";
 /// The folder snap keeps each installed snap in, `<name>/current` being its active revision.
 const SNAP: &str = "/snap";
 
+/// The system app stores' folders of desktop entries, outside the data directories.
+const STORE_EXPORTS: [&str; 2] = [
+    "/var/lib/flatpak/exports/share/applications",
+    "/var/lib/snapd/desktop/applications",
+];
+
 /// Where the person's files, settings, state, caches and session sockets live.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Dirs {
@@ -42,6 +48,9 @@ pub struct Dirs {
     /// `/opt` and each snap's `current` folder, listed once when the process started (a snap
     /// installed later is seen at the next start).
     pub app_stores: Vec<PathBuf>,
+    /// The system app stores' folders of desktop entries: Flatpak's system install, then
+    /// snap's (Ubuntu's Firefox is a snap).
+    pub store_exports: Vec<PathBuf>,
 }
 
 impl Dirs {
@@ -58,6 +67,7 @@ impl Dirs {
             runtime: dirs::runtime_dir(),
             pictures: dirs::picture_dir(),
             app_stores: app_stores_in(Path::new(OPT), Path::new(SNAP)),
+            store_exports: STORE_EXPORTS.iter().map(PathBuf::from).collect(),
             home,
         }
     }
@@ -75,6 +85,10 @@ impl Dirs {
             runtime: Some(root.join("run")),
             pictures: None,
             app_stores: vec![root.join("opt")],
+            store_exports: STORE_EXPORTS
+                .iter()
+                .map(|dir| root.join(dir.trim_start_matches('/')))
+                .collect(),
         }
     }
 
