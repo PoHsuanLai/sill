@@ -51,30 +51,45 @@ impl<T> Claim<T> {
 }
 
 /// The caller of `header`, when it holds the role of one of `claims` and owns that claim's name;
-/// anyone else is refused (`AccessDenied`). Returns the caller's unique name, which is the only
-/// address an answer goes to, and the passing claim's tag.
+/// anyone else is refused (`AccessDenied`) and the refusal is logged. Returns the caller's unique
+/// name, which is the only address an answer goes to, and the passing claim's tag.
 pub(crate) async fn admit<T: Copy>(
     peers: &Peers,
     header: &Header<'_>,
     claims: &[Claim<T>],
 ) -> fdo::Result<(OwnedUniqueName, T)> {
-    let sender = header.sender().map(|sender| sender.as_str());
-    let refuse = |refused: Refused| {
-        let wanted: Vec<&str> = claims.iter().map(|claim| claim.role.as_str()).collect();
-        eprintln!("sill: callers: {sender:?} refused for {wanted:?}: {refused}");
+    check(peers, header, claims).await.map_err(|refused| {
+        log_refusal(
+            header.sender().map(|sender| sender.as_str()),
+            claims,
+            &refused,
+        );
         access_denied(refused)
-    };
+    })
+}
+
+/// [`admit`] without the log line or the error: why the caller of `header` is not let in, for a
+/// caller that decides for itself whether a refusal is worth saying.
+pub(crate) async fn check<T: Copy>(
+    peers: &Peers,
+    header: &Header<'_>,
+    claims: &[Claim<T>],
+) -> Result<(OwnedUniqueName, T), Refused> {
+    let sender = header.sender().map(|sender| sender.as_str());
     let need: Vec<Requirement> = claims.iter().flat_map(Claim::requirements).collect();
-    let standing = peers.require(sender, &need).await.map_err(refuse)?;
-    let claim = claim_held(&standing, claims).ok_or_else(|| refuse(Refused::NotAllowed))?;
-    let owner = peers
-        .owner_of(claim.name, &claim.requirements())
-        .await
-        .map_err(refuse)?;
+    let standing = peers.require(sender, &need).await?;
+    let claim = claim_held(&standing, claims).ok_or(Refused::NotAllowed)?;
+    let owner = peers.owner_of(claim.name, &claim.requirements()).await?;
     match Some(owner.as_str()) == sender {
         true => Ok((owner, claim.tag)),
-        false => Err(refuse(Refused::NotAllowed)),
+        false => Err(Refused::NotAllowed),
     }
+}
+
+/// Say in the journal that `sender` was refused, and for which roles.
+pub(crate) fn log_refusal<T>(sender: Option<&str>, claims: &[Claim<T>], refused: &Refused) {
+    let wanted: Vec<&str> = claims.iter().map(|claim| claim.role.as_str()).collect();
+    eprintln!("sill: callers: {sender:?} refused for {wanted:?}: {refused}");
 }
 
 /// The claim whose role `standing` holds.

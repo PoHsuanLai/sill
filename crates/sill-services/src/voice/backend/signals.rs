@@ -11,7 +11,7 @@ use zbus::message::Type;
 use zbus::{Connection, MatchRule, MessageStream};
 
 use super::run::Inbound;
-use crate::callers::{Claim, Peers, admit};
+use crate::callers::{Claim, Peers, SignalSenders};
 use crate::stream::next;
 use voice_dbus::{UTTERANCE_PREFIX, VOICE_BUS};
 
@@ -47,21 +47,23 @@ pub(super) async fn subscribe(connection: &Connection) -> zbus::Result<MessageSt
 }
 
 /// Tell `inbound` each `Ended` that voiced itself sent, with the object it names. A signal from
-/// any other program, whatever name it holds, is dropped.
+/// any other program, whatever name it holds, is dropped, and said once.
 pub(super) async fn forward(
     mut stream: MessageStream,
     inbound: UnboundedSender<Inbound>,
     peers: Arc<Peers>,
 ) {
     let claim = voiced();
+    let mut senders = SignalSenders::default();
     while let Some(Ok(message)) = next(&mut stream).await {
         let header = message.header();
         let Some(path) = header.path().map(ToString::to_string) else {
             continue;
         };
-        if admit(&peers, &header, std::slice::from_ref(&claim))
+        if senders
+            .admit(&peers, &header, std::slice::from_ref(&claim))
             .await
-            .is_ok()
+            .is_some()
             && let Ok(text) = message.body().deserialize::<String>()
             && let Some(end) = open(&text)
             && inbound.send(Inbound::Signal(path, end)).is_err()
