@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use sill_model::notifications::{
     ACTIONS_MAX, BANNERS_PER_APP_MAX, BODY_MAX_BYTES, HINTS_MAX, IconRef, NoteImage, NotesState,
-    Notification, NotificationId, SENDER_BURST, SUMMARY_MAX_BYTES,
+    Notification, NotificationId, SENDER_BURST, SENDER_REFILL_MS, SUMMARY_MAX_BYTES,
 };
 use sill_services::notifications::BUS_NAME;
 use sill_testkit::PrivateBus;
@@ -202,9 +202,12 @@ fn a_sender_that_floods_is_refused_and_its_banners_are_capped() {
             "the flood holds {} banners",
             notes.borrow().live.banners.len()
         );
-        // Another caller is not held back by the flooder's spent allowance.
-        let calm = connect(&bus).await;
-        let id = notify(&calm, "calm", Vec::new()).await;
+        // Callers are counted by process, so a second connection from this test is the same
+        // caller (another process passing is `senders.rs`' unit tests): its allowance comes back.
+        let refill = u64::try_from(SENDER_REFILL_MS).unwrap_or(0);
+        tokio::time::sleep(std::time::Duration::from_millis(refill * 2)).await;
+        let later = connect(&bus).await;
+        let id = notify(&later, "calm", Vec::new()).await;
         assert_ne!(id, 0);
     });
 }
