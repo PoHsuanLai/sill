@@ -6,8 +6,9 @@
 use std::collections::HashMap;
 
 use sill_model::notifications::{
-    ACTIONS_MAX, BANNERS_PER_APP_MAX, BODY_MAX_BYTES, HINTS_MAX, IconRef, NoteImage, NotesState,
-    Notification, NotificationId, SENDER_BURST, SENDER_REFILL_MS, SUMMARY_MAX_BYTES,
+    ACTIONS_MAX, BANNERS_PER_APP_MAX, BODY_MAX_BYTES, HINTS_MAX, IconRef, NOTIFY_CALL_MAX_BYTES,
+    NoteImage, NotesState, Notification, NotificationId, SENDER_BURST, SENDER_REFILL_MS,
+    SUMMARY_MAX_BYTES,
 };
 use sill_services::notifications::BUS_NAME;
 use sill_testkit::PrivateBus;
@@ -47,7 +48,8 @@ fn oversize_fields_are_cut_and_a_flood_of_hints_is_refused() {
     let (mut notes, _control) = owning(&runtime, &bus, &scratch);
     runtime.block_on(async {
         let connection = connect(&bus).await;
-        let huge = "x".repeat(2 << 20);
+        // Far past the summary's and the body's ceilings, yet inside the whole call's.
+        let huge = "x".repeat(BODY_MAX_BYTES * 4);
         let actions: Vec<String> = (0..200).map(|n| format!("key-{n}")).collect();
         let mut hints = Hints::new();
         hints.insert(
@@ -101,6 +103,46 @@ fn oversize_fields_are_cut_and_a_flood_of_hints_is_refused() {
         }
         let refused = notify_with(&connection, "big", 0, ("s", "b"), Vec::new(), many).await;
         assert!(refused.is_err(), "a flood of hints is refused: {refused:?}");
+    });
+}
+
+#[test]
+fn a_call_longer_than_any_notification_is_refused_unread_and_nothing_is_posted() {
+    let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = sill_testkit::TempDir::new("notes-too-long");
+    let (mut notes, _control) = owning(&runtime, &bus, &scratch);
+    runtime.block_on(async {
+        let connection = connect(&bus).await;
+        let huge = "x".repeat(NOTIFY_CALL_MAX_BYTES);
+        let refused = notify_with(
+            &connection,
+            "huge",
+            0,
+            ("s", huge.as_str()),
+            Vec::new(),
+            Hints::new(),
+        )
+        .await;
+        match refused {
+            Err(zbus::Error::MethodError(name, ..)) => {
+                assert_eq!(name.as_str(), "org.freedesktop.DBus.Error.LimitsExceeded");
+            }
+            other => panic!("the oversize call was not refused as too large: {other:?}"),
+        }
+        // A normal call right after is answered and is the only banner there is.
+        let id = notify(&connection, "calm", Vec::new()).await;
+        assert_ne!(id, 0);
+        assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 1).await);
+        let banner = banner_of(&notes, "calm");
+        assert_eq!(banner.id, NotificationId(id));
+        assert_eq!(
+            notes.borrow().live.banners.len(),
+            1,
+            "the oversize call posted"
+        );
     });
 }
 

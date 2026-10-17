@@ -17,6 +17,7 @@ use zbus::object_server::SignalEmitter;
 use zbus::{Connection, fdo};
 
 use super::dbus::{BUS_NAME, Call, OBJECT_PATH, Sender, Server};
+use super::guard::Guarded;
 
 /// A connection to the bus the service speaks on.
 #[derive(Debug)]
@@ -99,9 +100,9 @@ impl Bus {
 
     /// Serve the object and ask for the name, never replacing a holder.
     async fn claim(&self) {
-        let server = Server {
+        let server = Guarded::new(Server {
             calls: self.calls.clone(),
-        };
+        });
         if let Err(error) = self
             .connection
             .object_server()
@@ -129,7 +130,7 @@ impl Bus {
         let _ = self
             .connection
             .object_server()
-            .remove::<Server, _>(OBJECT_PATH)
+            .remove::<Guarded, _>(OBJECT_PATH)
             .await;
     }
 

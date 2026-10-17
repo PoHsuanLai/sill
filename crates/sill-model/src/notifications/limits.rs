@@ -38,6 +38,25 @@ pub const IMAGE_MAX_SIDE: u32 = 256;
 /// four channels and padded rows fits.
 pub const IMAGE_MAX_BYTES: usize = 1 << 20;
 
+/// Room for what a `Notify` body holds besides the values the ceilings above cut: length prefixes,
+/// padding to each value's alignment, the variants' signatures and the image's six numbers. A
+/// call with thirty-two hints needs about two kilobytes of it; this is eight times that.
+const NOTIFY_CALL_MARGIN_BYTES: usize = 16 * 1024;
+
+/// The most bytes a `Notify` body may hold before the server refuses it unread: every argument
+/// at its ceiling (the app's name and icon, the summary, the body, [`ACTIONS_MAX`] key and label
+/// pairs, [`HINTS_MAX`] hints each with a word and a path, and one image's array) plus
+/// [`NOTIFY_CALL_MARGIN_BYTES`]. A call within it is read and each field cut to its own ceiling;
+/// a call over it cannot be a notification an app meant to post.
+pub const NOTIFY_CALL_MAX_BYTES: usize = APP_NAME_MAX_BYTES
+    + HINT_PATH_MAX_BYTES
+    + SUMMARY_MAX_BYTES
+    + BODY_MAX_BYTES
+    + ACTIONS_MAX * (ACTION_KEY_MAX_BYTES + ACTION_LABEL_MAX_BYTES)
+    + HINTS_MAX * (HINT_TEXT_MAX_BYTES + HINT_PATH_MAX_BYTES)
+    + IMAGE_MAX_BYTES
+    + NOTIFY_CALL_MARGIN_BYTES;
+
 /// A link's target: a longer one is no link.
 pub const HREF_MAX_BYTES: usize = 2048;
 

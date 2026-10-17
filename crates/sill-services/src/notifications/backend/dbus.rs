@@ -144,7 +144,8 @@ fn sender_of(header: &Header<'_>) -> fdo::Result<Sender> {
         .ok_or_else(|| fdo::Error::Failed("no sender".to_owned()))
 }
 
-/// The served object.
+/// The served object's methods and signals. It is served behind [`super::guard::Guarded`], which
+/// refuses an oversize `Notify` before this reads its arguments.
 #[derive(Debug)]
 pub struct Server {
     pub calls: mpsc::UnboundedSender<Call>,

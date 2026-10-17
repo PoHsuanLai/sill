@@ -1,6 +1,7 @@
 //! The service's effects: what it reaches outside the process.
 
 mod dbus;
+mod guard;
 mod history_file;
 mod live;
 mod name_watch;
