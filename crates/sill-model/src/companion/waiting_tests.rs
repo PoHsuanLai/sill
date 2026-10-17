@@ -166,9 +166,7 @@ fn only_an_answer_to_a_waiting_memory_moves_the_count_the_filter_follows() {
         CompanionEvent::TimelineLoaded(g, Vec::new()),
         CompanionEvent::TimelineFailed(g),
     ];
-    let state = quiet
-        .into_iter()
-        .fold(Companion::default(), run);
+    let state = quiet.into_iter().fold(Companion::default(), run);
     assert_eq!(
         state.memory_answers, 0,
         "a timeline's own answer never asks again"

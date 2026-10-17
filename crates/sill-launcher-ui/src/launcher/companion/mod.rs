@@ -16,5 +16,7 @@ mod tests;
 
 pub use ask::ask_input;
 pub use command::command_of;
-pub use keys::{CompanionKey, CompanionOut, Selected, Way, companion_filter, companion_step, follows_state};
+pub use keys::{
+    CompanionKey, CompanionOut, Selected, Way, companion_filter, companion_step, follows_state,
+};
 pub use pane::{Pane, pane_of, run_of, selected_of};
