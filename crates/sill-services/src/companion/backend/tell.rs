@@ -30,6 +30,7 @@ pub(super) async fn tell(
         cwd: None,
         started_from: None,
         external: None,
+        helper: None,
     };
     let opened: SessionOpened = from_json(&companion.open(&to_json(&open)?).await.map_err(text)?)?;
     let intents = Intents::over(DbusTransport::new(connection.clone()));

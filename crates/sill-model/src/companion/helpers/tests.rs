@@ -10,6 +10,8 @@ use porter_infer::ModelRef;
 use prov::{AppName, HelperId, SpaceId};
 use sill_launcher::HelperControl;
 
+use super::draft::reach_of_lines;
+use super::words::{ANSWER_IN_HISTORY, CHOOSE_MODEL, NO_JOB_WORDS, UNREACHED};
 use super::*;
 
 /// A job as an older companion wrote it, with no `answer`: it must still decode.
@@ -186,7 +188,7 @@ fn choosing_a_model_changes_the_card_and_the_hint_goes() {
     let draft = model.draft().unwrap_or_else(|| panic!("a card is open"));
     assert_eq!(draft.model, chosen());
     assert_eq!(model_hint(&draft.model), None);
-    assert_eq!(model_line(&draft.model), "Qwen3 4b");
+    assert_eq!(model_line(&draft.model), "Qwen3 4B");
     let (_, sent) = update(model, HelpersMsg::Save);
     let [HelpersCommand::Edit { helper, form }] = sent.as_slice() else {
         panic!("saving an open card changes the helper: {sent:?}");

@@ -13,12 +13,11 @@ mod update;
 mod words;
 
 pub use apps::offered_apps;
-pub use draft::{Draft, Reach, SaveFault, reach_of_lines};
-pub use model::{HelpersModel, Open, OpenCard, Removal, Told};
+pub use draft::{Draft, Reach};
+pub use model::{HelpersModel, Open, Removal};
 pub use msg::{Asked, HelpersCommand, HelpersMsg};
 pub use update::update;
 pub use words::{
-    ANSWER_IN_HISTORY, CEILINGS, CHOOSE_MODEL, GONE, NO_JOB_WORDS, UNREACHED, WAITING_BADGE,
-    app_label, badge_of, ceiling_label, controls_of, job_answer, job_prompt, job_state_label,
-    job_words, model_hint, model_line, remove_question,
+    CEILINGS, GONE, WAITING_BADGE, app_label, badge_of, ceiling_label, controls_of, job_answer,
+    job_prompt, job_words, model_hint, model_line, remove_question,
 };

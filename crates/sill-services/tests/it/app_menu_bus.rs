@@ -1320,6 +1320,7 @@ mod routed {
                     cwd: None,
                     started_from: None,
                     external: None,
+                    helper: None,
                 }),
             )
             .await;

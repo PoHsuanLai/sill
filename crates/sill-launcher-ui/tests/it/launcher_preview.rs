@@ -310,8 +310,8 @@ fn command_r_reveals_the_selected_file() {
 #[test]
 fn shift_tab_with_nothing_typed_reaches_emoji_alone() {
     let mut open = open("");
-    // Back from every provider: memory, runs, companion, things, web, then emoji.
-    for _ in 0..6 {
+    // Back from every provider: memory, runs, helpers, companion, things, web, then emoji.
+    for _ in 0..7 {
         press(&mut open, Press::ShiftTab);
     }
     settle(&mut open.harness, |h| h.count(".ds-emoji-cell") == 3);
@@ -347,8 +347,8 @@ fn shift_tab_with_nothing_typed_reaches_emoji_alone() {
 #[test]
 fn real_left_and_right_move_the_emoji_grid_and_command_y_previews() {
     let mut open = open("");
-    // Back from every provider: memory, runs, companion, things, web, then emoji.
-    for _ in 0..6 {
+    // Back from every provider: memory, runs, helpers, companion, things, web, then emoji.
+    for _ in 0..7 {
         press(&mut open, Press::ShiftTab);
     }
     settle(&mut open.harness, |h| h.count(".ds-emoji-cell") == 3);

@@ -140,11 +140,16 @@ pub fn helpers(more: Vec<HelpersMsg>) -> Companion {
     let card = format!(
         r#"{{"line":{RESEARCH},"role":"Reads the news each morning","model":{{"kind":"unset"}},"reach":["org.quire.Notes: look at things"],"steps":12,"jobs":[{{"id":1,"goal":"Find the weekly digest","state":"done","note":null}}]}}"#
     );
-    let read = |text: &str| serde_json::from_str(text).unwrap_or_else(|e| panic!("{e}"));
     let first = vec![
-        HelpersMsg::Listed(read(&list)),
+        HelpersMsg::Listed(
+            serde_json::from_str::<companion_wire::HelpersView>(&list)
+                .unwrap_or_else(|e| panic!("{e}")),
+        ),
         HelpersMsg::OpenCard(prov::HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}"))),
-        HelpersMsg::CardRead(Box::new(read(&card))),
+        HelpersMsg::CardRead(Box::new(
+            serde_json::from_str::<companion_wire::HelperCardView>(&card)
+                .unwrap_or_else(|e| panic!("{e}")),
+        )),
     ];
     let helpers = first
         .into_iter()

@@ -136,7 +136,7 @@ mod tests {
     use almanac_core::MemoryItem;
     use docket_core::{CardActionId, UndoId, UndoScope};
     use ds_core::vocab::MemoryVerb;
-    use prov::{HelperId, RunId, TaskId};
+    use prov::{RunId, TaskId};
 
     /// Every form's wire text, pinned: the daemon and the panel agree on these.
     #[test]

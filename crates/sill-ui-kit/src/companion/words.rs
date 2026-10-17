@@ -36,6 +36,7 @@ fn denied_words(code: DenyCode) -> String {
         DenyCode::NotAllowed => "not for an assistant to do",
         DenyCode::NeedsUser => "needs you",
         DenyCode::Repeated => "refused before",
+        DenyCode::OwnedByAnotherJob => "another helper is working on it",
     };
     format!("Not allowed ({kind}).")
 }
