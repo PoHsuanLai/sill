@@ -3,7 +3,7 @@
 //! replacing a holder: `DoNotQueue`, and ask again when the name falls free; once held, the
 //! name cannot be taken away), serve [`super::dbus::Server`] while owned, load the history, and
 //! run every call and command through [`sill_model::notifications::step`], carrying out its
-//! effects (signals, `history_file::save`; a `Sound` is dropped, as sill plays no sounds yet) and
+//! effects (signals, and the history's write, gathered and run off the loop by [`super::save`]; a `Sound` is dropped, as sill plays no sounds yet) and
 //! publishing the result. Each bus caller is held to its allowance and may replace or close only
 //! what it posted ([`super::senders`]); a clock tick sweeps an app's critical banners that have
 //! stood too long.
@@ -22,9 +22,10 @@ use sill_model::notifications::{
 };
 use tokio::sync::{mpsc, watch};
 
-use super::dbus::{Call, CloseAnswer, NotifyAnswer, Sender};
+use super::dbus::{Call, Caller, CloseAnswer, NotifyAnswer, Sender};
 use super::history_file;
 use super::name_watch::Bus;
+use super::save::{SAVE_AFTER, Saver};
 use super::senders::{Admission, Owner, Senders};
 use crate::env::{Bus as BusRoute, WallClock};
 use crate::stream::next_opt;
@@ -42,20 +43,17 @@ pub(crate) async fn run(
     published: watch::Sender<NotesState>,
     mut commands: mpsc::UnboundedReceiver<NotificationsCommand>,
 ) {
+    let stored = history_file::load(&file);
     let mut core = Core {
         state: NotesState::default(),
         policy: NotificationsPolicy::default(),
-        file,
         published,
         clock,
         images,
         senders: Senders::default(),
+        saver: Saver::new(file, SAVE_AFTER),
     };
-    core.apply(
-        NotificationsEvent::Loaded(history_file::load(&core.file)),
-        None,
-    )
-    .await;
+    core.apply(NotificationsEvent::Loaded(stored), None).await;
     // Held for the whole run, so `calls` never closes (a closed channel would wake the select
     // forever) even when there is no bus.
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
@@ -75,8 +73,10 @@ pub(crate) async fn run(
             Some(call) = calls.recv() => core.call(call, bus.as_ref()).await,
             Some(_) = next_opt(&mut owner_changes) => core.settle(bus.as_ref()).await,
             _ = sweep.tick() => core.sweep(bus.as_ref()).await,
+            () = core.saver.ready() => core.write_history(),
         }
     }
+    core.saver.finish(|| for_disk(&core.state)).await;
     if let Some(bus) = &bus
         && core.state.live.server.holder == NameHolder::Sill
     {
@@ -89,8 +89,6 @@ pub(crate) async fn run(
 struct Core {
     state: NotesState,
     policy: NotificationsPolicy,
-    /// Where the history is kept.
-    file: PathBuf,
     published: watch::Sender<NotesState>,
     /// What stamps a posting's arrival.
     clock: Arc<dyn WallClock>,
@@ -98,6 +96,8 @@ struct Core {
     images: ImageDirs,
     /// Who posted what, and how much each caller may still post.
     senders: Senders,
+    /// When the history is next written.
+    saver: Saver,
 }
 
 impl Core {
@@ -130,9 +130,10 @@ impl Core {
             Call::Notify {
                 posting,
                 sender,
+                caller,
                 reply,
             } => {
-                let answer = self.notify(*posting, sender, bus).await;
+                let answer = self.notify(*posting, sender, &caller, bus).await;
                 let _ = reply.send(answer);
             }
             Call::Close { id, sender, reply } => {
@@ -148,16 +149,18 @@ impl Core {
         }
     }
 
-    /// A `Notify` from `sender`: refused past its allowance; it replaces only what it posted or
+    /// A `Notify` from `sender`, counted against `caller`: refused past the caller's allowance or
+    /// the shared one; it replaces only what it posted or
     /// what was posted for the same app; its pictures stay only where [`ImageDirs`] allow.
     async fn notify(
         &mut self,
         mut posting: Posting,
         sender: Sender,
+        caller: &Caller,
         bus: Option<&Bus>,
     ) -> NotifyAnswer {
         let now = unix_ms(&self.clock.now());
-        if self.senders.admit(&sender, now) == Admission::TooMany {
+        if self.senders.admit(caller, now) == Admission::TooMany {
             return NotifyAnswer::TooMany;
         }
         posting = posting.within(&self.images);
@@ -209,7 +212,7 @@ impl Core {
         }
     }
 
-    async fn perform(&self, effect: NotificationsEffect, bus: Option<&Bus>) {
+    async fn perform(&mut self, effect: NotificationsEffect, bus: Option<&Bus>) {
         // Signals only while sill holds the name: a passive sill's ids are not the holder's.
         let speaking = match (bus, &self.state.live.server) {
             (
@@ -226,7 +229,7 @@ impl Core {
             (NotificationsEffect::Invoked { id, action, token }, Some(bus)) => {
                 bus.invoked(id, &action, &token).await;
             }
-            (NotificationsEffect::SaveHistory, _) => self.save(),
+            (NotificationsEffect::SaveHistory, _) => self.saver.request(),
             (
                 NotificationsEffect::Closed { .. }
                 | NotificationsEffect::Invoked { .. }
@@ -236,10 +239,9 @@ impl Core {
         }
     }
 
-    fn save(&self) {
-        if let Err(error) = history_file::save(&self.file, &for_disk(&self.state)) {
-            eprintln!("sill: notifications: saving the history: {error}");
-        }
+    /// The saver's time has come: the history as it is now, written on the blocking pool.
+    fn write_history(&mut self) {
+        self.saver.start(for_disk(&self.state));
     }
 }
 

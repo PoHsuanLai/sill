@@ -160,7 +160,7 @@ mod tests {
         let pixels = NoteImage::Pixels(Pixels {
             width: 1,
             height: 1,
-            rgba: vec![0, 0, 0, 255],
+            rgba: vec![0, 0, 0, 255].into(),
         });
         let cases: Vec<(&str, Posting, (IconRef, NoteImage))> = vec![
             (

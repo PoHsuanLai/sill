@@ -5,6 +5,7 @@
 //! these once; `sill debug notify` builds a [`Posting`] directly, without a bus.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -197,12 +198,29 @@ pub enum NoteImage {
     Pixels(Pixels),
 }
 
-/// Straight 8-bit RGBA, `width * height * 4` bytes, rows packed.
+/// Straight 8-bit RGBA, `width * height * 4` bytes, rows packed. The bytes are shared: the state
+/// is copied and compared on every event, and a picture is up to a megabyte.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Pixels {
     pub width: u32,
     pub height: u32,
-    pub rgba: Vec<u8>,
+    #[serde(with = "shared_bytes")]
+    pub rgba: Arc<[u8]>,
+}
+
+/// Shared bytes in their wire form, a sequence of numbers, as a `Vec<u8>` is.
+mod shared_bytes {
+    use std::sync::Arc;
+
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub(super) fn serialize<S: Serializer>(bytes: &Arc<[u8]>, to: S) -> Result<S::Ok, S::Error> {
+        bytes.as_ref().serialize(to)
+    }
+
+    pub(super) fn deserialize<'de, D: Deserializer<'de>>(from: D) -> Result<Arc<[u8]>, D::Error> {
+        Vec::<u8>::deserialize(from).map(Arc::from)
+    }
 }
 
 /// The `transient` hint: a transient notification never enters the history.

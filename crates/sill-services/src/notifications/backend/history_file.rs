@@ -83,7 +83,7 @@ mod tests {
         let pixels = NoteImage::Pixels(Pixels {
             width: 1,
             height: 1,
-            rgba: vec![1, 2, 3, 255],
+            rgba: vec![1, 2, 3, 255].into(),
         });
         NotesState {
             history: History {

@@ -5,6 +5,7 @@ mod history_file;
 mod live;
 mod name_watch;
 mod picture;
+mod save;
 mod senders;
 mod wire;
 

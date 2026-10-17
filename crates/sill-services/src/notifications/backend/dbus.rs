@@ -5,13 +5,18 @@
 //! spec's, and [`posting_from_wire`]'s contract.
 
 use std::collections::HashMap;
+use std::time::Duration;
 
 use sill_model::notifications::{CAPABILITIES, NotificationId, Posting, SERVER_INFORMATION};
 use tokio::sync::{mpsc, oneshot};
+use zbus::fdo::DBusProxy;
 use zbus::message::Header;
+use zbus::names::BusName;
 use zbus::object_server::SignalEmitter;
 use zbus::zvariant::OwnedValue;
-use zbus::{fdo, interface};
+use zbus::{Connection, fdo, interface};
+
+use crate::deadline::within;
 
 /// The well-known name.
 pub const BUS_NAME: &str = "org.freedesktop.Notifications";
@@ -24,6 +29,42 @@ pub const OBJECT_PATH: &str = "/org/freedesktop/Notifications";
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Sender(pub String);
 
+/// Who a `Notify` is counted against: the program behind the connection, so that a program that
+/// closes its connection and opens another is the same caller and gets no fresh allowance. A
+/// connection whose program the bus cannot name is counted by itself.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Caller {
+    /// The process id the bus reports for the connection.
+    Process(u32),
+    /// The connection alone.
+    Connection(Sender),
+}
+
+/// How long the bus is given to say which process a connection belongs to: it answers from its own
+/// table, so a slow answer means a stuck bus and the connection is counted by itself.
+const CREDENTIALS_CALL: Duration = Duration::from_secs(2);
+
+/// Who `sender` is, for the allowance: its process when the bus says in time.
+async fn caller_of(connection: &Connection, sender: &Sender) -> Caller {
+    let alone = || Caller::Connection(sender.clone());
+    let Ok(name) = BusName::try_from(sender.0.as_str()) else {
+        return alone();
+    };
+    let Ok(dbus) = DBusProxy::new(connection).await else {
+        return alone();
+    };
+    match within(
+        CREDENTIALS_CALL,
+        "notification caller",
+        dbus.get_connection_unix_process_id(name),
+    )
+    .await
+    {
+        Ok(Ok(pid)) => Caller::Process(pid),
+        Ok(Err(_)) | Err(_) => alone(),
+    }
+}
+
 /// A method call the object hands to the live loop, which owns the state.
 #[derive(Debug)]
 pub enum Call {
@@ -31,6 +72,7 @@ pub enum Call {
     Notify {
         posting: Box<Posting>,
         sender: Sender,
+        caller: Caller,
         reply: oneshot::Sender<NotifyAnswer>,
     },
     /// `CloseNotification`: the loop answers whether it held the id for `sender`.
@@ -115,6 +157,7 @@ impl Server {
     async fn notify(
         &self,
         #[zbus(header)] header: Header<'_>,
+        #[zbus(connection)] connection: &Connection,
         app_name: String,
         replaces_id: u32,
         app_icon: String,
@@ -125,6 +168,7 @@ impl Server {
         expire_timeout: i32,
     ) -> fdo::Result<u32> {
         let sender = sender_of(&header)?;
+        let caller = caller_of(connection, &sender).await;
         let posting = posting_from_wire(WireNotify {
             app_name,
             replaces_id,
@@ -143,6 +187,7 @@ impl Server {
             .send(Call::Notify {
                 posting: Box::new(posting),
                 sender,
+                caller,
                 reply,
             })
             .map_err(|_| stopped())?;
@@ -297,7 +342,7 @@ mod tests {
             NoteImage::Pixels(Pixels {
                 width: 1,
                 height: 1,
-                rgba: vec![10, 20, 30, 255],
+                rgba: vec![10, 20, 30, 255].into(),
             })
         );
         assert_eq!(posting.hints.transience, Transience::Transient);

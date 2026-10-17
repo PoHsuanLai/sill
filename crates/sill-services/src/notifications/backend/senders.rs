@@ -1,4 +1,4 @@
-//! Who each held notification belongs to, and how fast each sender may post: the live loop's
+//! Who each held notification belongs to, and how fast each caller may post: the live loop's
 //! record of the callers on the bus. A notification may be closed over the bus only by the
 //! connection that posted it, and replaced by that connection or by a later one that names the
 //! same app (so `notify-send -r` from a script keeps working across runs). One the shell posted
@@ -7,16 +7,20 @@
 use std::collections::HashMap;
 
 use sill_model::notifications::{
-    Allowance, AppKey, NotesState, NotificationId, SENDERS_TRACKED_MAX, UnixMs, holds,
+    Allowance, AppKey, NotesState, NotificationId, Rate, SENDERS_TRACKED_MAX, UnixMs, holds,
 };
 
-use super::dbus::Sender;
+use super::dbus::{Caller, Sender};
 
 /// The callers the loop knows.
 #[derive(Debug, Default)]
 pub(super) struct Senders {
     owners: HashMap<NotificationId, Owner>,
-    allowances: HashMap<Sender, Allowance>,
+    /// What each caller may still post. Keyed by [`Caller`], not by connection: reconnecting is
+    /// not a fresh burst.
+    allowances: HashMap<Caller, Allowance>,
+    /// What all callers together may still post.
+    all: Option<Allowance>,
 }
 
 /// The connection that posted a held notification, and the app it named.
@@ -42,27 +46,36 @@ pub(super) enum Admission {
 }
 
 impl Senders {
-    /// Take one notification from `sender`'s allowance at `now`.
-    pub(super) fn admit(&mut self, sender: &Sender, now: UnixMs) -> Admission {
-        let held = self
+    /// Take one notification from `caller`'s allowance and from the shared one at `now`; both
+    /// must have one, and a refusal by either spends nothing of the other.
+    pub(super) fn admit(&mut self, caller: &Caller, now: UnixMs) -> Admission {
+        let own = self
             .allowances
-            .get(sender)
+            .get(caller)
             .copied()
-            .unwrap_or_else(|| Allowance::full(now));
-        let (left, admission) = match held.take(now) {
-            Ok(left) => (left, Admission::Allowed),
-            Err(left) => (left, Admission::TooMany),
+            .unwrap_or_else(|| Allowance::full(Rate::ONE_CALLER, now));
+        let all = self
+            .all
+            .unwrap_or_else(|| Allowance::full(Rate::ALL_CALLERS, now));
+        let (own, all, admission) = match (own.take(now), all.take(now)) {
+            (Ok(own), Ok(all)) => (own, all, Admission::Allowed),
+            (own_after, all_after) => (
+                own_after.err().unwrap_or(own),
+                all_after.err().unwrap_or(all),
+                Admission::TooMany,
+            ),
         };
-        self.make_room_for(sender, now);
-        self.allowances.insert(sender.clone(), left);
+        self.make_room_for(caller, now);
+        self.allowances.insert(caller.clone(), own);
+        self.all = Some(all);
         admission
     }
 
-    /// Forget the senders with their whole burst back, and when still more than
+    /// Forget the callers with their whole burst back, and when still more than
     /// [`SENDERS_TRACKED_MAX`] are tracked, the one counted longest ago, so the table cannot
-    /// grow with the number of connections that have ever posted.
-    fn make_room_for(&mut self, sender: &Sender, now: UnixMs) {
-        if self.allowances.len() < SENDERS_TRACKED_MAX || self.allowances.contains_key(sender) {
+    /// grow with the number of callers that have ever posted.
+    fn make_room_for(&mut self, caller: &Caller, now: UnixMs) {
+        if self.allowances.len() < SENDERS_TRACKED_MAX || self.allowances.contains_key(caller) {
             return;
         }
         self.allowances
@@ -74,7 +87,7 @@ impl Senders {
             .allowances
             .iter()
             .min_by_key(|(_, allowance)| allowance.counted_at())
-            .map(|(sender, _)| sender.clone());
+            .map(|(caller, _)| caller.clone());
         if let Some(oldest) = oldest {
             self.allowances.remove(&oldest);
         }
@@ -124,11 +137,12 @@ impl Senders {
 #[cfg(test)]
 mod tests {
     use sill_model::notifications::{
-        AppKey, NotesState, NotificationId, SENDER_BURST, SENDERS_TRACKED_MAX, UnixMs,
+        ALL_SENDERS_BURST, AppKey, NotesState, NotificationId, SENDER_BURST, SENDERS_TRACKED_MAX,
+        UnixMs,
     };
 
     use super::{Admission, Owner, Senders};
-    use crate::notifications::backend::dbus::Sender;
+    use crate::notifications::backend::dbus::{Caller, Sender};
 
     fn sender(name: &str) -> Sender {
         Sender(name.to_owned())
@@ -145,10 +159,14 @@ mod tests {
         })
     }
 
+    fn caller(name: &str) -> Caller {
+        Caller::Connection(sender(name))
+    }
+
     #[test]
     fn a_sender_that_floods_is_refused_while_another_is_not() {
         let mut senders = Senders::default();
-        let (noisy, calm) = (sender(":1.1"), sender(":1.2"));
+        let (noisy, calm) = (caller(":1.1"), caller(":1.2"));
         let at = UnixMs(10_000);
         for _ in 0..SENDER_BURST {
             assert_eq!(senders.admit(&noisy, at), Admission::Allowed);
@@ -158,11 +176,37 @@ mod tests {
     }
 
     #[test]
+    fn a_program_that_reconnects_keeps_its_spent_allowance() {
+        let mut senders = Senders::default();
+        let at = UnixMs(10_000);
+        // The same process behind a new connection each time: the bus names it by pid.
+        for _ in 0..SENDER_BURST {
+            assert_eq!(senders.admit(&Caller::Process(41), at), Admission::Allowed);
+        }
+        assert_eq!(
+            senders.admit(&Caller::Process(41), at),
+            Admission::TooMany,
+            "a new connection of the same process is the same caller"
+        );
+        assert_eq!(senders.admit(&Caller::Process(42), at), Admission::Allowed);
+    }
+
+    #[test]
+    fn many_callers_together_cannot_pass_the_shared_allowance() {
+        let mut senders = Senders::default();
+        let at = UnixMs(10_000);
+        let passed = (0..ALL_SENDERS_BURST * 2)
+            .filter(|n| senders.admit(&Caller::Process(*n), at) == Admission::Allowed)
+            .count();
+        assert_eq!(passed, usize::try_from(ALL_SENDERS_BURST).unwrap_or(0));
+    }
+
+    #[test]
     fn the_table_of_senders_stays_bounded() {
         let mut senders = Senders::default();
         let at = UnixMs(10_000);
         for n in 0..(SENDERS_TRACKED_MAX * 3) {
-            senders.admit(&sender(&format!(":1.{n}")), at);
+            senders.admit(&caller(&format!(":1.{n}")), at);
         }
         assert!(senders.allowances.len() <= SENDERS_TRACKED_MAX);
     }

@@ -46,7 +46,7 @@ pub(super) fn pixels(data: &Value<'_>) -> Option<Pixels> {
     Some(Pixels {
         width: u32::try_from(shape.width).ok()?,
         height: u32::try_from(shape.height).ok()?,
-        rgba,
+        rgba: rgba.into(),
     })
 }
 

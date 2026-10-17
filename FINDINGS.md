@@ -855,13 +855,19 @@ a source; `assumed` means not yet checked.
 
 ### Production audit: notifications, media and untrusted text
 
-- **Oversize `image-data` still arrives whole.** zbus reads `a{sv}` into values before the boundary
-  sees it, so a 64 MiB `ay` costs its expansion once per call before it is refused. Cutting it
-  needs a raw read of the call body or a lower `max_message_size` on the session bus. The per-sender
-  allowance bounds how often.
-- **The history is saved with a blocking write per post, and every event deep-compares the state.**
-  The allowance bounds the rate; a debounced save on the blocking pool and a cheaper publish are
-  open.
+- **Oversize `image-data` still arrives whole.** zbus (5.19, `iface.rs`) deserialises the whole
+  method body into the argument types before the method runs, and `a{sv}` expands a 64 MiB `ay`
+  into one boxed value per byte, before any sill code sees it. `#[zbus(header)]` is the only
+  message part a method can ask for, and the header names no body length in time. Cutting it needs
+  the body read raw (a hand-written `zbus::object_server::Interface` that checks
+  `message.body().data().len()` first) or a lower `max_message_size` on the session bus (a drop-in
+  under `session.d`, a decision for every program on that bus). What bounds it today is the
+  allowance: a caller's burst (by process, so reconnecting gives no new one) and the callers'
+  shared one.
+- **The history save is gathered and off the loop.** A change asks for a save; the first ask
+  starts a one second wait, the asks that follow join it, and one durable write runs on the
+  blocking pool (`notifications/backend/save.rs`). Leaving the loop writes what was still waiting.
+  A crash inside that second loses the last changes to the history.
 - **Identity is what the app claims.** `app_name` and the `desktop-entry` hint outside the `sill-`
   namespace pick the name and icon on a card; a verified identity from the bus connection
   (process, cgroup, desktop file) is open, and with it a list of system programs (the power daemon)

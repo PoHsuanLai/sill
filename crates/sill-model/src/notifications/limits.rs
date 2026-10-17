@@ -63,5 +63,12 @@ pub const SENDER_BURST: u32 = 30;
 /// How often a sender earns one more notification after a burst.
 pub const SENDER_REFILL_MS: i64 = 250;
 
+/// How many notifications all callers together may post in a burst: more than one caller's, so
+/// several chatty apps pass, and fewer than a flood from many connections would be.
+pub const ALL_SENDERS_BURST: u32 = 120;
+
+/// How often the callers together earn one more notification after a burst (ten a second).
+pub const ALL_SENDERS_REFILL_MS: i64 = 100;
+
 /// How many senders the rate limiter tracks at once.
 pub const SENDERS_TRACKED_MAX: usize = 256;
