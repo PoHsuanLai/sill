@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use sill_model::app_menu::{AppMenuCommand, AppMenuEvent, Followers, MenuApp, MenuName, step};
-use tokio::sync::mpsc;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
 use tokio::task::JoinHandle;
 use zbus::Connection;
 
@@ -13,6 +13,10 @@ use crate::app_menu::{AppMenuDeps, AppMenuService, wire};
 use crate::callers::CallerSource;
 use crate::env::Bus;
 use crate::service::ServiceIo;
+
+/// How many clicks and "about to show" calls are on the way at once: each waits on an app that may
+/// be hung, so past this a call is dropped, not queued behind them.
+const TELLS_IN_FLIGHT_MAX: usize = 8;
 
 /// A followed app: where its menu is served, and the task that follows it.
 struct Followed {
@@ -42,6 +46,7 @@ pub(crate) async fn run(
     let (events_tx, mut events) = mpsc::unbounded_channel::<AppMenuEvent>();
     let mut followers = Followers::default();
     let mut followed: HashMap<MenuApp, Followed> = HashMap::new();
+    let tells = Arc::new(Semaphore::new(TELLS_IN_FLIGHT_MAX));
     loop {
         tokio::select! {
             command = commands.recv() => match command {
@@ -70,12 +75,12 @@ pub(crate) async fn run(
                 }
                 Some(AppMenuCommand::Pick { app, id }) => {
                     if let Some(at) = followed.get(&app) {
-                        tell(&connection, at.name.clone(), id, Tell::Click);
+                        tell(&connection, &tells, at.name.clone(), id, Tell::Click);
                     }
                 }
                 Some(AppMenuCommand::Opening { app, id }) => {
                     if let Some(at) = followed.get(&app) {
-                        tell(&connection, at.name.clone(), id, Tell::AboutToShow);
+                        tell(&connection, &tells, at.name.clone(), id, Tell::AboutToShow);
                     }
                 }
                 None => break,
@@ -106,10 +111,19 @@ enum Tell {
 }
 
 /// Send `tell` for row `id` to the app serving `name`, without holding the loop: an app that
-/// hangs only costs its own call, and one that is gone has nothing left to tell.
-fn tell(connection: &Connection, name: MenuName, id: i32, tell: Tell) {
+/// hangs only costs its own call (for [`crate::deadline::MENU_CALL`]), one that is gone has
+/// nothing left to tell, and past [`TELLS_IN_FLIGHT_MAX`] calls on the way it is dropped.
+fn tell(connection: &Connection, tells: &Arc<Semaphore>, name: MenuName, id: i32, tell: Tell) {
+    let Ok(permit) = Arc::clone(tells).try_acquire_owned() else {
+        eprintln!(
+            "sill-services: app_menu: {}: too many calls on the way",
+            name.0
+        );
+        return;
+    };
     let connection = connection.clone();
     tokio::spawn(async move {
+        let _permit: OwnedSemaphorePermit = permit;
         let sent = match tell {
             Tell::Click => wire::click(&connection, &name.0, id).await,
             Tell::AboutToShow => wire::about_to_show(&connection, &name.0, id).await,

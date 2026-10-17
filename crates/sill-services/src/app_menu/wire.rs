@@ -13,6 +13,9 @@ use zbus::Connection;
 use zbus::names::BusName;
 use zbus::zvariant::{OwnedValue, Type, Value};
 
+use crate::deadline::{MENU_CALL, call};
+use crate::error::ServiceError;
+
 /// Where an app serves its menu (`AppMenuAddress::PATH`).
 pub(crate) const MENU_PATH: &str = "/org/quire/AppMenu";
 
@@ -24,6 +27,11 @@ pub(crate) const MENU_INTERFACE: &str = "com.canonical.dbusmenu";
 const MAX_DEPTH: usize = 12;
 const MAX_NODES: usize = 4000;
 
+/// The most bytes of a `GetLayout` reply that are read into values: 4000 rows with their labels
+/// and icons names fit, and the check comes before the reply is expanded (an app can send
+/// megabytes, and every byte of some arrays becomes a value).
+const MAX_LAYOUT_BYTES: usize = 1 << 20;
+
 /// Why a menu could not be read.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub(crate) enum WireError {
@@ -33,11 +41,16 @@ pub(crate) enum WireError {
     NotALayout,
     #[error("the menu is larger than the bar reads")]
     TooLarge,
+    #[error("the app did not answer in time")]
+    TimedOut,
 }
 
-impl From<zbus::Error> for WireError {
-    fn from(error: zbus::Error) -> Self {
-        WireError::Bus(error.to_string())
+impl From<ServiceError> for WireError {
+    fn from(error: ServiceError) -> Self {
+        match error {
+            ServiceError::TimedOut(_) => WireError::TimedOut,
+            other => WireError::Bus(other.to_string()),
+        }
     }
 }
 
@@ -57,15 +70,21 @@ pub(crate) async fn read_layout(
     destination: &str,
 ) -> Result<Vec<Node>, WireError> {
     let destination = BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
-    let reply = connection
-        .call_method(
+    let reply = call(
+        MENU_CALL,
+        "an app's menu",
+        connection.call_method(
             Some(destination),
             MENU_PATH,
             Some(MENU_INTERFACE),
             "GetLayout",
             &(0_i32, -1_i32, Vec::<String>::new()),
-        )
-        .await?;
+        ),
+    )
+    .await?;
+    if reply.body().data().len() > MAX_LAYOUT_BYTES {
+        return Err(WireError::TooLarge);
+    }
     let (_revision, root): (u32, WireNode) = reply
         .body()
         .deserialize()
@@ -156,15 +175,18 @@ pub(crate) async fn click(
     id: i32,
 ) -> Result<(), WireError> {
     let destination = BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
-    connection
-        .call_method(
+    call(
+        MENU_CALL,
+        "an app's menu",
+        connection.call_method(
             Some(destination),
             MENU_PATH,
             Some(MENU_INTERFACE),
             "Event",
             &(id, "clicked", Value::from(0_i32), 0_u32),
-        )
-        .await?;
+        ),
+    )
+    .await?;
     Ok(())
 }
 
@@ -175,14 +197,90 @@ pub(crate) async fn about_to_show(
     id: i32,
 ) -> Result<(), WireError> {
     let destination = BusName::try_from(destination).map_err(|e| WireError::Bus(e.to_string()))?;
-    connection
-        .call_method(
+    call(
+        MENU_CALL,
+        "an app's menu",
+        connection.call_method(
             Some(destination),
             MENU_PATH,
             Some(MENU_INTERFACE),
             "AboutToShow",
             &(id,),
-        )
-        .await?;
+        ),
+    )
+    .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use sill_testkit::PrivateBus;
+    use zbus::interface;
+
+    use super::{MENU_PATH, WireError, about_to_show, click, read_layout};
+    use crate::deadline::MENU_CALL;
+
+    /// A menu that takes every call and never answers it.
+    struct HungMenu;
+
+    #[interface(name = "com.canonical.dbusmenu")]
+    impl HungMenu {
+        async fn get_layout(&self, _parent: i32, _depth: i32, _names: Vec<String>) -> (u32, i32) {
+            std::future::pending().await
+        }
+
+        async fn event(
+            &self,
+            _id: i32,
+            _kind: String,
+            _data: zbus::zvariant::OwnedValue,
+            _at: u32,
+        ) {
+            std::future::pending().await
+        }
+
+        async fn about_to_show(&self, _id: i32) -> bool {
+            std::future::pending().await
+        }
+    }
+
+    fn connect(bus: &PrivateBus) -> zbus::connection::Builder<'_> {
+        zbus::connection::Builder::address(bus.address.as_str()).unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    #[tokio::test]
+    async fn a_menu_that_never_answers_is_given_up_on_for_each_call() {
+        let Some(bus) = PrivateBus::start() else {
+            return;
+        };
+        let name = "org.quire.AppMenu.hung";
+        let _app = connect(&bus)
+            .name(name)
+            .and_then(|builder| builder.serve_at(MENU_PATH, HungMenu))
+            .unwrap_or_else(|e| panic!("{e}"))
+            .build()
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+        let shell = connect(&bus)
+            .build()
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+        let started = Instant::now();
+        assert_eq!(
+            read_layout(&shell, name).await.map(|_| ()),
+            Err(WireError::TimedOut)
+        );
+        assert_eq!(click(&shell, name, 1).await, Err(WireError::TimedOut));
+        assert_eq!(
+            about_to_show(&shell, name, 1).await,
+            Err(WireError::TimedOut)
+        );
+        assert!(
+            started.elapsed() < MENU_CALL * 3 + Duration::from_secs(5),
+            "three calls took {:?}",
+            started.elapsed()
+        );
+    }
 }

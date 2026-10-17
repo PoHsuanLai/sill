@@ -23,6 +23,14 @@ pub const NETWORK_REFRESH: Duration = Duration::from_secs(15);
 /// be as hung as the app is.
 pub const TRAY_CALL: Duration = Duration::from_secs(5);
 
+/// One call to an app's menu (its layout, a click, "about to show"): the app is the focused one
+/// and a person is waiting on the answer, so a hung one is given up on quickly.
+pub const MENU_CALL: Duration = Duration::from_secs(4);
+
+/// One media player's whole read (its name, status, metadata and abilities) or one press on it:
+/// a player answers from its own memory, so a hung one is given up on while the others are served.
+pub const PLAYER_CALL: Duration = Duration::from_secs(3);
+
 /// A request to the companion service (an ask, a card answer): the assistant may think, but the
 /// shell does not wait on the connection for it.
 pub const COMPANION_CALL: Duration = Duration::from_secs(10);

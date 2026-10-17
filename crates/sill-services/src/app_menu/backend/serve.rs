@@ -14,6 +14,7 @@ use zbus::{Connection, Proxy};
 
 use crate::app_menu::wire::{MENU_INTERFACE, MENU_PATH, read_layout};
 use crate::callers::{Peers, menu_shown};
+use crate::deadline::{MENU_CALL, within};
 use crate::owner;
 use crate::stream::next;
 
@@ -61,7 +62,13 @@ async fn session(
     if menu_shown(peers, &owner, &client).await == MenuTrust::Hidden {
         return;
     }
-    let Ok(proxy) = Proxy::new(connection, owner.as_str(), MENU_PATH, MENU_INTERFACE).await else {
+    let Ok(Ok(proxy)) = within(
+        MENU_CALL,
+        "an app's menu",
+        Proxy::new(connection, owner.as_str(), MENU_PATH, MENU_INTERFACE),
+    )
+    .await
+    else {
         return;
     };
     // Both streams are open before the first read, so no announcement falls between.

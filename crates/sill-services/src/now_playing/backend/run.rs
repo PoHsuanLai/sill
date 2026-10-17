@@ -8,11 +8,13 @@ use std::time::Instant;
 
 use ds_core::time::stamp::Stamp;
 use sill_model::now_playing::{
-    Abilities, Art, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros, Playback,
-    PlayerId, Timeline, Track, step,
+    ARTISTS_MAX, Abilities, Art, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros,
+    PLAYERS_MAX, Playback, PlayerId, TEXT_MAX_CHARS, Timeline, Track, step,
 };
 use sill_model::units::Availability;
+use sill_model::untrusted::for_display;
 use tokio::sync::{mpsc, watch};
+use tokio::task::JoinSet;
 use zbus::fdo::{DBusProxy, NameOwnerChanged};
 use zbus::message::{Message, Type as MessageType};
 use zbus::names::{BusName, OwnedUniqueName};
@@ -21,6 +23,7 @@ use zbus::{Connection, MatchRule, MessageStream};
 
 use super::art::{ArtFetcher, ArtJob, apply_art, resolve_art};
 use super::mpris::{MediaPlayer2Proxy, PLAYER_INTERFACE, PlayerProxy};
+use crate::deadline::{PLAYER_CALL, within};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
@@ -126,18 +129,40 @@ async fn discover(
         let _ = tx.send(media);
         return;
     };
-    for name in names.into_iter().filter(|n| is_mpris_name(n.as_str())) {
-        let Ok(bus_name) = BusName::try_from(name.as_str().to_owned()) else {
-            continue;
-        };
-        if let Ok(owner) = dbus.get_name_owner(bus_name).await {
-            owners.insert(owner, PlayerId(name.as_str().to_owned()));
+    let wanted: Vec<String> = names
+        .into_iter()
+        .map(|name| name.as_str().to_owned())
+        .filter(|name| is_mpris_name(name))
+        .take(PLAYERS_MAX)
+        .collect();
+    for name in &wanted {
+        if let Ok(bus_name) = BusName::try_from(name.clone())
+            && let Ok(owner) = dbus.get_name_owner(bus_name).await
+        {
+            owners.insert(owner, PlayerId(name.clone()));
         }
-        let Some((player, pending)) =
-            snapshot(connection, name.as_str(), stamp(origin), cache_dir).await
-        else {
-            continue;
-        };
+    }
+    // One task per player, so a player that never answers costs its own deadline, not one each
+    // for the players behind it.
+    let mut reads = JoinSet::new();
+    for (index, name) in wanted.iter().enumerate() {
+        let (connection, name, at) = (connection.clone(), name.clone(), stamp(origin));
+        let cache = cache_dir.map(Path::to_path_buf);
+        reads.spawn(async move {
+            (
+                index,
+                snapshot(&connection, &name, at, cache.as_deref()).await,
+            )
+        });
+    }
+    let mut found = Vec::new();
+    while let Some(read) = reads.join_next().await {
+        if let Ok((index, Some(read))) = read {
+            found.push((index, read));
+        }
+    }
+    found.sort_by_key(|(index, _)| *index);
+    for (_, (player, pending)) in found {
         if let Some(job) = pending {
             art.spawn(player.id.clone(), job);
         }
@@ -166,6 +191,8 @@ async fn handle_owner_change(
     let id = PlayerId(name.to_owned());
     owners.retain(|_, existing| existing != &id);
     match args.new_owner().as_ref() {
+        // Past the cap a new name is not followed: it would not be listed either.
+        Some(_) if owners.len() >= PLAYERS_MAX => {}
         Some(owner) => {
             owners.insert(owner.to_owned().into(), id.clone());
             if let Some((player, pending)) =
@@ -245,12 +272,15 @@ async fn reread_timeline(
     id: PlayerId,
     origin: Instant,
 ) {
-    let Some(player) = player_proxy(connection, &id).await else {
-        return;
-    };
-    let metadata = player.metadata().await.unwrap_or_default();
-    let timeline = timeline_of(&player, &metadata, stamp(origin)).await;
-    apply(tx, MediaEvent::Timeline { id, timeline });
+    let read = within(PLAYER_CALL, "a media player", async {
+        let player = player_proxy(connection, &id).await?;
+        let metadata = player.metadata().await.unwrap_or_default();
+        Some(timeline_of(&player, &metadata, stamp(origin)).await)
+    })
+    .await;
+    if let Ok(Some(timeline)) = read {
+        apply(tx, MediaEvent::Timeline { id, timeline });
+    }
 }
 
 /// The tracked player that sent `message`, if any.
@@ -280,14 +310,16 @@ async fn press(
     if !allowed {
         return;
     }
-    let Some(proxy) = player_proxy(connection, player).await else {
-        return;
-    };
-    let _ = match verb {
-        MediaVerb::PlayPause => proxy.play_pause().await,
-        MediaVerb::Next => proxy.next().await,
-        MediaVerb::Previous => proxy.previous().await,
-    };
+    let _ = within(PLAYER_CALL, "a media player", async {
+        let proxy = player_proxy(connection, player).await?;
+        let sent = match verb {
+            MediaVerb::PlayPause => proxy.play_pause().await,
+            MediaVerb::Next => proxy.next().await,
+            MediaVerb::Previous => proxy.previous().await,
+        };
+        sent.ok()
+    })
+    .await;
 }
 
 fn ability_allows(abilities: &Abilities, verb: MediaVerb) -> bool {
@@ -300,8 +332,24 @@ fn ability_allows(abilities: &Abilities, verb: MediaVerb) -> bool {
 }
 
 /// One player's full state, read fresh from the bus, and a cover job still to run (the cache had
-/// no file for it yet).
+/// no file for it yet). A player that does not answer within [`PLAYER_CALL`] is none.
 async fn snapshot(
+    connection: &Connection,
+    name: &str,
+    at: Stamp,
+    cache_dir: Option<&Path>,
+) -> Option<(MediaPlayer, Option<ArtJob>)> {
+    within(
+        PLAYER_CALL,
+        "a media player",
+        read_player(connection, name, at, cache_dir),
+    )
+    .await
+    .ok()
+    .flatten()
+}
+
+async fn read_player(
     connection: &Connection,
     name: &str,
     at: Stamp,
@@ -315,7 +363,7 @@ async fn snapshot(
         .ok()?;
     let player = player_proxy(connection, &PlayerId(name.to_owned())).await?;
 
-    let identity = root.identity().await.unwrap_or_default();
+    let identity = for_display(&root.identity().await.unwrap_or_default(), TEXT_MAX_CHARS);
     let playback = playback_of(&player.playback_status().await.unwrap_or_default());
     let metadata = player.metadata().await.unwrap_or_default();
     let mut track = track_of(&metadata);
@@ -357,9 +405,13 @@ fn playback_of(status: &str) -> Playback {
 
 fn track_of(metadata: &HashMap<String, OwnedValue>) -> Track {
     Track {
-        title: metadata_string(metadata, "xesam:title"),
-        artists: metadata_strings(metadata, "xesam:artist"),
-        album: metadata_string(metadata, "xesam:album"),
+        title: for_display(&metadata_string(metadata, "xesam:title"), TEXT_MAX_CHARS),
+        artists: metadata_strings(metadata, "xesam:artist")
+            .iter()
+            .take(ARTISTS_MAX)
+            .map(|artist| for_display(artist, TEXT_MAX_CHARS))
+            .collect(),
+        album: for_display(&metadata_string(metadata, "xesam:album"), TEXT_MAX_CHARS),
         art: Art::None,
     }
 }

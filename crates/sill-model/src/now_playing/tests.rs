@@ -92,3 +92,20 @@ fn events_reduce_to_the_expected_media() {
         assert_eq!(step(before, event), want, "{name}");
     }
 }
+
+#[test]
+fn players_past_the_cap_are_not_listed_but_a_listed_one_still_updates() {
+    use super::PLAYERS_MAX;
+    let full = Media {
+        players: (0..PLAYERS_MAX)
+            .map(|n| player(&format!("p{n}"), Playback::Paused, 1))
+            .collect(),
+    };
+    let extra = player("extra", Playback::Playing, 9);
+    let after = step(full.clone(), MediaEvent::Player(extra.clone()));
+    assert_eq!(after, full, "the {}th player is dropped", PLAYERS_MAX + 1);
+    let listed = player("p0", Playback::Playing, 9);
+    let after = step(full, MediaEvent::Player(listed.clone()));
+    assert_eq!(after.players.len(), PLAYERS_MAX);
+    assert_eq!(after.players[0], listed);
+}

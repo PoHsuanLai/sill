@@ -5,6 +5,7 @@ mod art;
 mod art_cache;
 mod art_pace;
 mod command;
+mod limits;
 mod model;
 mod step;
 #[cfg(test)]
@@ -14,5 +15,6 @@ pub use art::{ART_URL_MAX_CHARS, ArtSource, art_cache_name, art_source, local_ar
 pub use art_cache::{CacheLimits, CachedCover, evictions};
 pub use art_pace::next_start;
 pub use command::{MediaCommand, MediaEvent, MediaVerb};
+pub use limits::{ARTISTS_MAX, PLAYERS_MAX, TEXT_MAX_CHARS};
 pub use model::{Abilities, Art, Media, MediaPlayer, Micros, Playback, PlayerId, Timeline, Track};
 pub use step::step;
