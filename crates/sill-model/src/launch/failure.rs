@@ -40,6 +40,18 @@ pub fn failure_text(app_name: &str, cause: FailureCause) -> LaunchNotice {
     }
 }
 
+/// One plain sentence for the command line: `app_name` did not open, and why.
+pub fn failure_sentence(app_name: &str, cause: FailureCause) -> String {
+    let why = match cause {
+        FailureCause::NotInstalled => "it is not in your apps any more",
+        FailureCause::NoStarter => "the desktop was not ready to start it",
+        FailureCause::NoAnswer => "it did not answer when it was asked to open",
+        FailureCause::CannotRun => "its program could not be run",
+        FailureCause::ClosedAtOnce => "it closed again right after it started",
+    };
+    format!("{app_name} could not be opened because {why}.")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,5 +77,34 @@ mod tests {
         distinct.sort();
         distinct.dedup();
         assert_eq!(distinct.len(), bodies.len());
+    }
+
+    #[test]
+    fn the_command_line_gets_one_sentence_per_cause() {
+        let cases = [
+            (
+                FailureCause::NotInstalled,
+                "Foot could not be opened because it is not in your apps any more.",
+            ),
+            (
+                FailureCause::NoStarter,
+                "Foot could not be opened because the desktop was not ready to start it.",
+            ),
+            (
+                FailureCause::NoAnswer,
+                "Foot could not be opened because it did not answer when it was asked to open.",
+            ),
+            (
+                FailureCause::CannotRun,
+                "Foot could not be opened because its program could not be run.",
+            ),
+            (
+                FailureCause::ClosedAtOnce,
+                "Foot could not be opened because it closed again right after it started.",
+            ),
+        ];
+        for (cause, want) in cases {
+            assert_eq!(failure_sentence("Foot", cause), want, "{cause:?}");
+        }
     }
 }

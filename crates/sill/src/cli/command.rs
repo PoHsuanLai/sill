@@ -11,6 +11,7 @@ use super::desktop::{
 use super::display::DisplayAction;
 use super::intents::IntentsAction;
 use super::keycap::KeycapAction;
+use super::launch::LaunchArgs;
 use super::launcher::{ClipboardAction, LauncherAction};
 use super::notifications::NotificationsAction;
 use super::session::{IdleAction, LockVerb, PolkitAction, SwitcherAction, WorkspaceAction};
@@ -21,6 +22,8 @@ use super::style::StyleAction;
 pub enum Command {
     /// Run the shell (the daemon); exits 0 if one is already running.
     Run(crate::run_args::RunArgs),
+    /// Open an installed app the way a click in the dock does.
+    Launch(LaunchArgs),
     /// Show, hide or seed the launcher.
     Launcher {
         #[command(subcommand)]

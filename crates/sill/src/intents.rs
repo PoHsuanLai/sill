@@ -50,15 +50,18 @@ pub fn result_of(response: Response) -> Result<(), ShellFault> {
         Response::Failed(failure) => match failure.kind {
             FailureKind::Unsupported => Err(ShellFault::Unsupported),
             FailureKind::UnknownSurface
+            | FailureKind::UnknownApp
             | FailureKind::Refused
             | FailureKind::Timeout
             | FailureKind::Internal => Err(ShellFault::Failed(failure.message)),
         },
-        Response::Pong | Response::Status(_) | Response::Stats(_) | Response::LauncherRows(_) => {
-            Err(ShellFault::Failed(
-                "the shell answered something else".to_owned(),
-            ))
-        }
+        Response::Pong
+        | Response::Status(_)
+        | Response::Stats(_)
+        | Response::LauncherRows(_)
+        | Response::Launched(_) => Err(ShellFault::Failed(
+            "the shell answered something else".to_owned(),
+        )),
     }
 }
 
@@ -159,6 +162,7 @@ mod tests {
         );
         for kind in [
             FailureKind::UnknownSurface,
+            FailureKind::UnknownApp,
             FailureKind::Timeout,
             FailureKind::Internal,
         ] {

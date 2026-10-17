@@ -44,6 +44,12 @@ pub fn dispatch(reach: &Reach, request: ActRequest) -> Response {
             reach.links.banners.ask_keyboard();
             Response::Done
         }
+        // Answered by the host loop, which waits for the app's process off this thread
+        // (`daemon::events::handle`); it never reaches here.
+        ActRequest::Launch(_) => failed(
+            FailureKind::Internal,
+            "launching is answered by the host loop".to_owned(),
+        ),
     }
 }
 

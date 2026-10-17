@@ -10,6 +10,7 @@ use shell_host::{
     CloseReason, HostCtx, HostEvent, KeyboardFocus, PalmrestAction, SurfaceId, SurfaceOp,
 };
 use sill_bar::Bar;
+use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
@@ -56,6 +57,9 @@ pub struct Shell {
     pub seat: super::compositor::ShellSeat,
     /// Where the service manager is told the shell has started.
     pub notify: crate::watchdog::Notifier,
+    /// The async runtime the services run on, for the work an IPC request starts off the host
+    /// thread (`sill launch` waits for the app's process).
+    pub runtime: tokio::runtime::Handle,
 }
 
 /// Every event, handled: an IPC request (needs the services and the settings), the lock's and the
@@ -63,6 +67,20 @@ pub struct Shell {
 /// closes it, design/06 §20.2).
 pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<ShellMsg>) {
     match event {
+        HostEvent::App(ShellMsg::Ipc {
+            request: Request::Act(ActRequest::Launch(app)),
+            reply,
+        }) => {
+            // Answered once the app's process exists, off this thread.
+            crate::launch::ask(
+                ctx,
+                &shell.services,
+                &shell.outputs,
+                &shell.runtime,
+                app,
+                reply,
+            );
+        }
         HostEvent::App(ShellMsg::Ipc { request, reply }) => {
             let _ = reply.send(answer(shell, ctx, request));
         }

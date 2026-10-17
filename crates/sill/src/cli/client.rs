@@ -6,6 +6,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use super::stdout;
+use sill_ipc::act::ActRequest;
 use sill_ipc::error::IpcError;
 use sill_ipc::line::{encode, read_message, write_message};
 use sill_ipc::request::Request;
@@ -39,11 +40,14 @@ pub fn main(request: &Request) -> ExitCode {
     }
 }
 
-/// One request's reply. `Quit` and `Ping` never start a daemon.
+/// One request's reply. `Quit`, `Ping` and `Launch` never start a daemon: a launch asked of a
+/// shell that was not running would time the shell's start, not the launch.
 pub fn send(request: &Request) -> Result<Response, ClientError> {
     let agent = latchkey::Agent::new("sill")?;
     let mut stream = match request {
-        Request::Ping | Request::Quit => agent.connect()?.ok_or(ClientError::NotRunning)?,
+        Request::Ping | Request::Quit | Request::Act(ActRequest::Launch(_)) => {
+            agent.connect()?.ok_or(ClientError::NotRunning)?
+        }
         _ => agent.connect_or_start(|| latchkey::spawn(&["run"]), START_TIMEOUT)?,
     };
     write_message(&mut stream, request)?;

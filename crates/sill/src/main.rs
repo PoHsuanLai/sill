@@ -6,11 +6,13 @@
 
 use std::process::ExitCode;
 
-use clap::Parser;
 use sill::cli;
 
 fn main() -> ExitCode {
-    let cli = cli::Cli::parse();
+    let cli = match cli::parse_args() {
+        Ok(cli) => cli,
+        Err(code) => return code,
+    };
     if let Some(dir) = &cli.write_schema {
         return match sill_settings::schema().write_to(dir) {
             Ok(path) => sill::cli::stdout::print(&format!("{}\n", path.display())).exit_code(),
@@ -24,13 +26,14 @@ fn main() -> ExitCode {
         Some(cli::Command::Run(args)) => sill::daemon::run(&args),
         Some(cli::Command::AuthCheck) => sill::cli::auth_check::main(),
         Some(cli::Command::Style { action }) => sill::cli::style::main(&action),
+        Some(cli::Command::Launch(args)) => sill::cli::launch::main(&args),
         Some(command) => match cli::request(&command) {
             Some(request) => sill::cli::client::main(&request),
             None => ExitCode::SUCCESS,
         },
         None => {
             eprintln!("sill: a subcommand is required (sill --help)");
-            ExitCode::from(2)
+            ExitCode::from(cli::USAGE)
         }
     }
 }

@@ -1787,3 +1787,32 @@ pane has none.
   make the card unsavable until the person ticks the apps again. docket should send the apps and the limit
   as data.
 - **Open: a new helper's Space is `desktop`.** The form needs a Space; the card has no Space choice.
+
+## workflow timing: `sill launch` and the `launch` timing line (2026-10-17)
+
+Every app launch through the launch service (Dock, launcher, bar, desktop widgets, `sill launch`) writes one
+line to the daemon's stderr, which the user unit sends to the journal: `timing: launch desktop_id=<id>
+unit=<scope> requested_at=<ns> spawned_at=<ns> pid=<pid>`. Times are `CLOCK_MONOTONIC` nanoseconds
+(`sill_services::launch::monotonic_now`). `requested_at` is stamped when the service takes the command off its
+queue (before anything is awaited), `spawned_at` right after the child exists. `systemd-run --scope` becomes the
+app in place, so the child's pid is the app's pid; `spawned_at` is the moment the child exists, a few
+milliseconds before systemd-run has registered the scope and exec'd the app. A D-Bus activated app starts no
+child: `unit=-`, `pid=0`, `spawned_at` is when `Activate` returned. A launch that fails writes no timing line.
+The line is built by the pure `sill_model::launch::launch_line`.
+
+- **sill does not use `tracing`.** No sill crate depends on it and no subscriber is installed; the daemon's
+  log is `eprintln!` (315 call sites), and `sill.service` sets no `StandardError`/`SyslogIdentifier`, so the
+  journal holds it under the identifier `sill`, always, with no level filter. The line is therefore written as
+  `timing: launch ...` (what a tracing fmt layer prints after the level, so a script's match on `timing: launch`
+  works for both). Moving the daemon onto `tracing` would need `tracing` and `tracing-subscriber` in
+  Cargo.toml; not done. A shell that `latchkey` started on demand (not the unit) has stderr on `/dev/null`:
+  the workflow scripts need the unit.
+- **`sill launch <desktop-id> [--print-timing]`** is `Act(Launch(AppId))` answered `Launched(LaunchTiming)`. The
+  host loop asks the first dock's surface for the activation token (as a dock click does), then `launch::serve`
+  sends the same `LaunchCommand::Launch` and waits for the service's `Launches::done`. Only apps in the app
+  index launch; `.desktop` on the id is dropped. Exit 0, 1 (a sentence on stderr), 2 (`FailureKind::UnknownApp`),
+  64 for a wrong command line. The 64 applies to every verb now (clap's own 2 is mapped in `cli::parse_args`),
+  so 2 is free for the unknown id. The IPC reply time is 2 s: an app whose `Activate` takes longer is
+  answered `Timeout` (exit 1) although it opens. `sill launch` never starts a daemon.
+- **Open: the queue.** The launch service handles one command at a time; a D-Bus `Activate` that is slow holds
+  later launches back, and `requested_at` (taken when the service reaches the command) does not count that wait.

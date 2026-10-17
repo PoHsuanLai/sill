@@ -13,6 +13,7 @@ use super::desktop::{
 use super::display::display_request;
 use super::intents::intents_request;
 use super::keycap::keycap_request;
+use super::launch::launch_request;
 use super::launcher::{clipboard_request, launcher_request};
 use super::notifications::notifications_request;
 use super::session::{
@@ -27,6 +28,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Quit => Request::Quit,
         Command::Reload => Request::Reload,
         Command::FocusLatest => Request::Act(ActRequest::FocusLatest),
+        Command::Launch(args) => launch_request(args),
         Command::Launcher { action } => launcher_request(action),
         Command::Dock { action } => dock_request(action),
         Command::PowerMenu { action } => power_menu_request(*action),

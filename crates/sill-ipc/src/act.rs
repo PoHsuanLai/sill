@@ -42,6 +42,9 @@ pub enum ActRequest {
     Keycap(KeycapAsk),
     /// Withdraw a standing terminal grant, or let a paused terminal go on (`sill intents revoke|resume`).
     Intents(IntentsAsk),
+    /// Open an installed app the way a click in the dock does (`sill launch <desktop-id>`):
+    /// answered `Response::Launched` once the app's process exists, or `Failed`.
+    Launch(AppId),
 }
 
 /// Pin changes.

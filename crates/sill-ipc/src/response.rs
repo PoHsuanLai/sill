@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use sill_model::launch::LaunchTiming;
+
 use crate::debug::{LauncherRows, SurfaceStats};
 use crate::status::StatusReport;
 
@@ -21,6 +23,8 @@ pub enum Response {
     Stats(Vec<SurfaceStats>),
     /// The answer to `Debug(LauncherRows)`.
     LauncherRows(LauncherRows),
+    /// The answer to `Act(Launch)`: when the launch was asked for and when the app's process existed.
+    Launched(LaunchTiming),
 }
 
 /// Why a request was not carried out, and what the caller can do about it.
@@ -39,8 +43,11 @@ pub enum FailureKind {
     UnknownSurface,
     /// This build or this compositor cannot do it (no `debug` feature, no layer-shell, ...).
     Unsupported,
-    /// The shell will not do this now (`quit` while the session is locked); the message says why.
+    /// The shell will not do this now (`quit` while the session is locked), or the app could not be
+    /// started; the message says why.
     Refused,
+    /// No installed app has the desktop id that was asked for; retrying will not help.
+    UnknownApp,
     /// The daemon did not finish within the reply timeout (2 s); it may still finish.
     Timeout,
     /// Anything else; the message says what.

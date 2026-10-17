@@ -1,11 +1,12 @@
 //! The launch task: one `LaunchCommand` at a time, D-Bus activation or a transient
-//! `systemd-run --user --scope`, tracked through [`step`] until the scope exits.
+//! `systemd-run --user --scope`, tracked through the launch state's step until the scope exits.
 
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, DbusActivation};
 use sill_model::launch::{
-    FailureCause, LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches,
-    SETTINGS_BUS_NAME, ScopeUnit, SettingsAccount, SettingsPage, launch_argv, scope_unit, step,
+    FailureCause, LaunchCommand, LaunchOutcome, LaunchRequest, LaunchTiming, LaunchedScope,
+    Launches, Pid, SETTINGS_BUS_NAME, ScopeUnit, SettingsAccount, SettingsPage, Stamp, launch_argv,
+    scope_unit,
 };
 use std::time::{Duration, Instant};
 
@@ -13,8 +14,10 @@ use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
 use super::LaunchLinks;
+use super::clock::monotonic_now;
 use super::notice::Tell;
 use super::open::{Manager, user_manager};
+use super::outcomes::{Outcomes, failed};
 use super::{Reach, dbus};
 use crate::deadline::{BUS_CALL, LAUNCH_COMMAND, call, within};
 use crate::env::Bus;
@@ -35,6 +38,8 @@ pub(crate) async fn run(
     let terminal = super::terminal::detect();
     let mut nonce: u32 = 0;
     while let Some(command) = commands.recv().await {
+        // Stamped as the request reaches the launch code, before anything is awaited.
+        let requested_at = monotonic_now();
         let what = match &command {
             LaunchCommand::Launch(_) => "launching an app",
             LaunchCommand::ShowInFiles(_) => "showing an app in Files",
@@ -54,6 +59,7 @@ pub(crate) async fn run(
                 &terminal,
                 &mut nonce,
                 command,
+                requested_at,
             ),
         )
         .await;
@@ -84,11 +90,16 @@ async fn handle(
     terminal: &[String],
     nonce: &mut u32,
     command: LaunchCommand,
+    requested_at: Stamp,
 ) {
     match command {
         LaunchCommand::Launch(request) => {
             *nonce += 1;
-            launch_one(rt, setup, outcomes, terminal, request, *nonce).await;
+            let attempt = Attempt {
+                nonce: *nonce,
+                requested_at,
+            };
+            launch_one(rt, setup, outcomes, terminal, request, attempt).await;
         }
         LaunchCommand::ShowInFiles(app_id) => {
             show_in_files(&setup.session, &outcomes.apps, &app_id).await
@@ -100,51 +111,77 @@ async fn handle(
     }
 }
 
+/// One launch request's place in the service: its scope's number, and when it arrived.
+#[derive(Debug, Clone, Copy)]
+struct Attempt {
+    nonce: u32,
+    requested_at: Stamp,
+}
+
 async fn launch_one(
     rt: &Handle,
     setup: &Reach,
     outcomes: &Outcomes,
     terminal: &[String],
     request: LaunchRequest,
-    nonce: u32,
+    attempt: Attempt,
 ) {
     let app_id = request.app.clone();
     let Some(app) = outcomes.apps.borrow().get(&app_id).cloned() else {
-        outcomes.record(failed(
+        outcomes.refused(
             app_id,
+            attempt.requested_at,
             FailureCause::NotInstalled,
             "not in the app index",
-        ));
+        );
         return;
     };
     if app.activation == DbusActivation::DBus || app.id.0 == SETTINGS_BUS_NAME {
-        let outcome = activate_over_dbus(&setup.session, &app, &request, app_id).await;
-        outcomes.record(outcome);
+        let activated = activate_over_dbus(&setup.session, &app, &request).await;
+        match activated {
+            Ok(()) => {
+                outcomes.record(LaunchOutcome::Activated(app_id.clone()));
+                outcomes.spawned(LaunchTiming {
+                    app: app_id,
+                    unit: None,
+                    requested_at: attempt.requested_at,
+                    spawned_at: monotonic_now(),
+                    pid: None,
+                });
+            }
+            Err(no) => outcomes.refused(app_id, attempt.requested_at, no.cause, &no.detail),
+        }
         return;
     }
     let manager = user_manager(setup.runtime.as_deref());
-    spawn_scope(rt, outcomes, &app, terminal, &request, nonce, manager).await;
+    spawn_scope(rt, outcomes, &app, terminal, &request, attempt, manager).await;
+}
+
+/// Why an activation did not happen.
+struct Refusal {
+    cause: FailureCause,
+    detail: String,
 }
 
 async fn activate_over_dbus(
     session: &Bus,
     app: &App,
     request: &LaunchRequest,
-    app_id: AppId,
-) -> LaunchOutcome {
+) -> Result<(), Refusal> {
+    let refusal = |cause, detail: String| Refusal { cause, detail };
     match session.connect().await {
-        Ok(Some(connection)) => match call(
+        Ok(Some(connection)) => call(
             BUS_CALL,
             "the app",
             dbus::activate(&connection, app, request),
         )
         .await
-        {
-            Ok(()) => LaunchOutcome::Activated(app_id),
-            Err(error) => failed(app_id, FailureCause::NoAnswer, &error.to_string()),
-        },
-        Ok(None) => failed(app_id, FailureCause::NoStarter, "no session bus"),
-        Err(error) => failed(app_id, FailureCause::NoStarter, &error.to_string()),
+        .map_err(|error| refusal(FailureCause::NoAnswer, error.to_string())),
+        Ok(None) => Err(refusal(
+            FailureCause::NoStarter,
+            "no session bus".to_owned(),
+        )),
+        Err(error) => Err(refusal(FailureCause::NoStarter, error.to_string())),
     }
 }
 
@@ -154,27 +191,45 @@ async fn spawn_scope(
     app: &App,
     terminal: &[String],
     request: &LaunchRequest,
-    nonce: u32,
+    attempt: Attempt,
     manager: Manager,
 ) {
     let app_id = request.app.clone();
+    let Attempt {
+        nonce,
+        requested_at,
+    } = attempt;
     let unit = scope_unit(&app_id, nonce);
     let argv = match launch_argv(app, request, &unit, terminal) {
         Ok(argv) => argv,
         Err(error) => {
-            outcomes.record(failed(app_id, FailureCause::CannotRun, &error.to_string()));
+            let detail = error.to_string();
+            outcomes.refused(app_id, requested_at, FailureCause::CannotRun, &detail);
             return;
         }
     };
     match start_with(&argv, request.token.as_deref(), manager) {
         Ok(child) => {
+            // The child exists: `systemd-run --scope` becomes the app in place, so its pid is the app's.
+            let spawned_at = monotonic_now();
+            let pid = child.id().map(Pid);
             outcomes.record(LaunchOutcome::Started(LaunchedScope {
                 app: app_id.clone(),
                 unit: unit.clone(),
             }));
+            outcomes.spawned(LaunchTiming {
+                app: app_id.clone(),
+                unit: Some(unit.clone()),
+                requested_at,
+                spawned_at,
+                pid,
+            });
             rt.spawn(wait_for_exit(outcomes.clone(), app_id, unit, child));
         }
-        Err(error) => outcomes.record(failed(app_id, FailureCause::CannotRun, &error.to_string())),
+        Err(error) => {
+            let detail = error.to_string();
+            outcomes.refused(app_id, requested_at, FailureCause::CannotRun, &detail);
+        }
     }
 }
 
@@ -294,38 +349,6 @@ async fn force_quit(tx: &watch::Sender<Launches>, app_id: &AppId) {
             .status()
             .await;
     }
-}
-
-/// A failed launch of `app`: the person is told `cause`; `detail` goes to the journal.
-fn failed(app: AppId, cause: FailureCause, detail: &str) -> LaunchOutcome {
-    eprintln!("sill: launch: {}: {detail}", app.0);
-    LaunchOutcome::Failed { app, cause }
-}
-
-/// Where outcomes go: into the published state, and a failure also to the person.
-#[derive(Clone)]
-struct Outcomes {
-    tx: watch::Sender<Launches>,
-    tell: Tell,
-    apps: watch::Receiver<AppIndex>,
-}
-
-impl Outcomes {
-    fn record(&self, outcome: LaunchOutcome) {
-        if let LaunchOutcome::Failed { app, cause } = &outcome {
-            let name = self
-                .apps
-                .borrow()
-                .get(app)
-                .map_or_else(|| app.0.clone(), |found| found.name.clone());
-            self.tell.failed(&name, *cause);
-        }
-        record(&self.tx, outcome);
-    }
-}
-
-fn record(tx: &watch::Sender<Launches>, outcome: LaunchOutcome) {
-    tx.send_modify(|launches| *launches = step(std::mem::take(launches), outcome));
 }
 
 /// Settings at `account`, started by the bus when it is not running.

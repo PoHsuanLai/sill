@@ -33,6 +33,7 @@ use sill_model::idle::{
 use sill_model::intents::IntentsAsk;
 use sill_model::intents::terminal::{Breaker, ControlReach, parse_grant};
 use sill_model::keycap::{KeycapAsk, KeycapState};
+use sill_model::launch::{LaunchTiming, Pid, ScopeUnit, Stamp};
 use sill_model::locker::{Lock, LockCause, LockPhase};
 use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NameHolder, NameOwner, NotifyUrgency,
@@ -300,6 +301,10 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"act","v":{"kind":"focus_latest"}}"#,
         ),
         (
+            Request::Act(ActRequest::Launch(app("org.mozilla.firefox"))),
+            r#"{"kind":"act","v":{"kind":"launch","v":"org.mozilla.firefox"}}"#,
+        ),
+        (
             Request::Act(ActRequest::Keycap(KeycapAsk::Retry)),
             r#"{"kind":"act","v":{"kind":"keycap","v":"retry"}}"#,
         ),
@@ -494,6 +499,33 @@ fn responses() -> Vec<(Response, &'static str)> {
         (Response::Pong, r#"{"kind":"pong"}"#),
         (Response::Done, r#"{"kind":"done"}"#),
         (Response::Stats(Vec::new()), r#"{"kind":"stats","v":[]}"#),
+        (
+            Response::Launched(LaunchTiming {
+                app: app("foot"),
+                unit: Some(ScopeUnit("app-sill-foot-1.scope".to_owned())),
+                requested_at: Stamp(100),
+                spawned_at: Stamp(18_446_744_073_709_551_615),
+                pid: Some(Pid(4242)),
+            }),
+            r#"{"kind":"launched","v":{"app":"foot","unit":"app-sill-foot-1.scope","requested_at":100,"spawned_at":18446744073709551615,"pid":4242}}"#,
+        ),
+        (
+            Response::Launched(LaunchTiming {
+                app: app("org.gnome.Calculator"),
+                unit: None,
+                requested_at: Stamp(7),
+                spawned_at: Stamp(9),
+                pid: None,
+            }),
+            r#"{"kind":"launched","v":{"app":"org.gnome.Calculator","unit":null,"requested_at":7,"spawned_at":9,"pid":null}}"#,
+        ),
+        (
+            Response::Failed(Failure {
+                kind: FailureKind::UnknownApp,
+                message: "no app has that id".to_owned(),
+            }),
+            r#"{"kind":"failed","v":{"kind":"unknown_app","message":"no app has that id"}}"#,
+        ),
         (
             Response::Failed(Failure {
                 kind: FailureKind::UnknownSurface,

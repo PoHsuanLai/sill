@@ -165,6 +165,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         keys: sill_model::keyboard::ShellKeys::default(),
         seat,
         notify,
+        runtime: runtime.handle().clone(),
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 

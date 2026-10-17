@@ -3,9 +3,12 @@ use std::time::Duration;
 
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
-use sill_model::launch::{LaunchCommand, LaunchRequest};
+use sill_model::launch::{
+    FailureCause, LaunchCommand, LaunchDone, LaunchRequest, Launches, answer_to,
+};
 
-use super::{LaunchLinks, LaunchService};
+use super::{LaunchLinks, LaunchService, monotonic_now};
+use crate::Control;
 use crate::NotificationsService;
 use crate::service::spawn;
 
@@ -158,4 +161,101 @@ async fn opening_with_no_session_records_the_opener_and_starts_nothing() {
             .all(|s| s.group == ProcessGroup::Own && s.token.as_deref() == Some("tok")),
         "bare, in its own process group, told the token"
     );
+}
+
+/// A launch service over a scratch runtime folder (so no user manager: the bare program runs in
+/// its own process group) and the notifications service it tells.
+fn start_over_scratch(
+    index: AppIndex,
+) -> (
+    tokio::sync::watch::Receiver<Launches>,
+    Control<LaunchCommand>,
+    sill_testkit::TempDir,
+) {
+    let (_apps_tx, apps_rx) = tokio::sync::watch::channel(index);
+    let rt = tokio::runtime::Handle::current();
+    let scratch = sill_testkit::TempDir::new("launch-timing");
+    let env = crate::env::Env::isolated(scratch.path());
+    let notifications = spawn::<NotificationsService>(&rt, &env, ()).control;
+    let launch = spawn::<LaunchService>(
+        &rt,
+        &env,
+        LaunchLinks {
+            apps: apps_rx,
+            notifications,
+        },
+    );
+    (launch.state, launch.control, scratch)
+}
+
+fn ask(app: &str) -> LaunchCommand {
+    LaunchCommand::Launch(LaunchRequest {
+        app: AppId(app.to_owned()),
+        action: DesktopAction::Default,
+        files: Vec::new(),
+        uris: Vec::new(),
+        token: None,
+    })
+}
+
+/// The end of a request for `app` made after `asked_at`, once the service has published it.
+async fn end_of(
+    state: &mut tokio::sync::watch::Receiver<Launches>,
+    app: &str,
+    asked_at: sill_model::launch::Stamp,
+) -> LaunchDone {
+    let app = AppId(app.to_owned());
+    let found = tokio::time::timeout(
+        Duration::from_secs(5),
+        state.wait_for(|launches| answer_to(&launches.done, &app, asked_at).is_some()),
+    )
+    .await
+    .unwrap_or_else(|_| panic!("no end within 5s"))
+    .unwrap_or_else(|e| panic!("{e}"))
+    .done
+    .clone();
+    answer_to(&found, &app, asked_at)
+        .cloned()
+        .unwrap_or_else(|| panic!("no end for {}", app.0))
+}
+
+#[tokio::test]
+async fn a_launch_that_reaches_its_program_is_answered_with_its_timing() {
+    let (mut state, control, _scratch) = start_over_scratch(index_with("sill-timed", "/bin/true"));
+    let asked_at = monotonic_now();
+    control
+        .send(ask("sill-timed"))
+        .unwrap_or_else(|e| panic!("{e}"));
+
+    let LaunchDone::Spawned(timing) = end_of(&mut state, "sill-timed", asked_at).await else {
+        panic!("the program did not start");
+    };
+    assert_eq!(timing.app, AppId("sill-timed".to_owned()));
+    assert!(timing.requested_at >= asked_at);
+    assert!(timing.spawned_at >= timing.requested_at);
+    assert!(timing.pid.is_some(), "a program we started has a process");
+    let unit = timing
+        .unit
+        .unwrap_or_else(|| panic!("a launch has a scope's name"));
+    assert!(unit.0.starts_with("app-sill-sill\\x2dtimed-"), "{}", unit.0);
+}
+
+#[tokio::test]
+async fn a_launch_of_an_app_that_is_not_installed_is_refused_with_its_cause() {
+    let (mut state, control, _scratch) = start_over_scratch(AppIndex::default());
+    let asked_at = monotonic_now();
+    control
+        .send(ask("no-such-app"))
+        .unwrap_or_else(|e| panic!("{e}"));
+
+    let LaunchDone::Refused {
+        cause,
+        requested_at,
+        ..
+    } = end_of(&mut state, "no-such-app", asked_at).await
+    else {
+        panic!("an app that is not there cannot start");
+    };
+    assert_eq!(cause, FailureCause::NotInstalled);
+    assert!(requested_at >= asked_at);
 }

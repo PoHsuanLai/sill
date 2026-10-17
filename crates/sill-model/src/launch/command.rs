@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, DesktopAction, OpenTarget};
 
-use super::{FailureCause, LaunchedScope, ScopeUnit, SettingsPage};
+use super::{FailureCause, LaunchDone, LaunchedScope, ScopeUnit, SettingsPage};
 
 /// What became of a launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +20,8 @@ pub enum LaunchOutcome {
     },
     /// D-Bus activation: no scope of ours to track.
     Activated(AppId),
+    /// How one request ended, for the caller that waits to hear.
+    Done(LaunchDone),
 }
 
 /// One open.
