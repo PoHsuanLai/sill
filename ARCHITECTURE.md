@@ -759,7 +759,7 @@ The person's rules are unlayered and win over both cascade layers: quire's `@lay
 `@layer app`, where every sill surface's own CSS goes (`ds::prelude::AppStyle { css }`, never a
 bare `style { {CSS} }`). A user rule written `[data-surface=bar]` (plain, no `*|`) matches.
 
-`dist/` holds what sill adds to a login: `sill.service`, `intents/org.quire.Shell.toml` (what `quire-do shell` lists and intentd gates), the PAM service, the keycap layer (the person's file: keycap's user layer refuses a rule on a key with no modifier, so the Caps Lock rule is the desktop's `/etc/keycap/keycap.toml`) and the DDC/CI
+`dist/` holds what sill adds to a login: `sill.service`, `intents/org.quire.Shell.toml` (what `quire-do shell` lists and intentd gates), the PAM service, the keycap layer (the person's file: keycap's user layer refuses a rule whose trigger has no modifier or only Shift, so both Caps Lock rules are the desktop's vendor file, `/usr/lib/keycap/keycap.toml`) and the DDC/CI
 rules. `dist/install.sh` (`--dry-run` prints) and `dist/uninstall.sh` put them in place and take
 them out, sharing `dist/install-lib.sh`; they never touch Plasma or Toshy, and skip the DDC rules
 and `sill.service`, which the desktop repo's installer puts, root-held, under `/etc/systemd/user` (the account service trusts the unit only from root-held places, and its `UnsetEnvironment` clears the loader variables). The login itself, "sill (casement)", is the desktop repo's `session/`.

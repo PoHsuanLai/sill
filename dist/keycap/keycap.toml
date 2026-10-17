@@ -30,11 +30,10 @@ rules = [
   # Works the same in both sessions (Super+Ctrl+Left/Right change workspace).
   { when = "control+left", then = "ctrl+super+left" },
   { when = "control+right", then = "ctrl+super+right" },
-  # Caps Lock -> Ctrl+Space (switching input) is not here: keycap's user layer refuses a rule on a
-  # key with no modifier held, so it belongs in the machine file the desktop installs,
-  # /etc/keycap/keycap.toml (an ask of the desktop's packaging; sill ships no system file).
-  # Shift+Caps Lock keeps Caps Lock itself, and Shift counts as a modifier, so it stays.
-  { when = "shift+capslock", then = "capslock" },
+  # Caps Lock rules are not here: keycap's user layer refuses a rule whose trigger has no modifier
+  # or only Shift. Both (Caps Lock -> Ctrl+Space, and Shift+Caps Lock -> Caps Lock) live in the
+  # desktop's vendor file, /usr/lib/keycap/keycap.toml (the desktop repo's dist/keycap.toml);
+  # sill ships no machine file.
 ]
 
 # The overlay's terminal profile restates Cmd+H for Plasma; in a terminal the built-in mapping

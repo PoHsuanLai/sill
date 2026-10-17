@@ -1668,10 +1668,10 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   question in the line starts its own wait when drawn. casement may refuse an answer sooner than
   500 ms after its question; it does not enforce that yet. The confirmation sheet (intentd's
   questions) is a different component with its own gate (`ARM_MS`, 500 ms) and is unchanged.
-- **Caps Lock.** `{ when = "capslock", then = "ctrl+space" }` is out of `dist/keycap/keycap.toml`:
-  keycap's user layer refuses a rule on a key with no modifier. sill ships no system file, so
-  the rule is an ask of the desktop's packaging: put it in `/etc/keycap/keycap.toml`
-  (`[profile.default] rules = [ { when = "capslock", then = "ctrl+space" } ]`). `shift+capslock` stays.
+- **Caps Lock.** Neither Caps Lock rule is in `dist/keycap/keycap.toml`: keycap's user layer
+  refuses a rule whose trigger has no modifier (`capslock` -> `ctrl+space`) or only Shift
+  (`shift+capslock` -> `capslock`). Both live in the desktop's vendor file,
+  `/usr/lib/keycap/keycap.toml` (the desktop repo's `dist/keycap.toml`).
 - **Also not run (arming test).** `permission_sheet.rs`' `nothing_answers_until_the_sheet_has_been_up_for_the_arming_time`
   assumes the harness's clock is virtual (about 30 ms pass between the alert mounting and the test's first
   input, 200 ms before the early inputs end, and the late click comes `PERMISSION_ARM_AFTER` later), that a click on
