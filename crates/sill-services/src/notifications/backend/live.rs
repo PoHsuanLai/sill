@@ -3,10 +3,10 @@
 //! replacing a holder: `DoNotQueue`, and ask again when the name falls free; once held, the
 //! name cannot be taken away), serve [`super::dbus::Server`] while owned, load the history, and
 //! run every call and command through [`sill_model::notifications::step`], carrying out its
-//! effects (signals, and the history's write, gathered and run off the loop by [`super::save`]; a `Sound` is dropped, as sill plays no sounds yet) and
-//! publishing the result. Each bus caller is held to its allowance and may replace or close only
-//! what it posted ([`super::senders`]); a clock tick sweeps an app's critical banners that have
-//! stood too long.
+//! effects (signals, and the history's write, gathered and run off the loop by [`super::save`]; a
+//! `Sound` is dropped, as sill plays no sounds yet) and publishing the result. Each bus caller is
+//! held to its allowance and may replace or close only what it posted ([`super::senders`]); a
+//! clock tick sweeps an app's critical banners that have stood too long.
 //!
 //! Nothing here may ever touch the real session bus from a test: tests pass
 //! `BusRoute::Address` of a private `dbus-daemon` (`sill-testkit/src/private_bus.rs`).
@@ -150,8 +150,8 @@ impl Core {
     }
 
     /// A `Notify` from `sender`, counted against `caller`: refused past the caller's allowance or
-    /// the shared one; it replaces only what it posted or
-    /// what was posted for the same app; its pictures stay only where [`ImageDirs`] allow.
+    /// the shared one; it replaces only what it posted or what was posted for the same app; its
+    /// pictures stay only where [`ImageDirs`] allow.
     async fn notify(
         &mut self,
         mut posting: Posting,
