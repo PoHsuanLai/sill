@@ -2,14 +2,20 @@
 //! Only the Memory filter (`Scope::Only`) lists it: the timeline is read from memoryd on demand,
 //! through the companion service (which holds the shell's seat), and waited for under the
 //! query's generation as the things provider waits for a search.
+//!
+//! What assistants asked to remember and the person has not answered comes first, each row with
+//! two actions: Keep and Don't Keep. Enter on such a row does nothing, so a key never keeps one.
 
-use almanac_core::{MemoryItem, TimelineEntry};
+use almanac_core::{FactView, MemoryItem, TimelineEntry};
+use ds_core::vocab::MemoryVerb;
+use ds_core::word::Word;
 use sill_launcher::{
-    Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink,
-    Scope, Score, Subject,
+    Action, ActionId, ActionKeys, Activation, Batch, Choice, CompanionAct, IconRef, Item, ItemId,
+    Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
 use sill_model::companion::{
     Companion, CompanionCommand, CompanionLink, LookupPhase, ProgramLabels, memory_line,
+    waiting_line,
 };
 use sill_services::control::Control;
 use tokio::sync::watch;
@@ -39,22 +45,44 @@ impl Provider for MemoryProvider {
         if query.is_cancelled() {
             return;
         }
-        let programs = self.companion.borrow().programs.clone();
+        let state = self.companion.borrow().clone();
+        let waiting = match alone && ready {
+            true => asked_of(&state, query),
+            false => Vec::new(),
+        };
+        let notice = state.memory_notice.iter().filter(|_| alone).map(notice_row);
         let needle = query.text.trim().to_lowercase();
         sink.push(Batch {
             provider: ProviderKind::Memory,
             generation: query.generation,
-            items: entries
-                .iter()
-                .enumerate()
-                .map(|(at, entry)| row(entry, at, &programs))
+            items: notice
+                .chain(waiting.iter().enumerate().map(|(at, view)| waiting_row(view, at, &state.programs)))
+                .chain(
+                    entries
+                        .iter()
+                        .enumerate()
+                        .map(|(at, entry)| row(entry, at, &state.programs)),
+                )
                 .filter(|item| needle.is_empty() || item.title.to_lowercase().contains(&needle))
                 .collect(),
         });
     }
 
-    fn activate(&self, _item: &Item, _choice: &Choice) -> Activation {
-        Activation::Nothing
+    fn activate(&self, item: &Item, choice: &Choice) -> Activation {
+        match (&item.subject, choice) {
+            (Subject::Memory(fact @ MemoryItem::Fact(_)), Choice::Action(ActionId(id))) => {
+                match MemoryVerb::parse(id) {
+                    Some(verb @ (MemoryVerb::Keep | MemoryVerb::Discard)) => {
+                        Activation::Companion(CompanionAct::Memory {
+                            item: fact.clone(),
+                            verb,
+                        })
+                    }
+                    _ => Activation::Nothing,
+                }
+            }
+            _ => Activation::Nothing,
+        }
     }
 }
 
@@ -85,6 +113,54 @@ impl MemoryProvider {
         })
         .flatten()
         .unwrap_or_default()
+    }
+}
+
+/// What waits for the person, if it was read for this query.
+fn asked_of(state: &Companion, query: &Query) -> Vec<FactView> {
+    match state.waiting.generation == query.generation {
+        true => state.waiting.found.clone(),
+        false => Vec::new(),
+    }
+}
+
+/// The sentence that says an answer did not go through, above everything.
+fn notice_row(sentence: &String) -> Item {
+    Item {
+        id: ItemId("memory:notice".to_owned()),
+        provider: ProviderKind::Memory,
+        title: sentence.clone(),
+        subtitle: String::new(),
+        icon: IconRef::None,
+        score: Score(3000),
+        actions: Vec::new(),
+        subject: Subject::None,
+    }
+}
+
+/// One thing an assistant asked to remember, above the timeline.
+fn waiting_row(view: &FactView, at: usize, programs: &ProgramLabels) -> Item {
+    let (title, subtitle) = waiting_line(view, programs);
+    Item {
+        id: ItemId(format!("memory:asked:{}", view.fact.id)),
+        provider: ProviderKind::Memory,
+        title,
+        subtitle,
+        icon: IconRef::Glyph("clock".to_owned()),
+        score: Score(u32::try_from(2000usize.saturating_sub(at)).unwrap_or(0)),
+        actions: vec![
+            answer("Keep", MemoryVerb::Keep),
+            answer("Don\u{2019}t Keep", MemoryVerb::Discard),
+        ],
+        subject: Subject::Memory(MemoryItem::Fact(view.fact.id.clone())),
+    }
+}
+
+fn answer(label: &str, verb: MemoryVerb) -> Action {
+    Action {
+        id: ActionId(verb.slug().to_owned()),
+        label: label.to_owned(),
+        keys: ActionKeys::default(),
     }
 }
 

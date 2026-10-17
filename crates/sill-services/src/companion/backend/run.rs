@@ -11,9 +11,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
+use almanac_core::MemoryItem;
 use docket_core::{CardActionId, Handle, UndoScope};
 use docket_dbus::{COMPANION_BUS, CompanionProxy, INTENTS_BUS, answer_path};
 use ds_core::time::stamp::Stamp;
+use ds_core::vocab::MemoryVerb;
 use prov::{SessionId, TaskId, UnixSeconds};
 use sill_launcher::{Generation, RunControl};
 use sill_model::companion::{
@@ -444,7 +446,7 @@ impl Live {
             }
             CompanionCommand::Run { run, control } => self.steer(run, control),
             CompanionCommand::Undo(scope) => self.undo(scope),
-            CompanionCommand::Memory { .. } => {}
+            CompanionCommand::Memory { item, verb } => self.settle(item, verb),
             CompanionCommand::Things { text, generation } => self.things(text, generation),
             CompanionCommand::Timeline { generation } => self.timeline(generation),
             CompanionCommand::RefreshJournal => self.refresh_journal(),
@@ -548,10 +550,29 @@ impl Live {
             Some(connection) => {
                 let events = self.events.clone();
                 tokio::spawn(async move {
-                    let _ = events.send(memory::timeline(connection, generation).await);
+                    for event in memory::timeline(connection, generation).await {
+                        let _ = events.send(event);
+                    }
                 });
             }
             None => self.feed(CompanionEvent::TimelineFailed(generation)),
+        }
+    }
+
+    /// Keep or drop what an assistant asked to remember; the answer is an event either way.
+    fn settle(&mut self, item: MemoryItem, verb: MemoryVerb) {
+        let MemoryItem::Fact(fact) = item else {
+            return;
+        };
+        let at = self.unix();
+        match self.connection.clone() {
+            Some(connection) => {
+                let events = self.events.clone();
+                tokio::spawn(async move {
+                    let _ = events.send(memory::settle(connection, fact, verb, at).await);
+                });
+            }
+            None => self.feed(CompanionEvent::SettleFailed),
         }
     }
 

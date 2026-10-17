@@ -9,10 +9,15 @@ use crate::companion_support::{self, desk_or_return};
 
 use std::sync::{Arc, Mutex};
 
+use almanac_core::{
+    Fact, FactId, FactState, FactText, FactView, MemoryItem, Settlement, TopicPath, UseCount,
+    Validity,
+};
 use companion_wire::{AnswerPhase, AskWire};
 use docket_core::{ContextKeep, Keep, SummonAnswer, UndoId, UndoScope, UndoState};
 use docket_dbus::{COMPANION_BUS, INTENTS_BUS, PROVIDER_PATH, answer_path};
-use prov::{Actor, RunId, SpaceId};
+use ds_core::vocab::MemoryVerb;
+use prov::{Actor, InputProof, Label, RunId, SpaceId, UnixSeconds};
 use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
 use sill_model::companion::{
     AskInput, CompanionCommand, CompanionParams, LauncherFacts, LookupPhase, Summon, SummonOut,
@@ -23,7 +28,7 @@ use zbus::zvariant::ObjectPath;
 
 use companion_support::stand_ins::{
     ActsAs, StandInApp, StandInCompanion, StandInControl, StandInManager, StandInMemory,
-    StandInRun, StandInRunObject, StandInSearch, StandInSession,
+    StandInRun, StandInRunObject, StandInSearch, StandInSession, StandInWaiting,
 };
 use companion_support::{app, entry, fast, focus, hit, json, run_path, task, timeline_entry, wire};
 
@@ -528,4 +533,73 @@ async fn the_timeline_is_read_for_the_generation_that_asked() {
         })
         .await;
     assert_eq!(rows, 2);
+}
+
+fn waiting_fact(last: char) -> FactView {
+    FactView {
+        fact: Fact {
+            id: FactId::parse(&format!("{}{last}", "0".repeat(25))).unwrap_or_else(|e| panic!("{e}")),
+            text: FactText::parse("Prefers mornings").unwrap_or_else(|e| panic!("{e}")),
+            recorded: UnixSeconds(1),
+            by: Actor::Cli,
+            label: Label::trusted_user(),
+            links: Vec::new(),
+            supersedes: Vec::new(),
+            valid: Validity::Unstated,
+        },
+        topic: TopicPath::parse("prefs/meetings").unwrap_or_else(|e| panic!("{e}")),
+        state: FactState::Pending,
+        sources: Vec::new(),
+        used: UseCount(0),
+        last_used: None,
+        flagged: Vec::new(),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn keeping_sends_the_shells_receipt_and_not_keeping_sends_a_discard() {
+    let mut desk = desk_or_return!();
+    let memoryd = desk.peer("org.quire.Memory1").await;
+    let (kept, dropped) = (waiting_fact('1'), waiting_fact('2'));
+    memoryd
+        .object_server()
+        .at(
+            "/org/quire/Memory1",
+            StandInWaiting {
+                facts: vec![kept.clone(), dropped.clone()],
+                log: desk.log.clone(),
+            },
+        )
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    desk.seated().await;
+    desk.send(CompanionCommand::Timeline {
+        generation: Generation(1),
+    });
+    desk.state(|c| {
+        (c.waiting.generation == Generation(1) && c.waiting.found.len() == 2).then_some(())
+    })
+    .await;
+    for (view, verb) in [(&kept, MemoryVerb::Keep), (&dropped, MemoryVerb::Discard)] {
+        desk.send(CompanionCommand::Memory {
+            item: MemoryItem::Fact(view.fact.id.clone()),
+            verb,
+        });
+    }
+    let line = |id: &FactId| format!("settle {} ", json(id));
+    let keep = desk.log_starting(&line(&kept.fact.id)).await;
+    let discard = desk.log_starting(&line(&dropped.fact.id)).await;
+    let verdict = |said: String, id: &FactId| {
+        let json = said.trim_start_matches(&line(id)).to_owned();
+        serde_json::from_str::<Settlement>(&json).unwrap_or_else(|e| panic!("{e}"))
+    };
+    match verdict(keep, &kept.fact.id) {
+        Settlement::Keep(receipt) => {
+            assert_eq!(receipt.input, InputProof::ShellCaller);
+            assert_eq!(receipt.covers, kept.fact.label.confidentiality);
+        }
+        Settlement::Discard => panic!("Keep sent a discard"),
+    }
+    assert_eq!(verdict(discard, &dropped.fact.id), Settlement::Discard);
+    desk.state(|c| c.waiting.found.is_empty().then_some(())).await;
 }

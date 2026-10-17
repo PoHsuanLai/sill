@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use almanac_core::TimelineEntry;
+use almanac_core::{FactView, TimelineEntry};
 use companion_wire::{AnswerWire, RouteNote};
 use cua_bus::{BudgetBody, CuaOutcome, RunStateSlug};
 use docket_core::{ActionRef, CardActionId, Handle, Hit, RunMode, UndoEntry};
@@ -156,6 +156,11 @@ pub struct Companion {
     pub things: Lookup<Hit>,
     /// What the memory provider asked for.
     pub memory: Lookup<TimelineEntry>,
+    /// What assistants asked to remember and the person has not answered, read with the
+    /// timeline under the same generation.
+    pub waiting: Lookup<FactView>,
+    /// A plain sentence when answering one of them did not go through.
+    pub memory_notice: Option<String>,
     /// The provider rows' labels for coding-agent programs; empty until porter's list is read.
     pub programs: super::ProgramLabels,
     /// The helpers the person keeps.

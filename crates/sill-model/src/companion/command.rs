@@ -1,7 +1,7 @@
 //! What tells the companion service things, what happens in it, and what that asks of the
 //! outside.
 
-use almanac_core::{MemoryItem, TimelineEntry};
+use almanac_core::{FactId, FactView, MemoryItem, TimelineEntry};
 use companion_wire::{AnswerWire, RouteNote};
 use docket_core::{
     CallRequest, CardActionId, ContextKeep, Handle, Hit, SummonAnswer, SummonSerial, TurnVia,
@@ -117,7 +117,8 @@ pub enum CompanionCommand {
         /// Which keystroke asked.
         generation: Generation,
     },
-    /// Read the memory timeline; the answer lands in `memory` under `generation`.
+    /// Read the memory timeline and what waits for the person; the answers land in `memory` and
+    /// `waiting` under `generation`.
     Timeline {
         /// Which ask.
         generation: Generation,
@@ -228,6 +229,14 @@ pub enum CompanionEvent {
     TimelineLoaded(Generation, Vec<TimelineEntry>),
     /// The timeline could not be read.
     TimelineFailed(Generation),
+    /// What assistants asked to remember, read with the timeline.
+    WaitingLoaded(Generation, Vec<FactView>),
+    /// That list could not be read.
+    WaitingFailed(Generation),
+    /// The person's answer about this one was taken: it no longer waits.
+    Settled(FactId),
+    /// The answer about one could not be taken.
+    SettleFailed,
     /// Something about the helpers: the person's doing, or what a call to the companion came to.
     Helpers(HelpersMsg),
 }

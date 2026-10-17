@@ -4,7 +4,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use almanac_core::{TimelineEntry, TimelinePage};
+use almanac_core::{FactView, TimelineEntry, TimelinePage};
 use docket_core::{Displayed, Hit, SessionOpened, SummonAnswer, UndoEntry, UndoFault};
 use docket_dbus::answer_path;
 use prov::{DataClass, Label, SessionId, Source, SpaceId};
@@ -422,5 +422,29 @@ impl StandInMemory {
             entries: self.0.clone(),
             next: None,
         })
+    }
+}
+
+/// memoryd with facts waiting for the person: it lists them and logs how each was settled.
+pub struct StandInWaiting {
+    pub facts: Vec<FactView>,
+    pub log: Log,
+}
+
+#[interface(name = "org.quire.Memory1.Control")]
+impl StandInWaiting {
+    async fn timeline(&self, _space: String, _query: String) -> String {
+        json(&TimelinePage {
+            entries: Vec::new(),
+            next: None,
+        })
+    }
+
+    async fn pending(&self, _space: String) -> String {
+        json(&self.facts)
+    }
+
+    async fn settle(&self, fact: String, verdict: String) {
+        self.log.push(format!("settle {fact} {verdict}"));
     }
 }

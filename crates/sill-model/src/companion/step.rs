@@ -15,6 +15,7 @@ use super::command::{CompanionEffect, CompanionEvent, CompanionParams};
 use super::helpers::{HelpersMsg, update};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
 use super::model_picker::{Picker, opens, picker_of, touched};
+use super::words::SETTLE_FAILED;
 use super::summon::{SummonCx, SummonIn, SummonOut};
 use super::tap::{TapIn, TapOut};
 
@@ -48,7 +49,13 @@ pub fn step(
                 params,
             )
         }
-        CompanionEvent::LauncherClosed => summoned(state, SummonIn::LauncherClosed, at, params),
+        CompanionEvent::LauncherClosed => {
+            let state = Companion {
+                memory_notice: None,
+                ..state
+            };
+            summoned(state, SummonIn::LauncherClosed, at, params)
+        }
         CompanionEvent::Dismissed => summoned(state, SummonIn::Dismiss, at, params),
         CompanionEvent::Helpers(msg) => helped(state, msg),
         other => {
@@ -201,6 +208,36 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
         },
         CompanionEvent::TimelineAsked(generation) => Companion {
             memory: state.memory.asked(generation),
+            waiting: state.waiting.asked(generation),
+            ..state
+        },
+        CompanionEvent::WaitingLoaded(generation, rows) => Companion {
+            waiting: state.waiting.answered(generation, rows),
+            ..state
+        },
+        CompanionEvent::WaitingFailed(generation) => Companion {
+            waiting: state.waiting.failed(generation),
+            ..state
+        },
+        CompanionEvent::Settled(fact) => {
+            let found = state
+                .waiting
+                .found
+                .iter()
+                .filter(|view| view.fact.id != fact)
+                .cloned()
+                .collect();
+            Companion {
+                waiting: Lookup {
+                    found,
+                    ..state.waiting
+                },
+                memory_notice: None,
+                ..state
+            }
+        }
+        CompanionEvent::SettleFailed => Companion {
+            memory_notice: Some(SETTLE_FAILED.to_owned()),
             ..state
         },
         CompanionEvent::TimelineLoaded(generation, rows) => Companion {

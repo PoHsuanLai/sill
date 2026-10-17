@@ -34,6 +34,8 @@ mod tap;
 #[cfg(test)]
 mod tests;
 mod words;
+#[cfg(test)]
+mod waiting_tests;
 
 pub use card::{card_call, cards_of, openers_of, promote_card, unresolved_handles};
 pub use command::{
@@ -58,4 +60,6 @@ pub use summon::{
     SummonIn, SummonOut, SummonParams,
 };
 pub use tap::{Tap, TapIn, TapOut, TapParams};
-pub use words::{activity_line, answer_line, body_lines, memory_line};
+pub use words::{
+    SETTLE_FAILED, activity_line, answer_line, body_lines, memory_line, waiting_line,
+};

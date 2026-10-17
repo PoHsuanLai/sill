@@ -1,7 +1,7 @@
 //! The words a companion row wears in the launcher: fixed words and the person's own, never a
 //! model's formatting. Each returns a title and a faint second line.
 
-use almanac_core::{EntryBody, TimelineEntry};
+use almanac_core::{EntryBody, FactView, SourceView, TimelineEntry};
 use companion_wire::{AnswerBody, AnswerPhase, NeedsYou, RefusalWire, StepWireState};
 use docket_core::{DenyCode, Reveal, UndoEntry, UndoState};
 use prov::Actor;
@@ -11,6 +11,7 @@ use super::model::{AnswerFacts, Busy};
 use super::model_picker::lacks_model;
 use super::program_labels::ProgramLabels;
 use super::progress::row_progress;
+use crate::untrusted::for_display;
 
 /// The answer's row: what was asked, and where the answer stands.
 pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
@@ -135,19 +136,7 @@ pub fn activity_line(entry: &UndoEntry) -> (String, String) {
 
 /// A timeline row: who did what to which thing, and in which app.
 pub fn memory_line(entry: &TimelineEntry, programs: &ProgramLabels) -> (String, String) {
-    let who = match &entry.actor {
-        Actor::User { .. } => "You".to_owned(),
-        Actor::Companion { .. } => "Assistant".to_owned(),
-        Actor::Mcp { .. } => "An outside assistant".to_owned(),
-        Actor::Acp { program, label } => match programs.name_of(program.as_str(), label.as_ref()) {
-            Some(name) => format!("{name} (assistant)"),
-            None => "An assistant".to_owned(),
-        },
-        Actor::Cli => "A terminal".to_owned(),
-        Actor::App { app } | Actor::ThirdParty { app, .. } => last_element(app.as_str()),
-        Actor::System { .. } => "The system".to_owned(),
-        Actor::Unknown => "Something".to_owned(),
-    };
+    let who = who_words(&entry.actor, programs);
     let verb = entry
         .kind
         .as_str()
@@ -168,6 +157,44 @@ pub fn memory_line(entry: &TimelineEntry, programs: &ProgramLabels) -> (String, 
         .map(|thing| last_element(thing.thing.app.as_str()))
         .unwrap_or_default();
     (title, app)
+}
+
+/// Who did it, as a sentence starts.
+fn who_words(actor: &Actor, programs: &ProgramLabels) -> String {
+    match actor {
+        Actor::User { .. } => "You".to_owned(),
+        Actor::Companion { .. } => "Assistant".to_owned(),
+        Actor::Mcp { .. } => "An outside assistant".to_owned(),
+        Actor::Acp { program, label } => match programs.name_of(program.as_str(), label.as_ref()) {
+            Some(name) => format!("{name} (assistant)"),
+            None => "An assistant".to_owned(),
+        },
+        Actor::Cli => "A terminal".to_owned(),
+        Actor::App { app } | Actor::ThirdParty { app, .. } => last_element(app.as_str()),
+        Actor::System { .. } => "The system".to_owned(),
+        Actor::Unknown => "Something".to_owned(),
+    }
+}
+
+/// What the person sees when keeping or dropping one did not go through.
+pub const SETTLE_FAILED: &str = "Couldn\u{2019}t save that answer. Try again.";
+
+/// The most characters of a proposed memory a row shows.
+const WAITING_TEXT_MAX_CHARS: usize = 200;
+
+/// A row of what an assistant asked to remember: the words proposed, and who asked. The app a
+/// note came from is named when the source still exists and the actor is not an app itself.
+pub fn waiting_line(view: &FactView, programs: &ProgramLabels) -> (String, String) {
+    let who = match (&view.fact.by, view.sources.first()) {
+        (Actor::Companion { .. }, Some(SourceView::Present(thing))) => {
+            last_element(thing.thing.app.as_str())
+        }
+        (by, _) => who_words(by, programs),
+    };
+    (
+        for_display(view.fact.text.as_str(), WAITING_TEXT_MAX_CHARS),
+        format!("{who} asked to remember"),
+    )
 }
 
 fn last_element(name: &str) -> String {

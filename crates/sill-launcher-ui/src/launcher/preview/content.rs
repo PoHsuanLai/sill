@@ -14,7 +14,7 @@ use ds::components::content::image_source::{ImageSize, ImageSource};
 use ds::components::lists::preview::content::{PaneContent, PaneMono};
 use ds::prelude::*;
 use sill_launcher::{ClipKind, Mime, Preview};
-use sill_model::companion::{Companion, RunFacts, memory_line, run_state_of};
+use sill_model::companion::{Companion, RunFacts, memory_line, run_state_of, waiting_line};
 use sill_services::CompanionService;
 use sill_ui_kit::companion::{ViewCx, answer_view, without_actions};
 use sill_ui_kit::hooks::use_service;
@@ -228,6 +228,9 @@ fn run_facts(run: &prov::RunId, companion: &Companion) -> PaneContent {
 
 /// A memory row's facts: who did what, and in which app.
 fn memory_facts(item: &almanac_core::MemoryItem, companion: &Companion) -> PaneContent {
+    if let almanac_core::MemoryItem::Fact(id) = item {
+        return waiting_facts(id, companion);
+    }
     let entry = companion.memory.found.iter().find(
         |entry| matches!(item, almanac_core::MemoryItem::Event(event) if *event == entry.event),
     );
@@ -242,6 +245,19 @@ fn memory_facts(item: &almanac_core::MemoryItem, companion: &Companion) -> PaneC
                     ("Facts from it", entry.derived_facts.0.to_string()),
                 ],
             )
+        }
+        None => facts(Icon::Clock, "Memory", vec![("Row", "Gone".to_owned())]),
+    }
+}
+
+/// What an assistant asked to remember: the words, and who asked. Keep and Don't Keep are the
+/// row's actions.
+fn waiting_facts(id: &almanac_core::FactId, companion: &Companion) -> PaneContent {
+    match companion.waiting.found.iter().find(|view| view.fact.id == *id) {
+        Some(view) => {
+            let (text, asked) = waiting_line(view, &companion.programs);
+            let who = asked.trim_end_matches(" asked to remember").to_owned();
+            facts(Icon::Clock, &text, vec![("Asked by", who)])
         }
         None => facts(Icon::Clock, "Memory", vec![("Row", "Gone".to_owned())]),
     }
