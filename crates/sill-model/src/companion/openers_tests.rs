@@ -1,8 +1,9 @@
-//! Which apps `openers_of` lists: a host-only app opens nothing here.
+//! Which apps `openers_of` lists (a host-only app opens nothing here) and which `offered_apps`
+//! offers to a helper.
 
 use docket_core::{Manifest, validate};
 
-use super::openers_of;
+use super::{offered_apps, openers_of};
 
 fn manifest(visibility: &str) -> docket_core::ValidManifest {
     let text = format!(
@@ -49,4 +50,10 @@ fn an_app_for_everyone_is_listed() {
 #[test]
 fn a_host_only_app_is_not_listed() {
     assert!(openers_of(&[manifest("host_only")]).is_empty());
+}
+
+#[test]
+fn a_helper_is_offered_the_apps_for_everyone_and_not_the_host_only_ones() {
+    assert_eq!(offered_apps(&[manifest("everyone")]).len(), 1);
+    assert!(offered_apps(&[manifest("host_only")]).is_empty());
 }

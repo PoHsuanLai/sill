@@ -494,6 +494,14 @@ async fn the_apps_that_declare_an_open_action_are_known_and_a_perform_is_the_lau
         }],
         "the kind with an open action; the contact kind declares none"
     );
+    let offered = desk
+        .state(|c| (!c.helpers.apps.is_empty()).then(|| c.helpers.apps.clone()))
+        .await;
+    assert_eq!(
+        offered.into_iter().collect::<Vec<_>>(),
+        vec![mail()],
+        "a helper may be given the apps that declare actions"
+    );
     let call = CallRequest {
         action: ActionRef {
             app: mail(),

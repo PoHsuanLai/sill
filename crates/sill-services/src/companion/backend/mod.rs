@@ -2,6 +2,7 @@
 
 mod answer;
 mod cua;
+mod helpers;
 mod intents;
 mod memory;
 mod probe;

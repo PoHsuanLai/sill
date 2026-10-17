@@ -10,9 +10,10 @@ use docket_core::{
 };
 use docket_dbus::{RegistryProxy, SearchProxy};
 use porter_core::Count;
+use prov::AppName;
 use prov::SessionId;
 use sill_launcher::Generation;
-use sill_model::companion::{CompanionEvent, Opener, openers_of};
+use sill_model::companion::{CompanionEvent, HelpersMsg, Opener, offered_apps, openers_of};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
@@ -51,12 +52,15 @@ pub(super) async fn search(
     let _ = events.send(event);
 }
 
-/// The kinds of thing the installed apps open in their own windows.
-async fn openers(connection: &Connection) -> Result<BTreeSet<Opener>, String> {
+/// What the installed manifests say: the kinds of thing the apps open in their own windows, and
+/// the apps a helper may be given.
+async fn declared(
+    connection: &Connection,
+) -> Result<(BTreeSet<Opener>, BTreeSet<AppName>), String> {
     intents(connection)
         .manifests()
         .await
-        .map(|all| openers_of(&all))
+        .map(|all| (openers_of(&all), offered_apps(&all)))
         .map_err(text)
 }
 
@@ -114,8 +118,11 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
     ) else {
         return std::future::pending().await;
     };
-    if let Ok(found) = openers(&connection).await
-        && events.send(CompanionEvent::Openers(found)).is_err()
+    if let Ok((found, apps)) = declared(&connection).await
+        && (events.send(CompanionEvent::Openers(found)).is_err()
+            || events
+                .send(CompanionEvent::Helpers(HelpersMsg::AppsOffered(apps)))
+                .is_err())
     {
         return;
     }
@@ -135,8 +142,10 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
                 Ok(rows) => events.send(CompanionEvent::Journal(rows)),
                 Err(_) => continue,
             },
-            Some(_) = next(&mut manifests) => match openers(&connection).await {
-                Ok(found) => events.send(CompanionEvent::Openers(found)),
+            Some(_) = next(&mut manifests) => match declared(&connection).await {
+                Ok((found, apps)) => events
+                    .send(CompanionEvent::Openers(found))
+                    .and_then(|()| events.send(CompanionEvent::Helpers(HelpersMsg::AppsOffered(apps)))),
                 Err(_) => continue,
             },
             else => return,

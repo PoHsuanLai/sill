@@ -3,6 +3,7 @@
 //! them. Pure: `sill-services` makes the calls [`HelpersCommand`] asks for and feeds back what
 //! they came to, and the launcher draws [`HelpersModel`].
 
+mod apps;
 mod draft;
 mod model;
 mod msg;
@@ -11,6 +12,7 @@ mod tests;
 mod update;
 mod words;
 
+pub use apps::offered_apps;
 pub use draft::{Draft, Reach, SaveFault, reach_of_lines};
 pub use model::{HelpersModel, Open, OpenCard, Removal, Told};
 pub use msg::{Asked, HelpersCommand, HelpersMsg};

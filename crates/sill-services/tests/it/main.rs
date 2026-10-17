@@ -13,6 +13,7 @@ mod capture_pick_permission_bus;
 mod clipboard_live;
 mod companion_bus;
 mod companion_cards_bus;
+mod companion_helpers_bus;
 mod companion_routing_bus;
 mod companion_session_bus;
 mod companion_support;

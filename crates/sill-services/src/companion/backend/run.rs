@@ -18,8 +18,8 @@ use prov::{SessionId, TaskId, UnixSeconds};
 use sill_launcher::{Generation, RunControl};
 use sill_model::companion::{
     Busy, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionLink,
-    CompanionParams, SummonOut, card_call, going_runs, promote_card, step, unresolved_handles,
-    wake,
+    CompanionParams, HelpersCommand, HelpersMsg, SummonOut, card_call, going_runs, promote_card,
+    step, unresolved_handles, wake,
 };
 use sill_model::launch::{LaunchCommand, SettingsPage};
 use tokio::sync::{mpsc, watch};
@@ -30,7 +30,7 @@ use zbus::zvariant::OwnedObjectPath;
 
 use super::probe::{self, Arrival};
 use super::text::text;
-use super::{answer, cua, intents, memory, tell};
+use super::{answer, cua, helpers, intents, memory, tell};
 use crate::companion::{CompanionLinks, CompanionService};
 use crate::control::Control;
 use crate::deadline::{COMPANION_CALL, within};
@@ -269,15 +269,14 @@ impl Live {
                     answer::prepare(&connection).await
                 });
             }
-            CompanionEffect::PickModel => {
+            CompanionEffect::PickModel
+            | CompanionEffect::Helpers(HelpersCommand::OpenModelPicker) => {
                 let page = LaunchCommand::OpenSettingsPage(SettingsPage::AssistantModel);
                 if let Err(error) = self.launch.send(page) {
                     eprintln!("sill: companion: opening the model picker: {error}");
                 }
             }
-            CompanionEffect::Helpers(command) => {
-                let _ = command;
-            }
+            CompanionEffect::Helpers(command) => self.helpers(command),
             CompanionEffect::Summon(SummonOut::AskApp { app, serial }) => {
                 let events = self.events.clone();
                 match self.connection.clone() {
@@ -298,6 +297,34 @@ impl Live {
                 let _ = self.summons.send(out);
             }
         }
+    }
+
+    /// Ask the companion's helpers `command` on its own task; what they answer goes back to the
+    /// screen as an event. Without the seat the screen is told they cannot be reached.
+    fn helpers(&self, command: HelpersCommand) {
+        let events = self.events.clone();
+        let Some(connection) = self.connection.clone() else {
+            let _ = events.send(CompanionEvent::Helpers(HelpersMsg::Unreached));
+            return;
+        };
+        tokio::spawn(async move {
+            let reply = match within(
+                COMPANION_CALL,
+                "the helpers",
+                helpers::carry(&connection, command),
+            )
+            .await
+            {
+                Ok(reply) => reply,
+                Err(silent) => {
+                    eprintln!("sill: companion: helpers: {silent}");
+                    Some(HelpersMsg::Unreached)
+                }
+            };
+            if let Some(reply) = reply {
+                let _ = events.send(CompanionEvent::Helpers(reply));
+            }
+        });
     }
 
     /// Run `call` on its own task when the seat is held; log what it says when it fails.
@@ -347,6 +374,10 @@ impl Live {
             self.inner.clone(),
         )));
         self.watchers.push(tokio::spawn(follow_intentd(
+            connection.clone(),
+            self.events.clone(),
+        )));
+        self.watchers.push(tokio::spawn(helpers::follow(
             connection.clone(),
             self.events.clone(),
         )));
