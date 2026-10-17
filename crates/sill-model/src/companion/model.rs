@@ -11,6 +11,7 @@ use docket_core::{ActionRef, CardActionId, Handle, Hit, RunMode, UndoEntry};
 use prov::{AppName, EntityKind, RunId, SessionId, TaskId};
 use sill_launcher::Generation;
 
+use super::helpers::HelpersModel;
 use super::summon::Summon;
 use super::tap::Tap;
 
@@ -157,4 +158,6 @@ pub struct Companion {
     pub memory: Lookup<TimelineEntry>,
     /// The provider rows' labels for coding-agent programs; empty until porter's list is read.
     pub programs: super::ProgramLabels,
+    /// The helpers the person keeps.
+    pub helpers: HelpersModel,
 }

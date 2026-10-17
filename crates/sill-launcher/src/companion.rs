@@ -52,6 +52,31 @@ pub enum RunControl {
     UndoAll,
 }
 
+/// What a person can do to a helper from its row.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ds_core::word::Word,
+)]
+#[serde(rename_all = "snake_case")]
+#[word(case = snake)]
+pub enum HelperControl {
+    /// Stop it taking jobs.
+    Pause,
+    /// Let it take jobs again.
+    Resume,
+    /// Take it away, after asking.
+    Remove,
+}
+
 /// One thing a companion row does.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]

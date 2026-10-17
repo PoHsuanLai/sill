@@ -12,6 +12,7 @@ use sill_launcher::Generation;
 
 use super::card::{card_call, handle_fallback, settled};
 use super::command::{CompanionEffect, CompanionEvent, CompanionParams};
+use super::helpers::{HelpersMsg, update};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
 use super::model_picker::{Picker, opens, picker_of, touched};
 use super::summon::{SummonCx, SummonIn, SummonOut};
@@ -49,6 +50,7 @@ pub fn step(
         }
         CompanionEvent::LauncherClosed => summoned(state, SummonIn::LauncherClosed, at, params),
         CompanionEvent::Dismissed => summoned(state, SummonIn::Dismiss, at, params),
+        CompanionEvent::Helpers(msg) => helped(state, msg),
         other => {
             let task = touched(&other).cloned();
             let before = task
@@ -61,6 +63,15 @@ pub fn step(
             (state, opens(before, after))
         }
     }
+}
+
+/// The helpers screen moves, and what it asks of the companion becomes effects.
+fn helped(state: Companion, msg: HelpersMsg) -> (Companion, Vec<CompanionEffect>) {
+    let (helpers, commands) = update(state.helpers, msg);
+    (
+        Companion { helpers, ..state },
+        commands.into_iter().map(CompanionEffect::Helpers).collect(),
+    )
 }
 
 /// When the machines next want to be stepped with no input: the earlier of their wakes.
@@ -207,7 +218,8 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
         | CompanionEvent::AppAnswered(..)
         | CompanionEvent::Elapsed
         | CompanionEvent::LauncherClosed
-        | CompanionEvent::Dismissed => state,
+        | CompanionEvent::Dismissed
+        | CompanionEvent::Helpers(_) => state,
     }
 }
 

@@ -11,6 +11,7 @@
 mod card;
 mod command;
 mod emphasis;
+mod helpers;
 #[cfg(test)]
 mod memory_line_tests;
 mod model;
@@ -39,6 +40,12 @@ pub use command::{
     AskInput, CompanionCommand, CompanionEffect, CompanionEvent, CompanionParams, FocusInput,
 };
 pub use emphasis::{Emphasis, Span, plain_of, spans};
+pub use helpers::{
+    Asked, CEILINGS, CHOOSE_MODEL, Draft, GONE, HelpersCommand, HelpersModel, HelpersMsg,
+    NO_JOB_WORDS, Open, OpenCard, Reach, Removal, SaveFault, Told, UNREACHED, WAITING_BADGE,
+    badge_of, ceiling_label, controls_of, job_prompt, job_state_label, job_words, model_hint,
+    model_line, reach_of_lines, remove_question,
+};
 pub use model::{
     AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,
 };

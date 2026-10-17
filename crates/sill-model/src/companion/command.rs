@@ -13,6 +13,7 @@ use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
 
 use std::collections::BTreeSet;
 
+use super::helpers::{HelpersCommand, HelpersMsg};
 use super::model::{CompanionLink, Opener, RunFacts};
 use super::summon::{FocusFacts, LauncherFacts, SummonOut, SummonParams};
 use super::tap::TapParams;
@@ -125,6 +126,8 @@ pub enum CompanionCommand {
     RefreshJournal,
     /// Perform an action of an app as the person asked for it (a thing's primary action).
     Perform(Box<CallRequest>),
+    /// Something the person did on the helpers screen.
+    Helpers(HelpersMsg),
 }
 
 /// What happens in the service.
@@ -225,6 +228,8 @@ pub enum CompanionEvent {
     TimelineLoaded(Generation, Vec<TimelineEntry>),
     /// The timeline could not be read.
     TimelineFailed(Generation),
+    /// Something about the helpers: the person's doing, or what a call to the companion came to.
+    Helpers(HelpersMsg),
 }
 
 /// What the service must do outside the pure state.
@@ -237,6 +242,8 @@ pub enum CompanionEffect {
     Prepare,
     /// The person asked and no model is set: open Settings' model picker.
     PickModel,
+    /// The helpers screen asks the companion for something.
+    Helpers(HelpersCommand),
 }
 
 impl SummonOut {

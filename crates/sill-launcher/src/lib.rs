@@ -23,7 +23,7 @@ pub mod time;
 pub use activation::{
     Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, ViewerOpen, WindowKey,
 };
-pub use companion::{CompanionAct, LauncherMode, RunControl};
+pub use companion::{CompanionAct, HelperControl, LauncherMode, RunControl};
 pub use frecency::{Counting, Frecency, FrecencyScore, ItemKey, Use, age_bucket, counting};
 pub use ids::{ActionId, AppId, ClipKey, ItemId, ProviderKind};
 pub use item::{Action, Choice, IconRef, Item};

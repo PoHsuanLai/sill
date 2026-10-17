@@ -275,6 +275,9 @@ impl Live {
                     eprintln!("sill: companion: opening the model picker: {error}");
                 }
             }
+            CompanionEffect::Helpers(command) => {
+                let _ = command;
+            }
             CompanionEffect::Summon(SummonOut::AskApp { app, serial }) => {
                 let events = self.events.clone();
                 match self.connection.clone() {
@@ -419,6 +422,7 @@ impl Live {
                     intents::perform(&connection, *call).await
                 });
             }
+            CompanionCommand::Helpers(msg) => self.feed(CompanionEvent::Helpers(msg)),
         }
     }
 
