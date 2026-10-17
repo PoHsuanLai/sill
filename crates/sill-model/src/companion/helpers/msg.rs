@@ -6,6 +6,8 @@ use companion_wire::{HelperCardView, HelperForm, HelperReply, HelpersView};
 use docket_core::helper::{Ceiling, HelperModel};
 use prov::{AppName, HelperId};
 
+use super::models::ModelGroup;
+
 /// Which call a reply answers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Asked {
@@ -46,10 +48,14 @@ pub enum HelpersMsg {
     ToggleApp(AppName),
     /// The person chooses how far it may go.
     SetCeiling(Ceiling),
-    /// The person chose a model in the picker.
+    /// The person chose a model from the card's list.
     ChooseModel(HelperModel),
-    /// The person asks to choose a model.
+    /// The person asks to choose a model: the card lists the models there are, or hides the list.
     PickModel,
+    /// The models there are arrived, grouped by where they run.
+    ModelsOffered(Vec<ModelGroup>),
+    /// The person asks to add a model: Settings opens.
+    AddModel,
     /// The person saves the card.
     Save,
     /// The person pauses a helper.
@@ -98,6 +104,8 @@ pub enum HelpersCommand {
         /// What it is to do, in the person's words.
         goal: String,
     },
+    /// Read the models a helper may be given.
+    ReadModels,
     /// Open Settings at the model picker.
     OpenModelPicker,
 }

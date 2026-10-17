@@ -245,8 +245,9 @@ porter-infer = { path = "../porter/crates/porter-infer" }
 # MIT OR Apache-2.0, a sibling checkout already in the tree through docket-dbus.
 porter-dbus = { path = "../porter/crates/porter-dbus" }
 # The typed calls on inferd and accountd (guests, answers, the change stream) over the session bus.
-# MIT OR Apache-2.0, a sibling checkout; no inference stack and no in-process host.
-porter-client = { path = "../porter/crates/porter-client", default-features = false, features = ["dbus"] }
+# MIT OR Apache-2.0, a sibling checkout; no in-process host. `infer` is the typed `Places` and
+# `LocalEngines` rows a helper's model list reads (porter-infer is already here through docket-core).
+porter-client = { path = "../porter/crates/porter-client", default-features = false, features = ["dbus", "infer"] }
 # The companion's wire (the bodies of `org.quire.Companion1`: asks, answers, cards, plans, forms),
 # cuad's bus bodies and D-Bus proxies (run states, outcomes, `Cua1.Manager`/`Run`) and memoryd's
 # vocabulary and proxies (`MemoryItem`, the timeline): serde data and zbus declarations only, the

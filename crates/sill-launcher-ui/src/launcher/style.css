@@ -30,7 +30,7 @@
 /* A helper's card in the pane: a quiet column that scrolls when the form is taller than the pane. */
 .sill-helper-card{ display:flex; flex-direction:column; gap:var(--s-8); width:100%; height:100%; padding:var(--s-8); overflow-y:auto; }
 .sill-helper-head{ display:flex; flex-direction:column; gap:var(--s-2); }
-.sill-helper-apps{ display:flex; flex-direction:column; gap:var(--s-4); }
+.sill-helper-apps, .sill-helper-models{ display:flex; flex-direction:column; gap:var(--s-4); }
 .sill-helper-buttons{ display:flex; flex-wrap:wrap; gap:var(--s-6); }
 .sill-helper-notice{ margin:0; font-size:var(--fs-help); color:var(--ink-soft); }
 .sill-helper-ask p{ margin:0 0 var(--s-6); font-size:var(--fs-control); color:var(--ink); }

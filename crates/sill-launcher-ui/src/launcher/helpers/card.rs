@@ -79,7 +79,7 @@ fn CardBody(model: HelpersModel, helper: Option<HelperId>) -> Element {
     let save = save_button(helper.as_ref(), name, role, &say);
     rsx! {
         {header(&model, helper.as_ref())}
-        Fields { draft, apps: model.apps.clone(), name, role }
+        Fields { draft, apps: model.apps.clone(), models: model.models.clone(), name, role }
         div { class: "sill-helper-buttons", {save} }
         if let Some(sentence) = &model.notice {
             p { class: "sill-helper-notice", role: "status", "{sentence}" }

@@ -5,8 +5,10 @@
 
 use companion_wire::{HelperCardView, HelperForm, HelperReply, HelpersView};
 use docket_dbus::{COMPANION_BUS, CompanionHelpersProxy};
+use porter_client::DbusTransport;
+use porter_dbus::{EngineState, LocalEngine};
 use prov::HelperId;
-use sill_model::companion::{Asked, CompanionEvent, HelpersCommand, HelpersMsg};
+use sill_model::companion::{Asked, CompanionEvent, HelpersCommand, HelpersMsg, model_groups};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
@@ -35,9 +37,37 @@ pub(super) async fn carry(connection: &Connection, command: HelpersCommand) -> O
             let posted = proxy.post_job(helper.as_str(), &goal, "[]").await;
             Some(reply(posted, Asked::Job))
         }
+        HelpersCommand::ReadModels => Some(read_models(connection).await),
         // The launch service opens it; the loop never hands it here.
         HelpersCommand::OpenModelPicker => None,
     }
+}
+
+/// The slot slug of the text models a helper runs on.
+const TEXT_SLOT: &str = "text";
+
+/// The models the places serve, grouped. The engines are only read to name the one that runs the
+/// models of this computer; when they cannot be read the list is the same without the name.
+async fn read_models(connection: &Connection) -> HelpersMsg {
+    let transport = DbusTransport::over(connection.clone());
+    let places = match transport.list_places().await {
+        Ok(read) => read.rows,
+        Err(why) => return unreached(&why).unwrap_or(HelpersMsg::Unreached),
+    };
+    let engines = match transport.list_local_engines().await {
+        Ok(read) => text_engines(read.rows),
+        Err(_) => Vec::new(),
+    };
+    HelpersMsg::ModelsOffered(model_groups(&places, &engines))
+}
+
+/// The names of the engines on this computer that run text models.
+fn text_engines(rows: Vec<LocalEngine>) -> Vec<String> {
+    rows.into_iter()
+        .filter(|engine| matches!(engine.state, EngineState::Found(_)))
+        .filter(|engine| engine.slots.iter().any(|slot| slot == TEXT_SLOT))
+        .map(|engine| engine.name)
+        .collect()
 }
 
 async fn read_list(proxy: &CompanionHelpersProxy<'_>, after: u64) -> HelpersMsg {

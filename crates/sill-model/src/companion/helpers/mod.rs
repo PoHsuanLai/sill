@@ -6,6 +6,7 @@
 mod apps;
 mod draft;
 mod model;
+mod models;
 mod msg;
 #[cfg(test)]
 mod tests;
@@ -15,9 +16,11 @@ mod words;
 pub use apps::offered_apps;
 pub use draft::{Draft, Reach};
 pub use model::{HelpersModel, Open, Removal};
+pub use models::{ModelGroup, ModelList, ModelOffer, model_groups};
 pub use msg::{Asked, HelpersCommand, HelpersMsg};
 pub use update::update;
 pub use words::{
-    CEILINGS, GONE, WAITING_BADGE, app_label, badge_of, ceiling_label, controls_of, job_answer,
-    job_prompt, job_words, model_hint, model_line, remove_question,
+    ADD_MODEL, CEILINGS, GONE, LOOKING_FOR_MODELS, NO_MODELS, WAITING_BADGE, app_label, badge_of,
+    ceiling_label, controls_of, job_answer, job_prompt, job_words, model_hint, model_line,
+    remove_question,
 };

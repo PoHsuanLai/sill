@@ -21,6 +21,15 @@ pub const WAITING_BADGE: &str = "Waiting for you";
 /// Under a helper that has no model.
 pub const CHOOSE_MODEL: &str = "Choose a model so it can start";
 
+/// Under the list of models while it is being read.
+pub const LOOKING_FOR_MODELS: &str = "Looking for models\u{2026}";
+
+/// When no place offers a model.
+pub const NO_MODELS: &str = "No model is available yet. Add one in Settings.";
+
+/// The last entry of the list of models.
+pub const ADD_MODEL: &str = "Add a model in Settings\u{2026}";
+
 /// The question before a helper goes.
 pub fn remove_question(name: &str) -> String {
     format!("Remove {name}? Its finished jobs stay in your history.")

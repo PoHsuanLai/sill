@@ -5,8 +5,10 @@ use companion_wire::{
     JobShown, ToldWire,
 };
 use docket_core::helper::{Ceiling, HelperModel, HelperName, HelperPhase};
-use porter_core::Count;
-use porter_infer::ModelRef;
+use porter_core::{AccountId, Count, ModelId};
+use porter_infer::{
+    ComputerName, ModelRef, PlaceId, PlaceKind, PlaceModel, PlaceRow, PlaceState,
+};
 use prov::{AppName, HelperId, SpaceId};
 use sill_launcher::HelperControl;
 
@@ -196,10 +198,107 @@ fn choosing_a_model_changes_the_card_and_the_hint_goes() {
     assert_eq!((helper, &form.model), (&id("h-1"), &chosen()));
 }
 
+fn offered_group() -> ModelGroup {
+    ModelGroup {
+        heading: "On this computer".to_owned(),
+        offers: vec![ModelOffer {
+            choice: chosen(),
+            label: "Qwen3 4B".to_owned(),
+        }],
+    }
+}
+
 #[test]
-fn asking_to_choose_a_model_opens_the_picker() {
-    let (_, sent) = update(HelpersModel::default(), HelpersMsg::PickModel);
+fn asking_to_choose_a_model_reads_the_models_and_shows_them_with_nothing_picked() {
+    let model = opened("h-1", HelperModel::Unset);
+    let (model, sent) = update(model, HelpersMsg::PickModel);
+    assert_eq!((&model.models, sent), (&ModelList::Reading, vec![HelpersCommand::ReadModels]));
+    let (model, sent) = update(model, HelpersMsg::ModelsOffered(vec![offered_group()]));
+    assert!(sent.is_empty());
+    assert_eq!(model.models, ModelList::Offered(vec![offered_group()]));
+    let draft = model.draft().unwrap_or_else(|| panic!("a card is open"));
+    assert_eq!(draft.model, HelperModel::Unset, "listing picks nothing");
+
+    let (model, _) = update(model, HelpersMsg::ChooseModel(chosen()));
+    assert_eq!(model.models, ModelList::Closed, "choosing hides the list");
+}
+
+#[test]
+fn models_nobody_waits_for_are_ignored_and_asking_again_hides_the_list() {
+    let (model, _) = update(
+        opened("h-1", HelperModel::Unset),
+        HelpersMsg::ModelsOffered(vec![offered_group()]),
+    );
+    assert_eq!(model.models, ModelList::Closed);
+    let (model, _) = feed(model, vec![HelpersMsg::PickModel]);
+    let (model, sent) = update(model, HelpersMsg::PickModel);
+    assert_eq!((&model.models, sent), (&ModelList::Closed, Vec::new()));
+}
+
+#[test]
+fn adding_a_model_opens_settings_and_hides_the_list() {
+    let (model, _) = feed(
+        opened("h-1", HelperModel::Unset),
+        vec![HelpersMsg::PickModel, HelpersMsg::ModelsOffered(Vec::new())],
+    );
+    let (model, sent) = update(model, HelpersMsg::AddModel);
     assert_eq!(sent, [HelpersCommand::OpenModelPicker]);
+    assert_eq!(model.models, ModelList::Closed);
+}
+
+fn place(row: PlaceRow, models: &[(&str, &str)]) -> PlaceRow {
+    row.with_models(
+        models
+            .iter()
+            .map(|(id, name)| PlaceModel {
+                id: ModelId::parse(id).unwrap_or_else(|e| panic!("{e}")),
+                name: (*name).to_owned(),
+            })
+            .collect(),
+    )
+}
+
+#[test]
+fn models_are_grouped_by_where_they_run_and_the_one_engine_is_named() {
+    let here = place(
+        PlaceRow::new(
+            PlaceId::this_computer(),
+            PlaceKind::ThisComputer,
+            "This computer".to_owned(),
+            PlaceState::Ready,
+        ),
+        &[("qwen3-4b", "Qwen3 4B")],
+    );
+    let cloud = place(
+        PlaceRow::new(
+            PlaceId::account(&AccountId::parse("work").unwrap_or_else(|e| panic!("{e}"))),
+            PlaceKind::CloudAccount,
+            "Work".to_owned(),
+            PlaceState::Ready,
+        )
+        .with_provider("Anthropic".to_owned()),
+        &[("claude-sonnet", "Claude Sonnet")],
+    );
+    let idle = place(
+        PlaceRow::new(
+            PlaceId::computer(&ComputerName::parse("lab").unwrap_or_else(|e| panic!("{e}"))),
+            PlaceKind::OwnComputer,
+            "Lab".to_owned(),
+            PlaceState::NotReady,
+        ),
+        &[],
+    );
+    let places = [here, idle, cloud];
+    let groups = model_groups(&places, &["llama.cpp".to_owned()]);
+    let headings: Vec<&str> = groups.iter().map(|g| g.heading.as_str()).collect();
+    assert_eq!(headings, ["On this computer, with llama.cpp", "Anthropic"]);
+    assert_eq!(groups[0].offers[0].choice, chosen());
+    let cloud_model = HelperModel::Named(
+        ModelRef::parse("cloud/claude-sonnet").unwrap_or_else(|| panic!("model")),
+    );
+    assert_eq!(groups[1].offers[0].choice, cloud_model);
+    assert_eq!(model_groups(&places, &[])[0].heading, "On this computer");
+    assert!(model_groups(&[], &[]).is_empty());
 }
 
 #[test]

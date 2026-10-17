@@ -4,24 +4,26 @@ use std::collections::BTreeSet;
 
 use dioxus::prelude::*;
 use docket_core::helper::Ceiling;
-use ds::components::content::label::LabelRole;
+use ds::components::content::label::{LabelRole, LabelStyle};
 use ds::components::controls::button_model::Bezel;
 use ds::components::controls::checkbox::Checkbox;
 use ds::components::fields::field_row::{FieldGroup, FieldRow};
 use ds::prelude::*;
 use prov::AppName;
 use sill_model::companion::{
-    CEILINGS, Draft, HelpersMsg, Reach, app_label, ceiling_label, model_hint, model_line,
+    ADD_MODEL, CEILINGS, Draft, HelpersMsg, LOOKING_FOR_MODELS, ModelGroup, ModelList,
+    ModelOffer, NO_MODELS, Reach, app_label, ceiling_label, model_hint, model_line,
 };
 
 use super::say::{Say, use_say};
 
 /// The field group of a card being filled in. `name` and `role` hold what is typed until it is
-/// committed; `apps` are the apps that can be ticked.
+/// committed; `apps` are the apps that can be ticked; `models` is the list under the model.
 #[component]
 pub(super) fn Fields(
     draft: Draft,
     apps: BTreeSet<AppName>,
+    models: ModelList,
     name: Signal<String>,
     role: Signal<String>,
 ) -> Element {
@@ -92,6 +94,7 @@ pub(super) fn Fields(
                     common: Common { id: Some("helper-model".to_owned()), ..Common::default() },
                     onclick: move |_| pick_say.msg(HelpersMsg::PickModel),
                 }
+                {model_list(&models, &say)}
             }
         }
     }
@@ -111,6 +114,66 @@ fn app_row(app: &AppName, ticked: &BTreeSet<AppName>, say: &Say) -> Element {
             label: app_label(app),
             value,
             onchange: move |_| say.msg(HelpersMsg::ToggleApp(toggled.clone())),
+        }
+    }
+}
+
+/// The models to choose from, under the model's line: what is being read, or the models grouped by
+/// where they run, with "Add a model in Settings" last (the only entry when there are none).
+fn model_list(models: &ModelList, say: &Say) -> Element {
+    match models {
+        ModelList::Closed => rsx! {},
+        ModelList::Reading => rsx! {
+            Label { text: LOOKING_FOR_MODELS, role: LabelRole::Secondary }
+        },
+        ModelList::Offered(groups) => {
+            let mut first = 0;
+            let mut shown = Vec::new();
+            for group in groups {
+                shown.push(group_rows(group, first, say));
+                first += group.offers.len();
+            }
+            let add = say.clone();
+            rsx! {
+                div { class: "sill-helper-models",
+                    if groups.is_empty() {
+                        Label { text: NO_MODELS, role: LabelRole::Secondary }
+                    }
+                    for rows in shown {
+                        {rows}
+                    }
+                    Button {
+                        label: ADD_MODEL,
+                        bezel: Bezel::Inline,
+                        common: Common { id: Some("helper-model-add".to_owned()), ..Common::default() },
+                        onclick: move |_| add.msg(HelpersMsg::AddModel),
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// One heading and its models; `first` numbers the buttons across groups.
+fn group_rows(group: &ModelGroup, first: usize, say: &Say) -> Element {
+    rsx! {
+        Label { text: group.heading.clone(), style: LabelStyle::Caption }
+        for (at, offer) in group.offers.iter().enumerate() {
+            {offer_row(first + at, offer, say)}
+        }
+    }
+}
+
+/// One model as a button that chooses it.
+fn offer_row(index: usize, offer: &ModelOffer, say: &Say) -> Element {
+    let (say, choice) = (say.clone(), offer.choice.clone());
+    rsx! {
+        Button {
+            key: "{index}",
+            label: offer.label.clone(),
+            bezel: Bezel::Inline,
+            common: Common { id: Some(format!("helper-model-{index}")), ..Common::default() },
+            onclick: move |_| say.msg(HelpersMsg::ChooseModel(choice.clone())),
         }
     }
 }

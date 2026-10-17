@@ -6,6 +6,7 @@ use prov::{AppName, HelperId, SpaceId};
 
 use super::draft::{Draft, Reach};
 use super::model::{HelpersModel, Open, OpenCard, Removal, Told};
+use super::models::{ModelGroup, ModelList};
 use super::msg::{Asked, HelpersCommand, HelpersMsg};
 use super::words;
 
@@ -21,11 +22,15 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
         HelpersMsg::CardMissing(id) => (card_missing(model, &id), Vec::new()),
         HelpersMsg::AppsOffered(apps) => (HelpersModel { apps, ..model }, Vec::new()),
         HelpersMsg::Replied(asked, reply) => replied(model, asked, reply),
-        HelpersMsg::Unreached => (said(model, words::UNREACHED), Vec::new()),
+        HelpersMsg::Unreached => (
+            said(model_list_closed_if_reading(model), words::UNREACHED),
+            Vec::new(),
+        ),
         HelpersMsg::OpenCard(id) => open_card(model, id),
         HelpersMsg::CloseCard => (
             HelpersModel {
                 open: Open::Nothing,
+                models: ModelList::Closed,
                 notice: None,
                 ..model
             },
@@ -34,6 +39,7 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
         HelpersMsg::NewHelper => (
             HelpersModel {
                 open: Open::New(Draft::blank(SpaceId::desktop())),
+                models: ModelList::Closed,
                 notice: None,
                 ..model
             },
@@ -46,13 +52,24 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
             (edited(model, |draft| limited(draft, ceiling)), Vec::new())
         }
         HelpersMsg::ChooseModel(chosen) => (
-            edited(model, |draft| Draft {
-                model: chosen,
-                ..draft
-            }),
+            HelpersModel {
+                models: ModelList::Closed,
+                ..edited(model, |draft| Draft {
+                    model: chosen,
+                    ..draft
+                })
+            },
             Vec::new(),
         ),
-        HelpersMsg::PickModel => (model, vec![HelpersCommand::OpenModelPicker]),
+        HelpersMsg::PickModel => pick_model(model),
+        HelpersMsg::ModelsOffered(groups) => (models_offered(model, groups), Vec::new()),
+        HelpersMsg::AddModel => (
+            HelpersModel {
+                models: ModelList::Closed,
+                ..model
+            },
+            vec![HelpersCommand::OpenModelPicker],
+        ),
         HelpersMsg::Save => save(model),
         HelpersMsg::Pause(id) => (model, vec![HelpersCommand::Pause(id)]),
         HelpersMsg::Resume(id) => (model, vec![HelpersCommand::Resume(id)]),
@@ -72,6 +89,48 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
         ),
         HelpersMsg::Remove(id) => remove(model, id),
         HelpersMsg::GiveJob(goal) => give_job(model, &goal),
+    }
+}
+
+/// The list of models shown, or hidden when it already is; asked for when it was not.
+fn pick_model(model: HelpersModel) -> (HelpersModel, Vec<HelpersCommand>) {
+    match model.models {
+        ModelList::Closed => (
+            HelpersModel {
+                models: ModelList::Reading,
+                ..model
+            },
+            vec![HelpersCommand::ReadModels],
+        ),
+        ModelList::Reading | ModelList::Offered(_) => (
+            HelpersModel {
+                models: ModelList::Closed,
+                ..model
+            },
+            Vec::new(),
+        ),
+    }
+}
+
+/// The models arrived: shown when the person is waiting for them, otherwise ignored.
+fn models_offered(model: HelpersModel, groups: Vec<ModelGroup>) -> HelpersModel {
+    match model.models {
+        ModelList::Reading => HelpersModel {
+            models: ModelList::Offered(groups),
+            ..model
+        },
+        ModelList::Closed | ModelList::Offered(_) => model,
+    }
+}
+
+/// `model`, with a list of models that was being read given up.
+fn model_list_closed_if_reading(model: HelpersModel) -> HelpersModel {
+    match model.models {
+        ModelList::Reading => HelpersModel {
+            models: ModelList::Closed,
+            ..model
+        },
+        ModelList::Closed | ModelList::Offered(_) => model,
     }
 }
 
@@ -207,6 +266,7 @@ fn open_card(model: HelpersModel, id: HelperId) -> (HelpersModel, Vec<HelpersCom
     (
         HelpersModel {
             open: Open::Reading(id.clone()),
+            models: ModelList::Closed,
             notice: None,
             ..model
         },

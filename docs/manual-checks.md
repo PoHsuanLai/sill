@@ -528,3 +528,16 @@ the real daemons or a real keyboard.
   asked once, not twice.
 - [ ] **Blank screen**: set a mode the monitor cannot show; with no key pressed the screen comes back by itself.
 
+
+## Launcher ⌘K actions menu and memory rows (sill 01035ad3)
+
+- [ ] **The menu opens lit**: press ⌘K on a row with actions; the first action is lit, and Return runs it.
+- [ ] **A click stays in the menu**: click an action; it runs once and the row behind it does not run as well.
+- [ ] **Readable over the rows**: the menu can be read over the rows behind it. Known quire gap: it is see-through outside a blurred card, so look for text showing through.
+- [ ] **Keep and Don't Keep**: on a memory row, Keep or Don't Keep removes the row at once, with no wait for the next refresh.
+
+## A helper's model chosen from its card
+
+- [ ] **Choose from the card**: open a helper with no model ("Not chosen yet"), press Choose…. The list shows "Looking for models…" and then the models, grouped (this computer with its engine named, each other computer, each company), with nothing marked or picked. Pick one: the line shows its name, the list closes and the "Choose a model so it can start" hint goes. Save, then open the card again: the model stayed.
+- [ ] **No model at all**: with no model on this computer or any account, Choose… says "No model is available yet" and offers "Add a model in Settings…", which opens Settings' model page.
+- [ ] **Two engines**: with two text engines found on this computer the group says only "On this computer" (the list cannot tell which engine runs which model).

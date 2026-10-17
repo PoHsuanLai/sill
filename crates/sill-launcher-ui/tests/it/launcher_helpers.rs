@@ -12,7 +12,8 @@ use launcher_harness::launcher_support::companion::helpers;
 use launcher_harness::{Open, Press, open_in, selected_title, titles};
 use prov::HelperId;
 use sill_launcher::LauncherMode;
-use sill_model::companion::{CompanionCommand, HelpersMsg};
+use docket_core::helper::HelperModel;
+use sill_model::companion::{CompanionCommand, HelpersMsg, ModelGroup, ModelOffer};
 
 fn research() -> HelperId {
     HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}"))
@@ -112,7 +113,7 @@ fn saving_commits_the_typed_words_then_saves() {
 }
 
 #[test]
-fn choosing_a_model_opens_the_picker_and_a_removal_waits_for_its_yes() {
+fn choosing_a_model_asks_for_the_list_and_a_removal_waits_for_its_yes() {
     let mut open = on_research(Vec::new());
     commands(&mut open);
     click(&mut open, "#helper-model");
@@ -141,6 +142,51 @@ fn choosing_a_model_opens_the_picker_and_a_removal_waits_for_its_yes() {
         commands(&mut declined),
         [CompanionCommand::Helpers(HelpersMsg::CancelRemove)]
     );
+}
+
+fn qwen() -> HelperModel {
+    serde_json::from_str(r#"{"kind":"named","v":{"account":"local","model":"qwen3-4b"}}"#)
+        .unwrap_or_else(|e| panic!("{e}"))
+}
+
+fn offered(groups: Vec<ModelGroup>) -> Vec<HelpersMsg> {
+    vec![HelpersMsg::PickModel, HelpersMsg::ModelsOffered(groups)]
+}
+
+#[test]
+fn a_model_in_the_list_is_chosen_for_the_helper_and_settings_stays_one_entry_away() {
+    let group = ModelGroup {
+        heading: "On this computer, with llama.cpp".to_owned(),
+        offers: vec![ModelOffer {
+            choice: qwen(),
+            label: "Qwen3 4B".to_owned(),
+        }],
+    };
+    let mut open = on_research(offered(vec![group]));
+    let html = open.harness.html();
+    for says in ["On this computer, with llama.cpp", "Qwen3 4B", "Add a model in Settings"] {
+        assert!(html.contains(says), "the list says {says:?}: {html}");
+    }
+    commands(&mut open);
+    click(&mut open, "#helper-model-0");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::ChooseModel(qwen()))]
+    );
+    click(&mut open, "#helper-model-add");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::AddModel)]
+    );
+}
+
+#[test]
+fn with_no_model_at_all_the_card_says_so_and_offers_settings() {
+    let open = on_research(offered(Vec::new()));
+    let html = open.harness.html();
+    assert!(html.contains("No model is available yet"), "{html}");
+    assert_eq!(open.harness.count("#helper-model-add"), 1);
+    assert_eq!(open.harness.count("#helper-model-0"), 0);
 }
 
 #[test]

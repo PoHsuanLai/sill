@@ -8,6 +8,7 @@ use companion_wire::{HelperCardView, HelperLine, ToldWire};
 use prov::{AppName, HelperId};
 
 use super::draft::Draft;
+use super::models::ModelList;
 
 /// A sentence a helper told the person, in plain words.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -76,6 +77,8 @@ pub struct HelpersModel {
     pub apps: BTreeSet<AppName>,
     /// The card area.
     pub open: Open,
+    /// The list of models on the open card.
+    pub models: ModelList,
     /// The question about removing a helper.
     pub removal: Removal,
     /// A sentence about what was refused or could not be done, until the person does the next
