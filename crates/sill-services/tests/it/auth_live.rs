@@ -10,8 +10,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use sill_model::auth::{
-    Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, FakeVerdict, Outcome, Secret,
-    UserName,
+    Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, FakeVerdict, Outcome, RealName,
+    Secret, UserName,
 };
 use sill_services::auth::{AuthService, PamHelper, pam};
 use sill_services::control::Control;
@@ -71,10 +71,9 @@ async fn many_wrongs_never_lock_out_and_the_right_one_opens() {
     let (mut auth, control) = start(fake(20));
     send(&control, AuthCommand::Reset);
     let loaded = until(&mut auth, "the account", |a| !a.account.user.0.is_empty()).await;
-    println!(
-        "account: {:?} ({:?})",
-        loaded.account.user, loaded.account.name
-    );
+    // The person is the environment's stand-in, never the machine's own account.
+    assert_eq!(loaded.account.user, UserName("sill-test".to_owned()));
+    assert_eq!(loaded.account.name, RealName("Test Person".to_owned()));
     for n in 1..=10 {
         wrong_once(&mut auth, &control, n).await;
         assert_eq!(auth.borrow().phase, AuthPhase::Wrong, "try {n}");

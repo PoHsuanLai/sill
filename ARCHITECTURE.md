@@ -130,6 +130,7 @@ code into `tests.rs`. Exceptions and renames:
 | `auth/{types,gate,protocol}.rs` | `sill-model/src/auth/` |
 | `auth/{account,helper,pam,live}.rs` | `auth/backend/` (`pam.rs` is public: `sill auth-check` calls it) |
 | `auth/authenticator.rs` | `env/authenticator.rs` (the `Authenticator` seam and `FakeAuthenticator`) |
+| `auth` account lookup | `env/passwd.rs` (the `Passwd` seam: `SystemPasswd` over `nix`, `FakePasswd`) |
 | `bluetooth/{model,kind}.rs` | `sill-model/src/bluetooth/` |
 | `bluetooth/{bluez,live}.rs` | `bluetooth/backend/{bluez,run,devices,pairing}.rs` (`live.rs` is 569 lines) |
 | `network/{model}.rs`, `network/wifi/model.rs` | `sill-model/src/network/`, `sill-model/src/wifi/` |
@@ -238,7 +239,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 
 | Concept | Home |
 | --- | --- |
-| Everything ambient (buses, Wayland route, directories, wall clock, DDC, session actions, authenticator, idle times, polkit route, processes, children, keycap's socket path, the means to tell a bus caller apart) | `sill_services::env::Env` (`keycap_socket`: `/run/keycap/keycap.sock` from the process, none when isolated, so no test or script reaches the real daemon) |
+| Everything ambient (buses, Wayland route, directories, wall clock, DDC, session actions, authenticator, the accounts database (`passwd`), idle times, polkit route, processes, children, keycap's socket path, the means to tell a bus caller apart) | `sill_services::env::Env` (`keycap_socket`: `/run/keycap/keycap.sock` from the process, none when isolated, so no test or script reaches the real daemon) |
 | Starting a child nobody waits on: the file opener, the trash, a default handler | `sill_services::env::Children` (`Env::children`): `RealChildren` in the daemon, `RecordedChildren` in `Env::isolated`, which keeps each `Start` and runs nothing, so a test asserts the argv and never opens a file in the person's session. `tests/spawn_sites.rs` lists the only files that may name `Command::new` |
 | Waiting on a peer (an app, a system daemon, the compositor, the companion) | `sill_services::deadline`: named limits (`BUS_CALL`, `LAUNCH_COMMAND`, `NETWORK_REFRESH`, `TRAY_CALL`, `COMPANION_CALL`) and `within` / `call`; a launch's activation token has `sill_ui_kit::surface::activation_token` (300 ms, then the launch goes ahead without it) |
 | Keeping a service alive: a bus that is not up yet, the growing wait between attempts, a panic at the service boundary | `sill_services::supervise` (`connect_when_up`, `Backoff`, `panic_text`) and `service::spawn`, which logs how a service's task ended. Volume reconnects to the sound server itself; Wi-Fi follows NetworkManager's bus name and its device through `owner` |

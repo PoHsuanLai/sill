@@ -1,28 +1,10 @@
-//! Who the lock screen asks for: the session's user from `/etc/passwd` (by this process's uid),
-//! and the picture, AccountsService's `IconFile` (`org.freedesktop.Accounts`, the system bus,
-//! read by the live side) else `$HOME/.face`. Pure here; the reads are the live side's.
+//! The picture the lock screen shows for the session's person: AccountsService's `IconFile`
+//! (`org.freedesktop.Accounts`, the system bus, read by the live side) else `$HOME/.face`. Pure
+//! here; the reads are the live side's. Who the person is comes from [`crate::env::Passwd`].
 
 use std::path::{Path, PathBuf};
 
-use sill_model::auth::{AvatarSource, RealName, UserName};
-
-/// The login name and the GECOS name (its first comma-separated field; the login name when
-/// empty) of `uid` in `passwd` (the file's text).
-pub(crate) fn user_name_in_passwd(passwd: &str, uid: u32) -> Option<(UserName, RealName)> {
-    passwd.lines().find_map(|line| {
-        let mut fields = line.split(':');
-        let user = fields.next()?;
-        let _password = fields.next()?;
-        let line_uid: u32 = fields.next()?.parse().ok()?;
-        let _gid = fields.next()?;
-        let gecos = fields.next()?;
-        (line_uid == uid && !user.is_empty()).then(|| {
-            let name = gecos.split(',').next().unwrap_or_default().trim();
-            let name = if name.is_empty() { user } else { name };
-            (UserName(user.to_owned()), RealName(name.to_owned()))
-        })
-    })
-}
+use sill_model::auth::AvatarSource;
 
 /// The picture: AccountsService's icon when it names an existing file (`exists`), else
 /// `home/.face` when that exists, else initials.
@@ -44,28 +26,7 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::{avatar_source, user_name_in_passwd};
-    use sill_model::auth::{AvatarSource, RealName, UserName};
-
-    const PASSWD: &str = "root:x:0:0:Super User:/root:/bin/bash\n\
-        ada:x:1000:1000:Ada Lovelace,,,:/home/ada:/bin/zsh\n\
-        bob:x:1001:1001::/home/bob:/bin/sh\n\
-        # a comment\n\
-        broken line\n";
-
-    #[test]
-    fn passwd_lines() {
-        let named =
-            |user: &str, name: &str| Some((UserName(user.to_owned()), RealName(name.to_owned())));
-        let cases = [
-            (1000, named("ada", "Ada Lovelace")),
-            (1001, named("bob", "bob")),
-            (0, named("root", "Super User")),
-            (4242, None),
-        ];
-        for (uid, want) in cases {
-            assert_eq!(user_name_in_passwd(PASSWD, uid), want, "{uid}");
-        }
-    }
+    use sill_model::auth::AvatarSource;
 
     #[test]
     fn the_picture_prefers_accountsservice() {

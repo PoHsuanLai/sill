@@ -38,7 +38,7 @@ pub use backend::{PamHelper, pam};
 
 /// The lock screen's password check as a [`Service`], through `env`'s `Authenticator` (PAM
 /// through `sill auth-check` in the daemon, a `FakeAuthenticator` in every test), the account
-/// read on `env`'s system bus and home. Idle until the first `Submit`: nothing is checked, and
+/// read from `env`'s accounts database, system bus and home. Idle until the first `Submit`: nothing is checked, and
 /// no PAM module runs, before that.
 #[derive(Debug)]
 pub enum AuthService {}
@@ -58,9 +58,10 @@ impl Service for AuthService {
             system: env.buses.system.clone(),
             home: env.dirs.home.clone(),
         };
+        let passwd = Arc::clone(&env.passwd);
         let authenticator = Arc::clone(&env.authenticator);
         async move {
-            backend::run(io.state, io.commands, account, authenticator).await;
+            backend::run(io.state, io.commands, account, passwd, authenticator).await;
             Ok(())
         }
     }

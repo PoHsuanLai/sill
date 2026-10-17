@@ -2,8 +2,8 @@
 //!
 //! Loads the [`sill_model::auth::Account`] once, at the first command (so a service nobody locks
 //! with never
-//! reads anything: uid from `/proc/self`'s owner, [`crate::auth::user_name_in_passwd`] over
-//! `/etc/passwd`, AccountsService's `IconFile` over the system bus when it answers within 1 s,
+//! reads anything: who this process runs as from the [`crate::env::Passwd`] seam (the system's
+//! accounts database), AccountsService's `IconFile` over the system bus when it answers within 1 s,
 //! [`crate::auth::avatar_source`]); feeds every command and every finished check through
 //! [`sill_model::auth::step`]; runs each `Check` with `authenticator.check` on `rt`'s blocking
 //! pool,
@@ -22,13 +22,13 @@ use std::time::Duration;
 use sill_model::auth::gate::step;
 use sill_model::auth::{
     Account, Attempt, Auth, AuthCommand, AuthPhase, Checks, FakeVerdict, Gate, GateIn, GateOut,
-    Outcome, RealName, Secret, UserName, Verdict,
+    Outcome, Secret, Verdict,
 };
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use super::account::{avatar_source, user_name_in_passwd};
-use crate::env::{Authenticator, Bus};
+use super::account::avatar_source;
+use crate::env::{Authenticator, Bus, Passwd, Person};
 
 /// How long a made-up verdict (`sill debug auth`) takes, so the surface sees `Checking` and the
 /// field shakes again on every wrong one.
@@ -61,6 +61,7 @@ struct Live {
     round: Round,
     loaded: Loaded,
     account: AccountPlace,
+    passwd: Arc<dyn Passwd>,
     authenticator: Arc<dyn Authenticator>,
     rt: Handle,
     done: mpsc::UnboundedSender<Finished>,
@@ -70,6 +71,7 @@ pub(crate) async fn run(
     tx: watch::Sender<Auth>,
     mut commands: mpsc::UnboundedReceiver<AuthCommand>,
     account: AccountPlace,
+    passwd: Arc<dyn Passwd>,
     authenticator: Arc<dyn Authenticator>,
 ) {
     let rt = Handle::current();
@@ -80,6 +82,7 @@ pub(crate) async fn run(
         round: Round::default(),
         loaded: Loaded::Not,
         account,
+        passwd,
         authenticator,
         rt,
         done,
@@ -99,7 +102,7 @@ impl Live {
     async fn command(&mut self, command: AuthCommand) {
         if self.loaded == Loaded::Not {
             self.loaded = Loaded::Yes;
-            let account = load_account(&self.account).await;
+            let account = load_account(&self.account, &self.passwd, &self.rt).await;
             self.tx.send_modify(|auth| auth.account = account);
         }
         match command {
@@ -234,18 +237,15 @@ fn phase_of(said: GateOut, verdict: &Verdict) -> Option<AuthPhase> {
     }
 }
 
-/// This session's person: the owner of this process, from `/etc/passwd`, with their picture.
-async fn load_account(place: &AccountPlace) -> Account {
-    use std::os::unix::fs::MetadataExt;
-    let Ok(uid) = std::fs::metadata("/proc/self").map(|meta| meta.uid()) else {
+/// This session's person: who this process runs as, asked of `passwd` on `rt`'s blocking pool
+/// (a name service may be slow), with their picture. A lookup that never returns an answer leaves
+/// the account empty.
+async fn load_account(place: &AccountPlace, passwd: &Arc<dyn Passwd>, rt: &Handle) -> Account {
+    let passwd = Arc::clone(passwd);
+    let Ok(Person { id, user, name }) = rt.spawn_blocking(move || passwd.current()).await else {
         return Account::default();
     };
-    let passwd = std::fs::read_to_string("/etc/passwd").unwrap_or_default();
-    let (user, name) = user_name_in_passwd(&passwd, uid).unwrap_or_else(|| {
-        let user = std::env::var("USER").unwrap_or_default();
-        (UserName(user.clone()), RealName(user))
-    });
-    let icon = tokio::time::timeout(ACCOUNTS_TIMEOUT, accounts_icon(&place.system, uid))
+    let icon = tokio::time::timeout(ACCOUNTS_TIMEOUT, accounts_icon(&place.system, id.0))
         .await
         .ok()
         .flatten();

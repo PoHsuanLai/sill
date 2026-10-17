@@ -8,6 +8,7 @@ mod buses;
 mod children;
 pub mod ddc;
 mod dirs;
+mod passwd;
 mod processes;
 mod release;
 mod session_actions;
@@ -22,6 +23,7 @@ use crate::auth::PamHelper;
 use crate::callers::{CallerSource, DesktopCallers};
 use crate::polkit_agent;
 use ddc::{DdcBus, FileBus, I2cBuses};
+use sill_model::auth::{RealName, UserName};
 use sill_model::idle::IdleTimes;
 use sill_model::keycap::{UNIT_GRACE, UNIT_RECHECK};
 
@@ -30,6 +32,7 @@ pub use bus_name::{NameState, name_state};
 pub use buses::{Bus, BusKind, BusRoute, Buses};
 pub use children::{Children, ProcessGroup, RealChildren, RecordedChildren, Start};
 pub use dirs::Dirs;
+pub use passwd::{FakePasswd, Passwd, Person, SystemPasswd, UserId};
 pub use processes::{NoProcesses, Pid, ProcScan, Processes};
 pub use release::{SESSION_MODE_VAR, SessionMode};
 pub use session_actions::{
@@ -58,6 +61,9 @@ pub struct Env {
     pub session_actions: Arc<dyn SessionActions>,
     /// What checks the lock screen's password: PAM through `sill auth-check`, or a stand-in.
     pub authenticator: Arc<dyn Authenticator>,
+    /// Who this process runs as, for the lock screen: the system's accounts database, or a
+    /// stand-in that never reads it.
+    pub passwd: Arc<dyn Passwd>,
     /// The processes a service looks for by name: a `/proc` scan, or none.
     pub processes: Arc<dyn Processes>,
     /// The children a service starts and does not wait for (the file opener, the trash): real
@@ -117,7 +123,7 @@ pub enum IdleTimesSource {
 impl Env {
     /// The process's own: its buses, its compositor, its directories, the system clock, the
     /// kernel's i2c buses, polkitd on the system bus, logind's session actions, PAM through
-    /// `sill auth-check` and keycap's socket under `/run/keycap`.
+    /// `sill auth-check`, the system's accounts database and keycap's socket under `/run/keycap`.
     pub fn from_process() -> Env {
         let buses = Buses::from_process();
         Env {
@@ -130,6 +136,9 @@ impl Env {
             idle_times: IdleTimesSource::Settings,
             session_actions: Arc::new(LogindActions),
             authenticator: Arc::new(PamHelper::this_exe()),
+            passwd: Arc::new(SystemPasswd {
+                fallback_login: std::env::var("USER").unwrap_or_default(),
+            }),
             processes: Arc::new(ProcScan),
             children: Arc::new(RealChildren),
             keycap_socket: Some(PathBuf::from(keycap_protocol::SOCKET_PATH)),
@@ -145,8 +154,8 @@ impl Env {
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not exist,
     /// every directory inside `scratch`, the system clock (read only), DDC monitors from a file
     /// that is not there (none), no polkit helper, session actions that are only recorded, and a
-    /// password check that refuses everything, no processes running, no child started (each is
-    /// recorded), no keycap socket and callers judged against an empty table (every call to a
+    /// password check that refuses everything, a made-up person for the account, no processes
+    /// running, no child started (each is recorded), no keycap socket and callers judged against an empty table (every call to a
     /// shell object is refused until a test says who its stand-ins are). For tests that start
     /// services and must never reach the person's session or files. `scratch` must exist: the
     /// wallpaper service watches the nearest existing folder above the wallpaper's source file.
@@ -170,6 +179,11 @@ impl Env {
                 rule: FakeRule::RefusesAll,
                 delay: std::time::Duration::ZERO,
             }),
+            passwd: Arc::new(FakePasswd(Person {
+                id: UserId(4242),
+                user: UserName("sill-test".to_owned()),
+                name: RealName("Test Person".to_owned()),
+            })),
             processes: Arc::new(NoProcesses),
             children: RecordedChildren::shared(),
             keycap_socket: None,
