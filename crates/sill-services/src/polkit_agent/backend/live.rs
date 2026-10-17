@@ -8,7 +8,8 @@
 //! [`sill_model::polkit_agent::helper_route`]); turns every `Call`, command and helper line into a
 //! [`sill_model::polkit_agent::PolkitEvent`] through [`crate::polkit_agent::reduce`], choosing the
 //! identity with
-//! [`sill_model::polkit_agent::pick_identity`] and naming it from `/etc/passwd`; runs one helper
+//! [`sill_model::polkit_agent::pick_identity`] and naming it through the system's user database
+//! ([`super::names`]); runs one helper
 //! per `StartHelper`
 //! ([`super::run`]: a child with `kill_on_drop`, or the socket); keeps the answer from `Answer`
 //! only until `SendAnswer` hands it to the run (dropped, and so zeroed, otherwise); answers the
@@ -18,21 +19,20 @@
 //! publishes [`sill_model::polkit_agent::polkit_of`].
 
 use std::collections::{HashMap, VecDeque};
-use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
 use sill_model::auth::{Secret, UserName};
 use sill_model::polkit_agent::helper::helper_route;
-use sill_model::polkit_agent::identity::name_in_passwd;
 use sill_model::polkit_agent::{
     AuthRequest, Completion, Cookie, FakeRequest, HelperRoute, Identity, Origin, Polkit,
-    PolkitCommand, PolkitEffect, PolkitEvent, PolkitState, Uid, pick_identity, polkit_of, step,
+    PolkitCommand, PolkitEffect, PolkitEvent, PolkitState, polkit_of, step,
 };
 use tokio::sync::{mpsc, oneshot, watch};
 
 use super::bus::{BusLink, BusTrouble};
 use super::dbus::Call;
 use super::helper_run::{Driver, Run, RunEvent, RunId, RunSaid};
+use super::names::{Own, SystemNames, own, user_for};
 use super::{bus, helper_run};
 use crate::polkit_agent::{HelperChoice, PolkitRoute};
 
@@ -62,13 +62,6 @@ pub(crate) async fn run(
     live.replies.clear();
 }
 
-/// This session's user.
-#[derive(Debug, Clone)]
-struct Own {
-    uid: Uid,
-    name: UserName,
-}
-
 struct Live {
     state: PolkitState,
     tx: watch::Sender<Polkit>,
@@ -94,7 +87,7 @@ impl Live {
             state: PolkitState::default(),
             tx,
             setup,
-            own: own(),
+            own: own(&SystemNames),
             route: None,
             bus: None,
             replies: HashMap::new(),
@@ -142,7 +135,13 @@ impl Live {
                     let _ = reply.send(Completion::Failed);
                     return;
                 }
-                let user = user_for(&request.identities, &self.own);
+                // A name service may be a network directory: asked off the loop.
+                let (identities, own) = (request.identities.clone(), self.own.clone());
+                let user =
+                    tokio::task::spawn_blocking(move || user_for(&identities, &own, &SystemNames))
+                        .await
+                        .ok()
+                        .flatten();
                 self.replies.insert(request.cookie.clone(), reply);
                 let origin = Origin::Bus;
                 self.feed(
@@ -297,27 +296,4 @@ fn trouble_event(trouble: BusTrouble) -> PolkitEvent {
         BusTrouble::NoBus => PolkitEvent::BusGone,
         BusTrouble::Refused(message) => PolkitEvent::RegisterFailed(message),
     }
-}
-
-/// The identity to ask for, named; `None` when polkitd offers no user, or the chosen one has no
-/// name in `/etc/passwd`.
-fn user_for(identities: &[Identity], own: &Own) -> Option<UserName> {
-    let uid = pick_identity(identities, own.uid)?;
-    if uid == own.uid {
-        return Some(own.name.clone());
-    }
-    let passwd = std::fs::read_to_string("/etc/passwd").ok()?;
-    name_in_passwd(&passwd, uid)
-}
-
-/// This process's user: its uid (the owner of `/proc/self`), named from `/etc/passwd`, else
-/// `$USER`.
-fn own() -> Own {
-    let uid = Uid(std::fs::metadata("/proc/self").map_or(u32::MAX, |m| m.uid()));
-    let name = std::fs::read_to_string("/etc/passwd")
-        .ok()
-        .and_then(|passwd| name_in_passwd(&passwd, uid))
-        .or_else(|| std::env::var("USER").ok().map(UserName))
-        .unwrap_or_default();
-    Own { uid, name }
 }

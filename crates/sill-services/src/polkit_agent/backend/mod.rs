@@ -4,6 +4,7 @@ mod bus;
 mod dbus;
 mod helper_run;
 mod live;
+mod names;
 mod route;
 
 pub use dbus::{AGENT_PATH, AUTHORITY_NAME, AUTHORITY_PATH};

@@ -131,6 +131,7 @@ code into `tests.rs`. Exceptions and renames:
 | `auth/{account,helper,pam,live}.rs` | `auth/backend/` (`pam.rs` is public: `sill auth-check` calls it) |
 | `auth/authenticator.rs` | `env/authenticator.rs` (the `Authenticator` seam and `FakeAuthenticator`) |
 | `auth` account lookup | `env/passwd.rs` (the `Passwd` seam: `SystemPasswd` over `nix`, `FakePasswd`) |
+| The polkit agent's user names (which polkit identity, named) | `polkit_agent/backend/names.rs` (the `Names` seam: `SystemNames` over `nix`'s `User::from_uid`, so directory-service accounts resolve; a fixed fake in its test; `user_for` is pure over the seam) |
 | `bluetooth/{model,kind}.rs` | `sill-model/src/bluetooth/` |
 | `bluetooth/{bluez,live}.rs` | `bluetooth/backend/{bluez,run,devices,pairing}.rs` (`live.rs` is 569 lines) |
 | `network/{model}.rs`, `network/wifi/model.rs` | `sill-model/src/network/`, `sill-model/src/wifi/` |

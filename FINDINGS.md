@@ -1431,9 +1431,11 @@ confirmation).
   counted as wrong, and it does not unlock. The lock screen says to sign in again to choose a new
   one, because PAM's change-password conversation is not offered here. Whether an expired password
   should ever unlock the lock screen is still the owner's decision; this keeps it locked.
-  `getpwuid_r` in place of parsing `/etc/passwd` is deferred: `rustix` has no passwd lookup, a call
-  to libc's would be `unsafe`, and no crate in the lock does it. It needs `uzers` (or a safe
-  lookup in quire's `ds-helpers`) settled in quire's `docs/workspace-deps.toml` first.
+  The lock screen's account lookup is `getpwuid_r` through `nix` (`env/passwd.rs`), and since
+  2026-10-17 so is the polkit agent's (`polkit_agent/backend/names.rs`, `Names` over `User::from_uid`;
+  the hand parser of `/etc/passwd`, `name_in_passwd`, is gone), so accounts from a directory service
+  (LDAP, sssd, systemd-homed) are named like local ones in the authentication sheet. The owner allowed
+  `nix` for this (2026-10-17); the lookup runs on tokio's blocking pool, as a network directory may be slow.
 - **No `PR_SET_DUMPABLE=0` (SILLS-21).** Core files are forbidden (`RLIMIT_CORE=0`), but the process
   stays dumpable: the desktop's daemons read `/proc/<pid>/exe` to identify callers, which a
   not-dumpable process hides. The typed password is a `Zeroizing<String>` (`Secret`); the text
