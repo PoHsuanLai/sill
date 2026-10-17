@@ -11,8 +11,8 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
+use async_trait::async_trait;
 use sill_model::notifications::NOTIFY_CALL_MAX_BYTES;
-use zbus::export::async_trait::async_trait;
 use zbus::message::{Header, Message};
 use zbus::names::{InterfaceName, MemberName};
 use zbus::object_server::{DispatchResult2, Interface, SignalEmitter};

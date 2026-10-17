@@ -7217,6 +7217,7 @@ dependencies = [
  "almanac-dbus",
  "anyview-core",
  "anyview-platform",
+ "async-trait",
  "casement-protocols",
  "companion-wire",
  "cua-bus",

@@ -25,7 +25,7 @@ pub(crate) fn avatar_source(
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{avatar_source, user_name_in_passwd};
+    use super::avatar_source;
     use sill_model::auth::AvatarSource;
 
     #[test]

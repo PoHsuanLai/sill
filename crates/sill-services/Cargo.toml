@@ -43,6 +43,7 @@ toml = { workspace = true }
 toml_edit = { workspace = true }
 rustix = { workspace = true }
 nix = { workspace = true }
+async-trait = { workspace = true }
 tokio = { workspace = true }
 zbus = { workspace = true }
 smithay-client-toolkit = { workspace = true }
