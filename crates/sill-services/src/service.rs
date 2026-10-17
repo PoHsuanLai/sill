@@ -191,7 +191,9 @@ async fn run_once<S: Service>(
                     publish(&outer.state, &inner.state);
                     return Some(ending_of(ended));
                 }
-                publish(&outer.state, &inner.state);
+                // Every send the run makes reaches its readers, as it did before restarts: a
+                // send of the same value still says "settled" to whoever waits on it.
+                outer.state.send_replace(inner.state.borrow().clone());
             }
             ended = &mut work => {
                 publish(&outer.state, &inner.state);
@@ -201,7 +203,8 @@ async fn run_once<S: Service>(
     }
 }
 
-/// Make `to` hold what `from` holds now, waking its readers only when that differs.
+/// Make `to` hold what `from` holds once a run has ended, waking its readers only when that
+/// differs (the ending itself is not a send).
 fn publish<T: Clone + PartialEq>(to: &watch::Sender<T>, from: &watch::Receiver<T>) {
     let now = from.borrow().clone();
     to.send_if_modified(|held| {
