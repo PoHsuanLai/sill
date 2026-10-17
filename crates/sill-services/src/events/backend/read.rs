@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
+use ds_helpers::{ReadCap, read_text_capped};
 use jiff::tz::TimeZone;
 use sill_model::events::{
     CalendarName, EventsError, IcsError, IcsEvent, IcsPlace, Window, is_task_list, occurrences,
@@ -13,6 +14,10 @@ use sill_model::events::{
 };
 
 use super::provider::ProviderRead;
+
+/// The most a calendar file is read: a calendar synced for years is a few megabytes, and a file
+/// past this (or one that is not a plain file, a FIFO that never ends) is a problem, not a read.
+const ICS_FILE_MAX: ReadCap = ReadCap::mib(16);
 
 /// One calendar: its name and its files.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -146,7 +151,10 @@ enum Parsed {
 
 /// One file's events, or why it could not be read.
 fn read_file(path: &Path) -> Result<Vec<IcsEvent>, EventsError> {
-    let text = std::fs::read_to_string(path).map_err(|error| unreadable(path, &error))?;
+    let text = read_text_capped(path, ICS_FILE_MAX).map_err(|error| EventsError::Unreadable {
+        path: path.to_path_buf(),
+        reason: error.to_string(),
+    })?;
     parse_ics(&text).map_err(|error| {
         let line = match &error {
             IcsError::NotCalendar => 1,

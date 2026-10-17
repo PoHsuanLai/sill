@@ -116,6 +116,11 @@ impl Senders {
             .is_some_and(|owner| owner.sender == *sender)
     }
 
+    /// The connection that posted the held notification `id`; none for one the shell posted.
+    pub(super) fn sender_of(&self, id: NotificationId) -> Option<&Sender> {
+        self.owners.get(&id).map(|owner| &owner.sender)
+    }
+
     /// `id` posted by `owner`; `None` for one the shell posted itself.
     pub(super) fn record(&mut self, id: NotificationId, owner: Option<Owner>) {
         match owner {

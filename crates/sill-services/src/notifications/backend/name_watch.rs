@@ -16,7 +16,7 @@ use zbus::names::BusName;
 use zbus::object_server::SignalEmitter;
 use zbus::{Connection, fdo};
 
-use super::dbus::{BUS_NAME, Call, OBJECT_PATH, Server};
+use super::dbus::{BUS_NAME, Call, OBJECT_PATH, Sender, Server};
 
 /// A connection to the bus the service speaks on.
 #[derive(Debug)]
@@ -143,12 +143,26 @@ impl Bus {
         }
     }
 
-    /// Emit `ActivationToken` (when there is one), then `ActionInvoked`.
-    pub(crate) async fn invoked(&self, id: NotificationId, action: &ActionKey, token: &Activation) {
+    /// Emit `ActivationToken` (when there is one), then `ActionInvoked`, to `to`, the connection
+    /// that posted the notification. The token lets its holder raise a window, so it goes to no
+    /// one else: a notification that has no connection (the shell's own) gets none, and its
+    /// `ActionInvoked` is the broadcast the shell's own services listen for.
+    pub(crate) async fn invoked(
+        &self,
+        id: NotificationId,
+        action: &ActionKey,
+        token: &Activation,
+        to: Option<&Sender>,
+    ) {
         let Ok(emitter) = SignalEmitter::new(&self.connection, OBJECT_PATH) else {
             return;
         };
-        if let Activation::Token(token) = token
+        let emitter = match to.map(|to| BusName::try_from(to.0.clone())) {
+            Some(Ok(name)) => emitter.set_destination(name),
+            Some(Err(_)) => return,
+            None => emitter,
+        };
+        if let (Activation::Token(token), Some(_)) = (token, to)
             && let Err(error) = Server::activation_token(&emitter, id.0, &token.0).await
         {
             eprintln!("sill: notifications: ActivationToken: {error}");

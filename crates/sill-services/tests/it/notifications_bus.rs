@@ -259,6 +259,9 @@ fn an_action_is_invoked_then_closed_and_a_swipe_keeps_the_history() {
     runtime.block_on(async {
         let connection = connect(&bus).await;
         let mut signals = Signals::listen(&connection).await;
+        // Another program on the bus: it hears what is broadcast, not what is for the app.
+        let bystander = connect(&bus).await;
+        let mut overheard = Signals::listen(&bystander).await;
         let id = notify(&connection, "act", vec!["default", "Open"]).await;
         assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 1).await);
         let token = Activation::Token(ActivationToken("tok".to_owned()));
@@ -283,7 +286,12 @@ fn an_action_is_invoked_then_closed_and_a_swipe_keeps_the_history() {
             action: "default".to_owned(),
         };
         let closed = Heard::Closed { id, reason: 2 };
-        assert_eq!(heard, [Some(token), Some(action), Some(closed)]);
+        assert_eq!(heard, [Some(token), Some(action), Some(closed.clone())]);
+        assert_eq!(
+            overheard.next(SETTLE).await,
+            Some(closed),
+            "the token and the action go to the app that posted the notification, not to the bus"
+        );
 
         let swiped = notify(&connection, "swipe", vec![]).await;
         assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 1).await);

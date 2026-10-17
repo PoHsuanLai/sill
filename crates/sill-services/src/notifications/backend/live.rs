@@ -227,7 +227,8 @@ impl Core {
         match (effect, speaking) {
             (NotificationsEffect::Closed { id, reason }, Some(bus)) => bus.closed(id, reason).await,
             (NotificationsEffect::Invoked { id, action, token }, Some(bus)) => {
-                bus.invoked(id, &action, &token).await;
+                bus.invoked(id, &action, &token, self.senders.sender_of(id))
+                    .await;
             }
             (NotificationsEffect::SaveHistory, _) => self.saver.request(),
             (

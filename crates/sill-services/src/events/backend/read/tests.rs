@@ -226,3 +226,35 @@ fn a_missing_place_is_a_problem_and_costs_nothing_else() {
     assert_eq!(read.problems.len(), 1);
     assert_eq!(read.events.len(), 30);
 }
+
+#[test]
+fn a_calendar_file_that_is_huge_or_not_a_file_is_a_problem_not_a_read() {
+    use sill_testkit::TempDir;
+
+    let dir = TempDir::new("ics-caps");
+    let huge = dir.path().join("huge.ics");
+    std::fs::File::create(&huge)
+        .and_then(|file| file.set_len(64 << 20))
+        .unwrap_or_else(|e| panic!("{e}"));
+    let fifo = dir.path().join("fifo.ics");
+    rustix::fs::mknodat(
+        rustix::fs::CWD,
+        fifo.as_path(),
+        rustix::fs::FileType::Fifo,
+        rustix::fs::Mode::RUSR | rustix::fs::Mode::WUSR,
+        0,
+    )
+    .unwrap_or_else(|e| panic!("making a fifo: {e}"));
+    let started = std::time::Instant::now();
+    let read = read_places(
+        &[IcsPlace::File(huge), IcsPlace::File(fifo)],
+        autumn(),
+        &taipei(),
+    );
+    assert_eq!(read.problems.len(), 2, "{:?}", read.problems);
+    assert_eq!(read.events.len(), 0);
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(10),
+        "the read waited on the file"
+    );
+}
