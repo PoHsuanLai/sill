@@ -82,7 +82,7 @@ EDGES=(
   "sill-launcher: almanac-core docket-core ds-core prov"
   "sill-testkit:"
   "sill-shell-kit: ds ds-core ds-shell"
-  "sill-model: almanac-core casement-protocols companion-wire cua-bus docket-core ds-core keycap-protocol porter-core prov sill-launcher voice-wire"
+  "sill-model: almanac-core casement-protocols companion-wire cua-bus docket-core ds-core keycap-protocol porter-core porter-infer prov sill-launcher voice-wire"
   "sill-settings: ds-core ds-settings keycap-protocol sill-launcher sill-model"
   "sill-ipc: sill-launcher sill-model"
   "sill-services: almanac-core almanac-dbus anyview-core anyview-platform casement-protocols companion-wire cua-bus cua-dbus desktop-client docket-client docket-core docket-dbus ds-core ds-helpers keycap-protocol porter-client porter-core porter-dbus prov sill-launcher sill-model voice-dbus voice-wire"
