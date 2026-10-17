@@ -357,7 +357,6 @@ version = "0.1.0-beta.1"
 dependencies = [
  "anyview-archive",
  "anyview-core",
- "ds-core",
  "roxmltree 0.21.1",
  "thiserror 2.0.21",
 ]
