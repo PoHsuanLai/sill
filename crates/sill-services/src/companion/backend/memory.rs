@@ -1,8 +1,8 @@
 //! The memory timeline, read from memoryd as the shell: newest first, every actor and every app.
 
 use almanac_core::{
-    ActorFilter, FactId, FactView, Settlement, TimelineFilter, TimelinePage, TimelineQuery,
-    TrustFilter,
+    ActorFilter, FactId, FactView, Settlement, SpaceState, SpaceSummary, TimelineFilter,
+    TimelinePage, TimelineQuery, TrustFilter,
 };
 use almanac_dbus::ControlProxy;
 use ds_core::vocab::MemoryVerb;
@@ -19,7 +19,10 @@ const PAGE: u32 = 40;
 
 /// The newest page of the timeline and what waits for the person, as events for `generation`:
 /// the waiting list first, so it is in when the timeline's answer ends the wait.
-pub(super) async fn timeline(connection: Connection, generation: Generation) -> Vec<CompanionEvent> {
+pub(super) async fn timeline(
+    connection: Connection,
+    generation: Generation,
+) -> Vec<CompanionEvent> {
     let (waiting, timeline) = tokio::join!(pending(&connection), page(&connection));
     let waiting = match waiting {
         Ok(rows) => CompanionEvent::WaitingLoaded(generation, rows),
@@ -54,13 +57,21 @@ pub(super) async fn settle(
     }
 }
 
+/// What waits for the person in every Space: an assistant's job in another Space (a helper's in
+/// "work") asks to remember there. Memory opens a Space on first use, so one not opened yet is
+/// asked too; one being deleted is not.
 async fn pending(connection: &Connection) -> Result<Vec<FactView>, String> {
     let control = ControlProxy::new(connection).await.map_err(text)?;
-    let reply = control
-        .pending(SpaceId::desktop().as_str())
-        .await
-        .map_err(text)?;
-    from_json(&reply)
+    let spaces: Vec<SpaceSummary> = from_json(&control.spaces().await.map_err(text)?)?;
+    let mut waiting = Vec::new();
+    for space in spaces
+        .iter()
+        .filter(|s| !matches!(s.state, SpaceState::Deleting | SpaceState::Gone))
+    {
+        let reply = control.pending(space.id.as_str()).await.map_err(text)?;
+        waiting.extend(from_json::<Vec<FactView>>(&reply)?);
+    }
+    Ok(waiting)
 }
 
 /// Keeps or drops `fact`. Keep carries the shell's own receipt, which covers exactly the fact's

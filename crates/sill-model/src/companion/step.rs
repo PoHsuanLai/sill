@@ -15,9 +15,9 @@ use super::command::{CompanionEffect, CompanionEvent, CompanionParams};
 use super::helpers::{HelpersMsg, update};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
 use super::model_picker::{Picker, opens, picker_of, touched};
-use super::words::SETTLE_FAILED;
 use super::summon::{SummonCx, SummonIn, SummonOut};
 use super::tap::{TapIn, TapOut};
+use super::words::SETTLE_FAILED;
 
 /// `state` after `event` at `at`, and what the outside must do.
 pub fn step(

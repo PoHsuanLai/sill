@@ -1,4 +1,3 @@
-use docket_core::helper::HelperName;
 use docket_core::{ConfirmAnswer, ConfirmEnd, ConfirmOffer, GrantScope, Seconds};
 use prov::{Confidentiality, InputProof, UnixSeconds};
 
@@ -183,6 +182,7 @@ fn an_asker_that_left_leaves_nothing_to_answer() {
 }
 
 mod view_tests {
+    use docket_core::helper::HelperName;
     use docket_core::{
         ArgLine, ConfirmDetail, ConfirmOffer, EntityRef, Gesture, LabelText, Shown, TaintNote,
     };

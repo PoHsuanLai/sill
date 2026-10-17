@@ -440,8 +440,21 @@ impl StandInWaiting {
         })
     }
 
-    async fn pending(&self, _space: String) -> String {
-        json(&self.facts)
+    /// The desktop and a "work" Space; what waits is in "work", where a helper's job remembers.
+    async fn spaces(&self) -> String {
+        let space = |id: &str| {
+            serde_json::json!({
+                "id": id, "state": {"kind": "open"}, "vault": "sealed", "created": 0
+            })
+        };
+        serde_json::json!([space("desktop"), space("work")]).to_string()
+    }
+
+    async fn pending(&self, space: String) -> String {
+        match space.as_str() {
+            "work" => json(&self.facts),
+            _ => "[]".to_owned(),
+        }
     }
 
     async fn settle(&self, fact: String, verdict: String) {

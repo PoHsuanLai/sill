@@ -50,13 +50,23 @@ impl Provider for MemoryProvider {
             true => asked_of(&state, query),
             false => Vec::new(),
         };
-        let notice = state.memory_notice.iter().filter(|_| alone).map(notice_row);
+        let notice = state
+            .memory_notice
+            .iter()
+            .filter(|_| alone)
+            .map(String::as_str)
+            .map(notice_row);
         let needle = query.text.trim().to_lowercase();
         sink.push(Batch {
             provider: ProviderKind::Memory,
             generation: query.generation,
             items: notice
-                .chain(waiting.iter().enumerate().map(|(at, view)| waiting_row(view, at, &state.programs)))
+                .chain(
+                    waiting
+                        .iter()
+                        .enumerate()
+                        .map(|(at, view)| waiting_row(view, at, &state.programs)),
+                )
                 .chain(
                     entries
                         .iter()
@@ -125,11 +135,11 @@ fn asked_of(state: &Companion, query: &Query) -> Vec<FactView> {
 }
 
 /// The sentence that says an answer did not go through, above everything.
-fn notice_row(sentence: &String) -> Item {
+fn notice_row(sentence: &str) -> Item {
     Item {
         id: ItemId("memory:notice".to_owned()),
         provider: ProviderKind::Memory,
-        title: sentence.clone(),
+        title: sentence.to_owned(),
         subtitle: String::new(),
         icon: IconRef::None,
         score: Score(3000),

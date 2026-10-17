@@ -89,7 +89,10 @@ fn a_row_says_the_words_and_who_asked_in_plain_words() {
     ];
     for (view, subtitle) in cases {
         let (title, said) = waiting_line(&view, &programs);
-        assert_eq!((title.as_str(), said.as_str()), ("Prefers mornings", subtitle));
+        assert_eq!(
+            (title.as_str(), said.as_str()),
+            ("Prefers mornings", subtitle)
+        );
     }
 }
 
@@ -104,8 +107,14 @@ fn nothing_waiting_is_an_empty_list() {
 
 #[test]
 fn an_answered_row_leaves_and_the_others_stay() {
-    let (a, b) = (view('1', "One", Actor::Cli, Vec::new()), view('2', "Two", Actor::Cli, Vec::new()));
-    let state = run(Companion::default(), CompanionEvent::TimelineAsked(Generation(3)));
+    let (a, b) = (
+        view('1', "One", Actor::Cli, Vec::new()),
+        view('2', "Two", Actor::Cli, Vec::new()),
+    );
+    let state = run(
+        Companion::default(),
+        CompanionEvent::TimelineAsked(Generation(3)),
+    );
     let state = run(
         state,
         CompanionEvent::WaitingLoaded(Generation(3), vec![a, b.clone()]),

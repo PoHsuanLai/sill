@@ -538,7 +538,8 @@ async fn the_timeline_is_read_for_the_generation_that_asked() {
 fn waiting_fact(last: char) -> FactView {
     FactView {
         fact: Fact {
-            id: FactId::parse(&format!("{}{last}", "0".repeat(25))).unwrap_or_else(|e| panic!("{e}")),
+            id: FactId::parse(&format!("{}{last}", "0".repeat(25)))
+                .unwrap_or_else(|e| panic!("{e}")),
             text: FactText::parse("Prefers mornings").unwrap_or_else(|e| panic!("{e}")),
             recorded: UnixSeconds(1),
             by: Actor::Cli,
@@ -601,5 +602,6 @@ async fn keeping_sends_the_shells_receipt_and_not_keeping_sends_a_discard() {
         Settlement::Discard => panic!("Keep sent a discard"),
     }
     assert_eq!(verdict(discard, &dropped.fact.id), Settlement::Discard);
-    desk.state(|c| c.waiting.found.is_empty().then_some(())).await;
+    desk.state(|c| c.waiting.found.is_empty().then_some(()))
+        .await;
 }
