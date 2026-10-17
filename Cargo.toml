@@ -144,6 +144,8 @@ thiserror = "2"
 jiff = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# The typed password is wiped with the volatile writes the compiler may not remove.
+zeroize = "1"
 futures-timer = "3"
 cssparser = "0.37"
 notify = "8.2"

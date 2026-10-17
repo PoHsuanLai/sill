@@ -67,7 +67,8 @@ A settled item is deleted, not marked closed.
   `State`/`Type`, since a join in progress is usually not the primary connection. A join is
   stamped (`attempt.rs`): a start while one runs keeps its stamp, every failure mints a new one.
   An access point's own `Strength` is not followed.
-- **libpulse on the standard mainloop**, on one dedicated thread polling `iterate(false)`: the
+- **libpulse on the standard mainloop**, on one dedicated thread asleep in `iterate(true)` (an eventfd the
+  mainloop's poll watches wakes it for a command; the wait to reconnect blocks on the queue): the
   threaded mainloop's callbacks run on a C thread and need raw pointers into a `RefCell`, which
   `unsafe_code = "deny"` rules out. Every sink or server event re-reads the default sink.
 - **power-profiles-daemon**: `org.freedesktop.UPower.PowerProfiles` (ppd 0.20 and later) only.
@@ -855,6 +856,15 @@ a source; `assumed` means not yet checked.
 
 ### Production audit: notifications, media and untrusted text
 
+- **A tray icon's lookup stays on the bar's render thread**, bounded rather than moved: the name
+  is a plain theme name, the theme lookup is a few `stat`s, and the file is one capped read of a
+  regular file (NEW-SILL-1). Resolving icons on a worker with a cache by name is open.
+- **The voice role is sill's own word** (`"voice"` in `voice/backend/signals.rs`) until
+  peephole names it (`roles::VOICE`) and its table has a row for voiced; until then the signals
+  and the ask are refused (voiced is a skeleton and not installed).
+- **Badges for ids that match no installed app** are still tracked, up to `BADGE_APPS_MAX`
+  (NEW-SILL-4); ignoring them needs the app index in the service's `Deps`.
+
 - **Oversize `image-data` still arrives whole.** zbus (5.19, `iface.rs`) deserialises the whole
   method body into the argument types before the method runs, and `a{sv}` expands a 64 MiB `ay`
   into one boxed value per byte, before any sill code sees it. `#[zbus(header)]` is the only
@@ -1420,11 +1430,13 @@ confirmation).
   counted as wrong, and it does not unlock. The lock screen says to sign in again to choose a new
   one, because PAM's change-password conversation is not offered here. Whether an expired password
   should ever unlock the lock screen is still the owner's decision; this keeps it locked.
-  `getpwuid_r` in place of parsing `/etc/passwd` is deferred: `rustix` has no passwd lookup and no
-  new dependency was added for it.
+  `getpwuid_r` in place of parsing `/etc/passwd` is deferred: `rustix` has no passwd lookup, a call
+  to libc's would be `unsafe`, and no crate in the lock does it. It needs `uzers` (or a safe
+  lookup in quire's `ds-helpers`) settled in quire's `docs/workspace-deps.toml` first.
 - **No `PR_SET_DUMPABLE=0` (SILLS-21).** Core files are forbidden (`RLIMIT_CORE=0`), but the process
   stays dumpable: the desktop's daemons read `/proc/<pid>/exe` to identify callers, which a
-  not-dumpable process hides. The text field's own copy in blitz is not wiped.
+  not-dumpable process hides. The typed password is a `Zeroizing<String>` (`Secret`); the text
+  field's own copy in blitz is not wiped.
 - **Debug probes (SILLS-19).** Probes that act are refused unless built with `debug`; `stats` and
   `launcher-rows` stay. The IPC server serves only the same user (`SO_PEERCRED`).
 - **Wallpaper (SILLS-01).** The window of the source that fills the output is cut first and only it

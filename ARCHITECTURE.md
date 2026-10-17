@@ -261,7 +261,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | What an app's notification may hold, whose it is, who may replace it | `sill_model::notifications::{limits, origin, rate}` (the ceilings, `Origin::{System, App}` from the `sill-` desktop-entry namespace, the per-sender `Allowance`), the banner limits and the critical sweep in `rules.rs`; `sill_services::notifications::backend::{wire, picture, senders}` cut the call at the boundary and keep each posting's connection |
 | Which pictures a notification's sender may name (`app_icon`, `image-path`) | `sill_model::notifications::ImageDirs` and `Posting::within`: a file is kept only inside the icon and pixmap folders or sill's notification cache (`Dirs::notification_image_dirs`), written without `.` or `..`; a name carries no folder; anything else is no picture. `sill_services::notifications` applies it to every bus call (not to the shell's own `Post`); `image-data` is pixels and is not path-checked. The host's file roots are the second check, on the real file after symlinks |
 | App text made safe to hold, show or log (cut, control and bidirectional marks dropped, journal escape) | `sill_model::untrusted::{clip_bytes, cut_bytes, clip_chars, for_display, for_log}` |
-| Limits on a tray item's menu and icon, on a layout, on a cover fetch, on an icon file | `sill_model::tray::{TRAY_ITEMS_MAX, MENU_ROWS_MAX, MENU_DEPTH_MAX, TRAY_ICON_NAME_MAX_BYTES, TRAY_ICON_FILE_MAX_BYTES, ..}`; an icon name is a theme name (`sill_model::tray::theme_icon_name`: no slash, no `..`, bounded), checked where it enters and again before the lookup, and its file is read with `ds_helpers::read_capped` (read by `sill_services::tray::backend::menu` and `sill_model::app_menu::rows_of`); `sill_services::now_playing::backend::art::ArtFetcher` (its pure rules are `sill_model::now_playing::{art_source, evictions, next_start}`); `sill_model::apps::{icon_file_fits, ICON_FILE_MAX_BYTES}` and `sill_services::apps::IconRoots` (an absolute `Icon=` must lie in `Dirs::icon_file_roots`, links resolved) (read by the apps scan and by `sill_ui_kit::app_icons::render::{ICON_MAX_BYTES, ICON_MAX_SIDE}`) and the cache's `prune` |
+| Limits on a tray item's menu and icon, on a layout, on a cover fetch, on an icon file | `sill_model::tray::{TRAY_ITEMS_MAX, MENU_ROWS_MAX, MENU_DEPTH_MAX, TRAY_ICON_NAME_MAX_BYTES, TRAY_ICON_FILE_MAX_BYTES, ..}` (read by `sill_services::tray::backend::menu` and `sill_model::app_menu::rows_of`); a tray icon name is a theme name (`sill_model::tray::theme_icon_name`: no slash, no `..`, bounded), checked where it enters and again before the lookup, and its file is read with `ds_helpers::read_capped`; `sill_services::now_playing::backend::art::ArtFetcher` (its pure rules are `sill_model::now_playing::{art_source, evictions, next_start}`); `sill_model::apps::{icon_file_fits, ICON_FILE_MAX_BYTES}` and `sill_services::apps::IconRoots` (an absolute `Icon=` must lie in `Dirs::icon_file_roots`, links resolved) (read by the apps scan and by `sill_ui_kit::app_icons::render::{ICON_MAX_BYTES, ICON_MAX_SIDE}`) and the cache's `prune` |
 | Notices about keycap (failed, conflict, paused) | `sill_model::keycap::{attention, notice_for, notice_text}`; posted by `sill_services::keycap::backend::notice` (no action: `sill keycap retry` and `resume` are the way out) |
 | Which accounts need signing in again, the notice that says so and its "Sign in again" button | `sill_model::accounts::{step, notice_text, sign_in_key, account_of, shown_for}` (the button's action key carries the account); `sill_services::accounts` follows accountd, posts and withdraws the notice, and answers the button's `ActionInvoked` (only from the notifications server's own connection) with the account's `Reauthenticate` |
 | Each output's work area (the output less the bar's and dock's exclusive zones) and scale, for apps | `sill_model::work_areas::{work_area, work_rect, Zone}` (pure reduction); `sill::work_areas` derives the zones from the bar's and dock's own layer configurations and publishes; `sill_services::work_areas` serves `org.quire.Outputs1` (property `WorkAreas`, `a(us(iiuu)(iiuu)u)`: id, name, frame, work, scale in 120ths; read-only; `PropertiesChanged` on change); quire's `ds-desktop::Outputs` reads it |
@@ -366,7 +366,7 @@ pub trait Service: Sized + 'static {
     const NAME: &'static str;
     type State: Clone + Default + PartialEq + Send + Sync + 'static; // sill_model type; default = absent
     type Command: Send + 'static;                                    // sill_model type
-    type Deps: Send + 'static;                                       // sill_model receivers, Controls; () if none
+    type Deps: Clone + Send + 'static;                               // sill_model receivers, Controls; () if none; cloned for each restart
     fn initial(env: &Env, deps: &Self::Deps) -> Self::State { Self::State::default() }
     fn run(env: &Env, deps: Self::Deps, io: ServiceIo<Self>)
         -> impl Future<Output = Result<(), ServiceError>> + Send + 'static;
@@ -374,6 +374,13 @@ pub trait Service: Sized + 'static {
 pub struct Handle<S: Service> { pub state: watch::Receiver<S::State>, pub control: Control<S::Command> }
 pub fn spawn<S: Service>(rt: &tokio::runtime::Handle, env: &Env, deps: S::Deps) -> Handle<S>;
 ```
+
+`spawn` keeps the service running: a task that panics or returns an error while its `Control`s are
+held is started again after a growing wait (`restart.rs`: 0.5 s doubling, `RESTARTS_MAX` = 5 in a
+row, a run of a minute resets the count) and then left stopped with one log line. Each run gets
+fresh channel halves; the keeper carries commands in and state out, so a restart begins from the
+last published state. A bus absent by choice and a compositor without the protocol are not
+restarted.
 
 Implementors: the 30 `<Module>Service` markers (`enum XService {}`), 29 in `sill-services`,
 `ResultsService` in `sill-search`. Add an implementor for a new long-lived backend that
@@ -828,5 +835,6 @@ nothing is sent.
   cargo test --workspace --features sill/debug
   ./scripts/check-boundary.sh
   ./scripts/check-intents.sh   # every .desktop file has a valid intents manifest (docket's check)
-  cargo deny check licenses
+  cargo deny check licenses bans sources
+  cargo deny check advisories   # needs the advisory database: wherever the network does
   ```

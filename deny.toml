@@ -1,7 +1,11 @@
-# cargo-deny licence gate. Run: cargo deny check licenses
+# cargo-deny gate. Run: cargo deny check licenses bans sources   (the gate)
+#                       cargo deny check advisories              (needs the advisory database, so it
+#                                                                  runs wherever the network does)
 #
 # A dependency whose licence is not listed fails the gate rather than being noticed later by
-# someone reading Cargo.lock.
+# someone reading Cargo.lock. A dependency from a registry or a git repository that is not listed
+# below fails it too, and a RUSTSEC advisory (or a yanked crate) in the tree fails the advisories
+# check.
 
 [graph]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -39,3 +43,39 @@ confidence-threshold = 0.9
 #
 # What stays out of that list is strong copyleft: GPL, AGPL, EUPL. Those would change what this
 # project may be distributed as, and a dependency arriving under one should stop the build.
+
+# A published advisory or a yanked version in the tree is a failure. An entry in `ignore` names the
+# advisory id and carries a comment saying why it does not apply here; there are none today.
+[advisories]
+version = 2
+yanked = "deny"
+ignore = []
+
+# Two versions of a crate is a cost worth seeing, not a failure: blitz, wgpu and zbus pull their
+# own. A path dependency without a version is how the workspace names its own crates and the
+# sibling checkouts it patches in.
+[bans]
+multiple-versions = "warn"
+wildcards = "warn"
+allow-wildcard-paths = true
+
+# Crates come from crates.io, or from the git repositories we fork or own (pinned by rev or tag in
+# Cargo.toml and Cargo.lock) and the two upstream ones below. Any other source is a decision to
+# make here first.
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = [
+    "https://github.com/PoHsuanLai/anyrender",
+    "https://github.com/PoHsuanLai/bayonet.git",
+    "https://github.com/PoHsuanLai/blitz",
+    "https://github.com/PoHsuanLai/blitz-kit",
+    "https://github.com/PoHsuanLai/chordkit.git",
+    "https://github.com/PoHsuanLai/latchkey",
+    "https://github.com/PoHsuanLai/peephole",
+    "https://github.com/PoHsuanLai/quire.git",
+    "https://github.com/PoHsuanLai/vello",
+    "https://github.com/DioxusLabs/taffy",
+    "https://github.com/pop-os/dbus-settings-bindings",
+]

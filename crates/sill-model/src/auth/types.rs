@@ -4,6 +4,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use zeroize::Zeroizing;
 
 /// A login name (`pohsuanlai`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -16,13 +17,14 @@ pub struct UserName(pub String);
 pub struct RealName(pub String);
 
 /// What was typed into a password field. Its `Debug` never shows it, it is never serialised,
-/// and its bytes are overwritten when it is dropped.
+/// and its bytes are overwritten when it is dropped (and each clone's when that is: `Zeroizing`
+/// writes them in a way the compiler may not remove).
 #[derive(Clone, PartialEq, Eq)]
-pub struct Secret(String);
+pub struct Secret(Zeroizing<String>);
 
 impl Secret {
     pub fn new(text: impl Into<String>) -> Secret {
-        Secret(text.into())
+        Secret(Zeroizing::new(text.into()))
     }
 
     /// The text, for the one place that hands it on (the helper's stdin, PAM's conversation).
@@ -34,14 +36,6 @@ impl Secret {
 impl fmt::Debug for Secret {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("Secret(..)")
-    }
-}
-
-impl Drop for Secret {
-    fn drop(&mut self) {
-        let mut bytes = std::mem::take(&mut self.0).into_bytes();
-        bytes.iter_mut().for_each(|byte| *byte = 0);
-        std::hint::black_box(&bytes);
     }
 }
 

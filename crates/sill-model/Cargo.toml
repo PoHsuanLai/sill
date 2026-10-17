@@ -23,6 +23,7 @@ casement-protocols = { workspace = true }
 jiff = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+zeroize = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

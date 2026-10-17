@@ -8,7 +8,7 @@
 
 use std::fmt;
 use std::future::Future;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use tokio::sync::{mpsc, watch};
 
@@ -102,6 +102,11 @@ impl<S: Service> Handle<S> {
     }
 }
 
+/// How long a run is given to finish once every [`Control`] is gone and its commands have closed:
+/// long enough to hand a bus name back and flush a file, short enough that a run that never
+/// looks at its commands (it ends some other way) does not hold its keeper.
+const WIND_DOWN: Duration = Duration::from_secs(5);
+
 /// Start `S` on `rt` against `env`'s seams, reading or driving `deps`, and keep it running: a
 /// task that panics or returns an error while its [`Control`]s are still held is started again
 /// after a growing wait, up to `RESTARTS_MAX` times in a row (`restart.rs`), and each
@@ -171,7 +176,9 @@ async fn run_once<S: Service>(
                 }
                 None => {
                     drop(inner.control);
-                    let _ended = work.await;
+                    if tokio::time::timeout(WIND_DOWN, &mut work).await.is_err() {
+                        work.abort();
+                    }
                     publish(&outer.state, &inner.state);
                     return None;
                 }
