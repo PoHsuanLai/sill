@@ -149,7 +149,7 @@ Then, in this order, tick them in `docs/manual-checks.md`:
 
 ```sh
 # 9  Cmd+Tab: tap switches to the previous app, hold shows the panel
-# 10 Chinese input: pgrep -a fcitx5; type in Zen and in the launcher (Caps Lock switches input: the machine file /etc/keycap/keycap.toml maps it to Ctrl+Space; keycap refuses that rule in the user file)
+# 10 Chinese input: pgrep -a fcitx5; type in Zen and in the launcher (Caps Lock switches input: the desktop vendor file /usr/lib/keycap/keycap.toml maps it to Ctrl+Space; keycap refuses that rule in the user file)
 # 11 secrets: secret-tool search xdg:schema org.freedesktop.Secret.Generic 2>&1 | head -3 ; open Chrome, Cursor, Teams: signed in?
 #    busctl --user status org.freedesktop.secrets | head -3   # owned (ksecretd)
 #    (if not: start them with --password-store=kwallet6; section 1, item 7)
