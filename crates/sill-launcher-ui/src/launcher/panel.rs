@@ -88,8 +88,12 @@ impl Shown {
     pub fn preview(&self) -> Option<Preview> {
         let selected = self.selected();
         let companions = match (self.mode, &selected) {
-            (LauncherMode::Companion, Some(item)) => Some(preview_for(item))
-                .filter(|p| matches!(p, Preview::Answer(_) | Preview::Run(_))),
+            (LauncherMode::Companion, Some(item)) => Some(preview_for(item)).filter(|p| {
+                matches!(
+                    p,
+                    Preview::Answer(_) | Preview::Helper(_) | Preview::NewHelper | Preview::Run(_)
+                )
+            }),
             _ => None,
         };
         companions.or(match self.pane.preview.pane {

@@ -27,3 +27,12 @@
    command row is a Spotlight row, 38 pt, so the panel sets that one token for its subtree (the
    preview pane's rows are the only others in it). To be replaced by a palette row token in quire. */
 .sill-launcher-body{ --row-settings-h:38px; }
+/* A helper's card in the pane: a quiet column that scrolls when the form is taller than the pane. */
+.sill-helper-card{ display:flex; flex-direction:column; gap:var(--s-8); width:100%; height:100%; padding:var(--s-8); overflow-y:auto; }
+.sill-helper-head{ display:flex; flex-direction:column; gap:var(--s-2); }
+.sill-helper-apps{ display:flex; flex-direction:column; gap:var(--s-4); }
+.sill-helper-buttons{ display:flex; flex-wrap:wrap; gap:var(--s-6); }
+.sill-helper-notice{ margin:0; font-size:var(--fs-help); color:var(--ink-soft); }
+.sill-helper-ask p{ margin:0 0 var(--s-6); font-size:var(--fs-control); color:var(--ink); }
+.sill-helper-jobs, .sill-helper-latest{ display:flex; flex-direction:column; gap:var(--s-4); }
+.sill-helper-job{ display:flex; flex-direction:column; }

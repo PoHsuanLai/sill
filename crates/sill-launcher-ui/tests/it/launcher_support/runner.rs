@@ -11,7 +11,7 @@ use sill_model::companion::Companion;
 use sill_model::launch::LaunchCommand;
 use sill_model::results::{Results, SearchCommand};
 use sill_model::windows::WlCommand;
-use sill_search::providers::{CompanionProvider, RunsProvider};
+use sill_search::providers::{CompanionProvider, HelpersProvider, RunsProvider};
 use sill_services::Control;
 use tokio::sync::{mpsc, watch};
 
@@ -35,6 +35,9 @@ impl Answer {
     fn companion_rows(&self, kind: ProviderKind, text: &str) -> Vec<Item> {
         let provider: Box<dyn Provider> = match kind {
             ProviderKind::Runs => Box::new(RunsProvider {
+                companion: self.companion.clone(),
+            }),
+            ProviderKind::Helpers => Box::new(HelpersProvider {
                 companion: self.companion.clone(),
             }),
             _ => Box::new(CompanionProvider {
@@ -61,9 +64,11 @@ impl Answer {
                 };
                 self.rows = match only {
                     // The companion's rows are the real providers', over the fake service's state.
-                    Some(kind @ (ProviderKind::Companion | ProviderKind::Runs)) => {
-                        self.companion_rows(kind, text)
-                    }
+                    Some(
+                        kind @ (ProviderKind::Companion
+                        | ProviderKind::Helpers
+                        | ProviderKind::Runs),
+                    ) => self.companion_rows(kind, text),
                     _ => search(text),
                 };
                 let placement = placed(&self.rows, text, only);

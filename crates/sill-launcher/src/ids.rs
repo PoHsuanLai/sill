@@ -29,6 +29,8 @@ pub enum ProviderKind {
     Things,
     /// The companion: the Ask row, the live answer and recent activity.
     Companion,
+    /// The helpers the person keeps, and the row that starts a new one.
+    Helpers,
     /// The computer-use runs now and just ended.
     Runs,
     /// What the companion remembers: the memory timeline.
@@ -38,8 +40,8 @@ pub enum ProviderKind {
 impl ProviderKind {
     /// Every provider, in Tab order. Files, Clipboard, Emoji and Web follow the first five, so a
     /// tie between rows of equal score still goes to the older kinds first
-    /// (`sill_model::results::step`); Things, Companion, Runs and Memory come last.
-    pub const ALL: [ProviderKind; 13] = [
+    /// (`sill_model::results::step`); Things, Companion, Helpers, Runs and Memory come last.
+    pub const ALL: [ProviderKind; 14] = [
         ProviderKind::Apps,
         ProviderKind::Windows,
         ProviderKind::Calculator,
@@ -51,6 +53,7 @@ impl ProviderKind {
         ProviderKind::Web,
         ProviderKind::Things,
         ProviderKind::Companion,
+        ProviderKind::Helpers,
         ProviderKind::Runs,
         ProviderKind::Memory,
     ];

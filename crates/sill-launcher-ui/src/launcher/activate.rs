@@ -170,6 +170,8 @@ impl LauncherEffect {
                 | CompanionAct::Run { .. }
                 | CompanionAct::Undo { .. }
                 | CompanionAct::Memory { .. }
+                | CompanionAct::Helper { .. }
+                | CompanionAct::NewHelper
                 | CompanionAct::Mode(_) => AfterEffect::StayOpen,
             },
             _ => AfterEffect::Close,
@@ -212,6 +214,8 @@ pub fn file_results(rows: &[&Item]) -> Vec<PathBuf> {
             | Subject::Web(_)
             | Subject::Entity(_)
             | Subject::Answer(_)
+            | Subject::Helper(_)
+            | Subject::NewHelper
             | Subject::Run(_)
             | Subject::Activity(_)
             | Subject::Memory(_) => None,

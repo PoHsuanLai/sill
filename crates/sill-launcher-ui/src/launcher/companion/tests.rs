@@ -134,16 +134,18 @@ fn companion_keys_table() {
 }
 
 #[test]
-fn tab_visits_the_companions_rows_runs_and_memory_and_wraps() {
-    use ProviderKind::{Companion, Memory, Runs};
+fn tab_visits_the_companions_rows_helpers_runs_and_memory_and_wraps() {
+    use ProviderKind::{Companion, Helpers, Memory, Runs};
     let cases = [
         (Filter::All, Way::Forward, Companion),
         (Filter::All, Way::Backward, Memory),
-        (Filter::Only(Companion), Way::Forward, Runs),
+        (Filter::Only(Companion), Way::Forward, Helpers),
+        (Filter::Only(Helpers), Way::Forward, Runs),
         (Filter::Only(Runs), Way::Forward, Memory),
         (Filter::Only(Memory), Way::Forward, Companion),
         (Filter::Only(Companion), Way::Backward, Memory),
         (Filter::Only(Memory), Way::Backward, Runs),
+        (Filter::Only(Runs), Way::Backward, Helpers),
         (Filter::Only(ProviderKind::Apps), Way::Forward, Companion),
     ];
     for (from, way, want) in cases {
@@ -151,6 +153,36 @@ fn tab_visits_the_companions_rows_runs_and_memory_and_wraps() {
             companion_filter(from, way),
             Filter::Only(want),
             "{from:?} {way:?}"
+        );
+    }
+}
+
+#[test]
+fn a_helper_act_is_the_message_the_helpers_screen_takes_and_removing_asks_first() {
+    use sill_launcher::{CompanionAct, HelperControl};
+    use sill_model::companion::{CompanionCommand, HelpersMsg};
+    let helper = prov::HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}"));
+    let act = |control| CompanionAct::Helper {
+        helper: helper.clone(),
+        control,
+    };
+    let cases = [
+        (act(HelperControl::Pause), HelpersMsg::Pause(helper.clone())),
+        (
+            act(HelperControl::Resume),
+            HelpersMsg::Resume(helper.clone()),
+        ),
+        (
+            act(HelperControl::Remove),
+            HelpersMsg::AskRemove(helper.clone()),
+        ),
+        (CompanionAct::NewHelper, HelpersMsg::NewHelper),
+    ];
+    for (act, want) in cases {
+        assert_eq!(
+            command_of(act.clone()),
+            Some(CompanionCommand::Helpers(want)),
+            "{act:?}"
         );
     }
 }

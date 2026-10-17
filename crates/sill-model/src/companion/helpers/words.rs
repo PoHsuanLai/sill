@@ -3,6 +3,7 @@
 
 use companion_wire::{HelperLine, JobLine, JobShown, model_name};
 use docket_core::helper::{Ceiling, HelperModel, HelperPhase};
+use prov::AppName;
 use sill_launcher::HelperControl;
 
 /// Said when a call to the companion could not be made.
@@ -91,5 +92,27 @@ pub fn controls_of(phase: HelperPhase) -> Vec<HelperControl> {
         HelperPhase::Idle | HelperPhase::Working | HelperPhase::Waiting => {
             vec![HelperControl::Pause, HelperControl::Remove]
         }
+    }
+}
+
+/// An app as the card names it: the last word of its name (`Notes` for `org.quire.Notes`).
+pub fn app_label(app: &AppName) -> String {
+    let name = app.as_str();
+    name.rsplit('.').next().unwrap_or(name).to_owned()
+}
+
+/// Said under a finished job whose answer is no longer kept here.
+pub const ANSWER_IN_HISTORY: &str = "Its answer is in your history.";
+
+/// What a finished job answered: its words while the companion keeps them, else where to find
+/// them. Nothing for a job that is not done.
+pub fn job_answer(job: &JobLine) -> Option<String> {
+    match job.state {
+        JobShown::Done => Some(
+            job.answer
+                .clone()
+                .unwrap_or_else(|| ANSWER_IN_HISTORY.to_owned()),
+        ),
+        JobShown::Waiting | JobShown::Working | JobShown::NeedsModel => None,
     }
 }

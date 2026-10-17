@@ -99,6 +99,7 @@ pub(crate) fn kind_note(kind: ProviderKind) -> &'static str {
         ProviderKind::Web => "Web",
         ProviderKind::Things => "Thing",
         ProviderKind::Companion => "Assistant",
+        ProviderKind::Helpers => "Helper",
         ProviderKind::Runs => "Run",
         ProviderKind::Memory => "Memory",
     }
@@ -155,6 +156,7 @@ pub fn provider_glyph(kind: ProviderKind) -> Icon {
         ProviderKind::Web => Icon::Globe,
         ProviderKind::Things => Icon::Inbox,
         ProviderKind::Companion => Icon::Sparkles,
+        ProviderKind::Helpers => Icon::Group,
         ProviderKind::Runs => Icon::Play,
         ProviderKind::Memory => Icon::Clock,
     }

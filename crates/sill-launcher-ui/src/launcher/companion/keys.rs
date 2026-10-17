@@ -80,10 +80,12 @@ pub fn companion_step(key: CompanionKey, pane: &Pane, selected: &Selected) -> Ve
     }
 }
 
-/// The filters Tab visits in companion mode, in order: the companion's own rows, then every run,
-/// then the memory timeline. There is no "every provider": the search is not here.
-const RING: [ProviderKind; 3] = [
+/// The filters Tab visits in companion mode, in order: the companion's own rows, then the
+/// helpers, every run, and the memory timeline. There is no "every provider": the search is not
+/// here.
+const RING: [ProviderKind; 4] = [
     ProviderKind::Companion,
+    ProviderKind::Helpers,
     ProviderKind::Runs,
     ProviderKind::Memory,
 ];

@@ -8,10 +8,8 @@ use crate::companion_support::{self, Desk, desk_or_return};
 use std::sync::{Arc, Mutex};
 
 use companion_support::{Log, app, json};
-use companion_wire::{
-    HelperCardView, HelperLine, HelperNeeds, HelperReply, HelpersView, JobLine, JobShown, ToldWire,
-};
-use docket_core::helper::{HelperModel, HelperName, HelperPhase, JobId};
+use companion_wire::{HelperCardView, HelperLine, HelperNeeds, HelperReply, HelpersView, ToldWire};
+use docket_core::helper::{HelperModel, HelperName, HelperPhase};
 use docket_dbus::COMPANION_BUS;
 use porter_core::Count;
 use prov::{HelperId, SpaceId};
@@ -45,12 +43,12 @@ fn card(helper: &str, name: &str) -> HelperCardView {
         model: HelperModel::Unset,
         reach: vec!["org.quire.Notes: look at things".to_owned()],
         steps: Count(12),
-        jobs: vec![JobLine {
-            id: JobId(1),
-            goal: "Find the weekly digest".to_owned(),
-            state: JobShown::Done,
-            note: None,
-        }],
+        jobs: vec![
+            serde_json::from_str(
+                r#"{"id":1,"goal":"Find the weekly digest","state":"done","note":null}"#,
+            )
+            .unwrap_or_else(|e| panic!("{e}")),
+        ],
     }
 }
 

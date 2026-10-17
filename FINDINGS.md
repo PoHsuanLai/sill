@@ -1767,3 +1767,23 @@ takes, so they do what `sill workspace next` and the like do; `quit` and the `de
 Nothing runs while the lock screen is up (`shell_lock.id`), and the words are within the protocol's bounds
 (16 words of 256 bytes) before they get here. Not run on a session: the tests are the pure table of
 `plan` (`daemon/palmrest.rs`); the ask, the lock check and the spawn have no test.
+
+## helpers: the Helpers filter and a helper's card (2026-10-17)
+
+The companion's state holds the helpers (`Companion::helpers`, `sill_model::companion::HelpersModel`).
+The companion service reads `org.quire.Companion1.Helpers` when the shell is seated and at each
+`Changed`, and the panel's companion mode has a Helpers stop in its Tab ring (Assistant, Helpers, Runs,
+Memory): a "New Helper…" row and one row per helper, a "Waiting for you" badge on the right of a helper that
+needs the person, and the helper's card in the preview pane. Not run on a session: the model, the provider,
+the bus calls (a private bus) and the panel (the harness) have tests; what the card looks like in the
+pane has none.
+
+- **Open: a helper's model is chosen in the assistant's picker.** The card's Choose… opens Settings at
+  the assistant's model page (`SettingsPage::AssistantModel`); sill reads no model list and Settings has no
+  per-helper page, so nothing writes a model onto a helper's card yet. `HelpersMsg::ChooseModel` is the
+  message that will, once Settings answers with a choice. "Same as the assistant" is not offered for the same reason.
+- **Open: the card cannot be read back into apps and a limit.** `HelperCardView` carries what a helper
+  may use as plain lines only, so `reach_of_lines` parses docket's three wordings. Lines it does not know
+  make the card unsavable until the person ticks the apps again. docket should send the apps and the limit
+  as data.
+- **Open: a new helper's Space is `desktop`.** The form needs a Space; the card has no Space choice.

@@ -4,13 +4,18 @@ use companion_wire::{
     HelperCardView, HelperForm, HelperLine, HelperNeeds, HelperReply, HelpersView, JobLine,
     JobShown, ToldWire,
 };
-use docket_core::helper::{Ceiling, HelperModel, HelperName, HelperPhase, JobId};
+use docket_core::helper::{Ceiling, HelperModel, HelperName, HelperPhase};
 use porter_core::Count;
 use porter_infer::ModelRef;
 use prov::{AppName, HelperId, SpaceId};
 use sill_launcher::HelperControl;
 
 use super::*;
+
+/// A job as an older companion wrote it, with no `answer`: it must still decode.
+fn job_json(text: &str) -> JobLine {
+    serde_json::from_str(text).unwrap_or_else(|e| panic!("{e}"))
+}
 
 fn id(text: &str) -> HelperId {
     HelperId::parse(text).unwrap_or_else(|e| panic!("{e}"))
@@ -44,12 +49,9 @@ fn card(helper: &str, name: &str, model: HelperModel) -> HelperCardView {
         model,
         reach: vec!["org.quire.Notes: look at things".to_owned()],
         steps: Count(12),
-        jobs: vec![JobLine {
-            id: JobId(1),
-            goal: "Find the weekly digest".to_owned(),
-            state: JobShown::Done,
-            note: None,
-        }],
+        jobs: vec![job_json(
+            r#"{"id":1,"goal":"Find the weekly digest","state":"done","note":null}"#,
+        )],
     }
 }
 
@@ -485,11 +487,12 @@ fn a_card_whose_lines_cannot_be_read_cannot_be_saved_until_apps_are_chosen_again
 
 #[test]
 fn a_job_line_says_where_the_job_stands_and_why_a_try_did_not_finish() {
-    let job = |state, note: Option<&str>| JobLine {
-        id: JobId(2),
-        goal: "Find the digest".to_owned(),
-        state,
-        note: note.map(str::to_owned),
+    let job = |state: JobShown, note: Option<&str>| {
+        let state = serde_json::to_string(&state).unwrap_or_else(|e| panic!("{e}"));
+        let note = serde_json::to_string(&note).unwrap_or_else(|e| panic!("{e}"));
+        job_json(&format!(
+            r#"{{"id":2,"goal":"Find the digest","state":{state},"note":{note}}}"#
+        ))
     };
     let cases = [
         (job(JobShown::Waiting, None), "Waiting its turn"),
@@ -520,4 +523,27 @@ fn an_unknown_helper_closes_its_card_with_a_sentence() {
         (&model.open, sentence_of(&model)),
         (&Open::Nothing, Some(GONE))
     );
+}
+
+#[test]
+fn an_app_is_named_by_the_last_word_of_its_name() {
+    for (name, label) in [("org.quire.Notes", "Notes"), ("org.quire.Photos", "Photos")] {
+        assert_eq!(app_label(&app(name)), label, "{name}");
+    }
+}
+
+#[test]
+fn a_finished_job_shows_its_answer_or_where_to_find_it() {
+    let done = |tail: &str| {
+        job_json(&format!(
+            r#"{{"id":3,"goal":"g","state":"done","note":null{tail}}}"#
+        ))
+    };
+    assert_eq!(job_answer(&done("")).as_deref(), Some(ANSWER_IN_HISTORY));
+    assert_eq!(
+        job_answer(&done(r#","answer":"Three emails.""#)).as_deref(),
+        Some("Three emails.")
+    );
+    let working = job_json(r#"{"id":4,"goal":"g","state":"working","note":null}"#);
+    assert_eq!(job_answer(&working), None);
 }

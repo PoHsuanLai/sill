@@ -5,7 +5,7 @@
 //! clipboard service.
 
 use almanac_core::MemoryItem;
-use prov::{RunId, TaskId};
+use prov::{HelperId, RunId, TaskId};
 use serde::{Deserialize, Serialize};
 
 use crate::ids::AppId;
@@ -39,6 +39,10 @@ pub enum Preview {
     Intent(Box<docket_core::Preview>),
     /// The companion's answer to a prompt: a card read live from the companion by its task.
     Answer(TaskId),
+    /// A helper's card: read live from the companion by the helper's id.
+    Helper(HelperId),
+    /// The card of a helper not made yet.
+    NewHelper,
     /// A computer-use run: its row read live from cuad.
     Run(RunId),
     /// A memory row: its sources and what derives from it, read live from memoryd.
@@ -58,6 +62,8 @@ pub enum PreviewKind {
     Web,
     Intent,
     Answer,
+    Helper,
+    NewHelper,
     Run,
     Memory,
 }
@@ -75,6 +81,8 @@ impl Preview {
             Preview::Web(_) => PreviewKind::Web,
             Preview::Intent(_) => PreviewKind::Intent,
             Preview::Answer(_) => PreviewKind::Answer,
+            Preview::Helper(_) => PreviewKind::Helper,
+            Preview::NewHelper => PreviewKind::NewHelper,
             Preview::Run(_) => PreviewKind::Run,
             Preview::Memory(_) => PreviewKind::Memory,
         }
@@ -120,6 +128,8 @@ pub fn preview_for(item: &Item) -> Preview {
         Subject::Web(facts) => Preview::Web(facts.clone()),
         Subject::Entity(_) | Subject::Activity(_) => Preview::None,
         Subject::Answer(task) => Preview::Answer(task.clone()),
+        Subject::Helper(facts) => Preview::Helper(facts.id.clone()),
+        Subject::NewHelper => Preview::NewHelper,
         Subject::Run(run) => Preview::Run(run.clone()),
         Subject::Memory(item) => Preview::Memory(item.clone()),
     }

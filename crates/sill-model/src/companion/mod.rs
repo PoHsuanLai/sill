@@ -41,10 +41,9 @@ pub use command::{
 };
 pub use emphasis::{Emphasis, Span, plain_of, spans};
 pub use helpers::{
-    Asked, CEILINGS, CHOOSE_MODEL, Draft, GONE, HelpersCommand, HelpersModel, HelpersMsg,
-    NO_JOB_WORDS, Open, OpenCard, Reach, Removal, SaveFault, Told, UNREACHED, WAITING_BADGE,
-    badge_of, ceiling_label, controls_of, job_prompt, job_state_label, job_words, model_hint,
-    model_line, offered_apps, reach_of_lines, remove_question,
+    Asked, CEILINGS, Draft, GONE, HelpersCommand, HelpersModel, HelpersMsg, Open, Reach, Removal,
+    WAITING_BADGE, app_label, badge_of, ceiling_label, controls_of, job_answer, job_prompt,
+    job_words, model_hint, model_line, offered_apps, remove_question, update as update_helpers,
 };
 pub use model::{
     AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,

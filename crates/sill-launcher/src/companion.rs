@@ -5,7 +5,7 @@
 use almanac_core::MemoryItem;
 use docket_core::{CardActionId, UndoScope};
 use ds_core::vocab::MemoryVerb;
-use prov::{RunId, TaskId};
+use prov::{HelperId, RunId, TaskId};
 use serde::{Deserialize, Serialize};
 
 /// What the panel is for: finding things, or talking to the companion.
@@ -117,17 +117,26 @@ pub enum CompanionAct {
         /// What.
         verb: MemoryVerb,
     },
+    /// Do something to a helper.
+    Helper {
+        /// The helper.
+        helper: HelperId,
+        /// What.
+        control: HelperControl,
+    },
+    /// Start a new helper's card.
+    NewHelper,
     /// Switch the panel's mode in place.
     Mode(LauncherMode),
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{CompanionAct, LauncherMode, RunControl};
+    use super::{CompanionAct, HelperControl, LauncherMode, RunControl};
     use almanac_core::MemoryItem;
     use docket_core::{CardActionId, UndoId, UndoScope};
     use ds_core::vocab::MemoryVerb;
-    use prov::{RunId, TaskId};
+    use prov::{HelperId, RunId, TaskId};
 
     /// Every form's wire text, pinned: the daemon and the panel agree on these.
     #[test]
@@ -165,6 +174,14 @@ mod tests {
                 },
                 r#"{"kind":"undo","v":{"scope":{"kind":"entry","v":41}}}"#,
             ),
+            (
+                CompanionAct::Helper {
+                    helper: prov::HelperId::parse("h-2").unwrap_or_else(|e| panic!("{e}")),
+                    control: HelperControl::Remove,
+                },
+                r#"{"kind":"helper","v":{"helper":"h-2","control":"remove"}}"#,
+            ),
+            (CompanionAct::NewHelper, r#"{"kind":"new_helper"}"#),
             (
                 CompanionAct::Mode(LauncherMode::Companion),
                 r#"{"kind":"mode","v":"companion"}"#,

@@ -18,6 +18,7 @@ pub use model::{HelpersModel, Open, OpenCard, Removal, Told};
 pub use msg::{Asked, HelpersCommand, HelpersMsg};
 pub use update::update;
 pub use words::{
-    CEILINGS, CHOOSE_MODEL, GONE, NO_JOB_WORDS, UNREACHED, WAITING_BADGE, badge_of, ceiling_label,
-    controls_of, job_prompt, job_state_label, job_words, model_hint, model_line, remove_question,
+    ANSWER_IN_HISTORY, CEILINGS, CHOOSE_MODEL, GONE, NO_JOB_WORDS, UNREACHED, WAITING_BADGE,
+    app_label, badge_of, ceiling_label, controls_of, job_answer, job_prompt, job_state_label,
+    job_words, model_hint, model_line, remove_question,
 };

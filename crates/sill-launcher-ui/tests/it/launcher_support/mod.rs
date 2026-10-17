@@ -289,6 +289,10 @@ impl Provider for FakeProvider {
                 companion: watch::channel(sill_model::companion::Companion::default()).1,
             }
             .activate(item, choice),
+            (ProviderKind::Helpers, choice) => sill_search::providers::HelpersProvider {
+                companion: watch::channel(sill_model::companion::Companion::default()).1,
+            }
+            .activate(item, choice),
             (ProviderKind::Runs, choice) => sill_search::providers::RunsProvider {
                 companion: watch::channel(sill_model::companion::Companion::default()).1,
             }

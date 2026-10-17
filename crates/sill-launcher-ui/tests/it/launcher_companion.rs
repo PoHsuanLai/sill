@@ -288,12 +288,12 @@ fn enter_on_the_ask_row_sends_the_prompt_with_the_window_it_was_summoned_over() 
 }
 
 #[test]
-fn tab_in_a_prompt_goes_round_the_companions_rows_runs_and_memory() {
+fn tab_in_a_prompt_goes_round_the_companions_rows_helpers_runs_and_memory() {
     let mut open = open_in("", LauncherMode::Companion, |bar| {
         bar.companion.send_replace(companion(vec![], fresh()));
     });
     let mut seen = Vec::new();
-    for _ in 0..4 {
+    for _ in 0..5 {
         open.harness
             .send(ds_harness::Input::key(ds::prelude::ShortcutKey::Tab));
         settled(&mut open);
@@ -306,10 +306,11 @@ fn tab_in_a_prompt_goes_round_the_companions_rows_runs_and_memory() {
     assert_eq!(
         seen,
         [
+            only(ProviderKind::Helpers),
             only(ProviderKind::Runs),
             only(ProviderKind::Memory),
             only(ProviderKind::Companion),
-            only(ProviderKind::Runs),
+            only(ProviderKind::Helpers),
         ],
         "Tab never leaves the companion's own rows"
     );

@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 use almanac_core::MemoryItem;
 use docket_core::{EntityRef, UndoId};
-use prov::{RunId, TaskId};
+use prov::{HelperId, RunId, TaskId};
 use serde::{Deserialize, Serialize};
 
 use crate::ids::{AppId, ClipKey};
@@ -37,12 +37,35 @@ pub enum Subject {
     Entity(Box<EntityRef>),
     /// The companion's answer to a prompt, by its task (the companion provider).
     Answer(TaskId),
+    /// A helper the person keeps (the helpers provider).
+    Helper(HelperFacts),
+    /// The row that starts a new helper's card (the helpers provider).
+    NewHelper,
     /// A computer-use run (the runs provider).
     Run(RunId),
     /// A row of the undo journal (the companion provider's recent activity).
     Activity(UndoId),
     /// A fact or an event the companion remembers (the memory provider).
     Memory(MemoryItem),
+}
+
+/// A helper, as its row carries it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HelperFacts {
+    /// Which helper.
+    pub id: HelperId,
+    /// Whether it needs the person.
+    pub attention: HelperAttention,
+}
+
+/// Whether a helper needs the person.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HelperAttention {
+    /// It works, or waits, on its own.
+    Calm,
+    /// It cannot go on without the person.
+    WaitingForYou,
 }
 
 /// A file as a file index reports it.

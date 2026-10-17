@@ -39,7 +39,7 @@ pub use rank::sections::{
 pub use rank::{Prefix, RankWeights, Score, rank, rank_text};
 pub use sink::{Batch, ResultSink, VecSink};
 pub use subject::{
-    CharCount, ClipFacts, ClipKind, EmojiFacts, Excerpt, FileFacts, Mime, SkinTone, Subject,
-    WebFacts,
+    CharCount, ClipFacts, ClipKind, EmojiFacts, Excerpt, FileFacts, HelperAttention, HelperFacts,
+    Mime, SkinTone, Subject, WebFacts,
 };
 pub use time::UnixTime;

@@ -9,7 +9,8 @@
 
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
-use sill_launcher::{Item, Subject, UnixTime};
+use sill_launcher::{HelperAttention, Item, Subject, UnixTime};
+use sill_model::companion::WAITING_BADGE;
 use sill_model::notifications::UnixMs;
 
 use sill_ui_kit::notification_card::labels::{age, age_label};
@@ -33,6 +34,8 @@ pub fn row_kind(item: &Item) -> RowKind {
         | Subject::App(_)
         | Subject::Entity(_)
         | Subject::Answer(_)
+        | Subject::Helper(_)
+        | Subject::NewHelper
         | Subject::Run(_)
         | Subject::Activity(_)
         | Subject::Memory(_) => RowKind::Plain,
@@ -70,16 +73,26 @@ fn detail_in(item: &Item, now: UnixTime, zone: &TimeZone) -> RowDetail {
             age_label(age(ms(facts.copied), ms(now))),
         ),
         Subject::Web(facts) => (facts.engine.clone(), String::new()),
+        Subject::Helper(facts) => (item.subtitle.clone(), attention_trail(facts.attention)),
         Subject::None
         | Subject::App(_)
         | Subject::Emoji(_)
         | Subject::Entity(_)
         | Subject::Answer(_)
+        | Subject::NewHelper
         | Subject::Run(_)
         | Subject::Activity(_)
         | Subject::Memory(_) => (item.subtitle.clone(), String::new()),
     };
     RowDetail { detail, trail }
+}
+
+/// The badge a helper's row trails: it says so when the helper cannot go on without the person.
+fn attention_trail(attention: HelperAttention) -> String {
+    match attention {
+        HelperAttention::WaitingForYou => WAITING_BADGE.to_owned(),
+        HelperAttention::Calm => String::new(),
+    }
 }
 
 fn ms(at: UnixTime) -> UnixMs {

@@ -31,6 +31,7 @@ mod claim_keys;
 mod contact;
 mod events;
 mod follow;
+mod helpers;
 mod layer;
 mod pane_keys;
 pub(crate) mod panel;

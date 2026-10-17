@@ -1,6 +1,7 @@
 //! The launcher providers: apps, calculator, settings, windows, system, files, clipboard, emoji,
-//! the web fallback, things, the companion, runs and memory. Each implements `sill_launcher::Provider`; they live here, not in the pure
-//! `sill-launcher`, because each reads a service or the system.
+//! the web fallback, things, the companion, helpers, runs and memory. Each implements
+//! `sill_launcher::Provider`; they live here, not in the pure `sill-launcher`, because each reads
+//! a service or the system.
 
 pub mod apps;
 pub mod calculator;
@@ -8,6 +9,7 @@ pub mod clipboard;
 pub mod companion;
 pub mod emoji;
 pub mod files;
+pub mod helpers;
 mod lookup;
 pub mod memory;
 pub mod runs;
@@ -23,6 +25,7 @@ pub use clipboard::ClipboardProvider;
 pub use companion::CompanionProvider;
 pub use emoji::EmojiProvider;
 pub use files::FilesProvider;
+pub use helpers::HelpersProvider;
 pub use memory::MemoryProvider;
 pub use runs::RunsProvider;
 pub use settings::SettingsProvider;

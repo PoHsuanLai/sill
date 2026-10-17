@@ -5,8 +5,8 @@ use crate::ids::{AppId, ClipKey, ItemId, ProviderKind};
 use crate::item::{IconRef, Item};
 use crate::rank::Score;
 use crate::subject::{
-    CharCount, ClipFacts, ClipKind, EmojiFacts, Excerpt, FileFacts, Mime, SkinTone, Subject,
-    WebFacts,
+    CharCount, ClipFacts, ClipKind, EmojiFacts, Excerpt, FileFacts, HelperAttention, HelperFacts,
+    Mime, SkinTone, Subject, WebFacts,
 };
 use crate::time::UnixTime;
 
@@ -163,6 +163,27 @@ fn every_subject_has_its_preview() {
                 Subject::Answer(task.clone()),
             ),
             Preview::Answer(task),
+        ),
+        (
+            row(
+                ProviderKind::Helpers,
+                "Research",
+                "",
+                Subject::Helper(HelperFacts {
+                    id: prov::HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}")),
+                    attention: HelperAttention::WaitingForYou,
+                }),
+            ),
+            Preview::Helper(prov::HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}"))),
+        ),
+        (
+            row(
+                ProviderKind::Helpers,
+                "New Helper\u{2026}",
+                "",
+                Subject::NewHelper,
+            ),
+            Preview::NewHelper,
         ),
         (
             row(

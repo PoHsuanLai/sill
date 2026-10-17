@@ -19,6 +19,7 @@ use sill_services::CompanionService;
 use sill_ui_kit::companion::{ViewCx, answer_view, without_actions};
 use sill_ui_kit::hooks::use_service;
 
+use crate::launcher::helpers::HelperCardPane;
 use crate::launcher::preview::answer_text::answer_text;
 use crate::launcher::preview::load::{Peeking, PreviewFault, use_clip_png, use_peek};
 
@@ -127,6 +128,8 @@ fn content_of(
             url: web.url.clone(),
         },
         Preview::Answer(task) => answer_card(task, companion),
+        Preview::Helper(helper) => helper_card(Some(helper), companion),
+        Preview::NewHelper => helper_card(None, companion),
         Preview::Run(run) => run_facts(run, companion),
         Preview::Memory(item) => memory_facts(item, companion),
         // An app's own account of a thing: its preview is read on demand, and says nothing
@@ -176,6 +179,23 @@ fn answer_card(task: &prov::TaskId, companion: &Companion) -> PaneContent {
             if !route.is_empty() {
                 p { class: "sill-route-line", "{route}" }
             }
+        },
+    }
+}
+
+/// A helper's card in the pane's slot, or the blank card of one not made yet.
+fn helper_card(helper: Option<&prov::HelperId>, companion: &Companion) -> PaneContent {
+    let label = helper
+        .and_then(|id| companion.helpers.line(id))
+        .map_or_else(
+            || "New Helper".to_owned(),
+            |line| line.name.as_str().to_owned(),
+        );
+    let helper = helper.cloned();
+    PaneContent::Slot {
+        label,
+        element: rsx! {
+            HelperCardPane { helper }
         },
     }
 }
