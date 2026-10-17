@@ -52,6 +52,7 @@ mod owner;
 pub mod pins;
 pub mod polkit_agent;
 pub mod power_profile;
+mod restart;
 pub mod screenshots;
 pub mod seat;
 pub mod service;

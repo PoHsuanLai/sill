@@ -49,7 +49,7 @@ use crate::service::{Service, ServiceIo};
 
 /// What the service reads: the seat to export on, the displays to list as screens, the installed
 /// apps that give a program its name, and where the compositor's answers go.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CaptureLinks {
     /// The shell's connection at intentd, which owns `org.quire.Shell`.
     pub seat: SeatView,

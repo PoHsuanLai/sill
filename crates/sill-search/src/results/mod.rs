@@ -43,6 +43,7 @@ use sill_services::service::{Service, ServiceIo};
 pub use frecency_file::{FILE_NAME as FRECENCY_FILE, load_frecency, save_frecency};
 
 /// What the search runs over.
+#[derive(Clone)]
 pub enum Sources {
     /// The daemon's providers, reading and sending to these services; the apps, files and emoji
     /// providers rank with the same history the runner records choices into.

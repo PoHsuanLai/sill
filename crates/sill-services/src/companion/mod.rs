@@ -27,7 +27,7 @@ use crate::service::{Service, ServiceIo};
 
 /// What the service needs from the daemon: the seat to speak on, where a summon's launcher
 /// effects go, and the launch service that opens Settings' model picker.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompanionLinks {
     /// The shell's connection at intentd.
     pub seat: SeatView,

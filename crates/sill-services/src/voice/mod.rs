@@ -21,7 +21,7 @@ use tokio::sync::mpsc;
 
 /// What the service needs from the daemon: the seat to speak on, and the companion that takes
 /// the question.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VoiceLinks {
     /// The shell's connection at intentd.
     pub seat: SeatView,

@@ -35,6 +35,11 @@ impl Default for Backoff {
 }
 
 impl Backoff {
+    /// Waits that start at `first` instead of [`FIRST_WAIT`].
+    pub fn starting_at(first: Duration) -> Backoff {
+        Backoff { next: first }
+    }
+
     /// The wait to sit out now; the one after it is twice as long, up to [`LONGEST_WAIT`].
     pub fn wait(&mut self) -> Duration {
         let now = self.next;
