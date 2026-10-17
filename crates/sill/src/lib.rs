@@ -27,6 +27,7 @@ pub mod scroll;
 pub mod spaces_bar;
 pub mod split_picker;
 pub mod voice;
+pub mod watchdog;
 pub mod window_menu;
 pub mod work_areas;
 pub mod workspace_looks;

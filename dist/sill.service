@@ -24,8 +24,12 @@ Requisite=casement.service graphical-session.target
 StartLimitIntervalSec=0
 
 [Service]
-# exec: the start fails at once when the program is missing, and the main process is the shell.
-Type=exec
+# notify: the shell says READY=1 once its host has started, and WATCHDOG=1 every 15 s while its
+# event loop is turning (`sill::watchdog`), so a shell stuck in a blocking call is restarted after
+# WatchdogSec instead of leaving a frozen desktop. Only the main process may notify.
+Type=notify
+NotifyAccess=main
+WatchdogSec=30
 ExecStart=/usr/bin/sill run
 # A loader variable from the person's environment (a library to preload, a folder of plug-ins or
 # drivers to load) must not load code into this trusted process: accountd gives this unit a fixed

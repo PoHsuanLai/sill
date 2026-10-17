@@ -51,6 +51,8 @@ pub struct Shell {
     pub keys: ShellKeys,
     /// The desktop's own compositor's arm, when the host is on the connection it handed over.
     pub seat: super::compositor::ShellSeat,
+    /// Where the service manager is told the shell has started.
+    pub notify: crate::watchdog::Notifier,
 }
 
 /// Every event, handled: an IPC request (needs the services and the settings), the lock's and the
@@ -175,6 +177,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     // The engine has no config until told one; the watcher's and the reload's changes land through
     // `HostEvent::App(ShellMsg::Settings(_))` and `Request::Reload`.
     if matches!(event, HostEvent::Started) {
+        shell.notify.ready();
         ctx.set_scroll_config(crate::scroll::config(&shell.settings.borrow()));
     }
     // The watch's re-read reaches the feed (every follower: the policies, the locker, corners, the

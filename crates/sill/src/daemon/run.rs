@@ -89,6 +89,21 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         Err(error) => return fatal(&format!("connecting to the compositor: {error}")),
     };
     let host_handle = host.handle();
+    // The loop beats on a timer of its own; the watchdog thread tells the service manager the
+    // shell is alive only while the beats move, so a stuck loop is restarted.
+    let notify = crate::watchdog::Notifier::from_process();
+    match host.pulse(shell_host::Ms(crate::watchdog::BEAT_EVERY_MS)) {
+        Ok(pulse) => crate::watchdog::spawn(notify.clone(), move || pulse.beats()),
+        Err(error) => {
+            // Without a pulse to read the unit's watchdog would restart a healthy shell, so the
+            // watcher pings on every look instead.
+            eprintln!("sill: no pulse for the watchdog: {error}");
+            let looks = std::sync::atomic::AtomicU64::new(0);
+            crate::watchdog::spawn(notify.clone(), move || {
+                looks.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+            });
+        }
+    }
     // The person has entered the desktop: the first start offers the assistant's model picker.
     if let Err(error) =
         sill_services::model_offer::offer_first_run(&env.dirs, &services.launch.control)
@@ -149,6 +164,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         links,
         keys: sill_model::keyboard::ShellKeys::default(),
         seat,
+        notify,
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 
