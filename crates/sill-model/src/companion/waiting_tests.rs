@@ -6,7 +6,9 @@ use almanac_core::{
     UserText, Validity,
 };
 use ds_core::time::stamp::Stamp;
-use prov::{Actor, AgentLabel, AgentProgram, AppName, EntityId, EntityKey, EntityKind, Label};
+use prov::{
+    Actor, AgentLabel, AgentProgram, AppName, EntityId, EntityKey, EntityKind, Label, SystemPart,
+};
 use sill_launcher::Generation;
 
 use super::{
@@ -76,6 +78,28 @@ fn a_row_says_the_words_and_who_asked_in_plain_words() {
         ),
         (
             view(
+                '4',
+                "Prefers mornings",
+                Actor::System {
+                    part: SystemPart::Router,
+                },
+                Vec::new(),
+            ),
+            "The assistant asked to remember",
+        ),
+        (
+            view(
+                '5',
+                "Prefers mornings",
+                Actor::System {
+                    part: SystemPart::Cua,
+                },
+                Vec::new(),
+            ),
+            "The system asked to remember",
+        ),
+        (
+            view(
                 '3',
                 "Prefers mornings",
                 Actor::Companion {
@@ -130,4 +154,27 @@ fn a_failed_answer_is_a_sentence_until_the_next_one_goes_through() {
     assert_eq!(state.memory_notice.as_deref(), Some(SETTLE_FAILED));
     let state = run(state, CompanionEvent::Settled(id('1')));
     assert_eq!(state.memory_notice, None);
+}
+
+#[test]
+fn only_an_answer_to_a_waiting_memory_moves_the_count_the_filter_follows() {
+    let g = Generation(4);
+    let quiet = [
+        CompanionEvent::TimelineAsked(g),
+        CompanionEvent::WaitingLoaded(g, Vec::new()),
+        CompanionEvent::WaitingFailed(g),
+        CompanionEvent::TimelineLoaded(g, Vec::new()),
+        CompanionEvent::TimelineFailed(g),
+    ];
+    let state = quiet
+        .into_iter()
+        .fold(Companion::default(), run);
+    assert_eq!(
+        state.memory_answers, 0,
+        "a timeline's own answer never asks again"
+    );
+    let state = run(state, CompanionEvent::Settled(id('1')));
+    assert_eq!(state.memory_answers, 1);
+    let state = run(state, CompanionEvent::SettleFailed);
+    assert_eq!(state.memory_answers, 2, "the notice needs a new list too");
 }

@@ -233,11 +233,13 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
                     ..state.waiting
                 },
                 memory_notice: None,
+                memory_answers: state.memory_answers + 1,
                 ..state
             }
         }
         CompanionEvent::SettleFailed => Companion {
             memory_notice: Some(SETTLE_FAILED.to_owned()),
+            memory_answers: state.memory_answers + 1,
             ..state
         },
         CompanionEvent::TimelineLoaded(generation, rows) => Companion {

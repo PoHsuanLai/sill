@@ -36,3 +36,6 @@
 .sill-helper-ask p{ margin:0 0 var(--s-6); font-size:var(--fs-control); color:var(--ink); }
 .sill-helper-jobs, .sill-helper-latest{ display:flex; flex-direction:column; gap:var(--s-4); }
 .sill-helper-job{ display:flex; flex-direction:column; }
+/* The actions menu hangs below the card, outside the blurred region, so quire's blurred (see-through)
+   tint would show the rows behind it: it takes the material's solid tint, as a menu always does. */
+.ds[*|data-material][*|data-chrome=transparent][*|data-blur=on] .ds-popover.ds-menu{ background:var(--m-tint-solid); }

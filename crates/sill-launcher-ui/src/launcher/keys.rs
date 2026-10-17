@@ -2,9 +2,10 @@
 //! it, Tab cycles the provider filter, ⌘K opens the selected row's actions, Escape
 //! closes one level. Pure.
 //!
-//! [`step`] knows counts, not ids, so an Enter inside the actions menu cannot name
-//! the action it picks: there `step` closes the menu and emits nothing, and the panel takes the
-//! pick from the quire `Menu` it draws, which owns that menu's keys.
+//! [`step`] knows counts, not ids, so an Enter inside the actions menu names the action it picks
+//! by its place in the row's list ([`LauncherOut::Action`]) and the panel finds the id. The quire
+//! `Menu` the panel draws owns that menu's keys when it has the keyboard and stops the Enter
+//! there; this one is for an Enter that reaches the field.
 
 use sill_launcher::{Choice, ProviderKind};
 
@@ -56,6 +57,11 @@ pub enum LauncherOut {
     Activate {
         row: usize,
         choice: Choice,
+    },
+    /// Run the `action`th action of the selected row `row`, then close.
+    Action {
+        row: usize,
+        action: usize,
     },
     Close,
 }
@@ -110,8 +116,8 @@ fn in_results(
     }
 }
 
-/// A key while the actions menu is open: it moves in the menu, Enter picks there (the menu's
-/// own pick names the action), Escape or ⌘K again close only the menu, Tab is ignored.
+/// A key while the actions menu is open: it moves in the menu, Enter runs the highlighted
+/// action, Escape or ⌘K again close only the menu, Tab is ignored.
 fn in_actions(
     state: LauncherState,
     key: LauncherKey,
@@ -129,9 +135,23 @@ fn in_actions(
     match key {
         LauncherKey::Up => (menu(clamp(action, Step::Up, actions)), Vec::new()),
         LauncherKey::Down => (menu(clamp(action, Step::Down, actions)), Vec::new()),
-        LauncherKey::Enter | LauncherKey::Escape | LauncherKey::Actions => (closed, Vec::new()),
+        LauncherKey::Enter => (
+            closed,
+            vec![LauncherOut::Action {
+                row: state.selected,
+                action,
+            }],
+        ),
+        LauncherKey::Escape | LauncherKey::Actions => (closed, Vec::new()),
         LauncherKey::Tab | LauncherKey::ShiftTab => (menu(action), Vec::new()),
     }
+}
+
+/// Whether a plain pick of a row (a click that reached it) is one the open actions menu keeps
+/// from the row: the menu is in front, so the press belongs to it. A pick of one of the row's
+/// actions comes from the menu itself and goes through.
+pub fn behind_menu(state: &LauncherState, choice: &Choice) -> bool {
+    state.actions != ActionsMenu::Closed && *choice == Choice::Primary
 }
 
 /// Which way a selection moves.
@@ -192,8 +212,8 @@ pub fn previous_filter(filter: Filter) -> Filter {
 #[cfg(test)]
 mod tests {
     use super::{
-        ActionsMenu, Filter, LauncherKey, LauncherOut, LauncherState, next_filter, previous_filter,
-        step,
+        ActionsMenu, Filter, LauncherKey, LauncherOut, LauncherState, behind_menu, next_filter,
+        previous_filter, step,
     };
     use sill_launcher::{Choice, ProviderKind};
 
@@ -270,11 +290,35 @@ mod tests {
     }
 
     #[test]
-    fn enter_in_the_actions_menu_is_the_menus_pick() {
-        use LauncherKey::{Actions, Enter};
-        let (state, out) = keys(&[Actions, Enter], 4, 3);
+    fn the_first_action_is_highlighted_as_the_menu_opens_and_enter_runs_it() {
+        use LauncherKey::{Actions, Down, Enter};
+        let (state, out) = keys(&[Down, Actions, Enter], 4, 3);
         assert_eq!(state.actions, ActionsMenu::Closed);
-        assert!(out.is_empty(), "the ds Menu's onpick names the action");
+        assert_eq!(
+            out,
+            vec![LauncherOut::Action { row: 1, action: 0 }],
+            "Return on a fresh menu runs the first action of the selected row"
+        );
+    }
+
+    #[test]
+    fn a_click_that_reaches_the_row_behind_an_open_menu_is_not_the_rows() {
+        use sill_launcher::ActionId;
+        let open = LauncherState {
+            actions: ActionsMenu::Open { selected: 0 },
+            ..LauncherState::default()
+        };
+        let action = Choice::Action(ActionId("keep".to_owned()));
+        assert!(behind_menu(&open, &Choice::Primary));
+        assert!(!behind_menu(&open, &action), "the menu's own pick runs");
+        assert!(!behind_menu(&LauncherState::default(), &Choice::Primary));
+    }
+
+    #[test]
+    fn enter_runs_the_action_the_arrows_moved_to() {
+        use LauncherKey::{Actions, Down, Enter, Up};
+        let (_, out) = keys(&[Actions, Down, Down, Up, Enter], 4, 3);
+        assert_eq!(out, vec![LauncherOut::Action { row: 0, action: 1 }]);
     }
 
     #[test]

@@ -22,8 +22,8 @@ use crate::launcher::follow::{use_follow_visibility, use_shown};
 use crate::launcher::groups::fresh;
 use crate::launcher::keymap::launcher_key;
 use crate::launcher::keys::{
-    ActionsMenu, Filter, LauncherKey, LauncherOut, LauncherState, next_filter, previous_filter,
-    step,
+    ActionsMenu, Filter, LauncherKey, LauncherOut, LauncherState, behind_menu, next_filter,
+    previous_filter, step,
 };
 use crate::launcher::pane_session::{PaneSession, next_in_ring, ring_for};
 use crate::launcher::picking::Picking;
@@ -31,7 +31,7 @@ use crate::launcher::preview::keys::{PreviewKey, PreviewState};
 use crate::launcher::run::{EffectFrom, run_effect};
 use crate::launcher::session::Session;
 use crate::launcher::view::{Expanded, View, toggled, view};
-use sill_ui_kit::hooks::{use_service, use_services};
+use sill_ui_kit::hooks::{use_service, use_service_part, use_services};
 use sill_ui_kit::links::PowerMenuLink;
 use sill_ui_kit::links::{LauncherLink, OpenSerial, Opening, Reveal};
 
@@ -120,6 +120,16 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         move || {
             let _ = companion.read();
             ctx.companion_refresh();
+        }
+    });
+    // The Memory filter is not asked again on every change of that state (asking moves it): only
+    // when an answer to a waiting memory comes back, so the answered row leaves at once.
+    let answered = use_service_part::<sill_services::CompanionService, _>(|c| c.memory_answers);
+    use_effect({
+        let ctx = ctx.clone();
+        move || {
+            let _ = answered.read();
+            ctx.memory_refresh();
         }
     });
     // A new answer's row arrives with the search that follows the ask: select it then.
@@ -343,6 +353,14 @@ impl PanelCtx {
             match out {
                 LauncherOut::Close => self.link.close(),
                 LauncherOut::Activate { row, choice } => self.run_line(&shown, row, choice),
+                LauncherOut::Action { row, action } => {
+                    let id = shown
+                        .row(row)
+                        .and_then(|item| item.actions.get(action).map(|a| a.id.clone()));
+                    if let Some(id) = id {
+                        self.run_line(&shown, row, Choice::Action(id));
+                    }
+                }
             }
         }
     }
@@ -443,6 +461,9 @@ impl PanelCtx {
         let Some(session) = self.current() else {
             return;
         };
+        if behind_menu(&session.keys, &choice) {
+            return;
+        }
         let mut picking = self.picking;
         let results = self.results.peek().clone();
         let Some(item) = row.find(fresh(&results, session.since)).cloned() else {

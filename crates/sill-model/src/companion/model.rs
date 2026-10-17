@@ -161,6 +161,9 @@ pub struct Companion {
     pub waiting: Lookup<FactView>,
     /// A plain sentence when answering one of them did not go through.
     pub memory_notice: Option<String>,
+    /// How many answers to a waiting memory have come back, kept or failed. The Memory filter
+    /// asks again when this moves, and only then: a timeline's own answer must not.
+    pub memory_answers: u64,
     /// The provider rows' labels for coding-agent programs; empty until porter's list is read.
     pub programs: super::ProgramLabels,
     /// The helpers the person keeps.

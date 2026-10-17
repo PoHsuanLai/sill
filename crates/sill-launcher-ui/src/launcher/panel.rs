@@ -374,6 +374,8 @@ fn palette(
                 placement: MenuPlacement::Popup,
                 anchor: hung.map_or(Anchor::Point(FIRST_ROW_FOOT), Anchor::Rect),
                 items: entries,
+                // The first action starts highlighted, so Return runs it at once.
+                start: Some(0),
                 onpick: move |action: ActionId| {
                     action_pick.pick(row.clone(), sill_launcher::Choice::Action(action))
                 },

@@ -195,6 +195,9 @@ fn row(entry: &TimelineEntry, at: usize, programs: &ProgramLabels) -> Item {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
     use almanac_core::Count;
     use almanac_core::{
         EntryBody, EventRef, KindTag, ReplicaId, Seq, ThingView, UndoRef, UserText,
@@ -298,5 +301,35 @@ mod tests {
         let found = rows(both, "lisbon", Scope::Only(ProviderKind::Memory)).await;
         assert_eq!(found.len(), 1);
         assert!(found[0].title.contains("Lisbon receipts"));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_failed_timeline_is_asked_once_for_the_query_and_not_again() {
+        let (state_tx, state_rx) = watch::channel(Companion {
+            link: CompanionLink::Ready,
+            ..Companion::default()
+        });
+        let (control, mut commands) = Control::channel();
+        let asked = Arc::new(AtomicUsize::new(0));
+        let counted = Arc::clone(&asked);
+        tokio::spawn(async move {
+            while let Some(CompanionCommand::Timeline { generation }) = commands.recv().await {
+                counted.fetch_add(1, Ordering::SeqCst);
+                state_tx.send_modify(|c| {
+                    c.memory = Lookup {
+                        generation,
+                        phase: LookupPhase::Failed,
+                        found: Vec::new(),
+                    };
+                });
+            }
+        });
+        let provider = MemoryProvider {
+            companion: state_rx,
+            control,
+        };
+        let found = rows(provider, "", Scope::Only(ProviderKind::Memory)).await;
+        assert!(found.is_empty(), "a failed read shows no timeline");
+        assert_eq!(asked.load(Ordering::SeqCst), 1, "one ask per query");
     }
 }

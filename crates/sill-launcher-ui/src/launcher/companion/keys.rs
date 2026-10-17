@@ -90,6 +90,15 @@ const RING: [ProviderKind; 4] = [
     ProviderKind::Memory,
 ];
 
+/// Whether the rows of `filter` follow the companion's state: they are asked for again whenever
+/// an answer, a run or the journal moves. The memory timeline does not: asking for it moves the
+/// state itself (the ask is published as it goes out), so following it would ask again at once,
+/// without end. It is asked again only when an answer to a waiting memory comes back
+/// (`PanelCtx::memory_refresh`).
+pub fn follows_state(filter: Filter) -> bool {
+    filter != Filter::Only(ProviderKind::Memory)
+}
+
 /// The filter after `filter` going forward (`Forward`) or back, wrapping within [`RING`]; a
 /// filter outside it starts the ring over.
 pub fn companion_filter(filter: Filter, way: Way) -> Filter {

@@ -4,7 +4,7 @@
 use almanac_core::{EntryBody, FactView, SourceView, TimelineEntry};
 use companion_wire::{AnswerBody, AnswerPhase, NeedsYou, RefusalWire, StepWireState};
 use docket_core::{DenyCode, Reveal, UndoEntry, UndoState};
-use prov::Actor;
+use prov::{Actor, SystemPart};
 
 use super::emphasis::plain_of;
 use super::model::{AnswerFacts, Busy};
@@ -184,11 +184,20 @@ const WAITING_TEXT_MAX_CHARS: usize = 200;
 
 /// A row of what an assistant asked to remember: the words proposed, and who asked. The app a
 /// note came from is named when the source still exists and the actor is not an app itself.
+/// The router (memory's author for an assistant's proposal) reads as "The assistant".
 pub fn waiting_line(view: &FactView, programs: &ProgramLabels) -> (String, String) {
     let who = match (&view.fact.by, view.sources.first()) {
         (Actor::Companion { .. }, Some(SourceView::Present(thing))) => {
             last_element(thing.thing.app.as_str())
         }
+        // Memory records the router as the author of whatever an assistant proposed, until it
+        // carries the helper: say it plainly.
+        (
+            Actor::System {
+                part: SystemPart::Router,
+            },
+            _,
+        ) => "The assistant".to_owned(),
         (by, _) => who_words(by, programs),
     };
     (

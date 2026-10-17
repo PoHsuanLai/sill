@@ -374,3 +374,16 @@ fn the_pane_follows_how_far_the_selected_answer_is() {
         "an answer that is gone leaves the prompt"
     );
 }
+
+#[test]
+fn the_memory_timeline_never_follows_the_state_it_moves() {
+    assert!(!follows_state(Filter::Only(ProviderKind::Memory)));
+    for filter in [
+        Filter::All,
+        Filter::Only(ProviderKind::Companion),
+        Filter::Only(ProviderKind::Helpers),
+        Filter::Only(ProviderKind::Runs),
+    ] {
+        assert!(follows_state(filter), "{filter:?}");
+    }
+}

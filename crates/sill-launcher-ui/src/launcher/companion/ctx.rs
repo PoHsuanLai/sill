@@ -7,14 +7,14 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::components::menus::palette::palette_claim::Claim;
 use prov::TaskId;
-use sill_launcher::{LauncherMode, Subject};
+use sill_launcher::{LauncherMode, ProviderKind, Subject};
 use sill_model::companion::{CompanionCommand, Summon};
 use sill_ui_kit::links::Opening;
 
-use super::{CompanionOut, companion_step, pane_of, selected_of};
+use super::{CompanionOut, companion_step, follows_state, pane_of, selected_of};
 use crate::launcher::events::PanelCtx;
 use crate::launcher::keymap::companion_key;
-use crate::launcher::keys::LauncherState;
+use crate::launcher::keys::{Filter, LauncherState};
 use crate::launcher::session::{Session, filter_for};
 
 /// How long the selection waits for an ask's answer to become the front task. The companion
@@ -131,7 +131,19 @@ impl PanelCtx {
         if !self.in_companion_mode() {
             return;
         }
-        if let Some(session) = self.current() {
+        if let Some(session) = self.current().filter(|s| follows_state(s.keys.filter)) {
+            self.search(&session.query, session.keys.filter);
+        }
+    }
+
+    /// An answer to a waiting memory came back (kept, dropped or failed): ask for the Memory
+    /// filter's rows again, once, so the row leaves at once. The timeline's own answers do not
+    /// come here (`Companion::memory_answers` moves only on a settle), so this cannot feed itself.
+    pub(crate) fn memory_refresh(&self) {
+        if let Some(session) = self
+            .current()
+            .filter(|s| s.keys.filter == Filter::Only(ProviderKind::Memory))
+        {
             self.search(&session.query, session.keys.filter);
         }
     }
