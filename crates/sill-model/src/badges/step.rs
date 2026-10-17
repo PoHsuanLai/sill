@@ -1,10 +1,11 @@
 //! The badges state's pure transition.
 
-use super::{Badge, BadgeEvent, BadgeProp, Badges};
+use super::{BADGE_APPS_MAX, Badge, BadgeEvent, BadgeProp, Badges};
 use crate::units::Permille;
 
 /// `badges` after `event`. An app whose badge returns to showing nothing (hidden count, hidden
-/// progress, calm) is dropped from the map.
+/// progress, calm) is dropped from the map, and an app that would be more than [`BADGE_APPS_MAX`]
+/// is not added.
 pub fn step(badges: Badges, event: BadgeEvent) -> Badges {
     let Badges { mut apps } = badges;
     match event {
@@ -14,7 +15,7 @@ pub fn step(badges: Badges, event: BadgeEvent) -> Badges {
                 .fold(apps.get(&app).copied().unwrap_or_default(), apply);
             if badge == Badge::default() {
                 apps.remove(&app);
-            } else {
+            } else if apps.contains_key(&app) || apps.len() < BADGE_APPS_MAX {
                 apps.insert(app, badge);
             }
         }

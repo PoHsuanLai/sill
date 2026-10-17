@@ -86,10 +86,19 @@ fn handle_update(
     let Some(event) = decode_update(message) else {
         return;
     };
-    if let BadgeEvent::Update { app, .. } = &event {
-        senders.insert(app.clone(), sender);
-    }
+    let updated = match &event {
+        BadgeEvent::Update { app, .. } => Some(app.clone()),
+        BadgeEvent::Cleared(_) | BadgeEvent::ClearedAll => None,
+    };
     apply(tx, event);
+    // Only an app the badges hold is remembered with its sender, so this table is as bounded as
+    // the badges are.
+    if let Some(app) = updated {
+        match tx.borrow().apps.contains_key(&app) {
+            true => senders.insert(app, sender),
+            false => senders.remove(&app),
+        };
+    }
 }
 
 /// The `BadgeEvent` an `Update(s app_uri, a{sv})` message carries, or `None` if the body is not
@@ -183,10 +192,23 @@ fn handle_departure(
     }
 }
 
-/// Reduces `event` onto the receiver's current value and publishes the result.
+/// Reduces `event` onto the receiver's current value in place and wakes the readers when the app
+/// it names (or, for a clear of all, the set of apps) changed: no copy of the map is made.
 fn apply(tx: &watch::Sender<Badges>, event: BadgeEvent) {
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
+    let touched = match &event {
+        BadgeEvent::Update { app, .. } | BadgeEvent::Cleared(app) => Some(app.clone()),
+        BadgeEvent::ClearedAll => None,
+    };
+    tx.send_if_modified(|held| {
+        let at = |badges: &Badges| {
+            touched
+                .as_ref()
+                .and_then(|app| badges.apps.get(app).copied())
+        };
+        let (before, count) = (at(held), held.apps.len());
+        *held = step(std::mem::take(held), event);
+        at(held) != before || held.apps.len() != count
+    });
 }
 
 #[cfg(test)]

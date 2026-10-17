@@ -1,6 +1,8 @@
 use sill_launcher::AppId;
 
-use super::{Badge, BadgeEvent, BadgeProp, Badges, parse_app_uri, step};
+use super::{
+    APP_ID_MAX_BYTES, BADGE_APPS_MAX, Badge, BadgeEvent, BadgeProp, Badges, parse_app_uri, step,
+};
 use crate::units::{Permille, Urgency, Visibility};
 
 fn id(s: &str) -> AppId {
@@ -155,7 +157,40 @@ fn app_uris_name_desktop_ids() {
         ("application://../../etc/passwd", None),
         ("", None),
     ];
+    let longest = "a".repeat(APP_ID_MAX_BYTES);
+    let too_long = "a".repeat(APP_ID_MAX_BYTES + 1);
+    assert_eq!(
+        parse_app_uri(&format!("application://{longest}.desktop")),
+        Some(id(&longest))
+    );
+    assert_eq!(
+        parse_app_uri(&format!("application://{too_long}.desktop")),
+        None
+    );
     for &(uri, want) in CASES {
         assert_eq!(parse_app_uri(uri), want.map(id), "{uri}");
     }
+}
+
+#[test]
+fn apps_past_the_cap_are_not_added_but_a_listed_one_still_changes() {
+    let full = (0..BADGE_APPS_MAX).fold(Badges::default(), |badges, n| {
+        step(
+            badges,
+            update(&format!("app{n}"), vec![BadgeProp::Count(1), shown()]),
+        )
+    });
+    assert_eq!(full.apps.len(), BADGE_APPS_MAX);
+    let refused = step(
+        full.clone(),
+        update("extra", vec![BadgeProp::Count(1), shown()]),
+    );
+    assert_eq!(refused, full, "one more app is not tracked");
+    let changed = step(full, update("app0", vec![BadgeProp::Count(9)]));
+    assert_eq!(changed.apps.len(), BADGE_APPS_MAX);
+    assert_eq!(changed.apps.get(&id("app0")).map(|b| b.count), Some(9));
+}
+
+fn shown() -> BadgeProp {
+    BadgeProp::CountVisibility(Visibility::Shown)
 }

@@ -7,5 +7,5 @@ mod step;
 mod tests;
 
 pub use command::{BadgeEvent, BadgeProp, BadgesCommand};
-pub use model::{Badge, Badges, parse_app_uri};
+pub use model::{APP_ID_MAX_BYTES, BADGE_APPS_MAX, Badge, Badges, parse_app_uri};
 pub use step::step;

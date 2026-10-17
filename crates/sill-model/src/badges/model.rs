@@ -38,10 +38,18 @@ impl Badge {
     }
 }
 
+/// How many apps' badges are kept: a desktop has a few dozen apps, and any program on the bus may
+/// send an `Update` for any id, so the map is bounded, not left to grow with what is sent.
+pub const BADGE_APPS_MAX: usize = 256;
+
+/// The longest desktop id taken from an `app_uri`, in bytes: real ids are a few dozen.
+pub const APP_ID_MAX_BYTES: usize = 128;
+
 /// The desktop id an `app_uri` names: `application://org.gnome.Nautilus.desktop` is
-/// `org.gnome.Nautilus`. Another scheme, or an empty id, is `None`.
+/// `org.gnome.Nautilus`. Another scheme, an empty id, or one longer than [`APP_ID_MAX_BYTES`] is `None`.
 pub fn parse_app_uri(uri: &str) -> Option<AppId> {
     let rest = uri.strip_prefix("application://")?;
     let id = rest.strip_suffix(".desktop").unwrap_or(rest);
-    (!id.is_empty() && !id.contains('/')).then(|| AppId(id.to_owned()))
+    (!id.is_empty() && id.len() <= APP_ID_MAX_BYTES && !id.contains('/'))
+        .then(|| AppId(id.to_owned()))
 }
