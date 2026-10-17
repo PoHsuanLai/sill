@@ -49,7 +49,14 @@ confidence-threshold = 0.9
 [advisories]
 version = 2
 yanked = "deny"
-ignore = []
+ignore = [
+    # All three are in zip's extract(). zip reaches us through anyview's archive and text readers; neither calls extract.
+    # zip 9 fixes them, but calamine 0.36.1 (the newest) requires zip ^8.6. Remove these when
+    # calamine moves to zip 9.
+    { id = "RUSTSEC-2026-0367", reason = "zip's extract() keeps SUID bits; nothing here calls extract, and calamine holds zip at 8" },
+    { id = "RUSTSEC-2026-0368", reason = "zip's extract() writes symlinks out of the destination; nothing here calls extract, and calamine holds zip at 8" },
+    { id = "RUSTSEC-2026-0369", reason = "zip's extract() sets permissions through symlinks; nothing here calls extract, and calamine holds zip at 8" },
+]
 
 # Two versions of a crate is a cost worth seeing, not a failure: blitz, wgpu and zbus pull their
 # own. A path dependency without a version is how the workspace names its own crates and the
