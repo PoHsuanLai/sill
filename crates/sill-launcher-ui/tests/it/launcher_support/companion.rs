@@ -7,7 +7,10 @@ use docket_core::{
     TargetValue,
 };
 use prov::{ActionName, AppName, Effect, TaskId};
-use sill_model::companion::{AnswerFacts, Busy, Companion, CompanionLink, LauncherOrigin, Summon};
+use sill_model::companion::{
+    AnswerFacts, Busy, Companion, CompanionLink, HelpersModel, HelpersMsg, LauncherOrigin, Summon,
+    update_helpers,
+};
 
 pub fn task(id: &str) -> TaskId {
     TaskId::parse(id).unwrap_or_else(|e| panic!("{e}"))
@@ -122,4 +125,37 @@ pub fn declined(why: &str) -> AnswerFacts {
         AnswerPhase::Failed,
         AnswerBody::Refused(companion_wire::RefusalWire::Failed(why.to_owned())),
     )
+}
+
+const RESEARCH: &str = r#"{"id":"h-1","name":"Research","space":"desktop","doing":"Waiting for your answer","state":"working","needs_you":"answer","agent":null}"#;
+const INBOX: &str = r#"{"id":"h-2","name":"Inbox","space":"desktop","doing":"Paused","state":"paused","needs_you":null,"agent":null}"#;
+
+/// Two helpers: Research, waiting for the person and with no model, and Inbox, paused. Research's
+/// card is the one the model holds open, with one finished job and `more` messages applied after
+/// it was read.
+pub fn helpers(more: Vec<HelpersMsg>) -> Companion {
+    let list = format!(
+        r#"{{"helpers":[{RESEARCH},{INBOX}],"told":[{{"n":1,"helper":"h-1","text":"Found the digest."}}]}}"#
+    );
+    let card = format!(
+        r#"{{"line":{RESEARCH},"role":"Reads the news each morning","model":{{"kind":"unset"}},"reach":["org.quire.Notes: look at things"],"steps":12,"jobs":[{{"id":1,"goal":"Find the weekly digest","state":"done","note":null}}]}}"#
+    );
+    let read = |text: &str| serde_json::from_str(text).unwrap_or_else(|e| panic!("{e}"));
+    let first = vec![
+        HelpersMsg::Listed(read(&list)),
+        HelpersMsg::OpenCard(prov::HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}"))),
+        HelpersMsg::CardRead(Box::new(read(&card))),
+    ];
+    let helpers = first
+        .into_iter()
+        .chain(more)
+        .fold(HelpersModel::default(), |model, msg| {
+            update_helpers(model, msg).0
+        });
+    Companion {
+        link: CompanionLink::Ready,
+        summon: fresh(),
+        helpers,
+        ..Companion::default()
+    }
 }

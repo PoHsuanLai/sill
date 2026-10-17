@@ -10,6 +10,7 @@ mod launcher_cues;
 mod launcher_details;
 mod launcher_details_lint;
 mod launcher_harness;
+mod launcher_helpers;
 mod launcher_keys;
 mod launcher_lint;
 mod launcher_pane_shots;
