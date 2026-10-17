@@ -1,3 +1,4 @@
+use docket_core::helper::HelperName;
 use docket_core::{ConfirmAnswer, ConfirmEnd, ConfirmOffer, GrantScope, Seconds};
 use prov::{Confidentiality, InputProof, UnixSeconds};
 
@@ -231,6 +232,14 @@ mod view_tests {
         assert_eq!(view.waiting, 1);
         assert_eq!(view.offer, ConfirmOffer::OnceOrFromTerminal);
         assert_eq!(view.gesture, Gesture::Press);
+    }
+
+    #[test]
+    fn a_helper_asks_by_the_name_the_person_gave_it() {
+        let name = HelperName::parse("Inbox").unwrap_or_else(|e| panic!("{e}"));
+        let asked = request("c-1", ConfirmOffer::OnceOnly, 120).for_helper(Some(name));
+        let view = sheet_view(&sheets(asked)).unwrap_or_else(|| panic!("a view"));
+        assert_eq!(view.byline, "Inbox wants to do this in Mail.");
     }
 
     #[test]

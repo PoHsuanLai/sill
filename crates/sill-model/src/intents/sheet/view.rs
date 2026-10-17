@@ -86,7 +86,7 @@ fn view_of(pending: &Pending, waiting: usize) -> SheetView {
         ),
         byline: format!(
             "{} wants to do this in {}.",
-            asker_words(&request.actor),
+            asker_of(request),
             app_words(&request.app)
         ),
         facts: facts_of(request),
@@ -97,6 +97,14 @@ fn view_of(pending: &Pending, waiting: usize) -> SheetView {
         gesture: request.gesture,
         effect: request.effect,
         waiting,
+    }
+}
+
+/// Who asks: the helper by the name the person gave it, else the kind of caller.
+fn asker_of(request: &ConfirmRequest) -> String {
+    match &request.helper {
+        Some(name) => for_display(name.as_str(), SHEET_VALUE_MAX_CHARS),
+        None => asker_words(&request.actor).to_owned(),
     }
 }
 
