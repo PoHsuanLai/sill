@@ -253,7 +253,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -264,7 +264,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1647,7 +1647,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.6",
 ]
 
 [[package]]
@@ -2296,7 +2296,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.3",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2363,6 +2363,7 @@ dependencies = [
  "cua-action",
  "model-provider",
  "porter-core",
+ "porter-infer",
  "prov",
  "serde",
  "serde_json",
@@ -2871,7 +2872,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4991,6 +4992,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
+ "memoffset",
 ]
 
 [[package]]
@@ -5772,9 +5774,10 @@ dependencies = [
 
 [[package]]
 name = "peephole"
-version = "0.1.4"
-source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.4#5a2e742fb12cd78b4555ff07d8d96681fa0bbeb8"
+version = "0.1.6"
+source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.6#87a3d225d7526d03f16acff2245374cb00a27e24"
 dependencies = [
+ "nix",
  "peephole-core",
  "rustix",
  "thiserror 2.0.21",
@@ -5782,8 +5785,8 @@ dependencies = [
 
 [[package]]
 name = "peephole-bus"
-version = "0.1.4"
-source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.4#5a2e742fb12cd78b4555ff07d8d96681fa0bbeb8"
+version = "0.1.6"
+source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.6#87a3d225d7526d03f16acff2245374cb00a27e24"
 dependencies = [
  "futures-timer",
  "peephole",
@@ -5795,8 +5798,8 @@ dependencies = [
 
 [[package]]
 name = "peephole-core"
-version = "0.1.4"
-source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.4#5a2e742fb12cd78b4555ff07d8d96681fa0bbeb8"
+version = "0.1.6"
+source = "git+https://github.com/PoHsuanLai/peephole?tag=v0.1.6#87a3d225d7526d03f16acff2245374cb00a27e24"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -6629,7 +6632,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6918,6 +6921,7 @@ dependencies = [
  "dioxus-native-dom",
  "image",
  "keyboard-types 0.7.0",
+ "nix",
  "palmrest-protocol",
  "parley",
  "peniko",
@@ -7548,7 +7552,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7576,7 +7580,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8124,7 +8128,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8142,7 +8146,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8484,7 +8488,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
