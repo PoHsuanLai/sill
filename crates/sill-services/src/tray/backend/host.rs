@@ -307,6 +307,19 @@ mod tests {
     }
 
     #[test]
+    fn a_name_that_is_a_path_is_no_name() {
+        let long = "n".repeat(500);
+        for name in [
+            "/home/u/.var/app/x/spin",
+            "../../etc/x",
+            "a/b",
+            long.as_str(),
+        ] {
+            assert_eq!(to_tray_icon(Some(name), None), TrayIcon::None, "{name:?}");
+        }
+    }
+
+    #[test]
     fn an_empty_name_falls_back_to_the_largest_pixmap() {
         let pixmaps = vec![
             SniPixmap {
@@ -435,6 +448,8 @@ mod tests {
             (Some("mail"), None, TrayMenuIcon::Named("mail".to_owned())),
             (None, Some(vec![1, 2]), TrayMenuIcon::Png(vec![1, 2])),
             (Some("mail"), Some(vec![1]), TrayMenuIcon::Png(vec![1])),
+            (Some("/home/u/spin"), None, TrayMenuIcon::None),
+            (Some("../spin"), None, TrayMenuIcon::None),
         ];
         for (name, data, want) in cases {
             let mut item = menu_item(MenuType::Standard);

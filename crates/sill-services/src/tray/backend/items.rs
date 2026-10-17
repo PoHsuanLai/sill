@@ -2,7 +2,7 @@
 
 use sill_model::tray::{
     MENU_LABEL_MAX_CHARS, PIXMAP_MAX_SIDE, Pixmap, Tray, TrayEvent, TrayIcon, TrayItem, TrayItemId,
-    TrayStatus, step,
+    TrayStatus, step, theme_icon_name,
 };
 use sill_model::untrusted::for_display;
 use system_tray::client::Client;
@@ -53,9 +53,10 @@ pub(super) fn to_tray_item(destination: &str, item: &StatusNotifierItem) -> Tray
 /// "Visualizations are encouraged to prefer icon names over icon pixmaps if both are
 /// available" (`system_tray::item::StatusNotifierItem::icon_name` doc); among pixmaps no larger
 /// than [`PIXMAP_MAX_SIDE`] and holding no more bytes than their size says, the largest one
-/// offered ([`Pixmap`]'s own doc comment).
+/// offered ([`Pixmap`]'s own doc comment). A name that is not a plain theme name
+/// ([`theme_icon_name`]) is as good as none: the pixmaps are tried instead.
 pub(super) fn to_tray_icon(name: Option<&str>, pixmaps: Option<&[SniPixmap]>) -> TrayIcon {
-    if let Some(name) = name.filter(|name| !name.is_empty()) {
+    if let Some(name) = name.and_then(theme_icon_name) {
         return TrayIcon::Named(name.to_owned());
     }
     let Some(largest) = pixmaps

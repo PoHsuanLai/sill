@@ -7,8 +7,9 @@
 
 use std::path::{Path, PathBuf};
 
+use ds_helpers::{ReadCap, read_capped};
 use image::{ExtendedColorType, ImageEncoder};
-use sill_model::tray::{Pixmap, TrayIcon};
+use sill_model::tray::{Pixmap, TRAY_ICON_FILE_MAX_BYTES, TrayIcon, theme_icon_name};
 
 /// What a status item's icon is, as far as this side can tell.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,12 +24,18 @@ pub enum IconArt {
 }
 
 /// `icon`'s art, a named icon resolved at `size_px` against the installed theme. `None` for
-/// [`TrayIcon::None`], a pixmap that fails to encode, a name the theme does not have, or a PNG
-/// file that cannot be read.
+/// [`TrayIcon::None`], a pixmap that fails to encode, a name that is not a plain theme name
+/// ([`theme_icon_name`]: the lookup joins the name onto the theme's folders, so a path would
+/// leave them), a name the theme does not have, or a PNG that is not a regular file within
+/// [`TRAY_ICON_FILE_MAX_BYTES`] (a FIFO is refused, never waited on).
+///
+/// It does bounded work on the caller's thread: a few `stat`s in the theme's folders and one
+/// capped read of a regular file, and the bar runs it once per icon, not per frame.
 pub fn icon_art(icon: &TrayIcon, size_px: u16) -> Option<IconArt> {
     match icon {
         TrayIcon::None => None,
         TrayIcon::Named(name) => {
+            let name = theme_icon_name(name)?;
             let path = freedesktop_icons::lookup(name).with_size(size_px).find()?;
             named_art(name, path)
         }
@@ -48,7 +55,9 @@ fn named_art(name: &str, path: PathBuf) -> Option<IconArt> {
         return Some(IconArt::SymbolicFile(path));
     }
     if is_png(&path) {
-        return std::fs::read(&path).ok().map(IconArt::Png);
+        return read_capped(&path, ReadCap::bytes(TRAY_ICON_FILE_MAX_BYTES))
+            .ok()
+            .map(IconArt::Png);
     }
     Some(IconArt::ImageFile(path))
 }
@@ -87,8 +96,62 @@ fn pixmap_png(pixmap: &Pixmap) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::{IconArt, icon_art, named_art, pixmap_png, symbolic_name};
-    use sill_model::tray::{Pixmap, TrayIcon};
+    use sill_model::tray::{Pixmap, TRAY_ICON_FILE_MAX_BYTES, TrayIcon};
+    use sill_testkit::TempDir;
     use std::path::PathBuf;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn a_name_that_is_a_path_has_no_art() {
+        for name in ["/etc/hostname", "../../etc/hostname", "a/b", ""] {
+            assert_eq!(
+                icon_art(&TrayIcon::Named(name.to_owned()), 22),
+                None,
+                "{name:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_fifo_png_is_refused_at_once() {
+        let dir = TempDir::new("tray-icon-fifo");
+        let fifo = dir.path().join("spin.png");
+        rustix::fs::mknodat(
+            rustix::fs::CWD,
+            fifo.as_path(),
+            rustix::fs::FileType::Fifo,
+            rustix::fs::Mode::RUSR | rustix::fs::Mode::WUSR,
+            0,
+        )
+        .unwrap_or_else(|e| panic!("making a fifo: {e}"));
+        let started = Instant::now();
+        assert_eq!(named_art("spin", fifo), None);
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "the read waited on the fifo"
+        );
+    }
+
+    #[test]
+    fn a_png_over_the_cap_is_refused() {
+        let dir = TempDir::new("tray-icon-big");
+        let path = dir.path().join("big.png");
+        let big = std::fs::File::create(&path).unwrap_or_else(|e| panic!("{e}"));
+        big.set_len(TRAY_ICON_FILE_MAX_BYTES + 1)
+            .unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(named_art("big", path), None);
+    }
+
+    #[test]
+    fn a_small_png_is_read_whole() {
+        let dir = TempDir::new("tray-icon-small");
+        let path = dir.path().join("small.png");
+        std::fs::write(&path, b"\x89PNG").unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(
+            named_art("small", path),
+            Some(IconArt::Png(b"\x89PNG".to_vec()))
+        );
+    }
 
     #[test]
     fn a_two_by_one_pixmap_becomes_a_png() {

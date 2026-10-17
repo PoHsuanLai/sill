@@ -3,7 +3,7 @@
 
 use sill_model::tray::{
     Check, Chord, MENU_DEPTH_MAX, MENU_ICON_MAX_BYTES, MENU_LABEL_MAX_CHARS, MENU_ROWS_MAX,
-    TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind, plain_label,
+    TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind, plain_label, theme_icon_name,
 };
 use sill_model::units::{Availability, Visibility};
 use sill_model::untrusted::for_display;
@@ -23,13 +23,16 @@ pub(super) fn to_check(item: &MenuItem) -> Check {
     }
 }
 
-/// `icon-data` (PNG bytes) when the row carries any, else `icon-name`.
+/// `icon-data` (PNG bytes) when the row carries any, else `icon-name` when it is a plain theme
+/// name ([`theme_icon_name`]).
 pub(super) fn to_menu_icon(item: &MenuItem) -> TrayMenuIcon {
     match (item.icon_data.as_deref(), item.icon_name.as_deref()) {
         (Some(png), _) if !png.is_empty() && png.len() <= MENU_ICON_MAX_BYTES => {
             TrayMenuIcon::Png(png.to_vec())
         }
-        (_, Some(name)) if !name.is_empty() => TrayMenuIcon::Named(name.to_owned()),
+        (_, Some(name)) => theme_icon_name(name).map_or(TrayMenuIcon::None, |name| {
+            TrayMenuIcon::Named(name.to_owned())
+        }),
         _ => TrayMenuIcon::None,
     }
 }

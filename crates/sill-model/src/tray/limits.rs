@@ -20,3 +20,11 @@ pub const MENU_ICON_MAX_BYTES: usize = 64 * 1024;
 
 /// The longest side of an item's icon pixmap kept, in pixels: a tray icon is drawn at about 22.
 pub const PIXMAP_MAX_SIDE: u32 = 256;
+
+/// The longest theme icon name kept, in bytes: real names are a few dozen, and the name is joined
+/// onto a path.
+pub const TRAY_ICON_NAME_MAX_BYTES: usize = 128;
+
+/// The largest icon file read from the theme, in bytes: a tray icon is drawn at about 22 pixels,
+/// so a PNG past this is not an icon.
+pub const TRAY_ICON_FILE_MAX_BYTES: u64 = 1024 * 1024;
