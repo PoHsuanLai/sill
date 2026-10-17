@@ -6,7 +6,9 @@ use std::cell::RefCell;
 use std::time::Instant;
 
 use ds_settings::{Store, UserStyle};
-use shell_host::{CloseReason, HostCtx, HostEvent, KeyboardFocus, SurfaceId, SurfaceOp};
+use shell_host::{
+    CloseReason, HostCtx, HostEvent, KeyboardFocus, PalmrestAction, SurfaceId, SurfaceOp,
+};
 use sill_bar::Bar;
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
@@ -27,6 +29,7 @@ use sill_ui_kit::surface::Surface;
 use tokio::sync::watch;
 
 use super::msg::ShellMsg;
+use super::palmrest::{self, Plan};
 use super::settings;
 use super::surfaces::{self, Spawn};
 use crate::ipc::dispatch::{Carried, DesktopLine, Reach, route};
@@ -63,6 +66,7 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
         HostEvent::App(ShellMsg::Ipc { request, reply }) => {
             let _ = reply.send(answer(shell, ctx, request));
         }
+        HostEvent::Palmrest(ask) => palmrest_ask(shell, ctx, &ask),
         HostEvent::App(ShellMsg::Lock(wish)) => apply_lock(shell, ctx, wish),
         HostEvent::App(ShellMsg::Dim(dim)) => crate::idle_dim::apply(ctx, &shell.outputs, dim),
         HostEvent::App(ShellMsg::Summon(out)) => {
@@ -99,6 +103,24 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
             shell.seat.set_view(*view)
         }
         other => host_event(shell, ctx, other),
+    }
+}
+
+/// A gesture's action that needs the session, asked by palmrest (a system service): carried out as
+/// the person's own command would be. None while the lock screen is up (palmrest drops them then
+/// too).
+fn palmrest_ask(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, ask: &PalmrestAction) {
+    if shell.shell_lock.id.is_some() {
+        return;
+    }
+    match palmrest::plan(ask) {
+        Plan::Request(request) => {
+            if let Response::Failed(failure) = answer(shell, ctx, request) {
+                eprintln!("sill: palmrest: {}", failure.message);
+            }
+        }
+        Plan::Program { program, args } => palmrest::run(&program, &args),
+        Plan::Refused(why) => eprintln!("sill: palmrest: {ask:?}: {why}"),
     }
 }
 
@@ -297,6 +319,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         HostEvent::SurfaceMapped { .. } => {}
         // The shell is not an app the person quits: it stays up, and logging out stops its unit.
         HostEvent::QuitAsked => {}
+        // Answered by `handle`, which carries it out (`palmrest_ask`).
+        HostEvent::Palmrest(_) => {}
         HostEvent::App(ShellMsg::Settings(file)) => {
             resize_bars(ctx, outputs, &file);
             ctx.set_scroll_config(crate::scroll::config(&file));

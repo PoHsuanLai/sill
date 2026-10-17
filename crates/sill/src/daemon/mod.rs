@@ -10,6 +10,7 @@ mod compositor;
 mod events;
 mod hardening;
 pub mod msg;
+mod palmrest;
 mod run;
 pub(crate) mod services;
 pub(crate) mod settings;

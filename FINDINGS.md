@@ -1752,3 +1752,16 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
   (`data` and `data_dirs`), so a test's `Env::isolated` no longer reads the real `XDG_DATA_DIRS`.
 - **Open.** `LANG` and `LANGUAGES` are the old crate's variables; the usual order for a message
   language is `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Changing it is one edit in `locales.rs`.
+
+## palmrest asks the shell for what needs the session (2026-10-17)
+
+palmrest is a system service now (a dynamic user), with no session to run anything in. A gesture whose
+action needs one reaches the shell as `HostEvent::Palmrest(PalmrestAction)` (shell-host, from palmrest's
+`ToHost::Run`, sent to the shell's connection only). `daemon/palmrest.rs` decides, purely, what each ask
+comes to: `WorkspacePrev/Next/Overview` and a `Shell{words}` line are parsed with the command line's own
+grammar (`Cli::try_parse_from(["sill", words...])`) and sent through the same `answer` an IPC client's request
+takes, so they do what `sill workspace next` and the like do; `quit` and the `debug` probes are refused; a
+`Command{argv}` is a program started without a shell as a child of the shell, reaped on a thread of its own.
+Nothing runs while the lock screen is up (`shell_lock.id`), and the words are within the protocol's bounds
+(16 words of 256 bytes) before they get here. Not run on a session: the tests are the pure table of
+`plan` (`daemon/palmrest.rs`); the ask, the lock check and the spawn have no test.
