@@ -1,5 +1,5 @@
 //! libpulse over pipewire-pulse: follows the default sink and feeds every change through
-//! [`step`]. Runs on its own OS thread (`Handle::spawn_blocking`), polling the
+//! [`step`]. Runs on its own OS thread (`Handle::spawn_blocking`), driving the
 //! *standard* mainloop (`iterate()`, no thread of its own) rather than libpulse's threaded
 //! mainloop: the threaded mainloop's callbacks are invoked from a second, C-spawned thread, and
 //! the crate's own canonical usage reaches back into the shared `Context`/`Mainloop` from inside
@@ -10,18 +10,22 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::mpsc::{Receiver, RecvTimeoutError, TryRecvError};
 use std::time::{Duration, Instant};
 
 use libpulse_binding::callbacks::ListResult;
 use libpulse_binding::context::subscribe::InterestMaskSet;
 use libpulse_binding::context::{Context, FlagSet as ContextFlagSet, State as ContextState};
+use libpulse_binding::mainloop::api::Mainloop as MainloopTrait;
+use libpulse_binding::mainloop::events::io::FlagSet as IoFlags;
 use libpulse_binding::mainloop::standard::{IterateResult, Mainloop};
 use libpulse_binding::volume::{ChannelVolumes, Volume as PaVolume};
 use sill_model::units::Percent;
 use sill_model::volume::{Mute, Volume, VolumeCommand, VolumeEvent, step, stepped};
-use tokio::sync::mpsc::error::TryRecvError;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::watch;
 
+use super::wake::Wake;
 use crate::supervise::Backoff;
 
 /// The default sink this service last saw: enough to address a volume or mute change back to
@@ -32,10 +36,6 @@ struct Sink {
     channels: u8,
 }
 
-/// How long to sleep between mainloop polls: short enough that a volume key feels immediate,
-/// long enough not to spin a core for an idle sink.
-const POLL: Duration = Duration::from_millis(10);
-
 /// How one connection to the sound server ended.
 enum Session {
     /// The commands closed: the service is done.
@@ -44,19 +44,25 @@ enum Session {
     Lost,
 }
 
-/// Runs until `commands` closes (the `Control` was dropped), connecting again with a growing wait
+/// Runs until `commands` closes (the sender was dropped), connecting again with a growing wait
 /// whenever the sound server is missing or goes away, and disconnecting at the end. Blocking
-/// throughout: call from a dedicated thread (`Handle::spawn_blocking`).
-pub(crate) fn run(tx: watch::Sender<Volume>, mut commands: mpsc::UnboundedReceiver<VolumeCommand>) {
+/// throughout, asleep in libpulse's poll (or in the wait to connect again) until something
+/// happens: call from a dedicated thread (`Handle::spawn_blocking`). `wake` is rung after each
+/// command is queued.
+pub(crate) fn run(
+    tx: &watch::Sender<Volume>,
+    commands: &Receiver<VolumeCommand>,
+    wake: &Arc<Wake>,
+) {
     let mut backoff = Backoff::default();
     loop {
         let started = Instant::now();
-        match session(&tx, &mut commands) {
+        match session(tx, commands, wake) {
             Session::Commands => return,
             Session::Lost => {
-                apply_event(&tx, VolumeEvent::SinkGone);
+                apply_event(tx, VolumeEvent::SinkGone);
                 backoff.after_attempt(started.elapsed());
-                if let Waited::CommandsClosed = wait_out(backoff.wait(), &mut commands) {
+                if let Waited::CommandsClosed = wait_out(backoff.wait(), commands) {
                     return;
                 }
             }
@@ -70,23 +76,35 @@ enum Waited {
     CommandsClosed,
 }
 
-/// Sleep `wait`, dropping the commands that come meanwhile (there is no sink to apply them to).
-fn wait_out(wait: Duration, commands: &mut mpsc::UnboundedReceiver<VolumeCommand>) -> Waited {
+/// Wait `wait` for the commands to close, dropping the commands that come meanwhile (there is no
+/// sink to apply them to). The thread sleeps in the receive, not in a loop of short sleeps.
+fn wait_out(wait: Duration, commands: &Receiver<VolumeCommand>) -> Waited {
     let until = Instant::now() + wait;
-    while Instant::now() < until {
-        match commands.try_recv() {
-            Err(TryRecvError::Disconnected) => return Waited::CommandsClosed,
-            Ok(_) | Err(TryRecvError::Empty) => {}
+    loop {
+        let left = until.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            return Waited::Elapsed;
         }
-        std::thread::sleep(POLL);
+        match commands.recv_timeout(left) {
+            Ok(_) => {}
+            Err(RecvTimeoutError::Timeout) => return Waited::Elapsed,
+            Err(RecvTimeoutError::Disconnected) => return Waited::CommandsClosed,
+        }
     }
-    Waited::Elapsed
+}
+
+/// Whether the connection to the sound server is up, so commands have a sink to go to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Link {
+    Connecting,
+    Ready,
 }
 
 /// One connection to the sound server, from connecting to its end.
 fn session(
     tx: &watch::Sender<Volume>,
-    commands: &mut mpsc::UnboundedReceiver<VolumeCommand>,
+    commands: &Receiver<VolumeCommand>,
+    wake: &Arc<Wake>,
 ) -> Session {
     let Some(mut mainloop) = Mainloop::new() else {
         return Session::Lost;
@@ -97,6 +115,17 @@ fn session(
     let context = Rc::new(RefCell::new(context));
     let sink = Rc::new(RefCell::new(Sink::default()));
 
+    // The poll below watches this descriptor too, so a command that is queued wakes it. The event
+    // lives as long as this binding does.
+    let woken = Arc::clone(wake);
+    let Some(_wake_event) = mainloop.new_io_event(
+        wake.raw(),
+        IoFlags::INPUT,
+        Box::new(move |_event, _fd, _flags| woken.drain()),
+    ) else {
+        return Session::Lost;
+    };
+
     if context
         .borrow_mut()
         .connect(None, ContextFlagSet::NOAUTOSPAWN, None)
@@ -105,27 +134,15 @@ fn session(
         return Session::Lost;
     }
 
-    let mut ready = false;
+    let mut link = Link::Connecting;
     let ended = loop {
-        match commands.try_recv() {
-            Ok(command) if ready => apply(&context, &sink, tx, command),
-            Ok(_) => {}
-            Err(TryRecvError::Empty) => {}
-            Err(TryRecvError::Disconnected) => break Session::Commands,
-        }
-
-        match mainloop.iterate(false) {
-            IterateResult::Quit(_) | IterateResult::Err(_) => break Session::Lost,
-            IterateResult::Success(_) => {}
-        }
-
         // Bound to an owned value first: `context.borrow()` in a `match` scrutinee stays
         // borrowed for every arm's body (Rust's temporary-lifetime rule for `match`), which
         // would panic when `subscribe`/`refresh` below try to borrow it again.
         let state = context.borrow().get_state();
         match state {
-            ContextState::Ready if !ready => {
-                ready = true;
+            ContextState::Ready if link == Link::Connecting => {
+                link = Link::Ready;
                 subscribe(&context, tx, &sink);
                 refresh(&context, tx, &sink);
             }
@@ -135,12 +152,39 @@ fn session(
             _ => {}
         }
 
-        std::thread::sleep(POLL);
+        if let Some(ended) = drain(commands, link, &context, &sink, tx) {
+            break ended;
+        }
+
+        // Asleep until the sound server says something or a command rings the wake descriptor.
+        match mainloop.iterate(true) {
+            IterateResult::Quit(_) | IterateResult::Err(_) => break Session::Lost,
+            IterateResult::Success(_) => {}
+        }
     };
 
     context.borrow_mut().set_subscribe_callback(None);
     context.borrow_mut().disconnect();
     ended
+}
+
+/// Apply every queued command (dropped while the link is not up); the session is over when the
+/// sender has gone.
+fn drain(
+    commands: &Receiver<VolumeCommand>,
+    link: Link,
+    context: &Rc<RefCell<Context>>,
+    sink: &Rc<RefCell<Sink>>,
+    tx: &watch::Sender<Volume>,
+) -> Option<Session> {
+    loop {
+        match commands.try_recv() {
+            Ok(command) if link == Link::Ready => apply(context, sink, tx, command),
+            Ok(_) => {}
+            Err(TryRecvError::Empty) => return None,
+            Err(TryRecvError::Disconnected) => return Some(Session::Commands),
+        }
+    }
 }
 
 /// Subscribes to sink and server changes, refreshing the default sink on every one.
@@ -281,8 +325,44 @@ fn channel_volumes(level: Percent, channels: u8) -> ChannelVolumes {
 
 #[cfg(test)]
 mod tests {
-    use super::{PaVolume, channel_volumes, percent_of};
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    use super::{PaVolume, Waited, channel_volumes, percent_of, wait_out};
     use sill_model::units::Percent;
+    use sill_model::volume::VolumeCommand;
+
+    #[test]
+    fn waiting_to_connect_again_sleeps_until_the_commands_close() {
+        let (sender, commands) = mpsc::channel::<VolumeCommand>();
+        let closer = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(50));
+            drop(sender);
+        });
+        let started = Instant::now();
+        let waited = wait_out(Duration::from_secs(60), &commands);
+        assert!(matches!(waited, Waited::CommandsClosed));
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "it waited the whole minute"
+        );
+        closer
+            .join()
+            .unwrap_or_else(|_| panic!("the closer panicked"));
+    }
+
+    #[test]
+    fn commands_that_come_while_waiting_are_dropped_and_the_wait_still_ends() {
+        let (sender, commands) = mpsc::channel();
+        for level in [10, 20, 30] {
+            sender
+                .send(VolumeCommand::SetLevel(Percent(level)))
+                .unwrap_or_else(|e| panic!("{e}"));
+        }
+        let waited = wait_out(Duration::from_millis(100), &commands);
+        assert!(matches!(waited, Waited::Elapsed));
+        assert!(commands.try_recv().is_err(), "they were taken, not kept");
+    }
 
     #[test]
     fn percent_and_channel_volumes_round_trip_through_pa_normal() {

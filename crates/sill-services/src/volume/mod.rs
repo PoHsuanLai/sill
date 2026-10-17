@@ -1,5 +1,4 @@
-//! The output volume: libpulse over pipewire-pulse on a threaded mainloop, following the
-//! default sink.
+//! The output volume: libpulse over pipewire-pulse, following the default sink.
 
 mod backend;
 
@@ -9,8 +8,8 @@ use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-/// The output volume as a [`Service`]: libpulse's threaded mainloop on its own OS thread, its
-/// callbacks feeding `step`. Without a pulse server the state stays at `Volume::default()`
+/// The output volume as a [`Service`]: libpulse's standard mainloop on a thread of the blocking
+/// pool, asleep until the sound server or a command wakes it, its callbacks feeding `step`. Without a pulse server the state stays at `Volume::default()`
 /// (absent).
 #[derive(Debug)]
 pub enum VolumeService {}
@@ -28,10 +27,10 @@ impl Service for VolumeService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let _ = env;
         async move {
-            // libpulse's threaded mainloop blocks: it runs on the blocking pool until `commands`
-            // closes, which happens when every clone of the `Control` has dropped.
+            // The mainloop blocks: it runs on the blocking pool until `commands` closes, which
+            // happens when every clone of the `Control` has dropped.
             let ServiceIo { state, commands } = io;
-            let _ = tokio::task::spawn_blocking(move || backend::run(state, commands)).await;
+            backend::run(state, commands).await;
             Ok(())
         }
     }
