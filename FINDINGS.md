@@ -969,8 +969,9 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
 - **Deviations to confirm.** (1) `supports(Wlr, SetMinimiseTarget)` stays `No`: the Wlr arm runs on its
   own connection, which holds no dock surface; on the Quire arm the command names the dock's registered
   surface for the window's output. (2) The ext list alone is the Wlr arm. (3) A second queue on the host's connection gets no wake-up
-  when the host's thread reads the socket first, so the arm thread also dispatches on a 20 ms tick; a
-  waker from shell-host (or the host exposing its `Connection`) would remove it. (4) The arm's
+  when the host's thread reads the socket first. Settled (cp1): the arm leaves a waker in its queue
+  (`DesktopClient::poll_dispatch_pending`, `quire/queue_wake.rs`) and the loop sleeps until the socket or
+  the waker's ping has something; the 20 ms tick (about 50 wake-ups a second while idle) is gone. (4) The arm's
   connection comes from `wl_surface.backend()` of the first mapped surface; shell-host exposes no
   `Connection` accessor.
 - **Not touched.** The old `desktop_wl` protocol code (kept: the environment route serves KWin and tests).

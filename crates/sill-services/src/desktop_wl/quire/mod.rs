@@ -14,6 +14,7 @@ mod command;
 mod handout;
 mod notes;
 mod pictures;
+mod queue_wake;
 mod shell;
 mod surfaces;
 mod view;

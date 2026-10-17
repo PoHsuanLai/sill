@@ -5,17 +5,18 @@
 //!
 //! The host reads the socket on its own thread. Both threads read through the connection's
 //! cooperative read guards, so whichever reads first dispatches into both queues; events the
-//! host's read leaves in this queue do not wake this thread, so a short tick dispatches them.
+//! host's read leaves in this queue wake this thread through the waker the client leaves in the
+//! queue (`queue_wake`), so the loop sleeps until the socket or the waker has something.
 
 use std::io;
-use std::time::Duration;
+use std::task::{Context, Waker};
 
 use casement_protocols::vocab::ShellRole;
 use desktop_client::DesktopConfig;
 use desktop_client::client::DesktopClient;
 use sill_model::desktop::{DesktopCommand, DesktopView, ShellNote};
 use smithay_client_toolkit::reexports::calloop::generic::Generic;
-use smithay_client_toolkit::reexports::calloop::timer::{TimeoutAction, Timer};
+use smithay_client_toolkit::reexports::calloop::ping::PingSource;
 use smithay_client_toolkit::reexports::calloop::{
     self, EventLoop, Interest, Mode, PostAction, channel,
 };
@@ -25,9 +26,7 @@ use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection, Proxy};
 
 use super::arm::{NoteSink, QuireArm};
-
-/// How often events another thread's read left in this queue are dispatched.
-const TICK: Duration = Duration::from_millis(20);
+use super::queue_wake::waker_and_source;
 
 /// One thing sent to the arm's thread.
 #[derive(Debug)]
@@ -136,6 +135,8 @@ impl NoteSink for ChannelSink {
 struct Following {
     arm: QuireArm<DesktopClient, ChannelSink>,
     view: watch::Sender<DesktopView>,
+    /// Woken when another thread's read queues an event for the client.
+    waker: Waker,
 }
 
 impl Following {
@@ -146,14 +147,15 @@ impl Following {
         self.view.send_replace(view);
     }
 
-    /// Dispatch what this queue holds; publish when something arrived.
+    /// Dispatch what this queue holds and leave the waker in it; publish when something arrived.
     fn pump(&mut self) -> io::Result<()> {
-        let dispatched = self
+        let mut cx = Context::from_waker(&self.waker);
+        let arrived = self
             .arm
             .desktop_mut()
-            .dispatch_pending()
+            .poll_dispatch_pending(&mut cx)
             .map_err(io::Error::other)?;
-        if dispatched > 0 {
+        if arrived > 0 {
             self.publish();
         }
         Ok(())
@@ -206,20 +208,29 @@ fn run(
             return;
         }
     };
+    let (waker, wake) = match waker_and_source() {
+        Ok(pair) => pair,
+        Err(error) => {
+            eprintln!("sill: desktop_quire: {error}; the desktop view stays empty");
+            return;
+        }
+    };
     let mut following = Following {
         arm: QuireArm::new(client, ChannelSink(notes)),
         view,
+        waker,
     };
     following.publish();
-    if let Err(error) = drive(&mut following, calls) {
+    if let Err(error) = drive(&mut following, wake, calls) {
         eprintln!("sill: desktop_quire: {error}; the desktop view stops here");
     }
 }
 
-/// Dispatch the socket, the tick and the calls into `following` until every handle is dropped
-/// or the connection fails.
+/// Dispatch the socket, the waker's ping and the calls into `following` until every handle is
+/// dropped or the connection fails.
 fn drive(
     following: &mut Following,
+    wake: PingSource,
     calls: channel::Channel<ShellCall>,
 ) -> Result<(), calloop::Error> {
     let mut event_loop = EventLoop::<Following>::try_new()?;
@@ -239,15 +250,11 @@ fn drive(
         )
         .map_err(|error| error.error)?;
     handle
-        .insert_source(
-            Timer::from_duration(TICK),
-            |_, _, following: &mut Following| {
-                if let Err(error) = following.pump() {
-                    eprintln!("sill: desktop_quire: {error}");
-                }
-                TimeoutAction::ToDuration(TICK)
-            },
-        )
+        .insert_source(wake, |(), (), following: &mut Following| {
+            if let Err(error) = following.pump() {
+                eprintln!("sill: desktop_quire: {error}");
+            }
+        })
         .map_err(|error| error.error)?;
     handle
         .insert_source(
@@ -258,5 +265,7 @@ fn drive(
             },
         )
         .map_err(|error| error.error)?;
+    // Events already queued (and the first waker left in the queue) before the loop sleeps.
+    following.pump()?;
     event_loop.run(None, following, |_| {})
 }
