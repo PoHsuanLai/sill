@@ -108,7 +108,8 @@ impl<S: Service> Handle<S> {
 const WIND_DOWN: Duration = Duration::from_secs(5);
 
 /// Start `S` on `rt` against `env`'s seams, reading or driving `deps`, and keep it running: a
-/// task that panics or returns an error while its [`Control`]s are still held is started again
+/// task that panics, returns an error, or ends cleanly after running a while, while its
+/// [`Control`]s are still held, is started again
 /// after a growing wait, up to `RESTARTS_MAX` times in a row (`restart.rs`), and each
 /// ending is logged with the service's name. A restarted service starts from the state it last
 /// published; commands sent while it was down wait for it.

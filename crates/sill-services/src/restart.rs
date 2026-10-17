@@ -18,6 +18,12 @@ use crate::supervise::{Backoff, FIRST_WAIT, HEALTHY_FOR, panic_text};
 /// [`FIRST_WAIT`], about half a minute of trying.
 pub const RESTARTS_MAX: u32 = 5;
 
+/// A service that returns without an error sooner than this after it started has found nothing to
+/// do here (no hardware, no bus to follow), and starting it again would find the same: it is
+/// left stopped, without a log line. A clean end after longer than this is a service that was
+/// working and stopped (a closed event stream), which a restart repairs.
+pub const NOTHING_TO_DO_WITHIN: Duration = Duration::from_secs(10);
+
 /// How a service's task ended.
 #[derive(Debug)]
 pub(crate) enum Ending {
@@ -91,6 +97,9 @@ impl Tries {
                         .map(|why| format!("sill: {service}: {why}; it keeps its last value")),
                 };
             }
+            Ending::Returned if lasted < NOTHING_TO_DO_WITHIN => {
+                return Next::Stop { line: None };
+            }
             Ending::Returned => "ended".to_owned(),
             Ending::Failed(why) => why.clone(),
         };
@@ -120,7 +129,7 @@ impl Tries {
 mod tests {
     use std::time::Duration;
 
-    use super::{Ending, Next, RESTARTS_MAX, Tries, ending_of};
+    use super::{Ending, NOTHING_TO_DO_WITHIN, Next, RESTARTS_MAX, Tries, ending_of};
     use crate::env::BusKind;
     use crate::error::ServiceError;
     use crate::supervise::{FIRST_WAIT, HEALTHY_FOR};
@@ -192,6 +201,21 @@ mod tests {
             };
             assert_eq!(wait, FIRST_WAIT, "the waits start over");
         }
+    }
+
+    #[test]
+    fn a_service_that_returns_cleanly_at_once_has_nothing_to_do_and_one_that_ran_is_restarted() {
+        let mut tries = Tries::default();
+        assert_eq!(
+            tries.after("svc", &Ending::Returned, Duration::from_secs(1)),
+            Next::Stop { line: None },
+            "returned at once"
+        );
+        let after_a_run = tries.after("svc", &Ending::Returned, NOTHING_TO_DO_WITHIN);
+        assert!(
+            matches!(after_a_run, Next::Restart { wait, .. } if wait == FIRST_WAIT),
+            "{after_a_run:?}"
+        );
     }
 
     #[test]

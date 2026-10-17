@@ -375,8 +375,8 @@ pub struct Handle<S: Service> { pub state: watch::Receiver<S::State>, pub contro
 pub fn spawn<S: Service>(rt: &tokio::runtime::Handle, env: &Env, deps: S::Deps) -> Handle<S>;
 ```
 
-`spawn` keeps the service running: a task that panics or returns an error while its `Control`s are
-held is started again after a growing wait (`restart.rs`: 0.5 s doubling, `RESTARTS_MAX` = 5 in a
+`spawn` keeps the service running: a task that panics, returns an error, or ends cleanly after
+running ten seconds or more, while its `Control`s are held, is started again after a growing wait (`restart.rs`: 0.5 s doubling, `RESTARTS_MAX` = 5 in a
 row, a run of a minute resets the count) and then left stopped with one log line. Each run gets
 fresh channel halves; the keeper carries commands in and state out, so a restart begins from the
 last published state. A bus absent by choice and a compositor without the protocol are not

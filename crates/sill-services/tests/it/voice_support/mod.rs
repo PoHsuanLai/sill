@@ -385,7 +385,7 @@ impl Desk {
 
     /// The stand-in sends `Ended` for the utterance object `n` to the shell, as voiced does.
     pub async fn end_signal(&self, n: u32, end: &UtteranceEnd) {
-        let to = self.shell.unique_name().cloned();
+        let to = self.shell.unique_name().map(|name| name.as_str());
         self.voiced
             .emit_signal(
                 to,

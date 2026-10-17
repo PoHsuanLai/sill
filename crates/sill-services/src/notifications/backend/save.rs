@@ -65,6 +65,7 @@ impl Saver {
     }
 
     /// Whether a change is waiting to be written, or a write has not finished.
+    #[cfg(test)]
     pub(super) fn busy(&self) -> bool {
         self.due.is_some() || self.writing.is_some()
     }

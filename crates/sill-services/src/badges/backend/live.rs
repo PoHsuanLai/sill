@@ -205,9 +205,9 @@ fn apply(tx: &watch::Sender<Badges>, event: BadgeEvent) {
                 .as_ref()
                 .and_then(|app| badges.apps.get(app).copied())
         };
-        let (before, count) = (at(held), held.apps.len());
+        let (before, count) = (at(&*held), held.apps.len());
         *held = step(std::mem::take(held), event);
-        at(held) != before || held.apps.len() != count
+        at(&*held) != before || held.apps.len() != count
     });
 }
 
