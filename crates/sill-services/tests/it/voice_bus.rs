@@ -386,3 +386,38 @@ async fn a_too_long_end_is_told_and_a_superseded_one_is_not() {
         assert_eq!(desk.voice.state.borrow().notice, notice, "{cause:?}");
     }
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_program_that_only_owns_the_voice_name_is_not_asked() {
+    let desk =
+        voice_support::desk_with(BeginAnswer::Open, voice_support::VoicedIs::OnlyOwnsTheName).await;
+    let Some(mut desk) = desk else {
+        return;
+    };
+    desk.seated().await;
+    desk.send(start());
+    desk.state(|v| matches!(v.notice, Notice::Unreachable).then_some(()))
+        .await;
+    assert!(
+        desk.script.lines().is_empty(),
+        "nothing was said to a program that is not voiced: {:?}",
+        desk.script.lines()
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_end_signal_from_a_program_that_is_not_voiced_ends_nothing() {
+    let mut desk = desk_or_return!(BeginAnswer::Open);
+    desk.seated().await;
+    desk.send(start());
+    desk.state(|v| matches!(v.phase, Phase::Live(_)).then_some(()))
+        .await;
+    desk.voiced_becomes(voice_support::VoicedIs::OnlyOwnsTheName);
+    desk.end_signal(1, &UtteranceEnd::Cancelled(CancelCause::Shell))
+        .await;
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    assert!(
+        matches!(desk.voice.state.borrow().phase, Phase::Live(_)),
+        "the hold ended on a signal from a program that is not voiced"
+    );
+}

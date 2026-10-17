@@ -2,15 +2,32 @@
 //! subscription is made before any `Begin`, for every utterance object, and what arrives before
 //! `Begin` has returned (so before the object's path is known) is kept by the loop.
 
+use std::sync::Arc;
+
+use peephole_bus::peephole_core::RoleName;
 use tokio::sync::mpsc::UnboundedSender;
 use voice_wire::{Envelope, UtteranceEnd, VoiceVocab};
-use zbus::fdo::DBusProxy;
 use zbus::message::Type;
 use zbus::{Connection, MatchRule, MessageStream};
 
 use super::run::Inbound;
+use crate::callers::{Claim, Peers, admit};
 use crate::stream::next;
 use voice_dbus::{UTTERANCE_PREFIX, VOICE_BUS};
+
+/// The role the caller table gives voiced's program. Owning `org.quire.Voice1` proves nothing: any
+/// process may claim a name nobody owns yet, so a signal or a call counts as voiced's only when
+/// the system says the process behind the name is voiced.
+const VOICED_ROLE: RoleName = RoleName::from_static("voice");
+
+/// voiced, by the name it owns and the role it plays.
+pub(super) fn voiced() -> Claim<()> {
+    Claim {
+        name: VOICE_BUS,
+        role: VOICED_ROLE,
+        tag: (),
+    }
+}
 
 /// The body of an `Ended` envelope, `None` when it is another vocabulary or malformed.
 fn open(text: &str) -> Option<UtteranceEnd> {
@@ -29,29 +46,25 @@ pub(super) async fn subscribe(connection: &Connection) -> zbus::Result<MessageSt
     MessageStream::for_match_rule(rule, connection, None).await
 }
 
-/// Tell `inbound` each `Ended` that voiced itself sent, with the object it names.
+/// Tell `inbound` each `Ended` that voiced itself sent, with the object it names. A signal from
+/// any other program, whatever name it holds, is dropped.
 pub(super) async fn forward(
-    connection: Connection,
     mut stream: MessageStream,
     inbound: UnboundedSender<Inbound>,
+    peers: Arc<Peers>,
 ) {
-    let Ok(bus) = DBusProxy::new(&connection).await else {
-        return;
-    };
+    let claim = voiced();
     while let Some(Ok(message)) = next(&mut stream).await {
         let header = message.header();
-        let (Some(sender), Some(path)) = (header.sender(), header.path()) else {
+        let Some(path) = header.path().map(ToString::to_string) else {
             continue;
         };
-        let owner = bus
-            .get_name_owner(VOICE_BUS.try_into().unwrap_or_else(|_| unreachable!()))
-            .await;
-        if owner.is_ok_and(|owner| owner.as_str() == sender.as_str())
+        if admit(&peers, &header, std::slice::from_ref(&claim))
+            .await
+            .is_ok()
             && let Ok(text) = message.body().deserialize::<String>()
             && let Some(end) = open(&text)
-            && inbound
-                .send(Inbound::Signal(path.to_string(), end))
-                .is_err()
+            && inbound.send(Inbound::Signal(path, end)).is_err()
         {
             return;
         }

@@ -29,7 +29,7 @@ impl<T> Claim<T> {
     /// What lets a caller in: the role, proved `Full`; and, in a build with `dev-callers`, the
     /// role at `Proof::Dev` as well, which only a stand-in named in the person's own rows file
     /// (`sill run --dev-callers`) has at that standing.
-    fn requirements(&self) -> Vec<Requirement> {
+    pub(crate) fn requirements(&self) -> Vec<Requirement> {
         let real = Requirement::new(self.role.clone(), PROOF);
         #[cfg(feature = "dev-callers")]
         {
@@ -39,6 +39,14 @@ impl<T> Claim<T> {
         {
             vec![real]
         }
+    }
+}
+
+impl<T> Claim<T> {
+    /// The unique name that owns this claim's well-known name, when its program holds the role:
+    /// who an address by that name reaches. A name nobody owns, or a squatter, is refused.
+    pub(crate) async fn owner(&self, peers: &Peers) -> Result<OwnedUniqueName, Refused> {
+        peers.owner_of(self.name, &self.requirements()).await
     }
 }
 

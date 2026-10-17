@@ -26,6 +26,7 @@ use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
 use super::{reader, signals};
+use crate::callers::{CallerSource, Peers};
 use crate::control::Control;
 use crate::env::{Env, WallClock};
 use crate::seat::SeatView;
@@ -78,19 +79,25 @@ struct Live {
     companion: Control<CompanionCommand>,
     consents: mpsc::UnboundedSender<VoiceConsent>,
     clock: Arc<dyn WallClock>,
+    callers: Arc<dyn CallerSource>,
+    /// Who the programs on the seat's connection are, while there is a seat.
+    peers: Option<Arc<Peers>>,
     inbound: mpsc::UnboundedSender<Inbound>,
     signals: Option<JoinHandle<()>>,
 }
 
-/// What the loop reaches outside the process: the wall clock the consent is stamped with.
+/// What the loop reaches outside the process: the wall clock the consent is stamped with, and what
+/// tells the programs on the bus apart.
 pub(crate) struct Reach {
     clock: Arc<dyn WallClock>,
+    callers: Arc<dyn CallerSource>,
 }
 
 impl Reach {
     pub(crate) fn of(env: &Env) -> Reach {
         Reach {
             clock: Arc::clone(&env.clock),
+            callers: Arc::clone(&env.callers),
         }
     }
 }
@@ -115,6 +122,8 @@ pub(crate) async fn run(reach: Reach, links: VoiceLinks, io: ServiceIo<VoiceServ
         companion,
         consents,
         clock: reach.clock,
+        callers: reach.callers,
+        peers: None,
         inbound: inbound_tx,
         signals: None,
     };
@@ -144,15 +153,18 @@ impl Live {
             task.abort();
         }
         self.connection = connection.clone();
-        let Some(connection) = connection else {
+        self.peers = connection
+            .clone()
+            .map(|connection| self.callers.peers_on(connection));
+        let (Some(connection), Some(peers)) = (connection, self.peers.clone()) else {
             return self.feed(VoiceEvent::Link(VoiceLink::Passive));
         };
         match signals::subscribe(&connection).await {
             Ok(stream) => {
                 self.signals = Some(tokio::spawn(signals::forward(
-                    connection,
                     stream,
                     self.inbound.clone(),
+                    peers,
                 )));
                 self.feed(VoiceEvent::Link(VoiceLink::Ready));
             }
@@ -269,12 +281,12 @@ impl Live {
         let serial = Serial(self.next_serial);
         self.utterance = Utterance::Beginning(serial, Vec::new());
         let inbound = self.inbound.clone();
-        let Some(connection) = self.connection.clone() else {
+        let (Some(connection), Some(peers)) = (self.connection.clone(), self.peers.clone()) else {
             let _ = inbound.send(Inbound::Event(VoiceEvent::Unreachable));
             return;
         };
         tokio::spawn(async move {
-            let message = match ask_begin(&connection, trigger).await {
+            let message = match ask_begin(&connection, &peers, trigger).await {
                 Ok((path, stream)) => Inbound::Opened(serial, path, stream),
                 Err(event) => Inbound::Event(event),
             };
@@ -328,8 +340,14 @@ impl Call {
 /// the event that says why not.
 async fn ask_begin(
     connection: &Connection,
+    peers: &Peers,
     trigger: VoiceTrigger,
 ) -> Result<(OwnedObjectPath, UnixStream), VoiceEvent> {
+    // The ask goes to whoever owns the name; it is said only to voiced.
+    if let Err(refused) = signals::voiced().owner(peers).await {
+        eprintln!("sill: voice: the owner of the voice name is not voiced: {refused}");
+        return Err(VoiceEvent::Unreachable);
+    }
     let begin = VoiceBegin {
         intent: VoiceIntent::Ask,
         trigger,

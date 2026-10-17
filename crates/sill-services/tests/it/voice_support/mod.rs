@@ -8,6 +8,8 @@
     reason = "sill's voice_consent test includes this bench by path and uses another part of it"
 )]
 
+mod callers;
+
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -28,6 +30,9 @@ use voice_wire::{
 use zbus::message::Header;
 use zbus::zvariant::{OwnedFd, OwnedObjectPath};
 use zbus::{Connection, DBusError};
+
+use callers::VoicedCallers;
+pub use callers::VoicedIs;
 
 /// A failure bound far above any real delivery, not a delay anything depends on.
 const GIVE_UP: Duration = Duration::from_secs(60);
@@ -290,7 +295,8 @@ pub struct Desk {
     /// The consent the service asked to have written.
     pub consents: mpsc::UnboundedReceiver<VoiceConsent>,
     pub shell: Connection,
-    _voiced: Connection,
+    voiced: Connection,
+    callers: Arc<VoicedCallers>,
 }
 
 pub async fn connect(address: &str) -> Connection {
@@ -304,13 +310,20 @@ pub async fn connect(address: &str) -> Connection {
 /// A desk whose stand-in voiced answers `Begin` as `answer` says; `None` (announced) without a
 /// `dbus-daemon`.
 pub async fn desk(answer: BeginAnswer) -> Option<Desk> {
+    desk_with(answer, VoicedIs::TheVoiceService).await
+}
+
+/// [`desk`], with the program behind the stand-in's connection being `is` to the shell.
+pub async fn desk_with(answer: BeginAnswer, is: VoicedIs) -> Option<Desk> {
     let bus = PrivateBus::start()?;
-    let env = Env {
-        buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
-        ..Env::isolated(Path::new("/nonexistent/sill-voice-bus"))
-    };
     let script = Script::new(answer);
     let voiced = connect(&bus.address).await;
+    let callers = VoicedCallers::new(&voiced, is);
+    let env = Env {
+        buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        callers: callers.clone(),
+        ..Env::isolated(Path::new("/nonexistent/sill-voice-bus"))
+    };
     voiced
         .object_server()
         .at(
@@ -359,11 +372,32 @@ pub async fn desk(answer: BeginAnswer) -> Option<Desk> {
         asks,
         consents,
         shell,
-        _voiced: voiced,
+        voiced,
+        callers,
     })
 }
 
 impl Desk {
+    /// From now on the program behind the stand-in's connection is `is`.
+    pub fn voiced_becomes(&self, is: VoicedIs) {
+        self.callers.become_(is);
+    }
+
+    /// The stand-in sends `Ended` for the utterance object `n` to the shell, as voiced does.
+    pub async fn end_signal(&self, n: u32, end: &UtteranceEnd) {
+        let to = self.shell.unique_name().cloned();
+        self.voiced
+            .emit_signal(
+                to,
+                format!("/org/quire/Voice1/utterance/{n}"),
+                "org.quire.Voice1.Utterance",
+                "Ended",
+                &(seal(end).unwrap_or_else(|e| panic!("{e}")),),
+            )
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+    }
+
     /// The shell takes its seat; the service subscribes and says it is ready.
     pub async fn seated(&mut self) {
         self.seat.publish(self.shell.clone());

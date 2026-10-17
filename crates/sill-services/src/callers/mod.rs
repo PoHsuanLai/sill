@@ -11,6 +11,7 @@
 //! | `org.quire.Shell1` (the picker, `AskPermission`) | the portal backend (role `portal`) |
 //! | `org.quire.AccountsSheet1` | accountd, inferd or syncd (roles `accounts`, `inference`, `sync`) |
 //! | `org.quire.Confirm1` | intentd (role `router`) |
+//! | `org.quire.Voice1.Utterance.Ended` (a signal to the shell), and the ask before `Begin` | voiced (role `voice`, owner of `org.quire.Voice1`) |
 //!
 //! and the caller must also be the owner of the well-known name of the service whose role it
 //! holds (`admit`): a sync service that is not the owner of `org.quire.Sync1` is a stranger.
