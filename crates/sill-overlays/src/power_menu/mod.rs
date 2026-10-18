@@ -12,7 +12,6 @@
 //! holding focus closes it, as the launcher's does). A chosen action goes to
 //! `sill_model::session::SessionCommand::Run`.
 
-mod backend;
 mod choice;
 mod follow;
 mod io;

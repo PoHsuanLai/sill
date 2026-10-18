@@ -1,15 +1,18 @@
 //! The effects end of the menu: follow the [`PowerMenuLink`] onto the surface's visibility and
 //! an opening's [`MenuSession`], feed [`advance`] the alert's answers and dismissals, and hand a
-//! chosen action to the [`PowerMenuBackend`] once quire's `Sheet` has played its exit (its
-//! `on_hidden`). Once hidden, nothing runs and nothing asks for a frame.
+//! chosen action to the session service once quire's `Sheet` has played its exit (its
+//! `on_hidden`). Once hidden, nothing runs and nothing asks for a frame. A daemon whose session
+//! actions are a dry run (`sill run --session-dry-run`) says so in the `power_menu.backend=` line,
+//! which the acceptance script proves before it presses Enter.
 
 use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
-use sill_model::session::{Session, SessionAction};
+use sill_model::session::{Session, SessionAction, SessionCommand};
+use sill_services::Control;
+use sill_services::env::ActionReach;
 use sill_settings::PowerMenuDefault;
 use sill_ui_kit::services::Services;
 
-use super::backend::{DryRunSession, PowerMenuBackend};
 use super::choice::{initial, offered};
 use super::follow::{Follow, follow};
 use super::labels::action_label;
@@ -22,7 +25,7 @@ use sill_ui_kit::sheet_stage::{ExitOut, SheetExit};
 #[derive(Clone)]
 pub(super) struct MenuCtx {
     link: PowerMenuLink,
-    backend: PowerMenuBackend,
+    control: Control<SessionCommand>,
     pub offers: ReadSignal<Session>,
     pub menu: Signal<Option<MenuSession>>,
 }
@@ -30,24 +33,19 @@ pub(super) struct MenuCtx {
 /// The menu on `output`, opening focused per `default`.
 pub(super) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
     let link = use_context::<PowerMenuLink>();
-    let services = try_use_context::<Services>();
-    let backend = use_hook(|| {
-        let backend = try_consume_context::<PowerMenuBackend>()
-            .or_else(|| services.as_ref().map(PowerMenuBackend::live))
-            .unwrap_or_else(|| {
-                PowerMenuBackend::dry_run(DryRunSession::new(Session::default(), None))
-            });
+    let services = use_context::<Services>();
+    let control = use_hook(|| {
         eprintln!(
             "power_menu.backend={} output={}",
-            backend.0.kind().name(),
+            reach_word(services.session_actions.reach()),
             output.0
         );
-        backend
+        services.session.control.clone()
     });
     let ctx = MenuCtx {
-        offers: use_watch(backend.0.offers()),
+        offers: use_watch(services.session.state.clone()),
         link: link.clone(),
-        backend,
+        control,
         menu: use_signal(|| None),
     };
     let shown = use_watch(link.subscribe());
@@ -55,6 +53,15 @@ pub(super) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
     use_openings(ctx.clone(), shown, output, default);
     use_offers_arriving(ctx.clone(), default);
     ctx
+}
+
+/// The log word for `reach`: `live` when logind carries the actions out, `dry-run` when they are
+/// only recorded.
+fn reach_word(reach: ActionReach) -> &'static str {
+    match reach {
+        ActionReach::Logind => "live",
+        ActionReach::DryRun => "dry-run",
+    }
 }
 
 /// Start an opening's session on every opening on this output, show a leaving sheet again when
@@ -81,7 +88,7 @@ fn use_openings(
             (Follow::Start, Some(opening)) => {
                 let default = initial(opening.preselect, *wanted.peek(), &ctx.offers.peek());
                 menu.set(Some(MenuSession::opened(opening.serial, default)));
-                ctx.backend.0.refresh();
+                let _gone_is_inert = ctx.control.send(SessionCommand::Refresh);
                 eprintln!("power_menu.opened default={}", action_label(default));
                 eprintln!("power_menu.offers={}", offered_labels(&ctx.offers.peek()));
             }
@@ -188,7 +195,7 @@ impl MenuCtx {
     fn finish(&self, then: Then) {
         self.link.close();
         if let Then::Run(action) = then
-            && let Err(error) = self.backend.0.run(action)
+            && let Err(error) = self.control.send(SessionCommand::Run(action))
         {
             eprintln!("sill: power menu: {}: {error}", action_label(action));
         }
