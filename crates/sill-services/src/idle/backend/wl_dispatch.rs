@@ -66,9 +66,8 @@ impl Dispatch<ZwlrOutputPowerV1, ()> for WlState {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        match event {
-            zwlr_output_power_v1::Event::Failed => state.power_failed(control),
-            _ => {}
+        if let zwlr_output_power_v1::Event::Failed = event {
+            state.power_failed(control);
         }
     }
 }

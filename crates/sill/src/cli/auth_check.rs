@@ -26,9 +26,7 @@ pub fn main() -> ExitCode {
     let decoded = read
         .ok()
         .and_then(|_| protocol::decode_request(&request).ok());
-    for byte in &mut request {
-        *byte = 0;
-    }
+    request.fill(0);
     std::hint::black_box(&request);
     let Some(request) = decoded else {
         let line = HelperLine::Done(Outcome::Unavailable(AuthFault::HelperFailed));

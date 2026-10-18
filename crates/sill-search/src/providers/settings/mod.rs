@@ -73,7 +73,7 @@ impl SettingsProvider {
             .as_ref()
             .is_none_or(|cached| cached.fingerprint != current);
         if stale {
-            let schemas = paths
+            let schemas: Vec<Schema> = paths
                 .iter()
                 .filter_map(|path| {
                     let text = std::fs::read_to_string(path).ok()?;
