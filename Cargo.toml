@@ -235,7 +235,7 @@ desktop-client = { path = "../casement-protocols/desktop-client" }
 # person's own rows file, `Proof::Dev`) is only behind sill-services' `dev-callers`, itself only behind
 # the sill binary's `debug` feature, so no shipped build has it.
 # MIT OR Apache-2.0, own repo.
-peephole-bus = { git = "https://github.com/PoHsuanLai/peephole", tag = "v0.1.7", default-features = false, features = ["tokio", "desktop"] }
+peephole-bus = { git = "https://github.com/PoHsuanLai/peephole", tag = "v0.1.8", default-features = false, features = ["tokio", "desktop"] }
 prov = { path = "../porter/crates/prov" }
 porter-core = { path = "../porter/crates/porter-core" }
 # Test-only: the `ServedBy` a stand-in voiced stamps on a transcript.
