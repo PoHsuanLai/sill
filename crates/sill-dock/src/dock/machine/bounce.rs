@@ -150,7 +150,7 @@ mod tests {
     use crate::dock::machine::params::tests::params;
     use crate::dock::machine::types::{AppChange, AttentionKind, DockEvent, DockState, TileId};
     use crate::dock::machine::{DockParams, step};
-    use ds::base::time::stamp::{Ms, Stamp};
+    use ds::base::time::stamp::Stamp;
     use sill_model::units::Cpx;
     use sill_settings::Bounce as BounceSetting;
 

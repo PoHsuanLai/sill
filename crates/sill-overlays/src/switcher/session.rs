@@ -125,7 +125,6 @@ mod tests {
     use sill_model::windows::WlCommand;
 
     use super::Session;
-    use ds_behaviour::switcher::SwOut;
     use sill_ui_kit::links::AskSerial;
 
     fn app(id: &str, windows: &[u64], shown: AppShown) -> SwitcherApp {

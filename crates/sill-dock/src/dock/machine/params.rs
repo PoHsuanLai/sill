@@ -104,7 +104,6 @@ impl DockParams {
 pub(crate) mod tests {
     use super::{DockParams, eased};
     use ds::base::time::stamp::Ms;
-    use ds::prelude::*;
     use ds::style::tokens::easing::CubicBezier;
     use sill_model::units::{Cpx, Permille};
     use sill_settings::DockSettings;
