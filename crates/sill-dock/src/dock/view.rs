@@ -133,7 +133,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         params,
         world: world.clone(),
         order: file.dock.context_menu_order,
-        feed: feed.clone(),
+        feed,
         look: PopupLook {
             appearance,
             system: environment.system,

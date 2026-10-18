@@ -141,7 +141,7 @@ fn TrayButtonView(
         TrayStatus::Passive | TrayStatus::Active => None,
     };
     let common = Common {
-        aria_label: spoken.or(common.aria_label.clone()),
+        aria_label: spoken.or_else(|| common.aria_label.clone()),
         ..common
     };
     rsx! {

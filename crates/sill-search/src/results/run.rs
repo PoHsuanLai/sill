@@ -130,7 +130,7 @@ impl Search {
         match command {
             SearchCommand::Query(text) => self.query(text, Scope::All),
             SearchCommand::Filtered { text, provider } => self.query(text, Scope::Only(provider)),
-            SearchCommand::Chosen { key, choice } => self.chosen(key, &choice),
+            SearchCommand::Chosen { key, choice } => self.chosen(&key, &choice),
             SearchCommand::Cancel => self.close(),
             SearchCommand::Policy(policy) => {
                 self.policy.send_replace(policy);
@@ -218,7 +218,7 @@ impl Search {
     /// Count the choice (whichever of the row's choices it was), queue the file write, and
     /// carry out what the row's provider says the choice does. The row is looked up among the
     /// newest generation's rows, so the surface sends `Chosen` before it closes (`Cancel`).
-    fn chosen(&mut self, key: ItemKey, choice: &Choice) {
+    fn chosen(&self, key: &ItemKey, choice: &Choice) {
         // A clipboard entry's use is never written to disk.
         if key.counting() == Counting::Counted {
             let frecency = self.history.record(key.clone(), unix_now());
@@ -228,7 +228,7 @@ impl Search {
             .merged
             .items
             .iter()
-            .find(|item| ItemKey::of(item.provider, &item.id) == key)
+            .find(|item| ItemKey::of(item.provider, &item.id) == *key)
         else {
             return;
         };

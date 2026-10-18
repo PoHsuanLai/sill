@@ -46,7 +46,7 @@ pub(super) fn AppLine(view: HelperCardView) -> Element {
                 {sign_in_row(&view, "helper-sign-in", &say)}
                 {sign_out}
             }
-            HandoverRow { view: view.clone() }
+            HandoverRow { view }
         }
     }
 }
@@ -68,7 +68,7 @@ fn sign_in_button(id: String, button: SignInButton, view: &HelperCardView, say: 
         Button {
             key: "{id}",
             label,
-            common: Common { id: Some(id.clone()), ..Common::default() },
+            common: Common { id: Some(id), ..Common::default() },
             onclick: move |_| say.msg(HelpersMsg::SignIn(helper.clone(), way.clone())),
         }
     }

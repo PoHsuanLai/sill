@@ -37,7 +37,7 @@ pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
     let wl = use_control::<WindowsService>();
     let mut pressed = use_signal(|| None::<Pressed>);
     let threshold = settings().dock.hold_to_menu_move_px.0;
-    let on = output.name.clone().map(OutputName);
+    let on = output.name.map(OutputName);
     let Some(group) = group_for(&workspaces().groups, on.as_ref()) else {
         return rsx! {};
     };

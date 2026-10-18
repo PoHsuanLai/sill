@@ -75,7 +75,9 @@ pub(super) fn draw_order(
     metrics: GridMetrics,
 ) -> Vec<Draw> {
     let lifted = held.lifted();
-    let top = lifted.map(|(kind, _)| kind).or(dropped.map(|d| d.kind));
+    let top = lifted
+        .map(|(kind, _)| kind)
+        .or_else(|| dropped.map(|d| d.kind));
     let going = leaving.iter().map(|l| Draw {
         kind: l.kind,
         target: l.target,

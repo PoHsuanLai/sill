@@ -46,6 +46,7 @@ use sill_launcher::{
 use tokio::sync::watch;
 
 use crate::clock::{modified_of, unix_now};
+use crate::providers::locked::copy_of;
 
 use sill_model::results::{FilesChoice, LauncherPolicy};
 use tracker::TrackerIndex;
@@ -121,7 +122,7 @@ impl Provider for FilesProvider {
             return;
         }
         hits.extend(viewed_hits);
-        let frecency = viewed::fold_views(snapshot(&self.frecency), views);
+        let frecency = viewed::fold_views(copy_of(&self.frecency), views);
         let items = hits::file_items(
             &hits,
             &needle,
@@ -228,14 +229,6 @@ fn index_of(kind: IndexKind, session: &Bus) -> Option<Arc<dyn FileIndex>> {
         })),
         IndexKind::Fake => None,
     }
-}
-
-/// A read-only copy of the history; a poisoned lock still yields the data.
-fn snapshot(frecency: &Mutex<Frecency>) -> Frecency {
-    frecency
-        .lock()
-        .map(|guard| guard.clone())
-        .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
 }
 
 #[cfg(test)]

@@ -23,7 +23,7 @@ pub fn AppMenuTitles(output: OutputInfo) -> Element {
     let toplevels = use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone());
     let apps = use_service::<AppsService>();
     let menus = use_service::<AppMenuService>();
-    let on = output.name.clone().map(OutputName);
+    let on = output.name.map(OutputName);
     let front = front_app(&toplevels(), &apps(), on.as_ref());
     let titles = AppMenuState::of(front.as_ref(), &menus())
         .map(|state| state.titles.menus)

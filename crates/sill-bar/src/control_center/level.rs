@@ -35,7 +35,7 @@ pub fn LevelModule(
             plate: use_plate(),
             availability,
             Slider {
-                label: title.clone(),
+                label: title,
                 value: level,
                 glyph: level_glyph,
                 look: LOOK,

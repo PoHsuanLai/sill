@@ -170,16 +170,15 @@ impl SystemProvider {
         match *probed {
             Probed::Known(known) => known,
             Probed::Failed(at) if at.elapsed() < REPROBE_AFTER => Availability::NONE,
-            Probed::Not | Probed::Failed(_) => match probe_availability(&self.system) {
-                Some(known) => {
+            Probed::Not | Probed::Failed(_) => {
+                if let Some(known) = probe_availability(&self.system) {
                     *probed = Probed::Known(known);
                     known
-                }
-                None => {
+                } else {
                     *probed = Probed::Failed(Instant::now());
                     Availability::NONE
                 }
-            },
+            }
         }
     }
 }

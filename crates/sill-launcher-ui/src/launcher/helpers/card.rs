@@ -102,7 +102,7 @@ fn CardBody(model: HelpersModel, helper: Option<HelperId>) -> Element {
             Jobs { model: model.clone() }
             Routines { model: model.clone(), helper: id.clone() }
             Latest { model: model.clone() }
-            GiveJob { model: model.clone() }
+            GiveJob { model }
         }
     }
 }

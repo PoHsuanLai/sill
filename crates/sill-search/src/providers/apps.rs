@@ -13,6 +13,7 @@ use sill_launcher::{
 use tokio::sync::watch;
 
 use crate::clock::unix_now;
+use crate::providers::locked::copy_of;
 
 use sill_model::apps::{App, AppIcon, AppIndex, DesktopActionEntry, Listing};
 
@@ -49,7 +50,7 @@ impl Provider for AppsProvider {
         let mut matcher = matching::matcher();
         let now = unix_now();
         let index = self.apps.borrow().clone();
-        let frecency = snapshot(&self.frecency);
+        let frecency = copy_of(&self.frecency);
 
         let mut items = Vec::new();
         for app in &index.apps {
@@ -217,15 +218,6 @@ fn split_id(id: &ItemId) -> (AppId, Option<String>) {
         Some((app, action)) => (AppId(app.to_owned()), Some(action.to_owned())),
         None => (AppId(id.0.clone()), None),
     }
-}
-
-/// A read-only copy of `frecency`'s current contents; a poisoned lock (a panic elsewhere while
-/// holding it) still yields the data rather than poisoning every query after it.
-fn snapshot(frecency: &Mutex<Frecency>) -> Frecency {
-    frecency
-        .lock()
-        .map(|guard| guard.clone())
-        .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
 }
 
 #[cfg(test)]

@@ -71,7 +71,7 @@ pub(crate) fn BarPopup() -> Element {
     let surface = use_surface();
     let view = use_watch(link.view.clone());
     let mut placed = use_hook(|| CopyValue::new(None::<PopupPlacement>));
-    let reports = link.reports.clone();
+    let reports = link.reports;
     use_drop(move || {
         // The bar may be gone first; then there is nobody to tell.
         let _ = reports.send(PopupReport::Gone);
@@ -238,7 +238,7 @@ fn BarMenuList(entries: Vec<MenuItem<BarPick>>) -> Element {
 fn PanelPopover(module: Option<ControlCenterModule>) -> Element {
     let link = use_context::<PopupLink>();
     let reports = link.reports.clone();
-    let output = link.output.clone();
+    let output = link.output;
     let dismissed = EventHandler::new(move |()| {
         // The bar may be gone first; then there is nobody to tell.
         let _ = reports.send(PopupReport::Dismissed);

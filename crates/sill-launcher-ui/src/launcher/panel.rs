@@ -98,7 +98,7 @@ impl Shown {
             }),
             _ => None,
         };
-        companions.or(match self.pane.preview.pane {
+        companions.or_else(|| match self.pane.preview.pane {
             Pane::Hidden => None,
             Pane::Shown => Some(selected.as_ref().map_or(Preview::None, preview_for)),
         })
@@ -170,7 +170,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             },
             onmousedown: move |event| contacts.heard(&event),
             SurfaceRoot {
-                output: output.clone(),
+                output,
                 material: material(file.launcher.material),
                 AppStyle { css: LAUNCHER_CSS }
                 div {

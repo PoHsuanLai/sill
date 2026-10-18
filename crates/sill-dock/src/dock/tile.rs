@@ -57,7 +57,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
     };
     let side = px(size);
     let sizes = TileSizes::new(side, &dock);
-    let look = try_use_context::<Signal<TileLook>>().map_or(TileLook::default(), |look| look());
+    let look = try_use_context::<Signal<TileLook>>().map_or_else(TileLook::default, |look| look());
     let cx = IconContext {
         look: look.0,
         scale: use_scale(),

@@ -15,7 +15,7 @@ use super::say::{Say, use_say};
 pub(super) fn AutomaticPool(groups: Vec<ModelGroup>, automatic: Automatic) -> Element {
     let say = use_say();
     let Automatic::Choosing(_) = &automatic else {
-        let start = say.clone();
+        let start = say;
         return rsx! {
             Button {
                 label: "Automatic\u{2026}",

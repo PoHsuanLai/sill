@@ -53,7 +53,7 @@ fn Opened(
     provide_widget_wake(WakeStamp(opening.0 as u32));
     let settings = use_settings()().notifications;
     let metrics = notification_metrics(&settings);
-    let (catch, escape) = (ctx.clone(), ctx.clone());
+    let (catch, escape) = (ctx.clone(), ctx);
     rsx! {
         ClickAway { onpress: move |()| catch.close() }
         div { class: "sill-nc-scope", style: metrics.style_attr(),

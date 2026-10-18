@@ -20,6 +20,7 @@ use sill_launcher::{
 use tokio::sync::watch;
 
 use crate::clock::unix_now;
+use crate::providers::locked::copy_of;
 
 use sill_model::results::LauncherPolicy;
 
@@ -53,7 +54,7 @@ impl Provider for EmojiProvider {
 
         let needle = Needle::parse(&query.text);
         let tone = self.policy.borrow().emoji_tone;
-        let frecency = snapshot(&self.frecency);
+        let frecency = copy_of(&self.frecency);
         let now = unix_now();
         let mut matcher = matching::matcher();
         let items = search::emoji_items(
@@ -98,12 +99,4 @@ fn worth_searching(trimmed: &str) -> bool {
         Some(rest) => !rest.trim().is_empty(),
         None => trimmed.chars().count() >= 2,
     }
-}
-
-/// A clone of the shared frecency, for one query.
-fn snapshot(frecency: &Mutex<Frecency>) -> Frecency {
-    frecency
-        .lock()
-        .map(|guard| guard.clone())
-        .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
 }

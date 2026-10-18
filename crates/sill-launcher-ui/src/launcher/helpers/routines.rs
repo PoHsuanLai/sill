@@ -139,7 +139,7 @@ fn RoutineSheet(draft: RoutineDraft, notice: Option<String>) -> Element {
         .map(|repeat| Choice::new(*repeat, repeat_label(*repeat)))
         .collect();
     let repeat = draft.repeat;
-    let (repeat_say, cancel, confirm) = (say.clone(), say.clone(), say.clone());
+    let (repeat_say, cancel, confirm) = (say.clone(), say.clone(), say);
     let when = match repeat {
         Repeat::Daily | Repeat::Weekdays => rsx! {
             FieldRow { label: "At",

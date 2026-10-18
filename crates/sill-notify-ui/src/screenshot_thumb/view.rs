@@ -41,7 +41,7 @@ pub(super) fn screenshot_thumb(output: OutputInfo) -> Element {
         hold_ms: u32::from(file.screenshot.thumbnail_hold_ms.0),
         rest_ms: u32::from(file.notifications.hover_min_remaining_ms.0),
     };
-    let ghost = GhostLook::of(&environment, look.clone());
+    let ghost = GhostLook::of(&environment, look);
     rsx! {
         SurfaceRoot {
             output: output.clone(),
@@ -128,7 +128,7 @@ fn Column(
         (Some((id, shown)), Some((kept_id, picture))) if kept_id == id => vec![Banner {
             key: key_of(id),
             card: rsx! {
-                ThumbCard { id, picture, shown, metrics, look: ghost.clone() }
+                ThumbCard { id, picture, shown, metrics, look: ghost }
             },
         }],
         _ => Vec::new(),

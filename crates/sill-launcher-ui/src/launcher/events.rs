@@ -331,7 +331,7 @@ impl PanelCtx {
                 self.store_pane(PaneSession {
                     ring,
                     preview: PreviewState::default(),
-                    ..pane.clone()
+                    ..pane
                 });
                 self.search(&session.query, filter);
                 LauncherState {

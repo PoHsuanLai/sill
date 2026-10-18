@@ -91,7 +91,7 @@ fn Grid(
     let mut kept =
         use_hook(|| CopyValue::new(file.as_ref().map(|f| f.load(&key)).unwrap_or_default()));
     use_reload((&kinds, written), file.as_ref(), &key, kept);
-    let apps = use_watch(use_services().apps.state.clone());
+    let apps = use_watch(use_services().apps.state);
     let world = MenuWorld::of(
         &apps.read(),
         DesktopView {
@@ -143,8 +143,8 @@ fn Grid(
         meter,
         laid,
         kept,
-        file: file.clone(),
-        key: key.clone(),
+        file,
+        key,
     };
     let held = hold();
     let on_screen = now

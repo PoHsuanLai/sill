@@ -10,6 +10,7 @@ pub mod companion;
 pub mod emoji;
 pub mod files;
 pub mod helpers;
+mod locked;
 mod lookup;
 pub mod memory;
 pub mod runs;

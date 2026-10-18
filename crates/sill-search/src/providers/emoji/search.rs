@@ -184,8 +184,7 @@ pub fn toned(glyph: &str, tone: SkinTone) -> String {
     }
     emojis::get(glyph)
         .and_then(|emoji| emoji.with_skin_tone(emojis_tone(tone)))
-        .map(|emoji| emoji.as_str().to_owned())
-        .unwrap_or_else(|| glyph.to_owned())
+        .map_or_else(|| glyph.to_owned(), |emoji| emoji.as_str().to_owned())
 }
 
 /// This crate's [`SkinTone`] as the `emojis` crate's own enum (the same six, Default first).

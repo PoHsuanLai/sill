@@ -49,7 +49,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
     let rows = rows_of(&group_views(&history, &expanded));
     let keys = (ctx.clone(), rows.clone());
     let clear = ctx.clone();
-    let home = ctx.clone();
+    let home = ctx;
     let items: Vec<ListItem<RowKey>> = rows
         .iter()
         .enumerate()

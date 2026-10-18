@@ -15,7 +15,7 @@ pub fn schema_paths(dirs: &[PathBuf]) -> Vec<PathBuf> {
             continue;
         };
         let mut paths: Vec<PathBuf> = entries
-            .filter_map(|entry| entry.ok())
+            .filter_map(Result::ok)
             .map(|entry| entry.path())
             .filter(|path| {
                 path.is_file()
@@ -39,12 +39,11 @@ pub fn fingerprint(paths: &[PathBuf]) -> Vec<(PathBuf, u64, u64)> {
         .iter()
         .map(|path| {
             let meta = fs::metadata(path).ok();
-            let len = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+            let len = meta.as_ref().map_or(0, fs::Metadata::len);
             let modified = meta
                 .and_then(|m| m.modified().ok())
                 .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                .map(|d| d.as_nanos() as u64)
-                .unwrap_or(0);
+                .map_or(0, |d| d.as_nanos() as u64);
             (path.clone(), len, modified)
         })
         .collect()

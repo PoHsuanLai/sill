@@ -60,10 +60,10 @@ pub fn evaluate(text: &str, budget: Duration, rates: Option<&Rates>) -> EvalOutc
     match evaluate_with_interrupt(text, &mut context, &deadline) {
         Ok(result) => {
             let value = result.get_main_result();
-            if !readable(value) {
-                EvalOutcome::NoMatch
-            } else {
+            if readable(value) {
                 EvalOutcome::Value(value.to_owned())
+            } else {
+                EvalOutcome::NoMatch
             }
         }
         Err(_) if started.elapsed() >= budget => EvalOutcome::TimedOut,

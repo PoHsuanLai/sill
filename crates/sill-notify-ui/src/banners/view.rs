@@ -50,7 +50,7 @@ pub(super) fn banners(output: OutputInfo) -> Element {
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
             AppStyle { css: BANNERS_CSS }
-            ColumnView { output: output.id, settings: file.notifications.clone() }
+            ColumnView { output: output.id, settings: file.notifications }
         }
     }
 }

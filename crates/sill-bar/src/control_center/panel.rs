@@ -70,7 +70,7 @@ pub(crate) fn control_center(
         }
     };
     let cx = CcCx {
-        output: output.clone(),
+        output,
         on_detail: EventHandler::new(|_| {}),
         on_back: Some(EventHandler::new(move |()| go.call(PageInput::Back))),
     };

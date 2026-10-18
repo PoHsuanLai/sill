@@ -125,7 +125,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
     });
     let keys = WidgetKeys {
         center: widgets.center.clone(),
-        desktop: shown_here.clone(),
+        desktop: shown_here,
         placed,
     };
     let desktop_shown = widgets.desktop;

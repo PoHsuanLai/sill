@@ -4,7 +4,7 @@ pub mod index;
 pub mod schema_files;
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, PoisonError};
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
@@ -68,10 +68,7 @@ impl SettingsProvider {
     fn index(&self) -> SettingsIndex {
         let paths = schema_paths(&self.dirs);
         let current = fingerprint(&paths);
-        let mut guard = self
-            .cached
-            .lock()
-            .unwrap_or_else(|poison| poison.into_inner());
+        let mut guard = self.cached.lock().unwrap_or_else(PoisonError::into_inner);
         let stale = guard
             .as_ref()
             .is_none_or(|cached| cached.fingerprint != current);
@@ -94,7 +91,7 @@ impl SettingsProvider {
                 .collect();
             *guard = Some(Cached {
                 fingerprint: current,
-                index: SettingsIndex::build(schemas),
+                index: SettingsIndex::build(&schemas),
             });
         }
         guard

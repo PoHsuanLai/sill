@@ -162,11 +162,11 @@ impl Draw<'_> {
             Subject::File(file) => RowShape::File {
                 thumb: (self.thumb_of)(&file.mime.0, &file.path),
                 location: words.detail.clone(),
-                modified: words.trail.clone(),
+                modified: words.trail,
             },
             Subject::Clip(clip) => RowShape::Clip {
                 body: self.clip_body(clip.key, &clip.kind),
-                age: words.trail.clone(),
+                age: words.trail,
             },
             _ => return self.plain(item, mix),
         };

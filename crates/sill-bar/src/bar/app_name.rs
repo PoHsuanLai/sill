@@ -23,7 +23,7 @@ pub fn AppName(output: OutputInfo) -> Element {
     let toplevels = use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone());
     let apps = use_service::<AppsService>();
     let probe = use_rect();
-    let on = output.name.clone().map(OutputName);
+    let on = output.name.map(OutputName);
     let name = front_app(&toplevels(), &apps(), on.as_ref())
         .map_or_else(|| NO_APP.to_owned(), |app| app.name);
     let pointer = use_title_pointer(BarMenu::App, probe);

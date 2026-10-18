@@ -137,7 +137,7 @@ fn file_icon(path: &Path) -> Option<IconSource> {
 /// The row's glyph: the quire icon it names, else its provider's.
 pub fn glyph(item: &Item) -> Icon {
     match &item.icon {
-        IconRef::Glyph(name) => named(name).unwrap_or(provider_glyph(item.provider)),
+        IconRef::Glyph(name) => named(name).unwrap_or_else(|| provider_glyph(item.provider)),
         IconRef::File(_) | IconRef::None => provider_glyph(item.provider),
     }
 }

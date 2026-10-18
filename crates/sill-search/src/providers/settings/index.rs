@@ -37,7 +37,7 @@ pub struct SettingsIndex {
 
 impl SettingsIndex {
     /// Flattens every schema's keys into one index, in the order the schemas were found.
-    pub fn build(schemas: Vec<Schema>) -> SettingsIndex {
+    pub fn build(schemas: &[Schema]) -> SettingsIndex {
         SettingsIndex {
             keys: schemas
                 .iter()
@@ -243,7 +243,7 @@ kind = "text"
 kind = "power"
 "#;
         let schema = Schema::from_toml(text).expect("the schema text parses");
-        let index = SettingsIndex::build(vec![schema]);
+        let index = SettingsIndex::build(&[schema]);
         let keys: Vec<(&str, &str, &str, &str)> = index
             .iter()
             .map(|key| {

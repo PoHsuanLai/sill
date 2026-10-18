@@ -335,7 +335,7 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
     };
     let placement = menu_placement(*area);
     let link = MenuLink {
-        entries: entries.clone(),
+        entries,
         look: deps.look,
         reports,
     };

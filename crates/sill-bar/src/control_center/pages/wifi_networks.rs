@@ -49,7 +49,7 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
     aim.set(last.clone());
     let services = use_services();
     let control = services.wifi.control.clone();
-    let launch = services.launch.control.clone();
+    let launch = services.launch.control;
     let close = try_use_context::<ClosePanel>();
     use_hook({
         let control = control.clone();

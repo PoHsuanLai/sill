@@ -57,7 +57,6 @@ pub(crate) fn DockMenuPopup() -> Element {
     // nothing was picked, then closes the popup.
     let on_close = {
         let reports = link.reports.clone();
-        let surface = surface.clone();
         move |()| {
             let reports = reports.clone();
             let surface = surface.clone();
@@ -73,7 +72,7 @@ pub(crate) fn DockMenuPopup() -> Element {
     use_context_provider(room);
     rsx! {
         MenuPopup {
-            model: DockMenu { entries: link.entries.clone() },
+            model: DockMenu { entries: link.entries },
             on_pick,
             on_close,
             surface: DOCK_MENU,

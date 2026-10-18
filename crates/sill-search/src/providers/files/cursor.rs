@@ -59,7 +59,7 @@ pub(super) fn path_of_uri(uri: &str) -> Option<PathBuf> {
 fn unix_time(text: &str) -> UnixTime {
     let seconds = text
         .parse::<jiff::Timestamp>()
-        .map_or(0, |time| time.as_second());
+        .map_or(0, jiff::Timestamp::as_second);
     UnixTime(u64::try_from(seconds).unwrap_or(0))
 }
 

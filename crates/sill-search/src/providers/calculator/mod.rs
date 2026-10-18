@@ -18,6 +18,7 @@ use rates::{Rates, SharedRates};
 use tokio::sync::watch;
 
 use crate::clock::unix_now;
+use crate::providers::locked::copy_of;
 
 use sill_model::results::{CurrencyPolicy, LauncherPolicy};
 
@@ -123,12 +124,7 @@ impl CalculatorProvider {
             }
             // No cache yet (or a damaged one): whatever the shared rates already hold, from an
             // earlier fetch this process made.
-            None => self
-                .rates
-                .lock()
-                .map(|guard| guard.clone())
-                .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
-                .into(),
+            None => copy_of(&self.rates).into(),
         }
     }
 }

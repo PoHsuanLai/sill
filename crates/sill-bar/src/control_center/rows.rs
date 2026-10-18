@@ -60,7 +60,7 @@ pub(crate) fn RowList<T: Clone + PartialEq + 'static>(
                     onclick: move |_| onpick.call(value.clone()),
                 }
             };
-            ListItem::row(row.key.clone(), row.title.clone(), content)
+            ListItem::row(row.key.clone(), row.title, content)
         })
         .collect();
     rsx! {

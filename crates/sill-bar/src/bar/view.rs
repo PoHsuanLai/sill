@@ -86,7 +86,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
                         ModuleItem { key: "{module:?}", module }
                     }
                     ControlCenterItem { output: output.clone() }
-                    ClockItem { output: output.clone() }
+                    ClockItem { output }
                 }
             }
         }

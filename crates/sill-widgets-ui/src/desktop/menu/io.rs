@@ -74,7 +74,7 @@ pub(in crate::desktop) fn use_desktop_menu(
     deps.set(Deps { world, look });
     let mut popup = use_hook(|| CopyValue::new(Popup::Down));
     use_hook(move || listen(deps, popup, outward, inbox));
-    let to_open = reports.clone();
+    let to_open = reports;
     Callback::new(move |at: LayerPoint| {
         let Some(surface) = surface.clone() else {
             return;
