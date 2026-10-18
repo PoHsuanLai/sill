@@ -1,7 +1,7 @@
 //! The keycap loop: the socket thread's events, the focused window, the config file's edits, the
 //! person's commands and the unit check, stepping [`KeycapState`] and posting its notices.
 
-use keycap_protocol::{ProfileName, ToDaemon};
+use keycap_protocol::{ProfileName, Steer, ToDaemon};
 use sill_model::apps::AppIndex;
 use sill_model::keyboard::{
     CategoryTable, OwnProfiles, ShellFocus, UserOverrides, under_shell, wanted,
@@ -138,7 +138,7 @@ impl Live {
 
     fn command(&mut self, command: KeycapCommand) {
         match command {
-            KeycapCommand::Resume => self.link.send(ToDaemon::Resume),
+            KeycapCommand::Resume => self.link.send(ToDaemon::Steer(Steer::Resume)),
             KeycapCommand::Retry => self.retry(),
             KeycapCommand::Overrides(overrides) => {
                 self.overrides = overrides;
@@ -177,7 +177,7 @@ impl Live {
         let next = under_shell(self.shell, window);
         if let Some(profile) = focus_to_send(self.chosen.as_ref(), next) {
             self.chosen = Some(profile.clone());
-            self.link.send(ToDaemon::Focus { profile });
+            self.link.send(ToDaemon::Steer(Steer::Focus { profile }));
         }
     }
 

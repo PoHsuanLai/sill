@@ -1,4 +1,4 @@
-use keycap_protocol::{MAX_PACKET, ProfileName, ToDaemon};
+use keycap_protocol::{MAX_PACKET, ProfileName, Steer, ToDaemon};
 
 use crate::keycap::{Wants, focus_to_send, user_config};
 
@@ -7,11 +7,11 @@ fn name(s: &str) -> ProfileName {
 }
 
 fn focus(s: &str) -> ToDaemon {
-    ToDaemon::Focus { profile: name(s) }
+    ToDaemon::Steer(Steer::Focus { profile: name(s) })
 }
 
 fn config(s: &str) -> ToDaemon {
-    ToDaemon::UserConfig { toml: s.to_owned() }
+    ToDaemon::Steer(Steer::UserConfig { toml: s.to_owned() })
 }
 
 #[test]
@@ -85,7 +85,7 @@ fn wants_remember_the_last_of_each_and_greet_with_both() {
             },
         ),
         (
-            ToDaemon::Resume,
+            ToDaemon::Steer(Steer::Resume),
             Wants {
                 focus: Some(name("terminal")),
                 config: Some("b".to_owned()),

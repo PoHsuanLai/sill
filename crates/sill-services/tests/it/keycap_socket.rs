@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use keycap_protocol::{
-    Grab, Keyboard, KeyboardInfo, Mode, PROTOCOL_VERSION, ProfileName, Status, ToClient, ToDaemon,
-    decode, encode,
+    Grab, Keyboard, KeyboardInfo, Mode, PROTOCOL_VERSION, ProfileName, Status, Steer, ToClient,
+    ToDaemon, decode, encode,
 };
 use rustix::event::{PollFd, PollFlags, poll};
 use rustix::net::{
@@ -40,7 +40,7 @@ fn name(s: &str) -> ProfileName {
 }
 
 fn focus(s: &str) -> ToDaemon {
-    ToDaemon::Focus { profile: name(s) }
+    ToDaemon::Steer(Steer::Focus { profile: name(s) })
 }
 
 fn app(id: &str, categories: &[&str]) -> App {
@@ -400,8 +400,10 @@ async fn the_server_closing_is_a_restart_and_the_next_connection_is_told_the_foc
 async fn the_config_file_is_told_on_connect_and_again_when_it_changes() {
     let mut rig = rig(Some("[profile.term]\n"));
     let peer = connected(&mut rig).await;
-    let config = |toml: &str| ToDaemon::UserConfig {
-        toml: toml.to_owned(),
+    let config = |toml: &str| {
+        ToDaemon::Steer(Steer::UserConfig {
+            toml: toml.to_owned(),
+        })
     };
     assert_eq!(peer.next(LONG), Some(focus("default")));
     assert_eq!(peer.next(LONG), Some(config("[profile.term]\n")));
@@ -506,7 +508,7 @@ async fn resume_reaches_the_daemon() {
     rig.control
         .send(sill_model::keycap::KeycapCommand::Resume)
         .unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(peer.next(LONG), Some(ToDaemon::Resume));
+    assert_eq!(peer.next(LONG), Some(ToDaemon::Steer(Steer::Resume)));
 }
 
 #[tokio::test(flavor = "multi_thread")]
