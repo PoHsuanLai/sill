@@ -44,10 +44,7 @@ pub use companion::{
     CompanionSettings, InField, NotifyWhen, SummonKey, params as companion_params,
 };
 pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
-pub use display::{
-    BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
-    HardwareVolumeMode, NightWarmthMode, ScaleRounding,
-};
+pub use display::{DisplaySettings, NightWarmthMode};
 pub use dock::{
     ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockSettings,
     Indicators, LaunchAnim, Magnification, TrashTile,
@@ -55,15 +52,12 @@ pub use dock::{
 pub use file::{APP, ShellFile};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use hot_corners::{CornerAction, HotCornerSettings};
-pub use idle::{IdleLockAt, IdleSettings};
+pub use idle::IdleSettings;
 pub use keyboard::{KeyboardOverride, KeyboardSettings, RejectedRow, overrides};
 pub use launcher::LauncherSettings;
-pub use launcher_kinds::{ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, WebSearch};
+pub use launcher_kinds::WebSearch;
 pub use menus::MenusSettings;
-pub use notifications::{
-    BannerMaterial, BannerPosition, BannerStyle, Dnd, NotificationServer, NotificationSwipe,
-    NotificationsSettings,
-};
+pub use notifications::{BannerMaterial, BannerPosition, Dnd, NotificationsSettings};
 pub use osd::{OsdEnabled, OsdPosition, OsdSettings};
 pub use power_menu::{PowerMenuDefault, PowerMenuSettings};
 pub use schema::{schema, schemas};

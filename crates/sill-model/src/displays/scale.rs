@@ -8,6 +8,7 @@
 //! macOS's own default for a sharp external display - a 4K screen defaults to 2x there, "looks
 //! like 1920x1080" - trading some space for a scale the renderer draws pixel for pixel.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 use super::edid::{Millimetres, Pixels};
@@ -77,8 +78,9 @@ const PLAUSIBLE_PPI: std::ops::RangeInclusive<u32> = 40..=600;
 pub const MIN_LOGICAL_WIDTH: u32 = 1280;
 
 /// How [`default_scale`] rounds a display's ideal (`display.scale_rounding`; module doc).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum ScaleRounding {
     /// Round up to a whole scale (1, 2 or 3) when the ideal is at least 1.5 and the display
     /// stays at least [`MIN_LOGICAL_WIDTH`] px wide at that scale; [`Nearest`](Self::Nearest)

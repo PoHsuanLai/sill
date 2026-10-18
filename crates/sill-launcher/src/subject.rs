@@ -10,6 +10,7 @@ use std::path::PathBuf;
 
 use almanac_core::MemoryItem;
 use docket_core::{EntityRef, UndoId};
+use ds_core::word::Word;
 use prov::{HelperId, RunId, SessionId, TaskId};
 use serde::{Deserialize, Serialize};
 
@@ -138,8 +139,9 @@ pub struct EmojiFacts {
 
 /// A skin tone modifier (Unicode's five, Fitzpatrick types 1-2 to 6, or none: the yellow
 /// default).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum SkinTone {
     #[default]
     Default,

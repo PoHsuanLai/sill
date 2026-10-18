@@ -14,46 +14,9 @@ use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Percent};
 use serde::{Deserialize, Serialize};
-
-/// `display.scale`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum DisplayScaleMode {
-    #[default]
-    Auto,
-    Manual,
-}
-
-/// `display.scale_rounding`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum ScaleRounding {
-    #[default]
-    PreferWhole,
-    Nearest,
-}
-
-/// `display.brightness_keys_target`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum BrightnessKeysTarget {
-    #[default]
-    PointerOutput,
-    AllOutputs,
-}
-
-/// `display.hardware_volume`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum HardwareVolumeMode {
-    Off,
-    #[default]
-    WhenMonitorIsOutput,
-}
+use sill_model::displays::{
+    FontRenderingMode, HardwareVolume, KeysTarget, ScaleMode, ScaleRounding,
+};
 
 /// `display.night_warmth`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
@@ -63,16 +26,6 @@ pub enum NightWarmthMode {
     #[default]
     Off,
     Hardware,
-}
-
-/// `display.font_rendering`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum FontRenderingSetting {
-    #[default]
-    Auto,
-    Off,
 }
 
 /// Displays.
@@ -86,7 +39,7 @@ pub struct DisplaySettings {
         section = "Displays",
         advanced
     )]
-    pub scale: DisplayScaleMode,
+    pub scale: ScaleMode,
     #[settings(
         label = "Scale per display",
         help = "`<display> = <scale>` pairs separated by semicolons, e.g. `BNQ-8074-1f2e3d4c5b6a7980 = 1.75`; the display names are in ~/.local/state/sill/displays.json. A pair is applied when it is added or changed, even under Manual.",
@@ -116,14 +69,14 @@ pub struct DisplaySettings {
         section = "Brightness",
         advanced
     )]
-    pub brightness_keys_target: BrightnessKeysTarget,
+    pub brightness_keys_target: KeysTarget,
     #[settings(
         label = "Monitor speakers follow the volume",
         help = "When sound plays through a monitor's HDMI or DisplayPort speakers and the monitor supports DDC/CI, volume changes also set the monitor's own volume and mute.",
         section = "Sound",
         advanced
     )]
-    pub hardware_volume: HardwareVolumeMode,
+    pub hardware_volume: HardwareVolume,
     #[settings(
         label = "Night warmth",
         help = "Hardware: warm external monitors by lowering their own green and blue gains over DDC/CI. Their gains are put back when this is turned off.",
@@ -146,21 +99,21 @@ pub struct DisplaySettings {
         section = "Text",
         advanced
     )]
-    pub font_rendering: FontRenderingSetting,
+    pub font_rendering: FontRenderingMode,
 }
 
 impl Default for DisplaySettings {
     fn default() -> Self {
         DisplaySettings {
-            scale: DisplayScaleMode::Auto,
+            scale: ScaleMode::Auto,
             scale_overrides: String::new(),
             density_target_ppi: Count(109),
             scale_rounding: ScaleRounding::PreferWhole,
-            brightness_keys_target: BrightnessKeysTarget::PointerOutput,
-            hardware_volume: HardwareVolumeMode::WhenMonitorIsOutput,
+            brightness_keys_target: KeysTarget::PointerOutput,
+            hardware_volume: HardwareVolume::WhenMonitorIsOutput,
             night_warmth: NightWarmthMode::Off,
             night_warmth_strength: Percent(50),
-            font_rendering: FontRenderingSetting::Auto,
+            font_rendering: FontRenderingMode::Auto,
         }
     }
 }

@@ -8,11 +8,11 @@
 //! minutes.
 
 use sill_model::idle::{
-    DimLevel, DimPlan, IdleCommand, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace,
-    LockedScreenOff, PowerPair, Timeout,
+    DimLevel, DimPlan, IdleCommand, IdleConfig, IdleSecs, IdleTimes, LockGrace, LockedScreenOff,
+    PowerPair, Timeout,
 };
 use sill_services::env::IdleTimesSource;
-use sill_settings::{IdleLockAt, Mins, Secs, ShellFile};
+use sill_settings::{Mins, Secs, ShellFile};
 
 use super::Policy;
 
@@ -42,10 +42,7 @@ pub fn policy_of(file: &ShellFile) -> IdleConfig {
             lead: secs(idle.dim_s, 60),
             level: DimLevel(idle.dim_level_pct.0.clamp(10, 90)),
         },
-        lock: match idle.lock {
-            IdleLockAt::ScreenOff => IdleLock::AtScreenOff,
-            IdleLockAt::Never => IdleLock::Never,
-        },
+        lock: idle.lock,
         locked_off: LockedScreenOff(secs(idle.locked_screen_off_s, 600)),
         grace: LockGrace(secs(file.session.lock_grace_s, 60)),
     }
@@ -99,10 +96,10 @@ impl Policy for IdleBridge {
 #[cfg(test)]
 mod tests {
     use sill_model::idle::{
-        DimLevel, DimPlan, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace, LockedScreenOff,
-        PowerPair, Timeout,
+        DimLevel, DimPlan, IdleConfig, IdleSecs, IdleTimes, LockGrace, LockedScreenOff, PowerPair,
+        Timeout,
     };
-    use sill_settings::{IdleLockAt, Mins, Percent, Secs, ShellFile};
+    use sill_settings::{Mins, Percent, Secs, ShellFile};
 
     use super::policy_of;
 
@@ -116,7 +113,7 @@ mod tests {
         own.idle.suspend_battery_min = Mins(20);
         own.idle.dim_s = Secs(0);
         own.idle.dim_level_pct = Percent(30);
-        own.idle.lock = IdleLockAt::Never;
+        own.idle.lock = IdleLock::Never;
         own.idle.locked_screen_off_s = Secs(0);
         own.session.lock_grace_s = Secs(0);
         let after = |s| Timeout::After(IdleSecs(s));

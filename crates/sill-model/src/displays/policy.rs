@@ -3,6 +3,7 @@
 //! (`scripts/check-boundary.sh`), so the daemon translates `DisplaySettings` into a
 //! [`DisplayPolicy`] and sends it with `DisplaysCommand::Policy`.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 use super::identity::IdentityKey;
@@ -10,8 +11,9 @@ use super::scale::{DisplayScale, Ppi, ScaleRounding};
 use crate::units::Percent;
 
 /// Whether sill picks a new display's scale.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum ScaleMode {
     /// On first sight of a display, set the scale its density calls for.
     #[default]
@@ -41,8 +43,9 @@ impl ScaleOverride {
 }
 
 /// Which outputs the brightness keys (and the OSD, and the control-center slider) act on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum KeysTarget {
     /// The output under the pointer; the focused output when that is not known.
     #[default]
@@ -51,8 +54,9 @@ pub enum KeysTarget {
 }
 
 /// Whether the volume follows through to a monitor's own speakers over DDC/CI.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum HardwareVolume {
     Off,
     /// When the default sink is a monitor's HDMI/DisplayPort audio and the monitor answers VCP
@@ -72,8 +76,9 @@ pub enum NightWarmth {
 }
 
 /// Whether sill writes its fontconfig snippet for apps that are not sill's.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum FontRenderingMode {
     #[default]
     Auto,

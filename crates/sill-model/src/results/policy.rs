@@ -5,16 +5,22 @@
 
 use std::time::Duration;
 
+use ds_core::word::Word;
+use serde::{Deserialize, Serialize};
 use sill_launcher::SkinTone;
 
 /// Which file index the files provider asks (`launcher.files_backend`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
+#[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum FilesChoice {
     /// Tracker 3 when its miner answers on the session bus, else `fd` (or `plocate`) under the
     /// home directory.
     Auto,
     Tracker,
     /// `fd`, else `plocate`, under the home directory, within the time budget.
+    #[serde(rename = "fd")]
+    #[word(slug = "fd", label = "Fd")]
     Walk,
     /// No file search.
     #[default]
@@ -32,7 +38,9 @@ pub enum WebPolicy {
 
 /// Currency conversion in the calculator (`launcher.currency`). Off: no rates are fetched and
 /// currency units are not offered.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
+#[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum CurrencyPolicy {
     #[default]
     Off,

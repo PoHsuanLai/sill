@@ -6,6 +6,7 @@
 use crate::battery::{Battery, Charge};
 use crate::locker::Host;
 use crate::units::Presence;
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 /// Whole seconds of idleness (the unit every idle time is kept in; the settings' minutes are
@@ -47,9 +48,14 @@ pub struct DimPlan {
 }
 
 /// `idle.lock`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
+#[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum IdleLock {
     /// Lock as the displays go off for idleness.
+    #[default]
+    #[serde(rename = "screen_off")]
+    #[word(slug = "screen_off", label = "Screen off")]
     AtScreenOff,
     /// Never lock for idleness (a sleep still locks: the locker's own rule).
     Never,

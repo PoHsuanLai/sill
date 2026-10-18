@@ -9,18 +9,7 @@ use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Mins, Percent, Secs};
 use serde::{Deserialize, Serialize};
-
-/// `idle.lock`: whether turning the screens off for idleness locks the session.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum IdleLockAt {
-    /// Lock as the screens go off (macOS's "require password").
-    #[default]
-    ScreenOff,
-    /// Never lock for idleness; a suspend still locks.
-    Never,
-}
+use sill_model::idle::IdleLock;
 
 /// sill's idle service.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
@@ -87,7 +76,7 @@ pub struct IdleSettings {
         section = "Idle",
         advanced
     )]
-    pub lock: IdleLockAt,
+    pub lock: IdleLock,
     #[settings(
         label = "Turn the display off on the lock screen after",
         help = "Seconds without input on the lock screen before the displays go off again; 0 uses the normal screen-off time.",
@@ -108,7 +97,7 @@ impl Default for IdleSettings {
             suspend_battery_min: Mins(15),
             dim_s: Secs(5),
             dim_level_pct: Percent(50),
-            lock: IdleLockAt::ScreenOff,
+            lock: IdleLock::ScreenOff,
             locked_screen_off_s: Secs(60),
         }
     }

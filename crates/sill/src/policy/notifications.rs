@@ -1,12 +1,8 @@
 //! The notifications service's policy, from the settings and the focus mode: sent once at start
 //! (which ends the service's passive start) and again whenever either changes.
 
-use sill_model::notifications::{
-    HistoryCap, NotificationsCommand, NotificationsPolicy, Presentation, Quiet, ServerMode, Swipe,
-};
-use sill_settings::{
-    BannerStyle, FocusMode, NotificationServer, NotificationSwipe, NotificationsSettings, ShellFile,
-};
+use sill_model::notifications::{HistoryCap, NotificationsCommand, NotificationsPolicy, Quiet};
+use sill_settings::{FocusMode, NotificationsSettings, ShellFile};
 use tokio::sync::watch;
 use tokio::sync::watch::error::RecvError;
 
@@ -15,24 +11,14 @@ use super::Policy;
 /// The policy `n` and `focus` make.
 pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPolicy {
     NotificationsPolicy {
-        server: match n.server {
-            NotificationServer::Own => ServerMode::Own,
-            NotificationServer::Passive => ServerMode::Passive,
-        },
+        server: n.server,
         quiet: match focus {
             FocusMode::Off => Quiet::Off,
             FocusMode::DoNotDisturb => Quiet::DoNotDisturb,
         },
-        style: match n.banner_style {
-            BannerStyle::Banner => Presentation::Banner,
-            BannerStyle::Alert => Presentation::Alert,
-            BannerStyle::None => Presentation::HistoryOnly,
-        },
+        style: n.banner_style,
         history_cap: HistoryCap(n.history_cap.0),
-        swipe: match n.swipe {
-            NotificationSwipe::KeepInCenter => Swipe::KeepInCenter,
-            NotificationSwipe::Dismiss => Swipe::Dismiss,
-        },
+        swipe: n.swipe,
     }
 }
 
@@ -66,9 +52,7 @@ mod tests {
     use super::policy_of;
     use sill_model::notifications::Swipe;
     use sill_model::notifications::{HistoryCap, Presentation, Quiet, ServerMode};
-    use sill_settings::{
-        BannerStyle, Count, FocusMode, NotificationServer, NotificationSwipe, NotificationsSettings,
-    };
+    use sill_settings::{Count, FocusMode, NotificationsSettings};
 
     #[test]
     fn the_settings_and_focus_become_the_policy() {
@@ -83,10 +67,10 @@ mod tests {
             "a swipe keeps it, as macOS"
         );
         let n = NotificationsSettings {
-            server: NotificationServer::Passive,
-            banner_style: BannerStyle::None,
+            server: ServerMode::Passive,
+            banner_style: Presentation::HistoryOnly,
             history_cap: Count(7),
-            swipe: NotificationSwipe::Dismiss,
+            swipe: Swipe::Dismiss,
             ..NotificationsSettings::default()
         };
         let quiet = policy_of(&n, FocusMode::DoNotDisturb);

@@ -4,6 +4,7 @@
 //! `Network`: a banner's arrival and departure should not repaint a closed center, and a history
 //! clear should not repaint the banners.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 use super::content::Notification;
@@ -84,8 +85,9 @@ pub struct AppGroup {
 }
 
 /// Whether the service tries to own the bus name (`notifications.server`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum ServerMode {
     /// Ask for the name (never replacing a holder), and ask again whenever it falls free.
     Own,

@@ -8,6 +8,7 @@ use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Fraction, Ms, Px, Scalar};
 use serde::{Deserialize, Serialize};
+use sill_model::notifications::{Presentation, ServerMode, Swipe};
 
 /// `notifications.dnd`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
@@ -17,20 +18,6 @@ pub enum Dnd {
     On,
     #[default]
     Off,
-}
-
-/// `notifications.banner_style`: the default for apps without their own choice.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum BannerStyle {
-    /// Shows, then leaves by itself.
-    #[default]
-    Banner,
-    /// Stays until acted on.
-    Alert,
-    /// History only.
-    None,
 }
 
 /// `notifications.banner_material` (design/13 §13.9 open decision 7).
@@ -43,32 +30,6 @@ pub enum BannerMaterial {
     Toast,
     /// Ink on paper, like mail's toast.
     Inverse,
-}
-
-/// `notifications.swipe`: what swiping a banner away does. macOS keeps it in Notification
-/// Center; only its close button, `CloseNotification` or Clear removes it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum NotificationSwipe {
-    /// The banner leaves; the notification stays in the notification center.
-    #[default]
-    KeepInCenter,
-    /// The notification is dismissed (NotificationClosed reason 2) and leaves the history.
-    Dismiss,
-}
-
-/// `notifications.server`: whether sill serves `org.freedesktop.Notifications`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum NotificationServer {
-    /// Ask for the name, never replacing another daemon that holds it.
-    #[default]
-    Own,
-    /// Leave the name to another daemon (mako, dunst); sill shows nothing a
-    /// sender posts.
-    Passive,
 }
 
 /// `notifications.banner_position`: the output corner banners stack in (design/20 §3 open
@@ -100,7 +61,7 @@ pub struct NotificationsSettings {
         help = "Banners leave by themselves; alerts stay until you act.",
         section = "Notifications"
     )]
-    pub banner_style: BannerStyle,
+    pub banner_style: Presentation,
     #[settings(
         label = "Right margin",
         help = "Space between banners and the screen's right edge.",
@@ -248,14 +209,14 @@ pub struct NotificationsSettings {
         section = "Notifications",
         advanced
     )]
-    pub server: NotificationServer,
+    pub server: ServerMode,
     #[settings(
         label = "Swiping a banner away",
         help = "Keep the notification in the notification center, as macOS does, or dismiss it entirely.",
         section = "Notifications",
         advanced
     )]
-    pub swipe: NotificationSwipe,
+    pub swipe: Swipe,
     #[settings(
         label = "Banner position",
         help = "The corner of the screen banners appear in.",
@@ -286,7 +247,7 @@ impl Default for NotificationsSettings {
     fn default() -> Self {
         NotificationsSettings {
             dnd: Dnd::Off,
-            banner_style: BannerStyle::Banner,
+            banner_style: Presentation::Banner,
             position_right_px: Px(8),
             position_top_gap_px: Px(8),
             banner_width_px: Px(360),
@@ -303,8 +264,8 @@ impl Default for NotificationsSettings {
             stack_gap_px: Px(8),
             group_offset_px: Px(4),
             banner_material: BannerMaterial::Toast,
-            server: NotificationServer::Own,
-            swipe: NotificationSwipe::KeepInCenter,
+            server: ServerMode::Own,
+            swipe: Swipe::KeepInCenter,
             banner_position: BannerPosition::TopRight,
             history_cap: Count(100),
             center_width_px: Px(360),

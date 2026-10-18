@@ -3,23 +3,15 @@
 
 use std::time::Duration;
 
-use sill_launcher::SkinTone;
-use sill_model::results::{CurrencyPolicy, FilesChoice, LauncherPolicy, SearchCommand, WebPolicy};
-use sill_settings::{
-    CurrencyRates, EmojiSkinTone, FilesBackend, LauncherSettings, ShellFile, WebSearch,
-};
+use sill_model::results::{LauncherPolicy, SearchCommand, WebPolicy};
+use sill_settings::{LauncherSettings, ShellFile, WebSearch};
 
 use super::Policy;
 
 /// The search runner's policy `l` makes.
 pub fn search_policy_of(l: &LauncherSettings) -> LauncherPolicy {
     LauncherPolicy {
-        files: match l.files_backend {
-            FilesBackend::Auto => FilesChoice::Auto,
-            FilesBackend::Tracker => FilesChoice::Tracker,
-            FilesBackend::Fd => FilesChoice::Walk,
-            FilesBackend::Off => FilesChoice::Off,
-        },
+        files: l.files_backend,
         files_budget: Duration::from_millis(u64::from(l.files_budget_ms.0)),
         web: match l.web_search {
             WebSearch::On => WebPolicy::On {
@@ -27,18 +19,8 @@ pub fn search_policy_of(l: &LauncherSettings) -> LauncherPolicy {
             },
             WebSearch::Off => WebPolicy::Off,
         },
-        emoji_tone: match l.emoji_skin_tone {
-            EmojiSkinTone::Default => SkinTone::Default,
-            EmojiSkinTone::Light => SkinTone::Light,
-            EmojiSkinTone::MediumLight => SkinTone::MediumLight,
-            EmojiSkinTone::Medium => SkinTone::Medium,
-            EmojiSkinTone::MediumDark => SkinTone::MediumDark,
-            EmojiSkinTone::Dark => SkinTone::Dark,
-        },
-        currency: match l.currency {
-            CurrencyRates::Off => CurrencyPolicy::Off,
-            CurrencyRates::Ecb => CurrencyPolicy::Ecb,
-        },
+        emoji_tone: l.emoji_skin_tone,
+        currency: l.currency,
     }
 }
 
@@ -65,9 +47,7 @@ mod tests {
 
     use sill_launcher::SkinTone;
     use sill_model::results::{CurrencyPolicy, FilesChoice, WebPolicy};
-    use sill_settings::{
-        CurrencyRates, EmojiSkinTone, FilesBackend, LauncherSettings, Ms, WebSearch,
-    };
+    use sill_settings::{LauncherSettings, Ms, WebSearch};
 
     use super::search_policy_of;
 
@@ -93,11 +73,11 @@ mod tests {
     #[test]
     fn every_setting_reaches_the_search_policy() {
         let l = LauncherSettings {
-            files_backend: FilesBackend::Fd,
+            files_backend: FilesChoice::Walk,
             files_budget_ms: Ms(400),
-            emoji_skin_tone: EmojiSkinTone::MediumDark,
+            emoji_skin_tone: SkinTone::MediumDark,
             web_search: WebSearch::Off,
-            currency: CurrencyRates::Ecb,
+            currency: CurrencyPolicy::Ecb,
             ..LauncherSettings::default()
         };
         let search = search_policy_of(&l);

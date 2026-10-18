@@ -8,9 +8,10 @@ use ds_settings::{Count, Fraction, Ms, Px};
 use serde::{Deserialize, Serialize};
 
 use crate::control_center::PanelMaterial;
-use crate::launcher_kinds::{
-    ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, WebSearch,
-};
+use crate::launcher_kinds::WebSearch;
+use sill_launcher::SkinTone;
+use sill_model::clipboard::HistoryMode;
+use sill_model::results::{CurrencyPolicy, FilesChoice};
 
 /// The launcher panel's placement and rows.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
@@ -108,7 +109,7 @@ pub struct LauncherSettings {
         section = "Launcher",
         advanced
     )]
-    pub files_backend: FilesBackend,
+    pub files_backend: FilesChoice,
     /// `launcher.files_budget_ms`.
     #[settings(
         label = "File search time limit",
@@ -126,7 +127,7 @@ pub struct LauncherSettings {
         section = "Launcher",
         advanced
     )]
-    pub clipboard_history: ClipboardHistory,
+    pub clipboard_history: HistoryMode,
     /// `launcher.clipboard_cap`.
     #[settings(
         label = "Clipboard history length",
@@ -153,7 +154,7 @@ pub struct LauncherSettings {
         section = "Launcher",
         advanced
     )]
-    pub emoji_skin_tone: EmojiSkinTone,
+    pub emoji_skin_tone: SkinTone,
     /// `launcher.web_search`.
     #[settings(
         label = "Search the web",
@@ -177,7 +178,7 @@ pub struct LauncherSettings {
         section = "Launcher",
         advanced
     )]
-    pub currency: CurrencyRates,
+    pub currency: CurrencyPolicy,
 }
 
 impl Default for LauncherSettings {
@@ -192,15 +193,15 @@ impl Default for LauncherSettings {
             field_glyph_px: Px(20),
             row_title_px: Px(14),
             row_detail_px: Px(12),
-            files_backend: FilesBackend::Auto,
+            files_backend: FilesChoice::Auto,
             files_budget_ms: Ms(150),
-            clipboard_history: ClipboardHistory::Memory,
+            clipboard_history: HistoryMode::Memory,
             clipboard_cap: Count(50),
             clipboard_image_max_mb: Count(8),
-            emoji_skin_tone: EmojiSkinTone::Default,
+            emoji_skin_tone: SkinTone::Default,
             web_search: WebSearch::On,
             web_engine_url: "https://duckduckgo.com/?q={query}".to_owned(),
-            currency: CurrencyRates::Off,
+            currency: CurrencyPolicy::Off,
         }
     }
 }

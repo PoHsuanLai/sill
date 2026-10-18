@@ -7,6 +7,7 @@
 //! passive and presents with the defaults below: a test that spawns the service never asks for
 //! the bus name.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 use super::content::{Expiry, Notification, NotifyUrgency, Residency, SoundHint};
@@ -29,8 +30,9 @@ pub struct NotificationsPolicy {
 }
 
 /// `notifications.swipe`: what swiping a banner away does to its notification.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum Swipe {
     /// The banner leaves; the notification stays in the notification center (macOS).
     #[default]
@@ -51,8 +53,9 @@ pub enum Quiet {
 }
 
 /// `notifications.banner_style`: how an app's notifications show by default.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum Presentation {
     /// A banner that leaves by itself.
     #[default]
@@ -60,6 +63,8 @@ pub enum Presentation {
     /// A banner that stays until acted on.
     Alert,
     /// No banner: the history only.
+    #[serde(rename = "none")]
+    #[word(slug = "none", label = "None")]
     HistoryOnly,
 }
 
