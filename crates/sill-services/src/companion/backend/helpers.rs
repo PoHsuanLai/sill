@@ -11,8 +11,9 @@ use sill_model::companion::{Asked, CompanionEvent, HelpersCommand, HelpersMsg, m
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
-use super::text::{from_json, text, to_json};
+use super::text::{from_json, to_json};
 use super::{pool, routines};
+use crate::call_error::CallError;
 use crate::owner;
 use crate::stream::next;
 
@@ -81,7 +82,7 @@ async fn read_list(proxy: &CompanionHelpers2Proxy<'_>, after: u64) -> HelpersMsg
     match proxy
         .list(after)
         .await
-        .map_err(text)
+        .map_err(CallError::from)
         .and_then(|body| from_json::<HelpersView>(&body))
     {
         Ok(view) => HelpersMsg::Listed(view),
@@ -122,7 +123,7 @@ async fn save(
 /// A call's `HelperReply` as the message that carries it to the model.
 fn reply(answer: zbus::Result<String>, asked: Asked) -> HelpersMsg {
     match answer
-        .map_err(text)
+        .map_err(CallError::from)
         .and_then(|body| from_json::<HelperReply>(&body))
     {
         Ok(reply) => HelpersMsg::Replied(asked, reply),

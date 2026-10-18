@@ -8,6 +8,7 @@ use prov::{SpaceId, SpaceScope};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
+use crate::call_error::CallError;
 use crate::env::{NameState, name_state};
 use crate::stream::next;
 
@@ -17,25 +18,30 @@ const TERMINAL_SPACE: &str = "desktop";
 
 /// The proxy to intentd's `Control`, when intentd is on the bus: a call to a name nobody owns
 /// would ask the bus to start it, and opening the control center must not start a daemon.
-async fn running(connection: &Connection) -> Result<ControlProxy<'static>, String> {
-    match name_state(connection, INTENTS_BUS).await.map_err(text)? {
-        NameState::Owned => ControlProxy::new(connection).await.map_err(text),
-        NameState::Activatable | NameState::Missing => Err("intentd is not running".to_owned()),
+async fn running(connection: &Connection) -> Result<ControlProxy<'static>, CallError> {
+    match name_state(connection, INTENTS_BUS).await? {
+        NameState::Owned => ControlProxy::new(connection).await.map_err(CallError::from),
+        NameState::Activatable | NameState::Missing => {
+            Err(CallError::Absent("intentd is not running"))
+        }
     }
 }
 
 /// The standing grants, in intentd's order.
-pub(super) async fn grants(connection: &Connection) -> Result<Vec<ActionRef>, String> {
+pub(super) async fn grants(connection: &Connection) -> Result<Vec<ActionRef>, CallError> {
     let proxy = running(connection).await?;
-    let json = proxy.terminal_grants().await.map_err(text)?;
-    serde_json::from_str(&json).map_err(text)
+    let json = proxy.terminal_grants().await?;
+    serde_json::from_str(&json).map_err(CallError::from)
 }
 
 /// Withdraw one grant.
-pub(super) async fn revoke(connection: &Connection, grant: &ActionRef) -> Result<(), String> {
+pub(super) async fn revoke(connection: &Connection, grant: &ActionRef) -> Result<(), CallError> {
     let proxy = running(connection).await?;
-    let json = serde_json::to_string(grant).map_err(text)?;
-    proxy.revoke_terminal_grant(&json).await.map_err(text)
+    let json = serde_json::to_string(grant)?;
+    proxy
+        .revoke_terminal_grant(&json)
+        .await
+        .map_err(CallError::from)
 }
 
 /// Take away the "always ask" entry `id` names (a sheet's Undo): the next call it covered runs
@@ -43,18 +49,21 @@ pub(super) async fn revoke(connection: &Connection, grant: &ActionRef) -> Result
 pub(super) async fn undo_limit(
     connection: &Connection,
     id: &StandingGrantId,
-) -> Result<(), String> {
+) -> Result<(), CallError> {
     let proxy = running(connection).await?;
-    let json = serde_json::to_string(id).map_err(text)?;
-    proxy.revoke_standing_grant(&json).await.map_err(text)
+    let json = serde_json::to_string(id)?;
+    proxy
+        .revoke_standing_grant(&json)
+        .await
+        .map_err(CallError::from)
 }
 
 /// Let the terminal's paused sessions take calls again.
-pub(super) async fn resume(connection: &Connection) -> Result<(), String> {
+pub(super) async fn resume(connection: &Connection) -> Result<(), CallError> {
     let proxy = running(connection).await?;
-    let space = SpaceId::parse(TERMINAL_SPACE).map_err(text)?;
-    let json = serde_json::to_string(&SpaceScope::Only(space)).map_err(text)?;
-    proxy.resume(&json).await.map_err(text)
+    let space = SpaceId::parse(TERMINAL_SPACE).map_err(CallError::invalid)?;
+    let json = serde_json::to_string(&SpaceScope::Only(space))?;
+    proxy.resume(&json).await.map_err(CallError::from)
 }
 
 /// What the control announces that the terminal's state follows.
@@ -88,8 +97,4 @@ pub(super) async fn forward(connection: &Connection, to: UnboundedSender<Signall
             return;
         }
     }
-}
-
-fn text(error: impl std::fmt::Display) -> String {
-    error.to_string()
 }

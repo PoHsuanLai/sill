@@ -12,7 +12,8 @@ use docket_dbus::CompanionProxy;
 use prov::{Address, AgentRef, MessageKind, MessageText, SpaceId, UnixSeconds};
 use zbus::Connection;
 
-use super::text::{from_json, text, to_json};
+use super::text::{from_json, to_json};
+use crate::call_error::CallError;
 
 /// Say `words` to `agent` in `space`, as the person.
 pub(super) async fn tell(
@@ -21,8 +22,8 @@ pub(super) async fn tell(
     space: SpaceId,
     words: String,
     at: UnixSeconds,
-) -> Result<(), String> {
-    let companion = CompanionProxy::new(connection).await.map_err(text)?;
+) -> Result<(), CallError> {
+    let companion = CompanionProxy::new(connection).await?;
     let open = SessionOpen {
         space: space.clone(),
         agent: AgentRef::Companion,
@@ -32,7 +33,7 @@ pub(super) async fn tell(
         external: None,
         helper: None,
     };
-    let opened: SessionOpened = from_json(&companion.open(&to_json(&open)?).await.map_err(text)?)?;
+    let opened: SessionOpened = from_json(&companion.open(&to_json(&open)?).await?)?;
     let intents = Intents::over(DbusTransport::new(connection.clone()));
     let turn = TurnIn {
         text: words.clone(),
@@ -45,10 +46,7 @@ pub(super) async fn tell(
         },
         via: TurnVia::Typed,
     };
-    let id = intents
-        .session_turn(opened.session.clone(), turn)
-        .await
-        .map_err(text)?;
+    let id = intents.session_turn(opened.session.clone(), turn).await?;
     let draft = MessageDraft {
         to: Address {
             agent: agent.clone(),
@@ -72,9 +70,9 @@ pub(super) async fn tell(
             companion
                 .told(&to_json(&agent)?, space.as_str(), &to_json(&recorded)?)
                 .await
-                .map_err(text)
+                .map_err(CallError::from)
         }
-        Err(error) => Err(text(error)),
+        Err(error) => Err(error.into()),
     };
     // The session was only for this turn; closing it is best effort.
     let _ = companion.close(opened.session.as_str()).await;

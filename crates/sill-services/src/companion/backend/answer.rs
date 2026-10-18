@@ -17,14 +17,15 @@ use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
-use super::text::{from_json, text, to_json};
+use super::text::{from_json, to_json};
+use crate::call_error::CallError;
 use crate::deadline::{COMPANION_CALL, within};
 use crate::stream::next;
 
 /// The shell's window as the companion names it: `w` and the compositor's number.
-fn window_key(window: Option<ShellWindow>) -> Result<WindowKey, String> {
+fn window_key(window: Option<ShellWindow>) -> Result<WindowKey, CallError> {
     let name = format!("w{}", window.map_or(0, |window| window.0));
-    WindowKey::parse(&name).map_err(text)
+    WindowKey::parse(&name).map_err(CallError::invalid)
 }
 
 /// Send `input` to the companion: open a session, record the turn, ask. Returns the answer's
@@ -34,8 +35,8 @@ pub(super) async fn ask(
     input: AskInput,
     at: UnixSeconds,
     events: &UnboundedSender<CompanionEvent>,
-) -> Result<OwnedObjectPath, String> {
-    let companion = CompanionProxy::new(connection).await.map_err(text)?;
+) -> Result<OwnedObjectPath, CallError> {
+    let companion = CompanionProxy::new(connection).await?;
     let open = SessionOpen {
         space: input.space,
         agent: AgentRef::Companion,
@@ -45,7 +46,7 @@ pub(super) async fn ask(
         external: None,
         helper: None,
     };
-    let opened: SessionOpened = from_json(&companion.open(&to_json(&open)?).await.map_err(text)?)?;
+    let opened: SessionOpened = from_json(&companion.open(&to_json(&open)?).await?)?;
     let intents = Intents::over(DbusTransport::new(connection.clone()));
     let turn = TurnIn {
         text: input.prompt.clone(),
@@ -53,10 +54,7 @@ pub(super) async fn ask(
         keep: input.keep,
         via: input.via,
     };
-    let id = intents
-        .session_turn(opened.session.clone(), turn)
-        .await
-        .map_err(text)?;
+    let id = intents.session_turn(opened.session.clone(), turn).await?;
     let recorded = UserTurn {
         id,
         text: input.prompt.clone(),
@@ -72,10 +70,7 @@ pub(super) async fn ask(
         parent_window: window_key(input.window)?,
         app: input.app,
     };
-    let path = companion
-        .ask(&to_json(&wire)?, &Details::new())
-        .await
-        .map_err(text)?;
+    let path = companion.ask(&to_json(&wire)?, &Details::new()).await?;
     let _ = events.send(CompanionEvent::Asked {
         task: opened.task,
         prompt: input.prompt,
@@ -182,7 +177,7 @@ pub(super) async fn card(
     .await
     {
         Ok(done) => done,
-        Err(silent) => Err(silent.to_string()),
+        Err(silent) => Err(silent.into()),
     };
     if let Err(why) = pressed {
         eprintln!("sill: companion: a card button: {why}");
@@ -194,31 +189,34 @@ async fn press(
     connection: &Connection,
     task: &TaskId,
     action: &CardActionId,
-) -> Result<(), String> {
-    let path = OwnedObjectPath::try_from(answer_path(task)).map_err(text)?;
+) -> Result<(), CallError> {
+    let path = OwnedObjectPath::try_from(answer_path(task)).map_err(CallError::invalid)?;
     let proxy = CompanionAnswerProxy::builder(connection)
-        .path(path)
-        .map_err(text)?
+        .path(path)?
         .build()
+        .await?;
+    proxy
+        .act(&to_json(action)?)
         .await
-        .map_err(text)?;
-    proxy.act(&to_json(action)?).await.map(|_| ()).map_err(text)
+        .map(|_| ())
+        .map_err(CallError::from)
 }
 
 /// Stop `task`.
-pub(super) async fn cancel(connection: &Connection, task: &TaskId) -> Result<(), String> {
-    let path = OwnedObjectPath::try_from(answer_path(task)).map_err(text)?;
+pub(super) async fn cancel(connection: &Connection, task: &TaskId) -> Result<(), CallError> {
+    let path = OwnedObjectPath::try_from(answer_path(task)).map_err(CallError::invalid)?;
     let proxy = CompanionAnswerProxy::builder(connection)
-        .path(path)
-        .map_err(text)?
+        .path(path)?
         .build()
-        .await
-        .map_err(text)?;
-    proxy.cancel().await.map_err(text)
+        .await?;
+    proxy.cancel().await.map_err(CallError::from)
 }
 
 /// Warm the planner: a prompt is about to be typed.
-pub(super) async fn prepare(connection: &Connection) -> Result<(), String> {
-    let proxy = CompanionProxy::new(connection).await.map_err(text)?;
-    proxy.prepare(&Details::new()).await.map_err(text)
+pub(super) async fn prepare(connection: &Connection) -> Result<(), CallError> {
+    let proxy = CompanionProxy::new(connection).await?;
+    proxy
+        .prepare(&Details::new())
+        .await
+        .map_err(CallError::from)
 }

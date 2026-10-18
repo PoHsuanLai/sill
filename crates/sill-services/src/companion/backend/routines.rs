@@ -8,7 +8,8 @@ use sill_model::companion::{HelpersMsg, RoutinesCommand, RoutinesMsg};
 
 use super::helpers::{silent, unreached};
 use super::proposals;
-use super::text::{from_json, text, to_json};
+use super::text::{from_json, to_json};
+use crate::call_error::CallError;
 
 /// What the companion answered to `command`, as the message the screen takes; none for a call
 /// that says nothing back.
@@ -40,7 +41,7 @@ async fn read_list(proxy: &CompanionHelpers2Proxy<'_>) -> HelpersMsg {
     match proxy
         .routines()
         .await
-        .map_err(text)
+        .map_err(CallError::from)
         .and_then(|body| from_json::<RoutinesView>(&body))
     {
         Ok(view) => told(RoutinesMsg::Listed(view)),
@@ -56,7 +57,7 @@ async fn add(proxy: &CompanionHelpers2Proxy<'_>, form: &companion_wire::RoutineF
     match proxy
         .add_routine(&body)
         .await
-        .map_err(text)
+        .map_err(CallError::from)
         .and_then(|answer| from_json::<RoutineReply>(&answer))
     {
         Ok(reply) => told(RoutinesMsg::Replied(reply)),

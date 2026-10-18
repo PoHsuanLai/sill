@@ -12,7 +12,8 @@ use sill_launcher::Generation;
 use sill_model::companion::CompanionEvent;
 use zbus::Connection;
 
-use super::text::{from_json, text, to_json};
+use super::text::{from_json, to_json};
+use crate::call_error::CallError;
 
 /// How many entries one read asks for.
 const PAGE: u32 = 40;
@@ -60,15 +61,15 @@ pub(super) async fn settle(
 /// What waits for the person in every Space: an assistant's job in another Space (a helper's in
 /// "work") asks to remember there. Memory opens a Space on first use, so one not opened yet is
 /// asked too; one being deleted is not.
-async fn pending(connection: &Connection) -> Result<Vec<FactView>, String> {
-    let control = ControlProxy::new(connection).await.map_err(text)?;
-    let spaces: Vec<SpaceSummary> = from_json(&control.spaces().await.map_err(text)?)?;
+async fn pending(connection: &Connection) -> Result<Vec<FactView>, CallError> {
+    let control = ControlProxy::new(connection).await?;
+    let spaces: Vec<SpaceSummary> = from_json(&control.spaces().await?)?;
     let mut waiting = Vec::new();
     for space in spaces
         .iter()
         .filter(|s| !matches!(s.state, SpaceState::Deleting | SpaceState::Gone))
     {
-        let reply = control.pending(space.id.as_str()).await.map_err(text)?;
+        let reply = control.pending(space.id.as_str()).await?;
         waiting.extend(from_json::<Vec<FactView>>(&reply)?);
     }
     Ok(waiting)
@@ -81,7 +82,7 @@ async fn settled(
     fact: &FactId,
     verb: MemoryVerb,
     at: UnixSeconds,
-) -> Result<(), String> {
+) -> Result<(), CallError> {
     let waiting = pending(connection).await?;
     let Some(view) = waiting.iter().find(|view| &view.fact.id == fact) else {
         return Ok(());
@@ -89,25 +90,26 @@ async fn settled(
     let settlement = match verb {
         MemoryVerb::Keep => Settlement::Keep(receipt(view, at)?),
         MemoryVerb::Discard => Settlement::Discard,
-        _ => return Err("not a way to answer a memory".to_owned()),
+        _ => return Err(CallError::invalid("not a way to answer a memory")),
     };
-    let control = ControlProxy::new(connection).await.map_err(text)?;
+    let control = ControlProxy::new(connection).await?;
     control
         .settle(&to_json(fact)?, &to_json(&settlement)?)
         .await
-        .map_err(text)
+        .map_err(CallError::from)
 }
 
-fn receipt(view: &FactView, at: UnixSeconds) -> Result<ConfirmReceipt, String> {
+fn receipt(view: &FactView, at: UnixSeconds) -> Result<ConfirmReceipt, CallError> {
     Ok(ConfirmReceipt {
-        id: ConfirmId::parse(&format!("keep-{}-{}", view.fact.id, at.0)).map_err(text)?,
+        id: ConfirmId::parse(&format!("keep-{}-{}", view.fact.id, at.0))
+            .map_err(CallError::invalid)?,
         input: InputProof::ShellCaller,
         at,
         covers: view.fact.label.confidentiality.clone(),
     })
 }
 
-async fn page(connection: &Connection) -> Result<TimelinePage, String> {
+async fn page(connection: &Connection) -> Result<TimelinePage, CallError> {
     let query = TimelineQuery {
         before: None,
         limit: Count(PAGE),
@@ -119,11 +121,8 @@ async fn page(connection: &Connection) -> Result<TimelinePage, String> {
             range: None,
         },
     };
-    let control = ControlProxy::new(connection).await.map_err(text)?;
+    let control = ControlProxy::new(connection).await?;
     let space = SpaceId::desktop();
-    let reply = control
-        .timeline(space.as_str(), &to_json(&query)?)
-        .await
-        .map_err(text)?;
+    let reply = control.timeline(space.as_str(), &to_json(&query)?).await?;
     from_json(&reply)
 }

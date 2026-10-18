@@ -9,7 +9,8 @@ use sill_model::companion::{CompanionEvent, FocusFacts, FocusInput, Serves};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use zbus::Connection;
 
-use super::text::{from_json, text, to_json};
+use super::text::{from_json, to_json};
+use crate::call_error::CallError;
 use crate::env::{NameState, name_state};
 use crate::seat::SeatView;
 
@@ -80,16 +81,13 @@ async fn summon(
     connection: &Connection,
     app: &AppName,
     serial: SummonSerial,
-) -> Result<SummonAnswer, String> {
+) -> Result<SummonAnswer, CallError> {
     let provider = IntentProviderProxy::builder(connection)
-        .destination(app.as_str().to_owned())
-        .map_err(text)?
-        .path(PROVIDER_PATH)
-        .map_err(text)?
+        .destination(app.as_str().to_owned())?
+        .path(PROVIDER_PATH)?
         .build()
-        .await
-        .map_err(text)?;
+        .await?;
     let origin = to_json(&SummonOrigin::DoubleTap)?;
-    let reply = provider.summon(serial.0, &origin).await.map_err(text)?;
+    let reply = provider.summon(serial.0, &origin).await?;
     from_json(&reply)
 }

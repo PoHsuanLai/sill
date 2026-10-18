@@ -17,7 +17,8 @@ use tokio::task::JoinHandle;
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
-use super::text::{from_json, text};
+use super::text::from_json;
+use crate::call_error::CallError;
 use crate::owner;
 use crate::stream::next;
 
@@ -95,8 +96,8 @@ async fn watch(
     let run = match proxy
         .id()
         .await
-        .map_err(text)
-        .and_then(|id| RunId::parse(&id).map_err(text))
+        .map_err(CallError::from)
+        .and_then(|id| RunId::parse(&id).map_err(CallError::invalid))
     {
         Ok(run) => run,
         Err(why) => return eprintln!("sill: companion: a run's id: {why}"),
@@ -113,13 +114,12 @@ async fn watch(
 async fn run_proxy(
     connection: &Connection,
     path: OwnedObjectPath,
-) -> Result<RunProxy<'static>, String> {
+) -> Result<RunProxy<'static>, CallError> {
     RunProxy::builder(connection)
-        .path(path)
-        .map_err(text)?
+        .path(path)?
         .build()
         .await
-        .map_err(text)
+        .map_err(CallError::from)
 }
 
 /// One run: its facts now, then again after each thing it says.
@@ -127,11 +127,11 @@ async fn follow_run(
     run: RunId,
     proxy: RunProxy<'static>,
     events: UnboundedSender<CompanionEvent>,
-) -> Result<(), String> {
-    let mut phases = proxy.receive_phase_changed().await.map_err(text)?;
-    let mut steps = proxy.receive_step_started().await.map_err(text)?;
-    let mut thoughts = proxy.receive_thought_delta().await.map_err(text)?;
-    let mut ends = proxy.receive_finished().await.map_err(text)?;
+) -> Result<(), CallError> {
+    let mut phases = proxy.receive_phase_changed().await?;
+    let mut steps = proxy.receive_step_started().await?;
+    let mut thoughts = proxy.receive_thought_delta().await?;
+    let mut ends = proxy.receive_finished().await?;
     let mut facts = read(&run, &proxy).await?;
     let send = |facts: &RunFacts| events.send(CompanionEvent::Run(Box::new(facts.clone())));
     if send(&facts).is_err() {
@@ -177,11 +177,10 @@ fn slug_of(text: &str) -> Option<RunStateSlug> {
 }
 
 /// The run's properties as facts.
-async fn read(run: &RunId, proxy: &RunProxy<'_>) -> Result<RunFacts, String> {
-    let state = slug_of(&proxy.state().await.map_err(text)?).ok_or("an unknown run state")?;
-    let mode: RunMode =
-        serde_json::from_value(serde_json::Value::String(proxy.mode().await.map_err(text)?))
-            .map_err(text)?;
+async fn read(run: &RunId, proxy: &RunProxy<'_>) -> Result<RunFacts, CallError> {
+    let state =
+        slug_of(&proxy.state().await?).ok_or_else(|| CallError::invalid("an unknown run state"))?;
+    let mode: RunMode = serde_json::from_value(serde_json::Value::String(proxy.mode().await?))?;
     let window = proxy
         .window()
         .await
@@ -195,9 +194,9 @@ async fn read(run: &RunId, proxy: &RunProxy<'_>) -> Result<RunFacts, String> {
         .and_then(|body| from_json::<BudgetBody>(&body).ok());
     Ok(RunFacts {
         run: run.clone(),
-        goal: proxy.goal().await.map_err(text)?,
+        goal: proxy.goal().await?,
         window,
-        step: proxy.step().await.map_err(text)?,
+        step: proxy.step().await?,
         state,
         outcome: None::<CuaOutcome>,
         mode,
@@ -211,20 +210,15 @@ pub(super) async fn control(
     connection: &Connection,
     run: &RunId,
     control: RunControl,
-) -> Result<(), String> {
+) -> Result<(), CallError> {
     let path = cua_dbus::run_path(run);
-    let proxy = RunProxy::builder(connection)
-        .path(path)
-        .map_err(text)?
-        .build()
-        .await
-        .map_err(text)?;
+    let proxy = RunProxy::builder(connection).path(path)?.build().await?;
     match control {
-        RunControl::Pause => proxy.pause().await.map_err(text),
-        RunControl::Resume => proxy.resume().await.map_err(text),
-        RunControl::Stop => proxy.cancel().await.map_err(text),
-        RunControl::TakeOver => proxy.take_over().await.map_err(text),
-        RunControl::HandBack => proxy.hand_back().await.map_err(text),
+        RunControl::Pause => proxy.pause().await.map_err(CallError::from),
+        RunControl::Resume => proxy.resume().await.map_err(CallError::from),
+        RunControl::Stop => proxy.cancel().await.map_err(CallError::from),
+        RunControl::TakeOver => proxy.take_over().await.map_err(CallError::from),
+        RunControl::HandBack => proxy.hand_back().await.map_err(CallError::from),
         // Watching is the compositor's: it shows the run's window; and undoing is intentd's,
         // which the caller sends instead.
         RunControl::Watch | RunControl::UndoAll => Ok(()),

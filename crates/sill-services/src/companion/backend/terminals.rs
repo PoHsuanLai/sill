@@ -10,7 +10,8 @@ use sill_model::companion::{CompanionEvent, NO_BRING_BACK, TerminalsCommand, Ter
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
-use super::text::{from_json, text};
+use super::text::from_json;
+use crate::call_error::CallError;
 use crate::owner;
 use crate::stream::next;
 
@@ -32,16 +33,16 @@ pub(super) async fn carry(connection: &Connection, command: TerminalsCommand) ->
     }
 }
 
-async fn read_list(proxy: &CompanionTerminalsProxy<'_>) -> Result<Vec<TerminalSession>, String> {
-    let body = proxy.sessions().await.map_err(text)?;
+async fn read_list(proxy: &CompanionTerminalsProxy<'_>) -> Result<Vec<TerminalSession>, CallError> {
+    let body = proxy.sessions().await?;
     from_json(&body)
 }
 
 async fn bring_back(
     proxy: &CompanionTerminalsProxy<'_>,
     session: &SessionId,
-) -> Result<BroughtBack, String> {
-    let body = proxy.bring_back(session.as_str()).await.map_err(text)?;
+) -> Result<BroughtBack, CallError> {
+    let body = proxy.bring_back(session.as_str()).await?;
     from_json(&body)
 }
 

@@ -30,9 +30,20 @@ const MANIFEST: &str = include_str!("../../../../../dist/intents/org.quire.Shell
 const CALL_WAIT: Duration = Duration::from_secs(4);
 
 /// The shell's manifest, parsed and validated; an error is a bug in the shipped file.
-pub fn manifest() -> Result<ValidManifest, String> {
-    let parsed: Manifest = toml::from_str(MANIFEST).map_err(|e| e.to_string())?;
-    validate(parsed).map_err(|e| e.to_string())
+pub fn manifest() -> Result<ValidManifest, ManifestFault> {
+    let parsed: Manifest = toml::from_str(MANIFEST)?;
+    Ok(validate(parsed)?)
+}
+
+/// Why the shipped manifest cannot be read: a bug in the shipped file.
+#[derive(Debug, thiserror::Error)]
+pub enum ManifestFault {
+    /// The file is not TOML of the manifest's shape.
+    #[error("{0}")]
+    Parse(#[from] toml::de::Error),
+    /// The manifest parses but breaks a rule of the vocabulary.
+    #[error("{0}")]
+    Invalid(#[from] docket_core::ManifestError),
 }
 
 /// The shell's provider.

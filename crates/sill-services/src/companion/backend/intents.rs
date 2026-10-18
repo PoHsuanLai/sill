@@ -18,7 +18,8 @@ use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
 use super::shown;
-use super::text::{from_json, text};
+use super::text::from_json;
+use crate::call_error::CallError;
 use crate::stream::next;
 
 fn intents(connection: &Connection) -> Intents<DbusTransport> {
@@ -56,47 +57,50 @@ pub(super) async fn search(
 /// the apps a helper may be given.
 async fn declared(
     connection: &Connection,
-) -> Result<(BTreeSet<Opener>, BTreeSet<AppName>), String> {
+) -> Result<(BTreeSet<Opener>, BTreeSet<AppName>), CallError> {
     intents(connection)
         .manifests()
         .await
         .map(|all| (openers_of(&all), offered_apps(&all)))
-        .map_err(text)
+        .map_err(CallError::from)
 }
 
 /// Read the undo journal, newest first.
-pub(super) async fn journal(connection: &Connection) -> Result<Vec<UndoEntry>, String> {
+pub(super) async fn journal(connection: &Connection) -> Result<Vec<UndoEntry>, CallError> {
     let filter = JournalFilter {
         run: None,
         session: None,
         limit: Count(JOURNAL_ROWS),
     };
-    intents(connection).journal(filter).await.map_err(text)
+    intents(connection)
+        .journal(filter)
+        .await
+        .map_err(CallError::from)
 }
 
 /// Undo `scope`: one row, or a run's or a task's. The answer is the journal read again.
-pub(super) async fn undo(connection: &Connection, scope: UndoScope) -> Result<(), String> {
+pub(super) async fn undo(connection: &Connection, scope: UndoScope) -> Result<(), CallError> {
     let client = intents(connection);
     match scope {
         UndoScope::Entry(entry) => client
             .undo(entry)
+            .await?
+            .map_err(|fault| CallError::Declined(format!("{fault:?}"))),
+        scope @ (UndoScope::Run(_) | UndoScope::Task(_)) => client
+            .undo_all(scope)
             .await
-            .map_err(text)?
-            .map_err(|fault| format!("{fault:?}")),
-        scope @ (UndoScope::Run(_) | UndoScope::Task(_)) => {
-            client.undo_all(scope).await.map(|_| ()).map_err(text)
-        }
+            .map(|_| ())
+            .map_err(CallError::from),
     }
 }
 
 /// Perform `call` as the person asked, on no session.
-pub(super) async fn perform(connection: &Connection, call: CallRequest) -> Result<(), String> {
+pub(super) async fn perform(connection: &Connection, call: CallRequest) -> Result<(), CallError> {
     intents(connection)
         .perform(call, None, None)
-        .await
-        .map_err(text)?
+        .await?
         .map(|_| ())
-        .map_err(|refusal| format!("{refusal:?}"))
+        .map_err(|refusal| CallError::Declined(format!("{refusal:?}")))
 }
 
 /// What intentd says on its own while it is on the bus: the hits an app answered late, the
@@ -167,7 +171,7 @@ pub(super) async fn display(
     connection: &Connection,
     session: SessionId,
     handle: Handle,
-) -> Result<String, String> {
+) -> Result<String, CallError> {
     let client = intents(connection);
     match client
         .session_display_labelled(session.clone(), handle)
@@ -178,7 +182,7 @@ pub(super) async fn display(
             .session_display(session, handle)
             .await
             .map(|plain| shown::quoted(&plain))
-            .map_err(text),
-        Err(error) => Err(text(error)),
+            .map_err(CallError::from),
+        Err(error) => Err(error.into()),
     }
 }

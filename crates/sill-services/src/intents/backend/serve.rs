@@ -42,7 +42,7 @@ pub(super) async fn take(
         Ok(None) => return Err(LinkTrouble::NoBus),
         Err(error) => return Err(LinkTrouble::Refused(error.to_string())),
     };
-    let manifest = manifest().map_err(LinkTrouble::Refused)?;
+    let manifest = manifest().map_err(|error| LinkTrouble::Refused(error.to_string()))?;
     let app = manifest.manifest().app.clone();
     let intentd = Arc::new(intentd_at(&connection, &proc_root));
     let peers = callers.peers_on(connection.clone());

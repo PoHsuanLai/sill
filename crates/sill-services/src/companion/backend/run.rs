@@ -31,8 +31,8 @@ use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
 use super::probe::{self, Arrival};
-use super::text::text;
 use super::{answer, cua, helpers, intents, memory, tell, terminal, terminals};
+use crate::call_error::CallError;
 use crate::companion::{CompanionLinks, CompanionService};
 use crate::control::Control;
 use crate::deadline::{COMPANION_CALL, within};
@@ -371,7 +371,7 @@ impl Live {
     fn on_bus<F, Fut>(&self, what: &'static str, call: F)
     where
         F: FnOnce(Connection) -> Fut + Send + 'static,
-        Fut: std::future::Future<Output = Result<(), String>> + Send + 'static,
+        Fut: std::future::Future<Output = Result<(), CallError>> + Send + 'static,
     {
         let Some(connection) = self.connection.clone() else {
             return;
@@ -623,7 +623,9 @@ impl Live {
         let events = self.events.clone();
         self.on_bus("reading the journal", move |connection| async move {
             let rows = intents::journal(&connection).await?;
-            events.send(CompanionEvent::Journal(rows)).map_err(text)
+            events
+                .send(CompanionEvent::Journal(rows))
+                .map_err(|_| CallError::Absent("channel closed"))
         });
     }
 }

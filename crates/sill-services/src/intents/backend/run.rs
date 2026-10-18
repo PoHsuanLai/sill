@@ -27,6 +27,7 @@ use zbus::Connection;
 use super::control::{self, Signalled};
 use super::objects::{Asker, Call, REQUEST_INTERFACE, retire};
 use super::serve::{self, Seat};
+use crate::call_error::CallError;
 use crate::callers::CallerSource;
 use crate::env::{Bus, Env, WallClock};
 use crate::intents::{IntentsLinks, IntentsService};
@@ -61,9 +62,9 @@ enum Inner {
     Expired(Serial),
     Reload,
     AskerGone,
-    Grants(Result<Vec<ActionRef>, String>),
-    Resumed(Result<(), String>),
-    LimitUndone(StandingGrantId, Result<(), String>),
+    Grants(Result<Vec<ActionRef>, CallError>),
+    Resumed(Result<(), CallError>),
+    LimitUndone(StandingGrantId, Result<(), CallError>),
     Signal(Signalled),
 }
 

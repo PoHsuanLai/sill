@@ -7,14 +7,15 @@ use docket_dbus::CompanionHelpers2Proxy;
 use sill_model::companion::{HelpersMsg, RoutinesMsg};
 
 use super::helpers::{silent, unreached};
-use super::text::{from_json, text};
+use super::text::from_json;
+use crate::call_error::CallError;
 
 /// What the suggested routines are now.
 pub(super) async fn list(proxy: &CompanionHelpers2Proxy<'_>) -> HelpersMsg {
     match proxy
         .routine_proposals()
         .await
-        .map_err(text)
+        .map_err(CallError::from)
         .and_then(|body| from_json::<Vec<RoutineProposal>>(&body))
     {
         Ok(proposals) => HelpersMsg::Routines(RoutinesMsg::Proposed(proposals)),
@@ -27,7 +28,7 @@ pub(super) async fn accept(proxy: &CompanionHelpers2Proxy<'_>, id: &ProposalId) 
     match proxy
         .accept_routine_proposal(&id.to_string())
         .await
-        .map_err(text)
+        .map_err(CallError::from)
         .and_then(|body| from_json::<RoutineReply>(&body))
     {
         Ok(reply) => HelpersMsg::Routines(RoutinesMsg::Accepted(reply)),
