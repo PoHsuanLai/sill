@@ -16,6 +16,7 @@ use sill_model::companion::{
     state_label,
 };
 
+use super::proposals::proposal_panel;
 use super::say::{Say, use_say};
 
 /// The routines of `helper`, with the panel that adds one while it is open.
@@ -41,6 +42,9 @@ pub(super) fn Routines(model: HelpersModel, helper: HelperId) -> Element {
     rsx! {
         div { class: "sill-helper-routines",
             Label { text: "Routines", style: LabelStyle::Headline }
+            for proposal in model.routines.proposed_to(&helper) {
+                {proposal_panel(proposal, &say)}
+            }
             if rows.is_empty() {
                 Label { text: NO_ROUTINES, role: LabelRole::Secondary }
             }

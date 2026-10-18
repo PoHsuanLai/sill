@@ -1,5 +1,6 @@
 use companion_wire::{
-    RoutineForm, RoutineLine, RoutineReply, RoutineShown, RoutinesView, WhenForm,
+    ProposalId, RoutineForm, RoutineLine, RoutineProposal, RoutineReply, RoutineShown, RoutinesView,
+    WhenForm,
 };
 use docket_core::helper::HelperName;
 use docket_core::routine::{Missed, RoutineId};
@@ -166,4 +167,68 @@ fn the_words_say_how_a_routine_stands_and_that_a_missed_run_is_skipped() {
     assert_eq!(state_label(RoutineShown::Paused), "Paused");
     assert_eq!(last_run_line(&routine(1, "h-1", RoutineShown::On)), None);
     assert_eq!(repeat_label(Repeat::Weekdays), "Weekdays");
+}
+
+fn proposal(n: u64, owner: &str, when: WhenForm) -> RoutineProposal {
+    RoutineProposal {
+        id: ProposalId(n),
+        helper: helper(owner),
+        form: RoutineForm {
+            helper: helper(owner),
+            goal: "Read the news".to_owned(),
+            when,
+            missed: Missed::Skip,
+            steps: 12,
+        },
+        why: "You asked about the news twice.".to_owned(),
+    }
+}
+
+#[test]
+fn a_suggestion_makes_nothing_until_accepted_and_not_now_forgets_it() {
+    let (model, sent) = feed(vec![
+        RoutinesMsg::Proposed(vec![
+            proposal(1, "h-1", WhenForm::At("daily 08:00".to_owned())),
+            proposal(2, "h-2", WhenForm::At("weekdays 07:30".to_owned())),
+        ]),
+        RoutinesMsg::AcceptProposal(ProposalId(9)),
+    ]);
+    assert!(sent.is_empty(), "nothing is made, and an unknown one is ignored");
+    let mine: Vec<ProposalId> = model.proposed_to(&helper("h-2")).map(|p| p.id).collect();
+    assert_eq!(mine, [ProposalId(2)]);
+    let (accepting, sent) = update(model.clone(), RoutinesMsg::AcceptProposal(ProposalId(1)));
+    assert_eq!(sent, [RoutinesCommand::AcceptProposal(ProposalId(1))]);
+    let (_, sent) = update(accepting, RoutinesMsg::Accepted(RoutineReply::Made(RoutineId(4))));
+    assert_eq!(sent, [RoutinesCommand::List, RoutinesCommand::ListProposals]);
+    let (declined, sent) = update(model, RoutinesMsg::DeclineProposal(ProposalId(1)));
+    assert_eq!(sent, [RoutinesCommand::DeclineProposal(ProposalId(1))]);
+    assert_eq!(declined.proposals.len(), 1);
+}
+
+#[test]
+fn a_refused_acceptance_says_why() {
+    let (model, _) = feed(vec![RoutinesMsg::Accepted(RoutineReply::Refused(
+        "That helper is paused.".to_owned(),
+    ))]);
+    assert_eq!(model.notice.as_deref(), Some("That helper is paused."));
+}
+
+#[test]
+fn a_suggestion_is_worded_plainly_and_its_reason_is_quoted() {
+    let daily = proposal(1, "h-1", WhenForm::At("daily 08:00".to_owned()));
+    assert_eq!(proposal_when(&daily), "Every day at 08:00");
+    assert_eq!(proposal_what(&daily), "Read the news");
+    assert_eq!(
+        proposal_why(&daily).as_deref(),
+        Some("\u{201c}You asked about the news twice.\u{201d}")
+    );
+    let weekdays = proposal(2, "h-1", WhenForm::At("weekdays 07:30".to_owned()));
+    assert_eq!(proposal_when(&weekdays), "Weekdays at 07:30");
+    let hours = proposal(3, "h-1", WhenForm::At("every 2 hours".to_owned()));
+    assert_eq!(proposal_when(&hours), "Every 2 hours");
+    let silent = RoutineProposal {
+        why: "  ".to_owned(),
+        ..daily
+    };
+    assert_eq!(proposal_why(&silent), None);
 }

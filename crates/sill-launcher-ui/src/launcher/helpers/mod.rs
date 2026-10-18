@@ -11,6 +11,7 @@ mod automatic;
 mod card;
 mod form;
 mod jobs;
+mod proposals;
 mod routines;
 mod say;
 

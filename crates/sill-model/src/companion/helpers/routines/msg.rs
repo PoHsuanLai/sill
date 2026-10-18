@@ -1,6 +1,6 @@
 //! What tells the routines part things, and what it asks of the outside.
 
-use companion_wire::{RoutineForm, RoutineReply, RoutinesView};
+use companion_wire::{ProposalId, RoutineForm, RoutineProposal, RoutineReply, RoutinesView};
 use docket_core::routine::RoutineId;
 use prov::HelperId;
 
@@ -13,6 +13,14 @@ pub enum RoutinesMsg {
     Listed(RoutinesView),
     /// A call to make a routine was answered.
     Replied(RoutineReply),
+    /// The suggested routines arrived.
+    Proposed(Vec<RoutineProposal>),
+    /// The person accepts a suggested routine.
+    AcceptProposal(ProposalId),
+    /// The person turns a suggested routine down.
+    DeclineProposal(ProposalId),
+    /// Accepting a suggestion was answered.
+    Accepted(RoutineReply),
     /// The person asks to add a routine for this helper: the sheet opens.
     OpenSheet(HelperId),
     /// The person types what it is to do.
@@ -44,6 +52,12 @@ pub enum RoutinesMsg {
 pub enum RoutinesCommand {
     /// Read the list.
     List,
+    /// Read the suggested routines.
+    ListProposals,
+    /// Make the routine a helper suggested, as it was shown.
+    AcceptProposal(ProposalId),
+    /// Turn a suggestion down.
+    DeclineProposal(ProposalId),
     /// Make a routine from what the person confirmed.
     Add(Box<RoutineForm>),
     /// Pause a routine.

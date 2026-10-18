@@ -437,6 +437,7 @@ fn a_made_helper_opens_its_card_and_a_change_reads_the_list_and_the_card_again()
         [
             HelpersCommand::List { after: 0 },
             HelpersCommand::Routines(RoutinesCommand::List),
+            HelpersCommand::Routines(RoutinesCommand::ListProposals),
             HelpersCommand::ReadCard(id("h-7"))
         ]
     );
@@ -445,7 +446,8 @@ fn a_made_helper_opens_its_card_and_a_change_reads_the_list_and_the_card_again()
         sent,
         [
             HelpersCommand::List { after: 0 },
-            HelpersCommand::Routines(RoutinesCommand::List)
+            HelpersCommand::Routines(RoutinesCommand::List),
+            HelpersCommand::Routines(RoutinesCommand::ListProposals)
         ]
     );
 }
@@ -524,7 +526,8 @@ fn a_list_keeps_new_sentences_once_and_closes_a_card_whose_helper_went() {
         sent,
         [
             HelpersCommand::List { after: 3 },
-            HelpersCommand::Routines(RoutinesCommand::List)
+            HelpersCommand::Routines(RoutinesCommand::List),
+            HelpersCommand::Routines(RoutinesCommand::ListProposals)
         ]
     );
 

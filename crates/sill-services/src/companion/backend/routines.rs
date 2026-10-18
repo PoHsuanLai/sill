@@ -1,5 +1,5 @@
 //! The routines on `org.quire.Companion1.Helpers2`: the list, making one from what the person
-//! confirmed, pausing, resuming and removing. The companion tells `Changed` after each, and the
+//! confirmed (the ones helpers suggest are in `proposals`), pausing, resuming and removing. The companion tells `Changed` after each, and the
 //! screen reads the list again then, so the calls with no body say nothing back.
 
 use companion_wire::{RoutineReply, RoutinesView};
@@ -7,6 +7,7 @@ use docket_dbus::CompanionHelpers2Proxy;
 use sill_model::companion::{HelpersMsg, RoutinesCommand, RoutinesMsg};
 
 use super::helpers::{silent, unreached};
+use super::proposals;
 use super::text::{from_json, text, to_json};
 
 /// What the companion answered to `command`, as the message the screen takes; none for a call
@@ -17,6 +18,9 @@ pub(super) async fn carry(
 ) -> Option<HelpersMsg> {
     match command {
         RoutinesCommand::List => Some(read_list(proxy).await),
+        RoutinesCommand::ListProposals => Some(proposals::list(proxy).await),
+        RoutinesCommand::AcceptProposal(id) => Some(proposals::accept(proxy, &id).await),
+        RoutinesCommand::DeclineProposal(id) => proposals::decline(proxy, &id).await,
         RoutinesCommand::Add(form) => Some(add(proxy, &form).await),
         RoutinesCommand::Pause(routine) => silent(proxy.pause_routine(&routine.to_string()).await),
         RoutinesCommand::Resume(routine) => {

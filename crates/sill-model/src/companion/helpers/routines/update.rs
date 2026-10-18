@@ -1,6 +1,6 @@
 //! The routines part's one transition: `(model, message) -> (model, commands)`.
 
-use companion_wire::{RoutineReply, RoutinesView};
+use companion_wire::{ProposalId, RoutineProposal, RoutineReply, RoutinesView};
 
 use super::draft::{Repeat, RoutineDraft};
 use super::model::{RoutineRemoval, RoutinesModel, Sheet};
@@ -11,6 +11,30 @@ pub fn update(model: RoutinesModel, msg: RoutinesMsg) -> (RoutinesModel, Vec<Rou
     match msg {
         RoutinesMsg::Listed(view) => (listed(model, view), Vec::new()),
         RoutinesMsg::Replied(reply) => replied(model, reply),
+        RoutinesMsg::Proposed(proposals) => (
+            RoutinesModel {
+                proposals,
+                ..model
+            },
+            Vec::new(),
+        ),
+        RoutinesMsg::AcceptProposal(id) => {
+            let known = model.proposals.iter().any(|proposal| proposal.id == id);
+            let sent = if known {
+                vec![RoutinesCommand::AcceptProposal(id)]
+            } else {
+                Vec::new()
+            };
+            (model, sent)
+        }
+        RoutinesMsg::DeclineProposal(id) => (
+            RoutinesModel {
+                proposals: without(model.proposals, &id),
+                ..model
+            },
+            vec![RoutinesCommand::DeclineProposal(id)],
+        ),
+        RoutinesMsg::Accepted(reply) => accepted(model, reply),
         RoutinesMsg::OpenSheet(helper) => (
             RoutinesModel {
                 sheet: Sheet::Adding(RoutineDraft::blank(helper)),
@@ -88,6 +112,27 @@ fn replied(model: RoutinesModel, reply: RoutineReply) -> (RoutinesModel, Vec<Rou
             vec![RoutinesCommand::List],
         ),
     }
+}
+
+/// A suggestion was accepted, or refused with a sentence that is shown. The lists are read again
+/// either way, since the suggestion may be gone.
+fn accepted(model: RoutinesModel, reply: RoutineReply) -> (RoutinesModel, Vec<RoutinesCommand>) {
+    let notice = match reply {
+        RoutineReply::Refused(sentence) => Some(sentence),
+        RoutineReply::Done | RoutineReply::Made(_) => None,
+    };
+    (
+        RoutinesModel { notice, ..model },
+        vec![RoutinesCommand::List, RoutinesCommand::ListProposals],
+    )
+}
+
+/// `proposals` without the one called `id`.
+fn without(proposals: Vec<RoutineProposal>, id: &ProposalId) -> Vec<RoutineProposal> {
+    proposals
+        .into_iter()
+        .filter(|proposal| proposal.id != *id)
+        .collect()
 }
 
 /// `draft` repeating as `repeat`.

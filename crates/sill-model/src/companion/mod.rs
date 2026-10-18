@@ -45,12 +45,13 @@ pub use emphasis::{Emphasis, Span, plain_of, spans};
 pub use helpers::{
     ADD_MODEL, AUTOMATIC_HELP, Asked, Automatic, CEILINGS, Draft, GONE, HelpersCommand,
     HelpersModel, HelpersMsg, LOOKING_FOR_MODELS, MISSED_SKIPPED, ModelGroup, ModelList,
-    ModelOffer, NO_MODELS, NO_ROUTINES, Open, PoolWritten, REPEATS, Reach, Removal, Repeat,
+    ModelOffer, NO_MODELS, NO_ROUTINES, Open, PROPOSAL_ACCEPT, PROPOSAL_DECLINE, PROPOSAL_TITLE,
+    PROPOSAL_WHY_LEAD, PoolWritten, REPEATS, Reach, Removal, Repeat,
     RoutineDraft, RoutineRemoval, RoutinesCommand, RoutinesModel, RoutinesMsg, SHARED_WITH_HELPER,
     Sheet, SignInButton, WAITING_BADGE, app_label, badge_of, ceiling_label, controls_of,
     job_answer, job_prompt, job_words, kind_line, last_run_line, login_line, model_groups,
-    model_hint, model_line, needs_sign_in_line, offered_apps, offers_sign_out, remove_question,
-    remove_routine_question, repeat_label, sign_in_buttons, state_label, update as update_helpers,
+    model_hint, model_line, needs_sign_in_line, offered_apps, offers_sign_out, proposal_what,
+    proposal_when, proposal_why, remove_question, remove_routine_question, repeat_label, sign_in_buttons, state_label, update as update_helpers,
 };
 pub use model::{
     AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,

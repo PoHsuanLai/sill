@@ -218,6 +218,7 @@ fn changed(model: HelpersModel) -> (HelpersModel, Vec<HelpersCommand>) {
             after: model.told_after,
         },
         HelpersCommand::Routines(RoutinesCommand::List),
+        HelpersCommand::Routines(RoutinesCommand::ListProposals),
     ];
     commands.extend(model.open_id().cloned().map(HelpersCommand::ReadCard));
     (model, commands)

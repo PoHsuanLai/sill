@@ -5,6 +5,7 @@
 mod draft;
 mod model;
 mod msg;
+mod proposals;
 #[cfg(test)]
 mod tests;
 mod update;
@@ -13,6 +14,10 @@ mod words;
 pub use draft::{REPEATS, Repeat, RoutineDraft};
 pub use model::{RoutineRemoval, RoutinesModel, Sheet};
 pub use msg::{RoutinesCommand, RoutinesMsg};
+pub use proposals::{
+    PROPOSAL_ACCEPT, PROPOSAL_DECLINE, PROPOSAL_TITLE, PROPOSAL_WHY_LEAD, proposal_what,
+    proposal_when, proposal_why,
+};
 pub use update::update;
 pub use words::{
     MISSED_SKIPPED, NO_ROUTINES, last_run_line, remove_routine_question, repeat_label, state_label,

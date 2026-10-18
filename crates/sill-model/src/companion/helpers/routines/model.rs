@@ -1,6 +1,6 @@
 //! What the routines part of the helpers screen holds.
 
-use companion_wire::RoutineLine;
+use companion_wire::{RoutineLine, RoutineProposal};
 use docket_core::routine::RoutineId;
 use prov::HelperId;
 
@@ -31,6 +31,8 @@ pub enum RoutineRemoval {
 pub struct RoutinesModel {
     /// One line per routine, in the order the companion lists them.
     pub lines: Vec<RoutineLine>,
+    /// What helpers suggest, oldest first; nothing is made until the person accepts one.
+    pub proposals: Vec<RoutineProposal>,
     /// The sheet that makes a routine.
     pub sheet: Sheet,
     /// The question about removing a routine.
@@ -47,5 +49,15 @@ impl RoutinesModel {
         helper: &'a HelperId,
     ) -> impl Iterator<Item = &'a RoutineLine> + 'a {
         self.lines.iter().filter(move |line| line.helper == *helper)
+    }
+
+    /// The routines suggested for the helper `helper`.
+    pub fn proposed_to<'a>(
+        &'a self,
+        helper: &'a HelperId,
+    ) -> impl Iterator<Item = &'a RoutineProposal> + 'a {
+        self.proposals
+            .iter()
+            .filter(move |proposal| proposal.helper == *helper)
     }
 }

@@ -7,6 +7,7 @@ mod intents;
 mod memory;
 mod pool;
 mod probe;
+mod proposals;
 mod routines;
 mod run;
 mod shown;
