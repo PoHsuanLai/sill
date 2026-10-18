@@ -1,65 +1,44 @@
 //! The session lock's surface: one document per output, made by shell-host's session lock.
 
-use std::fmt;
-use std::marker::PhantomData;
-
 use dioxus::prelude::{Element, use_context_provider};
 use shell_host::{LockConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use crate::root::{SurfaceName, use_host_signals};
 
-/// A surface the compositor's session lock draws instead of a layer surface.
-pub trait LockSurface: 'static {
+/// A surface the compositor's session lock draws instead of a layer surface: sill has one, the
+/// lock screen. Its link is [`crate::links::LockLink`].
+#[derive(Debug, Clone, Copy)]
+pub struct LockSurface {
     /// The surface's name, as [`super::Surface::NAME`].
-    const NAME: &'static str;
-    /// The link that drives it, as [`super::Surface::Link`].
-    type Link: Clone + Send + Sync + 'static;
+    pub name: &'static str,
     /// How shell-host sets its surfaces up.
-    fn config(settings: &ShellFile) -> LockConfig;
+    pub config: fn(&ShellFile) -> LockConfig,
     /// The document on `output`; it runs as a root component, so it may call hooks.
-    fn root(output: OutputInfo) -> Element;
+    pub root: fn(OutputInfo) -> Element,
 }
 
-/// What [`mount_lock`] is given: the output whose lock surface it draws.
-pub struct MountLockProps<S: LockSurface> {
+/// What [`mount_lock`] is given: the lock surface and the output whose surface it draws.
+#[derive(Debug, Clone)]
+pub struct MountLockProps {
+    pub surface: LockSurface,
     pub output: OutputInfo,
-    surface: PhantomData<fn() -> S>,
 }
 
-impl<S: LockSurface> MountLockProps<S> {
-    /// The props for the lock surface of `S` on `output`.
-    pub fn new(output: OutputInfo) -> MountLockProps<S> {
-        MountLockProps {
-            output,
-            surface: PhantomData,
-        }
+impl MountLockProps {
+    /// The props for `surface` on `output`.
+    pub fn new(surface: LockSurface, output: OutputInfo) -> MountLockProps {
+        MountLockProps { surface, output }
     }
 }
 
-// By hand: a derive would ask `S` itself to be `Clone`.
-impl<S: LockSurface> Clone for MountLockProps<S> {
-    fn clone(&self) -> Self {
-        MountLockProps::new(self.output.clone())
-    }
-}
-
-// By hand: a derive would ask `S` itself to be `Debug`.
-impl<S: LockSurface> fmt::Debug for MountLockProps<S> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MountLockProps")
-            .field("surface", &S::NAME)
-            .field("output", &self.output)
-            .finish()
-    }
-}
-
-/// The root component of a lock surface `S`: quire's document host and the seat's signals, then
-/// its `root`, in the component's scope.
-pub fn mount_lock<S: LockSurface>(props: MountLockProps<S>) -> Element {
+/// The root component of a lock surface: quire's document host and the seat's signals, then its
+/// `root`, in the component's scope.
+pub fn mount_lock(props: MountLockProps) -> Element {
     ds_blitz::provide_host();
     crate::root::provide_keymap();
-    use_context_provider(|| SurfaceName(S::NAME));
+    let name = props.surface.name;
+    use_context_provider(|| SurfaceName(name));
     use_host_signals();
-    S::root(props.output)
+    (props.surface.root)(props.output)
 }

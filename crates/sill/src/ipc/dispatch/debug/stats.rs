@@ -4,9 +4,8 @@
 
 use shell_host::{HostCtx, SurfaceId};
 use sill_ipc::debug::{Micros, SurfaceName, SurfaceStats};
-use sill_overlays::Lock;
+use sill_overlays::LOCK;
 use sill_settings::ShellFile;
-use sill_ui_kit::surface::LockSurface;
 
 use crate::daemon::msg::ShellMsg;
 use crate::outputs::{OutputSurfaces, Outputs};
@@ -34,7 +33,7 @@ fn lock_surfaces(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<(String,
         .iter()
         .filter_map(|(info, _)| info.name.clone())
         .filter_map(|name| {
-            let namespace = <Lock as LockSurface>::config(&ShellFile::default()).namespace;
+            let namespace = (LOCK.config)(&ShellFile::default()).namespace;
             let label = format!("{namespace}/{name}");
             let id = ctx.surface_named(&shell_host::SurfaceName(label.clone()))?;
             Some((label, id))

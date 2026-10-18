@@ -28,7 +28,7 @@ use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
     AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, DisplayTrialSheet, ForceQuit,
-    HotCorners, IdleDim, Lock, Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar,
+    HotCorners, IdleDim, LOCK, Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar,
     SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
@@ -39,7 +39,7 @@ use sill_ui_kit::links::{
     LockLink, OsdKind, OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput,
     SpacesBarLink, SplitPickerLink, SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::surface::{LockSurface, Surface};
+use sill_ui_kit::surface::Surface;
 use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
@@ -104,7 +104,7 @@ const SURFACES: &[SurfaceCase] = &[
     },
     SurfaceCase {
         name: "lock",
-        surface: <Lock as LockSurface>::NAME,
+        surface: LOCK.name,
         css: sill_overlays::lock::LOCK_CSS,
         states: lock_states,
     },
@@ -911,7 +911,7 @@ fn lock_states() -> Vec<(&'static str, String)> {
     let draw = |prompt| {
         let link = LockLink::new();
         link.set(prompt);
-        let mut lock = LockHarness::<Lock>::setup(link).start();
+        let mut lock = LockHarness::setup(LOCK, link).start();
         lock.harness.advance(Duration::ZERO);
         lock.harness.html()
     };

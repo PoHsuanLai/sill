@@ -9,7 +9,7 @@ use shell_host::OutputId;
 use sill_model::auth::{Account, Auth, AuthPhase, RealName, UserName};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
-use sill_overlays::Lock;
+use sill_overlays::LOCK;
 use sill_ui_kit::harness::{LockHarness, fake};
 use sill_ui_kit::links::{LockLink, PromptOutput};
 use tokio::sync::watch;
@@ -32,7 +32,7 @@ fn render(auth: Auth, prompt: PromptOutput, wallpapers: Wallpapers) -> String {
     // The senders outlive the render; the services only hold the receivers.
     let (_auth_tx, auth_rx) = watch::channel(auth);
     let (_wallpaper_tx, wallpaper_rx) = watch::channel(wallpapers);
-    let mut run = LockHarness::<Lock>::setup(link)
+    let mut run = LockHarness::setup(LOCK, link)
         .services(move |services| {
             services.auth.state = auth_rx;
             services.wallpaper.state = wallpaper_rx;

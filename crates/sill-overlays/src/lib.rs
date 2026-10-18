@@ -1,6 +1,6 @@
 //! The overlay surfaces: the OSD, the power menu, the Force Quit Applications panel, the polkit prompt, the confirmation sheet, the permission sheet, the display trial, the voice consent sheet, the app switcher, the idle
 //! dim, the hot corners, the wallpaper, the window menu, Mission Control's Spaces bar, the Split View picker, the colour picker's eyedropper and the lock screen. One directory per surface, each
-//! implementing `sill_ui_kit::surface::Surface` (the lock screen `LockSurface`).
+//! implementing `sill_ui_kit::surface::Surface` (the lock screen `LOCK`, a `LockSurface`).
 
 pub mod accounts_sheet;
 pub mod arming;
@@ -32,7 +32,7 @@ pub use eyedropper::ColorSampler;
 pub use force_quit::ForceQuit;
 pub use hot_corners::HotCorners;
 pub use idle_dim::IdleDim;
-pub use lock::Lock;
+pub use lock::LOCK;
 pub use osd::Osd;
 pub use permission_sheet::PermissionSheet;
 pub use polkit_prompt::PolkitPrompt;

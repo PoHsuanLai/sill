@@ -436,15 +436,15 @@ pub trait Surface: 'static {
     fn root(output: OutputInfo, slot: Self::Slot) -> Element;
 }
 pub struct Place<'a> { pub output: &'a OutputInfo, pub rank: OutputRank, pub settings: &'a ShellFile }
-pub trait LockSurface: 'static {
-    const NAME: &'static str;
-    type Link: Clone + Send + Sync + 'static;
-    fn config(settings: &ShellFile) -> LockConfig;
-    fn root(output: OutputInfo) -> Element;
+// The session lock is one surface, so `LockSurface` is a value (sill-overlays' `LOCK`), not a trait.
+pub struct LockSurface {
+    pub name: &'static str,
+    pub config: fn(&ShellFile) -> LockConfig,
+    pub root: fn(OutputInfo) -> Element,
 }
 ```
 
-Implementors: the 16 layer surfaces and `lock`. A new visible thing on its own layer surface
+Implementors of `Surface`: the 16 layer surfaces; the lock is the `LOCK` value. A new visible thing on its own layer surface
 is a new `Surface`. A popup of an existing surface is a `MenuPopup` or a component, not a
 `Surface`. `root` runs inside `surface::mount::<S>`, the one root component every spawned surface
 has, so a `root` may call hooks. `SurfaceRoot` stays a plain component that each view wraps its
@@ -725,7 +725,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 | `force_quit` | `sill-overlays` | Overlay | Force Quit Applications (`sill force-quit {open,close,toggle}`; Option+Command+Escape once casement runs that command for the chord): a quire `Sheet` centred on the output of the active window, a `List` of the apps the desktop lists (`sill_model::desktop::force_quit_rows` from the compositor's `DesktopView`, fed to `ForceQuitLink` by `daemon/events.rs`) with "(not responding)" after a hung one's name and a hung app preselected, a Force Quit button that asks quire's `Alert` ("Do you want to force quit ...?", Cancel the default) before `force_quit::spawn_asks` sends `DesktopCommand::ForceQuitApp`. The selection and the question are `force_quit/step.rs`; Escape answers the question, then closes the panel; a press away closes it |
 | `display-trial` | `sill-overlays` | Overlay | `display_trial/`: "Keep these display settings?" after a program other than the shell changed the displays (`ShellNote::DisplaysTrial` -> `DisplayTrialLink`), on quire's `Alert`, centred on the banners' output; the line under the headline counts the seconds down, Revert is the default and Escape, Keep Changes keeps; answers nothing for `QUESTION_ARM_AFTER` after it is drawn; answers through the link and `DesktopCommand::AnswerTrial` |
 | `permission` | `sill-overlays` | Overlay | `permission_sheet/`: an app's yes-or-no question (`org.quire.Shell1.AskPermission` from the portal backend) on quire's `Alert`, centred on the banners' output; the app's icon, the headline, the app's name and explanation, the yes button (default) and the no button (Escape); answers nothing for `PERMISSION_ARM_AFTER` after it is drawn; answers through `CaptureCommand::PermissionAnswer` |
-| `lock` | `sill-overlays` | session lock | `LockSurface`; one per output through shell-host |
+| `lock` | `sill-overlays` | session lock | `LOCK`, a `LockSurface`; one per output through shell-host |
 
 The notification center draws widgets and the desktop layer draws them too, so providers live
 in `sill-ui-kit`, and the center's "Edit Widgets" and the desktop menu's ask through `links::edit_widgets`, which also carries the desktop's writes (`WidgetsChange`).

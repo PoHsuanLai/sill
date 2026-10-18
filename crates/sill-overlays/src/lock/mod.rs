@@ -23,5 +23,5 @@ mod model;
 mod surface;
 mod view;
 
-pub use surface::Lock;
+pub use surface::LOCK;
 pub use view::LOCK_CSS;

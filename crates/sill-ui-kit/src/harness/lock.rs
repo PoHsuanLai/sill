@@ -1,4 +1,4 @@
-//! [`LockHarness`]: any [`LockSurface`] mounted in a `ds_harness::Harness` outside a lock document
+//! [`LockHarness`]: a [`LockSurface`] mounted in a `ds_harness::Harness` outside a lock document
 //! (no shell-host `LockHandle`, as in every test), on the fake services, a pinned appearance and
 //! the virtual clock, with the surface's link in the test's hand.
 
@@ -16,25 +16,28 @@ use tokio::sync::watch;
 use super::fake;
 use super::surface::{Build, WORLD, app};
 use crate::hooks::PinnedAppearance;
+use crate::links::LockLink;
 use crate::services::Services;
 use crate::surface::{LockSurface, MountLockProps, mount_lock};
 
 /// A running lock surface and what it talks to.
-pub struct LockHarness<S: LockSurface> {
+pub struct LockHarness {
     /// The document: `advance`, `html`, `count`, ...
     pub harness: Harness,
     /// The fake services' senders.
     pub feeds: fake::Feeds,
+    /// The surface mounted.
+    surface: LockSurface,
     /// The surface's link, the daemon's end.
-    pub link: S::Link,
+    pub link: LockLink,
     /// The person's `style.css` the surface follows: send a new one to restyle it live.
     pub user_style: watch::Sender<UserStyle>,
 }
 
-impl<S: LockSurface> fmt::Debug for LockHarness<S> {
+impl fmt::Debug for LockHarness {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("LockHarness")
-            .field("surface", &S::NAME)
+            .field("surface", &self.surface.name)
             .field("harness", &self.harness)
             .finish_non_exhaustive()
     }
@@ -42,26 +45,28 @@ impl<S: LockSurface> fmt::Debug for LockHarness<S> {
 
 /// How a [`LockHarness`] starts: the default settings on a fixed 1920 x 1080 output, whose size
 /// is the viewport.
-pub struct LockSetup<S: LockSurface> {
-    link: S::Link,
+pub struct LockSetup {
+    surface: LockSurface,
+    link: LockLink,
     settings: ShellFile,
     output: OutputInfo,
     appearance: PinnedAppearance,
     services: Box<dyn FnOnce(&mut Services)>,
 }
 
-impl<S: LockSurface> fmt::Debug for LockSetup<S> {
+impl fmt::Debug for LockSetup {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("LockSetup")
-            .field("surface", &S::NAME)
+            .field("surface", &self.surface.name)
             .finish_non_exhaustive()
     }
 }
 
-impl<S: LockSurface> LockHarness<S> {
-    /// The setup of `S` on `link`.
-    pub fn setup(link: S::Link) -> LockSetup<S> {
+impl LockHarness {
+    /// The setup of `surface` on `link`.
+    pub fn setup(surface: LockSurface, link: LockLink) -> LockSetup {
         LockSetup {
+            surface,
             link,
             settings: ShellFile::default(),
             output: fake::output(),
@@ -71,7 +76,7 @@ impl<S: LockSurface> LockHarness<S> {
     }
 }
 
-impl<S: LockSurface> LockSetup<S> {
+impl LockSetup {
     /// The settings file the surface reads.
     pub fn settings(mut self, settings: ShellFile) -> Self {
         self.settings = settings;
@@ -91,8 +96,9 @@ impl<S: LockSurface> LockSetup<S> {
     }
 
     /// Mount the surface and draw its first frame.
-    pub fn start(self) -> LockHarness<S> {
+    pub fn start(self) -> LockHarness {
         let LockSetup {
+            surface,
             link,
             settings,
             output,
@@ -117,13 +123,14 @@ impl<S: LockSurface> LockSetup<S> {
             use_context_provider(|| feed.clone());
             use_context_provider(|| appearance.clone());
             use_context_provider(|| context_link.clone());
-            mount_lock::<S>(MountLockProps::new(output.clone()))
+            mount_lock(MountLockProps::new(surface, output.clone()))
         });
         WORLD.with(|world| *world.borrow_mut() = Some(build));
         let harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
         LockHarness {
             harness,
             feeds,
+            surface,
             link,
             user_style,
         }

@@ -18,8 +18,8 @@ use shell_host::{
 
 use crate::daemon::msg::ShellMsg;
 
-/// How a session lock is taken: shell-host's setup (from `Lock::config`) and what builds each
-/// output's lock surface root (the daemon's `surface_root` around `mount_lock::<Lock>`).
+/// How a session lock is taken: shell-host's setup (from `LOCK.config`) and what builds each
+/// output's lock surface root (the daemon's `surface_root` around `mount_lock`).
 pub struct LockFactory {
     pub config: LockConfig,
     pub build: Box<dyn Fn(OutputInfo) -> HostRoot>,
