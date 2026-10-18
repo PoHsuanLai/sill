@@ -21,7 +21,7 @@ fn main() -> ExitCode {
     let decoded = read
         .ok()
         .and_then(|_| protocol::decode_request(&request).ok());
-    request.iter_mut().for_each(|byte| *byte = 0);
+    request.fill(0);
     let Some(request) = decoded else {
         return ExitCode::from(2);
     };

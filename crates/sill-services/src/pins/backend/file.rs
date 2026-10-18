@@ -17,14 +17,11 @@ pub(crate) fn load(dir: &Path) -> DockPins {
     let Ok(text) = std::fs::read_to_string(&path) else {
         return DockPins::default();
     };
-    match serde_json::from_str(&text) {
-        Ok(pins) => pins,
+    serde_json::from_str(&text).unwrap_or_else(|_| {
         // The next save would replace it: keep what the person had.
-        Err(_) => {
-            durable::set_aside(&path);
-            DockPins::default()
-        }
-    }
+        durable::set_aside(&path);
+        DockPins::default()
+    })
 }
 
 /// Write `pins` to `dir` (created if needed) durably, so a directory watch sees one rename and a

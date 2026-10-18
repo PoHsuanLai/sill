@@ -281,10 +281,10 @@ impl Live {
 
     async fn feed_inhibition(&mut self) {
         let now = inhibition(&self.inhibitors, self.logind_idle);
-        if now != self.state.inhibition {
-            self.feed(IdleEvent::Inhibition(now)).await;
-        } else {
+        if now == self.state.inhibition {
             self.publish();
+        } else {
+            self.feed(IdleEvent::Inhibition(now)).await;
         }
     }
 

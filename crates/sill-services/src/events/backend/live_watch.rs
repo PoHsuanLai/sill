@@ -56,7 +56,7 @@ impl Touches {
         if self.signals.recv().await.is_none() {
             std::future::pending::<()>().await;
         }
-        while let Ok(Some(())) = tokio::time::timeout(DEBOUNCE, self.signals.recv()).await {}
+        while tokio::time::timeout(DEBOUNCE, self.signals.recv()).await == Ok(Some(())) {}
     }
 }
 

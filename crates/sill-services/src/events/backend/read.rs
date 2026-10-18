@@ -102,10 +102,9 @@ fn entries(dir: &Path) -> Result<(Vec<PathBuf>, Vec<PathBuf>), EventsError> {
             .extension()
             .is_some_and(|ext| ext.eq_ignore_ascii_case("ics"));
         match (hidden, path.is_dir(), is_ics) {
-            (true, _, _) => {}
+            (true, _, _) | (false, false, false) => {}
             (false, true, _) => dirs.push(path),
             (false, false, true) => files.push(path),
-            (false, false, false) => {}
         }
     }
     files.sort();

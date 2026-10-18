@@ -164,7 +164,9 @@ impl WireState {
         let source = manager.source(&self.qh);
         let bytes: Arc<[u8]> = match &content {
             ClipContent::Text(text) => {
-                TEXT_OFFERS.iter().for_each(|mime| source.offer(mime));
+                for mime in TEXT_OFFERS {
+                    source.offer(mime);
+                }
                 Arc::from(text.0.as_bytes())
             }
             ClipContent::Image(image) => {

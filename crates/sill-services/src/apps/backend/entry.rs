@@ -120,8 +120,7 @@ fn on_path(try_exec: &str) -> bool {
         return candidate.is_file();
     }
     std::env::var_os("PATH")
-        .map(|paths| std::env::split_paths(&paths).any(|dir| dir.join(try_exec).is_file()))
-        .unwrap_or(false)
+        .is_some_and(|paths| std::env::split_paths(&paths).any(|dir| dir.join(try_exec).is_file()))
 }
 
 /// `NoDisplay`, `Hidden` and an `OnlyShowIn`/`NotShowIn` mismatch against [`CURRENT_DESKTOPS`]

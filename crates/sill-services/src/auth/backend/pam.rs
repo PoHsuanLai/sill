@@ -99,7 +99,7 @@ struct Answers {
 impl Drop for Answers {
     fn drop(&mut self) {
         let mut bytes = std::mem::take(&mut self.secret).into_vec();
-        bytes.iter_mut().for_each(|byte| *byte = 0);
+        bytes.fill(0);
         std::hint::black_box(&bytes);
     }
 }

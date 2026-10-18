@@ -255,7 +255,7 @@ impl Live {
                 eprintln!("sill: intents: reading the terminal's grants: {why}");
                 self.feed(IntentsEvent::Terminal(TerminalEvent::Unreachable));
             }
-            Inner::Resumed(Ok(())) => {
+            Inner::Resumed(Ok(())) | Inner::Signal(Signalled::Resumed) => {
                 self.feed(IntentsEvent::Terminal(TerminalEvent::Breaker(
                     Breaker::Running,
                 )));
@@ -271,11 +271,6 @@ impl Live {
             Inner::Signal(Signalled::Tripped) => {
                 self.feed(IntentsEvent::Terminal(TerminalEvent::Breaker(
                     Breaker::Tripped,
-                )));
-            }
-            Inner::Signal(Signalled::Resumed) => {
-                self.feed(IntentsEvent::Terminal(TerminalEvent::Breaker(
-                    Breaker::Running,
                 )));
             }
         }

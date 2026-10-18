@@ -260,8 +260,7 @@ fn start_with(
 fn bare_command(argv: &[String]) -> Vec<String> {
     argv.iter()
         .position(|arg| arg == "--")
-        .map(|i| argv[i + 1..].to_vec())
-        .unwrap_or_else(|| argv.to_vec())
+        .map_or_else(|| argv.to_vec(), |i| argv[i + 1..].to_vec())
 }
 
 /// `argv[0]` with `argv[1..]`, the activation token (if any) in both `XDG_ACTIVATION_TOKEN`

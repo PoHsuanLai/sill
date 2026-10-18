@@ -27,9 +27,9 @@ fn mode_for(target: &Path, access: Access) -> u32 {
     const OWNER_ONLY: u32 = 0o600;
     match access {
         Access::OwnerOnly => OWNER_ONLY,
-        Access::AsFound => fs::metadata(target)
-            .map(|found| found.permissions().mode() & 0o7777)
-            .unwrap_or(OWNER_ONLY),
+        Access::AsFound => {
+            fs::metadata(target).map_or(OWNER_ONLY, |found| found.permissions().mode() & 0o7777)
+        }
     }
 }
 

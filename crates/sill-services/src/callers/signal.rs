@@ -57,7 +57,7 @@ impl SignalSenders {
         header: &Header<'_>,
         claims: &[Claim<T>],
     ) -> Option<(OwnedUniqueName, T)> {
-        let sender = header.sender().map(|sender| sender.as_str());
+        let sender = header.sender().map(zbus::names::UniqueName::as_str);
         if sender.is_some_and(|name| self.refused.holds(name)) {
             return None;
         }

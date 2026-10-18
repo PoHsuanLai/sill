@@ -23,7 +23,7 @@ use crate::stream::next;
 pub(super) async fn carry(connection: &Connection, command: HelpersCommand) -> Option<HelpersMsg> {
     let proxy = match CompanionHelpers2Proxy::new(connection).await {
         Ok(proxy) => proxy,
-        Err(error) => return unreached(&error),
+        Err(error) => return Some(unreached(&error)),
     };
     match command {
         HelpersCommand::List { after } => Some(read_list(&proxy, after).await),
@@ -74,7 +74,7 @@ async fn read_models(connection: &Connection) -> HelpersMsg {
     let transport = DbusTransport::over(connection.clone());
     match transport.list_places().await {
         Ok(read) => HelpersMsg::ModelsOffered(model_groups(&read.rows)),
-        Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => unreached(&why),
     }
 }
 
@@ -86,7 +86,7 @@ async fn read_list(proxy: &CompanionHelpers2Proxy<'_>, after: u64) -> HelpersMsg
         .and_then(|body| from_json::<HelpersView>(&body))
     {
         Ok(view) => HelpersMsg::Listed(view),
-        Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => unreached(&why),
     }
 }
 
@@ -96,10 +96,10 @@ async fn read_card(proxy: &CompanionHelpers2Proxy<'_>, helper: HelperId) -> Help
     match proxy.card(helper.as_str()).await {
         Ok(body) => match from_json::<HelperCardView>(&body) {
             Ok(view) => HelpersMsg::CardRead(Box::new(view)),
-            Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+            Err(why) => unreached(&why),
         },
         Err(zbus::Error::MethodError(..)) => HelpersMsg::CardMissing(helper),
-        Err(error) => unreached(&error).unwrap_or(HelpersMsg::Unreached),
+        Err(error) => Some(unreached(&error)),
     }
 }
 
@@ -111,7 +111,7 @@ async fn save(
 ) -> HelpersMsg {
     let body = match to_json(form) {
         Ok(body) => body,
-        Err(why) => return unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => return unreached(&why),
     };
     let saved = match helper {
         Some(helper) => proxy.edit(helper.as_str(), &body).await,
@@ -127,7 +127,7 @@ fn reply(answer: zbus::Result<String>, asked: Asked) -> HelpersMsg {
         .and_then(|body| from_json::<HelperReply>(&body))
     {
         Ok(reply) => HelpersMsg::Replied(asked, reply),
-        Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => unreached(&why),
     }
 }
 
@@ -135,14 +135,14 @@ fn reply(answer: zbus::Result<String>, asked: Asked) -> HelpersMsg {
 pub(super) fn silent(done: zbus::Result<()>) -> Option<HelpersMsg> {
     match done {
         Ok(()) => None,
-        Err(error) => unreached(&error),
+        Err(error) => Some(unreached(&error)),
     }
 }
 
 /// Log what went wrong; the person is told that the helpers could not be reached.
-pub(super) fn unreached(why: &dyn std::fmt::Display) -> Option<HelpersMsg> {
+pub(super) fn unreached(why: &dyn std::fmt::Display) -> HelpersMsg {
     eprintln!("sill: companion: helpers: {why}");
-    Some(HelpersMsg::Unreached)
+    HelpersMsg::Unreached
 }
 
 /// The companion's helpers while it is on the bus: the list is read when it appears and each

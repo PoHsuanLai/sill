@@ -110,7 +110,10 @@ impl Menu {
                 "only the root is served, not {parent_id}"
             )));
         }
-        let grown = *self.grown.lock().unwrap_or_else(|e| e.into_inner());
+        let grown = *self
+            .grown
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         Ok((u32::from(grown) + 1, layout(grown)))
     }
 
@@ -124,7 +127,10 @@ impl Menu {
     ) {
         self.log.line(&format!("Event {id} {event_id}"));
         if id == REFRESH && event_id == "clicked" {
-            *self.grown.lock().unwrap_or_else(|e| e.into_inner()) = true;
+            *self
+                .grown
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = true;
             let _ = Self::layout_updated(&emitter, 2, EDIT).await;
         }
     }

@@ -112,16 +112,13 @@ fn follow(
     let (globals, queue) = registry_queue_init::<WireState>(&conn)?;
     let qh = queue.handle();
     let seat = globals.bind::<WlSeat, _, _>(&qh, 1..=1, ()).ok();
-    let binding = match (bind_manager(&globals, &qh), seat) {
-        (Some(manager), Some(seat)) => {
-            let device = manager.device(&seat, &qh);
-            Binding::Bound { manager, device }
-        }
-        _ => {
-            let [ext, wlr] = manager_interfaces();
-            eprintln!("sill: clipboard: no seat, or neither {ext} nor {wlr}");
-            Binding::Unsupported
-        }
+    let binding = if let (Some(manager), Some(seat)) = (bind_manager(&globals, &qh), seat) {
+        let device = manager.device(&seat, &qh);
+        Binding::Bound { manager, device }
+    } else {
+        let [ext, wlr] = manager_interfaces();
+        eprintln!("sill: clipboard: no seat, or neither {ext} nor {wlr}");
+        Binding::Unsupported
     };
     tell.say(ClipEvent::Connected(match &binding {
         Binding::Bound { manager, .. } => manager.protocol(),

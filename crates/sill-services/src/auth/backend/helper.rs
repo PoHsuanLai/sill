@@ -91,7 +91,7 @@ fn hand_over(child: &mut Child, request: &HelperRequest) {
         let _ = stdin.write_all(&bytes);
         let _ = stdin.flush();
     }
-    bytes.iter_mut().for_each(|byte| *byte = 0);
+    bytes.fill(0);
     std::hint::black_box(&bytes);
 }
 

@@ -63,7 +63,7 @@ const SHRINK_F: f32 = 8.0;
 
 /// The blur's sigma for an image `width` pixels wide: [`BACKDROP_SIGMA_AT_1920`] scaled.
 fn sigma_for(width: u32) -> f32 {
-    let width = u16::try_from(width).map_or(f32::from(u16::MAX), f32::from);
+    let width = u16::try_from(width).map_or_else(|_| f32::from(u16::MAX), f32::from);
     BACKDROP_SIGMA_AT_1920 * width / 1920.0
 }
 

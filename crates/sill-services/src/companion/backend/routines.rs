@@ -45,14 +45,14 @@ async fn read_list(proxy: &CompanionHelpers2Proxy<'_>) -> HelpersMsg {
         .and_then(|body| from_json::<RoutinesView>(&body))
     {
         Ok(view) => told(RoutinesMsg::Listed(view)),
-        Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => unreached(&why),
     }
 }
 
 async fn add(proxy: &CompanionHelpers2Proxy<'_>, form: &companion_wire::RoutineForm) -> HelpersMsg {
     let body = match to_json(form) {
         Ok(body) => body,
-        Err(why) => return unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => return unreached(&why),
     };
     match proxy
         .add_routine(&body)
@@ -61,6 +61,6 @@ async fn add(proxy: &CompanionHelpers2Proxy<'_>, form: &companion_wire::RoutineF
         .and_then(|answer| from_json::<RoutineReply>(&answer))
     {
         Ok(reply) => told(RoutinesMsg::Replied(reply)),
-        Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => unreached(&why),
     }
 }

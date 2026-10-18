@@ -60,7 +60,7 @@ pub(crate) async fn admit<T: Copy>(
 ) -> fdo::Result<(OwnedUniqueName, T)> {
     check(peers, header, claims).await.map_err(|refused| {
         log_refusal(
-            header.sender().map(|sender| sender.as_str()),
+            header.sender().map(zbus::names::UniqueName::as_str),
             claims,
             &refused,
         );
@@ -75,7 +75,7 @@ pub(crate) async fn check<T: Copy>(
     header: &Header<'_>,
     claims: &[Claim<T>],
 ) -> Result<(OwnedUniqueName, T), Refused> {
-    let sender = header.sender().map(|sender| sender.as_str());
+    let sender = header.sender().map(zbus::names::UniqueName::as_str);
     let need: Vec<Requirement> = claims.iter().flat_map(Claim::requirements).collect();
     let standing = peers.require(sender, &need).await?;
     let claim = claim_held(&standing, claims).ok_or(Refused::NotAllowed)?;

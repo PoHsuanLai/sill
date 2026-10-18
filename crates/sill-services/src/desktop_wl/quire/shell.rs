@@ -143,7 +143,8 @@ impl Following {
     /// Publish the desktop and hand out the notes, with the pictures of Spaces that finished.
     fn publish(&mut self) {
         let view = self.arm.sync();
-        self.arm.pictures(|client, id| client.take_capture(id));
+        self.arm
+            .pictures(desktop_client::client::DesktopClient::take_capture);
         self.view.send_replace(view);
     }
 

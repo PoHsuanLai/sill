@@ -49,6 +49,6 @@ fn say(line: &str) {
 
 fn wipe(text: String) {
     let mut bytes = text.into_bytes();
-    bytes.iter_mut().for_each(|b| *b = 0);
+    bytes.fill(0);
     std::hint::black_box(&bytes);
 }

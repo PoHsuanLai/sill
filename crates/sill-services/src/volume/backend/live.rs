@@ -62,7 +62,7 @@ pub(crate) fn run(
             Session::Lost => {
                 apply_event(tx, VolumeEvent::SinkGone);
                 backoff.after_attempt(started.elapsed());
-                if let Waited::CommandsClosed = wait_out(backoff.wait(), commands) {
+                if matches!(wait_out(backoff.wait(), commands), Waited::CommandsClosed) {
                     return;
                 }
             }
@@ -208,9 +208,10 @@ fn refresh(context: &Rc<RefCell<Context>>, tx: &watch::Sender<Volume>, sink: &Rc
     let context = Rc::clone(context);
     let tx = tx.clone();
     let sink = Rc::clone(sink);
-    introspector.get_server_info(move |info| match info.default_sink_name.as_deref() {
-        Some(name) => fetch_sink(&context, name.to_owned(), &tx, &sink),
-        None => {
+    introspector.get_server_info(move |info| {
+        if let Some(name) = info.default_sink_name.as_deref() {
+            fetch_sink(&context, name.to_owned(), &tx, &sink);
+        } else {
             *sink.borrow_mut() = Sink::default();
             apply_event(&tx, VolumeEvent::SinkGone);
         }

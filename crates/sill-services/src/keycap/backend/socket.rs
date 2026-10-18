@@ -243,14 +243,15 @@ fn serve(
     let mut buffer = vec![0u8; MAX_PACKET];
     let turn = loop {
         let ready = wait_for(Some(fd), wake, IDLE_POLL);
-        let mut turn = Turn::Continue;
-        if ready.wake {
+        let mut turn = if ready.wake {
             drain(wake);
-            turn = match greeting {
+            match greeting {
                 Greeting::Awaited => take_orders(inbox, wants, |_| Turn::Continue),
                 Greeting::Done => take_orders(inbox, wants, |message| transmit(fd, message)),
-            };
-        }
+            }
+        } else {
+            Turn::Continue
+        };
         if turn == Turn::Continue && ready.socket {
             turn = match read_packet(fd, &mut buffer) {
                 Packet::Message(message) => handle(fd, message, events, wants, &mut greeting),

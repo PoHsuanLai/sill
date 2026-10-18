@@ -36,7 +36,7 @@ pub(crate) fn posting(call: WireNotify) -> Result<Posting, WireRefusal> {
                 .map(|entry| {
                     entry
                         .strip_suffix(".desktop")
-                        .map_or(entry.clone(), str::to_owned)
+                        .map_or_else(|| entry.clone(), str::to_owned)
                 })
                 .and_then(app_entry),
         },

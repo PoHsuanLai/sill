@@ -19,7 +19,7 @@ pub(super) async fn list(proxy: &CompanionHelpers2Proxy<'_>) -> HelpersMsg {
         .and_then(|body| from_json::<Vec<RoutineProposal>>(&body))
     {
         Ok(proposals) => HelpersMsg::Routines(RoutinesMsg::Proposed(proposals)),
-        Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => unreached(&why),
     }
 }
 
@@ -32,7 +32,7 @@ pub(super) async fn accept(proxy: &CompanionHelpers2Proxy<'_>, id: &ProposalId) 
         .and_then(|body| from_json::<RoutineReply>(&body))
     {
         Ok(reply) => HelpersMsg::Routines(RoutinesMsg::Accepted(reply)),
-        Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+        Err(why) => unreached(&why),
     }
 }
 

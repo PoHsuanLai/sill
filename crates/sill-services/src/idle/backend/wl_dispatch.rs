@@ -68,7 +68,6 @@ impl Dispatch<ZwlrOutputPowerV1, ()> for WlState {
     ) {
         match event {
             zwlr_output_power_v1::Event::Failed => state.power_failed(control),
-            zwlr_output_power_v1::Event::Mode { .. } => {}
             _ => {}
         }
     }
