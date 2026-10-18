@@ -72,11 +72,11 @@ pub(super) fn grid_data(grid: &MonthGrid, today: Date) -> MonthGridData {
 fn week_data(week: &GridWeek) -> MonthWeek {
     MonthWeek {
         number: sill_shell_kit::month_grid::data::IsoWeek(week.number.0),
-        days: week.days.map(|day| day_data(&day)),
+        days: week.days.map(day_data),
     }
 }
 
-fn day_data(day: &GridDay) -> sill_shell_kit::month_grid::data::MonthDay {
+fn day_data(day: GridDay) -> sill_shell_kit::month_grid::data::MonthDay {
     sill_shell_kit::month_grid::data::MonthDay {
         key: sill_shell_kit::month_grid::data::DayKey {
             year: day.date.year(),
@@ -124,7 +124,7 @@ const MONTHS: [&str; 12] = [
 ];
 
 /// A day's weekday in full, as the Medium card's today column says it ("Sunday").
-pub(super) fn weekday_name(day: Date) -> &'static str {
+pub(in crate::widgets) fn weekday_name(day: Date) -> &'static str {
     match day.weekday() {
         Weekday::Monday => "Monday",
         Weekday::Tuesday => "Tuesday",

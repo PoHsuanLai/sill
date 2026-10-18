@@ -13,13 +13,12 @@ use dioxus::prelude::*;
 use ds::components::overlays::alert_model::{AlertButton, AlertRole};
 use ds::prelude::*;
 use ds::root::common::Common;
-use shell_host::{OutputInfo, use_watch};
+use shell_host::OutputInfo;
 use sill_launcher::AppId;
 use sill_model::capture_pick::{PermissionAsking, PermissionOutcome};
 use sill_services::capture_pick::CaptureService;
 use sill_ui_kit::app_icons::{LogicalPx, use_tile_icons};
-use sill_ui_kit::hooks::use_service_part;
-use sill_ui_kit::links::BannerLink;
+use sill_ui_kit::hooks::{use_banner_output, use_service_part};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -46,7 +45,7 @@ pub(super) fn permission_sheet(output: OutputInfo) -> Element {
             material: Material::Sheet,
             extent: RootExtent::Viewport,
             if let Some((asking, shown)) = drawn {
-                QuestionCard { key: "{asking.id.0}", output: output.clone(), asking, shown, stage }
+                QuestionCard { key: "{asking.id.0}", output, asking, shown, stage }
             }
         }
     }
@@ -122,8 +121,7 @@ fn QuestionCard(
 /// The stage on `output`, following the question and the banners' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<PermissionAsking>> {
     let asking = use_service_part::<CaptureService, _>(|picker| picker.permission.clone());
-    let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
-    let shows = use_watch(link.subscribe());
+    let shows = use_banner_output();
     use_sheet_stage(move || {
         let current = asking();
         shows

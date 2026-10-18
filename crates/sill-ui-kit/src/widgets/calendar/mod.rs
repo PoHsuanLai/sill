@@ -6,7 +6,7 @@
 
 pub mod grid;
 mod io;
-mod shown;
+pub(super) mod shown;
 
 pub use grid::{DayMark, DayPlace, Eventful, GridDay, GridWeek, IsoWeek, Month, MonthGrid, Step};
 pub use io::CalendarProvider;

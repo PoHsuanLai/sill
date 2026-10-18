@@ -20,6 +20,7 @@ use sill_model::events::{Agenda, CalEvent, CalendarName, Days, EventTime, Source
 use sill_shell_kit::widget::calendar::EventLine;
 
 use super::widget::{DayLine, UpNextEntry, UpNextFace, UpNextRow};
+use crate::widgets::calendar::shown::weekday_name;
 
 /// How many whole event rows the card's body holds at its one size (Medium: one 164 px cell
 /// tall, 16 px gap, quire's card inset, the title row and `.sill-un-day` column already drawn):
@@ -80,15 +81,6 @@ const WEEKDAYS: [&str; 7] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTHS: [&str; 12] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
-const WEEKDAY_NAMES: [&str; 7] = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-];
 
 /// A calendar's colour: one of quire's label hues, picked by the calendar's name, so a calendar
 /// keeps its colour everywhere (Up Next's bar, the month widget's events).
@@ -111,11 +103,6 @@ fn quiet_line(status: &SourceStatus) -> Option<String> {
             n => Some(format!("{n} calendar files could not be read")),
         },
     }
-}
-
-/// The weekday's name.
-fn weekday_name(day: Date) -> &'static str {
-    WEEKDAY_NAMES[usize::from(day.weekday().to_monday_zero_offset().unsigned_abs())]
 }
 
 /// The widget's entry: today, then up to `max` next events of `agenda` over `ahead` days as

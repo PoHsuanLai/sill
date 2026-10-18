@@ -13,7 +13,7 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
-use shell_host::{OutputInfo, use_watch};
+use shell_host::OutputInfo;
 use sill_model::auth::Secret;
 use sill_model::polkit_agent::{Cookie, PolkitCommand};
 use sill_services::{Control, PolkitAgentService};
@@ -22,8 +22,7 @@ use sill_shell_kit::prelude::*;
 
 use super::layer::PANEL_ID;
 use super::model::{PolkitPromptView, prompt_view};
-use sill_ui_kit::hooks::{use_control, use_service};
-use sill_ui_kit::links::BannerLink;
+use sill_ui_kit::hooks::{use_banner_output, use_control, use_service};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -36,11 +35,11 @@ pub(super) fn polkit_prompt(output: OutputInfo) -> Element {
         div {
             onkeydown: move |event: KeyboardEvent| caps.set(caps_of(event.modifiers())),
             SurfaceRoot {
-                output: output.clone(),
+                output,
                 material: Material::Sheet,
                 extent: RootExtent::Viewport,
                 if let Some((view, shown)) = drawn {
-                    {prompt(view, shown, caps(), stage, control.clone())}
+                    {prompt(view, shown, caps(), stage, control)}
                 }
             }
         }
@@ -97,8 +96,7 @@ fn prompt(
 /// The stage on `output`, following the agent and the banners' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<PolkitPromptView>> {
     let polkit = use_service::<PolkitAgentService>();
-    let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
-    let shows = use_watch(link.subscribe());
+    let shows = use_banner_output();
     use_sheet_stage(move || {
         shows
             .read()

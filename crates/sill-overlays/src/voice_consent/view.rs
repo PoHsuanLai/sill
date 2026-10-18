@@ -11,14 +11,13 @@ use ds::components::overlays::sheet_width::SheetWidth;
 use ds::focus::soon::focus_soon;
 use ds::prelude::*;
 use ds::root::common::Common;
-use shell_host::{OutputInfo, use_watch};
+use shell_host::OutputInfo;
 use sill_model::voice::{ConsentAnswer, ConsentSheet, VoiceCommand};
 use sill_services::VoiceService;
 
 use super::VOICE_CONSENT_CSS;
 use super::layer::PANEL_ID;
-use sill_ui_kit::hooks::{use_control, use_service_part};
-use sill_ui_kit::links::BannerLink;
+use sill_ui_kit::hooks::{use_banner_output, use_control, use_service_part};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -39,7 +38,7 @@ pub(super) fn voice_consent(output: OutputInfo) -> Element {
     let shown = stage().drawn().map(|(_, shown)| shown);
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: Material::Sheet,
             extent: RootExtent::Viewport,
             AppStyle { css: VOICE_CONSENT_CSS }
@@ -103,8 +102,7 @@ fn ConsentCard(shown: Shown, stage: Signal<SheetStage<Asked>>) -> Element {
 /// The stage on `output`, following the service and the banners' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<Asked>> {
     let sheet = use_service_part::<VoiceService, _>(|voice| voice.sheet);
-    let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
-    let shows = use_watch(link.subscribe());
+    let shows = use_banner_output();
     use_sheet_stage(move || {
         let asking = match shows.read().shows_on(output.id) {
             true => sheet(),

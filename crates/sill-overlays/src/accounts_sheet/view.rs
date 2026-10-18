@@ -11,11 +11,10 @@ use ds_shell::prelude::{
     BrowserWait, ConsentBody, ProviderList, ReviewServices, ShowCode, SignInFailed, SignInForm,
     SignInWorking,
 };
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility};
 use sill_model::accounts::sheet::{AccountsSheets, SheetAction};
 use sill_services::accounts::sheet::AccountsSheetService;
-use sill_ui_kit::hooks::use_service;
-use sill_ui_kit::links::BannerLink;
+use sill_ui_kit::hooks::{use_banner_output, use_service};
 use sill_ui_kit::root::SurfaceRoot;
 
 use super::ACCOUNTS_SHEET_CSS;
@@ -30,7 +29,7 @@ pub(super) fn accounts_sheet(output: OutputInfo) -> Element {
     let current = shown();
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: Material::Sheet,
             extent: RootExtent::Viewport,
             AppStyle { css: ACCOUNTS_SHEET_CSS }
@@ -216,8 +215,7 @@ fn body(step: Step, io: Io) -> Element {
 /// surface's mapping following it. Nothing to map without a host (a test, an SSR render).
 fn use_drawn(output: OutputInfo) -> Memo<Option<Drawn>> {
     let sheets: ReadSignal<AccountsSheets> = use_service::<AccountsSheetService>();
-    let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
-    let banners = use_watch(link.subscribe());
+    let banners = use_banner_output();
     let shown = use_memo(move || {
         let here = if banners.read().shows_on(output.id) {
             Here::Yes

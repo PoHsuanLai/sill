@@ -19,7 +19,7 @@ use ds::focus::soon::focus_soon;
 use ds::machine::MachineRef;
 use ds::prelude::*;
 use ds::root::common::Common;
-use shell_host::{OutputInfo, use_watch};
+use shell_host::OutputInfo;
 use sill_model::intents::sheet::{SheetChoice, SheetFact, SheetView, sheet_view};
 use sill_model::intents::{ConfirmOffer, Gesture, NeverOffer};
 use sill_services::IntentsService;
@@ -29,8 +29,7 @@ use super::gate::{AnswerGate, GateIn};
 use super::held::held_line;
 use super::io::{use_gate, use_undo};
 use super::layer::PANEL_ID;
-use sill_ui_kit::hooks::use_service_part;
-use sill_ui_kit::links::BannerLink;
+use sill_ui_kit::hooks::{use_banner_output, use_service_part};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -39,7 +38,7 @@ pub(super) fn confirm_sheet(output: OutputInfo) -> Element {
     let drawn = stage().drawn().map(|(view, shown)| (view.clone(), shown));
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: Material::Sheet,
             extent: RootExtent::Viewport,
             AppStyle { css: CONFIRM_SHEET_CSS }
@@ -303,8 +302,7 @@ fn waiting_words(count: usize) -> String {
 /// The stage on `output`, following the queue and the banners' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<SheetView>> {
     let sheets = use_service_part::<IntentsService, _>(|intents| sheet_view(&intents.sheets));
-    let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
-    let shows = use_watch(link.subscribe());
+    let shows = use_banner_output();
     use_sheet_stage(move || {
         let current = sheets();
         shows
