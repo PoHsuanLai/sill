@@ -11,11 +11,11 @@ use prov::{
 };
 use sill_launcher::Generation;
 
+use super::helpers::HelpersModel;
 use super::{
     Companion, CompanionEvent, CompanionParams, LookupPhase, ProgramLabels, SETTLE_FAILED, step,
     waiting_line,
 };
-use super::helpers::HelpersModel;
 use companion_wire::HelperLine;
 use docket_core::helper::{HelperName, HelperPhase};
 use prov::{AgentRole, HelperId, TaskId};
@@ -151,7 +151,12 @@ fn helpers_with(helper: &str, name: &str) -> HelpersModel {
 #[test]
 fn a_helpers_row_names_the_helper_or_says_a_helper_when_the_list_lacks_it() {
     let programs = ProgramLabels::default();
-    let proposal = view('6', "Prefers mornings", helper_actor("h1"), vec![from_notes()]);
+    let proposal = view(
+        '6',
+        "Prefers mornings",
+        helper_actor("h1"),
+        vec![from_notes()],
+    );
     let cases = [
         (helpers_with("h1", "Finder 1"), "Finder 1 asked to remember"),
         (helpers_with("h2", "Finder 2"), "A helper asked to remember"),

@@ -7,7 +7,8 @@
 use shell_host::{ElementId, ElementRegion, Rect, RegionSpec, RoundedRect};
 
 use crate::launcher::layer::{
-    CARD_BLUR_RADIUS, CARD_ID, MENU_BLUR_RADIUS, MENU_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH, SHADOW_SIDE,
+    CARD_BLUR_RADIUS, CARD_ID, MENU_BLUR_RADIUS, MENU_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH,
+    SHADOW_SIDE,
 };
 use sill_ui_kit::links::PanelHit;
 
@@ -121,7 +122,10 @@ mod tests {
         let ids: Vec<_> = open.iter().map(|e| e.id.clone()).collect();
         assert_eq!(
             ids,
-            [ElementId::new("launcher-card"), ElementId::new("launcher-actions-menu")]
+            [
+                ElementId::new("launcher-card"),
+                ElementId::new("launcher-actions-menu")
+            ]
         );
     }
 }

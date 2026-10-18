@@ -618,6 +618,18 @@ fn a_job_line_says_where_the_job_stands_and_why_a_try_did_not_finish() {
 }
 
 #[test]
+fn a_list_without_the_helper_being_opened_closes_its_card_with_the_same_sentence() {
+    // The list can answer before the card does; the card's own answer then finds nothing open.
+    let (model, _) = update(HelpersModel::default(), HelpersMsg::OpenCard(id("h-9")));
+    let (model, _) = update(model, listed(Vec::new(), Vec::new()));
+    let (model, _) = update(model, HelpersMsg::CardMissing(id("h-9")));
+    assert_eq!(
+        (&model.open, sentence_of(&model)),
+        (&Open::Nothing, Some(GONE))
+    );
+}
+
+#[test]
 fn an_unknown_helper_closes_its_card_with_a_sentence() {
     let (model, _) = update(HelpersModel::default(), HelpersMsg::OpenCard(id("h-9")));
     let (model, _) = update(model, HelpersMsg::CardMissing(id("h-9")));

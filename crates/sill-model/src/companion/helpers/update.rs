@@ -159,7 +159,13 @@ fn listed(model: HelpersModel, view: HelpersView) -> HelpersModel {
     let told = told.split_off(extra);
     let still_there = |id: &HelperId| view.helpers.iter().any(|line| line.id == *id);
     let open_gone = model.open_id().is_some_and(|id| !still_there(id));
-    let open = if open_gone { Open::Nothing } else { model.open };
+    // A card whose helper has gone closes with the sentence a missing card says, whichever
+    // answer came first: a list read before the card leaves the card nothing to report.
+    let (open, notice) = if open_gone {
+        (Open::Nothing, Some(words::GONE.to_owned()))
+    } else {
+        (model.open, model.notice)
+    };
     let removal = match model.removal {
         Removal::Asked(id) if !still_there(&id) => Removal::Unasked,
         other => other,
@@ -169,6 +175,7 @@ fn listed(model: HelpersModel, view: HelpersView) -> HelpersModel {
         told,
         told_after,
         open,
+        notice,
         removal,
         ..model
     }
