@@ -9,11 +9,14 @@ use std::time::Duration;
 
 use docket_core::helper::HelperModel;
 use ds_harness::{Driver, Input, Query};
-use launcher_harness::launcher_support::companion::helpers;
+use launcher_harness::launcher_support::companion::{RESEARCH, helpers};
 use launcher_harness::{Open, Press, open_in, selected_title, titles};
 use prov::HelperId;
 use sill_launcher::LauncherMode;
-use sill_model::companion::{CompanionCommand, HelpersMsg, ModelGroup, ModelOffer};
+use docket_core::routine::RoutineId;
+use sill_model::companion::{
+    CompanionCommand, HelpersMsg, ModelGroup, ModelOffer, RoutinesMsg,
+};
 
 fn research() -> HelperId {
     HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}"))
@@ -205,5 +208,150 @@ fn a_refused_card_shows_the_sentence_it_came_with() {
     assert!(
         html.contains("There is already a helper called Research."),
         "{html}"
+    );
+}
+
+/// Research's card as an app helper would have it: it runs Claude Code, the person is at `login`
+/// with it, and one job waits for the sign-in.
+fn app_card(login: &str) -> HelpersMsg {
+    let card = format!(
+        r#"{{"line":{RESEARCH},"role":"Reads the news each morning","model":{{"kind":"unset"}},"reach":["org.quire.Notes: look at things"],"steps":12,"jobs":[{{"id":2,"goal":"Summarise my mail","state":"needs_sign_in","note":null}}],"kind":{{"agent_app":"claude-code"}},"login":"{login}","sign_in":[{{"id":"login","name":"Claude account"}}]}}"#
+    );
+    HelpersMsg::CardRead(Box::new(
+        serde_json::from_str(&card).unwrap_or_else(|e| panic!("{e}")),
+    ))
+}
+
+#[test]
+fn an_app_helper_names_its_app_and_a_sign_in_button_signs_in() {
+    let mut open = on_research(vec![app_card("needs_sign_in")]);
+    let html = open.harness.html();
+    for says in [
+        "Uses Claude Code",
+        "Waiting for you to sign in",
+        "Sign in to Claude Code so this job can start.",
+    ] {
+        assert!(html.contains(says), "the card says {says:?}: {html}");
+    }
+    assert_eq!(open.harness.count("#helper-sign-out"), 0);
+    commands(&mut open);
+    click(&mut open, "#helper-sign-in-0");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::SignIn(
+            research(),
+            "login".to_owned()
+        ))]
+    );
+    click(&mut open, "#helper-job-sign-in-0");
+    assert_eq!(commands(&mut open).len(), 1, "the job's button signs in too");
+}
+
+#[test]
+fn a_signed_in_app_helper_offers_sign_out_and_no_sign_in() {
+    let mut open = on_research(vec![app_card("signed_in")]);
+    assert!(open.harness.html().contains("Signed in"));
+    assert_eq!(open.harness.count("#helper-sign-in-0"), 0);
+    commands(&mut open);
+    click(&mut open, "#helper-sign-out");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::SignOut(research()))]
+    );
+}
+
+fn routine_listed() -> HelpersMsg {
+    let line = r#"{"id":1,"helper":"h-1","helper_name":"Research","goal":"Read the news","when":"Every day at 8:00","state":"on","next":null,"last":null}"#;
+    HelpersMsg::Routines(RoutinesMsg::Listed(
+        serde_json::from_str(&format!(r#"{{"routines":[{line}]}}"#))
+            .unwrap_or_else(|e| panic!("{e}")),
+    ))
+}
+
+#[test]
+fn a_routine_is_listed_with_its_time_and_the_skip_rule_and_can_be_paused() {
+    let mut open = on_research(vec![routine_listed()]);
+    let html = open.harness.html();
+    for says in [
+        "Read the news",
+        "Every day at 8:00",
+        "If your computer is off at that time, the run is skipped.",
+    ] {
+        assert!(html.contains(says), "the card says {says:?}: {html}");
+    }
+    commands(&mut open);
+    click(&mut open, "#helper-routine-toggle-r-1");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::Routines(
+            RoutinesMsg::Pause(RoutineId(1))
+        ))]
+    );
+    click(&mut open, "#helper-routine-add");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::Routines(
+            RoutinesMsg::OpenSheet(research())
+        ))]
+    );
+}
+
+#[test]
+fn the_routine_sheet_sends_nothing_until_it_is_confirmed() {
+    let mut open = on_research(vec![HelpersMsg::Routines(RoutinesMsg::OpenSheet(
+        research(),
+    ))]);
+    let html = open.harness.html();
+    assert!(
+        html.contains("If your computer is off at that time, the run is skipped."),
+        "{html}"
+    );
+    commands(&mut open);
+    click(&mut open, "#helper-routine-confirm");
+    let sent = commands(&mut open);
+    assert_eq!(
+        sent.last(),
+        Some(&CompanionCommand::Helpers(HelpersMsg::Routines(
+            RoutinesMsg::Confirm
+        )))
+    );
+    click(&mut open, "#helper-routine-cancel");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::Routines(
+            RoutinesMsg::CloseSheet
+        ))]
+    );
+}
+
+#[test]
+fn automatic_is_offered_with_the_models_and_ticks_nothing_for_the_person() {
+    let group = ModelGroup {
+        heading: "On this computer".to_owned(),
+        offers: vec![ModelOffer {
+            choice: qwen(),
+            label: "Qwen3 4B".to_owned(),
+        }],
+    };
+    let mut open = on_research(offered(vec![group.clone()]));
+    commands(&mut open);
+    click(&mut open, "#helper-automatic");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::StartAutomatic)]
+    );
+    let mut choosing = on_research(
+        offered(vec![group])
+            .into_iter()
+            .chain([HelpersMsg::StartAutomatic])
+            .collect(),
+    );
+    let html = choosing.harness.html();
+    assert!(html.contains("Use Automatic"), "{html}");
+    commands(&mut choosing);
+    click(&mut choosing, "#helper-automatic-confirm");
+    assert_eq!(
+        commands(&mut choosing),
+        [CompanionCommand::Helpers(HelpersMsg::ConfirmAutomatic)]
     );
 }

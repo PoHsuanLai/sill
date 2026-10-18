@@ -36,3 +36,5 @@
 .sill-helper-ask p{ margin:0 0 var(--s-6); font-size:var(--fs-control); color:var(--ink); }
 .sill-helper-jobs, .sill-helper-latest{ display:flex; flex-direction:column; gap:var(--s-4); }
 .sill-helper-job{ display:flex; flex-direction:column; }
+.sill-helper-app, .sill-helper-pool, .sill-helper-routines{ display:flex; flex-direction:column; gap:var(--s-4); }
+.sill-helper-routine{ display:flex; flex-direction:column; gap:var(--s-2); padding:var(--s-4) 0; }

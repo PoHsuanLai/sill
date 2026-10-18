@@ -14,8 +14,10 @@ use sill_model::companion::{
 use sill_services::CompanionService;
 use sill_ui_kit::hooks::use_service;
 
+use super::agent::AppLine;
 use super::form::Fields;
 use super::jobs::{GiveJob, Jobs, Latest};
+use super::routines::Routines;
 use super::say::{Say, use_say};
 
 /// The card of `helper`, or of a new helper when `helper` is `None`. The card is keyed by the
@@ -79,7 +81,18 @@ fn CardBody(model: HelpersModel, helper: Option<HelperId>) -> Element {
     let save = save_button(helper.as_ref(), name, role, &say);
     rsx! {
         {header(&model, helper.as_ref())}
-        Fields { draft, apps: model.apps.clone(), models: model.models.clone(), name, role }
+        if let Open::Card(open) = &model.open {
+            AppLine { view: open.view.clone() }
+        }
+        Fields {
+            draft,
+            apps: model.apps.clone(),
+            models: model.models.clone(),
+            automatic: model.automatic.clone(),
+            helper: helper.clone(),
+            name,
+            role,
+        }
         div { class: "sill-helper-buttons", {save} }
         if let Some(sentence) = &model.notice {
             p { class: "sill-helper-notice", role: "status", "{sentence}" }
@@ -87,6 +100,7 @@ fn CardBody(model: HelpersModel, helper: Option<HelperId>) -> Element {
         if let Some(id) = &helper {
             {removal_question(&model, id, &say)}
             Jobs { model: model.clone() }
+            Routines { model: model.clone(), helper: id.clone() }
             Latest { model: model.clone() }
             GiveJob { model: model.clone() }
         }

@@ -127,7 +127,7 @@ pub fn declined(why: &str) -> AnswerFacts {
     )
 }
 
-const RESEARCH: &str = r#"{"id":"h-1","name":"Research","space":"desktop","doing":"Waiting for your answer","state":"working","needs_you":"answer","agent":null}"#;
+pub const RESEARCH: &str = r#"{"id":"h-1","name":"Research","space":"desktop","doing":"Waiting for your answer","state":"working","needs_you":"answer","agent":null}"#;
 const INBOX: &str = r#"{"id":"h-2","name":"Inbox","space":"desktop","doing":"Paused","state":"paused","needs_you":null,"agent":null}"#;
 
 /// Two helpers: Research, waiting for the person and with no model, and Inbox, paused. Research's

@@ -9,12 +9,13 @@ use ds::components::controls::button_model::Bezel;
 use ds::components::controls::checkbox::Checkbox;
 use ds::components::fields::field_row::{FieldGroup, FieldRow};
 use ds::prelude::*;
-use prov::AppName;
+use prov::{AppName, HelperId};
 use sill_model::companion::{
-    ADD_MODEL, CEILINGS, Draft, HelpersMsg, LOOKING_FOR_MODELS, ModelGroup, ModelList, ModelOffer,
+    ADD_MODEL, Automatic, CEILINGS, Draft, HelpersMsg, LOOKING_FOR_MODELS, ModelGroup, ModelList, ModelOffer,
     NO_MODELS, Reach, app_label, ceiling_label, model_hint, model_line,
 };
 
+use super::automatic::AutomaticPool;
 use super::say::{Say, use_say};
 
 /// The field group of a card being filled in. `name` and `role` hold what is typed until it is
@@ -24,6 +25,8 @@ pub(super) fn Fields(
     draft: Draft,
     apps: BTreeSet<AppName>,
     models: ModelList,
+    automatic: Automatic,
+    helper: Option<HelperId>,
     name: Signal<String>,
     role: Signal<String>,
 ) -> Element {
@@ -94,7 +97,7 @@ pub(super) fn Fields(
                     common: Common { id: Some("helper-model".to_owned()), ..Common::default() },
                     onclick: move |_| pick_say.msg(HelpersMsg::PickModel),
                 }
-                {model_list(&models, &say)}
+                {model_list(&models, &automatic, helper.as_ref(), &say)}
             }
         }
     }
@@ -120,7 +123,12 @@ fn app_row(app: &AppName, ticked: &BTreeSet<AppName>, say: &Say) -> Element {
 
 /// The models to choose from, under the model's line: what is being read, or the models grouped by
 /// where they run, with "Add a model in Settings" last (the only entry when there are none).
-fn model_list(models: &ModelList, say: &Say) -> Element {
+fn model_list(
+    models: &ModelList,
+    automatic: &Automatic,
+    helper: Option<&HelperId>,
+    say: &Say,
+) -> Element {
     match models {
         ModelList::Closed => rsx! {},
         ModelList::Reading => rsx! {
@@ -134,6 +142,12 @@ fn model_list(models: &ModelList, say: &Say) -> Element {
                 first += group.offers.len();
             }
             let add = say.clone();
+            let pool = match helper {
+                Some(_) => rsx! {
+                    AutomaticPool { groups: groups.clone(), automatic: automatic.clone() }
+                },
+                None => rsx! {},
+            };
             rsx! {
                 div { class: "sill-helper-models",
                     if groups.is_empty() {
@@ -142,6 +156,7 @@ fn model_list(models: &ModelList, say: &Say) -> Element {
                     for rows in shown {
                         {rows}
                     }
+                    {pool}
                     Button {
                         label: ADD_MODEL,
                         bezel: Bezel::Inline,

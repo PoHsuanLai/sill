@@ -1,13 +1,16 @@
 //! The card's jobs: what the helper was given lately, what it last told the person, and the
 //! field that gives it another.
 
-use companion_wire::JobLine;
+use companion_wire::{HelperCardView, JobLine, JobShown};
 use dioxus::prelude::*;
 use ds::components::content::label::{LabelRole, LabelStyle};
 use ds::prelude::*;
-use sill_model::companion::{HelpersModel, HelpersMsg, Open, job_answer, job_prompt, job_words};
+use sill_model::companion::{
+    HelpersModel, HelpersMsg, Open, job_answer, job_prompt, job_words, needs_sign_in_line,
+};
 
-use super::say::use_say;
+use super::agent::sign_in_row;
+use super::say::{Say, use_say};
 
 /// How many jobs and told sentences the card lists.
 const SHOWN: usize = 4;
@@ -15,6 +18,7 @@ const SHOWN: usize = 4;
 /// The open card's jobs, newest first.
 #[component]
 pub(super) fn Jobs(model: HelpersModel) -> Element {
+    let say = use_say();
     let Open::Card(card) = &model.open else {
         return rsx! {};
     };
@@ -25,15 +29,26 @@ pub(super) fn Jobs(model: HelpersModel) -> Element {
         div { class: "sill-helper-jobs",
             Label { text: "Jobs", style: LabelStyle::Headline }
             for job in card.view.jobs.iter().rev().take(SHOWN) {
-                {job_row(job)}
+                {job_row(job, &card.view, &say)}
             }
         }
     }
 }
 
-fn job_row(job: &JobLine) -> Element {
+fn job_row(job: &JobLine, view: &HelperCardView, say: &Say) -> Element {
     let (goal, detail) = job_words(job);
     let answer = job_answer(job);
+    let sign_in = match job.state {
+        JobShown::NeedsSignIn => rsx! {
+            Label { text: needs_sign_in_line(&view.kind), role: LabelRole::Secondary }
+            div { class: "sill-helper-buttons",
+                {sign_in_row(view, "helper-job-sign-in", say)}
+            }
+        },
+        JobShown::Waiting | JobShown::Working | JobShown::Done | JobShown::NeedsModel => {
+            rsx! {}
+        }
+    };
     rsx! {
         div { key: "{job.id}", class: "sill-helper-job",
             Label { text: goal }
@@ -41,6 +56,7 @@ fn job_row(job: &JobLine) -> Element {
             if let Some(answer) = answer {
                 Label { text: answer, role: LabelRole::Secondary }
             }
+            {sign_in}
         }
     }
 }
