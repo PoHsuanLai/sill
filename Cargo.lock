@@ -2593,7 +2593,6 @@ dependencies = [
  "peniko",
  "rustc-hash 2.1.3",
  "thiserror 2.0.21",
- "vello_common 0.1.0",
  "vello_hybrid",
  "wgpu",
  "wgpu_context",
@@ -2703,7 +2702,6 @@ dependencies = [
  "ds-core",
  "ds-motion",
  "ds-style",
- "serde",
  "zeroize",
 ]
 
