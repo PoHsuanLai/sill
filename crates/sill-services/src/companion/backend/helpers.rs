@@ -99,7 +99,7 @@ async fn read_card(proxy: &CompanionHelpers2Proxy<'_>, helper: HelperId) -> Help
             Err(why) => unreached(&why),
         },
         Err(zbus::Error::MethodError(..)) => HelpersMsg::CardMissing(helper),
-        Err(error) => Some(unreached(&error)),
+        Err(error) => unreached(&error),
     }
 }
 
