@@ -102,3 +102,36 @@ fn a_plain_sheet_ignores_a_brief_answer() {
     assert_eq!(after, sheets);
     assert!(effects.is_empty());
 }
+
+#[test]
+fn a_brief_on_the_wire_is_drawn_with_its_flags_and_a_yes_carries_the_written_text() {
+    use super::brief_wire::{allowed_once, brief_of};
+    use docket_core::{BriefSheet, BriefText, ConfirmAnswer, LabelText};
+    let label = |t: &str| LabelText::parse(t).unwrap_or_else(|e| panic!("{e}"));
+    let plain = request("c-1", ConfirmOffer::OnceOnly, 60);
+    assert_eq!(brief_of(&plain), None, "a plain sheet is no brief");
+    let text = BriefText::parse(TEXT).unwrap_or_else(|e| panic!("{e}"));
+    let sheet = BriefSheet::of(label("Lamp"), text, vec![label("Base"), label("Shade")]);
+    let view = brief_of(&plain.clone().for_brief(Some(sheet))).unwrap_or_else(|| panic!("a brief"));
+    assert_eq!(view.text, TEXT);
+    assert_eq!(view.flags, vec![link()]);
+    assert_eq!(view.pieces, vec!["Base".to_owned(), "Shade".to_owned()]);
+
+    let receipt = || prov::ConfirmReceipt {
+        id: id("c-1"),
+        input: prov::InputProof::SheetFallback,
+        at: UnixSeconds(0),
+        covers: prov::Confidentiality::Secret,
+    };
+    let written = |answer: ConfirmAnswer| match answer {
+        ConfirmAnswer::Allowed { written, .. } => written.map(|w| w.as_str().to_owned()),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(
+        written(allowed_once(receipt(), Some("Model a lamp".into()))).as_deref(),
+        Some("Model a lamp")
+    );
+    // Text the router would refuse rides as none, so the brief ends not confirmed.
+    assert_eq!(written(allowed_once(receipt(), Some(String::new()))), None);
+    assert_eq!(written(allowed_once(receipt(), None)), None);
+}

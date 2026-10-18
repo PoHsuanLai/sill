@@ -322,7 +322,7 @@ async fn the_persons_answer_goes_back_as_the_request_objects_response() {
     });
     let (code, body) = desk.ask(request("c-1", ConfirmOffer::OnceOnly, 120)).await;
     assert_eq!(code, 0);
-    let ConfirmAnswer::Allowed { scope, receipt } = answer_of(&body) else {
+    let ConfirmAnswer::Allowed { scope, receipt, .. } = answer_of(&body) else {
         panic!("{body}");
     };
     assert_eq!(scope, GrantScope::Once);

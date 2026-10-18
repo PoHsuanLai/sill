@@ -138,10 +138,12 @@ fn answer_of(request: &ConfirmRequest, choice: SheetChoice, at: UnixSeconds) -> 
         SheetChoice::AllowOnce => ConfirmAnswer::Allowed {
             scope: GrantScope::Once,
             receipt,
+            written: None,
         },
         SheetChoice::AllowAlways => ConfirmAnswer::Allowed {
             scope: GrantScope::Always,
             receipt,
+            written: None,
         },
         SheetChoice::AllowFromTerminal => ConfirmAnswer::AllowedFromTerminal { receipt },
         SheetChoice::Never => ConfirmAnswer::Never { receipt },

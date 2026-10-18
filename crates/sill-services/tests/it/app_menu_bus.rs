@@ -1254,6 +1254,7 @@ mod routed {
         let yes = ConfirmAnswer::Allowed {
             scope: ConsentScope::Once,
             receipt,
+            written: None,
         };
         let seams = Fakes {
             link: Link {

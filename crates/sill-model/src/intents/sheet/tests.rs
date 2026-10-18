@@ -115,9 +115,9 @@ fn each_choice_is_the_answer_it_names_with_a_receipt_of_the_sheet() {
     #[rustfmt::skip]
     let cases = [
         (OnceOnly,           SheetChoice::AllowOnce,
-            ConfirmAnswer::Allowed { scope: GrantScope::Once, receipt: receipt("c-1") }),
+            ConfirmAnswer::Allowed { scope: GrantScope::Once, receipt: receipt("c-1"), written: None }),
         (OnceOrAlways,       SheetChoice::AllowAlways,
-            ConfirmAnswer::Allowed { scope: GrantScope::Always, receipt: receipt("c-1") }),
+            ConfirmAnswer::Allowed { scope: GrantScope::Always, receipt: receipt("c-1"), written: None }),
         (OnceOrFromTerminal, SheetChoice::AllowFromTerminal,
             ConfirmAnswer::AllowedFromTerminal { receipt: receipt("c-1") }),
         (OnceOrFromTerminal, SheetChoice::Deny,
