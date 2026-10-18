@@ -36,8 +36,7 @@ use sill_model::desktop::{
     ShellNote, SpacePlaceView, SubjectKind, SwitcherNote,
 };
 use sill_services::desktop_wl::quire::{
-    ArmError, ConnectionRole, FakeHandout, Handout, HandoutError, QuireArm, role_of_surface,
-    shell_connection,
+    ArmError, FakeHandout, Handout, HandoutError, QuireArm, role_of_surface, shell_connection,
 };
 use sill_services::desktop_wl::{Refusal, project_subjects};
 use sill_services::env::{Bus, BusRoute};
@@ -789,17 +788,14 @@ fn the_shells_surfaces_have_the_roles_the_compositor_knows() {
 async fn a_fake_handout_gives_its_socket_once() {
     let (handed, mut ours) = UnixStream::pair().unwrap_or_else(|e| panic!("{e}"));
     let handout = FakeHandout::handing(OwnedFd::from(handed));
-    let fd = handout
-        .connect(ConnectionRole::Shell)
-        .await
-        .unwrap_or_else(|e| panic!("{e}"));
+    let fd = handout.connect().await.unwrap_or_else(|e| panic!("{e}"));
     UnixStream::from(fd)
         .write_all(b"x")
         .unwrap_or_else(|e| panic!("{e}"));
     let mut byte = [0u8; 1];
     ours.read_exact(&mut byte).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(&byte, b"x");
-    let again = handout.connect(ConnectionRole::Shell).await;
+    let again = handout.connect().await;
     assert!(matches!(again, Err(HandoutError::Nothing)));
 }
 

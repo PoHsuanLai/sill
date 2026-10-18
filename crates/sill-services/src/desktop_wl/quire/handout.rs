@@ -10,21 +10,8 @@ use std::sync::Mutex;
 
 use crate::env::Bus;
 
-/// Which privileged connection to ask for.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConnectionRole {
-    /// The desktop shell's: `quire_shell_v1` and the shell role.
-    Shell,
-}
-
-impl ConnectionRole {
-    /// The role's name on the bus.
-    pub const fn word(self) -> &'static str {
-        match self {
-            ConnectionRole::Shell => "shell",
-        }
-    }
-}
+/// The role name on the bus for the desktop shell's connection.
+const SHELL_ROLE: &str = "shell";
 
 /// Why no connection was handed over.
 #[derive(Debug, thiserror::Error)]
@@ -39,8 +26,8 @@ pub enum HandoutError {
 
 /// Something that hands the shell a Wayland connection.
 pub trait Handout {
-    /// A new connected socket for `role`.
-    fn connect(&self, role: ConnectionRole) -> impl Future<Output = Result<OwnedFd, HandoutError>>;
+    /// A new connected socket for the shell's role: `quire_shell_v1` and the shell role.
+    fn connect(&self) -> impl Future<Output = Result<OwnedFd, HandoutError>>;
 }
 
 /// `org.quire.Compositor1`, which casement serves on the session bus.
@@ -68,11 +55,11 @@ impl ZbusHandout {
 }
 
 impl Handout for ZbusHandout {
-    fn connect(&self, role: ConnectionRole) -> impl Future<Output = Result<OwnedFd, HandoutError>> {
+    fn connect(&self) -> impl Future<Output = Result<OwnedFd, HandoutError>> {
         let connection = self.connection.clone();
         async move {
             let proxy = Compositor1Proxy::new(&connection).await?;
-            Ok(proxy.connect(role.word()).await?.into())
+            Ok(proxy.connect(SHELL_ROLE).await?.into())
         }
     }
 }
@@ -98,10 +85,7 @@ impl FakeHandout {
 }
 
 impl Handout for FakeHandout {
-    fn connect(
-        &self,
-        _role: ConnectionRole,
-    ) -> impl Future<Output = Result<OwnedFd, HandoutError>> {
+    fn connect(&self) -> impl Future<Output = Result<OwnedFd, HandoutError>> {
         let socket = self.socket.lock().ok().and_then(|mut held| held.take());
         std::future::ready(socket.ok_or(HandoutError::Nothing))
     }
@@ -119,10 +103,7 @@ pub async fn shell_connection(bus: &Bus) -> Option<OwnedFd> {
             return None;
         }
     };
-    match ZbusHandout::new(connection)
-        .connect(ConnectionRole::Shell)
-        .await
-    {
+    match ZbusHandout::new(connection).connect().await {
         Ok(fd) => Some(fd),
         Err(HandoutError::Bus(zbus::Error::MethodError(name, ..))) if is_absent(name.as_str()) => {
             None
