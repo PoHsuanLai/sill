@@ -107,7 +107,7 @@ fn not_a_row(value: &toml::Value) -> String {
 }
 
 /// What a dropped row is told as: it costs that row, never the key.
-fn dropped(reason: String) -> InvalidKey {
+fn dropped(reason: &str) -> InvalidKey {
     InvalidKey {
         path: "keyboard.overrides".to_owned(),
         reason: format!("a row is dropped and the others kept: {reason}"),
@@ -122,18 +122,18 @@ pub fn overrides(settings: &KeyboardSettings) -> (UserOverrides, Vec<InvalidKey>
     let mut lines: Vec<InvalidKey> = settings
         .rejected
         .iter()
-        .map(|row| dropped(format!("row {}: {}", row.position, row.reason)))
+        .map(|row| dropped(&format!("row {}: {}", row.position, row.reason)))
         .collect();
     for row in &settings.overrides {
         if row.app.is_empty() {
-            lines.push(dropped(format!(
+            lines.push(dropped(&format!(
                 "`app` is empty (its profile is `{}`)",
                 row.profile
             )));
             continue;
         }
         match ProfileName::parse(&row.profile) {
-            Err(error) => lines.push(dropped(format!(
+            Err(error) => lines.push(dropped(&format!(
                 "`{}`'s profile `{}` is not valid: {error}",
                 row.app, row.profile
             ))),

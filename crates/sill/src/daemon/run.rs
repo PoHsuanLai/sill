@@ -147,7 +147,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     crate::intents::spawn_follower(runtime.handle(), host_handle.clone(), shell_actions);
     crate::companion::spawn_follower(
         runtime.handle(),
-        host_handle.clone(),
+        host_handle,
         summons,
         &links.launcher,
         services.companion.control.clone(),
