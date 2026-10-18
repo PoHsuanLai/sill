@@ -78,7 +78,8 @@ impl RoutineDraft {
             return Err(RoutineFault::NoGoal);
         }
         let words = self.words();
-        Schedule::parse(&words).map_err(|fault| RoutineFault::When(sentence(&fault.to_string())))?;
+        Schedule::parse(&words)
+            .map_err(|fault| RoutineFault::When(sentence(&fault.to_string())))?;
         Ok(RoutineForm {
             helper: self.helper.clone(),
             goal: goal.to_owned(),
@@ -92,6 +93,10 @@ impl RoutineDraft {
 /// `text` with its first letter capitalised and a full stop at the end.
 fn sentence(text: &str) -> String {
     let mut chars = text.chars();
-    let first: String = chars.next().into_iter().flat_map(char::to_uppercase).collect();
+    let first: String = chars
+        .next()
+        .into_iter()
+        .flat_map(char::to_uppercase)
+        .collect();
     format!("{first}{}.", chars.as_str())
 }

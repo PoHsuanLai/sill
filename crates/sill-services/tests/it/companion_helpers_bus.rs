@@ -13,10 +13,10 @@ use companion_wire::{
     RoutineReply, RoutinesView, ToldWire,
 };
 use docket_core::helper::{HelperKind, HelperModel, HelperName, HelperPhase};
+use docket_core::routine::RoutineId;
 use docket_dbus::COMPANION_BUS;
 use porter_core::Count;
 use prov::{HelperId, SpaceId};
-use docket_core::routine::RoutineId;
 use sill_model::companion::{
     CompanionCommand, GONE, HelpersMsg, Open, Removal, RoutinesMsg, WAITING_BADGE, badge_of,
 };

@@ -6,6 +6,7 @@ use docket_core::helper::TerminalLogin;
 use prov::AgentProgram;
 
 use super::*;
+use crate::companion::helpers::sign_in::program_name;
 
 fn program(slug: &str) -> AgentProgram {
     AgentProgram::parse(slug).unwrap_or_else(|e| panic!("{e}"))
@@ -50,7 +51,10 @@ fn the_card_says_whether_the_person_is_signed_in() {
 
 #[test]
 fn one_way_is_a_sign_in_button_and_several_are_named_by_the_app() {
-    let one = app_card(LoginShown::NeedsSignIn, vec![way("login", "Claude account")]);
+    let one = app_card(
+        LoginShown::NeedsSignIn,
+        vec![way("login", "Claude account")],
+    );
     assert_eq!(
         sign_in_buttons(&one),
         [SignInButton {
@@ -95,10 +99,7 @@ fn signing_in_and_out_ask_the_companion_and_done_reads_the_card_again() {
     );
     let (_, sent) = update(model.clone(), HelpersMsg::SignOut(id("h-1")));
     assert_eq!(sent, [HelpersCommand::SignOut(id("h-1"))]);
-    let (_, sent) = update(
-        model,
-        HelpersMsg::Replied(Asked::SignIn, HelperReply::Done),
-    );
+    let (_, sent) = update(model, HelpersMsg::Replied(Asked::SignIn, HelperReply::Done));
     assert_eq!(
         sent,
         [
@@ -120,7 +121,10 @@ fn a_terminal_request_opens_a_window_and_closing_it_asks_the_companion_to_check_
         HelpersMsg::Replied(Asked::SignIn, HelperReply::OpenTerminal(request.clone())),
     );
     assert_eq!(sent, [HelpersCommand::OpenTerminal(request)]);
-    let (_, sent) = update(HelpersModel::default(), HelpersMsg::TerminalClosed(id("h-1")));
+    let (_, sent) = update(
+        HelpersModel::default(),
+        HelpersMsg::TerminalClosed(id("h-1")),
+    );
     assert_eq!(sent, [HelpersCommand::Resume(id("h-1"))]);
     let (model, sent) = update(HelpersModel::default(), HelpersMsg::NoTerminal);
     assert!(sent.is_empty());

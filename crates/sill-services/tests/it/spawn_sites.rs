@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// The files that start a process of their own, and why each is not the opener's seam.
-const ALLOWED: [(&str, &str); 6] = [
+const ALLOWED: [(&str, &str); 7] = [
     ("env/children.rs", "the seam's real implementation"),
     (
         "launch/backend/run.rs",
@@ -29,6 +29,10 @@ const ALLOWED: [(&str, &str); 6] = [
     (
         "polkit_agent/backend/helper_run.rs",
         "polkit's helper, `HelperRoute::Missing` in `Env::isolated`",
+    ),
+    (
+        "companion/backend/terminal.rs",
+        "the terminal a helper's sign-in asks for, run only by the live service, never by a test",
     ),
 ];
 

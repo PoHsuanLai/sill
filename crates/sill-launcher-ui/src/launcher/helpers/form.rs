@@ -11,8 +11,8 @@ use ds::components::fields::field_row::{FieldGroup, FieldRow};
 use ds::prelude::*;
 use prov::{AppName, HelperId};
 use sill_model::companion::{
-    ADD_MODEL, Automatic, CEILINGS, Draft, HelpersMsg, LOOKING_FOR_MODELS, ModelGroup, ModelList, ModelOffer,
-    NO_MODELS, Reach, app_label, ceiling_label, model_hint, model_line,
+    ADD_MODEL, Automatic, CEILINGS, Draft, HelpersMsg, LOOKING_FOR_MODELS, ModelGroup, ModelList,
+    ModelOffer, NO_MODELS, Reach, app_label, ceiling_label, model_hint, model_line,
 };
 
 use super::automatic::AutomaticPool;

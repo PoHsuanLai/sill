@@ -8,15 +8,13 @@ use crate::launcher_harness;
 use std::time::Duration;
 
 use docket_core::helper::HelperModel;
+use docket_core::routine::RoutineId;
 use ds_harness::{Driver, Input, Query};
 use launcher_harness::launcher_support::companion::{RESEARCH, helpers};
 use launcher_harness::{Open, Press, open_in, selected_title, titles};
 use prov::HelperId;
 use sill_launcher::LauncherMode;
-use docket_core::routine::RoutineId;
-use sill_model::companion::{
-    CompanionCommand, HelpersMsg, ModelGroup, ModelOffer, RoutinesMsg,
-};
+use sill_model::companion::{CompanionCommand, HelpersMsg, ModelGroup, ModelOffer, RoutinesMsg};
 
 fn research() -> HelperId {
     HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}"))
@@ -244,7 +242,11 @@ fn an_app_helper_names_its_app_and_a_sign_in_button_signs_in() {
         ))]
     );
     click(&mut open, "#helper-job-sign-in-0");
-    assert_eq!(commands(&mut open).len(), 1, "the job's button signs in too");
+    assert_eq!(
+        commands(&mut open).len(),
+        1,
+        "the job's button signs in too"
+    );
 }
 
 #[test]

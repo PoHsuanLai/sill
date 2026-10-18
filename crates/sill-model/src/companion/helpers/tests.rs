@@ -350,7 +350,10 @@ fn this_computers_models_sit_under_the_engine_that_runs_each() {
     assert_eq!(
         seen,
         [
-            ("On this computer, with llama.cpp", vec!["Qwen3 4B", "Qwen3 8B"]),
+            (
+                "On this computer, with llama.cpp",
+                vec!["Qwen3 4B", "Qwen3 8B"]
+            ),
             ("On this computer", vec!["Mystery"]),
             ("On this computer, with vLLM", vec!["Gemma 3"]),
         ]

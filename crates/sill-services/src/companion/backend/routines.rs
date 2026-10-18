@@ -44,10 +44,7 @@ async fn read_list(proxy: &CompanionHelpers2Proxy<'_>) -> HelpersMsg {
     }
 }
 
-async fn add(
-    proxy: &CompanionHelpers2Proxy<'_>,
-    form: &companion_wire::RoutineForm,
-) -> HelpersMsg {
+async fn add(proxy: &CompanionHelpers2Proxy<'_>, form: &companion_wire::RoutineForm) -> HelpersMsg {
     let body = match to_json(form) {
         Ok(body) => body,
         Err(why) => return unreached(&why).unwrap_or(HelpersMsg::Unreached),

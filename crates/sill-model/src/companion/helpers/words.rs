@@ -142,9 +142,8 @@ pub fn job_answer(job: &JobLine) -> Option<String> {
                 .clone()
                 .unwrap_or_else(|| ANSWER_IN_HISTORY.to_owned()),
         ),
-        JobShown::Waiting
-        | JobShown::Working
-        | JobShown::NeedsModel
-        | JobShown::NeedsSignIn => None,
+        JobShown::Waiting | JobShown::Working | JobShown::NeedsModel | JobShown::NeedsSignIn => {
+            None
+        }
     }
 }

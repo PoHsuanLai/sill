@@ -1,4 +1,6 @@
-use companion_wire::{RoutineForm, RoutineLine, RoutineReply, RoutineShown, RoutinesView, WhenForm};
+use companion_wire::{
+    RoutineForm, RoutineLine, RoutineReply, RoutineShown, RoutinesView, WhenForm,
+};
 use docket_core::helper::HelperName;
 use docket_core::routine::{Missed, RoutineId};
 use prov::HelperId;
@@ -105,8 +107,14 @@ fn what_is_missing_from_the_sheet_is_said_and_nothing_is_sent() {
 #[test]
 fn an_answer_closes_the_sheet_and_reads_the_list_and_a_refusal_keeps_it_open() {
     let open = feed(vec![RoutinesMsg::OpenSheet(helper("h-1"))]).0;
-    let (made, sent) = update(open.clone(), RoutinesMsg::Replied(RoutineReply::Made(RoutineId(3))));
-    assert_eq!((made.sheet, sent), (Sheet::Closed, vec![RoutinesCommand::List]));
+    let (made, sent) = update(
+        open.clone(),
+        RoutinesMsg::Replied(RoutineReply::Made(RoutineId(3))),
+    );
+    assert_eq!(
+        (made.sheet, sent),
+        (Sheet::Closed, vec![RoutinesCommand::List])
+    );
     let (refused, sent) = update(
         open.clone(),
         RoutinesMsg::Replied(RoutineReply::Refused("That helper is paused.".to_owned())),

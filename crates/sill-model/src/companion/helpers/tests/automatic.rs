@@ -13,7 +13,10 @@ fn claude() -> ModelRef {
 
 #[test]
 fn choosing_automatic_ticks_nothing_and_sets_no_model() {
-    let (model, sent) = update(opened("h-1", HelperModel::Unset), HelpersMsg::StartAutomatic);
+    let (model, sent) = update(
+        opened("h-1", HelperModel::Unset),
+        HelpersMsg::StartAutomatic,
+    );
     assert!(sent.is_empty());
     assert_eq!(model.automatic, Automatic::Choosing(BTreeSet::new()));
     let draft = model.draft().unwrap_or_else(|| panic!("a card is open"));
@@ -48,7 +51,10 @@ fn ticks_toggle_and_confirming_sends_the_pool_for_that_helper_only() {
     );
     let (model, _) = update(model, HelpersMsg::PoolWritten(PoolWritten::Saved));
     assert_eq!(model.automatic, Automatic::Off);
-    assert_eq!(model.notice.as_deref(), Some("Automatic is on for this helper."));
+    assert_eq!(
+        model.notice.as_deref(),
+        Some("Automatic is on for this helper.")
+    );
 }
 
 #[test]
@@ -67,11 +73,21 @@ fn confirming_with_nothing_ticked_says_so_and_sends_nothing() {
 #[test]
 fn a_pool_that_could_not_be_kept_is_said_and_cancel_and_closing_the_card_give_it_up() {
     let (model, _) = update(
-        update(opened("h-1", HelperModel::Unset), HelpersMsg::StartAutomatic).0,
+        update(
+            opened("h-1", HelperModel::Unset),
+            HelpersMsg::StartAutomatic,
+        )
+        .0,
         HelpersMsg::PoolWritten(PoolWritten::NotSaved),
     );
-    assert_eq!(model.notice.as_deref(), Some("Automatic could not be set just now."));
-    let (started, _) = update(opened("h-1", HelperModel::Unset), HelpersMsg::StartAutomatic);
+    assert_eq!(
+        model.notice.as_deref(),
+        Some("Automatic could not be set just now.")
+    );
+    let (started, _) = update(
+        opened("h-1", HelperModel::Unset),
+        HelpersMsg::StartAutomatic,
+    );
     let (cancelled, _) = update(started.clone(), HelpersMsg::CancelAutomatic);
     assert_eq!(cancelled.automatic, Automatic::Off);
     let (closed, _) = update(started, HelpersMsg::CloseCard);

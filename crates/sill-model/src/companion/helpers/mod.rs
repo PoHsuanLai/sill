@@ -23,13 +23,12 @@ pub use model::{HelpersModel, Open, Removal};
 pub use models::{ModelGroup, ModelList, ModelOffer, model_groups};
 pub use msg::{Asked, HelpersCommand, HelpersMsg};
 pub use routines::{
-    MISSED_SKIPPED, NO_ROUTINES, REPEATS, Repeat, RoutineDraft, RoutineFault, RoutineRemoval,
-    RoutinesCommand, RoutinesModel, RoutinesMsg, Sheet, last_run_line, remove_routine_question,
-    repeat_label, state_label,
+    MISSED_SKIPPED, NO_ROUTINES, REPEATS, Repeat, RoutineDraft, RoutineRemoval, RoutinesCommand,
+    RoutinesModel, RoutinesMsg, Sheet, last_run_line, remove_routine_question, repeat_label,
+    state_label,
 };
 pub use sign_in::{
-    SignInButton, kind_line, login_line, needs_sign_in_line, offers_sign_out, program_name,
-    sign_in_buttons,
+    SignInButton, kind_line, login_line, needs_sign_in_line, offers_sign_out, sign_in_buttons,
 };
 pub use update::update;
 pub use words::{

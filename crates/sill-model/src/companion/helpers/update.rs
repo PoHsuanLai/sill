@@ -94,10 +94,7 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
         ),
         HelpersMsg::Remove(id) => remove(model, id),
         HelpersMsg::GiveJob(goal) => give_job(model, &goal),
-        HelpersMsg::SignIn(helper, way) => (
-            model,
-            vec![HelpersCommand::SignIn { helper, way }],
-        ),
+        HelpersMsg::SignIn(helper, way) => (model, vec![HelpersCommand::SignIn { helper, way }]),
         HelpersMsg::SignOut(helper) => (model, vec![HelpersCommand::SignOut(helper)]),
         HelpersMsg::TerminalClosed(helper) => (model, vec![HelpersCommand::Resume(helper)]),
         HelpersMsg::NoTerminal => (said(model, words::NO_TERMINAL), Vec::new()),

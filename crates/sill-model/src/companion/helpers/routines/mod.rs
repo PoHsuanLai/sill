@@ -10,7 +10,7 @@ mod tests;
 mod update;
 mod words;
 
-pub use draft::{REPEATS, Repeat, RoutineDraft, RoutineFault};
+pub use draft::{REPEATS, Repeat, RoutineDraft};
 pub use model::{RoutineRemoval, RoutinesModel, Sheet};
 pub use msg::{RoutinesCommand, RoutinesMsg};
 pub use update::update;

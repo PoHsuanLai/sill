@@ -101,7 +101,9 @@ fn row(line: &HelperLine, at: usize) -> Item {
 
 fn attention_of(needs: Option<HelperNeeds>) -> HelperAttention {
     match needs {
-        Some(HelperNeeds::ChooseModel | HelperNeeds::Answer) => HelperAttention::WaitingForYou,
+        Some(HelperNeeds::ChooseModel | HelperNeeds::SignIn | HelperNeeds::Answer) => {
+            HelperAttention::WaitingForYou
+        }
         None => HelperAttention::Calm,
     }
 }
