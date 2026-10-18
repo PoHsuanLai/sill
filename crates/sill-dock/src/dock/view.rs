@@ -59,8 +59,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     )
     .map(|(key, _)| key);
     let appearance = environment.settings.appearance.appearance();
-    let level = resolve(appearance, look.theme, environment.system).motion;
-    let params = DockParams::new(&file.dock, level);
+    let params = DockParams::new(&file.dock);
     let world = World {
         toplevels: use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone())(),
         index: use_service::<AppsService>()(),

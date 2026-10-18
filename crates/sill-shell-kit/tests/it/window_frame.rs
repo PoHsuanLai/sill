@@ -263,7 +263,7 @@ fn Switching() -> Element {
 /// The moment the `--t-big` / `--e-out` curve reaches a quarter (bar_frame.rs has the same).
 fn quarter_of_the_curve() -> Duration {
     let length = DurationToken::Big.duration(MotionLevel::Standard);
-    let curve = EasingToken::Out.easing(MotionLevel::Standard);
+    let curve = EasingToken::Out.easing();
     let whole = length.as_millis() as u64;
     let at = (1..=whole)
         .find(|&at| curve.at(Fraction((at * 1000 / whole) as u16)).0 >= 250)

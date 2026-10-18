@@ -84,7 +84,7 @@ pub(crate) fn use_idle_dim(level: Percent, phase: IdleDimPhase) -> Fraction {
                     playback.peek().map_or(to, |pose| pose.value),
                     to,
                     DurationToken::IdleDim.duration(motion),
-                    EasingToken::Out.easing(motion),
+                    EasingToken::Out.easing(),
                 )),
             }
         });

@@ -1,5 +1,5 @@
 //! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
-//! at the active motion level. Built once per settings change, never hard-coded.
+//! (no easing follows the motion level). Built once per settings change, never hard-coded.
 
 use ds::motion::hover_intent::HoverProfile;
 use ds::prelude::*;
@@ -25,9 +25,9 @@ pub struct DockParams {
     pub enter_ms: u64,
     /// `dock.magnify_leave_ms`.
     pub leave_ms: u64,
-    /// `--e-out` at the motion level.
+    /// `--e-out`.
     pub ease_out: CubicBezier,
-    /// `--e-exit` at the motion level.
+    /// `--e-exit`.
     pub ease_exit: CubicBezier,
     /// The label's first delay, [`fly_delay_ms`].
     pub fly_delay_ms: u64,
@@ -67,9 +67,9 @@ pub(super) fn eased(curve: CubicBezier, t: Permille) -> Permille {
 }
 
 impl DockParams {
-    /// The parameters for `dock` settings at motion `level`.
-    pub fn new(dock: &DockSettings, level: MotionLevel) -> DockParams {
-        let curve = |token: EasingToken| token.easing(level).curve();
+    /// The parameters for `dock` settings.
+    pub fn new(dock: &DockSettings) -> DockParams {
+        let curve = |token: EasingToken| token.easing().curve();
         let px = |v: u16| Cpx::px(i32::from(v));
         let pad = i32::from(dock.pill_padding_px.0);
         let gutter = 8;
@@ -109,7 +109,7 @@ pub(crate) mod tests {
 
     /// The design defaults at the standard level: what every machine test runs on.
     pub(crate) fn params() -> DockParams {
-        DockParams::new(&DockSettings::default(), MotionLevel::Standard)
+        DockParams::new(&DockSettings::default())
     }
 
     #[test]

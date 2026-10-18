@@ -158,7 +158,7 @@ fn SwitchingBar() -> Element {
 /// both, so the old Space weighs (1 - .25)^2 = .56 and the new one .44.
 fn half_of_the_fade() -> Duration {
     let length = DurationToken::Big.duration(MotionLevel::Standard);
-    let curve = EasingToken::Out.easing(MotionLevel::Standard);
+    let curve = EasingToken::Out.easing();
     let whole = length.as_millis() as u64;
     let half = (1..=whole)
         .find(|&at| curve.at(Fraction((at * 1000 / whole) as u16)).0 >= 250)
