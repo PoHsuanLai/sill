@@ -129,12 +129,12 @@ pub fn NotificationCard(
                         }
                     },
                     span { class: "ds-notification-icon",
-                        IconView { source: app.icon.clone(), size: IconSize::Px(icon_size) }
+                        IconView { source: app.icon, size: IconSize::Px(icon_size) }
                     }
                     div { class: "ds-notification-words",
                         {head(&summary, &age, count)}
                         if let Some(body) = body {
-                            NotificationBody { key: "{body.plain_text()}", body: body.clone(), on_link }
+                            NotificationBody { key: "{body.plain_text()}", body, on_link }
                         }
                         if !actions.is_empty() {
                             {action_row(&actions)}

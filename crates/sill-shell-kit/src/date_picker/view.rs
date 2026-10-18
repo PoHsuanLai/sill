@@ -139,7 +139,7 @@ pub fn DatePicker(
             Key::ArrowUp => onchange.call(value.stepped(current, StepDirection::Up)),
             Key::ArrowDown => onchange.call(value.stepped(current, StepDirection::Down)),
             Key::ArrowLeft => selected.set(keys.get(at.saturating_sub(1)).copied()),
-            Key::ArrowRight => selected.set(keys.get(at + 1).or(keys.last()).copied()),
+            Key::ArrowRight => selected.set(keys.get(at + 1).or_else(|| keys.last()).copied()),
             _ => return,
         }
         event.prevent_default();

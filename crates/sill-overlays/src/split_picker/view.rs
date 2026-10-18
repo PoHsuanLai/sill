@@ -36,7 +36,7 @@ pub(super) fn split_picker(output: OutputInfo) -> Element {
     let offer = picker.shown();
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: Material::Sheet,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
@@ -52,7 +52,7 @@ pub(super) fn split_picker(output: OutputInfo) -> Element {
                     let tiles: Vec<Tile> = offer.cards.iter().map(|card| tile(card, &icons)).collect();
                     let by_key = picker.clone();
                     let by_press = picker.clone();
-                    let by_pick = picker.clone();
+                    let by_pick = picker;
                     let listed: Vec<String> = windows.iter().map(|w| (*w).to_owned()).collect();
                     rsx! {
                         div {

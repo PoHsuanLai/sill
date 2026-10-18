@@ -33,7 +33,7 @@ pub(super) fn color_sampler(output: OutputInfo) -> Element {
     let up = sampler.shown().zip(surface_of(&output));
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: Material::Osd,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,

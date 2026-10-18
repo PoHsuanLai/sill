@@ -54,7 +54,6 @@ pub fn context_menu_popup<Model: MenuModel>() -> Element {
     // nothing was picked, then closes the popup.
     let on_close = {
         let reports = link.reports.clone();
-        let surface = surface.clone();
         move |()| {
             let reports = reports.clone();
             let surface = surface.clone();

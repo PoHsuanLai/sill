@@ -55,7 +55,7 @@ pub(super) fn force_quit(output: OutputInfo) -> Element {
             extent: RootExtent::Viewport,
             AppStyle { css: FORCE_QUIT_CSS }
             if let Some((opening, shown)) = drawn {
-                PanelCard { key: "{opening.serial.0}", output: output.clone(), shown, stage }
+                PanelCard { key: "{opening.serial.0}", output, shown, stage }
             }
         }
     }
@@ -76,7 +76,6 @@ fn PanelCard(
 
     // Every input goes through the pure step; what it asks for is carried out here.
     let send = use_callback({
-        let link = link.clone();
         move |input: In| {
             let (next, out) = advance(selection.peek().clone(), input, &rows.peek());
             if *selection.peek() != next {

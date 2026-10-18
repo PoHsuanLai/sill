@@ -70,7 +70,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
     let width = output_width(output.logical.width);
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: Material::Osd,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,

@@ -32,7 +32,7 @@ pub(super) fn use_window_menu(link: &WindowMenuLink, output: &OutputInfo, look: 
     let latest = use_watch(link.subscribe());
     // A surface respawned later does not replay the opening before it.
     let mut seen =
-        use_hook(|| CopyValue::new(link.latest().map_or(MenuSerial::default(), |o| o.serial)));
+        use_hook(|| CopyValue::new(link.latest().map_or_else(MenuSerial::default, |o| o.serial)));
     let mut popup = use_hook(|| CopyValue::new(Popup::Down));
     let mut window = use_hook(|| CopyValue::new(None::<String>));
     let mut looks = use_hook(|| CopyValue::new(look));

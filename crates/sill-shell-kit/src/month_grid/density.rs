@@ -35,10 +35,11 @@ impl MonthDensity {
     /// The density drawn inside `frame`, the enclosing `WidgetFrame`'s size if any.
     pub(crate) fn resolve(self, frame: Option<WidgetSize>) -> Drawn {
         match (self, frame) {
-            (MonthDensity::Regular, _) => Drawn::Regular,
             (MonthDensity::Compact, _)
             | (MonthDensity::Auto, Some(WidgetSize::Small | WidgetSize::Medium)) => Drawn::Compact,
-            (MonthDensity::Auto, Some(WidgetSize::Large) | None) => Drawn::Regular,
+            (MonthDensity::Regular, _) | (MonthDensity::Auto, Some(WidgetSize::Large) | None) => {
+                Drawn::Regular
+            }
         }
     }
 }

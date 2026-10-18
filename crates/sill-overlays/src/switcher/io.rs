@@ -133,10 +133,13 @@ impl Effects {
         }
         match out {
             SwOut::Quit(app) => self.fold(app, machine),
-            SwOut::Show | SwOut::Hide | SwOut::Select(_) => {}
-            SwOut::Activate(_) | SwOut::HideApp(_) => {}
             // `sw_key` maps no Up or Down, so the machine never asks for App Exposé.
-            SwOut::Expose(_) => {}
+            SwOut::Show
+            | SwOut::Hide
+            | SwOut::Select(_)
+            | SwOut::Activate(_)
+            | SwOut::HideApp(_)
+            | SwOut::Expose(_) => {}
         }
     }
 

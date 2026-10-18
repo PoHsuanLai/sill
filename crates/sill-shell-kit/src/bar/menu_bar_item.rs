@@ -62,7 +62,7 @@ pub fn MenuBarItem(
             "data-image": image.slug(),
             "data-emphasis": emphasis.slug(),
             "data-availability": availability.slug(),
-            "data-state": value.map(|state| state.slug()),
+            "data-state": value.map(Word::slug),
             title,
             "aria-label": aria_label,
             "aria-pressed": value.map(Check::aria),

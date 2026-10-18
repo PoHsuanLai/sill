@@ -31,7 +31,7 @@ pub(super) fn display_trial(output: OutputInfo) -> Element {
     let drawn = stage().drawn().map(|(run, shown)| (*run, shown));
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: Material::Sheet,
             extent: RootExtent::Viewport,
             if let Some((run, shown)) = drawn {

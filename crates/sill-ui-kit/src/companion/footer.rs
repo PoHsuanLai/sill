@@ -21,7 +21,7 @@ pub fn footer_view(footer: &FooterWire) -> CardFooter {
                 place: place_of(&served.locality, served.account.as_str()),
             }),
         sources: footer.sources.iter().map(source_chip).collect(),
-        scope: scope_chips(&footer.keep),
+        scope: scope_chips(footer.keep),
     }
 }
 
@@ -52,7 +52,7 @@ fn source_chip(source: &EntityRef) -> SourceChip {
 }
 
 /// The chips of context the person kept, in the order they are offered.
-fn scope_chips(keep: &ContextKeep) -> Vec<ContextChip> {
+fn scope_chips(keep: ContextKeep) -> Vec<ContextChip> {
     [
         (keep.query, ChipKind::Query, "Search"),
         (keep.results, ChipKind::Results, "Results"),

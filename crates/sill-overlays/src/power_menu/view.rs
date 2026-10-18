@@ -33,7 +33,7 @@ pub(super) fn power_menu(output: OutputInfo) -> Element {
     let offers = (ctx.offers)();
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: material(file.power_menu.material),
             extent: RootExtent::Viewport,
             AppStyle { css: POWER_MENU_CSS }

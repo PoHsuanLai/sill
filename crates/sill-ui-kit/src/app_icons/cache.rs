@@ -73,7 +73,7 @@ fn slots() -> MutexGuard<'static, HashMap<IconKey, Slot>> {
     CACHE
         .slots
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 /// Turns an [`Art`] into the file to show.

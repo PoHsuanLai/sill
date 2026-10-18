@@ -62,7 +62,7 @@ pub fn NowPlayingTrack(
         let before = (level != MotionLevel::Reduced).then(|| was.now.clone());
         let fades = before.is_some();
         seen.set(Faces {
-            now: face.clone(),
+            now: face,
             before,
             round: was.round.wrapping_add(1),
         });

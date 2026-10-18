@@ -48,7 +48,7 @@ fn hint_of(auth: &Auth) -> Option<TextLine> {
     let note = auth.notes.last().map(|note| match note {
         PamNote::Info(text) | PamNote::Error(text) => TextLine::from(text.as_str()),
     });
-    note.or(match auth.phase {
+    note.or_else(|| match auth.phase {
         AuthPhase::Expired => Some(TextLine::from(EXPIRED_HINT)),
         AuthPhase::Unavailable(AuthFault::TimedOut) => {
             Some(TextLine::from("The check took too long"))
@@ -95,7 +95,7 @@ pub(super) fn LockBody(
         .and_then(|path| ImageSource::file(&path).ok());
     let prompt = match here {
         Here::Yes => {
-            let control = services.auth.control.clone();
+            let control = services.auth.control;
             rsx! {
                 LockPrompt {
                     user: lock_user(&auth.account),

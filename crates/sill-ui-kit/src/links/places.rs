@@ -115,9 +115,8 @@ pub fn kinds_of(outputs: &[SavedOutput], output: &OutputKey) -> Option<Vec<Widge
 pub fn with_output(outputs: Vec<SavedOutput>, record: SavedOutput) -> Vec<SavedOutput> {
     let others = outputs
         .into_iter()
-        .filter(|saved| saved.output != record.output)
-        .collect::<Vec<_>>();
-    others.into_iter().chain(std::iter::once(record)).collect()
+        .filter(|saved| saved.output != record.output);
+    others.chain(std::iter::once(record)).collect()
 }
 
 /// One placed widget as the file spells it.

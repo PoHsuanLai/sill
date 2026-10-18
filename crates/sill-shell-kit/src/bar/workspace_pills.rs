@@ -26,7 +26,7 @@ pub fn WorkspacePills(
     let data = common.data_attributes();
     rsx! {
         div {
-            id: common.id.clone(),
+            id: common.id,
             class,
             role: "group",
             "aria-label": "{label}",

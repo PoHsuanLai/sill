@@ -43,9 +43,9 @@ enum IdleDimPlan {
 /// Which plan `change` asks for, given the phase it is moving to and the level it plays at.
 fn plan(change: IdleDimChange, phase: IdleDimPhase, level: MotionLevel) -> IdleDimPlan {
     match (change, phase, level) {
-        (IdleDimChange::Level, ..) => IdleDimPlan::Snap,
-        (IdleDimChange::Phase, IdleDimPhase::Awake, _) => IdleDimPlan::Snap,
-        (IdleDimChange::Phase, IdleDimPhase::Dimmed, MotionLevel::Reduced) => IdleDimPlan::Snap,
+        (IdleDimChange::Level, ..)
+        | (IdleDimChange::Phase, IdleDimPhase::Awake, _)
+        | (IdleDimChange::Phase, IdleDimPhase::Dimmed, MotionLevel::Reduced) => IdleDimPlan::Snap,
         (IdleDimChange::Phase, IdleDimPhase::Dimmed, MotionLevel::Standard) => IdleDimPlan::Fade,
     }
 }

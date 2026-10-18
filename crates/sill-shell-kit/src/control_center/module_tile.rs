@@ -123,10 +123,11 @@ fn chevron_button(
             title: "{name}",
             "aria-expanded": expanded.aria(),
             "aria-disabled": inert.aria_disabled(),
-            onclick: move |event| match listen {
-                Some(listen) => listen.click(&event),
-                // An inert chevron still is not the tile: its press toggles nothing.
-                None => {
+            onclick: move |event| {
+                if let Some(listen) = listen {
+                    listen.click(&event);
+                } else {
+                    // An inert chevron still is not the tile: its press toggles nothing.
                     event.stop_propagation();
                     kept_click(&event);
                 }

@@ -31,12 +31,12 @@ impl TileIcons {
         let px = pick(self.side, self.cx.scale);
         let resolver = self.cx.resolver;
         match self.index.get(app).map(|entry| &entry.icon) {
-            Some(AppIcon::File(path)) if path.is_absolute() && symbolic(path) => {
-                self.external(path).map_or(window(), IconSource::Symbolic)
-            }
+            Some(AppIcon::File(path)) if path.is_absolute() && symbolic(path) => self
+                .external(path)
+                .map_or_else(window, IconSource::Symbolic),
             Some(AppIcon::File(path)) if path.is_absolute() => {
                 let file = resolver.path(&theme_art(path, px, self.cx.look));
-                self.external(&file).map_or(window(), IconSource::Image)
+                self.external(&file).map_or_else(window, IconSource::Image)
             }
             Some(AppIcon::File(_) | AppIcon::None) | None => window(),
         }

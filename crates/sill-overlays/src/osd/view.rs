@@ -57,7 +57,7 @@ pub(super) fn osd(output: OutputInfo) -> Element {
     };
     rsx! {
         SurfaceRoot {
-            output: output.clone(),
+            output,
             material: Material::Osd,
             chrome: Some(RootChrome::Transparent),
             AppStyle { css: OSD_CSS }

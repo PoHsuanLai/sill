@@ -51,17 +51,14 @@ fn thousandths(percent: u16) -> Fraction {
 /// the last failure while it stands, else Idle.
 pub fn network_glyph(network: &Network, radio: Radio) -> NetworkGlyph {
     match (&network.link, network.join.now, radio) {
-        (Link::Connecting, Attempt::Running(op), _) => {
+        // Moving to another Wi-Fi network while joined: joining, as the reference's menu bar
+        // does. A wired primary keeps its own icon.
+        (Link::Connecting | Link::Wifi { .. }, Attempt::Running(op), _) => {
             NetworkGlyph::Wifi(WifiState::Joining(stamp(op)))
         }
         // The reducer always stamps a join; this is a join it has not seen start.
         (Link::Connecting, Attempt::Quiet | Attempt::Failed(_), _) => {
             NetworkGlyph::Wifi(WifiState::Joining(stamp(network.join.minted)))
-        }
-        // Moving to another Wi-Fi network while joined: joining, as the reference's menu bar
-        // does. A wired primary keeps its own icon.
-        (Link::Wifi { .. }, Attempt::Running(op), _) => {
-            NetworkGlyph::Wifi(WifiState::Joining(stamp(op)))
         }
         (Link::Wifi { strength, .. }, _, _) => NetworkGlyph::Wifi(WifiState::Joined {
             bars: WifiBars::of(thousandths(strength.0)),
