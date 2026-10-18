@@ -32,7 +32,7 @@ use zbus::zvariant::OwnedObjectPath;
 
 use super::probe::{self, Arrival};
 use super::text::text;
-use super::{answer, cua, helpers, intents, memory, tell};
+use super::{answer, cua, helpers, intents, memory, tell, terminal};
 use crate::companion::{CompanionLinks, CompanionService};
 use crate::control::Control;
 use crate::deadline::{COMPANION_CALL, within};
@@ -277,6 +277,12 @@ impl Live {
                 if let Err(error) = self.launch.send(page) {
                     eprintln!("sill: companion: opening the model picker: {error}");
                 }
+            }
+            CompanionEffect::Helpers(HelpersCommand::OpenTerminal(request)) => {
+                let events = self.events.clone();
+                tokio::spawn(async move {
+                    let _ = events.send(CompanionEvent::Helpers(terminal::sign_in(request).await));
+                });
             }
             CompanionEffect::Helpers(command) => self.helpers(command),
             CompanionEffect::Summon(SummonOut::AskApp { app, serial }) => {

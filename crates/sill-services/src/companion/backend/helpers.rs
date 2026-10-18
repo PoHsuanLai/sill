@@ -1,18 +1,18 @@
-//! The helpers on `org.quire.Companion1.Helpers`: the calls the helpers screen asks for, and the
-//! `Changed` signal that tells it to read the list again. Every body is JSON of
-//! `companion-wire`'s helper types; a refusal is the companion's own sentence and the model shows
-//! it as it is.
+//! The helpers on `org.quire.Companion1.Helpers2`: the calls the helpers screen asks for (the
+//! helpers, signing in to the apps they run, their routines), and the `Changed` signal that tells
+//! it to read the list again. Every body is JSON of `companion-wire`'s helper types; a refusal is
+//! the companion's own sentence and the model shows it as it is.
 
 use companion_wire::{HelperCardView, HelperForm, HelperReply, HelpersView};
-use docket_dbus::{COMPANION_BUS, CompanionHelpersProxy};
+use docket_dbus::{COMPANION_BUS, CompanionHelpers2Proxy};
 use porter_client::DbusTransport;
-use porter_dbus::{EngineState, LocalEngine};
 use prov::HelperId;
 use sill_model::companion::{Asked, CompanionEvent, HelpersCommand, HelpersMsg, model_groups};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
 use super::text::{from_json, text, to_json};
+use super::{pool, routines};
 use crate::owner;
 use crate::stream::next;
 
@@ -20,7 +20,7 @@ use crate::stream::next;
 /// a call that says nothing back (the `Changed` signal follows it). A call that could not be made
 /// or understood is `Unreached`, and the cause is logged.
 pub(super) async fn carry(connection: &Connection, command: HelpersCommand) -> Option<HelpersMsg> {
-    let proxy = match CompanionHelpersProxy::new(connection).await {
+    let proxy = match CompanionHelpers2Proxy::new(connection).await {
         Ok(proxy) => proxy,
         Err(error) => return unreached(&error),
     };
@@ -37,40 +37,36 @@ pub(super) async fn carry(connection: &Connection, command: HelpersCommand) -> O
             let posted = proxy.post_job(helper.as_str(), &goal, "[]").await;
             Some(reply(posted, Asked::Job))
         }
+        HelpersCommand::SignIn { helper, way } => {
+            let answer = proxy.sign_in(helper.as_str(), &way).await;
+            Some(reply(answer, Asked::SignIn))
+        }
+        HelpersCommand::SignOut(helper) => {
+            let answer = proxy.sign_out(helper.as_str()).await;
+            Some(reply(answer, Asked::SignOut))
+        }
+        HelpersCommand::Routines(command) => routines::carry(&proxy, command).await,
         HelpersCommand::ReadModels => Some(read_models(connection).await),
-        // The launch service opens it; the loop never hands it here.
-        HelpersCommand::OpenModelPicker => None,
+        HelpersCommand::SetPool {
+            helper,
+            pool: models,
+        } => Some(pool::keep(&helper, models.len())),
+        // The launch service opens it, and the loop opens the sign-in window; neither is handed
+        // here.
+        HelpersCommand::OpenModelPicker | HelpersCommand::OpenTerminal(_) => None,
     }
 }
 
-/// The slot slug of the text models a helper runs on.
-const TEXT_SLOT: &str = "text";
-
-/// The models the places serve, grouped. The engines are only read to name the one that runs the
-/// models of this computer; when they cannot be read the list is the same without the name.
+/// The models the places serve, grouped; this computer's under the engine that runs each.
 async fn read_models(connection: &Connection) -> HelpersMsg {
     let transport = DbusTransport::over(connection.clone());
-    let places = match transport.list_places().await {
-        Ok(read) => read.rows,
-        Err(why) => return unreached(&why).unwrap_or(HelpersMsg::Unreached),
-    };
-    let engines = match transport.list_local_engines().await {
-        Ok(read) => text_engines(read.rows),
-        Err(_) => Vec::new(),
-    };
-    HelpersMsg::ModelsOffered(model_groups(&places, &engines))
+    match transport.list_places().await {
+        Ok(read) => HelpersMsg::ModelsOffered(model_groups(&read.rows)),
+        Err(why) => unreached(&why).unwrap_or(HelpersMsg::Unreached),
+    }
 }
 
-/// The names of the engines on this computer that run text models.
-fn text_engines(rows: Vec<LocalEngine>) -> Vec<String> {
-    rows.into_iter()
-        .filter(|engine| matches!(engine.state, EngineState::Found(_)))
-        .filter(|engine| engine.slots.iter().any(|slot| slot == TEXT_SLOT))
-        .map(|engine| engine.name)
-        .collect()
-}
-
-async fn read_list(proxy: &CompanionHelpersProxy<'_>, after: u64) -> HelpersMsg {
+async fn read_list(proxy: &CompanionHelpers2Proxy<'_>, after: u64) -> HelpersMsg {
     match proxy
         .list(after)
         .await
@@ -84,7 +80,7 @@ async fn read_list(proxy: &CompanionHelpersProxy<'_>, after: u64) -> HelpersMsg 
 
 /// A card: a helper the companion does not have is `CardMissing`; a companion that cannot be
 /// reached is not.
-async fn read_card(proxy: &CompanionHelpersProxy<'_>, helper: HelperId) -> HelpersMsg {
+async fn read_card(proxy: &CompanionHelpers2Proxy<'_>, helper: HelperId) -> HelpersMsg {
     match proxy.card(helper.as_str()).await {
         Ok(body) => match from_json::<HelperCardView>(&body) {
             Ok(view) => HelpersMsg::CardRead(Box::new(view)),
@@ -97,7 +93,7 @@ async fn read_card(proxy: &CompanionHelpersProxy<'_>, helper: HelperId) -> Helpe
 
 /// Make a helper (`helper` is `None`) or change one.
 async fn save(
-    proxy: &CompanionHelpersProxy<'_>,
+    proxy: &CompanionHelpers2Proxy<'_>,
     helper: Option<&HelperId>,
     form: &HelperForm,
 ) -> HelpersMsg {
@@ -124,7 +120,7 @@ fn reply(answer: zbus::Result<String>, asked: Asked) -> HelpersMsg {
 }
 
 /// A call with no body: nothing to tell the model unless it failed.
-fn silent(done: zbus::Result<()>) -> Option<HelpersMsg> {
+pub(super) fn silent(done: zbus::Result<()>) -> Option<HelpersMsg> {
     match done {
         Ok(()) => None,
         Err(error) => unreached(&error),
@@ -132,7 +128,7 @@ fn silent(done: zbus::Result<()>) -> Option<HelpersMsg> {
 }
 
 /// Log what went wrong; the person is told that the helpers could not be reached.
-fn unreached(why: &dyn std::fmt::Display) -> Option<HelpersMsg> {
+pub(super) fn unreached(why: &dyn std::fmt::Display) -> Option<HelpersMsg> {
     eprintln!("sill: companion: helpers: {why}");
     Some(HelpersMsg::Unreached)
 }
@@ -152,7 +148,7 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
 
 /// `Changed` as the model's message; ends when the events have no receiver.
 async fn changes(connection: &Connection, events: &UnboundedSender<CompanionEvent>) {
-    let Ok(proxy) = CompanionHelpersProxy::new(connection).await else {
+    let Ok(proxy) = CompanionHelpers2Proxy::new(connection).await else {
         return std::future::pending().await;
     };
     let Ok(mut changed) = proxy.receive_changed().await else {

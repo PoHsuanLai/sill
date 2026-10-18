@@ -1,5 +1,5 @@
 //! The helpers on a private bus: a stand-in owns `org.quire.Companion1` and its
-//! `Companion1.Helpers` object; the companion service reads the list, follows `Changed`, reads a
+//! `Companion1.Helpers2` object; the companion service reads the list, follows `Changed`, reads a
 //! card, and sends what the person confirms. Every wait is on the service's published state or on
 //! the stand-in's record, never on a clock. Never the person's session bus.
 
@@ -8,13 +8,17 @@ use crate::companion_support::{self, Desk, desk_or_return};
 use std::sync::{Arc, Mutex};
 
 use companion_support::{Log, app, json};
-use companion_wire::{HelperCardView, HelperLine, HelperNeeds, HelperReply, HelpersView, ToldWire};
-use docket_core::helper::{HelperModel, HelperName, HelperPhase};
+use companion_wire::{
+    HelperCardView, HelperLine, HelperNeeds, HelperReply, HelpersView, LoginShown, RoutineForm,
+    RoutineReply, RoutinesView, ToldWire,
+};
+use docket_core::helper::{HelperKind, HelperModel, HelperName, HelperPhase};
 use docket_dbus::COMPANION_BUS;
 use porter_core::Count;
 use prov::{HelperId, SpaceId};
+use docket_core::routine::RoutineId;
 use sill_model::companion::{
-    CompanionCommand, GONE, HelpersMsg, Open, Removal, WAITING_BADGE, badge_of,
+    CompanionCommand, GONE, HelpersMsg, Open, Removal, RoutinesMsg, WAITING_BADGE, badge_of,
 };
 use zbus::{Connection, fdo, interface};
 
@@ -33,6 +37,7 @@ fn line(helper: &str, name: &str, needs_you: Option<HelperNeeds>) -> HelperLine 
         state: HelperPhase::Idle,
         needs_you,
         agent: None,
+        conversation: None,
     }
 }
 
@@ -49,6 +54,9 @@ fn card(helper: &str, name: &str) -> HelperCardView {
             )
             .unwrap_or_else(|e| panic!("{e}")),
         ],
+        kind: HelperKind::default(),
+        login: LoginShown::default(),
+        sign_in: Vec::new(),
     }
 }
 
@@ -65,7 +73,7 @@ struct StandInHelpers {
     held: Held,
 }
 
-#[interface(name = "org.quire.Companion1.Helpers")]
+#[interface(name = "org.quire.Companion1.Helpers2")]
 impl StandInHelpers {
     async fn list(&self, after: u64) -> fdo::Result<String> {
         self.log.push(format!("list {after}"));
@@ -118,6 +126,45 @@ impl StandInHelpers {
             &*self.held.reply.lock().unwrap_or_else(|e| panic!("{e}")),
         ))
     }
+
+    async fn sign_in(&self, helper: String, way: String) -> fdo::Result<String> {
+        self.log.push(format!("sign_in {helper} {way}"));
+        Ok(json(
+            &*self.held.reply.lock().unwrap_or_else(|e| panic!("{e}")),
+        ))
+    }
+
+    async fn sign_out(&self, helper: String) -> fdo::Result<String> {
+        self.log.push(format!("sign_out {helper}"));
+        Ok(json(
+            &*self.held.reply.lock().unwrap_or_else(|e| panic!("{e}")),
+        ))
+    }
+
+    async fn routines(&self) -> fdo::Result<String> {
+        self.log.push("routines".to_owned());
+        Ok(json(&RoutinesView::default()))
+    }
+
+    async fn add_routine(&self, form: String) -> fdo::Result<String> {
+        self.log.push(format!("add_routine {form}"));
+        Ok(json(&RoutineReply::Done))
+    }
+
+    async fn pause_routine(&self, routine: String) -> fdo::Result<()> {
+        self.log.push(format!("pause_routine {routine}"));
+        Ok(())
+    }
+
+    async fn resume_routine(&self, routine: String) -> fdo::Result<()> {
+        self.log.push(format!("resume_routine {routine}"));
+        Ok(())
+    }
+
+    async fn remove_routine(&self, routine: String) -> fdo::Result<()> {
+        self.log.push(format!("remove_routine {routine}"));
+        Ok(())
+    }
 }
 
 /// The stand-in, on the companion's name, and what it holds.
@@ -148,7 +195,7 @@ async fn changed(companion: &Connection) {
         .emit_signal(
             None::<&str>,
             PATH,
-            "org.quire.Companion1.Helpers",
+            "org.quire.Companion1.Helpers2",
             "Changed",
             &(),
         )
@@ -279,4 +326,36 @@ async fn pausing_removing_and_giving_a_job_reach_the_companion_and_removal_waits
     );
     desk.send(CompanionCommand::Helpers(HelpersMsg::Remove(id("h-1"))));
     desk.log_has("remove h-1").await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn signing_in_and_out_and_the_routines_reach_the_companion() {
+    let mut desk = desk_or_return!();
+    let (_companion, _held) = companion_with(&desk, HelpersView::default()).await;
+    desk.seated().await;
+    desk.log_has("routines").await;
+
+    desk.send(CompanionCommand::Helpers(HelpersMsg::SignIn(
+        id("h-1"),
+        "login".to_owned(),
+    )));
+    desk.log_has("sign_in h-1 login").await;
+    desk.send(CompanionCommand::Helpers(HelpersMsg::SignOut(id("h-1"))));
+    desk.log_has("sign_out h-1").await;
+
+    for msg in [
+        RoutinesMsg::OpenSheet(id("h-1")),
+        RoutinesMsg::EditGoal("Read the news".to_owned()),
+        RoutinesMsg::Confirm,
+    ] {
+        desk.send(CompanionCommand::Helpers(HelpersMsg::Routines(msg)));
+    }
+    let sent = desk.log_starting("add_routine ").await;
+    let form: RoutineForm = serde_json::from_str(sent.trim_start_matches("add_routine "))
+        .unwrap_or_else(|e| panic!("{e}: {sent}"));
+    assert_eq!(form.goal, "Read the news");
+    desk.send(CompanionCommand::Helpers(HelpersMsg::Routines(
+        RoutinesMsg::Pause(RoutineId(4)),
+    )));
+    desk.log_has("pause_routine r-4").await;
 }

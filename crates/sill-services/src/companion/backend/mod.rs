@@ -5,10 +5,13 @@ mod cua;
 mod helpers;
 mod intents;
 mod memory;
+mod pool;
 mod probe;
+mod routines;
 mod run;
 mod shown;
 mod tell;
+mod terminal;
 mod text;
 
 pub(crate) use run::{Reach, run};
