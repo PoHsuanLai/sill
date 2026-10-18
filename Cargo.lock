@@ -388,7 +388,7 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=232cc498884bbef26526552e6086c9c4fe94816b)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be)",
  "rustix",
 ]
 
@@ -444,7 +444,7 @@ dependencies = [
  "docket-core",
  "docket-dbus",
  "ds-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=232cc498884bbef26526552e6086c9c4fe94816b)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be)",
  "futures-util",
  "latchkey",
  "log",
@@ -486,7 +486,7 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=232cc498884bbef26526552e6086c9c4fe94816b)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be)",
  "log",
  "rustix",
  "serde",
@@ -1062,6 +1062,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf88ba1141d185c399bee5288d850d63b8369520c1eafc32a0430b5b6c287bf4"
 dependencies = [
  "tinyvec",
+]
+
+[[package]]
+name = "bulkhead"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/bulkhead?rev=fe1087903357e7cb99152caa5ef8e9dff4e1be7f#fe1087903357e7cb99152caa5ef8e9dff4e1be7f"
+dependencies = [
+ "serde",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -2371,6 +2380,7 @@ name = "docket-core"
 version = "0.1.0"
 dependencies = [
  "almanac-core",
+ "bulkhead",
  "cua-action",
  "model-provider",
  "porter-core",
@@ -2389,6 +2399,8 @@ dependencies = [
  "porter-core",
  "porter-dbus",
  "prov",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
  "tracing",
  "zbus",
@@ -2623,9 +2635,9 @@ dependencies = [
 [[package]]
 name = "ds-helpers"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=232cc498884bbef26526552e6086c9c4fe94816b#232cc498884bbef26526552e6086c9c4fe94816b"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be#9ddcbceecbb2490526a2f5a2f3344334333d72be"
 dependencies = [
- "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=232cc498884bbef26526552e6086c9c4fe94816b)",
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2668,7 +2680,7 @@ dependencies = [
 [[package]]
 name = "ds-peer"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=232cc498884bbef26526552e6086c9c4fe94816b#232cc498884bbef26526552e6086c9c4fe94816b"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be#9ddcbceecbb2490526a2f5a2f3344334333d72be"
 dependencies = [
  "futures-timer",
  "thiserror 2.0.21",
