@@ -30,8 +30,8 @@ pub const NO_MODELS: &str = "No model is available yet. Add one in Settings.";
 /// The last entry of the list of models.
 pub const ADD_MODEL: &str = "Add a model in Settings\u{2026}";
 
-/// Said when the sign-in cannot open a window.
-pub const NO_TERMINAL: &str = "A window to sign in with could not be opened.";
+/// Said when a terminal window cannot be opened.
+pub const NO_TERMINAL: &str = "A terminal window could not be opened.";
 
 /// Said when a sign-in came without the app's sandboxed command, so no window was opened.
 pub const SIGN_IN_DID_NOT_WORK: &str = "Signing in did not work.";

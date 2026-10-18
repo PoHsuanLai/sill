@@ -45,6 +45,18 @@ pub(super) async fn carry(connection: &Connection, command: HelpersCommand) -> O
             let answer = proxy.sign_out(helper.as_str()).await;
             Some(reply(answer, Asked::SignOut))
         }
+        HelpersCommand::OpenInTerminal(helper) => {
+            let answer = proxy.open_in_terminal(helper.as_str()).await;
+            Some(reply(answer, Asked::OpenInTerminal))
+        }
+        HelpersCommand::BringBack(helper) => {
+            let answer = proxy.bring_back(helper.as_str()).await;
+            Some(reply(answer, Asked::BringBack))
+        }
+        HelpersCommand::BringBackAfterClose(helper) => {
+            let answer = proxy.bring_back(helper.as_str()).await;
+            Some(reply(answer, Asked::BringBackAfterClose))
+        }
         HelpersCommand::Routines(command) => routines::carry(&proxy, command).await,
         HelpersCommand::ReadModels => Some(read_models(connection).await),
         HelpersCommand::SetPool { helper, pool } => {

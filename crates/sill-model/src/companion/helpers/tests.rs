@@ -1,11 +1,12 @@
 mod automatic;
+mod handover;
 mod sign_in;
 
 use std::collections::BTreeSet;
 
 use companion_wire::{
-    HelperCardView, HelperForm, HelperLine, HelperNeeds, HelperReply, HelpersView, JobLine,
-    JobShown, LoginShown, ToldWire,
+    Handover, HelperCardView, HelperForm, HelperLine, HelperNeeds, HelperReply, HelpersView,
+    JobLine, JobShown, LoginShown, RunsIn, ToldWire,
 };
 use docket_core::helper::{Ceiling, HelperKind, HelperModel, HelperName, HelperPhase};
 use porter_core::{AccountId, Count, ModelId};
@@ -64,6 +65,8 @@ fn card(helper: &str, name: &str, model: HelperModel) -> HelperCardView {
         kind: HelperKind::default(),
         login: LoginShown::default(),
         sign_in: Vec::new(),
+        runs_in: RunsIn::default(),
+        handover: Handover::default(),
     }
 }
 

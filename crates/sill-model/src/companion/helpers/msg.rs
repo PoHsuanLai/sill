@@ -22,6 +22,13 @@ pub enum Asked {
     SignIn,
     /// Signing out of the app a helper runs.
     SignOut,
+    /// Opening a helper's work in a terminal.
+    OpenInTerminal,
+    /// Bringing a helper's work back from a terminal, as the person asked.
+    BringBack,
+    /// Bringing a helper's work back because its terminal window was closed: if the work is
+    /// already back, there is nothing to say.
+    BringBackAfterClose,
 }
 
 /// What the screen is told.
@@ -83,11 +90,17 @@ pub enum HelpersMsg {
     SignOut(HelperId),
     /// The window the sign-in opened was closed: the companion checks again.
     TerminalClosed(HelperId),
-    /// A window for the sign-in could not be opened.
+    /// The terminal a helper's work was handed to was closed: the work is asked for back.
+    HandoffClosed(HelperId),
+    /// A terminal window could not be opened.
     NoTerminal,
-    /// The sign-in came without the app's command inside its sandbox, so nothing was opened: the
-    /// app never runs unconfined.
+    /// A terminal request came without the app's command inside its sandbox, so nothing was
+    /// opened: the app never runs unconfined.
     SignInUnconfined,
+    /// The person hands a helper's work to a terminal.
+    OpenInTerminal(HelperId),
+    /// The person asks for a helper's work back from a terminal.
+    BringBack(HelperId),
     /// The person chooses Automatic for the open helper: they tick the models it may use.
     StartAutomatic,
     /// The person ticks or unticks a model for Automatic.
@@ -148,8 +161,14 @@ pub enum HelpersCommand {
     /// Sign out of the app a helper runs.
     SignOut(HelperId),
     /// Open a terminal window running the app, as the companion asked; when it closes the screen is
-    /// told ([`HelpersMsg::TerminalClosed`]).
+    /// told ([`HelpersMsg::TerminalClosed`], or [`HelpersMsg::HandoffClosed`] for a handover).
     OpenTerminal(TerminalRequest),
+    /// Ask the companion to hand a helper's work to a terminal.
+    OpenInTerminal(HelperId),
+    /// Ask the companion to take a helper's work back from a terminal.
+    BringBack(HelperId),
+    /// Ask the companion for a helper's work back because its terminal window was closed.
+    BringBackAfterClose(HelperId),
     /// Keep the models Automatic may use for one helper.
     SetPool {
         /// Which.

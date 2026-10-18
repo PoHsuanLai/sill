@@ -6,6 +6,7 @@
 mod apps;
 mod automatic;
 mod draft;
+mod handover;
 mod model;
 mod models;
 mod msg;
@@ -19,6 +20,7 @@ mod words;
 pub use apps::offered_apps;
 pub use automatic::{Automatic, PoolWritten};
 pub use draft::{Draft, Reach};
+pub use handover::{BRING_BACK, HandoverShown, IN_TERMINAL, OPEN_IN_TERMINAL, handover_of};
 pub use model::{HelpersModel, Open, Removal};
 pub use models::{ModelGroup, ModelList, ModelOffer, model_groups};
 pub use msg::{Asked, HelpersCommand, HelpersMsg};
@@ -28,6 +30,7 @@ pub use routines::{
     RoutinesModel, RoutinesMsg, Sheet, last_run_line, proposal_what, proposal_when, proposal_why,
     remove_routine_question, repeat_label, state_label,
 };
+pub(crate) use sign_in::program_name;
 pub use sign_in::{
     SignInButton, kind_line, login_line, needs_sign_in_line, offers_sign_out, sign_in_buttons,
 };

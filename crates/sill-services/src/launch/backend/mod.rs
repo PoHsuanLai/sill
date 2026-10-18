@@ -17,5 +17,5 @@ pub use links::LaunchLinks;
 pub use open::{open_argv, reveal_folder};
 pub(crate) use reach::Reach;
 pub(crate) use run::run;
-pub(crate) use terminal::detect as terminal_wrapper;
+pub(crate) use terminal::{TerminalCommand, TerminalSearch, open_in_terminal};
 pub use uri::file_uri;

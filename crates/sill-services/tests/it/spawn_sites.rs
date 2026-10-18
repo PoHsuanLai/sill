@@ -31,8 +31,8 @@ const ALLOWED: [(&str, &str); 7] = [
         "polkit's helper, `HelperRoute::Missing` in `Env::isolated`",
     ),
     (
-        "companion/backend/terminal.rs",
-        "the terminal a helper's sign-in asks for, run only by the live service, never by a test",
+        "launch/backend/terminal/open.rs",
+        "the desktop's one terminal opener, run only by the live service, never by a test",
     ),
 ];
 

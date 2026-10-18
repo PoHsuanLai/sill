@@ -1,12 +1,12 @@
 //! Starting apps (activation token, DBusActivatable via org.freedesktop.Application.Activate,
 //! Terminal=true wrapper, `systemd-run --user --scope --collect --unit=app-sill-<id>-<rand>.scope`
-//! (fallback process group)).
+//! (fallback process group)), and the desktop's one terminal opener (`backend/terminal/`).
 //!
 //! The activation token comes from shell-host (`SurfaceHandle::activation_token`) in the
 //! daemon's `sill::launch`, which then sends a [`LaunchCommand`] here. [`LaunchService`] prefers
 //! `org.freedesktop.Application.Activate` for a `DBusActivatable` entry (`dbus.rs`); otherwise
 //! it plans the argument vector (`plan.rs`, pure) and runs it inside a transient
-//! `systemd-run --user --scope`, wrapped in the machine's terminal (`terminal.rs`) when the
+//! `systemd-run --user --scope`, wrapped in the machine's terminal (`terminal/`) when the
 //! entry asks for one, tracking the scope until it exits (`run.rs`).
 
 mod backend;
@@ -20,7 +20,7 @@ use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-pub(crate) use backend::terminal_wrapper;
+pub(crate) use backend::{TerminalCommand, TerminalSearch, open_in_terminal};
 pub use backend::{LaunchLinks, file_uri, monotonic_now, open_argv, reveal_folder};
 
 /// App launching as a [`Service`]: scopes, activation tokens, opening files. Its `Deps` is the

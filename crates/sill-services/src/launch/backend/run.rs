@@ -35,7 +35,7 @@ pub(crate) async fn run(
         notifications,
     } = links;
     let tell = Tell(notifications);
-    let terminal = super::terminal::detect();
+    let terminal = super::terminal::wrapper(&setup.terminal);
     let mut nonce: u32 = 0;
     while let Some(command) = commands.recv().await {
         // Stamped as the request reaches the launch code, before anything is awaited.

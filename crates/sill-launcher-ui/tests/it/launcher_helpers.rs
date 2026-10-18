@@ -262,6 +262,43 @@ fn a_signed_in_app_helper_offers_sign_out_and_no_sign_in() {
     );
 }
 
+/// Research's app card with where its work is and what the companion allows.
+fn app_card_in(runs_in: &str, handover: &str) -> HelpersMsg {
+    let card = format!(
+        r#"{{"line":{RESEARCH},"role":"Reads the news each morning","model":{{"kind":"unset"}},"reach":[],"steps":12,"jobs":[],"kind":{{"agent_app":"claude-code"}},"login":"signed_in","runs_in":"{runs_in}","handover":"{handover}"}}"#
+    );
+    HelpersMsg::CardRead(Box::new(
+        serde_json::from_str(&card).unwrap_or_else(|e| panic!("{e}")),
+    ))
+}
+
+#[test]
+fn an_app_helper_offers_the_terminal_and_a_helper_in_one_offers_bring_back() {
+    let mut open = on_research(vec![app_card_in("desktop", "to_terminal")]);
+    assert_eq!(open.harness.count("#helper-bring-back"), 0);
+    assert!(open.harness.html().contains("Open in Terminal"));
+    commands(&mut open);
+    click(&mut open, "#helper-open-terminal");
+    assert_eq!(
+        commands(&mut open),
+        [CompanionCommand::Helpers(HelpersMsg::OpenInTerminal(
+            research()
+        ))]
+    );
+    let mut away = on_research(vec![app_card_in("terminal", "bring_back")]);
+    assert_eq!(away.harness.count("#helper-open-terminal"), 0);
+    assert!(away.harness.html().contains("In Terminal"));
+    commands(&mut away);
+    click(&mut away, "#helper-bring-back");
+    assert_eq!(
+        commands(&mut away),
+        [CompanionCommand::Helpers(HelpersMsg::BringBack(research()))]
+    );
+    let nothing = on_research(vec![app_card_in("desktop", "unavailable")]);
+    assert_eq!(nothing.harness.count("#helper-open-terminal"), 0);
+    assert_eq!(nothing.harness.count("#helper-bring-back"), 0);
+}
+
 fn routine_listed() -> HelpersMsg {
     let line = r#"{"id":1,"helper":"h-1","helper_name":"Research","goal":"Read the news","when":"Every day at 8:00","state":"on","next":null,"last":null}"#;
     HelpersMsg::Routines(RoutinesMsg::Listed(

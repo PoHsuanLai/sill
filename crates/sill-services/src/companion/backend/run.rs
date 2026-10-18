@@ -37,20 +37,24 @@ use crate::companion::{CompanionLinks, CompanionService};
 use crate::control::Control;
 use crate::deadline::{COMPANION_CALL, within};
 use crate::env::{Env, WallClock};
+use crate::launch::TerminalSearch;
 use crate::owner;
 use crate::seat::SeatView;
 use crate::service::ServiceIo;
 use crate::stream::next;
 
-/// What the loop reaches outside the process: the wall clock the turns are stamped with.
+/// What the loop reaches outside the process: the wall clock the turns are stamped with, and
+/// where the default terminal is looked for.
 pub(crate) struct Reach {
     clock: Arc<dyn WallClock>,
+    terminal: TerminalSearch,
 }
 
 impl Reach {
     pub(crate) fn of(env: &Env) -> Reach {
         Reach {
             clock: Arc::clone(&env.clock),
+            terminal: TerminalSearch::of(env),
         }
     }
 }
@@ -84,6 +88,7 @@ pub(crate) async fn run(reach: Reach, links: CompanionLinks, io: ServiceIo<Compa
         params: CompanionParams::default(),
         origin: Instant::now(),
         clock: reach.clock,
+        terminal: reach.terminal,
         connection: None,
         summons,
         launch,
@@ -138,6 +143,7 @@ struct Live {
     /// Where the machines' stamps count from.
     origin: Instant,
     clock: Arc<dyn WallClock>,
+    terminal: TerminalSearch,
     connection: Option<Connection>,
     summons: mpsc::UnboundedSender<SummonOut>,
     launch: Control<LaunchCommand>,
@@ -279,9 +285,11 @@ impl Live {
                 }
             }
             CompanionEffect::Helpers(HelpersCommand::OpenTerminal(request)) => {
-                let events = self.events.clone();
+                let (events, search) = (self.events.clone(), self.terminal.clone());
                 tokio::spawn(async move {
-                    let _ = events.send(CompanionEvent::Helpers(terminal::sign_in(request).await));
+                    let _ = events.send(CompanionEvent::Helpers(
+                        terminal::open(&search, request).await,
+                    ));
                 });
             }
             CompanionEffect::Helpers(command) => self.helpers(command),

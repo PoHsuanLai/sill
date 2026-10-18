@@ -9,8 +9,8 @@ use std::sync::{Arc, Mutex};
 
 use companion_support::{Log, app, json};
 use companion_wire::{
-    HelperCardView, HelperLine, HelperNeeds, HelperReply, HelpersView, LoginShown, RoutineForm,
-    RoutineReply, RoutinesView, ToldWire,
+    Handover, HelperCardView, HelperLine, HelperNeeds, HelperReply, HelpersView, LoginShown,
+    RoutineForm, RoutineReply, RoutinesView, RunsIn, ToldWire,
 };
 use docket_core::helper::{HelperKind, HelperModel, HelperName, HelperPhase};
 use docket_core::routine::RoutineId;
@@ -58,6 +58,8 @@ fn card(helper: &str, name: &str) -> HelperCardView {
         kind: HelperKind::default(),
         login: LoginShown::default(),
         sign_in: Vec::new(),
+        runs_in: RunsIn::default(),
+        handover: Handover::default(),
     }
 }
 

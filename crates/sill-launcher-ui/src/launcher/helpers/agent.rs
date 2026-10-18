@@ -11,6 +11,7 @@ use sill_model::companion::{
     HelpersMsg, SignInButton, kind_line, login_line, offers_sign_out, sign_in_buttons,
 };
 
+use super::handover::HandoverRow;
 use super::say::{Say, use_say};
 
 /// "Uses Claude Code", whether the person is signed in, and the buttons; nothing for a helper
@@ -45,6 +46,7 @@ pub(super) fn AppLine(view: HelperCardView) -> Element {
                 {sign_in_row(&view, "helper-sign-in", &say)}
                 {sign_out}
             }
+            HandoverRow { view: view.clone() }
         }
     }
 }

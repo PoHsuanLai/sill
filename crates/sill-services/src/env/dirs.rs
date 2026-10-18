@@ -8,6 +8,9 @@ use std::path::{Path, PathBuf};
 /// specification's own default).
 const DEFAULT_DATA_DIRS: [&str; 2] = ["/usr/local/share", "/usr/share"];
 
+/// The system configuration directories when `$XDG_CONFIG_DIRS` names none.
+const DEFAULT_CONFIG_DIRS: [&str; 1] = ["/etc/xdg"];
+
 /// The folder old icon themes and the few programs that predate the data directories still use:
 /// `/usr/share/pixmaps`, where an icon lookup ends.
 const SYSTEM_PIXMAPS: &str = "/usr/share/pixmaps";
@@ -36,6 +39,11 @@ pub struct Dirs {
     /// `$XDG_DATA_DIRS`, in precedence order, else `/usr/local/share` and `/usr/share`. A
     /// relative entry names no fixed place and is left out.
     pub data_dirs: Vec<PathBuf>,
+    /// `$XDG_CONFIG_DIRS`, in precedence order, else `/etc/xdg`. A relative entry is left out.
+    pub config_dirs: Vec<PathBuf>,
+    /// `$PATH`, in order: where a program named without a folder is found. A relative entry is
+    /// left out.
+    pub program_dirs: Vec<PathBuf>,
     /// `$XDG_STATE_HOME`, else `~/.local/state`.
     pub state: PathBuf,
     /// `$XDG_CACHE_HOME`, else `~/.cache`.
@@ -62,6 +70,8 @@ impl Dirs {
             config: dirs::config_dir().unwrap_or_else(|| home.join(".config")),
             data: dirs::data_dir().unwrap_or_else(|| home.join(".local/share")),
             data_dirs: data_dirs_from(std::env::var_os("XDG_DATA_DIRS")),
+            config_dirs: config_dirs_from(std::env::var_os("XDG_CONFIG_DIRS")),
+            program_dirs: absolute_dirs(std::env::var_os("PATH")),
             state: dirs::state_dir().unwrap_or_else(|| home.join(".local/state")),
             cache: dirs::cache_dir().unwrap_or_else(|| home.join(".cache")),
             runtime: dirs::runtime_dir(),
@@ -80,6 +90,8 @@ impl Dirs {
             config: root.join("config"),
             data: root.join("data"),
             data_dirs: vec![root.join("share")],
+            config_dirs: vec![root.join("xdg")],
+            program_dirs: vec![root.join("bin")],
             state: root.join("state"),
             cache: root.join("cache"),
             runtime: Some(root.join("run")),
@@ -164,18 +176,31 @@ fn app_stores_in(opt: &Path, snap: &Path) -> Vec<PathBuf> {
     std::iter::once(opt.to_path_buf()).chain(currents).collect()
 }
 
+/// The absolute directories a colon-separated list (`raw`) names, in order.
+fn absolute_dirs(raw: Option<OsString>) -> Vec<PathBuf> {
+    raw.iter()
+        .flat_map(std::env::split_paths)
+        .filter(|dir| dir.is_absolute())
+        .collect()
+}
+
+/// `named`, or `default` when `named` is empty.
+fn or_default(named: Vec<PathBuf>, default: &[&str]) -> Vec<PathBuf> {
+    match named.is_empty() {
+        true => default.iter().map(PathBuf::from).collect(),
+        false => named,
+    }
+}
+
 /// The directories `$XDG_DATA_DIRS` (`raw`) names: colon-separated, absolute ones only; the
 /// specification's default when it is unset or names none.
 fn data_dirs_from(raw: Option<OsString>) -> Vec<PathBuf> {
-    let named: Vec<PathBuf> = raw
-        .iter()
-        .flat_map(std::env::split_paths)
-        .filter(|dir| dir.is_absolute())
-        .collect();
-    match named.is_empty() {
-        true => DEFAULT_DATA_DIRS.iter().map(PathBuf::from).collect(),
-        false => named,
-    }
+    or_default(absolute_dirs(raw), &DEFAULT_DATA_DIRS)
+}
+
+/// The directories `$XDG_CONFIG_DIRS` (`raw`) names, as [`data_dirs_from`] reads its own.
+fn config_dirs_from(raw: Option<OsString>) -> Vec<PathBuf> {
+    or_default(absolute_dirs(raw), &DEFAULT_CONFIG_DIRS)
 }
 
 #[cfg(test)]
@@ -214,6 +239,20 @@ mod tests {
         ];
         for (raw, want) in CASES {
             let got = data_dirs_from(raw.map(OsString::from));
+            let want: Vec<PathBuf> = want.iter().map(PathBuf::from).collect();
+            assert_eq!(got, want, "{raw:?}");
+        }
+    }
+
+    #[test]
+    fn config_dirs_are_the_absolute_entries_or_etc_xdg() {
+        const CASES: &[(Option<&str>, &[&str])] = &[
+            (None, &["/etc/xdg"]),
+            (Some("rel"), &["/etc/xdg"]),
+            (Some("/a:rel:/b"), &["/a", "/b"]),
+        ];
+        for (raw, want) in CASES {
+            let got = super::config_dirs_from(raw.map(OsString::from));
             let want: Vec<PathBuf> = want.iter().map(PathBuf::from).collect();
             assert_eq!(got, want, "{raw:?}");
         }

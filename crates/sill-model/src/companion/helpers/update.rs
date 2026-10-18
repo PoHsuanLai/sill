@@ -97,6 +97,11 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
         HelpersMsg::SignIn(helper, way) => (model, vec![HelpersCommand::SignIn { helper, way }]),
         HelpersMsg::SignOut(helper) => (model, vec![HelpersCommand::SignOut(helper)]),
         HelpersMsg::TerminalClosed(helper) => (model, vec![HelpersCommand::Resume(helper)]),
+        HelpersMsg::HandoffClosed(helper) => {
+            (model, vec![HelpersCommand::BringBackAfterClose(helper)])
+        }
+        HelpersMsg::BringBack(helper) => (model, vec![HelpersCommand::BringBack(helper)]),
+        HelpersMsg::OpenInTerminal(helper) => (model, vec![HelpersCommand::OpenInTerminal(helper)]),
         HelpersMsg::NoTerminal => (said(model, words::NO_TERMINAL), Vec::new()),
         HelpersMsg::SignInUnconfined => (said(model, words::SIGN_IN_DID_NOT_WORK), Vec::new()),
         HelpersMsg::StartAutomatic => (automatic::start(model), Vec::new()),
@@ -271,6 +276,8 @@ fn replied(
         ..model
     };
     match (asked, reply) {
+        // The window closed after the work was already brought back: nothing is wrong.
+        (Asked::BringBackAfterClose, HelperReply::Refused(_)) => refreshed(model),
         (_, HelperReply::Refused(sentence)) => (
             HelpersModel {
                 notice: Some(sentence),
@@ -291,19 +298,37 @@ fn replied(
                 vec![HelpersCommand::ReadCard(id), HelpersCommand::List { after }],
             )
         }
-        (Asked::Save | Asked::SignIn | Asked::SignOut, HelperReply::Done)
-        | (Asked::Job, HelperReply::Done | HelperReply::Posted(_)) => {
-            let after = model.told_after;
-            let mut commands = vec![HelpersCommand::List { after }];
-            commands.extend(model.open_id().cloned().map(HelpersCommand::ReadCard));
-            (model, commands)
-        }
+        (
+            Asked::Save
+            | Asked::SignIn
+            | Asked::SignOut
+            | Asked::OpenInTerminal
+            | Asked::BringBack
+            | Asked::BringBackAfterClose,
+            HelperReply::Done,
+        )
+        | (Asked::Job, HelperReply::Done | HelperReply::Posted(_)) => refreshed(model),
         (Asked::Job, HelperReply::Made(_))
         | (Asked::Save, HelperReply::Posted(_))
-        | (Asked::SignIn | Asked::SignOut, HelperReply::Made(_) | HelperReply::Posted(_)) => {
+        | (
+            Asked::SignIn
+            | Asked::SignOut
+            | Asked::OpenInTerminal
+            | Asked::BringBack
+            | Asked::BringBackAfterClose,
+            HelperReply::Made(_) | HelperReply::Posted(_),
+        ) => {
             (model, Vec::new())
         }
     }
+}
+
+/// Read the list again, and the open card.
+fn refreshed(model: HelpersModel) -> (HelpersModel, Vec<HelpersCommand>) {
+    let after = model.told_after;
+    let mut commands = vec![HelpersCommand::List { after }];
+    commands.extend(model.open_id().cloned().map(HelpersCommand::ReadCard));
+    (model, commands)
 }
 
 fn open_card(model: HelpersModel, id: HelperId) -> (HelpersModel, Vec<HelpersCommand>) {
