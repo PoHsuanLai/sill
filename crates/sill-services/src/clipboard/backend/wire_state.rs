@@ -19,7 +19,7 @@ use wayland_client::backend::ObjectId;
 use wayland_client::{Connection, QueueHandle};
 
 use super::content::{content_of, limit_for};
-use super::pipes::{ReadEnd, ReadId, ReadOwner, Reading, read_whole, write_whole};
+use super::pipes::{ReadEnd, ReadId, ReadReactions, Reading, read_whole, write_whole};
 use super::wire::Tell;
 use super::wl::{Device, Manager, Offer, Source};
 
@@ -141,7 +141,17 @@ impl WireState {
                 offer.receive(mime, writer.as_fd());
                 drop(writer);
                 self.conn.flush().map_err(|_| ErrorKind::BrokenPipe)?;
-                read_whole(&self.handle, File::from(OwnedFd::from(reader)), id, limit)
+                let reactions = ReadReactions {
+                    ended: WireState::read_ended,
+                    timed_out: WireState::read_timed_out,
+                };
+                read_whole(
+                    &self.handle,
+                    reactions,
+                    File::from(OwnedFd::from(reader)),
+                    id,
+                    limit,
+                )
             });
         match started {
             Ok(reading) => self.reading = Some((reading, pick)),
@@ -209,7 +219,8 @@ impl WireState {
     }
 }
 
-impl ReadOwner for WireState {
+/// What the loop does when a read ends or times out.
+impl WireState {
     fn read_ended(&mut self, id: ReadId, end: ReadEnd) {
         let Some((reading, pick)) = self.reading.take_if(|(r, _)| r.id == id) else {
             return;

@@ -49,26 +49,28 @@ pub(crate) struct Reading {
     pub(crate) deadline: RegistrationToken,
 }
 
-/// What the loop's state does when a read ends or times out.
-pub(crate) trait ReadOwner: 'static {
-    fn read_ended(&mut self, id: ReadId, end: ReadEnd);
-    fn read_timed_out(&mut self, id: ReadId);
+/// What the loop's state does when a read ends, and when it times out.
+pub(crate) struct ReadReactions<S> {
+    pub(crate) ended: fn(&mut S, ReadId, ReadEnd),
+    pub(crate) timed_out: fn(&mut S, ReadId),
 }
 
 /// Read `pipe` until the writer closes it, at most `limit` bytes, within [`READ_DEADLINE`].
-pub(crate) fn read_whole<S: ReadOwner>(
+pub(crate) fn read_whole<S: 'static>(
     handle: &LoopHandle<'static, S>,
+    reactions: ReadReactions<S>,
     pipe: File,
     id: ReadId,
     limit: ReadLimit,
 ) -> Result<Reading, ErrorKind> {
+    let ReadReactions { ended, timed_out } = reactions;
     let mut bytes = Vec::new();
     let source = Generic::new(pipe, Interest::READ, Mode::Level);
     let pipe = handle
         .insert_source(source, move |_, file, state: &mut S| {
             match step_read(&mut &**file, &mut bytes, limit) {
                 Some(end) => {
-                    state.read_ended(id, end);
+                    ended(state, id, end);
                     Ok(PostAction::Remove)
                 }
                 None => Ok(PostAction::Continue),
@@ -77,7 +79,7 @@ pub(crate) fn read_whole<S: ReadOwner>(
         .map_err(|error| kind_of(error.error))?;
     let deadline = handle
         .insert_source(Timer::from_duration(READ_DEADLINE), move |_, _, state| {
-            state.read_timed_out(id);
+            timed_out(state, id);
             TimeoutAction::Drop
         })
         .map_err(|error| kind_of(error.error))?;
