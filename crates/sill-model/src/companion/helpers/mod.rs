@@ -25,8 +25,8 @@ pub use msg::{Asked, HelpersCommand, HelpersMsg};
 pub use routines::{
     MISSED_SKIPPED, NO_ROUTINES, PROPOSAL_ACCEPT, PROPOSAL_DECLINE, PROPOSAL_TITLE,
     PROPOSAL_WHY_LEAD, REPEATS, Repeat, RoutineDraft, RoutineRemoval, RoutinesCommand,
-    RoutinesModel, RoutinesMsg, Sheet, last_run_line, proposal_what, proposal_when, proposal_why, remove_routine_question,
-    repeat_label, state_label,
+    RoutinesModel, RoutinesMsg, Sheet, last_run_line, proposal_what, proposal_when, proposal_why,
+    remove_routine_question, repeat_label, state_label,
 };
 pub use sign_in::{
     SignInButton, kind_line, login_line, needs_sign_in_line, offers_sign_out, sign_in_buttons,

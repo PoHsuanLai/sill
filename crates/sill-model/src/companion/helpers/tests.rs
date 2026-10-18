@@ -54,6 +54,7 @@ fn card(helper: &str, name: &str, model: HelperModel) -> HelperCardView {
     HelperCardView {
         line: line(helper, name, HelperPhase::Idle, None),
         role: "Reads the news each morning".to_owned(),
+        app_name: None,
         model,
         reach: vec!["org.quire.Notes: look at things".to_owned()],
         steps: Count(12),

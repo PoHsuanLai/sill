@@ -15,8 +15,8 @@ use super::say::Say;
 
 /// One suggestion as a panel the person answers.
 pub(super) fn proposal_panel(proposal: &RoutineProposal, say: &Say) -> Element {
-    let id = proposal.id.clone();
-    let (accept_id, decline_id) = (id.clone(), id.clone());
+    let id = proposal.id;
+    let (accept_id, decline_id) = (id, id);
     let (accept, decline) = (say.clone(), say.clone());
     rsx! {
         div { key: "{id}", class: "sill-helper-ask", role: "group",
@@ -32,12 +32,12 @@ pub(super) fn proposal_panel(proposal: &RoutineProposal, say: &Say) -> Element {
                 Button {
                     label: PROPOSAL_DECLINE,
                     common: Common { id: Some(format!("helper-proposal-decline-{id}")), ..Common::default() },
-                    onclick: move |_| decline.msg(answer(RoutinesMsg::DeclineProposal(decline_id.clone()))),
+                    onclick: move |_| decline.msg(answer(RoutinesMsg::DeclineProposal(decline_id))),
                 }
                 Button {
                     label: PROPOSAL_ACCEPT,
                     common: Common { id: Some(format!("helper-proposal-accept-{id}")), ..Common::default() },
-                    onclick: move |_| accept.msg(answer(RoutinesMsg::AcceptProposal(accept_id.clone()))),
+                    onclick: move |_| accept.msg(answer(RoutinesMsg::AcceptProposal(accept_id))),
                 }
             }
         }

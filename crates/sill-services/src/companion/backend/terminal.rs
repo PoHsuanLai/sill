@@ -36,7 +36,9 @@ pub(super) async fn sign_in(request: TerminalRequest) -> HelpersMsg {
                 .envs(&login.env);
         }
     }
-    command.stdin(std::process::Stdio::null()).kill_on_drop(false);
+    command
+        .stdin(std::process::Stdio::null())
+        .kill_on_drop(false);
     match command.spawn() {
         Ok(child) => closed(helper, child).await,
         Err(error) => {
@@ -54,7 +56,12 @@ fn with_run(command: &mut Command, run: &TerminalRun) {
     match &run.confined {
         Some(confined) => {
             command.arg("/usr/bin/env").arg("-i");
-            command.args(confined.env.iter().map(|(key, value)| format!("{key}={value}")));
+            command.args(
+                confined
+                    .env
+                    .iter()
+                    .map(|(key, value)| format!("{key}={value}")),
+            );
             command.arg(&confined.program).args(&confined.args);
         }
         None => {

@@ -35,7 +35,10 @@ pub fn program_name(slug: &str) -> String {
 /// companion read from the app's own entry wins; without one, the program's name in words.
 pub fn app_of(view: &HelperCardView) -> Option<String> {
     let program = view.kind.program()?;
-    let named = view.app_name.as_deref().filter(|name| !name.trim().is_empty());
+    let named = view
+        .app_name
+        .as_deref()
+        .filter(|name| !name.trim().is_empty());
     Some(named.map_or_else(|| program_name(program.as_str()), str::to_owned))
 }
 

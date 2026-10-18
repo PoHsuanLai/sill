@@ -11,13 +11,7 @@ pub fn update(model: RoutinesModel, msg: RoutinesMsg) -> (RoutinesModel, Vec<Rou
     match msg {
         RoutinesMsg::Listed(view) => (listed(model, view), Vec::new()),
         RoutinesMsg::Replied(reply) => replied(model, reply),
-        RoutinesMsg::Proposed(proposals) => (
-            RoutinesModel {
-                proposals,
-                ..model
-            },
-            Vec::new(),
-        ),
+        RoutinesMsg::Proposed(proposals) => (RoutinesModel { proposals, ..model }, Vec::new()),
         RoutinesMsg::AcceptProposal(id) => {
             let known = model.proposals.iter().any(|proposal| proposal.id == id);
             let sent = if known {

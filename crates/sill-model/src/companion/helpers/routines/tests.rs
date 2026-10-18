@@ -1,6 +1,6 @@
 use companion_wire::{
-    ProposalId, RoutineForm, RoutineLine, RoutineProposal, RoutineReply, RoutineShown, RoutinesView,
-    WhenForm,
+    ProposalId, RoutineForm, RoutineLine, RoutineProposal, RoutineReply, RoutineShown,
+    RoutinesView, WhenForm,
 };
 use docket_core::helper::HelperName;
 use docket_core::routine::{Missed, RoutineId};
@@ -193,13 +193,22 @@ fn a_suggestion_makes_nothing_until_accepted_and_not_now_forgets_it() {
         ]),
         RoutinesMsg::AcceptProposal(ProposalId(9)),
     ]);
-    assert!(sent.is_empty(), "nothing is made, and an unknown one is ignored");
+    assert!(
+        sent.is_empty(),
+        "nothing is made, and an unknown one is ignored"
+    );
     let mine: Vec<ProposalId> = model.proposed_to(&helper("h-2")).map(|p| p.id).collect();
     assert_eq!(mine, [ProposalId(2)]);
     let (accepting, sent) = update(model.clone(), RoutinesMsg::AcceptProposal(ProposalId(1)));
     assert_eq!(sent, [RoutinesCommand::AcceptProposal(ProposalId(1))]);
-    let (_, sent) = update(accepting, RoutinesMsg::Accepted(RoutineReply::Made(RoutineId(4))));
-    assert_eq!(sent, [RoutinesCommand::List, RoutinesCommand::ListProposals]);
+    let (_, sent) = update(
+        accepting,
+        RoutinesMsg::Accepted(RoutineReply::Made(RoutineId(4))),
+    );
+    assert_eq!(
+        sent,
+        [RoutinesCommand::List, RoutinesCommand::ListProposals]
+    );
     let (declined, sent) = update(model, RoutinesMsg::DeclineProposal(ProposalId(1)));
     assert_eq!(sent, [RoutinesCommand::DeclineProposal(ProposalId(1))]);
     assert_eq!(declined.proposals.len(), 1);
