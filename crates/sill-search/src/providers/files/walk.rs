@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use sill_launcher::Query;
 
-use super::index::{FileAnswer, FileAsk, FileIndex, HitLimit, IndexFault, IndexKind};
+use super::index::{FileAnswer, FileAsk, FileIndex, HitLimit, IndexFault};
 use super::program::{Ended, FD_NAMES, Ran, first_on_path, run_within};
 use super::stat::hit_at;
 
@@ -26,13 +26,6 @@ pub struct WalkIndex {
 }
 
 impl FileIndex for WalkIndex {
-    fn kind(&self) -> IndexKind {
-        match self.walker {
-            Walker::Fd => IndexKind::Fd,
-            Walker::Plocate => IndexKind::Plocate,
-        }
-    }
-
     fn search(&self, ask: &FileAsk, query: &Query) -> FileAnswer {
         let (program, args) = match self.walker {
             Walker::Fd => (fd_program(), fd_args(ask)),

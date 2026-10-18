@@ -3,7 +3,7 @@
 
 use sill_launcher::Query;
 
-use super::index::{FileAnswer, FileAsk, FileHit, FileIndex, IndexKind};
+use super::index::{FileAnswer, FileAsk, FileHit, FileIndex};
 
 /// A made-up index.
 #[derive(Debug, Clone, Default)]
@@ -12,10 +12,6 @@ pub struct FakeIndex {
 }
 
 impl FileIndex for FakeIndex {
-    fn kind(&self) -> IndexKind {
-        IndexKind::Fake
-    }
-
     fn search(&self, ask: &FileAsk, query: &Query) -> FileAnswer {
         let _ = query;
         let text = ask.text.to_lowercase();

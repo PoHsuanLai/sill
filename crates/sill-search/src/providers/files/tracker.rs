@@ -22,7 +22,7 @@ use zbus::zvariant::{Fd, Value};
 use super::bus::block_on;
 use super::choice::IndexState;
 use super::cursor::{hit_of_row, parse_cursor};
-use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault, IndexKind};
+use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault};
 use sill_services::env::Bus;
 use sill_services::env::{NameState, name_state};
 use sill_services::launch::file_uri;
@@ -42,10 +42,6 @@ pub struct TrackerIndex {
 }
 
 impl FileIndex for TrackerIndex {
-    fn kind(&self) -> IndexKind {
-        IndexKind::Tracker
-    }
-
     fn search(&self, ask: &FileAsk, query: &Query) -> FileAnswer {
         if query.is_cancelled() {
             return FileAnswer::Unavailable(IndexFault::Cancelled);

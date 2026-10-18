@@ -14,7 +14,6 @@ pub enum IndexKind {
     Tracker,
     Fd,
     Plocate,
-    Fake,
 }
 
 /// Most hits one ask returns.
@@ -68,10 +67,7 @@ pub enum IndexFault {
 }
 
 /// A file index.
-pub trait FileIndex: Send + Sync {
-    /// Which index this is.
-    fn kind(&self) -> IndexKind;
-
+pub trait FileIndex: std::fmt::Debug + Send + Sync {
     /// Answer `ask`, stopping early once `query` is cancelled (a newer keystroke). Called on
     /// the blocking pool (the runner's `spawn_blocking`), so it may block up to `ask.budget`.
     fn search(&self, ask: &FileAsk, query: &Query) -> FileAnswer;

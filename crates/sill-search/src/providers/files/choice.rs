@@ -79,7 +79,6 @@ fn usable(choice: FilesChoice, detected: &Detected, kind: IndexKind) -> Presence
         IndexKind::Tracker => allowed(choice, detected.tracker),
         IndexKind::Fd => detected.fd,
         IndexKind::Plocate => detected.plocate,
-        IndexKind::Fake => Presence::Absent,
     }
 }
 

@@ -10,7 +10,7 @@ use tokio::sync::watch;
 
 use super::{
     FakeIndex, FileAnswer, FileAsk, FileHit, FileIndex, FilesProvider, HitLimit, IndexFault,
-    IndexKind, IndexSource,
+    IndexSource,
 };
 use sill_model::results::{FilesChoice, LauncherPolicy};
 
@@ -22,10 +22,6 @@ struct Scripted {
 }
 
 impl FileIndex for Scripted {
-    fn kind(&self) -> IndexKind {
-        IndexKind::Fake
-    }
-
     fn search(&self, ask: &FileAsk, _query: &Query) -> FileAnswer {
         self.asks
             .lock()

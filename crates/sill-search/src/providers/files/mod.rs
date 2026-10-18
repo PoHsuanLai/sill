@@ -68,7 +68,7 @@ impl std::fmt::Debug for IndexSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             IndexSource::Detect(bus) => write!(f, "Detect({bus:?})"),
-            IndexSource::Given(index) => write!(f, "Given({:?})", index.kind()),
+            IndexSource::Given(index) => write!(f, "Given({index:?})"),
         }
     }
 }
@@ -213,21 +213,20 @@ fn index_for(source: &IndexSource, files: FilesChoice) -> Option<Arc<dyn FileInd
     match source {
         IndexSource::Given(index) => Some(Arc::clone(index)),
         IndexSource::Detect(session) => {
-            choice::pick(files, &detected(session)).and_then(|kind| index_of(kind, session))
+            choice::pick(files, &detected(session)).map(|kind| index_of(kind, session))
         }
     }
 }
 
-fn index_of(kind: IndexKind, session: &Bus) -> Option<Arc<dyn FileIndex>> {
+fn index_of(kind: IndexKind, session: &Bus) -> Arc<dyn FileIndex> {
     match kind {
-        IndexKind::Tracker => Some(Arc::new(TrackerIndex {
+        IndexKind::Tracker => Arc::new(TrackerIndex {
             session: session.clone(),
-        })),
-        IndexKind::Fd => Some(Arc::new(WalkIndex { walker: Walker::Fd })),
-        IndexKind::Plocate => Some(Arc::new(WalkIndex {
+        }),
+        IndexKind::Fd => Arc::new(WalkIndex { walker: Walker::Fd }),
+        IndexKind::Plocate => Arc::new(WalkIndex {
             walker: Walker::Plocate,
-        })),
-        IndexKind::Fake => None,
+        }),
     }
 }
 
