@@ -260,7 +260,7 @@ fn waiting_facts(id: &almanac_core::FactId, companion: &Companion) -> PaneConten
         .find(|view| view.fact.id == *id)
     {
         Some(view) => {
-            let (text, asked) = waiting_line(view, &companion.programs);
+            let (text, asked) = waiting_line(view, &companion.programs, &companion.helpers);
             let who = asked.trim_end_matches(" asked to remember").to_owned();
             facts(Icon::Clock, &text, vec![("Asked by", who)])
         }

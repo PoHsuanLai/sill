@@ -15,6 +15,10 @@ use super::{
     Companion, CompanionEvent, CompanionParams, LookupPhase, ProgramLabels, SETTLE_FAILED, step,
     waiting_line,
 };
+use super::helpers::HelpersModel;
+use companion_wire::HelperLine;
+use docket_core::helper::{HelperName, HelperPhase};
+use prov::{AgentRole, HelperId, TaskId};
 
 fn id(last: char) -> FactId {
     FactId::parse(&format!("{}{last}", "0".repeat(25))).unwrap_or_else(|e| panic!("{e}"))
@@ -112,11 +116,50 @@ fn a_row_says_the_words_and_who_asked_in_plain_words() {
         ),
     ];
     for (view, subtitle) in cases {
-        let (title, said) = waiting_line(&view, &programs);
+        let (title, said) = waiting_line(&view, &programs, &HelpersModel::default());
         assert_eq!(
             (title.as_str(), said.as_str()),
             ("Prefers mornings", subtitle)
         );
+    }
+}
+
+fn helper_actor(helper: &str) -> Actor {
+    Actor::Companion {
+        session: prov::SessionId::parse("s-2").unwrap_or_else(|e| panic!("{e}")),
+        role: AgentRole::Helper {
+            helper: HelperId::parse(helper).unwrap_or_else(|e| panic!("{e}")),
+            task: TaskId::parse("t-1").unwrap_or_else(|e| panic!("{e}")),
+        },
+    }
+}
+
+fn helpers_with(helper: &str, name: &str) -> HelpersModel {
+    let mut helpers = HelpersModel::default();
+    helpers.lines.push(HelperLine {
+        id: HelperId::parse(helper).unwrap_or_else(|e| panic!("{e}")),
+        name: HelperName::parse(name).unwrap_or_else(|e| panic!("{e}")),
+        space: prov::SpaceId::desktop(),
+        doing: String::new(),
+        state: HelperPhase::Idle,
+        needs_you: None,
+        agent: None,
+    });
+    helpers
+}
+
+#[test]
+fn a_helpers_row_names_the_helper_or_says_a_helper_when_the_list_lacks_it() {
+    let programs = ProgramLabels::default();
+    let proposal = view('6', "Prefers mornings", helper_actor("h1"), vec![from_notes()]);
+    let cases = [
+        (helpers_with("h1", "Finder 1"), "Finder 1 asked to remember"),
+        (helpers_with("h2", "Finder 2"), "A helper asked to remember"),
+        (HelpersModel::default(), "A helper asked to remember"),
+    ];
+    for (helpers, subtitle) in cases {
+        let (_, said) = waiting_line(&proposal, &programs, &helpers);
+        assert_eq!(said, subtitle);
     }
 }
 

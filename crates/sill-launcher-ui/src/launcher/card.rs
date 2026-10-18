@@ -11,9 +11,9 @@ use dioxus::prelude::*;
 use ds::base::time::FRAME_SLACK;
 use ds::base::time::clock::sleep;
 use ds::prelude::*;
-use shell_host::{RegionSpec, SurfaceHandle, use_watch};
+use shell_host::{BlurSpec, RegionSpec, SurfaceHandle, use_watch};
 
-use crate::launcher::hit::{ActionsShown, hit_for, panel_input};
+use crate::launcher::hit::{ActionsShown, blur_region, hit_for, panel_input};
 use sill_ui_kit::links::PanelHit;
 use sill_ui_kit::links::{LauncherLink, OpenSerial};
 
@@ -50,6 +50,10 @@ pub(crate) fn use_card_hit(link: &LauncherLink, key: CardKey) -> Foot {
     let foot = Foot(use_signal(|| None));
     let host = use_hook(use_document_host);
     let mut last = use_hook(|| CopyValue::new(None::<CardKey>));
+    let actions = match &key {
+        CardKey::Shown { actions, .. } => *actions,
+        CardKey::Hidden => ActionsShown::Closed,
+    };
     if last.peek().as_ref() != Some(&key) {
         last.set(Some(key.clone()));
         match key {
@@ -64,6 +68,7 @@ pub(crate) fn use_card_hit(link: &LauncherLink, key: CardKey) -> Foot {
         }
     }
     follow_hit(link);
+    follow_blur(blur_region(actions));
     foot
 }
 
@@ -90,6 +95,20 @@ async fn publish(foot: Foot, host: Rc<dyn DocumentHost>, link: LauncherLink) {
 fn follow_hit(link: &LauncherLink) {
     let hit = use_watch(link.subscribe_hit());
     follow_input(panel_input(hit()));
+}
+
+/// Keep this surface's blur region on `region`, sending it only when it changes. Nothing to do
+/// without a host.
+fn follow_blur(region: RegionSpec) {
+    let surface = try_use_context::<SurfaceHandle>();
+    let mut last = use_hook(|| CopyValue::new(None::<RegionSpec>));
+    if last.peek().as_ref() == Some(&region) {
+        return;
+    }
+    if let Some(surface) = surface {
+        surface.set_blur(BlurSpec::Region(region.clone()));
+    }
+    last.set(Some(region));
 }
 
 /// Keep this surface's input region on `region`, sending it only when it changes. Nothing to

@@ -55,6 +55,14 @@ pub const CARD_RADIUS: f32 = 14.0;
 /// (`Corner::Squircle(14).css()`, 12.38 px), in whole pixels.
 pub const CARD_BLUR_RADIUS: i32 = 12;
 
+/// The actions menu's element id: set on quire's menu through `Common`, so the panel's blur
+/// can cover the menu while it hangs below the card.
+pub const MENU_ID: &str = "launcher-actions-menu";
+
+/// The blur region's corner under the menu: quire's menu radius (`--r-menu`, 14) as the circle
+/// its squircle's shadows follow, in whole pixels (as [`CARD_BLUR_RADIUS`]).
+pub const MENU_BLUR_RADIUS: i32 = 12;
+
 /// The panel: Overlay, anchored top only (centred horizontally), keyboard-exclusive, blurred
 /// behind the palette card ([`CARD_ID`]). Its input starts as the whole panel; the panel narrows
 /// it to the card once it has measured one (`hit::PanelHit`).

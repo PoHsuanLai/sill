@@ -14,6 +14,7 @@ use dioxus::prelude::*;
 use ds::components::menus::palette::palette_claim::FieldKey;
 use ds::host::measure::Anchor;
 use ds::prelude::*;
+use ds::root::common::Common;
 use ds::style::tokens::shape::Corner;
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, LauncherMode, Preview, Section, preview_for};
@@ -26,7 +27,8 @@ use crate::launcher::events::{PanelCtx, use_panel};
 use crate::launcher::hit::ActionsShown;
 use crate::launcher::keys::ActionsMenu;
 use crate::launcher::layer::{
-    CARD_ID, CARD_INSET, CARD_RADIUS, PANEL_HEIGHT, PANEL_ROOM_WIDTH, PANEL_WIDTH, SHADOW_SIDE,
+    CARD_ID, CARD_INSET, CARD_RADIUS, MENU_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH, PANEL_WIDTH,
+    SHADOW_SIDE,
 };
 use crate::launcher::pane_session::PaneSession;
 use crate::launcher::preview::keys::{Pane, PaneFocus};
@@ -372,6 +374,7 @@ fn palette(
         if let (Some(entries), Some(row)) = (actions, selected) {
             Menu::<ActionId> {
                 placement: MenuPlacement::Popup,
+                common: Common { id: Some(MENU_ID.to_owned()), ..Common::default() },
                 anchor: hung.map_or(Anchor::Point(FIRST_ROW_FOOT), Anchor::Rect),
                 items: entries,
                 // The first action starts highlighted, so Return runs it at once.

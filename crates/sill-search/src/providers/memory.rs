@@ -14,8 +14,8 @@ use sill_launcher::{
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
 use sill_model::companion::{
-    Companion, CompanionCommand, CompanionLink, LookupPhase, ProgramLabels, memory_line,
-    waiting_line,
+    Companion, CompanionCommand, CompanionLink, HelpersModel, LookupPhase, ProgramLabels,
+    memory_line, waiting_line,
 };
 use sill_services::control::Control;
 use tokio::sync::watch;
@@ -65,7 +65,7 @@ impl Provider for MemoryProvider {
                     waiting
                         .iter()
                         .enumerate()
-                        .map(|(at, view)| waiting_row(view, at, &state.programs)),
+                        .map(|(at, view)| waiting_row(view, at, &state.programs, &state.helpers)),
                 )
                 .chain(
                     entries
@@ -149,8 +149,13 @@ fn notice_row(sentence: &str) -> Item {
 }
 
 /// One thing an assistant asked to remember, above the timeline.
-fn waiting_row(view: &FactView, at: usize, programs: &ProgramLabels) -> Item {
-    let (title, subtitle) = waiting_line(view, programs);
+fn waiting_row(
+    view: &FactView,
+    at: usize,
+    programs: &ProgramLabels,
+    helpers: &HelpersModel,
+) -> Item {
+    let (title, subtitle) = waiting_line(view, programs, helpers);
     Item {
         id: ItemId(format!("memory:asked:{}", view.fact.id)),
         provider: ProviderKind::Memory,

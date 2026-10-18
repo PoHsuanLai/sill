@@ -105,6 +105,12 @@ impl HelpersModel {
         }
     }
 
+    /// What the person calls the helper `id`; `None` for one that is not in the list (removed, or
+    /// the list not read yet).
+    pub fn name_of(&self, id: &HelperId) -> Option<&str> {
+        self.line(id).map(|line| line.name.as_str())
+    }
+
     /// The line of the helper `id`.
     pub fn line(&self, id: &HelperId) -> Option<&HelperLine> {
         self.lines.iter().find(|line| line.id == *id)

@@ -4,9 +4,10 @@
 use almanac_core::{EntryBody, FactView, SourceView, TimelineEntry};
 use companion_wire::{AnswerBody, AnswerPhase, NeedsYou, RefusalWire, StepWireState};
 use docket_core::{DenyCode, Reveal, UndoEntry, UndoState};
-use prov::{Actor, SystemPart};
+use prov::{Actor, AgentRole, SystemPart};
 
 use super::emphasis::plain_of;
+use super::helpers::HelpersModel;
 use super::model::{AnswerFacts, Busy};
 use super::model_picker::lacks_model;
 use super::program_labels::ProgramLabels;
@@ -184,9 +185,25 @@ const WAITING_TEXT_MAX_CHARS: usize = 200;
 
 /// A row of what an assistant asked to remember: the words proposed, and who asked. The app a
 /// note came from is named when the source still exists and the actor is not an app itself.
-/// The router (memory's author for an assistant's proposal) reads as "The assistant".
-pub fn waiting_line(view: &FactView, programs: &ProgramLabels) -> (String, String) {
+/// A helper's proposal names the helper as the person calls it (`helpers` is the list sill
+/// holds), or "A helper" when it is not in the list. The router, which memory recorded as the
+/// author of an assistant's proposal before it carried the helper, reads as "The assistant".
+pub fn waiting_line(
+    view: &FactView,
+    programs: &ProgramLabels,
+    helpers: &HelpersModel,
+) -> (String, String) {
     let who = match (&view.fact.by, view.sources.first()) {
+        (
+            Actor::Companion {
+                role: AgentRole::Helper { helper, .. },
+                ..
+            },
+            _,
+        ) => helpers.name_of(helper).map_or_else(
+            || "A helper".to_owned(),
+            |name| for_display(name, WAITING_TEXT_MAX_CHARS),
+        ),
         (Actor::Companion { .. }, Some(SourceView::Present(thing))) => {
             last_element(thing.thing.app.as_str())
         }

@@ -4,10 +4,10 @@
 //! catcher's input leaves out only what the panel takes, so a press under a short card closes
 //! the launcher like any other outside press.
 
-use shell_host::{ElementId, Rect, RegionSpec, RoundedRect};
+use shell_host::{ElementId, ElementRegion, Rect, RegionSpec, RoundedRect};
 
 use crate::launcher::layer::{
-    CARD_BLUR_RADIUS, CARD_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH, SHADOW_SIDE,
+    CARD_BLUR_RADIUS, CARD_ID, MENU_BLUR_RADIUS, MENU_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH, SHADOW_SIDE,
 };
 use sill_ui_kit::links::PanelHit;
 
@@ -40,6 +40,28 @@ pub fn card_region() -> RegionSpec {
     }
 }
 
+/// The panel's blur region: the card, and the actions menu too while it is open (it hangs below
+/// the card, so without this quire paints its see-through tint over unblurred rows). The host
+/// skips an element that is not in the document, so the menu's frame before it mounts blurs
+/// only the card.
+pub fn blur_region(actions: ActionsShown) -> RegionSpec {
+    match actions {
+        ActionsShown::Closed => card_region(),
+        ActionsShown::Open => RegionSpec::Elements(vec![
+            ElementRegion {
+                id: ElementId::new(CARD_ID),
+                radius: CARD_BLUR_RADIUS,
+                inflate: 0,
+            },
+            ElementRegion {
+                id: ElementId::new(MENU_ID),
+                radius: MENU_BLUR_RADIUS,
+                inflate: 0,
+            },
+        ]),
+    }
+}
+
 /// What the panel takes, from the card's bottom edge in panel coordinates (`foot`) and whether
 /// the actions menu is open. A foot at or above the top (read before layout) measures nothing.
 pub fn hit_for(foot: f32, actions: ActionsShown) -> PanelHit {
@@ -62,8 +84,8 @@ pub enum ActionsShown {
 
 #[cfg(test)]
 mod tests {
-    use super::{ActionsShown, card_region, hit_for, panel_input};
-    use shell_host::{Rect, RegionSpec};
+    use super::{ActionsShown, blur_region, card_region, hit_for, panel_input};
+    use shell_host::{ElementId, Rect, RegionSpec};
     use sill_ui_kit::links::PanelHit;
 
     #[test]
@@ -88,5 +110,18 @@ mod tests {
         };
         assert_eq!(whole.iter().map(|r| r.rect).collect::<Vec<_>>(), [panel]);
         assert_eq!(panel_input(PanelHit::Card { height: 120 }), card_region());
+    }
+
+    #[test]
+    fn the_blur_covers_the_card_and_adds_the_menu_only_while_it_is_open() {
+        assert_eq!(blur_region(ActionsShown::Closed), card_region());
+        let RegionSpec::Elements(open) = blur_region(ActionsShown::Open) else {
+            panic!("an open menu unions two elements");
+        };
+        let ids: Vec<_> = open.iter().map(|e| e.id.clone()).collect();
+        assert_eq!(
+            ids,
+            [ElementId::new("launcher-card"), ElementId::new("launcher-actions-menu")]
+        );
     }
 }
