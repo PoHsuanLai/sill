@@ -202,6 +202,7 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
             runs.remove(&run);
             Companion { runs, ..state }
         }
+        CompanionEvent::Sight(sight) => Companion { sight, ..state },
         CompanionEvent::Journal(journal) => Companion { journal, ..state },
         CompanionEvent::Openers(openers) => Companion { openers, ..state },
         CompanionEvent::ThingsAsked(generation) => Companion {

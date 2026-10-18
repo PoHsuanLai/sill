@@ -16,5 +16,6 @@ mod jobs;
 mod proposals;
 mod routines;
 mod say;
+mod sight;
 
 pub(crate) use card::HelperCardPane;

@@ -28,6 +28,7 @@ mod progress_tests;
 #[cfg(test)]
 mod refusal_tests;
 mod run_state;
+mod sight;
 mod step;
 mod summon;
 mod tap;
@@ -62,6 +63,7 @@ pub use presence::presence_of;
 pub use program_labels::ProgramLabels;
 pub use progress::{ProgressShown, preview_progress};
 pub use run_state::{RunState, going_runs, run_controls, run_state_of};
+pub use sight::{NoteText, SightState};
 pub use step::{step, wake};
 pub use summon::{
     Fallback, FocusFacts, InField, LauncherFacts, LauncherOrigin, Serves, Summon, SummonCx,

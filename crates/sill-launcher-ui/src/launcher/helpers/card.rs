@@ -19,6 +19,7 @@ use super::form::Fields;
 use super::jobs::{GiveJob, Jobs, Latest};
 use super::routines::Routines;
 use super::say::{Say, use_say};
+use super::sight::SightLine;
 
 /// The card of `helper`, or of a new helper when `helper` is `None`. The card is keyed by the
 /// helper, so the card of another helper starts afresh.
@@ -93,6 +94,7 @@ fn CardBody(model: HelpersModel, helper: Option<HelperId>) -> Element {
             name,
             role,
         }
+        SightLine {}
         div { class: "sill-helper-buttons", {save} }
         if let Some(sentence) = &model.notice {
             p { class: "sill-helper-notice", role: "status", "{sentence}" }

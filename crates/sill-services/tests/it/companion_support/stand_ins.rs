@@ -341,14 +341,21 @@ impl StandInApp {
 
 // ---- cuad ----
 
+#[derive(Default)]
 pub struct StandInManager {
     pub runs: Vec<OwnedObjectPath>,
+    pub sight: Arc<Mutex<String>>,
 }
 
 #[interface(name = "org.quire.Cua1.Manager")]
 impl StandInManager {
     async fn runs(&self) -> Vec<OwnedObjectPath> {
         self.runs.clone()
+    }
+
+    #[zbus(property)]
+    async fn sight_note(&self) -> String {
+        self.sight.lock().unwrap_or_else(|e| panic!("{e}")).clone()
     }
 
     #[zbus(signal)]

@@ -15,6 +15,7 @@ use std::collections::BTreeSet;
 
 use super::helpers::{HelpersCommand, HelpersMsg};
 use super::model::{CompanionLink, Opener, RunFacts};
+use super::sight::SightState;
 use super::summon::{FocusFacts, LauncherFacts, SummonOut, SummonParams};
 use super::tap::TapParams;
 use super::terminals::{TerminalsCommand, TerminalsMsg};
@@ -214,6 +215,8 @@ pub enum CompanionEvent {
     Run(Box<RunFacts>),
     /// A run's object went away.
     RunGone(RunId),
+    /// What cuad says about the screen model, as it appeared and again when it changed.
+    Sight(SightState),
     /// The undo journal, newest first.
     Journal(Vec<UndoEntry>),
     /// The installed manifests changed: these kinds of thing open in their apps.

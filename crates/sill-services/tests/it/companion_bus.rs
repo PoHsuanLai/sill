@@ -20,8 +20,8 @@ use ds_core::vocab::MemoryVerb;
 use prov::{Actor, InputProof, Label, RunId, SpaceId, UnixSeconds};
 use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
 use sill_model::companion::{
-    AskInput, CompanionCommand, CompanionParams, LauncherFacts, LookupPhase, Summon, SummonOut,
-    SummonParams,
+    AskInput, CompanionCommand, CompanionParams, LauncherFacts, LookupPhase, SightState, Summon,
+    SummonOut, SummonParams,
 };
 use sill_model::units::Ms;
 use zbus::zvariant::ObjectPath;
@@ -376,11 +376,13 @@ async fn the_journal_is_read_and_follows_the_intentd_signal_and_an_undo_reads_it
 async fn runs_follow_cuad_and_are_steered_through_their_objects() {
     let mut desk = desk_or_return!();
     let cuad = desk.peer("org.quire.Cua1").await;
+    let sight = Arc::new(Mutex::new("No model here can see the screen.".to_owned()));
     cuad.object_server()
         .at(
             "/org/quire/Cua1",
             StandInManager {
                 runs: vec![run_path("r_1")],
+                sight: sight.clone(),
             },
         )
         .await
@@ -432,6 +434,23 @@ async fn runs_follow_cuad_and_are_steered_through_their_objects() {
     .await
     .unwrap_or_else(|e| panic!("{e}"));
     desk.state(|c| c.runs.is_empty().then_some(())).await;
+    // cuad's note about the screen model reached the companion, and clearing it clears it there.
+    desk.state(|c| matches!(c.sight, SightState::CannotSee(_)).then_some(()))
+        .await;
+    sight.lock().unwrap_or_else(|e| panic!("{e}")).clear();
+    let manager = cuad
+        .object_server()
+        .interface::<_, StandInManager>("/org/quire/Cua1")
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    manager
+        .get()
+        .await
+        .sight_note_changed(manager.signal_emitter())
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
+    desk.state(|c| (c.sight == SightState::Sees).then_some(()))
+        .await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -445,6 +464,7 @@ async fn a_run_is_named_by_its_id_property_and_removed_by_the_path_it_was_added_
             "/org/quire/Cua1",
             StandInManager {
                 runs: vec![path.clone()],
+                ..StandInManager::default()
             },
         )
         .await
@@ -485,6 +505,7 @@ async fn stop_all_pauses_each_run_that_is_going_and_no_other() {
             "/org/quire/Cua1",
             StandInManager {
                 runs: vec![run_path("r_1"), run_path("r_2")],
+                ..StandInManager::default()
             },
         )
         .await

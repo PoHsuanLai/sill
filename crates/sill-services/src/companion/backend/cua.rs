@@ -11,7 +11,7 @@ use cua_dbus::{CUA_BUS, ManagerProxy, RunProxy};
 use docket_core::RunMode;
 use prov::RunId;
 use sill_launcher::RunControl;
-use sill_model::companion::{CompanionEvent, RunFacts};
+use sill_model::companion::{CompanionEvent, RunFacts, SightState};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::task::JoinHandle;
 use zbus::Connection;
@@ -28,7 +28,12 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
         owner::appeared(&connection, CUA_BUS).await;
         tokio::select! {
             () = manage(&connection, &events) => return,
-            () = owner::changed(&connection, CUA_BUS) => {}
+            () = owner::changed(&connection, CUA_BUS) => {
+                // With cuad gone nothing is known about the screen model, so nothing is said.
+                if events.send(CompanionEvent::Sight(SightState::Sees)).is_err() {
+                    return;
+                }
+            }
         }
     }
 }
@@ -44,6 +49,16 @@ async fn manage(connection: &Connection, events: &UnboundedSender<CompanionEvent
     ) else {
         return std::future::pending().await;
     };
+    // Older cuad has no `SightNote`: it then says nothing.
+    let mut notes = manager.receive_sight_note_changed().await;
+    let sight = |note: Option<String>| {
+        events.send(CompanionEvent::Sight(SightState::of(
+            &note.unwrap_or_default(),
+        )))
+    };
+    if sight(manager.sight_note().await.ok()).is_err() {
+        return;
+    }
     let mut followers: HashMap<String, Follower> = HashMap::new();
     for path in manager.runs().await.unwrap_or_default() {
         watch(connection, &mut followers, path, events).await;
@@ -64,6 +79,11 @@ async fn manage(connection: &Connection, events: &UnboundedSender<CompanionEvent
                             return;
                         }
                     }
+                }
+            }
+            Some(changed) = next(&mut notes) => {
+                if sight(changed.get().await.ok()).is_err() {
+                    return;
                 }
             }
             else => return,

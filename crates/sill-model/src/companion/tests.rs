@@ -790,6 +790,28 @@ fn runs_come_and_go_by_their_id() {
 }
 
 #[test]
+fn the_screen_model_note_sets_and_clears_what_the_companion_says() {
+    let said = |state, note: &str| {
+        step(
+            state,
+            CompanionEvent::Sight(SightState::of(note)),
+            Stamp(0),
+            &params(),
+        )
+        .0
+    };
+    let blind = said(Companion::default(), "No model here can see the screen.");
+    assert_eq!(
+        blind.sight,
+        SightState::CannotSee(
+            NoteText::new("No model here can see the screen.").unwrap_or_else(|| panic!("empty"))
+        )
+    );
+    assert_eq!(said(blind, "").sight, SightState::Sees);
+    assert_eq!(NoteText::new("   "), None);
+}
+
+#[test]
 fn stop_all_pauses_the_runs_that_are_going_and_no_other() {
     let finished = RunFacts {
         outcome: Some(CuaOutcome::Done),

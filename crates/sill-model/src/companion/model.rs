@@ -12,6 +12,7 @@ use prov::{AppName, EntityKind, RunId, SessionId, TaskId};
 use sill_launcher::Generation;
 
 use super::helpers::HelpersModel;
+use super::sight::SightState;
 use super::summon::Summon;
 use super::tap::Tap;
 use super::terminals::TerminalsModel;
@@ -149,6 +150,8 @@ pub struct Companion {
     pub front: Option<TaskId>,
     /// The runs cuad has, by run.
     pub runs: BTreeMap<RunId, RunFacts>,
+    /// Whether the model that works apps can see the screen.
+    pub sight: SightState,
     /// The undo journal, newest first.
     pub journal: Vec<UndoEntry>,
     /// The kinds of thing the installed apps open in their own windows.
