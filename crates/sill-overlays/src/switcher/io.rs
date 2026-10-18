@@ -22,7 +22,7 @@ use sill_ui_kit::services::Services;
 
 use super::hold::{Hold, Watch, chord_input};
 use super::keys::{Chord, chord_after_keyup, sw_key};
-use super::model::{AppOut, heading};
+use super::model::heading;
 use super::session::Session;
 use super::tiles::index_of;
 use ds_behaviour::switcher::{Phase, SwIn, SwKey, SwOut, SwitcherParams};
@@ -82,11 +82,7 @@ pub(super) fn use_switcher(
         held,
         params,
         move || Facts {
-            apps: session
-                .peek()
-                .as_ref()
-                .map(Session::ids)
-                .unwrap_or_default(),
+            apps: session.peek().as_ref().map_or(0, |open| open.apps.len()),
             hold: *hold.peek(),
         },
         move |out, machine| effects.carry(out, machine),
@@ -122,7 +118,7 @@ pub(super) fn use_switcher(
 
 impl Effects {
     /// Carry out one output of the machine.
-    fn carry(self, out: AppOut, machine: MachineRef<Opening>) {
+    fn carry(self, out: SwOut, machine: MachineRef<Opening>) {
         let session = self.session.peek().clone();
         if let Some(session) = &session {
             let live = live(self.services);
@@ -132,7 +128,11 @@ impl Effects {
             }
         }
         match out {
-            SwOut::Quit(app) => self.fold(app, machine),
+            SwOut::Quit(index) => {
+                if let Some(app) = session.as_ref().and_then(|open| open.id_at(index)) {
+                    self.fold(app.clone(), machine);
+                }
+            }
             // `sw_key` maps no Up or Down, so the machine never asks for App Exposé.
             SwOut::Show
             | SwOut::Hide

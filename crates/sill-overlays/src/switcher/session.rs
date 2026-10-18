@@ -4,10 +4,10 @@
 
 use super::apps::{AppShown, SwitcherApp, activate, hide, quit};
 use ds::prelude::*;
+use ds_behaviour::switcher::SwOut;
 use sill_launcher::AppId;
 use sill_model::windows::WlCommand;
 
-use super::model::AppOut;
 use sill_ui_kit::links::AskSerial;
 
 /// Whose windows a session's verbs touch.
@@ -59,9 +59,9 @@ impl Session {
         }
     }
 
-    /// The machine's list.
-    pub fn ids(&self) -> Vec<AppId> {
-        self.apps.iter().map(|app| app.app.clone()).collect()
+    /// The app at `index` in the machine's list, if there is one.
+    pub fn id_at(&self, index: usize) -> Option<&AppId> {
+        self.apps.get(index).map(|app| &app.app)
     }
 
     /// Whether `app`'s tile is listed: `Hidden` while it folds (quire's `AppSwitcher` keeps a tile
@@ -91,15 +91,18 @@ impl Session {
 
     /// The commands `out` becomes: over the app as `live` has it now (a window may have come or
     /// gone since the chord), else as the session saw it; none for made-up apps.
-    pub fn commands(&self, out: &AppOut, live: &[SwitcherApp]) -> Vec<WlCommand> {
-        let (id, verb): (&AppId, fn(&SwitcherApp) -> Vec<WlCommand>) = match out {
-            AppOut::Activate(id) => (id, activate),
-            AppOut::Quit(id) => (id, quit),
-            AppOut::HideApp(id) => (id, hide),
+    pub fn commands(&self, out: &SwOut, live: &[SwitcherApp]) -> Vec<WlCommand> {
+        let (index, verb): (usize, fn(&SwitcherApp) -> Vec<WlCommand>) = match out {
+            SwOut::Activate(index) => (*index, activate),
+            SwOut::Quit(index) => (*index, quit),
+            SwOut::HideApp(index) => (*index, hide),
             // `sw_key` maps no Up or Down, so the machine never asks for App Exposé.
-            AppOut::Show | AppOut::Hide | AppOut::Select(_) | AppOut::Expose(_) => {
+            SwOut::Show | SwOut::Hide | SwOut::Select(_) | SwOut::Expose(_) => {
                 return Vec::new();
             }
+        };
+        let Some(id) = self.id_at(index) else {
+            return Vec::new();
         };
         match self.windows {
             Windows::MadeUp => Vec::new(),
@@ -117,11 +120,12 @@ impl Session {
 mod tests {
     use crate::switcher::apps::{AppShown, SwitcherApp};
     use ds::prelude::*;
+    use ds_behaviour::switcher::SwOut;
     use sill_launcher::{AppId, WindowKey};
     use sill_model::windows::WlCommand;
 
     use super::Session;
-    use crate::switcher::model::AppOut;
+    use ds_behaviour::switcher::SwOut;
     use sill_ui_kit::links::AskSerial;
 
     fn app(id: &str, windows: &[u64], shown: AppShown) -> SwitcherApp {
@@ -149,25 +153,22 @@ mod tests {
         let live = [app("calc", &[3, 2], AppShown::AllMinimized)];
         let cases = [
             (
-                AppOut::Activate(id("calc")),
+                SwOut::Activate(1),
                 vec![
                     WlCommand::Unminimize(WindowKey(3)),
                     WlCommand::Activate(WindowKey(3)),
                 ],
             ),
             (
-                AppOut::Quit(id("calc")),
+                SwOut::Quit(1),
                 vec![
                     WlCommand::Close(WindowKey(3)),
                     WlCommand::Close(WindowKey(2)),
                 ],
             ),
-            (
-                AppOut::HideApp(id("term")),
-                vec![WlCommand::Minimize(WindowKey(1))],
-            ),
-            (AppOut::Activate(id("gone")), vec![]),
-            (AppOut::Hide, vec![]),
+            (SwOut::HideApp(0), vec![WlCommand::Minimize(WindowKey(1))]),
+            (SwOut::Activate(9), vec![]),
+            (SwOut::Hide, vec![]),
         ];
         for (out, want) in cases {
             assert_eq!(session.commands(&out, &live), want, "{out:?}");
@@ -178,9 +179,9 @@ mod tests {
     fn made_up_apps_touch_no_window() {
         let session = Session::made_up(AskSerial(1), vec![id("a"), id("b")]);
         let live = [app("a", &[1], AppShown::Visible)];
-        assert_eq!(session.ids(), vec![id("a"), id("b")]);
-        assert_eq!(session.commands(&AppOut::Quit(id("a")), &live), vec![]);
-        assert_eq!(session.commands(&AppOut::Activate(id("a")), &live), vec![]);
+        assert_eq!(session.id_at(1), Some(&id("b")));
+        assert_eq!(session.commands(&SwOut::Quit(0), &live), vec![]);
+        assert_eq!(session.commands(&SwOut::Activate(0), &live), vec![]);
     }
 
     #[test]
@@ -189,7 +190,8 @@ mod tests {
         assert_eq!(session.shown(&id("b")), Shown::Hidden);
         assert_eq!(session.shown(&id("a")), Shown::Visible);
         let session = session.gone(&id("b"));
-        assert_eq!(session.ids(), vec![id("a")]);
+        assert_eq!(session.id_at(0), Some(&id("a")));
+        assert_eq!(session.id_at(1), None);
         assert_eq!(session.leaving, Vec::<AppId>::new());
     }
 }
