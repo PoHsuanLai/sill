@@ -98,6 +98,7 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
         HelpersMsg::SignOut(helper) => (model, vec![HelpersCommand::SignOut(helper)]),
         HelpersMsg::TerminalClosed(helper) => (model, vec![HelpersCommand::Resume(helper)]),
         HelpersMsg::NoTerminal => (said(model, words::NO_TERMINAL), Vec::new()),
+        HelpersMsg::SignInUnconfined => (said(model, words::SIGN_IN_DID_NOT_WORK), Vec::new()),
         HelpersMsg::StartAutomatic => (automatic::start(model), Vec::new()),
         HelpersMsg::TogglePooled(chosen) => (automatic::toggle(model, chosen), Vec::new()),
         HelpersMsg::CancelAutomatic => (automatic::cancel(model), Vec::new()),

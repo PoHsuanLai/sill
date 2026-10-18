@@ -138,6 +138,9 @@ fn a_terminal_request_opens_a_window_and_closing_it_asks_the_companion_to_check_
         model.notice.as_deref(),
         Some("A window to sign in with could not be opened.")
     );
+    let (model, sent) = update(HelpersModel::default(), HelpersMsg::SignInUnconfined);
+    assert!(sent.is_empty());
+    assert_eq!(model.notice.as_deref(), Some("Signing in did not work."));
 }
 
 #[test]

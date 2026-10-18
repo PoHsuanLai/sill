@@ -33,6 +33,9 @@ pub const ADD_MODEL: &str = "Add a model in Settings\u{2026}";
 /// Said when the sign-in cannot open a window.
 pub const NO_TERMINAL: &str = "A window to sign in with could not be opened.";
 
+/// Said when a sign-in came without the app's sandboxed command, so no window was opened.
+pub const SIGN_IN_DID_NOT_WORK: &str = "Signing in did not work.";
+
 /// Said when Automatic is confirmed with no model ticked.
 pub const TICK_A_MODEL: &str = "Tick at least one model for Automatic to use.";
 

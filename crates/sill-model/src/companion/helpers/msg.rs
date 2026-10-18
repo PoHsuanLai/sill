@@ -85,6 +85,9 @@ pub enum HelpersMsg {
     TerminalClosed(HelperId),
     /// A window for the sign-in could not be opened.
     NoTerminal,
+    /// The sign-in came without the app's command inside its sandbox, so nothing was opened: the
+    /// app never runs unconfined.
+    SignInUnconfined,
     /// The person chooses Automatic for the open helper: they tick the models it may use.
     StartAutomatic,
     /// The person ticks or unticks a model for Automatic.
