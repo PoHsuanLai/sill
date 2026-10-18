@@ -1,7 +1,7 @@
 //! The sheet's root.
 //!
 //! While the capture service holds a permission question and the `BannerLink` names this output,
-//! the surface maps itself (`SurfaceOp::SetVisibility`) and a `Ds { material: Sheet, extent:
+//! the surface maps itself (`SurfaceHandle::set_visibility`) and a `Ds { material: Sheet, extent:
 //! Viewport }` holds one quire `Alert` per question, keyed by its id: the app's icon, the
 //! headline, the app's name set strong with what it says, and the two buttons. The yes button
 //! comes first, so it is the default (Return); Escape answers what `escape_answer` says (the no

@@ -8,7 +8,7 @@ use ds::prelude::{
     SpaceLook, SpaceTile, resolve,
 };
 use porter_core::SpaceId;
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
 use sill_model::apps::AppIndex;
 use sill_model::desktop::target::Rect as WholeRect;
 use sill_model::desktop::{BarLayout, BarPick, BarShow, BarSpace, BarTile, bar_spaces, thumb_size};
@@ -215,7 +215,7 @@ fn use_map_when_up(up: Memo<BarShow>) {
         if show == BarShow::Show
             && let Some(surface) = &surface
         {
-            surface.apply(SurfaceOp::SetVisibility(Visibility::Shown));
+            surface.set_visibility(Visibility::Shown);
         }
     });
 }
@@ -227,7 +227,7 @@ pub(super) fn use_unmap() -> EventHandler<()> {
     use_hook(|| {
         EventHandler::new(move |()| {
             if let Some(surface) = &surface {
-                surface.apply(SurfaceOp::SetVisibility(Visibility::Hidden));
+                surface.set_visibility(Visibility::Hidden);
             }
         })
     })

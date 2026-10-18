@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use dioxus::core::Task;
 use dioxus::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
 use sill_settings::OsdSettings;
 
 use super::layer::{anchor, margin};
@@ -95,7 +95,7 @@ fn use_map_when_shown(phase: ReadSignal<OsdHold>) {
         if visible == Visibility::Shown
             && let Some(surface) = &surface
         {
-            surface.apply(SurfaceOp::SetVisibility(Visibility::Shown));
+            surface.set_visibility(Visibility::Shown);
         }
     });
 }
@@ -107,7 +107,7 @@ fn use_unmap() -> EventHandler<()> {
     use_hook(|| {
         EventHandler::new(move |()| {
             if let Some(surface) = &surface {
-                surface.apply(SurfaceOp::SetVisibility(Visibility::Hidden));
+                surface.set_visibility(Visibility::Hidden);
             }
         })
     })
@@ -123,8 +123,8 @@ pub fn use_follow_position(osd: &OsdSettings) {
     }
     applied.set(wanted);
     if let Some(surface) = &surface {
-        surface.apply(SurfaceOp::SetAnchor(anchor(osd.position)));
-        surface.apply(SurfaceOp::SetMargin(margin(osd)));
+        surface.set_anchor(anchor(osd.position));
+        surface.set_margin(margin(osd));
     }
 }
 

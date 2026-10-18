@@ -10,7 +10,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
 use sill_model::notifications::{NotificationId, Notifications};
 use sill_services::NotificationsService;
 use sill_settings::{BannerPosition, NotificationsSettings};
@@ -239,10 +239,10 @@ fn use_map_while_showing(column: Column) {
         }
         applied.set(showing);
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match showing {
+            surface.set_visibility(match showing {
                 Showing::Cards => Visibility::Shown,
                 Showing::Nothing => Visibility::Hidden,
-            }));
+            });
         }
     });
 }

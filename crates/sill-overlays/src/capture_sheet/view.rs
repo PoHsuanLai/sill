@@ -1,7 +1,7 @@
 //! The picker's root.
 //!
 //! While the capture service holds a request and the `BannerLink` names this output, the surface
-//! maps itself (`SurfaceOp::SetVisibility`) and a `Ds { material: Sheet, extent: Viewport }` holds
+//! maps itself (`SurfaceHandle::set_visibility`) and a `Ds { material: Sheet, extent: Viewport }` holds
 //! one `Sheet` per request, keyed by its id: the title, who asks, a segmented control for the
 //! kinds the app accepts (only when both), quire's `List` of `Row`s for what can be shared, a
 //! segmented control for the pointer (only when the app accepts more than one way), and the

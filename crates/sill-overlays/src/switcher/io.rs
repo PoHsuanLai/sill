@@ -15,7 +15,7 @@ use super::pointer::{At, Pointer};
 use dioxus::prelude::*;
 use ds::machine::{MachineRef, MachineState, use_machine_in, use_machine_state};
 use ds::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
 use sill_launcher::AppId;
 use sill_shell_kit::switcher::app_switcher::AppKey;
 use sill_ui_kit::services::Services;
@@ -236,7 +236,7 @@ impl SwitcherCtx {
 
     fn visibility(self, visibility: Visibility) {
         if let Some(surface) = self.surface.peek().as_ref() {
-            surface.apply(SurfaceOp::SetVisibility(visibility));
+            surface.set_visibility(visibility);
         }
     }
 

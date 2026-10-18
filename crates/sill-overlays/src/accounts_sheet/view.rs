@@ -11,7 +11,7 @@ use ds_shell::prelude::{
     BrowserWait, ConsentBody, ProviderList, ReviewServices, ShowCode, SignInFailed, SignInForm,
     SignInWorking,
 };
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility};
+use shell_host::{OutputInfo, SurfaceHandle, Visibility};
 use sill_model::accounts::sheet::{AccountsSheets, SheetAction};
 use sill_services::accounts::sheet::AccountsSheetService;
 use sill_ui_kit::hooks::{use_banner_output, use_service};
@@ -233,10 +233,10 @@ fn use_drawn(output: OutputInfo) -> Memo<Option<Drawn>> {
         }
         applied.set(mapped);
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match mapped {
+            surface.set_visibility(match mapped {
                 Mapped::Yes => Visibility::Shown,
                 Mapped::No => Visibility::Hidden,
-            }));
+            });
         }
     });
     shown

@@ -17,7 +17,7 @@ use ds::base::time::stamp::Stamp;
 use ds::focus::select::Select;
 use ds::focus::selector::{FocusError, focus_by_selector};
 use ds::prelude::*;
-use shell_host::{KeyboardMode, SurfaceHandle, SurfaceOp};
+use shell_host::{KeyboardMode, SurfaceHandle};
 use sill_model::notifications::{
     ActionKey, Activation, ActivationToken, LiveBanner, Notification, NotificationId,
     NotificationsCommand,
@@ -141,7 +141,7 @@ impl Column {
     /// Set the surface's keyboard mode; nothing without a host (a test, an SSR render).
     fn keyboard(self, mode: KeyboardMode) {
         if let Some(surface) = self.surface.peek().as_ref() {
-            surface.apply(SurfaceOp::SetKeyboard(mode));
+            surface.set_keyboard(mode);
         }
     }
 

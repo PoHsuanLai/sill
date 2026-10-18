@@ -15,7 +15,7 @@ use dioxus::prelude::*;
 use ds::focus::select::Select;
 use ds::focus::selector::{FocusError, focus_by_selector};
 use ds::prelude::*;
-use shell_host::{KeyboardMode, SurfaceHandle, SurfaceOp, Visibility};
+use shell_host::{KeyboardMode, SurfaceHandle, Visibility};
 use sill_model::screenshots::{ShotCommand, ShotId};
 use sill_services::Control;
 
@@ -151,7 +151,7 @@ impl Thumb {
     /// Set the surface's keyboard mode; nothing without a host (a test, an SSR render).
     fn keyboard(self, mode: KeyboardMode) {
         if let Some(surface) = self.surface.peek().as_ref() {
-            surface.apply(SurfaceOp::SetKeyboard(mode));
+            surface.set_keyboard(mode);
         }
     }
 
@@ -165,7 +165,7 @@ impl Thumb {
     /// Map or unmap the surface; nothing without a host (a test, an SSR render).
     fn visibility(self, visibility: Visibility) {
         if let Some(surface) = self.surface.peek().as_ref() {
-            surface.apply(SurfaceOp::SetVisibility(visibility));
+            surface.set_visibility(visibility);
         }
     }
 }

@@ -1,7 +1,7 @@
 //! The polkit prompt's root.
 //!
 //! While `use_service::<PolkitAgentService>().current` is a request and the `BannerLink` names this
-//! output, the surface maps itself (`SurfaceOp::SetVisibility`), and a `Ds { material: Sheet,
+//! output, the surface maps itself (`SurfaceHandle::set_visibility`), and a `Ds { material: Sheet,
 //! extent: Viewport }` holds `sill_shell_kit::prelude::PolkitPrompt` from [`super::model::prompt_view`] (keyed by the cookie,
 //! so a new request enters again), `caps` from the last key event's modifiers, `onsubmit` sending
 //! `PolkitCommand::Answer { cookie, secret: Secret::new(text) }` (the text moves into the `Secret`

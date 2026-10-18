@@ -16,7 +16,7 @@ use ds::host::measure::Anchor;
 use ds::prelude::*;
 use ds::stack::menu_track::types::MenuTiming;
 use ds::style::appearance::blur::BlurState;
-use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
+use shell_host::{PopupPlacement, use_surface, use_watch};
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 use tokio::sync::{mpsc, watch};
@@ -81,7 +81,7 @@ pub(crate) fn BarPopup() -> Element {
         Some(next) => {
             let before = placed.replace(Some(next.placement));
             if before.is_some_and(|before| before != next.placement) {
-                surface.apply(SurfaceOp::Reposition(next.placement));
+                surface.reposition(next.placement);
             }
         }
     });

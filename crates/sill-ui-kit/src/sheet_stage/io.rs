@@ -2,7 +2,7 @@
 //! settle it when the sheet's exit has played.
 
 use dioxus::prelude::*;
-use shell_host::{SurfaceHandle, SurfaceOp, Visibility};
+use shell_host::{SurfaceHandle, Visibility};
 
 use super::model::{Mapped, SheetStage, StageIn};
 use super::step::advance;
@@ -25,10 +25,10 @@ where
         }
         applied.set(mapped);
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match mapped {
+            surface.set_visibility(match mapped {
                 Mapped::Yes => Visibility::Shown,
                 Mapped::No => Visibility::Hidden,
-            }));
+            });
         }
     });
     stage

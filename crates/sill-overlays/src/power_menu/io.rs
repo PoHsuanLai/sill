@@ -4,7 +4,7 @@
 //! `on_hidden`). Once hidden, nothing runs and nothing asks for a frame.
 
 use dioxus::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
 use sill_model::session::{Session, SessionAction};
 use sill_settings::PowerMenuDefault;
 use sill_ui_kit::services::Services;
@@ -150,7 +150,7 @@ fn use_follow_visibility(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: Ou
         }
         applied.set(Some(visible));
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(visible));
+            surface.set_visibility(visible);
         }
     });
 }

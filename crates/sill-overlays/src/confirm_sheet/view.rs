@@ -1,7 +1,7 @@
 //! The confirmation sheet's root.
 //!
 //! While the intents service's queue holds a question and the `BannerLink` names this output, the
-//! surface maps itself (`SurfaceOp::SetVisibility`) and a `Ds { material: Sheet, extent: Viewport }`
+//! surface maps itself (`SurfaceHandle::set_visibility`) and a `Ds { material: Sheet, extent: Viewport }`
 //! holds one `Sheet` per question, keyed by the question's id so the next one enters again and
 //! starts its arming over: the title (the action's own label), who asks and where, the arguments
 //! as quire's `FactList`, the reasons, and the buttons. The buttons are quire's `Button`s: Don't

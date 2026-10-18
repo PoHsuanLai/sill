@@ -4,7 +4,7 @@
 //! answer hides the surface at once; the daemon's end of the question arrives after.
 
 use dioxus::prelude::*;
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
 use sill_model::capture_pick::{AskId, CaptureCommand, ColorOutcome};
 use sill_model::desktop::OutputShot;
 use sill_services::Control;
@@ -77,7 +77,7 @@ fn use_follow_visibility(sampler: Sampler) {
         }
         applied.set(Some(visible));
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(visible));
+            surface.set_visibility(visible);
         }
     });
 }

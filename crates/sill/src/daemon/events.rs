@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use ds_settings::{Store, UserStyle};
 use shell_host::{
-    CloseReason, HostCtx, HostEvent, KeyboardFocus, PalmrestAction, SurfaceId, SurfaceOp,
+    CloseReason, HostCtx, HostEvent, KeyboardFocus, LayerOp, PalmrestAction, SurfaceId,
 };
 use sill_bar::Bar;
 use sill_ipc::act::ActRequest;
@@ -417,7 +417,7 @@ fn resize_bars(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs, file: &ShellFile)
     for (info, surfaces) in &outputs.outputs {
         let exclusive = Bar::layer(info, file, ()).exclusive;
         for bar in surfaces.spawned.iter().filter(|s| s.name == Bar::NAME) {
-            ctx.apply(bar.id, SurfaceOp::SetExclusiveZone(exclusive));
+            ctx.apply(bar.id, LayerOp::SetExclusiveZone(exclusive));
         }
     }
 }

@@ -7,7 +7,7 @@ use ds::focus::soon::focus_soon;
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
 use sill_model::notifications::{
     Activation, ActivationToken, Clear, NotificationId, NotificationsCommand,
 };
@@ -72,7 +72,7 @@ fn drive(mut phase: Signal<Phase>, surface: Option<SurfaceHandle>, input: PhaseI
         visibility == Visibility::Shown
     );
     if let Some(surface) = &surface {
-        surface.apply(SurfaceOp::SetVisibility(visibility));
+        surface.set_visibility(visibility);
     }
 }
 

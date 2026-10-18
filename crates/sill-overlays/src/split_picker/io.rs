@@ -4,7 +4,7 @@
 //! (which the daemon puts on the link) arrives after.
 
 use dioxus::prelude::*;
-use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
 use sill_ui_kit::links::{OfferSerial, SplitAnswer, SplitOffer, SplitPickerLink};
 
 use super::model::shows_on;
@@ -77,7 +77,7 @@ fn use_follow_visibility(picker: Picker) {
         }
         applied.set(Some(visible));
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(visible));
+            surface.set_visibility(visible);
         }
     });
 }

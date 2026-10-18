@@ -1,9 +1,9 @@
 //! Each launcher surface follows the shared [`Reveal<Opening>`] onto its own visibility
-//! (`SurfaceOp::SetVisibility`): the surfaces stay alive, warm, while hidden (plan "Launcher
+//! (`SurfaceHandle::set_visibility`): the surfaces stay alive, warm, while hidden (plan "Launcher
 //! v1"), and neither needs the other's id.
 
 use dioxus::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
 
 use sill_ui_kit::links::{LauncherLink, Opening, Reveal};
 
@@ -24,7 +24,7 @@ pub(crate) fn use_follow_visibility(shown: ReadSignal<Reveal<Opening>>, output: 
         }
         applied.set(Some(visible));
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(visible));
+            surface.set_visibility(visible);
         }
     });
 }

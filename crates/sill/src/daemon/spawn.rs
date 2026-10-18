@@ -2,7 +2,7 @@
 //! new output's or slot's surface is spawned (hidden or shown, as `Surface::start` says), one
 //! whose slot the settings dropped is closed, and one whose layer size changed is resized.
 
-use shell_host::{HostCtx, HostRoot, LayerConfig, OutputInfo, SurfaceOp};
+use shell_host::{HostCtx, HostRoot, LayerConfig, LayerOp, OutputInfo};
 use sill_ui_kit::surface::{MountProps, OutputRank, Place, Start, Surface, mount};
 
 use crate::daemon::msg::ShellMsg;
@@ -68,7 +68,7 @@ fn close_dropped<S: Surface>(
 /// Ask the compositor for `config`'s size when it is not the one last asked for.
 fn resize(ctx: &mut HostCtx<ShellMsg>, surface: &mut Spawned, config: &LayerConfig) {
     if surface.size != config.size {
-        ctx.apply(surface.id, SurfaceOp::SetSize(config.size));
+        ctx.apply(surface.id, LayerOp::SetSize(config.size));
         surface.size = config.size;
     }
 }

@@ -4,7 +4,7 @@
 //! file. Once hidden nothing runs and nothing asks for a frame.
 
 use dioxus::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
 
 use sill_ui_kit::links::EditWidgetsLink;
 use sill_ui_kit::panel::{Phase, PhaseInput, PhaseOut, Wanted, step_phase};
@@ -61,7 +61,7 @@ fn drive(mut phase: Signal<Phase>, surface: Option<SurfaceHandle>, input: PhaseI
     };
     eprintln!("edit_widgets.visible={}", visibility == Visibility::Shown);
     if let Some(surface) = &surface {
-        surface.apply(SurfaceOp::SetVisibility(visibility));
+        surface.set_visibility(visibility);
     }
 }
 

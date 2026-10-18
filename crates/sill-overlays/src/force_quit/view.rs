@@ -1,7 +1,7 @@
 //! The panel's root.
 //!
 //! While the link holds an opening on this output the surface maps itself
-//! (`SurfaceOp::SetVisibility`, [`super::io::use_stage`]) and a `Ds { material: Sheet, extent:
+//! (`SurfaceHandle::set_visibility`, [`super::io::use_stage`]) and a `Ds { material: Sheet, extent:
 //! Viewport }` holds one `Sheet` per opening, keyed by its serial: the title, the line that says
 //! what the panel is for, quire's `List` of `Row`s (the app's icon, its name, "(not responding)"
 //! after a hung one's) and the Force Quit button. The button asks quire's `Alert` ("Do you want
