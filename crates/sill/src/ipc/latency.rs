@@ -18,13 +18,3 @@ pub fn open_latency_line(elapsed: Duration) -> String {
         elapsed.as_secs_f64() * 1000.0
     )
 }
-
-/// The value [`open_latency_line`] printed, parsed back out of one line of the daemon's log.
-/// `None` for any line that is not one of ours (including a malformed number, which a caller
-/// should treat the same as "not present" rather than fail the whole log on).
-pub fn parse_open_latency_ms(line: &str) -> Option<f64> {
-    line.trim()
-        .strip_prefix("launcher.open_latency_ms=")?
-        .parse()
-        .ok()
-}
