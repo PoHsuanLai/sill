@@ -2,8 +2,6 @@
 //! tables: the keycap profile each app's keys are drawn with. The file keeps the person's text;
 //! [`overrides`] turns it into the typed values the keycap service reads, once per load.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_settings::InvalidKey;
 use ds_settings::schema::Page;
 use keycap_protocol::ProfileName;
@@ -50,14 +48,6 @@ pub struct KeyboardSettings {
     #[settings(skip)]
     #[serde(skip_serializing)]
     pub rejected: Vec<RejectedRow>,
-}
-
-impl Section for KeyboardSettings {
-    const KEY: &'static str = "keyboard";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.keyboard
-    }
 }
 
 /// The table as the file spells it, a row at a time, so one malformed row costs that row and

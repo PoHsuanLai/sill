@@ -1,8 +1,6 @@
 //! `launcher.*` (design/22 §3.6 and `launcher.material` from §3.1; design/13 §13.3.9). All
 //! Advanced (§5).
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Fraction, Ms, Px};
 use serde::{Deserialize, Serialize};
@@ -203,13 +201,5 @@ impl Default for LauncherSettings {
             web_engine_url: "https://duckduckgo.com/?q={query}".to_owned(),
             currency: CurrencyPolicy::Off,
         }
-    }
-}
-
-impl Section for LauncherSettings {
-    const KEY: &'static str = "launcher";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.launcher
     }
 }

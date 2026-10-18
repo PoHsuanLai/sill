@@ -2,8 +2,6 @@
 //! switcher keys §3.11 groups with these are their own domain (`switcher.rs`): their dotted
 //! paths are `switcher.*`, and the schema derive's path is always `<domain>.<field>`.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
@@ -102,13 +100,5 @@ impl Default for MenusSettings {
             highlight_radius_px: Px(8),
             tooltip_font_px: Px(12),
         }
-    }
-}
-
-impl Section for MenusSettings {
-    const KEY: &'static str = "menus";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.menus
     }
 }

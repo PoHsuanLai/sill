@@ -1,8 +1,6 @@
 //! `osd.*`: the volume and brightness indicator (design/20 §1.7). All Advanced until design/22 §5
 //! places them on a page.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
@@ -77,13 +75,5 @@ impl Default for OsdSettings {
             position: OsdPosition::TopRight,
             margin_px: Px(24),
         }
-    }
-}
-
-impl Section for OsdSettings {
-    const KEY: &'static str = "osd";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.osd
     }
 }

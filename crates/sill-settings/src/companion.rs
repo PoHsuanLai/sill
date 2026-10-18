@@ -2,8 +2,6 @@
 //! how long a focused app has to take a summon are `Ms`, plain integers in the file; the service
 //! reads them through [`params`], once per load, as the typed values its machines run on.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::Ms;
 use ds_settings::schema::Page;
@@ -99,14 +97,6 @@ impl Default for CompanionSettings {
             notify: NotifyWhen::default(),
             confirm_arm_ms: Ms(500),
         }
-    }
-}
-
-impl Section for CompanionSettings {
-    const KEY: &'static str = "companion";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.companion
     }
 }
 

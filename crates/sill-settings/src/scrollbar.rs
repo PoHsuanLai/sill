@@ -1,8 +1,6 @@
 //! `scrollbar.*` (design/22 §3.8; design/11 §11.3.12): the overlay thumb shell-host paints.
 //! All Advanced (§5).
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
@@ -149,13 +147,5 @@ impl Default for ScrollbarSettings {
             other_axis_offset_px: Px(12),
             track_click_mode: TrackClick::PageTowardClick,
         }
-    }
-}
-
-impl Section for ScrollbarSettings {
-    const KEY: &'static str = "scrollbar";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.scrollbar
     }
 }

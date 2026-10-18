@@ -3,8 +3,6 @@
 //! file on every hold (its `[voice]` table), so their forms are its contract
 //! ([`VoiceConsent`]'s serde). The service reads them through [`params`].
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 use sill_model::voice::VoiceParams;
@@ -29,14 +27,6 @@ pub struct VoiceSettings {
     pub consent: VoiceConsent,
 }
 
-impl Section for VoiceSettings {
-    const KEY: &'static str = "voice";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.voice
-    }
-}
-
 /// What the voice service runs on for `settings`.
 pub fn params(settings: &VoiceSettings) -> VoiceParams {
     VoiceParams {
@@ -48,6 +38,7 @@ pub fn params(settings: &VoiceSettings) -> VoiceParams {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::file::ShellFile;
     use prov::UnixSeconds;
 
     #[test]

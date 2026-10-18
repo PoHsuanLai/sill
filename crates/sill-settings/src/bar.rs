@@ -1,7 +1,5 @@
 //! `bar.*` (design/22 §3.4; design/13 §13.3.1). All Advanced (§5).
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Percent, Px};
@@ -149,13 +147,5 @@ impl Default for BarSettings {
             item_radius_px: Px(5),
             battery_low_percent: Percent(20),
         }
-    }
-}
-
-impl Section for BarSettings {
-    const KEY: &'static str = "bar";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.bar
     }
 }

@@ -8,7 +8,7 @@
 use dioxus::prelude::*;
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
-use sill_settings::{CalendarSettings, WeekNumbers};
+use sill_settings::WeekNumbers;
 use sill_shell_kit::month_grid::data::MonthStep;
 use sill_shell_kit::widget::calendar::MonthWidget;
 use sill_shell_kit::widget::calendar::{MonthEntry, MonthFace, MonthIntent, TodayLine};
@@ -32,7 +32,7 @@ impl WidgetProvider for CalendarProvider {
     fn use_feed() -> Feed<MonthWidget> {
         let _minute = use_service::<ClockService>()();
         let agenda = use_service::<EventsService>()();
-        let calendar = use_section::<CalendarSettings>()();
+        let calendar = use_section(|file| &file.calendar)();
         let today = agenda.today;
         let mut shown = use_signal(|| Shown::today(today));
         let month = shown().month(today);

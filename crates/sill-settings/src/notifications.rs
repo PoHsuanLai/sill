@@ -2,8 +2,6 @@
 //! §13.3.6). Do Not Disturb and the banner style are on the Notifications page (§5); the rest
 //! are Advanced.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Fraction, Ms, Px, Scalar};
@@ -270,13 +268,5 @@ impl Default for NotificationsSettings {
             history_cap: Count(100),
             center_width_px: Px(360),
         }
-    }
-}
-
-impl Section for NotificationsSettings {
-    const KEY: &'static str = "notifications";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.notifications
     }
 }

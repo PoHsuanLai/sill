@@ -1,8 +1,6 @@
 //! `calendar.*`: where the calendar widgets read events, and how the month is drawn (design/20
 //! §1.12, which sill moves into the notification center's widgets as macOS 11 does). All Advanced.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::Count;
 use ds_settings::schema::Page;
@@ -85,13 +83,5 @@ impl Default for CalendarSettings {
             up_next_days: Count(7),
             up_next_max: Count(3),
         }
-    }
-}
-
-impl Section for CalendarSettings {
-    const KEY: &'static str = "calendar";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.calendar
     }
 }

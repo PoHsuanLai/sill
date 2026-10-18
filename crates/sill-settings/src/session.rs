@@ -2,8 +2,6 @@
 //! grace lives here because it belongs to the lock screen, but its `KeySpec` is on the Power page
 //! with `idle.*` (design/22 §3.19; `crate::schema` moves it, the derive has one page a struct).
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::Secs;
 use ds_settings::schema::Page;
@@ -50,13 +48,5 @@ impl Default for SessionSettings {
             lock_clock: LockClock::H24,
             lock_grace_s: Secs(5),
         }
-    }
-}
-
-impl Section for SessionSettings {
-    const KEY: &'static str = "session";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.session
     }
 }

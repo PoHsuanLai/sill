@@ -7,8 +7,6 @@
 //! Where a widget sits on the desktop is saved state (like the dock's pins), not a setting:
 //! `$XDG_STATE_HOME/sill/desktop-widgets.json`, owned by the desktop layer.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::Px;
 use ds_settings::schema::Page;
@@ -107,14 +105,6 @@ impl Default for WidgetsSettings {
             desktop_gap_px: Px(16),
             world_clocks: String::new(),
         }
-    }
-}
-
-impl Section for WidgetsSettings {
-    const KEY: &'static str = "widgets";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.widgets
     }
 }
 

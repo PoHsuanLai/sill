@@ -2,8 +2,6 @@
 //! lists; the geometry and timing keys are Advanced. Pinned apps are state in `dock.json`, not
 //! here.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
@@ -317,13 +315,5 @@ impl Default for DockSettings {
             running_dot_gap_px: Px(3),
             floor: DockFloor::Off,
         }
-    }
-}
-
-impl Section for DockSettings {
-    const KEY: &'static str = "dock";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.dock
     }
 }

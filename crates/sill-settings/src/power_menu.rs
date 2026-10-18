@@ -1,7 +1,5 @@
 //! `power_menu.*` (design/20 §1.8: the power menu, a Sheet over a Scrim). All Advanced.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
@@ -48,13 +46,5 @@ impl Default for PowerMenuSettings {
             default_action: PowerMenuDefault::ShutDown,
             material: PanelMaterial::Sheet,
         }
-    }
-}
-
-impl Section for PowerMenuSettings {
-    const KEY: &'static str = "power_menu";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.power_menu
     }
 }

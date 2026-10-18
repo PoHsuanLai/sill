@@ -6,7 +6,6 @@ mod file;
 mod keyboard;
 mod keys;
 mod schema;
-mod section;
 
 /// A file in `tests/it` that `main.rs` does not list would compile to nothing.
 #[test]

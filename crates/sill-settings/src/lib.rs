@@ -1,9 +1,8 @@
 //! `$XDG_CONFIG_HOME/sill/settings.toml`: the shell's settings domains (design/22-SETTINGS.md
 //! §3.4-3.8 and §3.11-3.14: bar, dock, launcher, scroll, scrollbar, menus, switcher, sound,
 //! notifications, control center, spaces; `display`, `osd`, `power_menu` and `session`; and
-//! `widgets`, `calendar`, `screenshot` and `hot_corners`; §3.24-3.25: `idle` and `keyboard`; §3.30: `companion`; and `voice`, which design/22 does not list yet), their schema (§9,
-//! `#[derive(SettingsSchema)]` with `file = "sill/settings.toml"`), and [`Section`], each
-//! domain as a reader finds it in a [`ShellFile`].
+//! `widgets`, `calendar`, `screenshot` and `hot_corners`; §3.24-3.25: `idle` and `keyboard`; §3.30: `companion`; and `voice`, which design/22 does not list yet), and their schema (§9,
+//! `#[derive(SettingsSchema)]` with `file = "sill/settings.toml"`), all fields of a [`ShellFile`].
 //!
 //! Pure data: no I/O, no runtime, no dioxus. `ShellFile` is a `ds_settings::SettingsDoc`, and
 //! reading, saving, watching and publishing it belong to the daemon (`sill::daemon::settings`).
@@ -30,7 +29,6 @@ pub mod schema;
 pub mod screenshot;
 pub mod scroll;
 pub mod scrollbar;
-mod section;
 pub mod session;
 pub mod spaces;
 pub mod switcher;
@@ -66,7 +64,6 @@ pub use scroll::{
     Momentum, MomentumModel, NaturalScroll, RubberBand, ScrollSettings, ScrollbarVisibility,
 };
 pub use scrollbar::{ScrollbarSettings, TrackClick};
-pub use section::Section;
 pub use session::{LockClock, SessionSettings};
 pub use spaces::SpacesSettings;
 pub use switcher::SwitcherSettings;

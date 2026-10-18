@@ -1,8 +1,6 @@
 //! `control_center.*` (design/22 §3.13; design/13
 //! §13.3.7). All Advanced (§5).
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Px};
@@ -192,13 +190,5 @@ impl Default for ControlCenterSettings {
             menu_bar_battery: InMenuBar::Show,
             menu_bar_now_playing: InMenuBar::Hide,
         }
-    }
-}
-
-impl Section for ControlCenterSettings {
-    const KEY: &'static str = "control_center";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.control_center
     }
 }

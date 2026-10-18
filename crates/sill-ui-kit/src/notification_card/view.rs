@@ -14,7 +14,7 @@ use sill_model::apps::AppIcon;
 use sill_model::notifications::{AppRef, Href, Notification, UnixMs};
 use sill_services::apps::{IconRoots, icon_theme, resolve_icon};
 use sill_services::env::Dirs;
-use sill_settings::{BannerMaterial, NotificationsSettings};
+use sill_settings::BannerMaterial;
 use sill_shell_kit::notifications::parts::{AppMark, Hover};
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
 use sill_shell_kit::prelude::*;
@@ -53,7 +53,7 @@ pub(super) fn card(
     now: UnixMs,
     wiring: CardWiring,
 ) -> Element {
-    let settings = use_section::<NotificationsSettings>()();
+    let settings = use_section(|file| &file.notifications)();
     let side = icon_size(&settings);
     let app = use_app_mark(&note.app, IconSize::Px(side));
     let on_press = wiring.on_press;

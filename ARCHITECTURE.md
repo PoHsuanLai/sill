@@ -38,7 +38,7 @@ listed except where noted.
 | 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
 | 0 | `sill-shell-kit` | The shell-only parts over `ds`, moved here from quire's `ds-shell` (2026-10-07): bar, dock, control center, lock, switcher, OSD, idle dim, notifications, thumbnails, battery, clock, now playing, user picture, emoji, month grid, date picker, widget contract, registry, catalog and the widgets, with the shell's tokens (`tokens/`), sheets (`sheets.rs`), `KIT`, `kits()` and `stylesheet()` (the whole shell stylesheet: quire's plus these) and their SSR goldens and behaviour tests | none of ours; quire's `ds`, `ds-core`, `ds-shell` (its `KIT` and sheets). Dev: `ds-blitz`, `ds-harness`, `ds-lint`, `ds-settings` |
 | 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`, `Machine`), `docket-core`, `almanac-core`, `companion-wire`, `cua-bus`, `prov`, `porter-core` (the accounts sheet's `SheetView`/`SheetInput`, serde data), `porter-infer` (`ModelRef`, `ServedBy`: serde data a helper's model is named by), `casement-protocols` (`vocab` only: the desktop views' enums); serde, jiff, thiserror |
-| 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `Section`, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
+| 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
 | 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`), `docket-core`, `docket-dbus`, `docket-client`, `companion-wire`, `cua-bus`, `cua-dbus`, `almanac-core`, `almanac-dbus`, `prov`, `porter-core`, `porter-infer` (`Slot` and `ModelRef`, to keep a helper's pool), `porter-dbus` (who owns a bus name: caller identity; accountd's `Manager` and `Account` proxies), `porter-client` (`dbus` and `infer` features only: the typed guest calls and change stream for the guest-asks service; the places and engines a helper's model is picked from), `voice-dbus`, `anyview-core`, `anyview-platform` (the viewer's D-Bus request, for the launch service), `casement-protocols` (`vocab`), `desktop-client` (`client` feature: the wire behind `desktop_wl` and the native displays route); tokio, zbus, rustix, libpulse, notify, nonstick, ddc, image, toml |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/` (the files provider reads the viewer's history and takes the shared file actions), clip images | `sill-services`, `sill-model`, `sill-launcher`, `anyview-core`, `anyview-store`, `ds-core`, `docket-core`, `almanac-core`, `companion-wire`, `prov`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
@@ -181,7 +181,7 @@ code into `tests.rs`. Exceptions and renames:
 
 | From | To |
 | --- | --- |
-| `sill-settings/src/{bar,calendar,control_center,display,dock,hot_corners,idle,keyboard,launcher,menus,notifications,osd,power_menu,screenshot,scroll,scrollbar,session,spaces,switcher,widgets,window}.rs` | stay, each `impl Section`; keys with no reader deleted; `flatten extra` and `version` deleted |
+| `sill-settings/src/{bar,calendar,control_center,display,dock,hot_corners,idle,keyboard,launcher,menus,notifications,osd,power_menu,screenshot,scroll,scrollbar,session,spaces,switcher,widgets,window}.rs` | stay; keys with no reader deleted; `flatten extra` and `version` deleted |
 | `dock_words.rs`, `launcher_kinds.rs`, enums a service reads | `sill-model/src/vocab/` or the service dir; the settings field uses that type |
 | `focus.rs` (`FocusMode`) | `sill-model/src/focus/` |
 | `focus_link.rs` | `sill-ui-kit/src/links/focus.rs` (the link) and `sill/src/daemon/settings/focus.rs` (the task that writes the file) |
@@ -310,10 +310,10 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Units and ids (`Cpx`, `Minutes`, `AppId`, `WorkspaceKey`) | `sill_model::{units, ids}` (`Percent`, `Fraction`, `Stamp`: `ds-core`) |
 | Retry and stale-answer stamps | `sill_model::attempt` |
 | A closed vocabulary shared by a settings key and a service | `sill_model::vocab` or the service dir, implementing `ds_core::Word` |
-| A settings domain, its typed values | `sill_settings::<domain>`, `impl Section` |
+| A settings domain, its typed values | `sill_settings::<domain>` |
 | The settings file type and its `SettingsDoc` | `sill_settings::file` |
 | Loading, saving, watching, publishing settings | `sill::daemon::settings` |
-| The settings a surface reads | `sill_ui_kit::settings` (`SettingsFeed`), `use_section::<S>()` |
+| The settings a surface reads | `sill_ui_kit::settings` (`SettingsFeed`), `use_section(|file| &file.<domain>)` |
 | Settings turned into a service command | `sill::policy::<service>` (`Policy`) |
 | Focus mode value, link, writer | `sill_model::focus`, `sill_ui_kit::links::focus`, `sill::daemon::settings::focus` |
 | IPC words | `sill_ipc::{request, response, show, status, act, debug}` |
@@ -391,18 +391,6 @@ Implementors: the 30 `<Module>Service` markers (`enum XService {}`), 29 in `sill
 `ResultsService` in `sill-search`. Add an implementor for a new long-lived backend that
 publishes one state. Add nothing for a helper without a task. Not a `Service`: a one-shot call
 (`launch::open`), a pure derivation (`switcher::apps`), or a UI link.
-
-### `Section` (`sill_settings::section`)
-
-```rust
-pub trait Section: Clone + PartialEq + Send + Sync + 'static {
-    const KEY: &'static str;                 // the table name, `bar`
-    fn of(file: &ShellFile) -> &Self;
-}
-```
-
-Implementors: the 21 domain structs. One per settings table; a new key is a field, not a
-`Section`. `use_section::<S>() -> ReadSignal<S>` and `Policy::of` read through it.
 
 ### `Policy` (`sill::policy`)
 
@@ -673,8 +661,8 @@ Each ends with its tests. Name the concept once and use it in every file name be
    §9.1); the file keeps the person's text, a function in the domain file turns the rows into
    typed values once per load and names each row it dropped, and a malformed row costs only
    itself (`keyboard.rs` is the pattern).
-3. A new domain is a file, a `Section` impl, a `ShellFile` field and a `schema.rs` entry.
-4. The reader: a surface reads `use_section::<Domain>()`; a service is told through its
+3. A new domain is a file, a `ShellFile` field and a `schema.rs` entry.
+4. The reader: a surface reads `use_section(|file| &file.domain)`; a service is told through its
    `Policy`. `sill --write-schema <dir>` regenerates the schema.
 5. Tests: `sill-settings/tests/keys.rs` cross-checks the key against quire's rows both ways;
    a parse table for a new enum.

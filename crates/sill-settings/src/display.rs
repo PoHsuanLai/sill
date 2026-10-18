@@ -8,8 +8,6 @@
 //! `;`-separated, because the derive's `Vec<_>` shape needs an enum element and has no list-of-text
 //! kind yet (a quire gap).
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Percent};
@@ -115,13 +113,5 @@ impl Default for DisplaySettings {
             night_warmth_strength: Percent(50),
             font_rendering: FontRenderingMode::Auto,
         }
-    }
-}
-
-impl Section for DisplaySettings {
-    const KEY: &'static str = "display";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.display
     }
 }

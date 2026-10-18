@@ -3,8 +3,6 @@
 //! page; the rest are Advanced (§5). `scroll.speed`, `scroll.lock_*` and the gains are
 //! palmrest's (`palmrest/gestures.toml`, §3.9), not here.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Fraction, Ms, Px, Scalar};
@@ -273,13 +271,5 @@ impl Default for ScrollSettings {
             double_scroll_grace_ms: Ms(150),
             scrollbars: ScrollbarVisibility::WhenScrolling,
         }
-    }
-}
-
-impl Section for ScrollSettings {
-    const KEY: &'static str = "scroll";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.scroll
     }
 }

@@ -2,8 +2,6 @@
 //! `SpaceLook` gets. The per-workspace looks are state in `quire/spaces.json`, not here. All
 //! Advanced.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_settings::Count;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
@@ -28,13 +26,5 @@ impl Default for SpacesSettings {
         SpacesSettings {
             default_grain: Count(0),
         }
-    }
-}
-
-impl Section for SpacesSettings {
-    const KEY: &'static str = "spaces";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.spaces
     }
 }

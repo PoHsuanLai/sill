@@ -22,7 +22,7 @@ use ds::components::overlays::sheet_width::SheetWidth;
 use ds::host::measure::use_rect;
 use ds::prelude::*;
 use shell_host::{OutputInfo, use_watch};
-use sill_settings::{DesktopWidgets, WidgetsSettings};
+use sill_settings::DesktopWidgets;
 use sill_shell_kit::prelude::*;
 use sill_shell_kit::widget::{DesktopGrid, WidgetEdit};
 
@@ -89,7 +89,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
     let _written = *use_watch(link.written()).read();
     let file = link.places().cloned();
     let probe = use_rect();
-    let widgets = use_section::<WidgetsSettings>()();
+    let widgets = use_section(|file| &file.widgets)();
     let mut outcome = use_signal(Outcome::default);
     let mut count = use_hook(|| CopyValue::new(EditCount::default()));
     let grid = probe.rect().map(|rect| {

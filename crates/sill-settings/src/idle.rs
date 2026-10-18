@@ -3,8 +3,6 @@
 //! `Secs` and minutes `Mins`, plain integers in the file as before; every key is on the Power page,
 //! Advanced, with `session.lock_grace_s` (`crate::schema` moves that one key).
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Mins, Percent, Secs};
@@ -100,13 +98,5 @@ impl Default for IdleSettings {
             lock: IdleLock::ScreenOff,
             locked_screen_off_s: Secs(60),
         }
-    }
-}
-
-impl Section for IdleSettings {
-    const KEY: &'static str = "idle";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.idle
     }
 }

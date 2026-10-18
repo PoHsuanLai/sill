@@ -18,7 +18,7 @@ use ds::style::icon::plate_tint::PlateTint;
 use ds::style::scale::use_scale;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
-use sill_settings::{DockSettings, Indicators};
+use sill_settings::Indicators;
 use sill_shell_kit::dock::tile::plate_side;
 use sill_shell_kit::prelude::*;
 
@@ -46,7 +46,7 @@ const LABEL_GAP: u32 = 7;
 #[component]
 pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge>) -> Element {
     let apps = use_service::<AppsService>();
-    let dock = use_section::<DockSettings>()();
+    let dock = use_section(|file| &file.dock)();
     let index = apps();
     let app = item.kind.app_id().and_then(|id| index.get(id));
     let name = match (&item.kind, app) {

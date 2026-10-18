@@ -2,8 +2,6 @@
 //! watched for new screenshots, and what `sill screenshot` runs. macOS keeps its screenshot
 //! shortcuts under Keyboard, hence `Page::KeyboardAndShortcuts`. All Advanced.
 
-use crate::file::ShellFile;
-use crate::section::Section;
 use ds_core::word::Word;
 use ds_settings::Ms;
 use ds_settings::schema::Page;
@@ -68,13 +66,5 @@ impl Default for ScreenshotSettings {
             folders: "auto".to_owned(),
             tool: ShotTool::Portal,
         }
-    }
-}
-
-impl Section for ScreenshotSettings {
-    const KEY: &'static str = "screenshot";
-
-    fn of(file: &ShellFile) -> &Self {
-        &file.screenshot
     }
 }

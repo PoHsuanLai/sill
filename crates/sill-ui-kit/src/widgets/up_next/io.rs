@@ -4,7 +4,6 @@ use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_model::events::Days;
 use sill_services::{ClockService, EventsService};
-use sill_settings::CalendarSettings;
 
 use super::provider::{EVENT_ROWS, up_next_entry};
 use super::widget::UpNext;
@@ -23,7 +22,7 @@ impl WidgetProvider for UpNextProvider {
     fn use_feed() -> Feed<UpNext> {
         let _minute = use_service::<ClockService>()();
         let agenda = use_service::<EventsService>()();
-        let calendar = use_section::<CalendarSettings>()();
+        let calendar = use_section(|file| &file.calendar)();
         let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
         let max = usize::from(calendar.up_next_max.0).min(EVENT_ROWS);
         let days = Days(calendar.up_next_days.0);
