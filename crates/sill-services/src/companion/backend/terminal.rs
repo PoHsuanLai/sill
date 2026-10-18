@@ -29,7 +29,10 @@ pub(super) async fn open(search: &TerminalSearch, request: TerminalRequest) -> H
             .as_ref()
             .map(|confined| (run.folder.as_deref().map(Path::new), confined))
     }) else {
-        return HelpersMsg::SignInUnconfined;
+        return match handoff {
+            Some(_) => HelpersMsg::NoTerminal,
+            None => HelpersMsg::SignInUnconfined,
+        };
     };
     match open_in_terminal(search, &confined_command(confined), folder) {
         Ok(window) => {
