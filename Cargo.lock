@@ -253,7 +253,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -264,7 +264,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -365,7 +365,7 @@ dependencies = [
 name = "anyview-core"
 version = "0.1.0-beta.1"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
  "ds-core",
  "infer",
  "jiff",
@@ -446,7 +446,7 @@ dependencies = [
  "ds-core",
  "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3882bc95979b9fcb65aa17d596f6628c1bb982b8)",
  "futures-util",
- "latchkey",
+ "latchkey 0.1.0 (git+https://github.com/PoHsuanLai/latchkey?rev=c6cad1521f1efdc66fcc0f398029324e315a12ab)",
  "log",
  "md-5 0.10.6",
  "memfd",
@@ -1303,9 +1303,26 @@ dependencies = [
 [[package]]
 name = "chordkit"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1#934a2d71f6516bee5919ee29278003702a4ea5e1"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37#7b80eddb86559909eeb63b882d5563d36f5bad37"
 dependencies = [
  "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "chordkit"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1#934a2d71f6516bee5919ee29278003702a4ea5e1"
+dependencies = [
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "chordkit-file"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37#7b80eddb86559909eeb63b882d5563d36f5bad37"
+dependencies = [
+ "libc",
  "thiserror 2.0.21",
 ]
 
@@ -1314,7 +1331,7 @@ name = "chordkit-gnome"
 version = "0.1.0"
 source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1#934a2d71f6516bee5919ee29278003702a4ea5e1"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
 ]
 
 [[package]]
@@ -1322,7 +1339,7 @@ name = "chordkit-kde"
 version = "0.1.0"
 source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1#934a2d71f6516bee5919ee29278003702a4ea5e1"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
 ]
 
 [[package]]
@@ -1647,7 +1664,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 3.0.6",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2296,7 +2313,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.3",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2481,7 +2498,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 name = "ds"
 version = "0.1.0"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
  "dioxus",
  "ds-core",
  "ds-intents",
@@ -2512,7 +2529,7 @@ dependencies = [
  "blitz-paint",
  "blitz-shell",
  "blitz-traits",
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
  "chordkit-gnome",
  "chordkit-kde",
  "dioxus",
@@ -2543,7 +2560,7 @@ dependencies = [
 name = "ds-core"
 version = "0.1.0"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
  "ds-core-derive",
  "futures-timer",
  "keyboard-types 0.7.0",
@@ -2581,7 +2598,7 @@ dependencies = [
  "blitz-kit",
  "blitz-paint",
  "blitz-traits",
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=934a2d71f6516bee5919ee29278003702a4ea5e1)",
  "dioxus",
  "dioxus-native-dom",
  "ds",
@@ -2870,7 +2887,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4263,7 +4280,8 @@ dependencies = [
 name = "keycap-client"
 version = "0.1.0"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37)",
+ "chordkit-file",
  "keycap-protocol",
  "rustix",
 ]
@@ -4371,6 +4389,16 @@ checksum = "b5baa5e9ff84f1aefd264e6869907646538a52147a755d494517a8007fb48733"
 dependencies = [
  "regex-automata",
  "rustversion",
+]
+
+[[package]]
+name = "latchkey"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/latchkey?rev=b10ae1b8c49c55cce2c5affde8f5db76edb66ab4#b10ae1b8c49c55cce2c5affde8f5db76edb66ab4"
+dependencies = [
+ "interprocess",
+ "rustix",
+ "widestring",
 ]
 
 [[package]]
@@ -6630,7 +6658,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6966,7 +6994,7 @@ dependencies = [
  "ds-lint",
  "ds-settings",
  "keyboard-types 0.7.0",
- "latchkey",
+ "latchkey 0.1.0 (git+https://github.com/PoHsuanLai/latchkey?rev=b10ae1b8c49c55cce2c5affde8f5db76edb66ab4)",
  "peephole-bus",
  "prov",
  "rustix",
@@ -7022,7 +7050,7 @@ dependencies = [
 name = "sill-dock"
 version = "0.1.0"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37)",
  "desktop-client",
  "dioxus",
  "ds",
@@ -7059,7 +7087,7 @@ name = "sill-launcher"
 version = "0.1.0"
 dependencies = [
  "almanac-core",
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37)",
  "docket-core",
  "ds-core",
  "nucleo-matcher",
@@ -7078,7 +7106,7 @@ dependencies = [
  "anyview-image",
  "anyview-peek",
  "anyview-platform",
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37)",
  "companion-wire",
  "dioxus",
  "dioxus-ssr",
@@ -7153,7 +7181,7 @@ dependencies = [
 name = "sill-overlays"
 version = "0.1.0"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37)",
  "desktop-client",
  "dioxus",
  "ds",
@@ -7325,7 +7353,7 @@ dependencies = [
 name = "sill-ui-kit"
 version = "0.1.0"
 dependencies = [
- "chordkit",
+ "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37)",
  "companion-wire",
  "dioxus",
  "dioxus-ssr",
@@ -7544,7 +7572,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7572,7 +7600,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8120,7 +8148,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8138,7 +8166,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8480,7 +8508,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -9360,7 +9388,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

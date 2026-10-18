@@ -85,7 +85,7 @@ blitz-kit = { git = "https://github.com/PoHsuanLai/blitz-kit", rev = "f0e9dc3058
 
 # The portable keymap core (own repo, public): actions, chords, the resolver and per-platform
 # sources. quire is the one toolkit integration (`ds::keys`); apps declare their actions with it.
-chordkit = { git = "https://github.com/PoHsuanLai/chordkit.git", rev = "934a2d71f6516bee5919ee29278003702a4ea5e1" }
+chordkit = { git = "https://github.com/PoHsuanLai/chordkit.git", rev = "7b80eddb86559909eeb63b882d5563d36f5bad37" }
 
 # Blitz: git main, pinned by rev (crates.io dioxus-native 0.8 alpha does not build with
 # blitz 0.3.0-beta.2). The in-tree dioxus-native-dom targets dioxus 0.7.x.
@@ -179,7 +179,7 @@ nucleo-matcher = "0.3.1"
 fend-core = "1.5.8"
 clap = { version = "4", features = ["derive"] }
 # latchkey: its own repo since 2026-10-07 (split out of mailo with its history).
-latchkey = { git = "https://github.com/PoHsuanLai/latchkey", rev = "c6cad1521f1efdc66fcc0f398029324e315a12ab" }
+latchkey = { git = "https://github.com/PoHsuanLai/latchkey", rev = "b10ae1b8c49c55cce2c5affde8f5db76edb66ab4" }
 # ---- END PINNED BLOCK ----
 
 # sill-only, outside the pinned block (they are not shared with quire or shell-host).
