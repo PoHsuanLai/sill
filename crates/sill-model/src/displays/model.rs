@@ -26,8 +26,7 @@ impl Displays {
             .outputs
             .iter()
             .find(|o| &o.name == name)
-            .map(|o| o.placement)
-            .unwrap_or_else(|| super::drm::placement(name));
+            .map_or_else(|| super::drm::placement(name), |o| o.placement);
         let ddc: Vec<(DdcId, Option<OutputName>)> = self
             .ddc
             .iter()

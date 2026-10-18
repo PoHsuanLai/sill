@@ -23,7 +23,7 @@ pub fn update(model: RoutinesModel, msg: RoutinesMsg) -> (RoutinesModel, Vec<Rou
         }
         RoutinesMsg::DeclineProposal(id) => (
             RoutinesModel {
-                proposals: without(model.proposals, &id),
+                proposals: without(model.proposals, id),
                 ..model
             },
             vec![RoutinesCommand::DeclineProposal(id)],
@@ -122,10 +122,10 @@ fn accepted(model: RoutinesModel, reply: RoutineReply) -> (RoutinesModel, Vec<Ro
 }
 
 /// `proposals` without the one called `id`.
-fn without(proposals: Vec<RoutineProposal>, id: &ProposalId) -> Vec<RoutineProposal> {
+fn without(proposals: Vec<RoutineProposal>, id: ProposalId) -> Vec<RoutineProposal> {
     proposals
         .into_iter()
-        .filter(|proposal| proposal.id != *id)
+        .filter(|proposal| proposal.id != id)
         .collect()
 }
 

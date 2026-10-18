@@ -120,8 +120,8 @@ pub fn listed_networks(wifi: &Wifi) -> Vec<(AccessPoint, Saved)> {
         .collect();
 
     rows.sort_by(|(a_ap, a_saved), (b_ap, b_saved)| {
-        rank(a_ap, a_saved)
-            .cmp(&rank(b_ap, b_saved))
+        rank(a_ap, *a_saved)
+            .cmp(&rank(b_ap, *b_saved))
             .then(b_ap.strength.cmp(&a_ap.strength))
             .then(a_ap.ssid.cmp(&b_ap.ssid))
     });
@@ -130,8 +130,8 @@ pub fn listed_networks(wifi: &Wifi) -> Vec<(AccessPoint, Saved)> {
 
 /// A row's sort key: connected first, then saved, then the rest (strength and name break ties
 /// outside this key).
-fn rank(ap: &AccessPoint, saved: &Saved) -> (u8, u8) {
+fn rank(ap: &AccessPoint, saved: Saved) -> (u8, u8) {
     let connected = u8::from(ap.association != Association::Connected);
-    let known = u8::from(*saved != Saved::Known);
+    let known = u8::from(saved != Saved::Known);
     (connected, known)
 }

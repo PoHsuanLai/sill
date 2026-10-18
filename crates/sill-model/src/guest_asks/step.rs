@@ -11,16 +11,17 @@ pub fn step(
 ) -> (GuestAsksState, Vec<GuestAsksEffect>) {
     let mut asks = state.asks;
     let effects = match event {
-        GuestAsksEvent::Asked(ask) => match asks.contains(&ask) {
-            true => Vec::new(),
-            false => {
+        GuestAsksEvent::Asked(ask) => {
+            if asks.contains(&ask) {
+                Vec::new()
+            } else {
                 match asks.iter_mut().find(|known| known.node == ask.node) {
                     Some(known) => known.clone_from(&ask),
                     None => asks.push(ask.clone()),
                 }
                 vec![GuestAsksEffect::Tell(ask)]
             }
-        },
+        }
         GuestAsksEvent::Waiting(waiting) => {
             let gone = asks
                 .iter()

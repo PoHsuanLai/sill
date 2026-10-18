@@ -135,12 +135,10 @@ pub fn parse_ics(text: &str) -> Result<Vec<IcsEvent>, IcsError> {
             }
             _ if stack.len() == 2 => {
                 if let Some(draft) = open.as_mut() {
-                    draft
-                        .take(&content)
-                        .map_err(|error| IcsError::Bad {
-                            line,
-                            reason: error.to_string(),
-                        })?;
+                    draft.take(&content).map_err(|error| IcsError::Bad {
+                        line,
+                        reason: error.to_string(),
+                    })?;
                 }
             }
             _ => {}

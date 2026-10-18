@@ -21,7 +21,7 @@ pub fn windows_text(wl: &WindowModel) -> String {
         .windows
         .iter()
         .map(|w| window_line(w, &wl.workspaces));
-    capped(lines.collect(), "windows")
+    capped(&lines.collect::<Vec<_>>(), "windows")
 }
 
 /// One line per workspace of the main group, in order.
@@ -35,7 +35,7 @@ pub fn workspaces_text(workspaces: &Workspaces) -> String {
         })
         .into_iter()
         .flatten();
-    capped(lines.collect(), "workspaces")
+    capped(&lines.collect::<Vec<_>>(), "workspaces")
 }
 
 fn window_line(window: &Toplevel, workspaces: &Workspaces) -> String {
@@ -108,7 +108,7 @@ fn one_word(text: &str) -> String {
 }
 
 /// `lines` joined, stopping before [`LISTING_MAX`] and saying how many were left out.
-fn capped(lines: Vec<String>, noun: &str) -> String {
+fn capped(lines: &[String], noun: &str) -> String {
     if lines.is_empty() {
         return format!("(no {noun})\n");
     }

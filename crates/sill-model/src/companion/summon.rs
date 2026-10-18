@@ -206,13 +206,13 @@ impl Machine for Summon {
         cx: &SummonCx,
     ) -> (Summon, Vec<SummonOut>) {
         match (self, input) {
-            (Summon::Rest, SummonIn::Summon(facts)) => summoned(facts, at, params, cx),
+            (Summon::Rest, SummonIn::Summon(facts)) => summoned(facts, at, *params, *cx),
             (Summon::InLauncher { origin }, SummonIn::Summon(_) | SummonIn::Dismiss) => {
                 (Summon::Rest, leave(origin))
             }
             (Summon::InLauncher { .. }, SummonIn::LauncherClosed) => (Summon::Rest, Vec::new()),
             (Summon::InApp { app, window, .. }, SummonIn::Summon(_) | SummonIn::Dismiss) => {
-                ask(app, window, at, params, cx, Fallback::Rest)
+                ask(app, window, at, *params, *cx, Fallback::Rest)
             }
             (
                 Summon::AskingApp {
@@ -262,8 +262,8 @@ impl Machine for Summon {
 fn summoned(
     facts: FocusFacts,
     at: Stamp,
-    params: &SummonParams,
-    cx: &SummonCx,
+    params: SummonParams,
+    cx: SummonCx,
 ) -> (Summon, Vec<SummonOut>) {
     let FocusFacts {
         window,
@@ -302,8 +302,8 @@ fn ask(
     app: AppName,
     window: Option<WindowKey>,
     at: Stamp,
-    params: &SummonParams,
-    cx: &SummonCx,
+    params: SummonParams,
+    cx: SummonCx,
     fallback: Fallback,
 ) -> (Summon, Vec<SummonOut>) {
     (

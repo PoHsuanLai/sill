@@ -132,8 +132,8 @@ pub fn thumbs_wanted(
             let due = ask.is_none_or(|ask| {
                 pictures.seq_of(output, &space) > ask.seq && ask.looked != looked
             });
-            match (due, ask) {
-                (false, Some(ask)) => {
+            match ask {
+                Some(ask) if !due => {
                     next.insert(key, ask.clone());
                 }
                 _ => {
