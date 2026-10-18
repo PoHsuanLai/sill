@@ -85,7 +85,7 @@ mod tests {
 
     fn held_in(dir: &TempDir) -> (latchkey::Agent, Door) {
         let env = latchkey::Environment {
-            runtime_dir: Some(dir.path().as_os_str()),
+            runtime_dir: Some(dir.path().as_os_str().to_owned()),
             ..Default::default()
         };
         let agent = latchkey::Agent::in_environment("guard", latchkey::here(), &env)

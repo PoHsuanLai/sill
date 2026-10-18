@@ -25,7 +25,7 @@ fn temp_door(name: &str) -> (latchkey::Agent, latchkey::Listening) {
             .unwrap_or_default()
     ));
     let env = latchkey::Environment {
-        runtime_dir: Some(dir.as_os_str()),
+        runtime_dir: Some(dir.as_os_str().to_owned()),
         ..Default::default()
     };
     let agent = latchkey::Agent::in_environment(name, latchkey::here(), &env)
