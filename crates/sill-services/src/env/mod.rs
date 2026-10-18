@@ -9,7 +9,6 @@ mod children;
 pub mod ddc;
 mod dirs;
 mod passwd;
-mod processes;
 mod release;
 mod session_actions;
 mod wall_clock;
@@ -33,7 +32,6 @@ pub use buses::{Bus, BusKind, BusRoute, Buses};
 pub use children::{Children, ProcessGroup, RealChildren, RecordedChildren, Start};
 pub use dirs::Dirs;
 pub use passwd::{FakePasswd, Passwd, Person, SystemPasswd, UserId};
-pub use processes::{NoProcesses, Pid, ProcScan, Processes};
 pub use release::{SESSION_MODE_VAR, SessionMode};
 pub use session_actions::{
     ActionReach, DryRunActions, DryRunOffers, LogindActions, SessionActions, dry_run_line,
@@ -64,8 +62,6 @@ pub struct Env {
     /// Who this process runs as, for the lock screen: the system's accounts database, or a
     /// stand-in that never reads it.
     pub passwd: Arc<dyn Passwd>,
-    /// The processes a service looks for by name: a `/proc` scan, or none.
-    pub processes: Arc<dyn Processes>,
     /// The children a service starts and does not wait for (the file opener, the trash): real
     /// processes, or a record of what would have started.
     pub children: Arc<dyn Children>,
@@ -139,7 +135,6 @@ impl Env {
             passwd: Arc::new(SystemPasswd {
                 fallback_login: std::env::var("USER").unwrap_or_default(),
             }),
-            processes: Arc::new(ProcScan),
             children: Arc::new(RealChildren),
             keycap_socket: Some(PathBuf::from(keycap_protocol::SOCKET_PATH)),
             keycap_unit_wait: UnitWait::default(),
@@ -184,7 +179,6 @@ impl Env {
                 user: UserName("sill-test".to_owned()),
                 name: RealName("Test Person".to_owned()),
             })),
-            processes: Arc::new(NoProcesses),
             children: RecordedChildren::shared(),
             keycap_socket: None,
             keycap_unit_wait: UnitWait::default(),
