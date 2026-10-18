@@ -3,10 +3,9 @@
 //! offered. They are never on the session's socket.
 //!
 //! [`Handout`] is the seam: [`ZbusHandout`] calls the compositor over the session bus,
-//! [`FakeHandout`] yields a socket made by the test.
+//! the tests bring their own.
 
 use std::os::fd::OwnedFd;
-use std::sync::Mutex;
 
 use crate::env::Bus;
 
@@ -19,7 +18,7 @@ pub enum HandoutError {
     /// The bus call failed (no compositor owns the name, or it refused this caller).
     #[error("the compositor's connection service: {0}")]
     Bus(#[from] zbus::Error),
-    /// There is nothing to hand over (a fake that has run out).
+    /// There is nothing to hand over (a test's handout that has run out).
     #[error("no connection to hand over")]
     Nothing,
 }
@@ -61,33 +60,6 @@ impl Handout for ZbusHandout {
             let proxy = Compositor1Proxy::new(&connection).await?;
             Ok(proxy.connect(SHELL_ROLE).await?.into())
         }
-    }
-}
-
-/// A handout of one socket made by the test, or of none.
-#[derive(Debug, Default)]
-pub struct FakeHandout {
-    socket: Mutex<Option<OwnedFd>>,
-}
-
-impl FakeHandout {
-    /// Hands over `socket` once.
-    pub fn handing(socket: OwnedFd) -> Self {
-        Self {
-            socket: Mutex::new(Some(socket)),
-        }
-    }
-
-    /// Hands over nothing: the compositor is not there.
-    pub fn empty() -> Self {
-        Self::default()
-    }
-}
-
-impl Handout for FakeHandout {
-    fn connect(&self) -> impl Future<Output = Result<OwnedFd, HandoutError>> {
-        let socket = self.socket.lock().ok().and_then(|mut held| held.take());
-        std::future::ready(socket.ok_or(HandoutError::Nothing))
     }
 }
 

@@ -950,7 +950,7 @@ Open items of the voice client (`sill_services::voice`, `sill_model::voice`, `si
   `ShellNote` (the shell protocol in the shell's words) and the fields `AppView::visibility` and
   `WindowView::{role, modality, geometry, responsiveness, lease, sensitivity}` (the wlr arm fills defaults).
   `desktop_wl::quire` holds the pure mappings (`quire_view`, `quire_wire_of`, `note_of`), the handout seam
-  (`ZbusHandout` calls `org.quire.Compositor1.Connect("shell")`, `FakeHandout`), `QuireArm` over any
+  (`ZbusHandout` calls `org.quire.Compositor1.Connect("shell")`), `QuireArm` over any
   `Desktop`, and the thread that runs it on the host's connection. The daemon asks the compositor for the
   shell connection before `Host::connect`, gives it to the host as `WaylandRoute::Handed`, and starts the
   arm at the first mapped surface that has a role. Notes: hot corner -> the corner link (first output, the

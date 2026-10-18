@@ -24,7 +24,7 @@ pub use wayland_client::protocol::wl_surface::WlSurface;
 
 pub use arm::{ArmError, NoteSink, QuireArm};
 pub use command::quire_wire_of;
-pub use handout::{FakeHandout, Handout, HandoutError, ZbusHandout, shell_connection};
+pub use handout::{Handout, HandoutError, ZbusHandout, shell_connection};
 pub use notes::note_of;
 pub use pictures::picture_of;
 pub use shell::{ShellArm, ShellCall, ShellGone, SpawnError, spawn_shell_arm};

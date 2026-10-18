@@ -36,7 +36,7 @@ use sill_model::desktop::{
     ShellNote, SpacePlaceView, SubjectKind, SwitcherNote,
 };
 use sill_services::desktop_wl::quire::{
-    ArmError, FakeHandout, Handout, HandoutError, QuireArm, role_of_surface, shell_connection,
+    ArmError, Handout, HandoutError, QuireArm, role_of_surface, shell_connection,
 };
 use sill_services::desktop_wl::{Refusal, project_subjects};
 use sill_services::env::{Bus, BusRoute};
@@ -781,6 +781,26 @@ fn the_shells_surfaces_have_the_roles_the_compositor_knows() {
     ];
     for (name, want) in cases {
         assert_eq!(role_of_surface(name), want, "{name}");
+    }
+}
+
+/// A handout of one socket made by the test, or of none once it is taken.
+struct FakeHandout {
+    socket: Mutex<Option<OwnedFd>>,
+}
+
+impl FakeHandout {
+    fn handing(socket: OwnedFd) -> Self {
+        Self {
+            socket: Mutex::new(Some(socket)),
+        }
+    }
+}
+
+impl Handout for FakeHandout {
+    fn connect(&self) -> impl Future<Output = Result<OwnedFd, HandoutError>> {
+        let socket = self.socket.lock().ok().and_then(|mut held| held.take());
+        std::future::ready(socket.ok_or(HandoutError::Nothing))
     }
 }
 
