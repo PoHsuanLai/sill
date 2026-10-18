@@ -205,6 +205,7 @@ impl Live {
         match command {
             IntentsCommand::Serve => {}
             IntentsCommand::Answer { id, choice } => self.answer(id, choice),
+            IntentsCommand::AnswerBrief { id, text } => self.answer_brief(id, text),
             IntentsCommand::RevokeGrant(grant) => self.revoke(grant),
             IntentsCommand::UndoLimit(id) => self.undo_limit(id),
             IntentsCommand::ResumeTerminal => self.resume(),
@@ -215,6 +216,11 @@ impl Live {
     fn answer(&mut self, id: docket_core::ConfirmId, choice: SheetChoice) {
         let at = UnixSeconds(self.clock.now().timestamp().as_second());
         self.feed(IntentsEvent::Sheet(SheetEvent::Answered { id, choice, at }));
+    }
+
+    fn answer_brief(&mut self, id: docket_core::ConfirmId, text: String) {
+        let at = UnixSeconds(self.clock.now().timestamp().as_second());
+        self.feed(IntentsEvent::Sheet(SheetEvent::BriefUsed { id, text, at }));
     }
 
     fn call(&mut self, call: Call) {

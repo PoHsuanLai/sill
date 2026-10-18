@@ -5,6 +5,8 @@ use docket_core::{
 };
 use prov::{Confidentiality, ConfirmReceipt, InputProof, UnixSeconds};
 
+use super::brief::BRIEF_MAX_BYTES;
+use super::brief_wire::{allowed_once, brief_of};
 use super::model::{Pending, Reply, SHEET_QUEUE_MAX, Serial, SheetChoice, Sheets, permits};
 
 /// What happens to the queue.
@@ -12,6 +14,13 @@ use super::model::{Pending, Reply, SHEET_QUEUE_MAX, Serial, SheetChoice, Sheets,
 pub enum SheetEvent {
     /// A `Confirm` call arrived.
     Asked(Serial, Box<ConfirmRequest>),
+    /// The person pressed "Use this brief" on the brief sheet `id`, with `text` as it stood in the
+    /// field.
+    BriefUsed {
+        id: ConfirmId,
+        text: String,
+        at: UnixSeconds,
+    },
     /// The person chose on the sheet showing `id`, at `at`.
     Answered {
         id: ConfirmId,
@@ -42,6 +51,7 @@ pub fn step(sheets: Sheets, event: SheetEvent) -> (Sheets, Vec<SheetEffect>) {
     match event {
         SheetEvent::Asked(serial, request) => asked(sheets, serial, *request),
         SheetEvent::Answered { id, choice, at } => answered(sheets, &id, choice, at),
+        SheetEvent::BriefUsed { id, text, at } => brief_used(sheets, &id, text, at),
         SheetEvent::LimitUndone(id) => (unheld(sheets, &id), Vec::new()),
         SheetEvent::Withdrawn(id) => ended(sheets, |p| p.request.id == id, Reply::Withdrawn),
         SheetEvent::Expired(serial) => ended(
@@ -94,16 +104,36 @@ fn answered(
     )
 }
 
+/// The brief sheet `id` is answered with `text`, the words as the person left them. Only a brief
+/// sheet takes it, and only with some words that fit the bound; anything else changes nothing,
+/// so the call ends as an unanswered one does.
+fn brief_used(
+    sheets: Sheets,
+    id: &ConfirmId,
+    text: String,
+    at: UnixSeconds,
+) -> (Sheets, Vec<SheetEffect>) {
+    let Some(place) = sheets.queue.iter().position(|p| &p.request.id == id) else {
+        return (sheets, Vec::new());
+    };
+    let usable = !text.trim().is_empty() && text.len() <= BRIEF_MAX_BYTES;
+    if !usable || brief_of(&sheets.queue[place].request).is_none() {
+        return (sheets, Vec::new());
+    }
+    let mut queue = sheets.queue;
+    let gone = queue.remove(place);
+    let answer = allowed_once(receipt_of(&gone.request, at), Some(text));
+    (
+        Sheets { queue },
+        vec![SheetEffect::Respond(gone.serial, Reply::Answer(answer))],
+    )
+}
+
 /// The answer on the wire. The receipt says the person answered on the sheet drawn by a stock
 /// compositor's client (phase A): `SheetFallback`, never `HardwareSeat`, which only the
 /// compositor can attest. It covers nothing a sheet's action opens (`Secret`).
 fn answer_of(request: &ConfirmRequest, choice: SheetChoice, at: UnixSeconds) -> ConfirmAnswer {
-    let receipt = ConfirmReceipt {
-        id: request.id.clone(),
-        input: InputProof::SheetFallback,
-        at,
-        covers: Confidentiality::Secret,
-    };
+    let receipt = receipt_of(request, at);
     match choice {
         SheetChoice::AllowOnce => ConfirmAnswer::Allowed {
             scope: GrantScope::Once,
@@ -116,6 +146,16 @@ fn answer_of(request: &ConfirmRequest, choice: SheetChoice, at: UnixSeconds) -> 
         SheetChoice::AllowFromTerminal => ConfirmAnswer::AllowedFromTerminal { receipt },
         SheetChoice::Never => ConfirmAnswer::Never { receipt },
         SheetChoice::Deny => ConfirmAnswer::Ended(ConfirmEnd::Refused),
+    }
+}
+
+/// The proof of an answer given on this sheet.
+fn receipt_of(request: &ConfirmRequest, at: UnixSeconds) -> ConfirmReceipt {
+    ConfirmReceipt {
+        id: request.id.clone(),
+        input: InputProof::SheetFallback,
+        at,
+        covers: Confidentiality::Secret,
     }
 }
 

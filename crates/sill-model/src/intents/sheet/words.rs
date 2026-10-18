@@ -2,7 +2,7 @@
 //! is, where a value came from. Nothing here is taken from a model or an app's prose, so a
 //! sheet can never be made to say what the person did not ask.
 
-use docket_core::{AskReason, Shown};
+use docket_core::{AskReason, ConfirmRequest, Shown, TaintNote};
 use prov::{Actor, AppName, Effect, Source};
 
 use super::model::SHEET_VALUE_MAX_CHARS;
@@ -98,5 +98,21 @@ pub fn shown_words(shown: &Shown) -> (String, Option<String>) {
             ),
             Some(source_words(from).to_owned()),
         ),
+    }
+}
+
+/// Where a brief came from: who wrote it and, from the router's note of what the session read,
+/// what that was. The planner cannot change it.
+pub fn origin_words(request: &ConfirmRequest) -> String {
+    let writer = match &request.helper {
+        Some(name) => for_display(name.as_str(), SHEET_VALUE_MAX_CHARS),
+        None => asker_words(&request.actor).to_owned(),
+    };
+    match &request.taint {
+        TaintNote::Clean => format!("{writer} wrote this."),
+        TaintNote::ReadUntrusted(sources) => {
+            let from: Vec<&str> = sources.iter().map(source_words).collect();
+            format!("{writer} wrote this after reading {}.", from.join(" and "))
+        }
     }
 }

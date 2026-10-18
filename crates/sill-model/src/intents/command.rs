@@ -14,6 +14,9 @@ pub enum IntentsCommand {
     Serve,
     /// The person answered the confirmation `id` on screen.
     Answer { id: ConfirmId, choice: SheetChoice },
+    /// The person pressed "Use this brief" on the brief sheet `id`; `text` is the field as they
+    /// left it.
+    AnswerBrief { id: ConfirmId, text: String },
     /// Withdraw one standing terminal grant.
     RevokeGrant(ActionRef),
     /// Take away the "always ask" entry that made a sheet appear (its Undo).

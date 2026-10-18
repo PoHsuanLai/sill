@@ -17,10 +17,15 @@
 //! question that appeared because of an "ask first" entry says so in a line with Undo
 //! ([`held`]), and is offered no "Always allow".
 //!
+//! The sheet that checks a brief ([`brief_view`]) swaps the facts and the allow choices for an
+//! editable field, the flagged spans with a Remove each, and "Use this brief" (disabled until the
+//! whole text has been in view) beside Cancel; Escape cancels, and no Always or Never is offered.
+//!
 //! This is phase A: a layer surface on a stock compositor, so it is not unforgeable and its
 //! receipt says `SheetFallback`, never `HardwareSeat`. Phase B places the same surface on the
 //! compositor's trusted surface.
 
+mod brief_view;
 mod gate;
 mod held;
 mod io;

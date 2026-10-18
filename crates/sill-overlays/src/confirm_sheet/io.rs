@@ -31,6 +31,18 @@ pub(super) fn use_gate(id: ConfirmId) -> MachineRef<AnswerGate> {
     )
 }
 
+/// Where "Use this brief" goes: the text as the person left it answers question `id`. A stopped
+/// service has no one to tell; the sheet goes with it.
+pub(super) fn use_brief_answer(id: ConfirmId) -> Callback<String> {
+    let control = use_control::<IntentsService>();
+    use_callback(move |text: String| {
+        let _ = control.send(IntentsCommand::AnswerBrief {
+            id: id.clone(),
+            text,
+        });
+    })
+}
+
 /// Where Undo goes: the entry that made the sheet ask is taken away. A stopped service has no one
 /// to tell; the sheet goes with it.
 pub(super) fn use_undo() -> Callback<StandingGrantId> {

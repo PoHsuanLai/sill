@@ -25,9 +25,10 @@ use sill_model::intents::{ConfirmOffer, Gesture, NeverOffer};
 use sill_services::IntentsService;
 
 use super::CONFIRM_SHEET_CSS;
+use super::brief_view::{brief_body, use_brief};
 use super::gate::{AnswerGate, GateIn};
 use super::held::held_line;
-use super::io::{use_gate, use_undo};
+use super::io::{use_brief_answer, use_gate, use_undo};
 use super::layer::PANEL_ID;
 use sill_ui_kit::hooks::{use_banner_output, use_service_part};
 use sill_ui_kit::root::SurfaceRoot;
@@ -54,6 +55,8 @@ pub(super) fn confirm_sheet(output: OutputInfo) -> Element {
 fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>) -> Element {
     let gate = use_gate(view.id.clone());
     let undo = use_undo();
+    let brief = use_brief(&view);
+    let send_brief = use_brief_answer(view.id.clone());
     let state = gate.state();
     let mut focus_target = use_signal(|| None::<std::rc::Rc<MountedData>>);
     let mut landed = use_signal(|| Landed::Not);
@@ -93,7 +96,7 @@ fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
             attach: Attach::Centre,
-            width: SheetWidth::Narrow,
+            width: width_of(&view),
             common: Common {
                 id: Some(PANEL_ID.to_owned()),
                 ..Common::default()
@@ -117,36 +120,48 @@ fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>
                 "data-arm": if input == Availability::Enabled { "armed" } else { "arming" },
                 div { class: "sill-confirm-title", "{title}" }
                 div { class: "sill-confirm-byline", "{byline}" }
-                if !facts.is_empty() {
-                    FactList { facts }
-                }
-                div { class: "sill-confirm-notes",
-                    for (place , note) in view.notes.iter().enumerate() {
-                        div { key: "{place}", class: "sill-confirm-note", "{note}" }
+                if let Some(editable) = view.brief.clone() {
+                    {brief_body(brief, &editable, gate, input, send_brief)}
+                } else {
+                    if !facts.is_empty() {
+                        FactList { facts }
                     }
-                }
-                {held_line(&view, undo, input)}
-                {offered(&view, gate, input)}
-                div { class: "sill-confirm-footer",
-                    {never(&view, gate, input)}
-                    Button {
-                        label: "Don't Allow",
-                        answers: Answers::Escape,
-                        availability: input,
-                        onclick: move |_| gate.send(GateIn::Press(SheetChoice::Deny)),
-                        common: Common {
-                            id: Some(DENY_ID.to_owned()),
-                            mounted: landing(Landing::Deny),
-                            ..Common::default()
-                        },
+                    div { class: "sill-confirm-notes",
+                        for (place , note) in view.notes.iter().enumerate() {
+                            div { key: "{place}", class: "sill-confirm-note", "{note}" }
+                        }
                     }
-                    {allow(&view, gate, input, holding, landing(Landing::Allow))}
+                    {held_line(&view, undo, input)}
+                    {offered(&view, gate, input)}
+                    div { class: "sill-confirm-footer",
+                        {never(&view, gate, input)}
+                        Button {
+                            label: "Don't Allow",
+                            answers: Answers::Escape,
+                            availability: input,
+                            onclick: move |_| gate.send(GateIn::Press(SheetChoice::Deny)),
+                            common: Common {
+                                id: Some(DENY_ID.to_owned()),
+                                mounted: landing(Landing::Deny),
+                                ..Common::default()
+                            },
+                        }
+                        {allow(&view, gate, input, holding, landing(Landing::Allow))}
+                    }
                 }
                 if view.waiting > 0 {
                     div { class: "sill-confirm-waiting", {waiting_words(view.waiting)} }
                 }
             }
         }
+    }
+}
+
+/// A brief needs room to be read; every other question is a narrow card.
+fn width_of(view: &SheetView) -> SheetWidth {
+    match view.brief {
+        Some(_) => SheetWidth::Regular,
+        None => SheetWidth::Narrow,
     }
 }
 

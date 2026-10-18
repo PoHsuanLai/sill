@@ -9,8 +9,12 @@ use docket_core::{
 };
 use prov::Effect;
 
+use super::brief::BriefView;
+use super::brief_wire::brief_of;
 use super::model::{Pending, SHEET_ROWS_MAX, SHEET_VALUE_MAX_CHARS, Sheets};
-use super::words::{app_words, asker_words, effect_words, shown_words, source_words, why_words};
+use super::words::{
+    app_words, asker_words, effect_words, origin_words, shown_words, source_words, why_words,
+};
 use crate::untrusted::for_display;
 
 /// How many reasons the sheet gives.
@@ -67,6 +71,9 @@ pub struct SheetView {
     pub effect: Effect,
     /// How many more questions wait behind this one.
     pub waiting: usize,
+    /// The editable brief, when this is the sheet that checks one: it replaces the facts, the
+    /// notes and the allow choices.
+    pub brief: Option<BriefView>,
 }
 
 /// The question on screen, if there is one.
@@ -78,17 +85,11 @@ pub fn sheet_view(sheets: &Sheets) -> Option<SheetView> {
 
 fn view_of(pending: &Pending, waiting: usize) -> SheetView {
     let request = &pending.request;
+    let brief = brief_of(request);
     SheetView {
         id: request.id.clone(),
-        title: format!(
-            "{}?",
-            for_display(request.action.as_str(), SHEET_VALUE_MAX_CHARS)
-        ),
-        byline: format!(
-            "{} wants to do this in {}.",
-            asker_of(request),
-            app_words(&request.app)
-        ),
+        title: title_of(request, brief.as_ref()),
+        byline: byline_of(request, brief.as_ref()),
         facts: facts_of(request),
         notes: notes_of(request),
         offer: request.offer,
@@ -97,6 +98,30 @@ fn view_of(pending: &Pending, waiting: usize) -> SheetView {
         gesture: request.gesture,
         effect: request.effect,
         waiting,
+        brief,
+    }
+}
+
+/// The action's own label as a question, or for a brief the words that ask for a check.
+fn title_of(request: &ConfirmRequest, brief: Option<&BriefView>) -> String {
+    match brief {
+        Some(_) => "Check this before helpers use it".to_owned(),
+        None => format!(
+            "{}?",
+            for_display(request.action.as_str(), SHEET_VALUE_MAX_CHARS)
+        ),
+    }
+}
+
+/// Who asks and where, or for a brief where it came from.
+fn byline_of(request: &ConfirmRequest, brief: Option<&BriefView>) -> String {
+    match brief {
+        Some(_) => origin_words(request),
+        None => format!(
+            "{} wants to do this in {}.",
+            asker_of(request),
+            app_words(&request.app)
+        ),
     }
 }
 
