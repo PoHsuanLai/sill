@@ -8,16 +8,13 @@ use sill_ipc::act::{
     ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
     WorkspaceRequest,
 };
-use sill_ipc::debug::{
-    CornerName, DebugRequest, KeyAction, KeySpec, OsdTopic, Point, PointerButton, SurfaceName,
-};
+use sill_ipc::debug::{DebugRequest, KeyAction, KeySpec, Point, PointerButton, SurfaceName};
 use sill_ipc::request::Request;
-use sill_ipc::show::{
-    CompanionRequest, EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest,
-};
+use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest};
 use sill_ipc::status::StatusRequest;
 use sill_launcher::AppId;
 use sill_model::auth::FakeVerdict;
+use sill_model::hot_corners::Corner;
 use sill_model::intents::IntentsAsk;
 use sill_model::intents::terminal::parse_grant;
 use sill_model::keycap::KeycapAsk;
@@ -25,6 +22,7 @@ use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
     parse_body,
 };
+use sill_model::osd::OsdKind;
 use sill_model::polkit_agent::{ActionId, FakeRequest};
 use sill_model::screenshots::ShotKind;
 use sill_model::units::Percent;
@@ -198,11 +196,11 @@ fn every_command_line_sends_its_request() {
         ),
         (
             &["widgets", "edit"],
-            show(ShowRequest::EditWidgets(EditWidgetsRequest::Open)),
+            show(ShowRequest::EditWidgets(Reveal::Open)),
         ),
         (
             &["widgets", "edit-close"],
-            show(ShowRequest::EditWidgets(EditWidgetsRequest::Close)),
+            show(ShowRequest::EditWidgets(Reveal::Close)),
         ),
         (
             &["companion", "tap"],
@@ -386,11 +384,11 @@ fn every_command_line_sends_its_request() {
         ),
         (
             &["debug", "corner", "top-left"],
-            debug(DebugRequest::Corner(CornerName::TopLeft)),
+            debug(DebugRequest::Corner(Corner::TopLeft)),
         ),
         (
             &["debug", "corner", "bottom-right"],
-            debug(DebugRequest::Corner(CornerName::BottomRight)),
+            debug(DebugRequest::Corner(Corner::BottomRight)),
         ),
         (
             &["debug", "notify", "Hello"],
@@ -543,7 +541,7 @@ fn every_command_line_sends_its_request() {
         (
             &["debug", "osd", "volume", "40"],
             debug(DebugRequest::Osd {
-                topic: OsdTopic::Volume,
+                topic: OsdKind::Volume,
                 percent: Percent(40),
                 mute: Mute::Audible,
             }),
@@ -551,7 +549,7 @@ fn every_command_line_sends_its_request() {
         (
             &["debug", "osd", "volume", "40", "--mute", "muted"],
             debug(DebugRequest::Osd {
-                topic: OsdTopic::Volume,
+                topic: OsdKind::Volume,
                 percent: Percent(40),
                 mute: Mute::Muted,
             }),
@@ -559,7 +557,7 @@ fn every_command_line_sends_its_request() {
         (
             &["debug", "osd", "brightness", "70"],
             debug(DebugRequest::Osd {
-                topic: OsdTopic::Brightness,
+                topic: OsdKind::Brightness,
                 percent: Percent(70),
                 mute: Mute::Audible,
             }),

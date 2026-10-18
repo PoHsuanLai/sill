@@ -7,18 +7,12 @@
 //! serial than the last, so a surface restarts its hold even when the same key is pressed again.
 
 use shell_host::OutputId;
+pub use sill_model::osd::OsdKind;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
 use tokio::sync::watch;
 
 use super::Shared;
-
-/// What the indicator shows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum OsdKind {
-    Volume,
-    Brightness,
-}
 
 /// A level and mute, as the indicator draws them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

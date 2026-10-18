@@ -1,6 +1,5 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale120};
 use sill_ipc::act::{DisplayRequest, LevelRequest, VolumeRequest};
-use sill_ipc::debug::OsdTopic;
 use sill_model::displays::ddc::Endpoint;
 use sill_model::displays::{Controls, DdcDisplay, Displays, KeysTarget, Level as DdcLevel};
 use sill_model::ids::{DdcId, OutputName};
@@ -8,7 +7,7 @@ use sill_model::units::Percent;
 use sill_model::volume::Mute;
 use sill_ui_kit::links::{Level, LevelSource, OsdKind};
 
-use super::{fake_of, kind_of, osd_outputs};
+use super::{fake_level, kind_of, osd_outputs};
 
 fn output(id: u32, name: Option<&str>) -> OutputInfo {
     OutputInfo {
@@ -187,26 +186,17 @@ fn requests_name_their_kind_and_fakes_their_level() {
         OsdKind::Volume
     );
     let cases = [
-        (
-            (OsdTopic::Volume, Percent(40), Mute::Muted),
-            (OsdKind::Volume, 40, Mute::Muted),
-        ),
-        (
-            (OsdTopic::Brightness, Percent(250), Mute::Audible),
-            (OsdKind::Brightness, 100, Mute::Audible),
-        ),
+        ((Percent(40), Mute::Muted), (40, Mute::Muted)),
+        ((Percent(250), Mute::Audible), (100, Mute::Audible)),
     ];
-    for ((topic, asked, asked_mute), (kind, percent, mute)) in cases {
+    for ((asked, asked_mute), (percent, mute)) in cases {
         assert_eq!(
-            fake_of(topic, asked, asked_mute),
-            (
-                kind,
-                Level {
-                    percent: Percent(percent),
-                    mute
-                }
-            ),
-            "{topic:?} {asked:?}"
+            fake_level(asked, asked_mute),
+            Level {
+                percent: Percent(percent),
+                mute
+            },
+            "{asked:?}"
         );
     }
 }

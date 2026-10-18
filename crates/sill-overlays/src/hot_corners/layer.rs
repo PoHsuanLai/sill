@@ -2,6 +2,7 @@
 //! `Ignore` (at the true corner of the output, over the bar's and the dock's reserve), no
 //! keyboard, no blur, input the whole square.
 
+use ds::base::word::Word;
 use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, RegionSpec,
@@ -22,7 +23,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile, corner: Corner) -> Layer
     };
     let side = u32::from(settings.hot_corners.size_px.0.max(1));
     LayerConfig {
-        namespace: namespace(&format!("hot-corner-{}", corner.word()), output),
+        namespace: namespace(&format!("hot-corner-{}", corner.slug()), output),
         layer: LayerLevel::Overlay,
         anchor,
         size: LayerSize {

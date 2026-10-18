@@ -2,37 +2,10 @@
 //! hit numbered so two firings of one corner are two changes.
 
 use shell_host::OutputId;
+pub use sill_model::hot_corners::Corner;
 use tokio::sync::watch;
 
 use super::Shared;
-
-/// A screen corner.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Corner {
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
-}
-
-impl Corner {
-    pub const ALL: [Corner; 4] = [
-        Corner::TopLeft,
-        Corner::TopRight,
-        Corner::BottomLeft,
-        Corner::BottomRight,
-    ];
-
-    /// `top-left`: the namespace's word.
-    pub fn word(self) -> &'static str {
-        match self {
-            Corner::TopLeft => "top-left",
-            Corner::TopRight => "top-right",
-            Corner::BottomLeft => "bottom-left",
-            Corner::BottomRight => "bottom-right",
-        }
-    }
-}
 
 /// One firing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -3,11 +3,12 @@
 
 use std::path::PathBuf;
 
-use sill_ipc::debug::{CornerName, OsdTopic};
 use sill_ipc::response::Response;
 use sill_launcher::AppId;
 use sill_model::auth::FakeVerdict;
+use sill_model::hot_corners::Corner;
 use sill_model::notifications::{NotificationsCommand, Posting};
+use sill_model::osd::OsdKind;
 use sill_model::polkit_agent::{FakeRequest, PolkitCommand};
 use sill_model::screenshots::ShotCommand;
 use sill_model::units::Percent;
@@ -20,8 +21,8 @@ use super::super::switcher;
 
 /// `sill debug osd`: the OSD for a change that moves no real level (the session's default sink
 /// may be somebody's headphones).
-pub fn osd(reach: &Reach, topic: OsdTopic, percent: Percent, mute: Mute) -> Response {
-    let (kind, level) = crate::osd::fake_of(topic, percent, mute);
+pub fn osd(reach: &Reach, kind: OsdKind, percent: Percent, mute: Mute) -> Response {
+    let level = crate::osd::fake_level(percent, mute);
     crate::osd::fake(
         &reach.links.osd,
         reach.services,
@@ -59,14 +60,11 @@ pub fn screenshot(reach: &Reach, path: PathBuf) -> Response {
 }
 
 /// `sill debug corner`: a hit of `corner` on the first output, as if its dwell had run out.
-pub fn corner(reach: &Reach, corner: CornerName) -> Response {
+pub fn corner(reach: &Reach, corner: Corner) -> Response {
     let first = reach.outputs.outputs.first().map(|(info, _)| info.id);
     match first {
         Some(output) => {
-            reach
-                .links
-                .corners
-                .hit(crate::corners::corner_of(corner), output);
+            reach.links.corners.hit(corner, output);
             Response::Done
         }
         None => unsupported("no output to fire a corner on"),

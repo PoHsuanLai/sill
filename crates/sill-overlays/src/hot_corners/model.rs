@@ -1,5 +1,6 @@
 //! What the settings say about the corners: which do something, and what.
 
+use ds::base::word::Word;
 use sill_settings::{CornerAction, HotCornerSettings};
 
 use sill_ui_kit::links::Corner;
@@ -27,7 +28,8 @@ pub fn corner_command(settings: &HotCornerSettings, corner: Corner) -> &str {
 /// The corners that get a surface: every one whose action is not `None`.
 pub fn active_corners(settings: &HotCornerSettings) -> Vec<Corner> {
     Corner::ALL
-        .into_iter()
+        .iter()
+        .copied()
         .filter(|corner| corner_action(settings, *corner) != CornerAction::None)
         .collect()
 }

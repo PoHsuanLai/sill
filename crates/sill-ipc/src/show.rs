@@ -22,8 +22,10 @@ pub enum ShowRequest {
     /// The control center under the first bar's item: it is a popup of a bar, so it has no open
     /// of its own to seed. Opens when closed, closes when open.
     ControlCenter,
-    /// Edit Widgets, the widget gallery (`sill widgets {edit,edit-close}`).
-    EditWidgets(EditWidgetsRequest),
+    /// Edit Widgets, the widget gallery (`sill widgets {edit,edit-close}`). It opens on the output of
+    /// the active window when that output has its surface, else on the first that has, and closes
+    /// wherever it is open.
+    EditWidgets(Reveal),
     /// The companion's summon (`sill companion {tap,summon,dismiss,stop-all}`).
     Companion(CompanionRequest),
     /// Hold-to-talk (`sill voice {hold-start,hold-end,hold-cancel}`).
@@ -51,15 +53,6 @@ pub enum LauncherRequest {
     /// Open with `query` already typed; an empty query opens a fresh launcher.
     Open { query: String },
     /// Close if open; nothing otherwise.
-    Close,
-}
-
-/// Edit Widgets has no toggle: it opens on the output of the active window when that output has
-/// its surface, else on the first that has, and closes wherever it is open.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EditWidgetsRequest {
-    Open,
     Close,
 }
 

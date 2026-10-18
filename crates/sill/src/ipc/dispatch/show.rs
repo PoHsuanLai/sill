@@ -5,11 +5,11 @@
 
 use sill_bar::Bar;
 use sill_ipc::response::Response;
-use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
+use sill_ipc::show::{LauncherRequest, Reveal, ShowRequest};
 use sill_launcher_ui::Launcher;
 use sill_notify_ui::NotificationCenter;
 use sill_overlays::{ForceQuit, PowerMenu};
-use sill_ui_kit::links::Preselect;
+use sill_ui_kit::links::{EditShown, Preselect};
 use sill_widgets_ui::EditWidgets;
 
 use super::reach::Reach;
@@ -26,7 +26,7 @@ pub fn dispatch(reach: &Reach, request: ShowRequest) -> Response {
         ShowRequest::ForceQuit(reveal) => force_quit(reach, reveal),
         ShowRequest::NotificationCenter(reveal) => notification_center(reach, reveal),
         ShowRequest::ControlCenter => control_center(reach),
-        ShowRequest::EditWidgets(request) => edit_widgets(reach, request),
+        ShowRequest::EditWidgets(reveal) => edit_widgets(reach, reveal),
         ShowRequest::Companion(request) => crate::companion::dispatch(reach, request),
         ShowRequest::Voice(request) => crate::voice::dispatch(reach, request),
     }
@@ -130,7 +130,7 @@ fn control_center(reach: &Reach) -> Response {
     }
 }
 
-fn edit_widgets(reach: &Reach, request: EditWidgetsRequest) -> Response {
+fn edit_widgets(reach: &Reach, reveal: Reveal) -> Response {
     let link = &reach.links.edit_widgets;
     let focus = reach
         .services
@@ -147,10 +147,14 @@ fn edit_widgets(reach: &Reach, request: EditWidgetsRequest) -> Response {
         .map(|(info, _)| (info.id, info.name.clone()))
         .collect();
     let target = focused_or_first(&with_surface, focus.as_ref());
-    match (request, target) {
-        (EditWidgetsRequest::Open, Some(output)) => link.open(output),
-        (EditWidgetsRequest::Close, _) => link.close(),
-        (EditWidgetsRequest::Open, None) => {
+    match (reveal, target) {
+        (Reveal::Close, _) => link.close(),
+        (Reveal::Open, Some(output)) => link.open(output),
+        (Reveal::Toggle, Some(output)) => match link.now() {
+            EditShown::Open(_) => link.close(),
+            EditShown::Closed => link.open(output),
+        },
+        (Reveal::Open | Reveal::Toggle, None) => {
             return unsupported("no output has an Edit Widgets surface");
         }
     }

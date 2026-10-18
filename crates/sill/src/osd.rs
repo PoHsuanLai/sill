@@ -16,7 +16,6 @@
 use crate::outputs::Outputs;
 use shell_host::{OutputId, OutputInfo};
 use sill_ipc::act::DisplayRequest;
-use sill_ipc::debug::OsdTopic;
 use sill_ipc::response::Response;
 use sill_model::displays::brightness::targets;
 use sill_model::displays::{Displays, KeysTarget};
@@ -68,14 +67,10 @@ pub fn kind_of(request: DisplayRequest) -> OsdKind {
     }
 }
 
-/// A made-up change's kind and level: `percent` is held to 0-100.
-pub fn fake_of(topic: OsdTopic, percent: Percent, mute: Mute) -> (OsdKind, Level) {
-    let kind = match topic {
-        OsdTopic::Volume => OsdKind::Volume,
-        OsdTopic::Brightness => OsdKind::Brightness,
-    };
+/// A made-up change's level: `percent` is held to 0-100.
+pub fn fake_level(percent: Percent, mute: Mute) -> Level {
     let percent = Percent(percent.0.min(100));
-    (kind, Level { percent, mute })
+    Level { percent, mute }
 }
 
 /// Show `kind` from `level` on the outputs it belongs to, unless `osd.enabled` is off.

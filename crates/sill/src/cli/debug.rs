@@ -4,13 +4,13 @@
 use std::path::PathBuf;
 
 use clap::{Subcommand, ValueEnum};
-use sill_ipc::debug::{
-    CornerName, DebugRequest, KeyAction, KeySpec, OsdTopic, Point, PointerButton, SurfaceName,
-};
+use sill_ipc::debug::{DebugRequest, KeyAction, KeySpec, Point, PointerButton, SurfaceName};
 use sill_ipc::request::Request;
 
 use sill_launcher::AppId;
 use sill_model::auth::FakeVerdict;
+use sill_model::hot_corners::Corner;
+use sill_model::osd::OsdKind;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
 
@@ -247,10 +247,10 @@ fn pointer_button(button: ClickButton) -> PointerButton {
     }
 }
 
-fn osd_topic(topic: TopicArg) -> OsdTopic {
+fn osd_topic(topic: TopicArg) -> OsdKind {
     match topic {
-        TopicArg::Volume => OsdTopic::Volume,
-        TopicArg::Brightness => OsdTopic::Brightness,
+        TopicArg::Volume => OsdKind::Volume,
+        TopicArg::Brightness => OsdKind::Brightness,
     }
 }
 
@@ -261,12 +261,12 @@ fn mute_of(mute: MuteArg) -> Mute {
     }
 }
 
-fn corner_name(corner: CornerArg) -> CornerName {
+fn corner_name(corner: CornerArg) -> Corner {
     match corner {
-        CornerArg::TopLeft => CornerName::TopLeft,
-        CornerArg::TopRight => CornerName::TopRight,
-        CornerArg::BottomLeft => CornerName::BottomLeft,
-        CornerArg::BottomRight => CornerName::BottomRight,
+        CornerArg::TopLeft => Corner::TopLeft,
+        CornerArg::TopRight => Corner::TopRight,
+        CornerArg::BottomLeft => Corner::BottomLeft,
+        CornerArg::BottomRight => Corner::BottomRight,
     }
 }
 

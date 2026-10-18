@@ -9,7 +9,9 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, PreviewKind};
 use sill_model::auth::FakeVerdict;
+use sill_model::hot_corners::Corner;
 use sill_model::notifications::Posting;
+use sill_model::osd::OsdKind;
 use sill_model::polkit_agent::FakeRequest;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
@@ -60,7 +62,7 @@ pub enum DebugRequest {
     /// moving no real level (`dev/accept/osd.sh`: the session's default sink may be somebody's
     /// headphones). `percent` is 0-100; more is taken as 100.
     Osd {
-        topic: OsdTopic,
+        topic: OsdKind,
         percent: Percent,
         mute: Mute,
     },
@@ -73,7 +75,7 @@ pub enum DebugRequest {
     Screenshot { path: PathBuf },
     /// Carry out a hot corner's action on the first output, as if its dwell had just run out
     /// (`dev/accept/hot-corners.sh`).
-    Corner(CornerName),
+    Corner(Corner),
     /// Feed the lock screen's password check a made-up verdict; refused by a daemon built
     /// without `debug` (`dev/accept/lock.sh`, on the nested compositor only).
     Auth(FakeVerdict),
@@ -89,24 +91,6 @@ pub enum DebugRequest {
     /// the nested compositor counts no synthetic input as activity). Refused by a daemon built
     /// without `debug`: inside the lock grace it opens the lock.
     IdleWake,
-}
-
-/// What an OSD change is about.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OsdTopic {
-    Volume,
-    Brightness,
-}
-
-/// A screen corner.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CornerName {
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
 }
 
 /// Which pointer button a debug click presses.

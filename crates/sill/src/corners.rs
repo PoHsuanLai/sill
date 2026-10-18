@@ -11,14 +11,13 @@
 use std::process::Stdio;
 
 use shell_host::{HostHandle, OutputId};
-use sill_ipc::debug::CornerName;
 use sill_launcher::WindowKey;
 use sill_model::desktop::open_mission_control;
 use sill_model::ids::WorkspaceKey;
 use sill_model::locker::LockerCommand;
 use sill_model::windows::{Activity, Toplevel, WindowState, WlCommand};
 use sill_settings::{CornerAction, ShellFile};
-use sill_ui_kit::links::{Corner, Links};
+use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use tokio::runtime::Handle;
 use tokio::sync::watch;
@@ -98,16 +97,6 @@ pub fn show_desktop(
         .collect();
     let commands = minimize.iter().copied().map(WlCommand::Minimize).collect();
     (commands, Stash(minimize))
-}
-
-/// The surface side's corner for the wire's name.
-pub fn corner_of(name: CornerName) -> Corner {
-    match name {
-        CornerName::TopLeft => Corner::TopLeft,
-        CornerName::TopRight => Corner::TopRight,
-        CornerName::BottomLeft => Corner::BottomLeft,
-        CornerName::BottomRight => Corner::BottomRight,
-    }
 }
 
 /// Follow `link` on `rt` and carry out each hit's action (read from `settings` at the hit)
@@ -199,16 +188,14 @@ async fn act(
 
 #[cfg(test)]
 mod tests {
-    use sill_ipc::debug::CornerName;
     use sill_settings::CornerAction;
-    use sill_ui_kit::links::Corner;
 
     use sill_launcher::WindowKey;
     use sill_model::ids::WorkspaceKey;
     use sill_model::windows::{Activity, Sizing, WindowState};
     use sill_model::windows::{Toplevel, WlCommand};
 
-    use super::{CornerEffect, Stash, corner_effect, corner_of, show_desktop};
+    use super::{CornerEffect, Stash, corner_effect, show_desktop};
 
     fn window(key: u64, workspace: u64, state: WindowState) -> Toplevel {
         Toplevel {
@@ -265,12 +252,6 @@ mod tests {
             Stash::default(),
             "a stash of gone windows starts over"
         );
-    }
-
-    #[test]
-    fn wire_names_map_onto_corners() {
-        assert_eq!(corner_of(CornerName::TopLeft), Corner::TopLeft);
-        assert_eq!(corner_of(CornerName::BottomRight), Corner::BottomRight);
     }
 
     #[test]

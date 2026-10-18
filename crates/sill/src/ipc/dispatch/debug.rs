@@ -114,7 +114,8 @@ fn run_probe(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: DebugRequest) 
 
 #[cfg(test)]
 mod tests {
-    use sill_ipc::debug::{CornerName, DebugRequest};
+    use sill_ipc::debug::DebugRequest;
+    use sill_model::hot_corners::Corner;
 
     use super::{Probe, probe_of};
 
@@ -125,7 +126,7 @@ mod tests {
             ("launcher rows", DebugRequest::LauncherRows, Probe::Reads),
             (
                 "corner",
-                DebugRequest::Corner(CornerName::BottomRight),
+                DebugRequest::Corner(Corner::BottomRight),
                 Probe::Acts,
             ),
             ("idle wake", DebugRequest::IdleWake, Probe::Acts),

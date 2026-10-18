@@ -4,7 +4,7 @@
 use clap::{Subcommand, ValueEnum};
 use sill_ipc::act::{ActRequest, DockRequest};
 use sill_ipc::request::Request;
-use sill_ipc::show::{CompanionRequest, EditWidgetsRequest, Reveal, ShowRequest, VoiceRequest};
+use sill_ipc::show::{CompanionRequest, Reveal, ShowRequest, VoiceRequest};
 use sill_launcher::AppId;
 use sill_model::screenshots::ShotKind;
 
@@ -138,10 +138,8 @@ pub fn screenshot_request(kind: ShotArg) -> Request {
 pub fn widgets_request(action: WidgetsAction) -> Request {
     match action {
         WidgetsAction::ToggleDesktop => Request::Act(ActRequest::ToggleDesktopWidgets),
-        WidgetsAction::Edit => Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Open)),
-        WidgetsAction::EditClose => {
-            Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Close))
-        }
+        WidgetsAction::Edit => Request::Show(ShowRequest::EditWidgets(Reveal::Open)),
+        WidgetsAction::EditClose => Request::Show(ShowRequest::EditWidgets(Reveal::Close)),
     }
 }
 

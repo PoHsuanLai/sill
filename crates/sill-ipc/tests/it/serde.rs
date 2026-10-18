@@ -10,16 +10,14 @@ use sill_ipc::act::{
     WorkspaceRequest,
 };
 use sill_ipc::debug::{
-    CornerName, DebugRequest, KeyAction, KeySpec, LauncherRows, Micros, OsdTopic, Point,
-    PointerButton, RowsSection, SurfaceName, SurfaceStats,
+    DebugRequest, KeyAction, KeySpec, LauncherRows, Micros, Point, PointerButton, RowsSection,
+    SurfaceName, SurfaceStats,
 };
 use sill_ipc::error::IpcError;
 use sill_ipc::line::{MAX_LINE, decode, encode, read_message, write_message};
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
-use sill_ipc::show::{
-    CompanionRequest, EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest,
-};
+use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest};
 use sill_ipc::status::{
     ClipboardStatus, IntentsStatus, LinkStatus, NotificationsStatus, PolkitStatus, StatusReport,
     StatusRequest,
@@ -27,6 +25,7 @@ use sill_ipc::status::{
 use sill_launcher::{AppId, PreviewKind};
 use sill_model::auth::FakeVerdict;
 use sill_model::clipboard::{ClipProtocol, ClipStatus, HistoryMode};
+use sill_model::hot_corners::Corner;
 use sill_model::idle::{
     DimLevel, DimShown, Idle, IdleMode, IdlePhase, Inhibition, LogindIdle, OffReason, PowerSource,
 };
@@ -39,6 +38,7 @@ use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NameHolder, NameOwner, NotifyUrgency,
     Posting, ServerMode, ServerStatus, parse_body,
 };
+use sill_model::osd::OsdKind;
 use sill_model::polkit_agent::{ActionId, FakeRequest, Registration};
 use sill_model::screenshots::ShotKind;
 use sill_model::units::Percent;
@@ -161,11 +161,11 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"show","v":{"kind":"control_center"}}"#,
         ),
         (
-            Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Open)),
+            Request::Show(ShowRequest::EditWidgets(Reveal::Open)),
             r#"{"kind":"show","v":{"kind":"edit_widgets","v":"open"}}"#,
         ),
         (
-            Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Close)),
+            Request::Show(ShowRequest::EditWidgets(Reveal::Close)),
             r#"{"kind":"show","v":{"kind":"edit_widgets","v":"close"}}"#,
         ),
         (
@@ -418,7 +418,7 @@ fn requests() -> Vec<(Request, &'static str)> {
         ),
         (
             Request::Debug(DebugRequest::Osd {
-                topic: OsdTopic::Volume,
+                topic: OsdKind::Volume,
                 percent: Percent(40),
                 mute: Mute::Muted,
             }),
@@ -435,7 +435,7 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"debug","v":{"kind":"screenshot","v":{"path":"/tmp/shots/Screenshot_1.png"}}}"#,
         ),
         (
-            Request::Debug(DebugRequest::Corner(CornerName::BottomRight)),
+            Request::Debug(DebugRequest::Corner(Corner::BottomRight)),
             r#"{"kind":"debug","v":{"kind":"corner","v":"bottom_right"}}"#,
         ),
         (
