@@ -94,7 +94,7 @@ impl Default for IdleSettings {
             suspend_battery_min: Mins(15),
             dim_s: Secs(5),
             dim_level_pct: Percent(50),
-            lock: IdleLock::ScreenOff,
+            lock: IdleLock::AtScreenOff,
             locked_screen_off_s: Secs(60),
         }
     }

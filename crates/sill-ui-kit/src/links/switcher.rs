@@ -99,7 +99,7 @@ impl SwitcherLink {
 
     /// The latest ask.
     pub fn latest(&self) -> Option<SwitcherAsked> {
-        self.asked.borrow().latest().cloned()
+        self.asked.read().latest().cloned()
     }
 
     pub fn subscribe(&self) -> watch::Receiver<Asks> {

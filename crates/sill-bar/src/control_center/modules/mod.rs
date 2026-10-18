@@ -39,7 +39,6 @@ use dioxus::prelude::*;
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
-use ds::prelude::*;
 use sill_shell_kit::control_center::module_panel::PanelPlate;
 
 pub use cc_module::Span;

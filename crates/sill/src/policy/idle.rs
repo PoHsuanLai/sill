@@ -96,8 +96,8 @@ impl Policy for IdleBridge {
 #[cfg(test)]
 mod tests {
     use sill_model::idle::{
-        DimLevel, DimPlan, IdleConfig, IdleSecs, IdleTimes, LockGrace, LockedScreenOff, PowerPair,
-        Timeout,
+        DimLevel, DimPlan, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace, LockedScreenOff,
+        PowerPair, Timeout,
     };
     use sill_settings::{Mins, Percent, Secs, ShellFile};
 

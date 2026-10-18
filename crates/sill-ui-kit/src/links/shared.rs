@@ -19,6 +19,11 @@ impl<T> Shared<T> {
         self.0.subscribe()
     }
 
+    /// The current value, borrowed: read it and let go, since a writer waits for the borrow.
+    pub fn read(&self) -> watch::Ref<'_, T> {
+        self.0.borrow()
+    }
+
     /// Change the value in place; every follower is told.
     pub fn modify(&self, change: impl FnOnce(&mut T)) {
         self.0.send_modify(change);

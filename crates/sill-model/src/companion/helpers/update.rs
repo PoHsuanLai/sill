@@ -185,10 +185,7 @@ fn listed(model: HelpersModel, view: HelpersView) -> HelpersModel {
         .map(|t| t.n)
         .max()
         .map_or(model.told_after, |n| n.max(model.told_after));
-    let fresh = view
-        .told
-        .into_iter()
-        .filter(|t| t.n > model.told_after);
+    let fresh = view.told.into_iter().filter(|t| t.n > model.told_after);
     let mut told: Vec<ToldWire> = model.told.iter().cloned().chain(fresh).collect();
     let extra = told.len().saturating_sub(TOLD_KEPT);
     let told = told.split_off(extra);
