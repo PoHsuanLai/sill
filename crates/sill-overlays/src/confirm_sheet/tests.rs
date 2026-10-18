@@ -1,14 +1,14 @@
 //! The gate as a table: pure, on the machine's own stamps.
 
 use ds::base::machine::Machine;
-use ds::base::time::stamp::Stamp;
+use ds::base::time::stamp::{Ms, Stamp};
 use sill_model::intents::sheet::SheetChoice;
 
 use super::gate::{AnswerGate, GateIn, GateOut, GateParams};
 
 const PARAMS: GateParams = GateParams {
-    arm_ms: 500,
-    hold_ms: 1000,
+    arm_ms: Ms(500),
+    hold_ms: Ms(1000),
 };
 
 const ALLOW: &[GateOut] = &[GateOut::Answer(SheetChoice::AllowOnce)];

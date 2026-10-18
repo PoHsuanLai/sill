@@ -17,20 +17,20 @@
 //! design/22 first); they are constants here with the proposed defaults.
 
 use ds::base::machine::{Elapsed, Machine};
-use ds::base::time::stamp::Stamp;
+use ds::base::time::stamp::{Ms, Stamp};
 use sill_model::intents::sheet::SheetChoice;
 
 /// How long the buttons stay disabled after the sheet appears (`confirm.arm_ms`, proposed 500).
-pub const ARM_MS: u64 = 500;
+pub const ARM_MS: Ms = Ms(500);
 
 /// How long a destructive action's Allow is held (`confirm.hold_ms`, proposed 1000).
-pub const HOLD_MS: u64 = 1000;
+pub const HOLD_MS: Ms = Ms(1000);
 
 /// The gate's delays.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GateParams {
-    pub arm_ms: u64,
-    pub hold_ms: u64,
+    pub arm_ms: Ms,
+    pub hold_ms: Ms,
 }
 
 impl Default for GateParams {

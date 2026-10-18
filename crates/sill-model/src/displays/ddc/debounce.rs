@@ -7,13 +7,13 @@
 
 use super::vcp::Feature;
 use crate::ids::DdcId;
-use ds_core::time::stamp::Stamp;
+use ds_core::time::stamp::{Ms, Stamp};
 
 /// How long a value must stand before it is written.
-pub const QUIET: u64 = 120;
+pub const QUIET: Ms = Ms(120);
 
 /// How long a stream of values may hold a write back at most.
-pub const HOLD_MAX: u64 = 250;
+pub const HOLD_MAX: Ms = Ms(250);
 
 /// One write waiting for its turn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,7 +150,7 @@ mod tests {
         let times: Vec<u64> = out.iter().map(|(at, _)| *at).collect();
         assert_eq!(times, vec![256, 512, 768], "{out:?}");
         assert!(
-            out.windows(2).all(|p| p[1].0 - p[0].0 <= HOLD_MAX + 16),
+            out.windows(2).all(|p| p[1].0 - p[0].0 <= HOLD_MAX.0 + 16),
             "{out:?}"
         );
         assert_eq!(

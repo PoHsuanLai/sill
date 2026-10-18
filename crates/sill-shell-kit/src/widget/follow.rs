@@ -8,7 +8,7 @@
 
 use crate::widget::timeline::{RefreshAsk, Timeline, Wake};
 use ds::base::machine::{Elapsed, Machine};
-use ds::base::time::stamp::{FrameClock, Stamp};
+use ds::base::time::stamp::{FrameClock, Ms, Stamp};
 use std::time::Instant;
 
 /// What the follower wakes for next, and when.
@@ -126,7 +126,7 @@ fn due_after<E>(timeline: &Timeline<E>, now: Stamp, arrived: Stamp, clock: &Fram
 fn reached_by(clock: &FrameClock, at: Instant) -> Stamp {
     let floor = clock.stamp(at);
     if clock.instant(floor) < at {
-        floor.after(1)
+        floor.after(Ms(1))
     } else {
         floor
     }

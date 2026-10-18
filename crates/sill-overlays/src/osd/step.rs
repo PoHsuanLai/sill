@@ -4,13 +4,13 @@
 //! settled, so the surface unmaps then, not when this machine's hold ends. Pure: time is a
 //! [`Stamp`] argument, and the surface wakes the machine at [`OsdHold::wake`].
 
-use ds::base::time::stamp::Stamp;
+use ds::base::time::stamp::{Ms, Stamp};
 use shell_host::Visibility;
 
 /// How long the indicator holds after the last change, in milliseconds (`osd.hold_ms`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OsdTimes {
-    pub hold_ms: u64,
+    pub hold_ms: Ms,
 }
 
 /// Where one indicator is.
@@ -65,10 +65,10 @@ pub fn step(phase: OsdHold, input: OsdInput, times: OsdTimes) -> OsdHold {
 #[cfg(test)]
 mod tests {
     use super::{OsdHold, OsdInput, OsdTimes, step};
-    use ds::base::time::stamp::Stamp;
+    use ds::base::time::stamp::{Ms, Stamp};
     use shell_host::Visibility;
 
-    const TIMES: OsdTimes = OsdTimes { hold_ms: 1500 };
+    const TIMES: OsdTimes = OsdTimes { hold_ms: Ms(1500) };
 
     fn held(until: u64) -> OsdHold {
         OsdHold::Held {

@@ -96,7 +96,7 @@ pub(crate) fn step(
         }
         (Reveal::Armed { .. }, DockEvent::PointerLeave) => Reveal::Hidden,
         (Reveal::Armed { since }, DockEvent::Tick | DockEvent::Frame)
-            if now.since(since) >= p.autohide_delay_ms =>
+            if now.since(since) >= p.autohide_delay_ms.0 =>
         {
             out.push(DockEffect::SetInput(hit_region()));
             out.push(DockEffect::SetBlur(BlurSpec::Region(pill_region(

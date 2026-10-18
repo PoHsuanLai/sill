@@ -10,14 +10,14 @@
 use serde::{Deserialize, Serialize};
 
 use super::LockCause;
-use ds_core::time::stamp::Stamp;
+use ds_core::time::stamp::{Ms, Stamp};
 
 /// How long the lock may take to report locked before it is taken as locked anyway.
-pub const READY_GIVE_UP_MS: u64 = 10_000;
+pub const READY_GIVE_UP_MS: Ms = Ms(10_000);
 
 /// How long sleep waits for the lock at most: under logind's default `InhibitDelayMaxSec` (5 s),
 /// so it is sill, not logind, that lets go.
-pub const SLEEP_HOLD_MS: u64 = 4_000;
+pub const SLEEP_HOLD_MS: Ms = Ms(4_000);
 
 /// What the lock screen is doing, as surfaces and tests see it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]

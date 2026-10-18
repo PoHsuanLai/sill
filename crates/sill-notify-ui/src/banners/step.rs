@@ -8,7 +8,7 @@
 //! design/13 §13.3.6 says a 5000 ms lifetime; design/22's `notifications.banner_hold_ms` and
 //! design/20 §1.6 (`ToastHold`) say 5200. The key wins.
 
-use ds::base::time::stamp::Stamp;
+use ds::base::time::stamp::{Ms, Stamp};
 use sill_model::notifications::BannerLife;
 use sill_settings::NotificationsSettings;
 
@@ -23,7 +23,7 @@ pub enum Deadline {
 /// How much life a paused banner has left.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Remaining {
-    Ms(u64),
+    Ms(Ms),
     Forever,
 }
 
@@ -115,15 +115,15 @@ pub enum BannerOut {
 /// The banner's hold, from `notifications.*`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BannerParams {
-    pub hold_ms: u64,
-    pub hover_min_remaining_ms: u64,
+    pub hold_ms: Ms,
+    pub hover_min_remaining_ms: Ms,
 }
 
 impl BannerParams {
     pub fn new(n: &NotificationsSettings) -> BannerParams {
         BannerParams {
-            hold_ms: u64::from(n.banner_hold_ms.0),
-            hover_min_remaining_ms: u64::from(n.hover_min_remaining_ms.0),
+            hold_ms: Ms::from(n.banner_hold_ms.0),
+            hover_min_remaining_ms: Ms::from(n.hover_min_remaining_ms.0),
         }
     }
 }
@@ -205,7 +205,7 @@ fn at(deadline: Stamp) -> (Banner, Vec<BannerOut>) {
 fn remaining_of(deadline: Deadline, now: Stamp) -> Remaining {
     match deadline {
         Deadline::Never => Remaining::Forever,
-        Deadline::At(at) => Remaining::Ms(at.since(now)),
+        Deadline::At(at) => Remaining::Ms(Ms(at.since(now))),
     }
 }
 

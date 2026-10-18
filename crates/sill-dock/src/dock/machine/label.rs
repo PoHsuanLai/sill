@@ -113,7 +113,7 @@ fn left(label: Label, now: Stamp, p: &DockParams, out: &mut Vec<DockEffect>) -> 
 
 fn timed(label: Label, now: Stamp, p: &DockParams, out: &mut Vec<DockEffect>) -> Label {
     match label {
-        Label::Pending { tile, since } if now.since(since) >= p.fly_delay_ms => {
+        Label::Pending { tile, since } if now.since(since) >= p.fly_delay_ms.0 => {
             out.push(DockEffect::ShowLabel { tile });
             Label::Shown { tile }
         }

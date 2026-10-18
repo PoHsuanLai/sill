@@ -20,7 +20,7 @@ use sill_ui_kit::links::{OsdChange, OsdLatest, OsdLink};
 /// The machine's times from `osd`'s hold.
 pub fn times(osd: &OsdSettings) -> OsdTimes {
     OsdTimes {
-        hold_ms: u64::from(osd.hold_ms.0),
+        hold_ms: ds::base::time::stamp::Ms::from(osd.hold_ms.0),
     }
 }
 
@@ -140,6 +140,6 @@ mod tests {
             hold_ms: Ms(900),
             ..OsdSettings::default()
         };
-        assert_eq!(times(&osd).hold_ms, 900);
+        assert_eq!(times(&osd).hold_ms, ds::base::time::stamp::Ms(900));
     }
 }

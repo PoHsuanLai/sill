@@ -311,7 +311,7 @@ fn ask(
             app: app.clone(),
             window,
             serial: cx.next,
-            until: at.after(params.app_wait.millis()),
+            until: at.after(params.app_wait.span()),
             fallback,
         },
         vec![SummonOut::AskApp {

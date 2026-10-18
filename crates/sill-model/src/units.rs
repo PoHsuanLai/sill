@@ -52,9 +52,9 @@ pub struct Seconds(pub u64);
 pub struct Ms(pub u16);
 
 impl Ms {
-    /// The length as the machines' clock counts it.
-    pub fn millis(self) -> u64 {
-        u64::from(self.0)
+    /// The length as a stamp is advanced by it.
+    pub fn span(self) -> ds_core::time::stamp::Ms {
+        ds_core::time::stamp::Ms::from(self.0)
     }
 }
 

@@ -1,7 +1,7 @@
 //! Bounces (design/10 §10.3.5, §10.5.3): launch, informational and critical, ballistic
 //! `lift(u) = A 4u(1 - u)`, and a stop that always finishes the current period.
 
-use ds::base::time::stamp::Stamp;
+use ds::base::time::stamp::{Ms, Stamp};
 use sill_model::units::Cpx;
 use sill_settings::Bounce as BounceSetting;
 
@@ -118,7 +118,7 @@ fn finish(since: Stamp, now: Stamp, p: &DockParams) -> Bounce {
     let periods = now.since(since).div_ceil(period);
     Bounce::Finishing {
         since,
-        until: since.after(periods * period),
+        until: since.after(Ms(periods * period)),
     }
 }
 
@@ -150,7 +150,7 @@ mod tests {
     use crate::dock::machine::params::tests::params;
     use crate::dock::machine::types::{AppChange, AttentionKind, DockEvent, DockState, TileId};
     use crate::dock::machine::{DockParams, step};
-    use ds::base::time::stamp::Stamp;
+    use ds::base::time::stamp::{Ms, Stamp};
     use sill_model::units::Cpx;
     use sill_settings::Bounce as BounceSetting;
 

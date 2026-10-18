@@ -163,7 +163,7 @@ pub(crate) fn step(
                 ..
             },
             DockEvent::Frame | DockEvent::Tick,
-        ) if now.since(since) >= p.hold_ms => open_menu(
+        ) if now.since(since) >= p.hold_ms.0 => open_menu(
             DockState {
                 press: Press::Up,
                 ..dock
@@ -186,7 +186,7 @@ pub(crate) fn step(
             ..dock
         },
         (_, DockEvent::Frame | DockEvent::Tick) => match dock.spring {
-            Spring::Resting { tile, since } if now.since(since) >= p.spring_load_ms => {
+            Spring::Resting { tile, since } if now.since(since) >= p.spring_load_ms.0 => {
                 out.push(DockEffect::SpringOpen { tile });
                 DockState {
                     spring: Spring::Idle,

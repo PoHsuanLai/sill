@@ -5,7 +5,7 @@ use super::{
     Cause, Hold, Locker, LockerEffect, LockerEvent, Phase, READY_GIVE_UP_MS, Runner, SLEEP_HOLD_MS,
     Triggers, next_deadline, step,
 };
-use ds_core::time::stamp::Stamp;
+use ds_core::time::stamp::{Ms, Stamp};
 
 const T0: Stamp = Stamp(1_000);
 
@@ -89,7 +89,7 @@ fn every_transition() {
             LockerEvent::Tick(T0.after(SLEEP_HOLD_MS)), own(locking(), Hold::Released),
             vec![ReleaseInhibitor]),
         ("before the hold runs out", own(locking(), delaying()),
-            LockerEvent::Tick(T0.after(SLEEP_HOLD_MS - 1)), own(locking(), delaying()), vec![]),
+            LockerEvent::Tick(T0.after(Ms(SLEEP_HOLD_MS.0 - 1))), own(locking(), delaying()), vec![]),
         ("waking re-arms", own(Phase::Locked, Hold::Released), LockerEvent::Woke,
             own(Phase::Locked, Hold::Armed), vec![TakeInhibitor]),
         ("waking while armed keeps it", own(Phase::Locked, Hold::Armed), LockerEvent::Woke,
@@ -132,7 +132,7 @@ fn a_whole_sleep_in_order() {
     let events = [
         LockerEvent::Configured(Runner::Own, FollowLogind),
         LockerEvent::SleepStarting(T0),
-        LockerEvent::Requested(Cause::Logind, T0.after(10)),
+        LockerEvent::Requested(Cause::Logind, T0.after(Ms(10))),
         LockerEvent::Reported,
         LockerEvent::Woke,
         LockerEvent::Exited,

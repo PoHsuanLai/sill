@@ -68,7 +68,7 @@ impl Machine for Tap {
         match (self, input) {
             (Tap::Rest, TapIn::Tap) => (
                 Tap::Armed {
-                    until: at.after(params.window.millis()),
+                    until: at.after(params.window.span()),
                 },
                 Vec::new(),
             ),
@@ -76,7 +76,7 @@ impl Machine for Tap {
             // A tap after the window is the first of a new pair.
             (Tap::Armed { .. }, TapIn::Tap) => (
                 Tap::Armed {
-                    until: at.after(params.window.millis()),
+                    until: at.after(params.window.span()),
                 },
                 Vec::new(),
             ),
