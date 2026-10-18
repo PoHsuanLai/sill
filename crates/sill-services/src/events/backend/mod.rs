@@ -6,4 +6,4 @@ mod provider;
 mod read;
 
 pub(crate) use live::{Reach, run};
-pub use provider::{EventsProvider, IcsProvider, NullProvider, ProviderRead, provider_for};
+pub use provider::{IcsProvider, ProviderRead, provider_for};

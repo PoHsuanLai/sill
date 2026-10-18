@@ -17,7 +17,7 @@ use sill_model::events::{
 use tokio::sync::{mpsc, watch};
 
 use super::live_watch::Touches;
-use super::provider::{EventsProvider, provider_for};
+use super::provider::{IcsProvider, provider_for};
 use crate::env::WallClock;
 
 /// The longest the task sleeps without looking at the date: a resume or a zone change shows
@@ -60,7 +60,7 @@ enum Next {
 enum Plan {
     Off,
     NoCalendars,
-    Read(Arc<dyn EventsProvider>),
+    Read(Arc<IcsProvider>),
 }
 
 /// Publish `sources`' events and keep them fresh until the sources change or everyone leaves.
@@ -113,7 +113,7 @@ async fn plan_for(sources: &EventSources, auto: &AutoEnv) -> Plan {
         match (&sources, found) {
             (EventSources::Off, _) => Plan::Off,
             (EventSources::Auto, false) => Plan::NoCalendars,
-            _ => Plan::Read(Arc::from(provider_for(&sources, &env, exists))),
+            _ => Plan::Read(Arc::new(provider_for(&sources, &env, exists))),
         }
     })
     .await;

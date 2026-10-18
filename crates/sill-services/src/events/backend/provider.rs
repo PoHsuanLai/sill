@@ -1,8 +1,7 @@
-//! The seam between the events service and where events live: [`EventsProvider`], with
-//! [`IcsProvider`] (files and vdir directories) and [`NullProvider`] (no calendars) now, and an
-//! evolution-data-server provider later (module doc of `events`).
+//! Where events live: [`IcsProvider`] (files and vdir directories; no places is no calendars),
+//! and an evolution-data-server provider later (an enum of providers then, module doc of
+//! `events`).
 
-use std::fmt::Debug;
 use std::path::PathBuf;
 
 use jiff::tz::TimeZone;
@@ -10,38 +9,12 @@ use sill_model::events::{
     AutoEnv, CalEvent, EventSources, EventsError, IcsPlace, Window, auto_places,
 };
 
-/// Somewhere events can be read from. Blocking: the service calls it on the blocking pool.
-pub trait EventsProvider: Send + Sync + Debug {
-    /// Every occurrence overlapping `window`, all-day events as dates and timed ones resolved
-    /// against their own `TZID` (a floating time in `zone`); how many calendars were read; and
-    /// the calendars that failed.
-    fn read(&self, window: Window, zone: &TimeZone) -> ProviderRead;
-
-    /// The files and directories whose change should trigger a re-read (a `notify` watch on
-    /// each; a directory's own entries and its collections' too).
-    fn watched(&self) -> Vec<PathBuf>;
-}
-
-/// What one [`EventsProvider::read`] found.
+/// What one [`IcsProvider::read`] found.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ProviderRead {
     pub events: Vec<CalEvent>,
     pub calendars: u16,
     pub problems: Vec<EventsError>,
-}
-
-/// No calendars: `calendar.sources = "off"`, or `auto` found none.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct NullProvider;
-
-impl EventsProvider for NullProvider {
-    fn read(&self, _window: Window, _zone: &TimeZone) -> ProviderRead {
-        ProviderRead::default()
-    }
-
-    fn watched(&self) -> Vec<PathBuf> {
-        Vec::new()
-    }
 }
 
 /// `.ics` files and directories of them. A file is one calendar, named by its stem. A directory
@@ -53,12 +26,17 @@ pub struct IcsProvider {
     pub places: Vec<IcsPlace>,
 }
 
-impl EventsProvider for IcsProvider {
-    fn read(&self, window: Window, zone: &TimeZone) -> ProviderRead {
+impl IcsProvider {
+    /// Every occurrence overlapping `window`, all-day events as dates and timed ones resolved
+    /// against their own `TZID` (a floating time in `zone`); how many calendars were read; and
+    /// the calendars that failed. Blocking: the service calls it on the blocking pool.
+    pub fn read(&self, window: Window, zone: &TimeZone) -> ProviderRead {
         super::read::read_places(&self.places, window, zone)
     }
 
-    fn watched(&self) -> Vec<PathBuf> {
+    /// The files and directories whose change should trigger a re-read (a `notify` watch on
+    /// each; a directory's own entries and its collections' too).
+    pub fn watched(&self) -> Vec<PathBuf> {
         self.places
             .iter()
             .map(|place| match place {
@@ -68,23 +46,20 @@ impl EventsProvider for IcsProvider {
     }
 }
 
-/// The provider `sources` names: `Off` is the null provider, `Places` an ICS provider over them
+/// The provider `sources` names: `Off` has no places, `Places` an ICS provider over them
 /// (a missing one is a problem the reader reports), and `Auto` an ICS provider over the
-/// [`auto_places`] that `exists` (the null provider when there are none).
+/// [`auto_places`] that `exists` (none when there are none).
 pub fn provider_for(
     sources: &EventSources,
     env: &AutoEnv,
     exists: impl Fn(&IcsPlace) -> bool,
-) -> Box<dyn EventsProvider> {
+) -> IcsProvider {
     let places = match sources {
         EventSources::Off => Vec::new(),
         EventSources::Auto => auto_places(env).into_iter().filter(|p| exists(p)).collect(),
         EventSources::Places(places) => places.clone(),
     };
-    match places.is_empty() {
-        true => Box::new(NullProvider),
-        false => Box::new(IcsProvider { places }),
-    }
+    IcsProvider { places }
 }
 
 #[cfg(test)]
@@ -94,7 +69,7 @@ mod tests {
     use jiff::civil::date;
     use jiff::tz::TimeZone;
 
-    use super::{EventsProvider, IcsProvider, NullProvider, ProviderRead};
+    use super::IcsProvider;
     use sill_model::events::IcsPlace;
     use sill_model::events::Window;
 
@@ -103,15 +78,6 @@ mod tests {
             from: date(2026, 9, 1),
             until: date(2026, 11, 1),
         }
-    }
-
-    #[test]
-    fn the_null_provider_reads_nothing_and_watches_nothing() {
-        assert_eq!(
-            NullProvider.read(window(), &TimeZone::UTC),
-            ProviderRead::default()
-        );
-        assert!(NullProvider.watched().is_empty());
     }
 
     #[test]

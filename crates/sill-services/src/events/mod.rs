@@ -35,7 +35,7 @@ use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-pub use backend::{EventsProvider, IcsProvider, NullProvider, ProviderRead, provider_for};
+pub use backend::{IcsProvider, ProviderRead, provider_for};
 
 /// Calendar events as a [`Service`], found under `env`'s directories and dated by its clock.
 /// Until the first `Sources` the agenda holds today only, with `SourceStatus::Off`.
