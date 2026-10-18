@@ -43,7 +43,7 @@ pub use bar_thumbs::{
 pub use casement_protocols::vocab::{
     Answer, AskId as ConsentId, Corner, DragOutcome, KeyGesture, Memory, OverviewMode,
     OverviewState, Power, ShellRole, Shown, SpaceKind, SplitSide, SubjectKind, TrialAnswer,
-    TrialId, WindowEntry, WireCode,
+    TrialId, WindowEntries, WindowEntry, WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
 pub use consent::{Consent, ConsentSubject, SUBJECT_MAX_CHARS};

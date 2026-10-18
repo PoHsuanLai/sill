@@ -12,14 +12,14 @@ use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shell_type::ShellMetrics;
 use ds_harness::harness::settle_until;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
-use sill_model::desktop::{WindowEntry, WireCode};
+use sill_model::desktop::{WindowEntries, WindowEntry};
 use sill_ui_kit::menu::{MenuPopup, PopupLook, PopupRoom};
 
 use super::model::WindowMenuModel;
 
 thread_local! {
     static PICKS: RefCell<Vec<WindowEntry>> = const { RefCell::new(Vec::new()) };
-    static ENABLED: RefCell<u32> = const { RefCell::new(0) };
+    static ENABLED: RefCell<WindowEntries> = RefCell::new(WindowEntries::default());
 }
 
 fn app() -> Element {
@@ -33,7 +33,7 @@ fn app() -> Element {
     use_context_provider(|| PopupRoom::CONTEXT);
     rsx! {
         MenuPopup {
-            model: WindowMenuModel { enabled: ENABLED.with(|bits| *bits.borrow()) },
+            model: WindowMenuModel { enabled: ENABLED.with(|bits| bits.borrow().clone()) },
             on_pick: move |entry: WindowEntry| PICKS.with(|picks| picks.borrow_mut().push(entry)),
             on_close: move |()| {},
             surface: "window-menu",
@@ -45,9 +45,7 @@ fn app() -> Element {
 fn start(offered: &[WindowEntry]) -> Harness {
     PICKS.with(|picks| picks.borrow_mut().clear());
     ENABLED.with(|bits| {
-        *bits.borrow_mut() = offered
-            .iter()
-            .fold(0, |all, entry| all | (1 << entry.code()));
+        *bits.borrow_mut() = offered.iter().copied().collect();
     });
     let viewport = Viewport {
         width: 640,

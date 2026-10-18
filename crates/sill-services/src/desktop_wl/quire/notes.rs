@@ -48,7 +48,7 @@ pub fn note_of(event: &ShellEvent) -> Option<ShellNote> {
         } => ShellNote::WindowMenu {
             window: window.as_str().to_owned(),
             at: (at.x, at.y),
-            enabled: *enabled,
+            enabled: enabled.clone(),
         },
         ShellEvent::SplitChoose { first, side } => ShellNote::SplitChoose {
             first: first.as_str().to_owned(),

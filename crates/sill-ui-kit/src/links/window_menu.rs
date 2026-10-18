@@ -4,7 +4,7 @@
 //! out. A dismissal writes nothing. Each opening and each pick is numbered, so a second one for
 //! the same window is a second change.
 
-use sill_model::desktop::WindowEntry;
+use sill_model::desktop::{WindowEntries, WindowEntry};
 use tokio::sync::watch;
 
 use super::Shared;
@@ -22,8 +22,8 @@ pub struct WindowMenuOpening {
     pub window: String,
     /// Where the menu's top left goes, in the desktop's logical pixels.
     pub at: (i32, i32),
-    /// A bit per `WindowEntry` code, set when the entry can be picked.
-    pub enabled: u32,
+    /// The entries that can be picked.
+    pub enabled: WindowEntries,
 }
 
 /// An entry the person picked.
@@ -52,7 +52,7 @@ impl WindowMenuLink {
     }
 
     /// Ask for the menu of `window` at `at`, with the entries `enabled` marks pickable.
-    pub fn open(&self, window: impl Into<String>, at: (i32, i32), enabled: u32) {
+    pub fn open(&self, window: impl Into<String>, at: (i32, i32), enabled: WindowEntries) {
         let window = window.into();
         self.opening.modify(|latest| {
             let serial = MenuSerial(latest.as_ref().map_or(0, |last| last.serial.0) + 1);
@@ -98,14 +98,14 @@ impl WindowMenuLink {
 #[cfg(test)]
 mod tests {
     use super::{MenuSerial, WindowMenuLink};
-    use sill_model::desktop::WindowEntry;
+    use sill_model::desktop::{WindowEntries, WindowEntry};
 
     #[test]
     fn each_opening_and_each_pick_counts_on() {
         let link = WindowMenuLink::new();
         assert_eq!(link.latest(), None);
-        link.open("w1", (10, 20), 0b101);
-        link.open("w1", (10, 20), 0b101);
+        link.open("w1", (10, 20), WindowEntries::from_bits(0b101));
+        link.open("w1", (10, 20), WindowEntries::from_bits(0b101));
         let latest = link.latest().expect("opened");
         assert_eq!(
             latest.serial,
@@ -114,7 +114,7 @@ mod tests {
         );
         assert_eq!(
             (latest.window.as_str(), latest.at, latest.enabled),
-            ("w1", (10, 20), 0b101)
+            ("w1", (10, 20), WindowEntries::from_bits(0b101))
         );
         assert_eq!(link.last_pick(), None);
         link.pick("w1", WindowEntry::Left);

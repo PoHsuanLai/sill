@@ -8,7 +8,7 @@
 
 use casement_protocols::vocab::{
     Corner, DragOutcome, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown,
-    SplitSide,
+    SplitSide, WindowEntries,
 };
 use porter_core::SpaceId;
 
@@ -53,9 +53,8 @@ pub enum ShellNote {
         window: String,
         /// Where the menu's top left goes, in the desktop's logical pixels.
         at: (i32, i32),
-        /// A bit per [`casement_protocols::vocab::WindowEntry`] code, set when the entry can be
-        /// picked now; the rest are shown dimmed.
-        enabled: u32,
+        /// The entries that can be picked now; the rest are shown dimmed.
+        enabled: WindowEntries,
     },
     /// A window went full screen on one half of the screen: offer the windows of the
     /// [`ShellNote::SplitCandidate`]s that follow for the other half. The answer is

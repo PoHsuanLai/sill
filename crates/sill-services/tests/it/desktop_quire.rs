@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use casement_protocols::vocab::{
     ActorKind, AppLifeKind, Corner, DragOutcome, Emphasis, KeyGesture, MacMods, OverviewMode,
     OverviewState, PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide,
-    Toggle, TrialAnswer, TrialId, WindowEntry, WindowStateKind,
+    Toggle, TrialAnswer, TrialId, WindowEntries, WindowEntry, WindowStateKind,
 };
 use desktop_client::capture::{CaptureEvent, ShmFormat};
 use desktop_client::fake::FakeDesktop;
@@ -587,7 +587,7 @@ fn the_shell_protocols_events_become_notes_in_order() {
             ShellEvent::WindowMenu {
                 window: ToplevelIdentifier::new("id-1"),
                 at: Point::new(40, 52),
-                enabled: 0b1100,
+                enabled: WindowEntries::from_bits(0b1100),
             },
             ShellEvent::SplitChoose {
                 first: ToplevelIdentifier::new("id-1"),
@@ -659,7 +659,7 @@ fn the_shell_protocols_events_become_notes_in_order() {
             ShellNote::WindowMenu {
                 window: "id-1".to_owned(),
                 at: (40, 52),
-                enabled: 0b1100,
+                enabled: WindowEntries::from_bits(0b1100),
             },
             ShellNote::SplitChoose {
                 first: "id-1".to_owned(),

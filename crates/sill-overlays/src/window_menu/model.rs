@@ -1,22 +1,21 @@
 //! The window menu as a [`MenuModel`]: which entries it has and which are dimmed, as a function
-//! of the bit set the compositor sent (a bit per `WindowEntry` code, set when the entry can be
-//! picked now).
+//! of the set the compositor sent (the entries that can be picked now).
 
 use ds::prelude::*;
-use sill_model::desktop::{WindowEntry, WireCode};
+use sill_model::desktop::{WindowEntries, WindowEntry};
 use sill_ui_kit::menu::MenuModel;
 
-/// The menu of one window, opened with the compositor's `enabled` bits.
+/// The menu of one window, opened with the compositor's `enabled` entries.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct WindowMenuModel {
-    pub(super) enabled: u32,
+    pub(super) enabled: WindowEntries,
 }
 
 impl MenuModel for WindowMenuModel {
     type Pick = WindowEntry;
 
     fn entries(&self) -> Vec<MenuItem<WindowEntry>> {
-        entries(self.enabled)
+        entries(&self.enabled)
     }
 
     /// The menu is always the same set: an entry the window cannot take is dimmed, not left out.
@@ -25,11 +24,9 @@ impl MenuModel for WindowMenuModel {
     }
 }
 
-/// Whether the bit set `enabled` offers `entry`.
-pub(super) fn offered(enabled: u32, entry: WindowEntry) -> bool {
-    1_u32
-        .checked_shl(entry.code())
-        .is_some_and(|bit| enabled & bit != 0)
+/// Whether `enabled` offers `entry`.
+pub(super) fn offered(enabled: &WindowEntries, entry: WindowEntry) -> bool {
+    enabled.contains(entry)
 }
 
 /// The words the menu shows for `entry`, as the Mac words them.
@@ -54,7 +51,7 @@ pub(super) fn label(entry: WindowEntry) -> &'static str {
 }
 
 /// One entry, dimmed when `enabled` does not offer it.
-fn item(enabled: u32, entry: WindowEntry) -> MenuItem<WindowEntry> {
+fn item(enabled: &WindowEntries, entry: WindowEntry) -> MenuItem<WindowEntry> {
     let availability = match offered(enabled, entry) {
         true => Availability::Enabled,
         false => Availability::Disabled,
@@ -65,7 +62,7 @@ fn item(enabled: u32, entry: WindowEntry) -> MenuItem<WindowEntry> {
 /// A submenu of `children`; it opens when any of them can be picked.
 fn submenu(
     title: &str,
-    enabled: u32,
+    enabled: &WindowEntries,
     children: Vec<MenuItem<WindowEntry>>,
 ) -> MenuItem<WindowEntry> {
     let any = children.iter().any(|child| match child {
@@ -86,7 +83,7 @@ fn submenu(
 
 /// The first entry: Exit Full Screen when the window is in full screen (the only thing the
 /// compositor offers it), else Enter Full Screen (dimmed when the window cannot).
-fn full_screen(enabled: u32) -> WindowEntry {
+fn full_screen(enabled: &WindowEntries) -> WindowEntry {
     match offered(enabled, WindowEntry::ExitFullScreen) {
         true => WindowEntry::ExitFullScreen,
         false => WindowEntry::EnterFullScreen,
@@ -94,7 +91,7 @@ fn full_screen(enabled: u32) -> WindowEntry {
 }
 
 /// The entries, top to bottom.
-pub(super) fn entries(enabled: u32) -> Vec<MenuItem<WindowEntry>> {
+pub(super) fn entries(enabled: &WindowEntries) -> Vec<MenuItem<WindowEntry>> {
     use WindowEntry::{
         Bottom, BottomLeft, BottomRight, Centre, Fill, Left, ReturnToPreviousSize, Right,
         TileLeftOfScreen, TileRightOfScreen, Top, TopLeft, TopRight,
@@ -125,12 +122,11 @@ pub(super) fn entries(enabled: u32) -> Vec<MenuItem<WindowEntry>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sill_model::desktop::WireCode;
 
-    /// The bit set that offers exactly `entries`.
-    fn mask(entries: &[WindowEntry]) -> u32 {
-        entries
-            .iter()
-            .fold(0, |bits, entry| bits | (1 << entry.code()))
+    /// The set that offers exactly `entries`.
+    fn mask(entries: &[WindowEntry]) -> WindowEntries {
+        entries.iter().copied().collect()
     }
 
     /// (title, dimmed) of an item or submenu; `None` for a rule.
@@ -158,7 +154,7 @@ mod tests {
     }
 
     /// (case, bits offered, the top level as (title, dimmed)).
-    type TopCase = (&'static str, u32, [(&'static str, bool); 5]);
+    type TopCase = (&'static str, WindowEntries, [(&'static str, bool); 5]);
 
     #[test]
     fn the_top_level_is_full_screen_two_submenus_fill_and_centre() {
@@ -189,7 +185,7 @@ mod tests {
             ),
             (
                 "a window in the dock offers nothing",
-                0,
+                WindowEntries::default(),
                 [
                     ("Enter Full Screen", true),
                     ("Move & Resize", true),
@@ -200,7 +196,7 @@ mod tests {
             ),
         ];
         for (name, bits, want) in cases {
-            let got: Vec<(String, bool)> = entries(bits).iter().filter_map(shown).collect();
+            let got: Vec<(String, bool)> = entries(&bits).iter().filter_map(shown).collect();
             let want: Vec<(String, bool)> = want
                 .iter()
                 .map(|(title, dimmed)| ((*title).to_owned(), *dimmed))
@@ -212,7 +208,7 @@ mod tests {
     #[test]
     fn move_and_resize_has_the_halves_the_quarters_and_return_between_rules() {
         let bits = mask(&[WindowEntry::Left, WindowEntry::ReturnToPreviousSize]);
-        let all = entries(bits);
+        let all = entries(&bits);
         let inner = children(&all[1]);
         let titles: Vec<Option<(String, bool)>> = inner.iter().map(shown).collect();
         let row = |title: &str, dimmed: bool| Some((title.to_owned(), dimmed));
@@ -241,7 +237,7 @@ mod tests {
 
     #[test]
     fn a_submenu_opens_when_any_child_can_be_picked() {
-        let all = entries(mask(&[WindowEntry::TileRightOfScreen]));
+        let all = entries(&mask(&[WindowEntry::TileRightOfScreen]));
         assert_eq!(shown(&all[2]), Some(("Full Screen Tile".to_owned(), false)));
         assert_eq!(shown(&all[1]), Some(("Move & Resize".to_owned(), true)));
     }
@@ -250,9 +246,12 @@ mod tests {
     fn every_entry_has_words_and_a_bit() {
         for entry in WindowEntry::ALL.iter().copied() {
             assert!(!label(entry).is_empty(), "{entry:?}");
-            assert!(offered(mask(&[entry]), entry), "{entry:?}");
+            assert!(offered(&mask(&[entry]), entry), "{entry:?}");
         }
-        assert!(!offered(0, WindowEntry::Fill));
-        assert!(offered(u32::MAX, WindowEntry::Fill));
+        assert!(!offered(&WindowEntries::default(), WindowEntry::Fill));
+        assert!(offered(
+            &WindowEntries::from_bits(u32::MAX),
+            WindowEntry::Fill
+        ));
     }
 }
