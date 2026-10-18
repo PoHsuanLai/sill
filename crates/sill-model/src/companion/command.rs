@@ -15,9 +15,9 @@ use std::collections::BTreeSet;
 
 use super::helpers::{HelpersCommand, HelpersMsg};
 use super::model::{CompanionLink, Opener, RunFacts};
-use super::terminals::{TerminalsCommand, TerminalsMsg};
 use super::summon::{FocusFacts, LauncherFacts, SummonOut, SummonParams};
 use super::tap::TapParams;
+use super::terminals::{TerminalsCommand, TerminalsMsg};
 
 /// What the settings say about the companion's timing: the double tap's window, how long an
 /// app has to take a summon and where a summon in a field goes.
@@ -241,7 +241,7 @@ pub enum CompanionEvent {
     /// The answer about one could not be taken.
     SettleFailed,
     /// Something about the helpers: the person's doing, or what a call to the companion came to.
-    Helpers(HelpersMsg),
+    Helpers(Box<HelpersMsg>),
     /// Something about the sessions in terminals: the person's doing, or what the companion said.
     Terminals(TerminalsMsg),
 }

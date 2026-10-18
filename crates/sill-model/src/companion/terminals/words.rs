@@ -17,10 +17,7 @@ pub fn session_title(session: &TerminalSession) -> String {
         .as_deref()
         .map(str::trim)
         .filter(|name| !name.is_empty())
-        .map_or_else(
-            || program_name(session.program.as_str()),
-            str::to_owned,
-        );
+        .map_or_else(|| program_name(session.program.as_str()), str::to_owned);
     format!("In Terminal \u{2014} {app}")
 }
 

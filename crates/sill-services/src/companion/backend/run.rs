@@ -20,8 +20,8 @@ use prov::{SessionId, TaskId, UnixSeconds};
 use sill_launcher::{Generation, RunControl};
 use sill_model::companion::{
     Busy, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionLink,
-    CompanionParams, HelpersCommand, HelpersMsg, SummonOut, TerminalsCommand, card_call, going_runs, promote_card,
-    step, unresolved_handles, wake,
+    CompanionParams, HelpersCommand, HelpersMsg, SummonOut, TerminalsCommand, card_call,
+    going_runs, promote_card, step, unresolved_handles, wake,
 };
 use sill_model::launch::{LaunchCommand, SettingsPage};
 use tokio::sync::{mpsc, watch};
@@ -287,9 +287,9 @@ impl Live {
             CompanionEffect::Helpers(HelpersCommand::OpenTerminal(request)) => {
                 let (events, search) = (self.events.clone(), self.terminal.clone());
                 tokio::spawn(async move {
-                    let _ = events.send(CompanionEvent::Helpers(
+                    let _ = events.send(CompanionEvent::Helpers(Box::new(
                         terminal::open(&search, request).await,
-                    ));
+                    )));
                 });
             }
             CompanionEffect::Helpers(command) => self.helpers(command),
@@ -321,7 +321,7 @@ impl Live {
     fn helpers(&self, command: HelpersCommand) {
         let events = self.events.clone();
         let Some(connection) = self.connection.clone() else {
-            let _ = events.send(CompanionEvent::Helpers(HelpersMsg::Unreached));
+            let _ = events.send(CompanionEvent::Helpers(Box::new(HelpersMsg::Unreached)));
             return;
         };
         tokio::spawn(async move {
@@ -339,7 +339,7 @@ impl Live {
                 }
             };
             if let Some(reply) = reply {
-                let _ = events.send(CompanionEvent::Helpers(reply));
+                let _ = events.send(CompanionEvent::Helpers(Box::new(reply)));
             }
         });
     }
@@ -497,7 +497,7 @@ impl Live {
                     intents::perform(&connection, *call).await
                 });
             }
-            CompanionCommand::Helpers(msg) => self.feed(CompanionEvent::Helpers(msg)),
+            CompanionCommand::Helpers(msg) => self.feed(CompanionEvent::Helpers(Box::new(msg))),
             CompanionCommand::Terminals(msg) => self.feed(CompanionEvent::Terminals(msg)),
         }
     }

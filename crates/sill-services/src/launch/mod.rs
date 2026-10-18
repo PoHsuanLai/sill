@@ -20,8 +20,8 @@ use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-pub(crate) use backend::{TerminalCommand, TerminalSearch, open_in_terminal};
 pub use backend::{LaunchLinks, file_uri, monotonic_now, open_argv, reveal_folder};
+pub(crate) use backend::{TerminalCommand, TerminalSearch, open_in_terminal};
 
 /// App launching as a [`Service`]: scopes, activation tokens, opening files. Its `Deps` is the
 /// app index, which resolves ids to entries, and the notifications service that tells the person

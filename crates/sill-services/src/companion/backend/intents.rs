@@ -121,7 +121,9 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
     if let Ok((found, apps)) = declared(&connection).await
         && (events.send(CompanionEvent::Openers(found)).is_err()
             || events
-                .send(CompanionEvent::Helpers(HelpersMsg::AppsOffered(apps)))
+                .send(CompanionEvent::Helpers(Box::new(HelpersMsg::AppsOffered(
+                    apps,
+                ))))
                 .is_err())
     {
         return;
@@ -145,7 +147,7 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
             Some(_) = next(&mut manifests) => match declared(&connection).await {
                 Ok((found, apps)) => events
                     .send(CompanionEvent::Openers(found))
-                    .and_then(|()| events.send(CompanionEvent::Helpers(HelpersMsg::AppsOffered(apps)))),
+                    .and_then(|()| events.send(CompanionEvent::Helpers(Box::new(HelpersMsg::AppsOffered(apps))))),
                 Err(_) => continue,
             },
             else => return,

@@ -317,9 +317,7 @@ fn replied(
             | Asked::BringBack
             | Asked::BringBackAfterClose,
             HelperReply::Made(_) | HelperReply::Posted(_),
-        ) => {
-            (model, Vec::new())
-        }
+        ) => (model, Vec::new()),
     }
 }
 

@@ -6,9 +6,7 @@
 use companion_wire::{BroughtBack, TerminalSession};
 use docket_dbus::{COMPANION_BUS, CompanionTerminalsProxy};
 use prov::SessionId;
-use sill_model::companion::{
-    CompanionEvent, NO_BRING_BACK, TerminalsCommand, TerminalsMsg,
-};
+use sill_model::companion::{CompanionEvent, NO_BRING_BACK, TerminalsCommand, TerminalsMsg};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
@@ -27,12 +25,10 @@ pub(super) async fn carry(connection: &Connection, command: TerminalsCommand) ->
             Ok(sessions) => TerminalsMsg::Listed(sessions),
             Err(why) => unreached(&why, TerminalsCommand::List),
         },
-        TerminalsCommand::BringBack(session) => {
-            match bring_back(&proxy, &session).await {
-                Ok(brought) => TerminalsMsg::Answered(session, brought),
-                Err(why) => unreached(&why, TerminalsCommand::BringBack(session)),
-            }
-        }
+        TerminalsCommand::BringBack(session) => match bring_back(&proxy, &session).await {
+            Ok(brought) => TerminalsMsg::Answered(session, brought),
+            Err(why) => unreached(&why, TerminalsCommand::BringBack(session)),
+        },
     }
 }
 

@@ -168,7 +168,11 @@ fn answer_rows(state: &Companion) -> Vec<Item> {
                 .get(*task)
                 .is_some_and(|answer| answer.session.as_ref() == Some(session))
         });
-        (!in_brought, Some(*task) != front, std::cmp::Reverse((*task).clone()))
+        (
+            !in_brought,
+            Some(*task) != front,
+            std::cmp::Reverse((*task).clone()),
+        )
     });
     tasks
         .into_iter()
@@ -534,15 +538,19 @@ mod tests {
             .filter(|item| matches!(item.subject, Subject::TerminalSession(_)))
             .collect();
         assert_eq!(
-            titles(&at_terminals.iter().map(|i| (*i).clone()).collect::<Vec<_>>()),
+            titles(
+                &at_terminals
+                    .iter()
+                    .map(|i| (*i).clone())
+                    .collect::<Vec<_>>()
+            ),
             [
                 ("In Terminal \u{2014} Claude Code", "/home/me/notes"),
                 ("In Terminal \u{2014} Claude Code", "/home/me/notes"),
             ]
         );
-        let labels = |item: &Item| -> Vec<String> {
-            item.actions.iter().map(|a| a.label.clone()).collect()
-        };
+        let labels =
+            |item: &Item| -> Vec<String> { item.actions.iter().map(|a| a.label.clone()).collect() };
         assert_eq!(labels(at_terminals[0]), ["Bring Back"]);
         assert!(labels(at_terminals[1]).is_empty());
         let (_tx, rx) = watch::channel(companion.clone());

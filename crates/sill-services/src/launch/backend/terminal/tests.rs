@@ -118,7 +118,11 @@ fn with_no_list_temor_comes_first_then_the_terminals_found_by_name() {
         ["temor", "-e"],
         "temor by name beats the rest"
     );
-    scratch.entry("org.quire.Temor.desktop", "temor --new", "X-TerminalArgExec=--run");
+    scratch.entry(
+        "org.quire.Temor.desktop",
+        "temor --new",
+        "X-TerminalArgExec=--run",
+    );
     assert_eq!(
         words(choose(&scratch.search(&[]))),
         ["temor", "--new", "--run"],
@@ -132,8 +136,15 @@ fn a_terminal_nobody_listed_is_found_by_its_category() {
     scratch.program("kitty");
     scratch.program("editor");
     scratch.entry("editor.desktop", "editor", "Categories=TextEditor;");
-    scratch.entry("kitty.desktop", "kitty --single", "Categories=System;TerminalEmulator;");
-    assert_eq!(words(choose(&scratch.search(&[]))), ["kitty", "--single", "-e"]);
+    scratch.entry(
+        "kitty.desktop",
+        "kitty --single",
+        "Categories=System;TerminalEmulator;",
+    );
+    assert_eq!(
+        words(choose(&scratch.search(&[]))),
+        ["kitty", "--single", "-e"]
+    );
 }
 
 #[test]

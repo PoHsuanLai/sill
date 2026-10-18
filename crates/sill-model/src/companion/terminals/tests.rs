@@ -46,7 +46,10 @@ fn the_list_is_read_when_the_companion_says_it_changed_and_replaces_what_was_hel
 
 #[test]
 fn bringing_back_opens_that_conversation_and_a_refusal_shows_its_sentence() {
-    let (model, sent) = update(TerminalsModel::default(), TerminalsMsg::BringBack(id("s-1")));
+    let (model, sent) = update(
+        TerminalsModel::default(),
+        TerminalsMsg::BringBack(id("s-1")),
+    );
     assert_eq!(sent, [TerminalsCommand::BringBack(id("s-1"))]);
     let refused = BroughtBack::Refused("It is still running.".to_owned());
     let (model, sent) = update(model, TerminalsMsg::Answered(id("s-1"), refused));

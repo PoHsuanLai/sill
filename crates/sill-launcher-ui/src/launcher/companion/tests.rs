@@ -299,9 +299,11 @@ fn each_act_but_an_ask_and_a_mode_is_one_command() {
             CompanionAct::BringBack {
                 session: prov::SessionId::parse("s-1").unwrap_or_else(|e| panic!("{e}")),
             },
-            Some(C::Terminals(sill_model::companion::TerminalsMsg::BringBack(
-                prov::SessionId::parse("s-1").unwrap_or_else(|e| panic!("{e}")),
-            ))),
+            Some(C::Terminals(
+                sill_model::companion::TerminalsMsg::BringBack(
+                    prov::SessionId::parse("s-1").unwrap_or_else(|e| panic!("{e}")),
+                ),
+            )),
         ),
     ];
     for (act, want) in cases {

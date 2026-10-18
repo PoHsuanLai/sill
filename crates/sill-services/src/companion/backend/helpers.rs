@@ -165,7 +165,7 @@ async fn changes(connection: &Connection, events: &UnboundedSender<CompanionEven
     let Ok(mut changed) = proxy.receive_changed().await else {
         return std::future::pending().await;
     };
-    let tell = |msg| events.send(CompanionEvent::Helpers(msg));
+    let tell = |msg| events.send(CompanionEvent::Helpers(Box::new(msg)));
     if tell(HelpersMsg::Changed).is_err() {
         return;
     }

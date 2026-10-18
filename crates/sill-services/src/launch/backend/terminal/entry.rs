@@ -31,7 +31,11 @@ pub(super) struct Entry {
 pub(super) fn read(text: &str, programs: &[PathBuf]) -> Option<Entry> {
     let file = DesktopFile::parse(text, DESKTOP_ENTRY_CAP).ok()?;
     let entry = file.entry()?;
-    if entry.is_true("Hidden") || entry.string("Type").is_some_and(|kind| kind != "Application") {
+    if entry.is_true("Hidden")
+        || entry
+            .string("Type")
+            .is_some_and(|kind| kind != "Application")
+    {
         return None;
     }
     if entry

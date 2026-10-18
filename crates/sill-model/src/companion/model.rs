@@ -13,8 +13,8 @@ use sill_launcher::Generation;
 
 use super::helpers::HelpersModel;
 use super::summon::Summon;
-use super::terminals::TerminalsModel;
 use super::tap::Tap;
+use super::terminals::TerminalsModel;
 
 /// Whether the service reaches the companion's bus names.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

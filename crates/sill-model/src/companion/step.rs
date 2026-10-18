@@ -16,8 +16,8 @@ use super::helpers::{HelpersMsg, update};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
 use super::model_picker::{Picker, opens, picker_of, touched};
 use super::summon::{SummonCx, SummonIn, SummonOut};
-use super::terminals::{TerminalsMsg, update as update_terminals};
 use super::tap::{TapIn, TapOut};
+use super::terminals::{TerminalsMsg, update as update_terminals};
 use super::words::SETTLE_FAILED;
 
 /// `state` after `event` at `at`, and what the outside must do.
@@ -58,7 +58,7 @@ pub fn step(
             summoned(state, SummonIn::LauncherClosed, at, params)
         }
         CompanionEvent::Dismissed => summoned(state, SummonIn::Dismiss, at, params),
-        CompanionEvent::Helpers(msg) => helped(state, msg),
+        CompanionEvent::Helpers(msg) => helped(state, *msg),
         CompanionEvent::Terminals(msg) => in_terminals(state, msg),
         other => {
             let task = touched(&other).cloned();
@@ -79,7 +79,10 @@ fn in_terminals(state: Companion, msg: TerminalsMsg) -> (Companion, Vec<Companio
     let (terminals, commands) = update_terminals(state.terminals, msg);
     (
         Companion { terminals, ..state },
-        commands.into_iter().map(CompanionEffect::Terminals).collect(),
+        commands
+            .into_iter()
+            .map(CompanionEffect::Terminals)
+            .collect(),
     )
 }
 
