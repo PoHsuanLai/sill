@@ -1,4 +1,4 @@
-use shell_host::{OutputId, OutputInfo, Rect, Scale};
+use shell_host::{OutputId, OutputInfo, Rect, Scale120};
 use sill_ipc::act::{DisplayRequest, LevelRequest, VolumeRequest};
 use sill_ipc::debug::OsdTopic;
 use sill_model::displays::ddc::Endpoint;
@@ -21,7 +21,7 @@ fn output(id: u32, name: Option<&str>) -> OutputInfo {
             width: 1920,
             height: 1080,
         },
-        scale: Scale::ONE,
+        scale: Scale120::ONE,
         refresh_mhz: 60_000,
     }
 }

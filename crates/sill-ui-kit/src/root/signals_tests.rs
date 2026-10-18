@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::style::tokens::pixel::PixelToken;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
-use shell_host::{InputModality as SeatModality, Scale as SeatScale};
+use shell_host::{InputModality as SeatModality, Scale120};
 
 use super::use_republished;
 
@@ -17,7 +17,7 @@ use super::use_republished;
 #[derive(Clone, Copy)]
 struct Seat {
     modality: Signal<SeatModality>,
-    scale: Signal<SeatScale>,
+    scale: Signal<Scale120>,
 }
 
 thread_local! {
@@ -26,7 +26,7 @@ thread_local! {
 
 fn app() -> Element {
     let modality = use_signal(|| SeatModality::Pointer);
-    let scale = use_signal(|| SeatScale(120));
+    let scale = use_signal(|| Scale120(120));
     use_hook(|| SEAT.with(|seat| *seat.borrow_mut() = Some(Seat { modality, scale })));
     use_republished(modality.into(), scale.into());
     rsx! {
@@ -85,7 +85,7 @@ fn the_seats_scale_reaches_the_roots_pixel_tokens() {
     let scaled = PixelToken::style_attr(Scale(150));
     assert!(!scaled.is_empty(), "1.25x writes tokens");
     assert!(!style(&harness).contains(&scaled), "1x writes none");
-    seat().scale.set(SeatScale(150));
+    seat().scale.set(Scale120(150));
     settle(&mut harness);
     assert!(
         style(&harness).contains(&scaled),

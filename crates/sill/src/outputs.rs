@@ -123,7 +123,7 @@ pub fn reconcile(current: &Outputs, now: &[OutputInfo]) -> Vec<OutputAction> {
 #[cfg(test)]
 mod tests {
     use super::{OutputSurfaces, Outputs, Spawned, reconcile};
-    use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale, SurfaceId};
+    use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale120, SurfaceId};
     use sill_overlays::HotCorners;
     use sill_ui_kit::surface::Surface;
 
@@ -138,7 +138,7 @@ mod tests {
                 width,
                 height: 1080,
             },
-            scale: Scale(120),
+            scale: Scale120(120),
             refresh_mhz: 60_000,
         }
     }

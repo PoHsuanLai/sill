@@ -19,7 +19,7 @@ use dioxus::prelude::*;
 use ds::base::vocab::Activity;
 use ds::base::vocab::InputModality as DsModality;
 use ds::prelude::*;
-use shell_host::{InputModality as SeatModality, Scale as SeatScale, SurfaceHandle};
+use shell_host::{InputModality as SeatModality, Scale120, SurfaceHandle};
 
 /// shell-host's raw modality, as quire's own.
 fn to_ds(modality: SeatModality) -> DsModality {
@@ -43,7 +43,7 @@ pub fn use_host_signals() {
 }
 
 /// The seat's `modality` and the surface's `scale`, provided as `ds::prelude::HostSignals`.
-pub(super) fn use_republished(modality: ReadSignal<SeatModality>, scale: ReadSignal<SeatScale>) {
+pub(super) fn use_republished(modality: ReadSignal<SeatModality>, scale: ReadSignal<Scale120>) {
     let signals = use_context_provider(|| HostSignals {
         modality: Signal::new(to_ds(*modality.peek())),
         scale: Signal::new(Scale(scale.peek().0)),

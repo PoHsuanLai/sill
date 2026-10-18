@@ -1,7 +1,7 @@
 //! The fixed values the fake services start at, and the outputs and workspaces the surfaces are
 //! drawn on.
 
-use shell_host::{OutputId, OutputInfo, Rect, Scale};
+use shell_host::{OutputId, OutputInfo, Rect, Scale120};
 use sill_launcher::WindowKey;
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{
@@ -32,7 +32,7 @@ pub fn output() -> OutputInfo {
             width: 1920,
             height: 1080,
         },
-        scale: Scale::ONE,
+        scale: Scale120::ONE,
         refresh_mhz: 60_000,
     }
 }
@@ -49,7 +49,7 @@ pub fn output_named(name: Option<&str>) -> OutputInfo {
             width: 1920,
             height: 1080,
         },
-        scale: Scale::ONE,
+        scale: Scale120::ONE,
         refresh_mhz: 60_000,
     }
 }

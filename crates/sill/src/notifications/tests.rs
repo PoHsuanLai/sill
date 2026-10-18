@@ -1,4 +1,4 @@
-use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale, SurfaceId};
+use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale120, SurfaceId};
 use sill_ui_kit::links::BannerOutput;
 
 use super::banner_output;
@@ -15,7 +15,7 @@ fn output(id: u32, name: &str) -> OutputInfo {
             width: 1920,
             height: 1080,
         },
-        scale: Scale::ONE,
+        scale: Scale120::ONE,
         refresh_mhz: 60_000,
     }
 }
