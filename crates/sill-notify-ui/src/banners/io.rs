@@ -14,7 +14,6 @@ use dioxus::core::{Runtime, ScopeId, Task, current_scope_id};
 use dioxus::prelude::*;
 use ds::base::time::FRAME_SLACK;
 use ds::base::time::stamp::Stamp;
-use ds::base::vocab::InputModality;
 use ds::focus::select::Select;
 use ds::focus::selector::{FocusError, focus_by_selector};
 use ds::prelude::*;
@@ -31,6 +30,7 @@ use super::deck::{Deck, DeckIn, DeckOut, EntryKey, advance};
 use super::deck_keys::KeysIn;
 use super::stack::Card;
 use super::step::{BannerIn, BannerParams};
+use crate::keyboard::seat_on_keyboard;
 use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::links::{BannerLink, Transient};
 use sill_ui_kit::notification_card::{CardPart, CardPress, part_id};
@@ -113,9 +113,7 @@ impl Column {
     /// person is on the keyboard, though the seat has seen no key yet).
     fn take_keyboard(self, key: EntryKey) {
         self.keyboard(KeyboardMode::Exclusive);
-        if let Some(mut modality) = (*self.signals.peek()).map(|signals| signals.modality) {
-            modality.set(InputModality::Keyboard);
-        }
+        seat_on_keyboard(self.signals);
         self.focus_card(key);
     }
 

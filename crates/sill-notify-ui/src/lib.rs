@@ -3,6 +3,7 @@
 //! cards they draw come from `sill_ui_kit::notification_card`.
 
 pub mod banners;
+mod keyboard;
 pub mod notification_center;
 pub mod screenshot_thumb;
 

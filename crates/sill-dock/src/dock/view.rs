@@ -30,7 +30,7 @@ use crate::dock::layer::layer;
 use crate::dock::machine::{DockParams, DockState, Label, Reveal, displayed, lift, slide_offset};
 use crate::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::dock::rest_rects::app_rects;
-use crate::dock::tile::{LabelShown, Tile, TileLook};
+use crate::dock::tile::{LabelShown, Tile, TileLook, px};
 use sill_services::{AppsService, BadgesService, PinsService, WindowsService};
 use sill_ui_kit::app_icons::icon_look;
 use sill_ui_kit::hooks::{
@@ -234,11 +234,6 @@ fn follow_layer(config: LayerConfig) {
         surface.set_blur(config.blur.clone());
     }
     last.set(config);
-}
-
-/// `v` in logical pixels.
-fn px(v: Cpx) -> f64 {
-    f64::from(v.0) / 100.0
 }
 
 /// The layer that carries the surface's coordinates inside the pill-sized root: moved back by

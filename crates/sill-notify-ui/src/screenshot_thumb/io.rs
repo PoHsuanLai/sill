@@ -12,7 +12,6 @@ use std::time::Duration;
 
 use dioxus::core::{Runtime, ScopeId, Task, current_scope_id};
 use dioxus::prelude::*;
-use ds::base::vocab::InputModality;
 use ds::focus::select::Select;
 use ds::focus::selector::{FocusError, focus_by_selector};
 use ds::prelude::*;
@@ -21,6 +20,8 @@ use sill_model::screenshots::{ShotCommand, ShotId};
 use sill_services::Control;
 
 use sill_ui_kit::links::{BannerLink, Transient};
+
+use crate::keyboard::seat_on_keyboard;
 
 use super::drag::{drag_end, file_drag};
 use super::ghost::GhostLook;
@@ -136,9 +137,7 @@ impl Thumb {
     /// person is on the keyboard, though the seat has seen no key yet).
     fn take_keyboard(self) {
         self.keyboard(KeyboardMode::Exclusive);
-        if let Some(mut modality) = (*self.signals.peek()).map(|signals| signals.modality) {
-            modality.set(InputModality::Keyboard);
-        }
+        seat_on_keyboard(self.signals);
         Runtime::current().in_scope(self.scope, || {
             spawn(async move {
                 let landed = focus_by_selector(PICTURE, Select::None).await;

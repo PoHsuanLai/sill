@@ -111,7 +111,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
 }
 
 /// `v` in logical pixels.
-fn px(v: Cpx) -> f64 {
+pub(super) fn px(v: Cpx) -> f64 {
     f64::from(v.0) / 100.0
 }
 
