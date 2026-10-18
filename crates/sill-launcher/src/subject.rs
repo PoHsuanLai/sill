@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 use almanac_core::MemoryItem;
 use docket_core::{EntityRef, UndoId};
-use prov::{HelperId, RunId, TaskId};
+use prov::{HelperId, RunId, SessionId, TaskId};
 use serde::{Deserialize, Serialize};
 
 use crate::ids::{AppId, ClipKey};
@@ -47,6 +47,8 @@ pub enum Subject {
     Activity(UndoId),
     /// A fact or an event the companion remembers (the memory provider).
     Memory(MemoryItem),
+    /// A session the person started in a terminal (the companion provider).
+    TerminalSession(SessionId),
 }
 
 /// A helper, as its row carries it.

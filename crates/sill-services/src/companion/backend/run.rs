@@ -20,7 +20,7 @@ use prov::{SessionId, TaskId, UnixSeconds};
 use sill_launcher::{Generation, RunControl};
 use sill_model::companion::{
     Busy, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionLink,
-    CompanionParams, HelpersCommand, HelpersMsg, SummonOut, card_call, going_runs, promote_card,
+    CompanionParams, HelpersCommand, HelpersMsg, SummonOut, TerminalsCommand, card_call, going_runs, promote_card,
     step, unresolved_handles, wake,
 };
 use sill_model::launch::{LaunchCommand, SettingsPage};
@@ -32,7 +32,7 @@ use zbus::zvariant::OwnedObjectPath;
 
 use super::probe::{self, Arrival};
 use super::text::text;
-use super::{answer, cua, helpers, intents, memory, tell, terminal};
+use super::{answer, cua, helpers, intents, memory, tell, terminal, terminals};
 use crate::companion::{CompanionLinks, CompanionService};
 use crate::control::Control;
 use crate::deadline::{COMPANION_CALL, within};
@@ -293,6 +293,7 @@ impl Live {
                 });
             }
             CompanionEffect::Helpers(command) => self.helpers(command),
+            CompanionEffect::Terminals(command) => self.terminals(command),
             CompanionEffect::Summon(SummonOut::AskApp { app, serial }) => {
                 let events = self.events.clone();
                 match self.connection.clone() {
@@ -339,6 +340,29 @@ impl Live {
             };
             if let Some(reply) = reply {
                 let _ = events.send(CompanionEvent::Helpers(reply));
+            }
+        });
+    }
+
+    /// Ask the companion about the sessions in terminals on its own task; what it answers goes
+    /// back to the panel as an event. Without the seat nothing is asked: the list stays as it was.
+    fn terminals(&self, command: TerminalsCommand) {
+        let Some(connection) = self.connection.clone() else {
+            return;
+        };
+        let events = self.events.clone();
+        tokio::spawn(async move {
+            match within(
+                COMPANION_CALL,
+                "the sessions in terminals",
+                terminals::carry(&connection, command),
+            )
+            .await
+            {
+                Ok(reply) => {
+                    let _ = events.send(CompanionEvent::Terminals(reply));
+                }
+                Err(silent) => eprintln!("sill: companion: terminals: {silent}"),
             }
         });
     }
@@ -394,6 +418,10 @@ impl Live {
             self.events.clone(),
         )));
         self.watchers.push(tokio::spawn(helpers::follow(
+            connection.clone(),
+            self.events.clone(),
+        )));
+        self.watchers.push(tokio::spawn(terminals::follow(
             connection.clone(),
             self.events.clone(),
         )));
@@ -470,6 +498,7 @@ impl Live {
                 });
             }
             CompanionCommand::Helpers(msg) => self.feed(CompanionEvent::Helpers(msg)),
+            CompanionCommand::Terminals(msg) => self.feed(CompanionEvent::Terminals(msg)),
         }
     }
 

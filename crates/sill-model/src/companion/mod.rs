@@ -31,6 +31,7 @@ mod run_state;
 mod step;
 mod summon;
 mod tap;
+mod terminals;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
@@ -68,4 +69,8 @@ pub use summon::{
     SummonIn, SummonOut, SummonParams,
 };
 pub use tap::{Tap, TapIn, TapOut, TapParams};
+pub use terminals::{
+    BRING_BACK_LABEL, NO_BRING_BACK, RefusedBringBack, TerminalsCommand, TerminalsModel, TerminalsMsg,
+    session_subtitle, session_title, update as update_terminals,
+};
 pub use words::{SETTLE_FAILED, activity_line, answer_line, body_lines, memory_line, waiting_line};

@@ -5,7 +5,7 @@
 use almanac_core::MemoryItem;
 use docket_core::{CardActionId, UndoScope};
 use ds_core::vocab::MemoryVerb;
-use prov::{HelperId, RunId, TaskId};
+use prov::{HelperId, RunId, SessionId, TaskId};
 use serde::{Deserialize, Serialize};
 
 /// What the panel is for: finding things, or talking to the companion.
@@ -126,6 +126,11 @@ pub enum CompanionAct {
     },
     /// Start a new helper's card.
     NewHelper,
+    /// Bring a session started in a terminal back, and open its conversation.
+    BringBack {
+        /// The session.
+        session: SessionId,
+    },
     /// Switch the panel's mode in place.
     Mode(LauncherMode),
 }
@@ -182,6 +187,12 @@ mod tests {
                 r#"{"kind":"helper","v":{"helper":"h-2","control":"remove"}}"#,
             ),
             (CompanionAct::NewHelper, r#"{"kind":"new_helper"}"#),
+            (
+                CompanionAct::BringBack {
+                    session: prov::SessionId::parse("s-4").unwrap_or_else(|e| panic!("{e}")),
+                },
+                r#"{"kind":"bring_back","v":{"session":"s-4"}}"#,
+            ),
             (
                 CompanionAct::Mode(LauncherMode::Companion),
                 r#"{"kind":"mode","v":"companion"}"#,

@@ -38,6 +38,7 @@ pub fn row_kind(item: &Item) -> RowKind {
         | Subject::NewHelper
         | Subject::Run(_)
         | Subject::Activity(_)
+        | Subject::TerminalSession(_)
         | Subject::Memory(_) => RowKind::Plain,
         Subject::File(_) => RowKind::File,
         Subject::Clip(_) => RowKind::Clip,
@@ -82,6 +83,7 @@ fn detail_in(item: &Item, now: UnixTime, zone: &TimeZone) -> RowDetail {
         | Subject::NewHelper
         | Subject::Run(_)
         | Subject::Activity(_)
+        | Subject::TerminalSession(_)
         | Subject::Memory(_) => (item.subtitle.clone(), String::new()),
     };
     RowDetail { detail, trail }

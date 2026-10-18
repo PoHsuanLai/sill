@@ -5,13 +5,15 @@
 //! The Ask row is in every search; answers and activity show only when the filter is the
 //! companion's own (`Scope::Only`), which is what the panel's companion mode asks.
 
+use companion_wire::{Handover, TerminalSession};
 use docket_core::{CardActionId, UndoState};
 use sill_launcher::{
     Action, ActionId, Activation, Batch, Choice, CompanionAct, IconRef, Item, ItemId, LauncherMode,
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
 use sill_model::companion::{
-    AnswerFacts, Busy, Companion, CompanionLink, activity_line, answer_line, cards_of,
+    AnswerFacts, BRING_BACK_LABEL, Busy, Companion, CompanionLink, TerminalsModel, activity_line,
+    answer_line, cards_of, session_subtitle, session_title,
 };
 use tokio::sync::watch;
 
@@ -20,6 +22,9 @@ const ASK: &str = "ask:";
 
 /// The action id that undoes a journal row.
 pub const UNDO_ACTION: &str = "undo";
+
+/// The action id that brings a session in a terminal back.
+pub const BRING_BACK_ACTION: &str = "bring-back";
 
 /// Rows from the companion's state.
 #[derive(Debug, Clone)]
@@ -74,6 +79,16 @@ impl Provider for CompanionProvider {
                         action,
                     })
                 }),
+            // Enter on a session in a terminal brings it back when it can be, else nothing.
+            (Subject::TerminalSession(session), Choice::Primary | Choice::Action(_)) => {
+                if item.actions.iter().any(|a| a.id.0 == BRING_BACK_ACTION) {
+                    Activation::Companion(CompanionAct::BringBack {
+                        session: session.clone(),
+                    })
+                } else {
+                    Activation::Nothing
+                }
+            }
             // Enter on a journal row undoes it while it can be undone; an undone or expired row
             // has nothing to press.
             (Subject::Activity(entry), Choice::Primary) => {
@@ -101,10 +116,14 @@ fn undo(entry: docket_core::UndoId) -> Activation {
 const RECENT_ACTIVITY: usize = 5;
 
 /// The rows for `text`: the Ask row first, then (alone) the answers, newest first, then the
-/// latest activity.
+/// sessions in terminals, then the latest activity.
 fn rows(state: &Companion, text: &str, alone: bool) -> Vec<Item> {
     let ask = (!text.is_empty()).then(|| ask_row(text));
     let answers = alone.then(|| answer_rows(state)).into_iter().flatten();
+    let terminals = alone
+        .then(|| terminal_rows(&state.terminals))
+        .into_iter()
+        .flatten();
     let activity = alone
         .then(|| {
             state
@@ -116,7 +135,11 @@ fn rows(state: &Companion, text: &str, alone: bool) -> Vec<Item> {
         })
         .into_iter()
         .flatten();
-    ask.into_iter().chain(answers).chain(activity).collect()
+    ask.into_iter()
+        .chain(answers)
+        .chain(terminals)
+        .chain(activity)
+        .collect()
 }
 
 fn ask_row(text: &str) -> Item {
@@ -132,11 +155,21 @@ fn ask_row(text: &str) -> Item {
     }
 }
 
-/// The answers, the front one first and then the rest, newest task first.
+/// The answers: those of the conversation just brought back from a terminal, then the front
+/// one, then the rest, newest task first.
 fn answer_rows(state: &Companion) -> Vec<Item> {
     let front = state.front.as_ref();
+    let brought = state.terminals.brought_back.as_ref();
     let mut tasks: Vec<_> = state.answers.keys().collect();
-    tasks.sort_by_key(|task| (Some(*task) != front, std::cmp::Reverse((*task).clone())));
+    tasks.sort_by_key(|task| {
+        let in_brought = brought.is_some_and(|session| {
+            state
+                .answers
+                .get(*task)
+                .is_some_and(|answer| answer.session.as_ref() == Some(session))
+        });
+        (!in_brought, Some(*task) != front, std::cmp::Reverse((*task).clone()))
+    });
     tasks
         .into_iter()
         .enumerate()
@@ -171,6 +204,41 @@ fn card_actions(answer: &AnswerFacts) -> Vec<Action> {
                 keys: sill_launcher::ActionKeys::default(),
             })
             .collect(),
+    }
+}
+
+/// One row per session the person started in a terminal. A row offers Bring Back when the
+/// companion says it can; a bring back it refused shows its sentence under the title.
+fn terminal_rows(terminals: &TerminalsModel) -> Vec<Item> {
+    terminals
+        .sessions
+        .iter()
+        .enumerate()
+        .map(|(at, session)| terminal_row(terminals, session, at))
+        .collect()
+}
+
+fn terminal_row(terminals: &TerminalsModel, session: &TerminalSession, at: usize) -> Item {
+    let subtitle = terminals
+        .refusal_of(&session.session)
+        .map_or_else(|| session_subtitle(session), str::to_owned);
+    let actions = match &session.handover {
+        Handover::BringBack => vec![Action {
+            id: ActionId(BRING_BACK_ACTION.to_owned()),
+            label: BRING_BACK_LABEL.to_owned(),
+            keys: sill_launcher::ActionKeys::default(),
+        }],
+        Handover::Unavailable | Handover::ToTerminal => Vec::new(),
+    };
+    Item {
+        id: ItemId(format!("terminal:{}", session.session)),
+        provider: ProviderKind::Companion,
+        title: session_title(session),
+        subtitle,
+        icon: IconRef::Glyph("terminal".to_owned()),
+        score: Score(u32::try_from(500usize.saturating_sub(at)).unwrap_or(0)),
+        actions,
+        subject: Subject::TerminalSession(session.session.clone()),
     }
 }
 
@@ -440,6 +508,60 @@ mod tests {
             primary(&undone),
             Activation::Companion(CompanionAct::Mode(LauncherMode::Companion)),
             "Enter on it does not undo it again"
+        );
+    }
+
+    fn in_terminal(session: &str, handover: Handover) -> TerminalSession {
+        TerminalSession {
+            session: prov::SessionId::parse(session).unwrap_or_else(|e| panic!("{e}")),
+            program: prov::AgentProgram::parse("claude-code").unwrap_or_else(|e| panic!("{e}")),
+            app_name: Some("Claude Code".to_owned()),
+            folder: Some("/home/me/notes".to_owned()),
+            handover,
+        }
+    }
+
+    #[test]
+    fn sessions_in_terminals_are_rows_with_bring_back_only_when_the_companion_allows_it() {
+        let mut companion = state();
+        companion.terminals.sessions = vec![
+            in_terminal("s-1", Handover::BringBack),
+            in_terminal("s-2", Handover::Unavailable),
+        ];
+        let found = rows(companion.clone(), "", Scope::Only(ProviderKind::Companion));
+        let at_terminals: Vec<&Item> = found
+            .iter()
+            .filter(|item| matches!(item.subject, Subject::TerminalSession(_)))
+            .collect();
+        assert_eq!(
+            titles(&at_terminals.iter().map(|i| (*i).clone()).collect::<Vec<_>>()),
+            [
+                ("In Terminal \u{2014} Claude Code", "/home/me/notes"),
+                ("In Terminal \u{2014} Claude Code", "/home/me/notes"),
+            ]
+        );
+        let labels = |item: &Item| -> Vec<String> {
+            item.actions.iter().map(|a| a.label.clone()).collect()
+        };
+        assert_eq!(labels(at_terminals[0]), ["Bring Back"]);
+        assert!(labels(at_terminals[1]).is_empty());
+        let (_tx, rx) = watch::channel(companion.clone());
+        let provider = CompanionProvider { companion: rx };
+        assert_eq!(
+            provider.activate(at_terminals[0], &Choice::Primary),
+            Activation::Companion(CompanionAct::BringBack {
+                session: prov::SessionId::parse("s-1").unwrap_or_else(|e| panic!("{e}")),
+            })
+        );
+        assert_eq!(
+            provider.activate(at_terminals[1], &Choice::Primary),
+            Activation::Nothing
+        );
+        assert!(
+            rows(companion.clone(), "hi", Scope::All)
+                .iter()
+                .all(|item| !matches!(item.subject, Subject::TerminalSession(_))),
+            "a search that is not the companion's lists none"
         );
     }
 }

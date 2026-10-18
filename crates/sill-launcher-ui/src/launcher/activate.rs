@@ -172,6 +172,7 @@ impl LauncherEffect {
                 | CompanionAct::Memory { .. }
                 | CompanionAct::Helper { .. }
                 | CompanionAct::NewHelper
+                | CompanionAct::BringBack { .. }
                 | CompanionAct::Mode(_) => AfterEffect::StayOpen,
             },
             _ => AfterEffect::Close,
@@ -218,6 +219,7 @@ pub fn file_results(rows: &[&Item]) -> Vec<PathBuf> {
             | Subject::NewHelper
             | Subject::Run(_)
             | Subject::Activity(_)
+            | Subject::TerminalSession(_)
             | Subject::Memory(_) => None,
         })
         .collect()

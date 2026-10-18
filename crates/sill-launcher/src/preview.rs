@@ -113,7 +113,7 @@ impl ExcerptLimit {
 /// is `Web`; `Subject::None` is `None`. An `Entity` has nothing to show until its app answers
 /// `Run.Preview`, so it is `None` here (the pane asks, and shows `Intent` when it has the
 /// answer); an `Answer`, a `Run` and a `Memory` row are previewed live by their key; an
-/// `Activity` row has no pane.
+/// `Activity` row and a terminal session row have no pane.
 pub fn preview_for(item: &Item) -> Preview {
     match &item.subject {
         Subject::None => Preview::None,
@@ -126,7 +126,7 @@ pub fn preview_for(item: &Item) -> Preview {
         Subject::Clip(facts) => Preview::Clipboard(facts.clone()),
         Subject::Emoji(facts) => Preview::Emoji(facts.clone()),
         Subject::Web(facts) => Preview::Web(facts.clone()),
-        Subject::Entity(_) | Subject::Activity(_) => Preview::None,
+        Subject::Entity(_) | Subject::Activity(_) | Subject::TerminalSession(_) => Preview::None,
         Subject::Answer(task) => Preview::Answer(task.clone()),
         Subject::Helper(facts) => Preview::Helper(facts.id.clone()),
         Subject::NewHelper => Preview::NewHelper,

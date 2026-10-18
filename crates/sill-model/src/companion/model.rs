@@ -13,6 +13,7 @@ use sill_launcher::Generation;
 
 use super::helpers::HelpersModel;
 use super::summon::Summon;
+use super::terminals::TerminalsModel;
 use super::tap::Tap;
 
 /// Whether the service reaches the companion's bus names.
@@ -168,4 +169,6 @@ pub struct Companion {
     pub programs: super::ProgramLabels,
     /// The helpers the person keeps.
     pub helpers: HelpersModel,
+    /// The sessions the person started in a terminal.
+    pub terminals: TerminalsModel,
 }

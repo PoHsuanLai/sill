@@ -15,6 +15,7 @@ use std::collections::BTreeSet;
 
 use super::helpers::{HelpersCommand, HelpersMsg};
 use super::model::{CompanionLink, Opener, RunFacts};
+use super::terminals::{TerminalsCommand, TerminalsMsg};
 use super::summon::{FocusFacts, LauncherFacts, SummonOut, SummonParams};
 use super::tap::TapParams;
 
@@ -129,6 +130,8 @@ pub enum CompanionCommand {
     Perform(Box<CallRequest>),
     /// Something the person did on the helpers screen.
     Helpers(HelpersMsg),
+    /// Something the person did to a session in a terminal.
+    Terminals(TerminalsMsg),
 }
 
 /// What happens in the service.
@@ -239,6 +242,8 @@ pub enum CompanionEvent {
     SettleFailed,
     /// Something about the helpers: the person's doing, or what a call to the companion came to.
     Helpers(HelpersMsg),
+    /// Something about the sessions in terminals: the person's doing, or what the companion said.
+    Terminals(TerminalsMsg),
 }
 
 /// What the service must do outside the pure state.
@@ -253,6 +258,8 @@ pub enum CompanionEffect {
     PickModel,
     /// The helpers screen asks the companion for something.
     Helpers(HelpersCommand),
+    /// The panel asks the companion about the sessions in terminals.
+    Terminals(TerminalsCommand),
 }
 
 impl SummonOut {

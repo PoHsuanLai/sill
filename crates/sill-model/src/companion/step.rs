@@ -16,6 +16,7 @@ use super::helpers::{HelpersMsg, update};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
 use super::model_picker::{Picker, opens, picker_of, touched};
 use super::summon::{SummonCx, SummonIn, SummonOut};
+use super::terminals::{TerminalsMsg, update as update_terminals};
 use super::tap::{TapIn, TapOut};
 use super::words::SETTLE_FAILED;
 
@@ -58,6 +59,7 @@ pub fn step(
         }
         CompanionEvent::Dismissed => summoned(state, SummonIn::Dismiss, at, params),
         CompanionEvent::Helpers(msg) => helped(state, msg),
+        CompanionEvent::Terminals(msg) => in_terminals(state, msg),
         other => {
             let task = touched(&other).cloned();
             let before = task
@@ -70,6 +72,15 @@ pub fn step(
             (state, opens(before, after))
         }
     }
+}
+
+/// The sessions in terminals move, and what they ask of the companion becomes effects.
+fn in_terminals(state: Companion, msg: TerminalsMsg) -> (Companion, Vec<CompanionEffect>) {
+    let (terminals, commands) = update_terminals(state.terminals, msg);
+    (
+        Companion { terminals, ..state },
+        commands.into_iter().map(CompanionEffect::Terminals).collect(),
+    )
 }
 
 /// The helpers screen moves, and what it asks of the companion becomes effects.
@@ -258,7 +269,8 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
         | CompanionEvent::Elapsed
         | CompanionEvent::LauncherClosed
         | CompanionEvent::Dismissed
-        | CompanionEvent::Helpers(_) => state,
+        | CompanionEvent::Helpers(_)
+        | CompanionEvent::Terminals(_) => state,
     }
 }
 

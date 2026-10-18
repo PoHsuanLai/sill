@@ -13,6 +13,7 @@ mod run;
 mod shown;
 mod tell;
 mod terminal;
+mod terminals;
 mod text;
 
 pub(crate) use run::{Reach, run};

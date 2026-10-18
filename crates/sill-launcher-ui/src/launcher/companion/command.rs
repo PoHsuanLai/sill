@@ -1,7 +1,7 @@
 //! What each companion act asks of the companion service.
 
 use sill_launcher::{CompanionAct, HelperControl};
-use sill_model::companion::{CompanionCommand, HelpersMsg};
+use sill_model::companion::{CompanionCommand, HelpersMsg, TerminalsMsg};
 
 /// The command that does `act`. An ask is built from the panel's own context (`ask_input`), and
 /// switching the panel's mode is the panel's, so neither is a command here.
@@ -22,5 +22,8 @@ pub fn command_of(act: CompanionAct) -> Option<CompanionCommand> {
             }))
         }
         CompanionAct::NewHelper => Some(CompanionCommand::Helpers(HelpersMsg::NewHelper)),
+        CompanionAct::BringBack { session } => Some(CompanionCommand::Terminals(
+            TerminalsMsg::BringBack(session),
+        )),
     }
 }
