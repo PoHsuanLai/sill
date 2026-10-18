@@ -7,8 +7,10 @@ use std::collections::BTreeSet;
 use companion_wire::{HelperCardView, HelperLine, ToldWire};
 use prov::{AppName, HelperId};
 
+use super::automatic::Automatic;
 use super::draft::Draft;
 use super::models::ModelList;
+use super::routines::RoutinesModel;
 
 /// A sentence a helper told the person, in plain words.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,6 +81,10 @@ pub struct HelpersModel {
     pub open: Open,
     /// The list of models on the open card.
     pub models: ModelList,
+    /// Choosing the models Automatic may use for the open helper.
+    pub automatic: Automatic,
+    /// The routines of every helper, and the sheet that makes one.
+    pub routines: RoutinesModel,
     /// The question about removing a helper.
     pub removal: Removal,
     /// A sentence about what was refused or could not be done, until the person does the next

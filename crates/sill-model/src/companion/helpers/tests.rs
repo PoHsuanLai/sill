@@ -1,12 +1,17 @@
+mod automatic;
+mod sign_in;
+
 use std::collections::BTreeSet;
 
 use companion_wire::{
     HelperCardView, HelperForm, HelperLine, HelperNeeds, HelperReply, HelpersView, JobLine,
-    JobShown, ToldWire,
+    JobShown, LoginShown, ToldWire,
 };
-use docket_core::helper::{Ceiling, HelperModel, HelperName, HelperPhase};
+use docket_core::helper::{Ceiling, HelperKind, HelperModel, HelperName, HelperPhase};
 use porter_core::{AccountId, Count, ModelId};
-use porter_infer::{ComputerName, ModelRef, PlaceId, PlaceKind, PlaceModel, PlaceRow, PlaceState};
+use porter_infer::{
+    ComputerName, ModelRef, PlaceEngine, PlaceId, PlaceKind, PlaceModel, PlaceRow, PlaceState,
+};
 use prov::{AppName, HelperId, SpaceId};
 use sill_launcher::HelperControl;
 
@@ -41,6 +46,7 @@ fn line(
         state,
         needs_you,
         agent: None,
+        conversation: None,
     }
 }
 
@@ -54,6 +60,9 @@ fn card(helper: &str, name: &str, model: HelperModel) -> HelperCardView {
         jobs: vec![job_json(
             r#"{"id":1,"goal":"Find the weekly digest","state":"done","note":null}"#,
         )],
+        kind: HelperKind::default(),
+        login: LoginShown::default(),
+        sign_in: Vec::new(),
     }
 }
 
@@ -177,6 +186,7 @@ fn a_new_card_has_no_model_and_still_saves_and_says_to_choose_one() {
         apps: vec![app("org.quire.Notes")],
         ceiling: Ceiling::Change,
         steps: Count(12),
+        kind: HelperKind::Native,
     };
     assert_eq!(**form, want);
 }
@@ -251,16 +261,18 @@ fn place(row: PlaceRow, models: &[(&str, &str)]) -> PlaceRow {
     row.with_models(
         models
             .iter()
-            .map(|(id, name)| PlaceModel {
-                id: ModelId::parse(id).unwrap_or_else(|e| panic!("{e}")),
-                name: (*name).to_owned(),
+            .map(|(id, name)| {
+                PlaceModel::new(
+                    ModelId::parse(id).unwrap_or_else(|e| panic!("{e}")),
+                    (*name).to_owned(),
+                )
             })
             .collect(),
     )
 }
 
 #[test]
-fn models_are_grouped_by_where_they_run_and_the_one_engine_is_named() {
+fn models_are_grouped_by_where_they_run_and_this_computers_by_their_engine() {
     let here = place(
         PlaceRow::new(
             PlaceId::this_computer(),
@@ -290,16 +302,59 @@ fn models_are_grouped_by_where_they_run_and_the_one_engine_is_named() {
         &[],
     );
     let places = [here, idle, cloud];
-    let groups = model_groups(&places, &["llama.cpp".to_owned()]);
+    let groups = model_groups(&places);
     let headings: Vec<&str> = groups.iter().map(|g| g.heading.as_str()).collect();
-    assert_eq!(headings, ["On this computer, with llama.cpp", "Anthropic"]);
+    assert_eq!(headings, ["On this computer", "Anthropic"]);
     assert_eq!(groups[0].offers[0].choice, chosen());
     let cloud_model = HelperModel::Named(
         ModelRef::parse("cloud/claude-sonnet").unwrap_or_else(|| panic!("model")),
     );
     assert_eq!(groups[1].offers[0].choice, cloud_model);
-    assert_eq!(model_groups(&places, &[])[0].heading, "On this computer");
-    assert!(model_groups(&[], &[]).is_empty());
+    assert!(model_groups(&[]).is_empty());
+}
+
+#[test]
+fn this_computers_models_sit_under_the_engine_that_runs_each() {
+    let engine = |id: &str, name: &str| PlaceEngine {
+        id: id.to_owned(),
+        name: name.to_owned(),
+    };
+    let model = |id: &str, name: &str| {
+        PlaceModel::new(
+            ModelId::parse(id).unwrap_or_else(|e| panic!("{e}")),
+            name.to_owned(),
+        )
+    };
+    let here = PlaceRow::new(
+        PlaceId::this_computer(),
+        PlaceKind::ThisComputer,
+        "This computer".to_owned(),
+        PlaceState::Ready,
+    )
+    .with_models(vec![
+        model("qwen3-4b", "Qwen3 4B").with_engine(engine("llama-cpp", "llama.cpp")),
+        model("mystery", "Mystery"),
+        model("qwen3-8b", "Qwen3 8B").with_engine(engine("llama-cpp", "llama.cpp")),
+        model("gemma3", "Gemma 3").with_engine(engine("vllm", "vLLM")),
+    ]);
+    let groups = model_groups(&[here]);
+    let seen: Vec<(&str, Vec<&str>)> = groups
+        .iter()
+        .map(|g| {
+            (
+                g.heading.as_str(),
+                g.offers.iter().map(|o| o.label.as_str()).collect(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        seen,
+        [
+            ("On this computer, with llama.cpp", vec!["Qwen3 4B", "Qwen3 8B"]),
+            ("On this computer", vec!["Mystery"]),
+            ("On this computer, with vLLM", vec!["Gemma 3"]),
+        ]
+    );
 }
 
 #[test]
@@ -378,11 +433,18 @@ fn a_made_helper_opens_its_card_and_a_change_reads_the_list_and_the_card_again()
         sent,
         [
             HelpersCommand::List { after: 0 },
+            HelpersCommand::Routines(RoutinesCommand::List),
             HelpersCommand::ReadCard(id("h-7"))
         ]
     );
     let (_, sent) = update(HelpersModel::default(), HelpersMsg::Changed);
-    assert_eq!(sent, [HelpersCommand::List { after: 0 }]);
+    assert_eq!(
+        sent,
+        [
+            HelpersCommand::List { after: 0 },
+            HelpersCommand::Routines(RoutinesCommand::List)
+        ]
+    );
 }
 
 #[test]
@@ -455,7 +517,13 @@ fn a_list_keeps_new_sentences_once_and_closes_a_card_whose_helper_went() {
     assert_eq!(said, ["Found it.", "Done.", "Again."]);
     assert_eq!(model.told_after, 3);
     let (_, sent) = update(model.clone(), HelpersMsg::Changed);
-    assert_eq!(sent, [HelpersCommand::List { after: 3 }]);
+    assert_eq!(
+        sent,
+        [
+            HelpersCommand::List { after: 3 },
+            HelpersCommand::Routines(RoutinesCommand::List)
+        ]
+    );
 
     let (open, _) = feed(model, vec![HelpersMsg::OpenCard(id("h-1"))]);
     let (gone, _) = update(open, listed(Vec::new(), Vec::new()));
@@ -601,6 +669,10 @@ fn a_job_line_says_where_the_job_stands_and_why_a_try_did_not_finish() {
         (job(JobShown::Working, None), "Working on it"),
         (job(JobShown::Done, None), "Done"),
         (job(JobShown::NeedsModel, None), "Needs a model first"),
+        (
+            job(JobShown::NeedsSignIn, None),
+            "Waiting for you to sign in",
+        ),
         (
             job(
                 JobShown::Waiting,

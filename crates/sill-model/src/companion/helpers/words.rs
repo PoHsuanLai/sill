@@ -30,6 +30,25 @@ pub const NO_MODELS: &str = "No model is available yet. Add one in Settings.";
 /// The last entry of the list of models.
 pub const ADD_MODEL: &str = "Add a model in Settings\u{2026}";
 
+/// Said when the sign-in cannot open a window.
+pub const NO_TERMINAL: &str = "A window to sign in with could not be opened.";
+
+/// Said when Automatic is confirmed with no model ticked.
+pub const TICK_A_MODEL: &str = "Tick at least one model for Automatic to use.";
+
+/// Said when Automatic is set for a helper.
+pub const AUTOMATIC_ON: &str = "Automatic is on for this helper.";
+
+/// Said when Automatic could not be set for a helper.
+pub const AUTOMATIC_NOT_SAVED: &str = "Automatic could not be set just now.";
+
+/// Under Automatic's models: the one reason that only helpers have.
+pub const SHARED_WITH_HELPER: &str = "Another helper is using this model";
+
+/// What Automatic does for a helper, under its models.
+pub const AUTOMATIC_HELP: &str = "Automatic chooses among the models you tick, for this helper \
+only. It prefers a model another helper is already using, so fewer have to be loaded.";
+
 /// The question before a helper goes.
 pub fn remove_question(name: &str) -> String {
     format!("Remove {name}? Its finished jobs stay in your history.")
@@ -80,6 +99,7 @@ pub fn job_state_label(state: JobShown) -> &'static str {
         JobShown::Working => "Working on it",
         JobShown::Done => "Done",
         JobShown::NeedsModel => "Needs a model first",
+        JobShown::NeedsSignIn => "Waiting for you to sign in",
     }
 }
 
@@ -122,6 +142,9 @@ pub fn job_answer(job: &JobLine) -> Option<String> {
                 .clone()
                 .unwrap_or_else(|| ANSWER_IN_HISTORY.to_owned()),
         ),
-        JobShown::Waiting | JobShown::Working | JobShown::NeedsModel => None,
+        JobShown::Waiting
+        | JobShown::Working
+        | JobShown::NeedsModel
+        | JobShown::NeedsSignIn => None,
     }
 }

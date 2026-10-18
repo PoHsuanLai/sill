@@ -144,6 +144,7 @@ fn helpers_with(helper: &str, name: &str) -> HelpersModel {
         state: HelperPhase::Idle,
         needs_you: None,
         agent: None,
+        conversation: None,
     });
     helpers
 }

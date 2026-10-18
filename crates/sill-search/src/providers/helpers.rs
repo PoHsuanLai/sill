@@ -136,6 +136,7 @@ mod tests {
             state,
             needs_you: needs,
             agent: None,
+            conversation: None,
         }
     }
 

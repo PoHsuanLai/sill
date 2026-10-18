@@ -3,10 +3,13 @@
 use std::collections::BTreeSet;
 
 use companion_wire::{HelperCardView, HelperForm, HelperReply, HelpersView};
-use docket_core::helper::{Ceiling, HelperModel};
+use docket_core::helper::{Ceiling, HelperModel, TerminalRequest};
+use porter_infer::ModelRef;
 use prov::{AppName, HelperId};
 
+use super::automatic::PoolWritten;
 use super::models::ModelGroup;
+use super::routines::{RoutinesCommand, RoutinesMsg};
 
 /// Which call a reply answers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,6 +18,10 @@ pub enum Asked {
     Save,
     /// Giving a helper a job.
     Job,
+    /// Signing in to the app a helper runs.
+    SignIn,
+    /// Signing out of the app a helper runs.
+    SignOut,
 }
 
 /// What the screen is told.
@@ -70,6 +77,26 @@ pub enum HelpersMsg {
     Remove(HelperId),
     /// The person gives the open helper a job.
     GiveJob(String),
+    /// The person signs in to the app a helper runs, by one of the ways its card lists.
+    SignIn(HelperId, String),
+    /// The person signs out of the app a helper runs.
+    SignOut(HelperId),
+    /// The window the sign-in opened was closed: the companion checks again.
+    TerminalClosed(HelperId),
+    /// A window for the sign-in could not be opened.
+    NoTerminal,
+    /// The person chooses Automatic for the open helper: they tick the models it may use.
+    StartAutomatic,
+    /// The person ticks or unticks a model for Automatic.
+    TogglePooled(ModelRef),
+    /// The person gives up choosing the models Automatic may use.
+    CancelAutomatic,
+    /// The person confirms the models ticked for Automatic.
+    ConfirmAutomatic,
+    /// What became of keeping the models Automatic may use.
+    PoolWritten(PoolWritten),
+    /// Something about the routines.
+    Routines(RoutinesMsg),
 }
 
 /// What the screen asks the companion.
@@ -108,4 +135,25 @@ pub enum HelpersCommand {
     ReadModels,
     /// Open Settings at the model picker.
     OpenModelPicker,
+    /// Sign in to the app a helper runs, by one of the ways its card lists.
+    SignIn {
+        /// Which.
+        helper: HelperId,
+        /// The id of the way.
+        way: String,
+    },
+    /// Sign out of the app a helper runs.
+    SignOut(HelperId),
+    /// Open a terminal window running the app, as the companion asked; when it closes the screen is
+    /// told ([`HelpersMsg::TerminalClosed`]).
+    OpenTerminal(TerminalRequest),
+    /// Keep the models Automatic may use for one helper.
+    SetPool {
+        /// Which.
+        helper: HelperId,
+        /// The models, never empty.
+        pool: BTreeSet<ModelRef>,
+    },
+    /// Something about the routines.
+    Routines(RoutinesCommand),
 }

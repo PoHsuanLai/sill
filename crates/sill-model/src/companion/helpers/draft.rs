@@ -5,7 +5,7 @@
 use std::collections::{BTreeSet, HashSet};
 
 use companion_wire::{HelperCardView, HelperForm};
-use docket_core::helper::{Ceiling, HelperModel, HelperName, HelperTextFault, Role};
+use docket_core::helper::{Ceiling, HelperKind, HelperModel, HelperName, HelperTextFault, Role};
 use porter_core::Count;
 use prov::{AppName, SpaceId};
 
@@ -65,6 +65,8 @@ pub struct Draft {
     pub steps: Count,
     /// Its Space.
     pub space: SpaceId,
+    /// How it works; a card read back keeps the app it runs.
+    pub kind: HelperKind,
 }
 
 impl Draft {
@@ -80,6 +82,7 @@ impl Draft {
             model: HelperModel::Unset,
             steps: DEFAULT_STEPS,
             space,
+            kind: HelperKind::Native,
         }
     }
 
@@ -92,6 +95,7 @@ impl Draft {
             model: view.model.clone(),
             steps: view.steps,
             space: view.line.space.clone(),
+            kind: view.kind.clone(),
         }
     }
 
@@ -118,6 +122,7 @@ impl Draft {
             apps: apps.iter().cloned().collect(),
             ceiling,
             steps: self.steps,
+            kind: self.kind.clone(),
         })
     }
 }

@@ -4,10 +4,12 @@ use companion_wire::{HelperCardView, HelperReply, HelpersView};
 use docket_core::helper::Ceiling;
 use prov::{AppName, HelperId, SpaceId};
 
+use super::automatic::{self, Automatic};
 use super::draft::{Draft, Reach};
 use super::model::{HelpersModel, Open, OpenCard, Removal, Told};
 use super::models::{ModelGroup, ModelList};
 use super::msg::{Asked, HelpersCommand, HelpersMsg};
+use super::routines::{self, RoutinesCommand};
 use super::words;
 
 /// How many told sentences the model keeps.
@@ -31,6 +33,7 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
             HelpersModel {
                 open: Open::Nothing,
                 models: ModelList::Closed,
+                automatic: Automatic::Off,
                 notice: None,
                 ..model
             },
@@ -40,6 +43,7 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
             HelpersModel {
                 open: Open::New(Draft::blank(SpaceId::desktop())),
                 models: ModelList::Closed,
+                automatic: Automatic::Off,
                 notice: None,
                 ..model
             },
@@ -54,6 +58,7 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
         HelpersMsg::ChooseModel(chosen) => (
             HelpersModel {
                 models: ModelList::Closed,
+                automatic: Automatic::Off,
                 ..edited(model, |draft| Draft {
                     model: chosen,
                     ..draft
@@ -89,7 +94,35 @@ pub fn update(model: HelpersModel, msg: HelpersMsg) -> (HelpersModel, Vec<Helper
         ),
         HelpersMsg::Remove(id) => remove(model, id),
         HelpersMsg::GiveJob(goal) => give_job(model, &goal),
+        HelpersMsg::SignIn(helper, way) => (
+            model,
+            vec![HelpersCommand::SignIn { helper, way }],
+        ),
+        HelpersMsg::SignOut(helper) => (model, vec![HelpersCommand::SignOut(helper)]),
+        HelpersMsg::TerminalClosed(helper) => (model, vec![HelpersCommand::Resume(helper)]),
+        HelpersMsg::NoTerminal => (said(model, words::NO_TERMINAL), Vec::new()),
+        HelpersMsg::StartAutomatic => (automatic::start(model), Vec::new()),
+        HelpersMsg::TogglePooled(chosen) => (automatic::toggle(model, chosen), Vec::new()),
+        HelpersMsg::CancelAutomatic => (automatic::cancel(model), Vec::new()),
+        HelpersMsg::ConfirmAutomatic => automatic::confirm(model),
+        HelpersMsg::PoolWritten(written) => (automatic::written(model, written), Vec::new()),
+        HelpersMsg::Routines(msg) => routine_part(model, msg),
     }
+}
+
+/// The routines part moves by `msg`; what it asks goes out as the screen's own commands.
+fn routine_part(
+    model: HelpersModel,
+    msg: routines::RoutinesMsg,
+) -> (HelpersModel, Vec<HelpersCommand>) {
+    let (part, commands) = routines::update(model.routines, msg);
+    (
+        HelpersModel {
+            routines: part,
+            ..model
+        },
+        commands.into_iter().map(HelpersCommand::Routines).collect(),
+    )
 }
 
 /// The list of models shown, or hidden when it already is; asked for when it was not.
@@ -183,9 +216,12 @@ fn listed(model: HelpersModel, view: HelpersView) -> HelpersModel {
 
 /// The companion changed something: read the list again, and the open card.
 fn changed(model: HelpersModel) -> (HelpersModel, Vec<HelpersCommand>) {
-    let mut commands = vec![HelpersCommand::List {
-        after: model.told_after,
-    }];
+    let mut commands = vec![
+        HelpersCommand::List {
+            after: model.told_after,
+        },
+        HelpersCommand::Routines(RoutinesCommand::List),
+    ];
     commands.extend(model.open_id().cloned().map(HelpersCommand::ReadCard));
     (model, commands)
 }
@@ -243,6 +279,9 @@ fn replied(
             },
             Vec::new(),
         ),
+        (_, HelperReply::OpenTerminal(request)) => {
+            (model, vec![HelpersCommand::OpenTerminal(request)])
+        }
         (Asked::Save, HelperReply::Made(id)) => {
             let after = model.told_after;
             (
@@ -253,14 +292,16 @@ fn replied(
                 vec![HelpersCommand::ReadCard(id), HelpersCommand::List { after }],
             )
         }
-        (Asked::Save, HelperReply::Done)
+        (Asked::Save | Asked::SignIn | Asked::SignOut, HelperReply::Done)
         | (Asked::Job, HelperReply::Done | HelperReply::Posted(_)) => {
             let after = model.told_after;
             let mut commands = vec![HelpersCommand::List { after }];
             commands.extend(model.open_id().cloned().map(HelpersCommand::ReadCard));
             (model, commands)
         }
-        (Asked::Job, HelperReply::Made(_)) | (Asked::Save, HelperReply::Posted(_)) => {
+        (Asked::Job, HelperReply::Made(_))
+        | (Asked::Save, HelperReply::Posted(_))
+        | (Asked::SignIn | Asked::SignOut, HelperReply::Made(_) | HelperReply::Posted(_)) => {
             (model, Vec::new())
         }
     }
@@ -274,6 +315,7 @@ fn open_card(model: HelpersModel, id: HelperId) -> (HelpersModel, Vec<HelpersCom
         HelpersModel {
             open: Open::Reading(id.clone()),
             models: ModelList::Closed,
+            automatic: Automatic::Off,
             notice: None,
             ..model
         },
