@@ -10,14 +10,15 @@
 //! its kind (`actions.rs`); Enter is its Open: a folder in the file manager, a file in the
 //! viewer.
 //!
-//! Tests never read the person's index or home directory: they use [`FakeIndex`] and temp
+//! Tests never read the person's index or home directory: they use a fake index and temp
 //! directories; a live backend test only checks that the backend exists (`choice::detect`).
 
 pub mod actions;
 pub(crate) mod bus;
 pub mod choice;
 mod cursor;
-pub mod fake;
+#[cfg(test)]
+mod fake;
 pub mod hits;
 pub mod index;
 mod program;
@@ -28,7 +29,8 @@ pub mod tracker;
 mod viewed;
 pub mod walk;
 
-pub use fake::FakeIndex;
+#[cfg(test)]
+use fake::FakeIndex;
 pub use index::{FileAnswer, FileAsk, FileHit, FileIndex, HitLimit, IndexFault, IndexKind};
 
 use std::collections::BTreeSet;
@@ -60,7 +62,7 @@ pub enum IndexSource {
     /// Picked from the policy and this machine ([`choice::detect`], once), Tracker on this
     /// session bus.
     Detect(Bus),
-    /// Always this one (a test's [`FakeIndex`]).
+    /// Always this one (a test's fake index).
     Given(Arc<dyn FileIndex>),
 }
 
