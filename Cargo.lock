@@ -7169,7 +7169,6 @@ dependencies = [
  "image",
  "jiff",
  "porter-core",
- "serde",
  "serde_json",
  "shell-host",
  "sill-launcher",

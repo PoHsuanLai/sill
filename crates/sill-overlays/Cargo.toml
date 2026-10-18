@@ -18,7 +18,6 @@ sill-shell-kit = { workspace = true }
 ds-shell = { workspace = true }
 jiff = { workspace = true }
 porter-core = { workspace = true }
-serde = { workspace = true }
 serde_json = { workspace = true }
 shell-host = { workspace = true }
 sill-launcher = { workspace = true }
