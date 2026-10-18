@@ -31,11 +31,16 @@ fn app_card(login: LoginShown, ways: Vec<SignInChoice>) -> HelperCardView {
 #[test]
 fn a_helper_that_runs_an_app_names_it_in_plain_words() {
     let native = card("h-1", "Research", HelperModel::Unset);
-    assert_eq!(kind_line(&native.kind), None);
+    assert_eq!(kind_line(&native), None);
     assert_eq!(login_line(&native), None);
     let app = app_card(LoginShown::Unknown, Vec::new());
-    assert_eq!(kind_line(&app.kind).as_deref(), Some("Uses Claude Code"));
+    assert_eq!(kind_line(&app).as_deref(), Some("Uses Claude Code"));
     assert_eq!(program_name("codex"), "Codex");
+    let named = HelperCardView {
+        app_name: Some("Claude Code CLI".to_owned()),
+        ..app
+    };
+    assert_eq!(kind_line(&named).as_deref(), Some("Uses Claude Code CLI"));
 }
 
 #[test]
@@ -78,7 +83,7 @@ fn one_way_is_a_sign_in_button_and_several_are_named_by_the_app() {
 fn a_job_waiting_to_sign_in_says_which_app() {
     let app = app_card(LoginShown::NeedsSignIn, Vec::new());
     assert_eq!(
-        needs_sign_in_line(&app.kind),
+        needs_sign_in_line(&app),
         "Sign in to Claude Code so this job can start."
     );
 }
@@ -115,6 +120,7 @@ fn a_terminal_request_opens_a_window_and_closing_it_asks_the_companion_to_check_
         helper: id("h-1"),
         program: program("claude-code"),
         login: TerminalLogin::default(),
+        run: None,
     };
     let (_, sent) = update(
         opened("h-1", HelperModel::Unset),

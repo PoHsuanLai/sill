@@ -3,7 +3,6 @@
 //! for its ways and send the way's id back.
 
 use companion_wire::{HelperCardView, LoginShown};
-use docket_core::helper::HelperKind;
 
 /// Said when the helper runs an app whose name is not known.
 const THE_APP: &str = "the app it uses";
@@ -32,15 +31,18 @@ pub fn program_name(slug: &str) -> String {
         .join(" ")
 }
 
-/// The app a helper runs, by name; nothing for a helper that plans for itself.
-pub fn app_of(kind: &HelperKind) -> Option<String> {
-    kind.program().map(|program| program_name(program.as_str()))
+/// The app a helper runs, by name; nothing for a helper that plans for itself. The name the
+/// companion read from the app's own entry wins; without one, the program's name in words.
+pub fn app_of(view: &HelperCardView) -> Option<String> {
+    let program = view.kind.program()?;
+    let named = view.app_name.as_deref().filter(|name| !name.trim().is_empty());
+    Some(named.map_or_else(|| program_name(program.as_str()), str::to_owned))
 }
 
 /// What the card says about how the helper works: "Uses Claude Code" for a helper that runs an
 /// app, nothing for one that plans for itself.
-pub fn kind_line(kind: &HelperKind) -> Option<String> {
-    app_of(kind).map(|app| format!("Uses {app}"))
+pub fn kind_line(view: &HelperCardView) -> Option<String> {
+    app_of(view).map(|app| format!("Uses {app}"))
 }
 
 /// Where the sign-in to the app stands, for a helper that runs one.
@@ -54,8 +56,8 @@ pub fn login_line(view: &HelperCardView) -> Option<&'static str> {
 }
 
 /// The sentence under a job that waits for the person to sign in.
-pub fn needs_sign_in_line(kind: &HelperKind) -> String {
-    let app = app_of(kind).unwrap_or_else(|| THE_APP.to_owned());
+pub fn needs_sign_in_line(view: &HelperCardView) -> String {
+    let app = app_of(view).unwrap_or_else(|| THE_APP.to_owned());
     format!("Sign in to {app} so this job can start.")
 }
 

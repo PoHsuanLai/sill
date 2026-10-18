@@ -34,6 +34,7 @@ almanac-core = { workspace = true }
 almanac-dbus = { workspace = true }
 prov = { workspace = true }
 porter-core = { workspace = true }
+porter-infer = { workspace = true }
 casement-protocols = { workspace = true }
 desktop-client = { workspace = true, features = ["client"] }
 porter-dbus = { workspace = true }
@@ -73,7 +74,6 @@ peephole-bus = { workspace = true, features = ["fake"] }
 # intentd is named from a fixture tree (`<root>/<pid>/cgroup`) in the private-bus tests.
 docket-dbus = { workspace = true, features = ["fixture-callers"] }
 sill-testkit = { workspace = true }
-porter-infer = { workspace = true }
 docket-router = { workspace = true }
 docket-fake = { workspace = true }
 docket-checkpoint = { workspace = true }

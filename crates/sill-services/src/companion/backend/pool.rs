@@ -1,17 +1,31 @@
 //! Keeping the models Automatic may use for one helper (`ai.auto.pool.<slot>.helper.<id>`).
 //!
-//! Nothing the shell may write reaches that key yet: inferd's settings module takes writes only
-//! from the Settings app, and neither it nor Settings has a place for a helper's pool. Until one
-//! lands, the pool is not kept and the person is told so, rather than seeing Automatic switched
-//! on that is not.
+//! The pool goes to inferd through porter's client, which is the one writer of that key. An empty
+//! pool takes the helper off Automatic. A refusal or an unreachable service is logged, and the
+//! person is told it could not be set, rather than seeing Automatic switched on that is not.
 
+use std::collections::BTreeSet;
+
+use porter_client::{Accounts, DbusTransport};
+use porter_infer::{ModelRef, Slot};
 use prov::HelperId;
 use sill_model::companion::{HelpersMsg, PoolWritten};
+use zbus::Connection;
 
-/// The pool of `helper`, kept; says that it could not be.
-pub(super) fn keep(helper: &HelperId, models: usize) -> HelpersMsg {
-    eprintln!(
-        "sill: companion: helpers: no way yet to keep the {models} models Automatic may use for {helper}"
-    );
-    HelpersMsg::PoolWritten(PoolWritten::NotSaved)
+/// The pool of `helper`, kept; says whether it was.
+pub(super) async fn keep(
+    connection: &Connection,
+    helper: &HelperId,
+    pool: &BTreeSet<ModelRef>,
+) -> HelpersMsg {
+    let models: Vec<ModelRef> = pool.iter().cloned().collect();
+    let accounts = Accounts::over(DbusTransport::over(connection.clone()));
+    let written = match accounts.set_helper_pool(Slot::Text, helper, &models).await {
+        Ok(()) => PoolWritten::Saved,
+        Err(why) => {
+            eprintln!("sill: companion: helpers: the models Automatic may use for {helper}: {why}");
+            PoolWritten::NotSaved
+        }
+    };
+    HelpersMsg::PoolWritten(written)
 }

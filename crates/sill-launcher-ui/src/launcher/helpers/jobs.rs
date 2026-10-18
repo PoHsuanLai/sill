@@ -40,7 +40,7 @@ fn job_row(job: &JobLine, view: &HelperCardView, say: &Say) -> Element {
     let answer = job_answer(job);
     let sign_in = match job.state {
         JobShown::NeedsSignIn => rsx! {
-            Label { text: needs_sign_in_line(&view.kind), role: LabelRole::Secondary }
+            Label { text: needs_sign_in_line(view), role: LabelRole::Secondary }
             div { class: "sill-helper-buttons",
                 {sign_in_row(view, "helper-job-sign-in", say)}
             }

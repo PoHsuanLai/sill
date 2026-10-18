@@ -18,7 +18,7 @@ use super::say::{Say, use_say};
 #[component]
 pub(super) fn AppLine(view: HelperCardView) -> Element {
     let say = use_say();
-    let Some(kind) = kind_line(&view.kind) else {
+    let Some(kind) = kind_line(&view) else {
         return rsx! {};
     };
     let helper = view.line.id.clone();

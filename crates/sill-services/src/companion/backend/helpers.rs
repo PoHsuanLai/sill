@@ -47,10 +47,9 @@ pub(super) async fn carry(connection: &Connection, command: HelpersCommand) -> O
         }
         HelpersCommand::Routines(command) => routines::carry(&proxy, command).await,
         HelpersCommand::ReadModels => Some(read_models(connection).await),
-        HelpersCommand::SetPool {
-            helper,
-            pool: models,
-        } => Some(pool::keep(&helper, models.len())),
+        HelpersCommand::SetPool { helper, pool } => {
+            Some(pool::keep(connection, &helper, &pool).await)
+        }
         // The launch service opens it, and the loop opens the sign-in window; neither is handed
         // here.
         HelpersCommand::OpenModelPicker | HelpersCommand::OpenTerminal(_) => None,
