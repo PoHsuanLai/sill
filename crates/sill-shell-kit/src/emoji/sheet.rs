@@ -41,67 +41,6 @@ impl SheetPx {
     }
 }
 
-macro_rules! sheets {
-    ($(($variant:ident, $slug:literal)),+ $(,)?) => {
-        /// The sheet PNG's bytes.
-        pub(crate) fn png(emoji: EmojiId, px: SheetPx) -> &'static [u8] {
-            match (emoji, px) {
-                $(
-                    (EmojiId::$variant, SheetPx::Px128) =>
-                        include_bytes!(concat!("../../assets/emoji/", $slug, "-128.png")),
-                    (EmojiId::$variant, SheetPx::Px256) =>
-                        include_bytes!(concat!("../../assets/emoji/", $slug, "-256.png")),
-                )+
-            }
-        }
-    };
-}
-
-sheets![
-    (Grinning, "grinning"),
-    (GrinningEyes, "grinning-eyes"),
-    (Beaming, "beaming"),
-    (Laughing, "laughing"),
-    (GrinSweat, "grin-sweat"),
-    (Joy, "joy"),
-    (Rofl, "rofl"),
-    (SlightSmile, "slight-smile"),
-    (UpsideDown, "upside-down"),
-    (Wink, "wink"),
-    (Blush, "blush"),
-    (Halo, "halo"),
-    (Hearts, "hearts"),
-    (HeartEyes, "heart-eyes"),
-    (StarStruck, "star-struck"),
-    (KissingHeart, "kissing-heart"),
-    (Yum, "yum"),
-    (WinkyTongue, "winky-tongue"),
-    (Zany, "zany"),
-    (Hugging, "hugging"),
-    (Chuckling, "chuckling"),
-    (Thinking, "thinking"),
-    (RaisedEyebrow, "raised-eyebrow"),
-    (Smirk, "smirk"),
-    (Relieved, "relieved"),
-    (Sleepy, "sleepy"),
-    (Sleeping, "sleeping"),
-    (Sunglasses, "sunglasses"),
-    (Nerd, "nerd"),
-    (Partying, "partying"),
-    (Cowboy, "cowboy"),
-    (MindBlown, "mind-blown"),
-    (Confounded, "confounded"),
-    (Persevering, "persevering"),
-    (Eyes, "eyes"),
-    (Wave, "wave"),
-    (ThumbsUp, "thumbs-up"),
-    (RaisingHands, "raising-hands"),
-    (Victory, "victory"),
-    (Ghost, "ghost"),
-    (Robot, "robot"),
-    (Fox, "fox"),
-];
-
 /// `manifest.json` as `tools/emoji` writes it; only what playback reads.
 #[derive(Debug, Deserialize)]
 pub(crate) struct Manifest {
@@ -187,7 +126,7 @@ pub(crate) fn uri(emoji: EmojiId, px: SheetPx) -> &'static str {
         SheetPx::Px128 => &URIS_128,
         SheetPx::Px256 => &URIS_256,
     };
-    cache[emoji.index()].get_or_init(|| IconUrl::png(png(emoji, px)).as_str().to_owned())
+    cache[emoji.index()].get_or_init(|| IconUrl::png(emoji.png(px)).as_str().to_owned())
 }
 
 /// Where frame `frame` sits, as a `background-position` in shares of the box, and the

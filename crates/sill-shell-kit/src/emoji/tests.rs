@@ -1,6 +1,6 @@
 use super::id::EmojiId;
 use super::play::animation;
-use super::sheet::{MANIFEST_JSON, SheetPx, durations, png, position, timing};
+use super::sheet::{MANIFEST_JSON, SheetPx, durations, position, timing};
 use ds::base::word::Word;
 use std::time::Duration;
 
@@ -29,7 +29,7 @@ fn every_sheet_is_its_grid_of_frames() {
             "{emoji:?}: an empty row"
         );
         for px in [SheetPx::Px128, SheetPx::Px256] {
-            let image = image::load_from_memory(png(emoji, px)).expect("png");
+            let image = image::load_from_memory(emoji.png(px)).expect("png");
             assert_eq!(
                 (image.width(), image.height()),
                 (

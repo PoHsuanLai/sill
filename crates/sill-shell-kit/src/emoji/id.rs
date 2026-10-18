@@ -1,6 +1,7 @@
 //! [`EmojiId`]: which emoji a user picked for their picture (user data), one of the shipped set
 //! (design/25-EMOJI.md section 3). The slugs are the sheet files' stems and the serde names.
 
+use super::sheet::SheetPx;
 use ds::base::word::Word;
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +24,18 @@ macro_rules! emoji_set {
             pub fn text(self) -> &'static str {
                 match self {
                     $(EmojiId::$variant => $text,)+
+                }
+            }
+
+            /// The sheet PNG's bytes at `px`.
+            pub(crate) fn png(self, px: SheetPx) -> &'static [u8] {
+                match (self, px) {
+                    $(
+                        (EmojiId::$variant, SheetPx::Px128) =>
+                            include_bytes!(concat!("../../assets/emoji/", $slug, "-128.png")),
+                        (EmojiId::$variant, SheetPx::Px256) =>
+                            include_bytes!(concat!("../../assets/emoji/", $slug, "-256.png")),
+                    )+
                 }
             }
 
