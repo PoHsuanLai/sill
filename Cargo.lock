@@ -7070,6 +7070,7 @@ dependencies = [
 name = "sill-ipc"
 version = "0.1.0"
 dependencies = [
+ "ds-core",
  "keycap-protocol",
  "serde",
  "serde_json",

@@ -675,7 +675,8 @@ Each ends with its tests. Name the concept once and use it in every file name be
    `sill-model` type in `Response::Status`, never a mirror.
 2. A round-trip row in `sill-ipc/tests/serde.rs` with the exact bytes.
 3. `sill/src/cli/<group>.rs`: the clap argument; the arm in `cli/request.rs::request`, covered
-   by its table test.
+   by its table test. A verb whose words are a closed wire enum takes the enum itself
+   (`#[derive(Word)]` on it, `#[arg(value_parser = word::<T>())]`), never a mirror enum.
 4. `sill/src/ipc/dispatch/<group>.rs`: one arm that calls a link, a service control or a
    follower and returns a `Response`; no logic in the arm.
 5. Tests: a row in `crates/sill/tests/ipc.rs` on a fake dispatcher; the surface's acceptance

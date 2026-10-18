@@ -25,6 +25,7 @@ pub mod stdout;
 pub mod style;
 #[cfg(test)]
 mod tests;
+mod word;
 
 pub use command::Command;
 pub use request::request;

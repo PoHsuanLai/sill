@@ -1,5 +1,6 @@
 //! The volume's state.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 use crate::units::{Percent, Presence};
@@ -17,7 +18,7 @@ pub struct Volume {
 }
 
 /// Whether the sink is muted.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum Mute {
     #[default]

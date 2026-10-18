@@ -7,6 +7,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 use super::ids::{ActionKey, AppKey, NotificationId, UnixMs};
@@ -164,7 +165,7 @@ pub struct Hints {
 }
 
 /// The `urgency` hint.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifyUrgency {
     Low,

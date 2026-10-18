@@ -6,6 +6,7 @@
 
 use std::path::PathBuf;
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, PreviewKind};
 use sill_model::auth::FakeVerdict;
@@ -94,7 +95,7 @@ pub enum DebugRequest {
 }
 
 /// Which pointer button a debug click presses.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum PointerButton {
     /// The left button of a right-handed mouse.
@@ -120,7 +121,7 @@ pub struct SurfaceName(pub String);
 pub struct KeySpec(pub String);
 
 /// What an injected key does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum KeyAction {
     /// Press and release: a keystroke.

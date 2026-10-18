@@ -3,6 +3,7 @@
 //! under the pointer is not known to the daemon), which is the first with that surface; Edit
 //! Widgets prefers the output of the active window.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 /// `sill launcher|power-menu|force-quit|control-center|notifications|widgets ...`, the verbs that show or
@@ -33,7 +34,7 @@ pub enum ShowRequest {
 }
 
 /// How a panel changes: the shortcut that flips it, or the two that set it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum Reveal {
     /// Open when closed, close when open.
@@ -58,7 +59,7 @@ pub enum LauncherRequest {
 
 /// The hold-to-talk gesture's three edges, from a source that detects the hold itself (the
 /// keyboard remapper): the key held long enough, let go, or spoiled by another input.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum VoiceRequest {
     /// The hold began: open the companion and listen.
@@ -70,7 +71,7 @@ pub enum VoiceRequest {
 }
 
 /// The companion's four verbs (`sill companion {tap,summon,dismiss,stop-all}`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum CompanionRequest {
     /// The double-tap fired as a single tap of the key (the keyboard remapper's route B): the

@@ -2,6 +2,7 @@
 //! screenshot, the desktop widgets, the switcher's chord, the clipboard history, the banners and
 //! the keyboard on the newest transient and keycap.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
 use sill_model::intents::IntentsAsk;
@@ -94,7 +95,7 @@ pub enum VolumeRequest {
 /// `sill switcher ...`: the window switcher shortcuts run
 /// `next` / `prev`; `cancel` and `commit` are for scripts and for a compositor
 /// that tells sill about the modifier's release some other way.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum SwitcherRequest {
     /// The chord (Cmd+Tab): arm the switcher, or move the selection on.
@@ -108,7 +109,7 @@ pub enum SwitcherRequest {
 }
 
 /// `sill workspace ...`: palmrest's swipes run `prev` and `next`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkspaceRequest {
     /// The workspace before the active one (none at the first).

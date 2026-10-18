@@ -2,20 +2,22 @@
 //! group's file.
 
 use clap::Subcommand;
+use ds::base::word::Word;
+use sill_ipc::act::{SwitcherRequest, WorkspaceRequest};
+use sill_ipc::show::{CompanionRequest, Reveal, VoiceRequest};
+use sill_model::screenshots::ShotKind;
 
 use super::debug::DebugAction;
-use super::desktop::{
-    CompanionAction, ControlCenterAction, DockAction, ForceQuitAction, PowerMenuAction, ShotArg,
-    VoiceAction, WidgetsAction,
-};
+use super::desktop::{ControlCenterAction, DockAction, WidgetsAction};
 use super::display::DisplayAction;
 use super::intents::IntentsAction;
 use super::keycap::KeycapAction;
 use super::launch::LaunchArgs;
 use super::launcher::{ClipboardAction, LauncherAction};
 use super::notifications::NotificationsAction;
-use super::session::{IdleAction, LockVerb, PolkitAction, SwitcherAction, WorkspaceAction};
+use super::session::{IdleAction, LockVerb, PolkitAction};
 use super::style::StyleAction;
+use super::word::word;
 
 /// What to do.
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
@@ -52,13 +54,15 @@ pub enum Command {
     },
     /// Show or hide the power menu (Log Out, Restart, Shut Down, Suspend).
     PowerMenu {
-        #[command(subcommand)]
-        action: PowerMenuAction,
+        /// Open it, close it, or flip it.
+        #[arg(value_parser = word::<Reveal>())]
+        action: Reveal,
     },
     /// Show or hide the Force Quit Applications panel.
     ForceQuit {
-        #[command(subcommand)]
-        action: ForceQuitAction,
+        /// Open it, close it, or flip it.
+        #[arg(value_parser = word::<Reveal>())]
+        action: Reveal,
     },
     /// Open or close the control center.
     ControlCenter {
@@ -77,13 +81,19 @@ pub enum Command {
     },
     /// The app switcher's chord (the window switcher shortcuts run these).
     Switcher {
-        #[command(subcommand)]
-        action: SwitcherAction,
+        /// `next` is the chord (Cmd+Tab: arm the switcher, or move the selection on), `prev` the
+        /// reverse chord (Cmd+Shift+Tab); `cancel` closes it and switches to nothing, `commit`
+        /// switches to the selection and closes it.
+        #[arg(value_parser = word::<SwitcherRequest>())]
+        action: SwitcherRequest,
     },
     /// Step the workspace (palmrest's swipes run these).
     Workspace {
-        #[command(subcommand)]
-        action: WorkspaceAction,
+        /// `prev` and `next` go to the workspace before or after the active one; `overview` shows
+        /// every window and workspace at once (Mission Control; fails on a session that is not
+        /// ours).
+        #[arg(value_parser = word::<WorkspaceRequest>())]
+        action: WorkspaceRequest,
     },
     /// sill's own polkit agent.
     Polkit {
@@ -116,8 +126,10 @@ pub enum Command {
     AuthCheck,
     /// Take a screenshot with `screenshot.tool`; its thumbnail shows at the bottom right.
     Screenshot {
-        #[arg(value_enum, default_value_t = ShotArg::Area)]
-        kind: ShotArg,
+        /// `area` is a rectangle you drag out and `window` one window (both the picker); `screen`
+        /// is the whole screen, at once.
+        #[arg(value_parser = word::<ShotKind>(), default_value = ShotKind::Area.slug())]
+        kind: ShotKind,
     },
     /// Give the keyboard to the newest transient card, the screenshot thumbnail or a notification
     /// banner, whichever appeared last: Enter opens it, Delete trashes the shot or closes the
@@ -130,13 +142,19 @@ pub enum Command {
     },
     /// The assistant: summon it, put it away, or pause what it is doing.
     Companion {
-        #[command(subcommand)]
-        action: CompanionAction,
+        /// `tap` is one tap of the double-tap key (the second within `companion.double_tap_ms`
+        /// summons); `summon` summons now (a double tap already detected); `dismiss` puts the
+        /// assistant away; `stop-all` pauses every run in the focused Space.
+        #[arg(value_parser = word::<CompanionRequest>())]
+        action: CompanionRequest,
     },
     /// Hold-to-talk: the edges of the hold, for a key source that detects it itself.
     Voice {
-        #[command(subcommand)]
-        action: VoiceAction,
+        /// `hold-start`: the hold began, open the assistant and listen; `hold-end`: the key was let
+        /// go, finish and send what was said; `hold-cancel`: another input spoiled the hold,
+        /// discard what was said.
+        #[arg(value_parser = word::<VoiceRequest>())]
+        action: VoiceRequest,
     },
     /// Your own stylesheet, `style.css`.
     Style {

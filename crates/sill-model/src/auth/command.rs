@@ -1,11 +1,12 @@
 //! What the auth service can be told.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 use super::Secret;
 
 /// A verdict made up by `sill debug auth` (debug builds only: the daemon refuses it otherwise).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum FakeVerdict {
     Accept,

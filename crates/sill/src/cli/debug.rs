@@ -3,7 +3,8 @@
 
 use std::path::PathBuf;
 
-use clap::{Subcommand, ValueEnum};
+use clap::Subcommand;
+use ds::base::word::Word;
 use sill_ipc::debug::{DebugRequest, KeyAction, KeySpec, Point, PointerButton, SurfaceName};
 use sill_ipc::request::Request;
 
@@ -15,6 +16,7 @@ use sill_model::units::Percent;
 use sill_model::volume::Mute;
 
 use super::made_up::{NotifyArgs, PolkitArgs, polkit_request, posting};
+use super::word::word;
 
 /// `sill debug ...`.
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
@@ -33,8 +35,8 @@ pub enum DebugAction {
         x: i32,
         y: i32,
         /// Which button.
-        #[arg(long, value_enum, default_value_t = ClickButton::Primary)]
-        button: ClickButton,
+        #[arg(long, value_parser = word::<PointerButton>(), default_value = PointerButton::Primary.slug())]
+        button: PointerButton,
     },
     /// Press a key on SURFACE as if typed (`sill-power-menu-DP-1`): KEY is a W3C key name or
     /// `Space`, then `+shift`, `+ctrl`, `+alt` or `+super` (`Tab`, `ArrowRight`, `k+ctrl`).
@@ -42,19 +44,19 @@ pub enum DebugAction {
         surface: String,
         key: String,
         /// Press and release (`tap`), or hold, or let go.
-        #[arg(long, value_enum, default_value_t = KeyActionArg::Tap)]
-        action: KeyActionArg,
+        #[arg(long, value_parser = word::<KeyAction>(), default_value = KeyAction::Tap.slug())]
+        action: KeyAction,
     },
     /// Show the OSD for a made-up change, moving no real level.
     Osd {
         /// What changed.
-        #[arg(value_enum)]
-        topic: TopicArg,
+        #[arg(value_parser = word::<OsdKind>())]
+        topic: OsdKind,
         /// The level to show, 0-100.
         percent: u8,
         /// Whether the made-up volume is muted.
-        #[arg(long, value_enum, default_value_t = MuteArg::Audible)]
-        mute: MuteArg,
+        #[arg(long, value_parser = word::<Mute>(), default_value = Mute::Audible.slug())]
+        mute: Mute,
     },
     /// Post a made-up notification without D-Bus: a banner, and a row in the center.
     Notify(NotifyArgs),
@@ -62,8 +64,8 @@ pub enum DebugAction {
     Screenshot { path: PathBuf },
     /// Carry out CORNER's hot corner action, as if the pointer had rested there.
     Corner {
-        #[arg(value_enum)]
-        corner: CornerArg,
+        #[arg(value_parser = word::<Corner>())]
+        corner: Corner,
     },
     /// `button` presses at X Y on SURFACE and stays down: the first half of a real drag
     /// (shell-host's `Inject::PointerDown`). `sill debug pointer` moves while it
@@ -73,8 +75,8 @@ pub enum DebugAction {
         x: i32,
         y: i32,
         /// Which button.
-        #[arg(long, value_enum, default_value_t = ClickButton::Primary)]
-        button: ClickButton,
+        #[arg(long, value_parser = word::<PointerButton>(), default_value = PointerButton::Primary.slug())]
+        button: PointerButton,
     },
     /// `button` releases at X Y on SURFACE: the second half of a real drag
     /// (`Inject::PointerUp`).
@@ -83,13 +85,13 @@ pub enum DebugAction {
         x: i32,
         y: i32,
         /// Which button.
-        #[arg(long, value_enum, default_value_t = ClickButton::Primary)]
-        button: ClickButton,
+        #[arg(long, value_parser = word::<PointerButton>(), default_value = PointerButton::Primary.slug())]
+        button: PointerButton,
     },
     /// Feed the lock screen's password check a made-up verdict (a debug daemon only).
     Auth {
-        #[arg(value_enum)]
-        verdict: VerdictArg,
+        #[arg(value_parser = word::<FakeVerdict>())]
+        verdict: FakeVerdict,
     },
     /// Show a made-up polkit request (its stand-in helper accepts `sill-fake`).
     Polkit(PolkitArgs),
@@ -103,52 +105,6 @@ pub enum DebugAction {
     /// Wake idle as real input would (a debug daemon only; inside the lock grace it opens the
     /// lock).
     IdleWake,
-}
-
-/// `sill debug osd TOPIC`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum TopicArg {
-    Volume,
-    Brightness,
-}
-
-/// `sill debug osd --mute ...`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum MuteArg {
-    Audible,
-    Muted,
-}
-
-/// `sill debug click --button ...`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum ClickButton {
-    Primary,
-    Secondary,
-    Middle,
-}
-
-/// `sill debug key --action ...`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum KeyActionArg {
-    Tap,
-    Press,
-    Release,
-}
-
-/// `sill debug corner CORNER`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum CornerArg {
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
-}
-
-/// `sill debug auth VERDICT`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum VerdictArg {
-    Accept,
-    Refuse,
 }
 
 /// The request `sill debug ACTION` sends.
@@ -174,7 +130,7 @@ pub fn debug_request(action: &DebugAction) -> Request {
         } => DebugRequest::Click {
             surface: surface_name(surface),
             at: point(*x, *y),
-            button: pointer_button(*button),
+            button: *button,
         },
         DebugAction::PointerPress {
             surface,
@@ -184,7 +140,7 @@ pub fn debug_request(action: &DebugAction) -> Request {
         } => DebugRequest::PointerPress {
             surface: surface_name(surface),
             at: point(*x, *y),
-            button: pointer_button(*button),
+            button: *button,
         },
         DebugAction::PointerRelease {
             surface,
@@ -194,7 +150,7 @@ pub fn debug_request(action: &DebugAction) -> Request {
         } => DebugRequest::PointerRelease {
             surface: surface_name(surface),
             at: point(*x, *y),
-            button: pointer_button(*button),
+            button: *button,
         },
         DebugAction::Key {
             surface,
@@ -203,25 +159,21 @@ pub fn debug_request(action: &DebugAction) -> Request {
         } => DebugRequest::Key {
             surface: surface_name(surface),
             key: KeySpec(key.clone()),
-            action: match action {
-                KeyActionArg::Tap => KeyAction::Tap,
-                KeyActionArg::Press => KeyAction::Press,
-                KeyActionArg::Release => KeyAction::Release,
-            },
+            action: *action,
         },
         DebugAction::Osd {
             topic,
             percent,
             mute,
         } => DebugRequest::Osd {
-            topic: osd_topic(*topic),
+            topic: *topic,
             percent: Percent(u16::from(*percent)),
-            mute: mute_of(*mute),
+            mute: *mute,
         },
         DebugAction::Notify(args) => DebugRequest::Notify(Box::new(posting(args))),
         DebugAction::Screenshot { path } => DebugRequest::Screenshot { path: path.clone() },
-        DebugAction::Corner { corner } => DebugRequest::Corner(corner_name(*corner)),
-        DebugAction::Auth { verdict } => DebugRequest::Auth(verdict_of(*verdict)),
+        DebugAction::Corner { corner } => DebugRequest::Corner(*corner),
+        DebugAction::Auth { verdict } => DebugRequest::Auth(*verdict),
         DebugAction::Polkit(args) => DebugRequest::Polkit(polkit_request(args)),
         DebugAction::Switcher { apps } => DebugRequest::Switcher {
             apps: apps.iter().cloned().map(AppId).collect(),
@@ -237,42 +189,4 @@ fn surface_name(surface: &str) -> SurfaceName {
 
 fn point(x: i32, y: i32) -> Point {
     Point { x, y }
-}
-
-fn pointer_button(button: ClickButton) -> PointerButton {
-    match button {
-        ClickButton::Primary => PointerButton::Primary,
-        ClickButton::Secondary => PointerButton::Secondary,
-        ClickButton::Middle => PointerButton::Middle,
-    }
-}
-
-fn osd_topic(topic: TopicArg) -> OsdKind {
-    match topic {
-        TopicArg::Volume => OsdKind::Volume,
-        TopicArg::Brightness => OsdKind::Brightness,
-    }
-}
-
-fn mute_of(mute: MuteArg) -> Mute {
-    match mute {
-        MuteArg::Audible => Mute::Audible,
-        MuteArg::Muted => Mute::Muted,
-    }
-}
-
-fn corner_name(corner: CornerArg) -> Corner {
-    match corner {
-        CornerArg::TopLeft => Corner::TopLeft,
-        CornerArg::TopRight => Corner::TopRight,
-        CornerArg::BottomLeft => Corner::BottomLeft,
-        CornerArg::BottomRight => Corner::BottomRight,
-    }
-}
-
-fn verdict_of(verdict: VerdictArg) -> FakeVerdict {
-    match verdict {
-        VerdictArg::Accept => FakeVerdict::Accept,
-        VerdictArg::Refuse => FakeVerdict::Refuse,
-    }
 }

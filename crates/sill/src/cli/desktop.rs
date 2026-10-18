@@ -1,12 +1,12 @@
-//! The desktop's command line: `sill dock`, `sill power-menu`, `sill force-quit`, `sill control-center`, `sill
-//! screenshot`, `sill widgets` and `sill companion`.
+//! The desktop's command line: `sill dock`, `sill control-center` and `sill widgets`. The verbs
+//! that are a wire enum's words (`sill power-menu`, `sill force-quit`, `sill screenshot`,
+//! `sill companion`, `sill voice`) take the enum itself, parsed by `word::word`.
 
-use clap::{Subcommand, ValueEnum};
+use clap::Subcommand;
 use sill_ipc::act::{ActRequest, DockRequest};
 use sill_ipc::request::Request;
-use sill_ipc::show::{CompanionRequest, Reveal, ShowRequest, VoiceRequest};
+use sill_ipc::show::{Reveal, ShowRequest};
 use sill_launcher::AppId;
-use sill_model::screenshots::ShotKind;
 
 /// `sill dock ...`.
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
@@ -17,37 +17,10 @@ pub enum DockAction {
     Unpin { app: String },
 }
 
-/// `sill power-menu ...`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
-pub enum PowerMenuAction {
-    Open,
-    Close,
-    Toggle,
-}
-
-/// `sill force-quit ...`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
-pub enum ForceQuitAction {
-    Open,
-    Close,
-    Toggle,
-}
-
 /// `sill control-center ...`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
 pub enum ControlCenterAction {
     Toggle,
-}
-
-/// `sill screenshot KIND`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum ShotArg {
-    /// A rectangle you drag out (the picker).
-    Area,
-    /// One window (the picker).
-    Window,
-    /// The whole screen, at once.
-    Screen,
 }
 
 /// `sill widgets ...`.
@@ -59,33 +32,6 @@ pub enum WidgetsAction {
     Edit,
     /// Close Edit Widgets.
     EditClose,
-}
-
-/// `sill companion ...`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
-pub enum CompanionAction {
-    /// One tap of the double-tap key; the second within `companion.double_tap_ms` summons.
-    Tap,
-    /// Summon the assistant now (a double tap already detected).
-    Summon,
-    /// Put the assistant away.
-    Dismiss,
-    /// Pause every run in the focused Space.
-    StopAll,
-}
-
-/// `sill voice ...`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
-pub enum VoiceAction {
-    /// The hold began: open the assistant and listen.
-    #[command(name = "hold-start")]
-    Start,
-    /// The key was let go: finish and send what was said.
-    #[command(name = "hold-end")]
-    End,
-    /// Another input spoiled the hold: discard what was said.
-    #[command(name = "hold-cancel")]
-    Cancel,
 }
 
 /// The request `sill dock ACTION` sends.
@@ -100,38 +46,11 @@ pub fn dock_request(action: &DockAction) -> Request {
     }))
 }
 
-/// The request `sill power-menu ACTION` sends.
-pub fn power_menu_request(action: PowerMenuAction) -> Request {
-    Request::Show(ShowRequest::PowerMenu(match action {
-        PowerMenuAction::Open => Reveal::Open,
-        PowerMenuAction::Close => Reveal::Close,
-        PowerMenuAction::Toggle => Reveal::Toggle,
-    }))
-}
-
-/// The request `sill force-quit ACTION` sends.
-pub fn force_quit_request(action: ForceQuitAction) -> Request {
-    Request::Show(ShowRequest::ForceQuit(match action {
-        ForceQuitAction::Open => Reveal::Open,
-        ForceQuitAction::Close => Reveal::Close,
-        ForceQuitAction::Toggle => Reveal::Toggle,
-    }))
-}
-
 /// The request `sill control-center ACTION` sends.
 pub fn control_center_request(action: ControlCenterAction) -> Request {
     match action {
         ControlCenterAction::Toggle => Request::Show(ShowRequest::ControlCenter),
     }
-}
-
-/// The request `sill screenshot KIND` sends.
-pub fn screenshot_request(kind: ShotArg) -> Request {
-    Request::Act(ActRequest::Screenshot(match kind {
-        ShotArg::Area => ShotKind::Area,
-        ShotArg::Window => ShotKind::Window,
-        ShotArg::Screen => ShotKind::Screen,
-    }))
 }
 
 /// The request `sill widgets ACTION` sends.
@@ -141,23 +60,4 @@ pub fn widgets_request(action: WidgetsAction) -> Request {
         WidgetsAction::Edit => Request::Show(ShowRequest::EditWidgets(Reveal::Open)),
         WidgetsAction::EditClose => Request::Show(ShowRequest::EditWidgets(Reveal::Close)),
     }
-}
-
-/// The request `sill voice ACTION` sends.
-pub fn voice_request(action: VoiceAction) -> Request {
-    Request::Show(ShowRequest::Voice(match action {
-        VoiceAction::Start => VoiceRequest::HoldStart,
-        VoiceAction::End => VoiceRequest::HoldEnd,
-        VoiceAction::Cancel => VoiceRequest::HoldCancel,
-    }))
-}
-
-/// The request `sill companion ACTION` sends.
-pub fn companion_request(action: CompanionAction) -> Request {
-    Request::Show(ShowRequest::Companion(match action {
-        CompanionAction::Tap => CompanionRequest::Tap,
-        CompanionAction::Summon => CompanionRequest::Summon,
-        CompanionAction::Dismiss => CompanionRequest::Dismiss,
-        CompanionAction::StopAll => CompanionRequest::StopAll,
-    }))
 }

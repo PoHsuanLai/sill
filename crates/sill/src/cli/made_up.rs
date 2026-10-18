@@ -2,11 +2,14 @@
 //! as the `sill-model` values the services would have received from a real sender.
 
 use clap::{Args, ValueEnum};
+use ds::base::word::Word;
 use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
     parse_body,
 };
 use sill_model::polkit_agent::{ActionId, FakeRequest};
+
+use super::word::word;
 
 /// `sill debug notify SUMMARY ...`: the made-up notification's parts.
 #[derive(Debug, Clone, PartialEq, Eq, Args)]
@@ -20,8 +23,8 @@ pub struct NotifyArgs {
     #[arg(long, default_value = "")]
     pub body: String,
     /// How urgent.
-    #[arg(long, value_enum, default_value_t = UrgencyArg::Normal)]
-    pub urgency: UrgencyArg,
+    #[arg(long, value_parser = word::<NotifyUrgency>(), default_value = NotifyUrgency::Normal.slug())]
+    pub urgency: NotifyUrgency,
     /// A button, `KEY=LABEL` (repeatable; `default` is the body's click).
     #[arg(long = "action", value_name = "KEY=LABEL")]
     pub actions: Vec<String>,
@@ -42,14 +45,6 @@ pub struct PolkitArgs {
     /// The message shown.
     #[arg(long, default_value = "sill is testing its password prompt")]
     pub message: String,
-}
-
-/// `sill debug notify --urgency ...`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum UrgencyArg {
-    Low,
-    Normal,
-    Critical,
 }
 
 /// `sill debug notify --expire ...`.
@@ -91,11 +86,7 @@ pub fn posting(args: &NotifyArgs) -> Posting {
         body: parse_body(&args.body),
         actions: args.actions.iter().map(|word| action(word)).collect(),
         hints: Hints {
-            urgency: match args.urgency {
-                UrgencyArg::Low => NotifyUrgency::Low,
-                UrgencyArg::Normal => NotifyUrgency::Normal,
-                UrgencyArg::Critical => NotifyUrgency::Critical,
-            },
+            urgency: args.urgency,
             ..Hints::default()
         },
         expiry: match args.expire {
@@ -109,7 +100,7 @@ pub fn posting(args: &NotifyArgs) -> Posting {
 mod tests {
     use sill_model::notifications::{ActionKey, AppKey, Expiry, NotificationId, NotifyUrgency};
 
-    use super::{ExpireArg, NotifyArgs, UrgencyArg, action, posting};
+    use super::{ExpireArg, NotifyArgs, action, posting};
 
     #[test]
     fn an_action_word_splits_at_its_first_equals() {
@@ -134,7 +125,7 @@ mod tests {
             summary: "Ada".to_owned(),
             app: "Mail".to_owned(),
             body: "the <b>engine</b> &amp; more".to_owned(),
-            urgency: UrgencyArg::Critical,
+            urgency: NotifyUrgency::Critical,
             actions: vec!["default=Open".to_owned()],
             expire: ExpireArg::Never,
             replaces: 3,
