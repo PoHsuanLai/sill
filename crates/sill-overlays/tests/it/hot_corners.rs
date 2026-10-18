@@ -6,7 +6,7 @@
 use ds::prelude::*;
 use std::time::Duration;
 
-use ds_harness::{Driver, Harness, Input, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_overlays::HotCorners;

@@ -8,7 +8,7 @@ use ds::components::controls::button_model::{Bezel, IconSwap, ImagePosition};
 use ds::prelude::*;
 use ds::style::tokens::control_size::ControlSize;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{ClassPresence, Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{ClassPresence, Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::now_playing::kind::Playback;
 use sill_shell_kit::prelude::*;
 use std::time::Duration;

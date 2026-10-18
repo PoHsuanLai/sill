@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::hooks::PinnedAppearance;

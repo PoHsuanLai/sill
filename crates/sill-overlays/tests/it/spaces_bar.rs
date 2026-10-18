@@ -8,7 +8,7 @@
 
 use std::time::Duration;
 
-use ds_harness::{Driver, Harness, Input, Query, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use porter_core::SpaceId;
 use sill_model::desktop::{
     BarPick, BarShow, DesktopView, Shown, SpaceKind, SpacePicture, SpaceView,

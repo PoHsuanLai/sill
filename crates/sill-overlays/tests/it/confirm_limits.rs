@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use sill_model::intents::sheet::{Pending, Serial, SheetChoice};
 use sill_model::intents::{IntentsCommand, StandingGrantId};
 

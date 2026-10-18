@@ -9,7 +9,7 @@ use crate::support::month_sample;
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use month_sample::{AUGUST, First, SEPTEMBER, month};
 use sill_shell_kit::month_grid::data::{DayKey, MonthKey, MonthStep};
 use sill_shell_kit::prelude::*;

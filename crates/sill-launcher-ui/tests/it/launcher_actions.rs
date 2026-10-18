@@ -9,7 +9,7 @@
 use crate::launcher_harness;
 
 use ds::prelude::*;
-use ds_harness::{Driver, FocusState, Input, Query};
+use ds_harness::{FocusState, Input};
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{Press, is_open, open, selected_title, settle};
 use sill_launcher::WindowKey;

@@ -8,7 +8,7 @@
 use dioxus::prelude::*;
 use ds::components::controls::button_model::ImagePosition;
 use ds::prelude::*;
-use ds_harness::{Backdrop, Clock, Driver, Harness, HarnessConfig, Query, Srgba, Viewport};
+use ds_harness::{Backdrop, Clock, Harness, HarnessConfig, Srgba, Viewport};
 use sill_shell_kit::prelude::*;
 use std::collections::HashMap;
 use std::time::Duration;

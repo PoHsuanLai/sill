@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use ds::base::vocab::Activity;
 use ds::prelude::*;
 use ds::style::icon::family::PlateFamily;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use probe::rect;
 use sill_shell_kit::prelude::*;
 use std::sync::atomic::{AtomicU32, Ordering};

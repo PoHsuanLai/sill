@@ -14,7 +14,7 @@ pub use sill_ui_kit::harness::fake;
 use std::time::Duration;
 
 use ds_harness::harness::settle_until;
-use ds_harness::{Driver, Harness, Query, Viewport};
+use ds_harness::{Harness, Viewport};
 use sill_model::notifications::{
     AppGroup, AppKey, AppRef, Body, Expiry, Hints, History, IconRef, Notification, NotificationId,
     NotificationsCommand, UnixMs,

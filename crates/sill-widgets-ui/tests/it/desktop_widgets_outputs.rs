@@ -11,7 +11,7 @@ use std::time::Duration;
 use dioxus::prelude::use_context_provider;
 use ds::prelude::Word;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{Driver, Harness, Query, Viewport};
+use ds_harness::{Harness, Viewport};
 use shell_host::OutputInfo;
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};

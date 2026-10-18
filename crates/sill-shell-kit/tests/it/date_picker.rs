@@ -4,7 +4,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::date_picker::model::{DateValue, Elements, PickerStyle, TimeOfDay};
 use sill_shell_kit::month_grid::data::DayKey;
 use sill_shell_kit::prelude::*;

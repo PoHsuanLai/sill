@@ -2,7 +2,6 @@
 //! protocols report become the running apps' tiles and dots, and a window that closes takes its
 //! dot with it.
 
-use ds_harness::Driver;
 use std::time::Duration;
 
 use desktop_client::fake::FakeDesktop;

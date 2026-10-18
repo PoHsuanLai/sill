@@ -7,7 +7,6 @@ use crate::cc_support;
 
 use cc_support::details::{center, ms, press};
 
-use ds_harness::{Driver, Query};
 use sill_model::night_shift::{
     Backend, Manual, NightLight, NightShift, NightShiftCommand, Reach, Schedule, UnixSeconds,
     Warmth,

@@ -9,7 +9,7 @@ use cc_support::{fake, live};
 use std::time::Duration;
 
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{ClassPresence, Driver, Harness, Query, Viewport};
+use ds_harness::{ClassPresence, Harness, Viewport};
 use sill_bar::Bar;
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::battery::{Battery, Charge};

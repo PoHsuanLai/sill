@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, Harness, Input, Query, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use sill_model::desktop::{ForceQuitRow, Standing};
 use sill_overlays::ForceQuit;
 use sill_ui_kit::harness::{SurfaceHarness, fake};

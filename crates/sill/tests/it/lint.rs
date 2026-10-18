@@ -3,7 +3,7 @@
 //! against quire's classes and its own stylesheet. A surface's row names it; a failure names the
 //! row and the state.
 
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use std::time::Duration;
 
 use ds_lint::{LintConfig, Profile, markup, stylesheet};

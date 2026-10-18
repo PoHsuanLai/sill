@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use ds_harness::{Backdrop, Harness, Query, Srgba};
+use ds_harness::{Backdrop, Harness, Srgba};
 
 use super::SurfaceHarness;
 use crate::surface::Surface;

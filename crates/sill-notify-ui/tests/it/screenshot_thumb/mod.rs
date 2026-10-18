@@ -5,7 +5,7 @@
 //! nowhere yet and it stays; a newer shot replaces it; `screenshot.thumbnail = "hide"` and
 //! another output draw nothing; the keyboard ([`keys`]) is asked for and never taken.
 
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use std::path::PathBuf;
 use std::time::Duration;
 

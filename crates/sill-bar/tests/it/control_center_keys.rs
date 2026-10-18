@@ -4,7 +4,7 @@
 
 use crate::cc_support;
 
-use ds_harness::{Driver, FocusState, Input, Query};
+use ds_harness::{FocusState, Input};
 use std::time::Duration;
 
 use cc_support::fake;

@@ -12,7 +12,7 @@ use ds::prelude::*;
 use ds::style::space::presets::PRESETS;
 use ds::style::tokens::easing::EasingToken;
 use ds::style::tokens::timing::DurationToken;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use image::RgbaImage;
 use probe::{distance, keep};
 use sill_shell_kit::prelude::*;

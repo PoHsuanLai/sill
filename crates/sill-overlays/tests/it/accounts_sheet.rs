@@ -9,7 +9,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, Input, Query, Viewport};
+use ds_harness::{Input, Viewport};
 use ds_settings::Environment;
 use porter_core::SecretText;
 use porter_core::sheet::{FieldKind, FieldValue, SheetInput, SheetView};

@@ -10,7 +10,7 @@ use cc_support::details::{center, ms, open, press};
 use cc_support::live::Report;
 use ds::prelude::*;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{Driver, FocusState, Harness, Input, Query};
+use ds_harness::{FocusState, Harness, Input};
 use sill_model::bluetooth::{BluetoothCommand, BtPower};
 
 /// The Bluetooth tile: the grid's second module (Wi-Fi, Bluetooth, Focus, ...).

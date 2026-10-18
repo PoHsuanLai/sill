@@ -9,7 +9,7 @@ use super::{
 };
 use ds::prelude::settle as settle_time;
 use ds::prelude::*;
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use sill_model::notifications::{
     AppKey, Clear, History, NameHolder, NameOwner, Notifications, NotificationsCommand, ServerMode,
     ServerStatus,

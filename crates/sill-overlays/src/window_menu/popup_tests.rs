@@ -11,7 +11,7 @@ use ds::prelude::*;
 use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shell_type::ShellMetrics;
 use ds_harness::harness::settle_until;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_model::desktop::{WindowEntries, WindowEntry};
 use sill_ui_kit::menu::{MenuPopup, PopupLook, PopupRoom};
 

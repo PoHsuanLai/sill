@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use ds_lint::{LintConfig, Profile, assert_clean, markup};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::SurfaceHarness;

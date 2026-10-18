@@ -6,7 +6,7 @@
 
 use super::{Running, advance, commands_until, fake, note, settle, start, two_apps, until};
 use ds_harness::harness::assert_settles_to_zero_frames;
-use ds_harness::{Driver, FocusState, Harness, Input, Query};
+use ds_harness::{FocusState, Harness, Input};
 use sill_model::notifications::{AppGroup, AppKey, Clear, History, NotificationsCommand};
 use sill_settings::ShellFile;
 

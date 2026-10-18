@@ -20,7 +20,7 @@ use ds::style::appearance::blur::BlurState;
 use ds::style::icon::family::PlateFamily;
 use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shape::Corner;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use image::{Rgba, RgbaImage};
 use probe::{keep, rect};
 use sill_shell_kit::prelude::*;

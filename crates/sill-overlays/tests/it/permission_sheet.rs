@@ -8,7 +8,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, Harness, Input, Query, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use shell_host::OutputId;
 use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{

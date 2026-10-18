@@ -4,7 +4,6 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::Driver;
 use ds_settings::Environment;
 use sill_dock::Dock;
 use sill_ui_kit::harness::{SurfaceHarness, fake};

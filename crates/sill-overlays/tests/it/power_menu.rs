@@ -11,7 +11,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, FocusState, Harness, Input, Query, Viewport};
+use ds_harness::{FocusState, Harness, Input, Viewport};
 use sill_model::session::{Offer, Session, SessionAction, SessionCommand};
 use sill_overlays::PowerMenu;
 use sill_settings::{PowerMenuDefault, PowerMenuSettings, ShellFile};

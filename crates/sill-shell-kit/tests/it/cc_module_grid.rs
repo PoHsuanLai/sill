@@ -3,7 +3,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_shell_kit::control_center::module_grid::GridColumns;
 use sill_shell_kit::control_center::module_tile_kind::TileSpan;
 use sill_shell_kit::prelude::*;

@@ -8,7 +8,6 @@ use std::time::Duration;
 
 use cc_support::{fake, live};
 use ds::prelude::*;
-use ds_harness::Driver;
 use sill_ui_kit::harness::ink_contrast;
 
 /// WCAG's floor for a graphic.

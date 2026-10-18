@@ -7,7 +7,7 @@ use ds::base::vocab::Muting;
 use ds::components::content::level_glyph::vocab::LevelGlyph;
 use ds::components::controls::slider_model::SliderLook;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::prelude::*;
 use std::time::Duration;
 

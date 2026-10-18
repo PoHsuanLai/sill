@@ -12,9 +12,7 @@ use ds::components::content::avatar::{
 use ds::prelude::*;
 use ds::style::icon::family::PlateFamily;
 use ds_harness::harness::settle_until;
-use ds_harness::{
-    ClassPresence, Clock, Driver, FocusState, Harness, HarnessConfig, Input, Query, Viewport,
-};
+use ds_harness::{ClassPresence, Clock, FocusState, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::emoji::id::EmojiId;
 use sill_shell_kit::lock::vocab::{LockUser, PromptState};
 use sill_shell_kit::prelude::*;

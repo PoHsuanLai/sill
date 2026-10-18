@@ -8,7 +8,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, FocusState, Harness, Input, Query, Viewport};
+use ds_harness::{FocusState, Harness, Input, Viewport};
 use sill_launcher::{AppId, WindowKey};
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};

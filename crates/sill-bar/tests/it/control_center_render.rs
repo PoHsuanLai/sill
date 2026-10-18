@@ -6,7 +6,7 @@
 
 use crate::cc_support;
 
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use std::time::Duration;
 
 use cc_support::live::{self, Report};

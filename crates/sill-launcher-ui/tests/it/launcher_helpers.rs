@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use docket_core::helper::HelperModel;
 use docket_core::routine::RoutineId;
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use launcher_harness::launcher_support::companion::{RESEARCH, helpers};
 use launcher_harness::{Open, Press, open_in, selected_title, titles};
 use prov::HelperId;

@@ -1,6 +1,6 @@
 //! How a driven test is written, and how one written against the old per-input `Harness`
-//! methods converts (the traits are `ds_harness::{Driver, Input, Query}`; import the ones a file
-//! uses):
+//! methods converts (`Harness::send` takes an `ds_harness::Input`; the reads are methods on
+//! `Harness`):
 //!
 //! | old | now |
 //! |---|---|
@@ -15,15 +15,15 @@
 //! | `h.pointer_move_with(p, mods)`, `button_down_with`, `button_up_with`, `click_with` | `h.send(Input::Pointer(PointerInput::new(p, action).with_mods(mods)))` |
 //! | `h.is_focused(sel)` | `h.focus_of(sel) == FocusState::Focused` (or `assert_eq!` against it) |
 //! | `h.has_class(sel, c)` | `h.has_class(sel, c) == ClassPresence::Present` |
-//! | `h.advance(d)`, `h.render()` | unchanged, from `Driver` |
-//! | `h.rect`, `text_of`, `attr`, `count`, `ink_of`, `fill_of` | unchanged, from `Query` |
+//! | `h.advance(d)`, `h.render()` | unchanged |
+//! | `h.rect`, `text_of`, `attr`, `count`, `ink_of`, `fill_of` | unchanged |
 //! | `ds_blitz::NativeError` | `ds_harness::HarnessError` |
 //!
 //! Probes shared by the headless tests: a laid-out rect, the pixels inside it, and how far
 //! they stand out from their own ground. Each test crate uses some of them.
 
 use ds::prelude::*;
-use ds_harness::{Harness, Query};
+use ds_harness::Harness;
 use image::RgbaImage;
 
 pub fn rect(harness: &Harness, selector: &str) -> Rect {

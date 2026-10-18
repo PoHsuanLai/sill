@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use ds::prelude::{Point, Px};
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use sill_dock::Dock;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 

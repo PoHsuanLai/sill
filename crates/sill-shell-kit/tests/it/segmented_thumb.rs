@@ -25,7 +25,7 @@ use ds::components::controls::radio_group::Arrangement;
 use ds::components::controls::segmented::Tracking;
 use ds::prelude::*;
 use ds::style::tokens::control_size::ControlSize;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Part, Query, Srgba, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Part, Srgba, Viewport};
 use probe::{distance, rect};
 use sill_shell_kit::prelude::*;
 use std::cell::Cell;

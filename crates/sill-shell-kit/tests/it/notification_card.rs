@@ -8,7 +8,7 @@ use ds::components::content::rich_text::{Rich, RichRun};
 use ds::components::content::text_runs::RunTone;
 use ds::prelude::*;
 use ds_harness::harness::settle_until;
-use ds_harness::{Clock, Driver, FocusState, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, FocusState, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::notifications::parts::{AppMark, CardAction, Hover};
 use sill_shell_kit::prelude::*;
 

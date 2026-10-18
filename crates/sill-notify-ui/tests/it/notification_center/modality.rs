@@ -7,7 +7,7 @@
 
 use super::{advance, opened, two_apps};
 use ds::prelude::*;
-use ds_harness::{Driver, FocusState, Harness, Input, Query};
+use ds_harness::{FocusState, Harness, Input};
 
 fn modality(harness: &Harness) -> Option<String> {
     harness.attr(".ds", "data-modality")

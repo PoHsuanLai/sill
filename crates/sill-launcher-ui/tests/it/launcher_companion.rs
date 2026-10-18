@@ -8,7 +8,6 @@ use crate::launcher_harness;
 use std::time::Duration;
 
 use docket_core::Keep;
-use ds_harness::{Driver, Query};
 use launcher_harness::launcher_support::companion::{
     CLAUDE_CODE, HAIKU, companion, declined, draft, fresh, routed, task, thinking,
 };

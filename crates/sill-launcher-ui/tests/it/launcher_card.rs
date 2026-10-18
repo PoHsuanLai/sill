@@ -5,7 +5,7 @@
 use crate::launcher_harness;
 
 use ds::prelude::*;
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use launcher_harness::{Press, open, settle};
 use sill_launcher_ui::launcher::{CARD_ID, PANEL_HEIGHT};
 use sill_ui_kit::links::PanelHit;

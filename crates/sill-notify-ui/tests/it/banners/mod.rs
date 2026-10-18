@@ -8,7 +8,7 @@
 //! ([`keys`]) is asked for and never taken.
 
 use ds::base::time::FRAME_SLACK;
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use std::time::Duration;
 
 use ds::prelude::*;

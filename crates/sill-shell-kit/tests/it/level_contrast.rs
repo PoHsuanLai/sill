@@ -16,7 +16,7 @@ use ds::components::controls::slider_model::SliderLook;
 use ds::prelude::*;
 use ds::style::appearance::blur::BlurState;
 use ds::style::space::presets::PRESETS;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use probe::rect;
 use sill_shell_kit::osd::OsdLevel;
 use sill_shell_kit::prelude::*;

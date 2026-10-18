@@ -10,7 +10,7 @@ use ds::components::controls::checkbox::Checkbox;
 use ds::components::controls::segmented::Tracking;
 use ds::prelude::*;
 use ds::style::tokens::control_size::ControlSize;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::prelude::*;
 use std::time::Duration;
 

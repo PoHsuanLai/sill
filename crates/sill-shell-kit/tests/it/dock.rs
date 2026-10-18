@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::style::icon::render::IconPx;
 use ds::style::tokens::shape::Corner;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use image::{Rgba, RgbaImage};
 use probe::rect;
 use sill_shell_kit::prelude::*;

@@ -4,7 +4,6 @@
 
 use crate::launcher_harness;
 
-use ds_harness::{Driver, Query};
 use std::time::Duration;
 
 use ds_harness::harness::assert_settles_to_zero_frames;

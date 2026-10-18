@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use ds_lint::{LintConfig, Profile, markup};
 use jiff::civil::Date;
 use jiff::tz::TimeZone;

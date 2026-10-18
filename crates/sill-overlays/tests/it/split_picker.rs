@@ -6,7 +6,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, Harness, Input, Query, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use sill_model::desktop::{SplitCard, SplitSide};
 use sill_overlays::SplitPicker;
 use sill_ui_kit::harness::SurfaceHarness;

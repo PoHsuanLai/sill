@@ -5,7 +5,7 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds_harness::harness::assert_settles_to_zero_frames;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_shell_kit::prelude::*;
 use std::time::Duration;
 

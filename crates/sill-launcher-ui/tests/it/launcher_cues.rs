@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use ds::prelude::*;
 use ds_harness::harness::assert_settles_to_zero_frames;
-use ds_harness::{ClassPresence, Driver, Harness, Input, Query};
+use ds_harness::{ClassPresence, Harness, Input};
 use launcher_harness::launcher_support::m9;
 use launcher_harness::{
     Open, Press, Seen, await_off_thread, loaded, open, open_looking, settle, watch,

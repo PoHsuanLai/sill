@@ -15,7 +15,7 @@ use ds::components::content::avatar::{
     AvatarFace, AvatarShape, AvatarSize, AvatarTone, person_hue,
 };
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, FocusState, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, FocusState, Harness, HarnessConfig, Input, Viewport};
 use image::RgbaImage;
 use sill_shell_kit::lock::vocab::LockUser;
 use sill_shell_kit::prelude::*;

@@ -9,7 +9,7 @@ use crate::launcher_harness;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ds_harness::{Backdrop, Driver, Query};
+use ds_harness::Backdrop;
 use launcher_harness::{Open, Press, Seen, await_off_thread, loaded, open};
 
 /// Where the pictures go.

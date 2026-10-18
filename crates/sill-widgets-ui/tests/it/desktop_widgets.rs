@@ -7,7 +7,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ds_harness::{Driver, Harness, Query, Viewport};
+use ds_harness::{Harness, Viewport};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::PlacementFile;

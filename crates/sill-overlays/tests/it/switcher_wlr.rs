@@ -1,7 +1,6 @@
 //! The switcher on a scripted ext/wlr session (desktop-client's fake): the apps it lists come
 //! from the windows the standard protocols report, in the order the windows were last active.
 
-use ds_harness::Driver;
 use std::time::Duration;
 
 use desktop_client::fake::FakeDesktop;

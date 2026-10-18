@@ -11,7 +11,7 @@ use ds::components::content::status::battery_state::{BatteryPower, BatteryState,
 use ds::components::overlays::sheet_attach::Attach;
 use ds::components::overlays::sheet_width::SheetWidth;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::battery::device_glyph::Device;
 use sill_shell_kit::prelude::*;
 use sill_shell_kit::tokens::widgets::WidgetMetrics;

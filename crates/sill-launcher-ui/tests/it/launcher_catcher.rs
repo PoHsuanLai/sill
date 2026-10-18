@@ -6,7 +6,7 @@ use crate::launcher_harness;
 use ds::prelude::*;
 use std::time::Duration;
 
-use ds_harness::{Driver, Input, Viewport};
+use ds_harness::{Input, Viewport};
 use launcher_harness::launcher_support::fake;
 use sill_launcher_ui::LauncherCatcher;
 use sill_ui_kit::harness::SurfaceHarness;

@@ -6,7 +6,7 @@
 
 use super::{advance, commands, opened, ringed, two_apps};
 use ds::prelude::*;
-use ds_harness::{Driver, FocusState, Input, Query};
+use ds_harness::{FocusState, Input};
 use sill_model::notifications::{
     ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand,
 };

@@ -9,7 +9,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, FocusState, Harness, Input, Query, Viewport};
+use ds_harness::{FocusState, Harness, Input, Viewport};
 use shell_host::OutputId;
 use sill_model::intents::sheet::{Pending, Serial, SheetChoice, Sheets};
 use sill_model::intents::{ConfirmId, Intents, IntentsCommand, IntentsLink};

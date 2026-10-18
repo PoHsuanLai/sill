@@ -5,7 +5,6 @@
 
 use crate::launcher_harness;
 
-use ds_harness::Driver;
 use launcher_harness::launcher_support;
 
 use dioxus::prelude::*;

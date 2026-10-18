@@ -10,7 +10,7 @@ use ds::prelude::*;
 use ds::stack::menu_track::types::MenuTiming;
 use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shell_type::ShellMetrics;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use shell_host::{PopupPlacement, Rect as HostRect, Size as HostSize};
 use sill_model::tray::{Check, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind};
 use sill_model::units::{Availability as Enabled, Visibility};

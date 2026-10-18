@@ -8,7 +8,7 @@ use dioxus::prelude::*;
 use ds::components::content::status::battery_state::{BatteryPower, BatteryState, LowAt};
 use ds::prelude::*;
 use ds::style::tokens::timing::DurationToken;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_shell_kit::battery::ring::percent_text;
 use sill_shell_kit::prelude::*;
 use std::time::{Duration, Instant};

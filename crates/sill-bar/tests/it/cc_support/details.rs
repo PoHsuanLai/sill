@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use ds_harness::harness::settle_until;
-use ds_harness::{Driver, Harness, Input, Query};
+use ds_harness::{Harness, Input};
 
 use super::{fake, live};
 

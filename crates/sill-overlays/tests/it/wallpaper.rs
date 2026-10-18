@@ -10,7 +10,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ds_harness::{Backdrop, Driver};
+use ds_harness::Backdrop;
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_overlays::Wallpaper;

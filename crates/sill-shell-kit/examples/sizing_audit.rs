@@ -17,7 +17,7 @@ use ds::style::icon::retint::IconStyle;
 use ds::style::icon::retint::Tint;
 use ds::style::tokens::control_size::ControlSize;
 use ds::style::tokens::status::StatusMetrics;
-use ds_harness::{Driver, Harness, Query, Viewport};
+use ds_harness::{Harness, Viewport};
 use sill_shell_kit::prelude::*;
 use std::path::PathBuf;
 use std::time::Duration;

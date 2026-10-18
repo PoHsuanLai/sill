@@ -3,7 +3,7 @@
 //! hold; Up and Down move along the stack, Enter presses the card, Tab reaches its buttons,
 //! Enter presses a button too, Escape, Delete and Backspace dismiss the card and hand the focus on.
 
-use ds_harness::{Driver, FocusState, Input, Query};
+use ds_harness::{FocusState, Input};
 use std::time::Duration;
 
 use ds::prelude::*;

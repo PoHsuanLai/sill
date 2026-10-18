@@ -8,7 +8,7 @@ use ds::base::vocab::Muting;
 use ds::components::content::level_glyph::vocab::LevelGlyph;
 use ds::prelude::*;
 use ds_harness::harness::settle_until;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_shell_kit::osd::OsdLevel;
 use sill_shell_kit::prelude::*;
 use std::time::Duration;

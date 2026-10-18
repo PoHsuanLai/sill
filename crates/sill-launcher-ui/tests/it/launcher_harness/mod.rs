@@ -14,7 +14,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds_harness::harness::settle_until;
-use ds_harness::{Driver, Harness, Input, Query};
+use ds_harness::{Harness, Input};
 use launcher_support::{LauncherFeeds, Runner, fake};
 use sill_launcher::LauncherMode;
 use sill_launcher_ui::Launcher;

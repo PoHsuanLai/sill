@@ -2,7 +2,7 @@
 //! link asks) gives it the keyboard, pauses the hold, and then Enter and Space open it, Delete
 //! and Backspace trash it, Escape dismisses it and Tab moves between its buttons.
 
-use ds_harness::{Driver, FocusState, Input, Query};
+use ds_harness::{FocusState, Input};
 use std::time::Duration;
 
 use ds::prelude::*;

@@ -7,7 +7,7 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds_harness::harness::settle_until;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::notifications::banner_stack::{Banner, BannerKey};
 use sill_shell_kit::notifications::parts::AppMark;
 use sill_shell_kit::prelude::*;

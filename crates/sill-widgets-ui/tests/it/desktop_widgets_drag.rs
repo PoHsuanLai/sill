@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use ds::prelude::*;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{Driver, Harness, Input, Query, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};

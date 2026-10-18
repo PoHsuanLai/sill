@@ -11,7 +11,7 @@ use ds::components::content::image_source::ImageSize;
 use ds::motion::drag::DRAG_THRESHOLD;
 use ds::prelude::*;
 use ds_harness::harness::{SETTLE_BOUND, settle_until};
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::notifications::parts::Hover;
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
 use sill_shell_kit::prelude::*;

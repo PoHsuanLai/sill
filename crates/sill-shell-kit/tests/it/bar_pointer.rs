@@ -4,7 +4,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::bar::pointer::BarPointer;
 use sill_shell_kit::prelude::*;
 use std::cell::RefCell;

@@ -11,7 +11,7 @@ use ds::host::measure::Anchor;
 use ds::host::measure::use_rect;
 use ds::prelude::*;
 use ds_harness::harness::settle_until;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::prelude::*;
 use std::time::Duration;
 

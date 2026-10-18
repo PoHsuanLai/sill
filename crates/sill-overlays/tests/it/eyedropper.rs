@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{Driver, Harness, Input, Query, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use image::{Rgba, RgbaImage};
 use sill_model::capture_pick::{AskId, CaptureCommand, ColorOutcome, EyedropIn, Rgb8};
 use sill_model::desktop::{OutputPicture, OutputShot};

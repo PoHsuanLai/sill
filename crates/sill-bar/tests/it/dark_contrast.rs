@@ -5,7 +5,6 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::Driver;
 use ds_settings::Environment;
 use sill_bar::Bar;
 use sill_ui_kit::harness::SurfaceHarness;

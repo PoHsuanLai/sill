@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shell_type::ShellMetrics;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use ds_lint::{Exception, LintConfig, Profile, Rule, assert_clean};
 use ds_settings::UserStyle;
 use sill_settings::ShellFile;

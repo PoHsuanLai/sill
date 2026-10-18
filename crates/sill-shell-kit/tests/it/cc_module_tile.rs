@@ -4,7 +4,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, FocusState, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, FocusState, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::control_center::module_tile_kind::TileSpan;
 use sill_shell_kit::prelude::*;
 use std::time::Duration;

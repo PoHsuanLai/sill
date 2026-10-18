@@ -4,7 +4,7 @@
 
 use crate::launcher_harness;
 
-use ds_harness::{Driver, Input, Query};
+use ds_harness::Input;
 use std::time::Duration;
 
 use ds::prelude::*;

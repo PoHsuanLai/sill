@@ -7,7 +7,6 @@
 use crate::cc_support;
 
 use cc_support::details::{center, ms, press};
-use ds_harness::{Driver, Query};
 use sill_model::intents::terminal::{Breaker, ControlReach, Terminal};
 use sill_model::intents::{ActionRef, Intents, IntentsCommand, IntentsLink};
 

@@ -7,7 +7,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use std::time::Duration;
 
 const CSS: &str = "@keyframes slide{ from{ transform:translateX(400px); } to{ transform:none; } }

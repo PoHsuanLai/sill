@@ -8,7 +8,7 @@ use dioxus::prelude::*;
 use ds::motion::wake::WakeStamp;
 use ds::prelude::*;
 use ds_harness::harness::settle_until;
-use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_shell_kit::emoji::disc::EmojiPlayback;
 use sill_shell_kit::emoji::id::EmojiId;
 use sill_shell_kit::prelude::*;
