@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use porter_core::sheet::{ProviderKind, ProviderRow};
-use prov::{Actor, AgentLabel};
+use prov::AgentLabel;
 
 /// Provider-row labels by program id. Only agent-login rows name a program.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -30,16 +30,5 @@ impl ProgramLabels {
             .map(|label| label.0.as_str())
             .or_else(|| self.0.get(program).map(String::as_str))
             .map(str::to_owned)
-    }
-
-    /// The name of `actor` when it is a coding agent.
-    pub fn name_of_actor(&self, actor: &Actor) -> Option<String> {
-        match actor {
-            Actor::Acp { program, label } => Some(
-                self.name_of(program.as_str(), label.as_ref())
-                    .unwrap_or_else(|| "Assistant".to_owned()),
-            ),
-            _ => None,
-        }
     }
 }
