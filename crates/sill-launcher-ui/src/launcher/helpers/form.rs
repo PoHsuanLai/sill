@@ -190,5 +190,8 @@ fn offer_row(index: usize, offer: &ModelOffer, say: &Say) -> Element {
             common: Common { id: Some(format!("helper-model-{index}")), ..Common::default() },
             onclick: move |_| say.msg(HelpersMsg::ChooseModel(choice.clone())),
         }
+        if let Some(facts) = offer.facts() {
+            Label { text: facts, role: LabelRole::Secondary, style: LabelStyle::Footnote }
+        }
     }
 }

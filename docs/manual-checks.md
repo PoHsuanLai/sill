@@ -541,6 +541,8 @@ the real daemons or a real keyboard.
 - [ ] **Choose from the card**: open a helper with no model ("Not chosen yet"), press Choose…. The list shows "Looking for models…" and then the models, grouped (this computer with its engine named, each other computer, each company), with nothing marked or picked. Pick one: the line shows its name, the list closes and the "Choose a model so it can start" hint goes. Save, then open the card again: the model stayed.
 - [ ] **No model at all**: with no model on this computer or any account, Choose… says "No model is available yet" and offers "Add a model in Settings…", which opens Settings' model page.
 - [ ] **Two engines**: with models run by two engines on this computer the list has one heading per engine ("On this computer, with llama.cpp", "On this computer, with vLLM"); a model whose engine is not known sits under "On this computer".
+- [ ] **What a model reads**: in the card's list of models, a model that reads pictures has "Reads text and images" under its name, one that does not has "Text only", and a model nothing is known about has no line. Press Automatic…: the same lines sit under the models to tick. Nothing in either list says a model is wrong for the helper.
+- [ ] **Old inferd**: with an inferd that does not send what a model reads, the list looks as it did, with no line under any model.
 - [ ] **Automatic**: on a saved helper's card, press Choose…, then Automatic…. Nothing is ticked; tick two models and press Use Automatic. "Automatic is on for this helper." shows and the choice survives restarting the session; with inferd stopped, "Automatic could not be set just now." shows instead.
 
 ## A helper that runs an app, and routines

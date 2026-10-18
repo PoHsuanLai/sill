@@ -49,9 +49,9 @@ pub use helpers::{
     ModelGroup, ModelList, ModelOffer, NO_MODELS, NO_ROUTINES, OPEN_IN_TERMINAL, Open,
     PROPOSAL_ACCEPT, PROPOSAL_DECLINE, PROPOSAL_TITLE, PROPOSAL_WHY_LEAD, PoolWritten, REPEATS,
     Reach, Removal, Repeat, RoutineDraft, RoutineRemoval, RoutinesCommand, RoutinesModel,
-    RoutinesMsg, SHARED_WITH_HELPER, Sheet, SignInButton, WAITING_BADGE, app_label, badge_of,
-    ceiling_label, controls_of, handover_of, job_answer, job_prompt, job_words, kind_line,
-    last_run_line, login_line, model_groups, model_hint, model_line, needs_sign_in_line,
+    RoutinesMsg, SHARED_WITH_HELPER, Sheet, SignInButton, Takes, WAITING_BADGE, app_label,
+    badge_of, ceiling_label, controls_of, handover_of, job_answer, job_prompt, job_words,
+    kind_line, last_run_line, login_line, model_groups, model_hint, model_line, needs_sign_in_line,
     offered_apps, offers_sign_out, proposal_what, proposal_when, proposal_why, remove_question,
     remove_routine_question, repeat_label, sign_in_buttons, state_label, update as update_helpers,
 };

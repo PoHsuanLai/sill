@@ -75,5 +75,8 @@ fn pooled_row(
             value,
             onchange: move |_| say.msg(HelpersMsg::TogglePooled(model.clone())),
         }
+        if let Some(facts) = offer.facts() {
+            Label { text: facts, role: LabelRole::Secondary, style: LabelStyle::Footnote }
+        }
     }
 }

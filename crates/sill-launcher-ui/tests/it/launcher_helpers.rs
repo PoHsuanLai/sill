@@ -14,7 +14,9 @@ use launcher_harness::launcher_support::companion::{RESEARCH, helpers};
 use launcher_harness::{Open, Press, open_in, selected_title, titles};
 use prov::HelperId;
 use sill_launcher::LauncherMode;
-use sill_model::companion::{CompanionCommand, HelpersMsg, ModelGroup, ModelOffer, RoutinesMsg};
+use sill_model::companion::{
+    CompanionCommand, HelpersMsg, ModelGroup, ModelOffer, RoutinesMsg, Takes,
+};
 
 fn research() -> HelperId {
     HelperId::parse("h-1").unwrap_or_else(|e| panic!("{e}"))
@@ -161,6 +163,7 @@ fn a_model_in_the_list_is_chosen_for_the_helper_and_settings_stays_one_entry_awa
         offers: vec![ModelOffer {
             choice: qwen(),
             label: "Qwen3 4B".to_owned(),
+            takes: Takes::TextAndImages,
         }],
     };
     let mut open = on_research(offered(vec![group]));
@@ -168,6 +171,7 @@ fn a_model_in_the_list_is_chosen_for_the_helper_and_settings_stays_one_entry_awa
     for says in [
         "On this computer, with llama.cpp",
         "Qwen3 4B",
+        "Reads text and images",
         "Add a model in Settings",
     ] {
         assert!(html.contains(says), "the list says {says:?}: {html}");
@@ -370,6 +374,7 @@ fn automatic_is_offered_with_the_models_and_ticks_nothing_for_the_person() {
         offers: vec![ModelOffer {
             choice: qwen(),
             label: "Qwen3 4B".to_owned(),
+            takes: Takes::TextOnly,
         }],
     };
     let mut open = on_research(offered(vec![group.clone()]));

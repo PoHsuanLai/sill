@@ -22,7 +22,7 @@ pub use automatic::{Automatic, PoolWritten};
 pub use draft::{Draft, Reach};
 pub use handover::{BRING_BACK, HandoverShown, IN_TERMINAL, OPEN_IN_TERMINAL, handover_of};
 pub use model::{HelpersModel, Open, Removal};
-pub use models::{ModelGroup, ModelList, ModelOffer, model_groups};
+pub use models::{ModelGroup, ModelList, ModelOffer, Takes, model_groups};
 pub use msg::{Asked, HelpersCommand, HelpersMsg};
 pub use routines::{
     MISSED_SKIPPED, NO_ROUTINES, PROPOSAL_ACCEPT, PROPOSAL_DECLINE, PROPOSAL_TITLE,

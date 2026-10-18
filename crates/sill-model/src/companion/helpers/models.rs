@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 use docket_core::helper::HelperModel;
 use porter_core::AccountId;
+pub use porter_infer::Takes;
 use porter_infer::{ModelRef, PlaceEngine, PlaceKind, PlaceRow};
 
 /// The account the models of this computer and of the person's other computers are named under.
@@ -22,9 +23,16 @@ pub struct ModelOffer {
     pub choice: HelperModel,
     /// Its name, as the list shows it.
     pub label: String,
+    /// What it takes in, as the place says; unknown when the place does not.
+    pub takes: Takes,
 }
 
 impl ModelOffer {
+    /// The line shown beside it ("Reads text and images", "Text only"); none when not known.
+    pub fn facts(&self) -> Option<&'static str> {
+        self.takes.words()
+    }
+
     /// The model choosing it names.
     pub fn model(&self) -> Option<&ModelRef> {
         match &self.choice {
@@ -94,6 +102,7 @@ fn groups_of(place: &PlaceRow) -> Vec<ModelGroup> {
                 model: model.id.clone(),
             }),
             label: model.name.clone(),
+            takes: model.takes,
         };
         match groups.iter_mut().find(|(known, _)| *known == engine) {
             Some((_, offers)) => offers.push(offer),

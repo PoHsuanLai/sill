@@ -12,6 +12,7 @@ use docket_core::helper::{Ceiling, HelperKind, HelperModel, HelperName, HelperPh
 use porter_core::{AccountId, Count, ModelId};
 use porter_infer::{
     ComputerName, ModelRef, PlaceEngine, PlaceId, PlaceKind, PlaceModel, PlaceRow, PlaceState,
+    Takes,
 };
 use prov::{AppName, HelperId, SpaceId};
 use sill_launcher::HelperControl;
@@ -216,6 +217,7 @@ fn offered_group() -> ModelGroup {
         offers: vec![ModelOffer {
             choice: chosen(),
             label: "Qwen3 4B".to_owned(),
+            takes: Takes::Unknown,
         }],
     }
 }
@@ -742,4 +744,34 @@ fn a_finished_job_shows_its_answer_or_where_to_find_it() {
     );
     let working = job_json(r#"{"id":4,"goal":"g","state":"working","note":null}"#);
     assert_eq!(job_answer(&working), None);
+}
+
+#[test]
+fn a_model_carries_what_it_takes_in_and_says_it_only_when_known() {
+    let model = |id: &str, takes: Takes| {
+        PlaceModel::new(
+            ModelId::parse(id).unwrap_or_else(|e| panic!("{e}")),
+            id.to_owned(),
+        )
+        .with_takes(takes)
+    };
+    let here = PlaceRow::new(
+        PlaceId::this_computer(),
+        PlaceKind::ThisComputer,
+        "This computer".to_owned(),
+        PlaceState::Ready,
+    )
+    .with_models(vec![
+        model("sees", Takes::TextAndImages),
+        model("reads", Takes::TextOnly),
+        model("mystery", Takes::Unknown),
+    ]);
+    let facts: Vec<Option<&str>> = model_groups(&[here])
+        .iter()
+        .flat_map(|group| group.offers.iter().map(ModelOffer::facts))
+        .collect();
+    assert_eq!(
+        facts,
+        [Some("Reads text and images"), Some("Text only"), None]
+    );
 }
