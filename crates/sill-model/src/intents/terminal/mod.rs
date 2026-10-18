@@ -6,5 +6,5 @@ mod step;
 #[cfg(test)]
 mod tests;
 
-pub use model::{Breaker, ControlReach, Terminal, grant_name, grant_words, parse_grant};
+pub use model::{Breaker, ControlReach, GrantError, Terminal, grant_name, grant_words, parse_grant};
 pub use step::{TerminalEvent, step};

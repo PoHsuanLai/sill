@@ -2,7 +2,7 @@
 //! read from such lines (`ics::parse_ics`'s helpers).
 
 use super::ics::{IcsEnd, IcsEvent, IcsStatus, IcsTime};
-use super::ics_value::{parse_duration, parse_time, parse_times, unescape};
+use super::ics_value::{ValueError, parse_duration, parse_time, parse_times, unescape};
 use super::rule::{Rule, parse_rule, unparsed_rule};
 
 /// `NAME;PARAM=value;…:value`, the name and parameter names upper-cased.
@@ -95,7 +95,7 @@ pub(super) struct Draft {
 
 impl Draft {
     /// Read one of the event's own properties (not a nested `VALARM`'s); why a value is bad.
-    pub fn take(&mut self, content: &ContentLine) -> Result<(), String> {
+    pub fn take(&mut self, content: &ContentLine) -> Result<(), ValueError> {
         match content.name.as_str() {
             "UID" => self.uid = Some(content.value.trim().to_owned()),
             "SUMMARY" => self.summary = unescape(&content.value),

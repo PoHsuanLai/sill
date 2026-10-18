@@ -60,13 +60,22 @@ fn capitalised(text: &str) -> String {
 
 /// `app:action` (`org.quire.Shell:shell.dock.pin`), the way a person names a grant on the command
 /// line; the other way round is [`grant_name`].
-pub fn parse_grant(text: &str) -> Result<ActionRef, String> {
+pub fn parse_grant(text: &str) -> Result<ActionRef, GrantError> {
     let (app, action) = text
         .split_once(':')
-        .ok_or_else(|| format!("{text:?} is not APP:ACTION (org.quire.Shell:shell.lock)"))?;
-    let app = prov::AppName::parse(app).map_err(|e| e.to_string())?;
-    let name = prov::ActionName::parse(action).map_err(|e| e.to_string())?;
+        .ok_or_else(|| GrantError::Shape(text.to_owned()))?;
+    let app = prov::AppName::parse(app).map_err(|e| GrantError::Name(e.to_string()))?;
+    let name = prov::ActionName::parse(action).map_err(|e| GrantError::Name(e.to_string()))?;
     Ok(ActionRef { app, name })
+}
+
+/// Why a grant typed on the command line could not be read.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum GrantError {
+    #[error("{0:?} is not APP:ACTION (org.quire.Shell:shell.lock)")]
+    Shape(String),
+    #[error("{0}")]
+    Name(String),
 }
 
 /// A grant as [`parse_grant`] reads it.
