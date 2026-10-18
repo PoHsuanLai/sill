@@ -5,6 +5,7 @@
 //! This crate never reaches `dioxus` (`scripts/check-boundary.sh`): the launcher reads the
 //! results through `use_service::<ResultsService>()`.
 
+mod clock;
 pub mod preview;
 pub mod providers;
 pub mod results;

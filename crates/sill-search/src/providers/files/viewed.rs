@@ -5,7 +5,6 @@
 //! wherever it lives. The history is read, not owned: the viewer writes it.
 
 use std::path::Path;
-use std::time::UNIX_EPOCH;
 
 use anyview_core::mime_for;
 use anyview_store::{HistoryEntry, ResumeLabel};
@@ -65,13 +64,6 @@ pub fn viewed_hits(
             })
         })
         .collect()
-}
-
-/// The modification time of the file at `path`, or `None` when it cannot be read.
-pub fn modified_of(path: &Path) -> Option<UnixTime> {
-    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
-    let since = modified.duration_since(UNIX_EPOCH).ok()?;
-    Some(UnixTime(since.as_secs()))
 }
 
 /// `rows` with the place each viewed file was left after its folder ("~/Documents · Page 143"),

@@ -7,14 +7,14 @@
 //! newest first. Enter makes the entry the clipboard again (`Activation::SetClipboard`); "Forget"
 //! (⌘⌫, `Activation::ForgetClipboard`) drops it and the launcher stays open.
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use nucleo_matcher::Matcher;
 use sill_launcher::{
     Activation, Batch, Choice, Item, Needle, Provider, ProviderKind, Query, ResultSink, Scope,
-    Subject, UnixTime, matching,
+    Subject, matching,
 };
 use tokio::sync::watch;
+
+use crate::clock::unix_now;
 
 use sill_model::clipboard::Clipboard;
 
@@ -76,16 +76,6 @@ impl Provider for ClipboardProvider {
 /// Reads the clock for the ages; the private `rows::rows_at` is the pure part.
 pub fn clip_items(history: &Clipboard, needle: &Needle, matcher: &mut Matcher) -> Vec<Item> {
     rows_at(history, needle, matcher, unix_now())
-}
-
-/// The wall clock, in whole seconds; a clock before 1970 reads as 1970 (every entry is then
-/// "just now").
-fn unix_now() -> UnixTime {
-    UnixTime(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |d| d.as_secs()),
-    )
 }
 
 #[cfg(test)]

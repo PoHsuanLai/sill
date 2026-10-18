@@ -3,11 +3,11 @@
 //! `stat` of the path itself (never of its contents).
 
 use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
 
 use sill_launcher::{Mime, UnixTime};
 
 use super::index::FileHit;
+use crate::clock::unix_seconds;
 
 /// The type a file with no known type has.
 const UNKNOWN: &str = "application/octet-stream";
@@ -30,10 +30,10 @@ pub(super) fn hit_at(path: PathBuf) -> Option<FileHit> {
     let modified = meta
         .modified()
         .ok()
-        .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
-        .map_or(0, |since| since.as_secs());
+        .and_then(unix_seconds)
+        .unwrap_or(UnixTime(0));
     let mime = mime_of(&path, shape);
-    hit_of(path, mime, UnixTime(modified))
+    hit_of(path, mime, modified)
 }
 
 /// A hit for `path` with `mime` and `modified`, or `None` for a path with no file name (`/`).

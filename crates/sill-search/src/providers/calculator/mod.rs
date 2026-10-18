@@ -10,12 +10,14 @@ use std::time::Duration;
 
 use sill_launcher::{
     Action, ActionId, Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind,
-    Query, ResultSink, Score, UnixTime,
+    Query, ResultSink, Score,
 };
 
 use eval::{EvalOutcome, evaluate};
 use rates::{Rates, SharedRates};
 use tokio::sync::watch;
+
+use crate::clock::unix_now;
 
 use sill_model::results::{CurrencyPolicy, LauncherPolicy};
 
@@ -129,18 +131,6 @@ impl CalculatorProvider {
                 .into(),
         }
     }
-}
-
-/// The wall clock, in whole seconds since the epoch; a clock that cannot be read (never
-/// observed, but not a reason to panic a keystroke) treats the cache as maximally stale, which
-/// only means a fetch is attempted again.
-fn unix_now() -> UnixTime {
-    UnixTime(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0),
-    )
 }
 
 /// The one row a successful evaluation yields: primary Enter copies it, the secondary "Insert"

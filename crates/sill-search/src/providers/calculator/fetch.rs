@@ -15,6 +15,8 @@ use std::time::Duration;
 use sill_launcher::UnixTime;
 use tokio::process::Command;
 
+use crate::clock::modified_of;
+
 use super::rates::{ECB_DAILY_URL, Rates, SharedRates, parse_ecb};
 
 /// How long a failed attempt holds off the next one.
@@ -77,7 +79,7 @@ static FETCHING: AtomicBool = AtomicBool::new(false);
 /// a successful fetch in `rates`; otherwise (or while one is already in flight) does nothing.
 /// Never blocks its caller: the network call happens after this function has already returned.
 pub fn refresh_if_due(rates: SharedRates, path: PathBuf, now: UnixTime) {
-    let cached_at = mtime(&path);
+    let cached_at = modified_of(&path);
     let attempt_path = attempt_path(&path);
     let last_attempt = read_attempt(&attempt_path);
     if !due(cached_at, last_attempt, now) {
@@ -147,16 +149,6 @@ async fn fetch_into(path: &Path) -> std::io::Result<()> {
 pub fn load(path: &Path) -> Option<Rates> {
     let text = std::fs::read_to_string(path).ok()?;
     parse_ecb(&text).ok()
-}
-
-/// `path`'s own last-modified time, if it exists and is readable.
-fn mtime(path: &Path) -> Option<UnixTime> {
-    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
-    let seconds = modified
-        .duration_since(std::time::UNIX_EPOCH)
-        .ok()?
-        .as_secs();
-    Some(UnixTime(seconds))
 }
 
 /// `path`'s attempt stamp (`<unix seconds> success|failure`), if it exists and parses; a

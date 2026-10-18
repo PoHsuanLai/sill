@@ -3,7 +3,6 @@
 //! window" finds Firefox's action directly, not just Firefox itself.
 
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
@@ -12,6 +11,8 @@ use sill_launcher::{
     RankWeights, ResultSink, Score, Subject, UnixTime, matching, rank_text,
 };
 use tokio::sync::watch;
+
+use crate::clock::unix_now;
 
 use sill_model::apps::{App, AppIcon, AppIndex, DesktopActionEntry, Listing};
 
@@ -225,17 +226,6 @@ fn snapshot(frecency: &Mutex<Frecency>) -> Frecency {
         .lock()
         .map(|guard| guard.clone())
         .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
-}
-
-/// The wall clock, in whole seconds since the epoch; a clock that cannot be read (never
-/// observed, but not a reason to panic a keystroke) ages every entry from year 1970.
-fn unix_now() -> UnixTime {
-    UnixTime(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0),
-    )
 }
 
 #[cfg(test)]

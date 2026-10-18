@@ -12,13 +12,14 @@ pub mod table;
 pub mod words;
 
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use sill_launcher::{
     Activation, Batch, Choice, Frecency, Item, Needle, Provider, ProviderKind, Query, ResultSink,
-    Scope, Subject, UnixTime, matching,
+    Scope, Subject, matching,
 };
 use tokio::sync::watch;
+
+use crate::clock::unix_now;
 
 use sill_model::results::LauncherPolicy;
 
@@ -105,15 +106,4 @@ fn snapshot(frecency: &Mutex<Frecency>) -> Frecency {
         .lock()
         .map(|guard| guard.clone())
         .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
-}
-
-/// The wall clock, in whole seconds since the epoch; a clock that cannot be read (never
-/// observed, but not a reason to panic a keystroke) ages every entry from year 1970.
-fn unix_now() -> UnixTime {
-    UnixTime(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0),
-    )
 }

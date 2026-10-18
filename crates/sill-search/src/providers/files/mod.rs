@@ -34,16 +34,18 @@ pub use index::{FileAnswer, FileAsk, FileHit, FileIndex, HitLimit, IndexFault, I
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use anyview_core::FileAction;
 use anyview_store::read_history;
 use ds_core::word::Word;
 use sill_launcher::{
     ActionId, Activation, Batch, Choice, Frecency, Item, Needle, Provider, ProviderKind, Query,
-    RankWeights, ResultSink, Subject, UnixTime, matching,
+    RankWeights, ResultSink, Subject, matching,
 };
 use tokio::sync::watch;
+
+use crate::clock::{modified_of, unix_now};
 
 use sill_model::results::{FilesChoice, LauncherPolicy};
 use tracker::TrackerIndex;
@@ -110,7 +112,7 @@ impl Provider for FilesProvider {
         let viewed_hits: Vec<FileHit> = viewed::viewed_hits(
             views,
             |name| hits::name_matches(&needle, name, &mut matcher),
-            viewed::modified_of,
+            modified_of,
         )
         .into_iter()
         .filter(|hit| !known.contains(&hit.path))
@@ -234,14 +236,6 @@ fn snapshot(frecency: &Mutex<Frecency>) -> Frecency {
         .lock()
         .map(|guard| guard.clone())
         .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
-}
-
-fn unix_now() -> UnixTime {
-    UnixTime(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |since| since.as_secs()),
-    )
 }
 
 #[cfg(test)]

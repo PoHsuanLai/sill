@@ -4,11 +4,9 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
-use sill_launcher::{
-    Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, SectionPlan, UnixTime,
-};
+use sill_launcher::{Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, SectionPlan};
 use sill_model::apps::AppIndex;
 use sill_model::results::{
     Asked, LauncherPolicy, Results, ResultsEvent, SearchCommand, Typed, arranged, step,
@@ -20,6 +18,7 @@ use tokio::time::Instant;
 use super::effect::{Outlets, effect};
 use super::history::{History, Persist};
 use super::sink::{Arrival, ChannelSink, FinishedOnDrop};
+use crate::clock::unix_now;
 
 /// How long a generation waits for its slowest provider. Past it the providers still running are
 /// no longer waited for: the rows that did arrive stand, an empty answer is shown as empty, and
@@ -148,7 +147,7 @@ impl Search {
         } else {
             Store::Present
         };
-        if let Some(seed) = first_frecency(store, installed, now()) {
+        if let Some(seed) = first_frecency(store, installed, unix_now()) {
             let frecency = self.history.start_from(seed);
             self.persist.save(frecency);
         }
@@ -222,7 +221,7 @@ impl Search {
     fn chosen(&mut self, key: ItemKey, choice: &Choice) {
         // A clipboard entry's use is never written to disk.
         if key.counting() == Counting::Counted {
-            let frecency = self.history.record(key.clone(), now());
+            let frecency = self.history.record(key.clone(), unix_now());
             self.persist.save(frecency);
         }
         let Some(item) = self
@@ -273,9 +272,15 @@ impl Search {
 
     /// Publish the merged rows in their sections, only when they changed.
     fn publish(&self) {
-        let placement = self
-            .history
-            .read(|frecency| arranged(&self.merged.items, &self.plan, self.asked, frecency, now()));
+        let placement = self.history.read(|frecency| {
+            arranged(
+                &self.merged.items,
+                &self.plan,
+                self.asked,
+                frecency,
+                unix_now(),
+            )
+        });
         let next = Results {
             generation: self.merged.generation,
             items: placement.items,
@@ -308,13 +313,4 @@ fn start(provider: Arc<dyn Provider>, query: Query, arrivals: mpsc::UnboundedSen
         };
         provider.query(&query, &mut sink);
     });
-}
-
-/// The wall clock, for frecency ages.
-fn now() -> UnixTime {
-    UnixTime(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |since| since.as_secs()),
-    )
 }
