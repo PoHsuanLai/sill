@@ -6987,6 +6987,7 @@ dependencies = [
  "clap",
  "ds",
  "ds-blitz",
+ "ds-core",
  "ds-harness",
  "ds-lint",
  "ds-settings",

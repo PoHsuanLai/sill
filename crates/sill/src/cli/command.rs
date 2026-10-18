@@ -2,7 +2,7 @@
 //! group's file.
 
 use clap::Subcommand;
-use ds::base::word::Word;
+use ds_core::word::Word;
 use sill_ipc::act::{SwitcherRequest, WorkspaceRequest};
 use sill_ipc::show::{CompanionRequest, Reveal, VoiceRequest};
 use sill_model::screenshots::ShotKind;

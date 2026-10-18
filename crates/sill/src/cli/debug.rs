@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use clap::Subcommand;
-use ds::base::word::Word;
+use ds_core::word::Word;
 use sill_ipc::debug::{DebugRequest, KeyAction, KeySpec, Point, PointerButton, SurfaceName};
 use sill_ipc::request::Request;
 

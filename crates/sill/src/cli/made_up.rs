@@ -2,7 +2,7 @@
 //! as the `sill-model` values the services would have received from a real sender.
 
 use clap::{Args, ValueEnum};
-use ds::base::word::Word;
+use ds_core::word::Word;
 use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
     parse_body,

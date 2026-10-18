@@ -2,7 +2,7 @@
 //! the wire enum itself and no mirror enum maps onto it.
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
-use ds::base::word::Word;
+use ds_core::word::Word;
 
 /// A value that is one of `T`'s slugs, parsed to `T`.
 pub(super) fn word<T: Word + Send + Sync>() -> impl TypedValueParser<Value = T> {

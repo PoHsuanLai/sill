@@ -14,6 +14,7 @@ prov = { workspace = true }
 clap = { workspace = true }
 ds-lint = { workspace = true }
 ds-blitz = { workspace = true }
+ds-core = { workspace = true }
 ds-settings = { workspace = true }
 sill-shell-kit = { workspace = true }
 latchkey = { workspace = true }
