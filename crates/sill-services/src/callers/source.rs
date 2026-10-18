@@ -53,6 +53,8 @@ impl DesktopCallers {
 impl CallerSource for DesktopCallers {
     fn peers_on(&self, connection: Connection) -> Arc<Peers> {
         let manager = ManagerCheck::Verified(Requirement::new(roles::MANAGER, Proof::Exe));
-        Arc::new(BusPeers::new(connection, self.table.clone(), manager).with_offload(Offload::Tokio))
+        Arc::new(
+            BusPeers::new(connection, self.table.clone(), manager).with_offload(Offload::Tokio),
+        )
     }
 }

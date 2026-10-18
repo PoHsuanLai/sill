@@ -141,7 +141,8 @@ impl Introduced {
 impl CallerSource for Introduced {
     fn peers_on(&self, connection: Connection) -> Arc<Peers> {
         let peers: Arc<Peers> = Arc::new(
-            BusPeers::new(connection, Table::empty(), ManagerCheck::Unchecked).with_offload(Offload::Tokio),
+            BusPeers::new(connection, Table::empty(), ManagerCheck::Unchecked)
+                .with_offload(Offload::Tokio),
         );
         for (name, standing) in self
             .standings
