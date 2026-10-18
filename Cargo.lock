@@ -7201,14 +7201,12 @@ dependencies = [
  "nucleo-matcher",
  "percent-encoding",
  "prov",
- "serde",
  "serde_json",
  "sill-launcher",
  "sill-model",
  "sill-services",
  "sill-testkit",
  "tokio",
- "toml",
  "zbus",
 ]
 
