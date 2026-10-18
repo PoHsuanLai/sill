@@ -5,6 +5,8 @@
 use sill_model::capture_pick::{EyedropIn, EyedropOut, Frozen, eyedrop_step};
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// What the surfaces follow.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct EyedropFeed {
@@ -16,30 +18,22 @@ pub struct EyedropFeed {
 
 /// The shared channel, a root context of every eyedropper surface and kept by the daemon. Clone is
 /// cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EyedropperLink {
-    feed: watch::Sender<EyedropFeed>,
-}
-
-impl Default for EyedropperLink {
-    fn default() -> Self {
-        EyedropperLink::new()
-    }
+    feed: Shared<EyedropFeed>,
 }
 
 impl EyedropperLink {
     /// No question, no surface.
     pub fn new() -> EyedropperLink {
-        EyedropperLink {
-            feed: watch::Sender::new(EyedropFeed::default()),
-        }
+        EyedropperLink::default()
     }
 
     /// Take `input` into the pictures held and return what that asks the daemon to do. The
     /// surfaces are woken only when the pictures changed.
     pub fn take(&self, input: EyedropIn) -> Vec<EyedropOut> {
         let mut out = Vec::new();
-        self.feed.send_if_modified(|feed| {
+        self.feed.modify_if(|feed| {
             let before = feed.frozen.take();
             let (next, asked) = eyedrop_step(before.clone(), input);
             let changed = next != before;
@@ -52,18 +46,18 @@ impl EyedropperLink {
 
     /// An eyedropper surface exists.
     pub fn attach(&self) {
-        self.feed.send_modify(|feed| feed.surfaces += 1);
+        self.feed.modify(|feed| feed.surfaces += 1);
     }
 
     /// An eyedropper surface is gone.
     pub fn detach(&self) {
         self.feed
-            .send_modify(|feed| feed.surfaces = feed.surfaces.saturating_sub(1));
+            .modify(|feed| feed.surfaces = feed.surfaces.saturating_sub(1));
     }
 
     /// What is held now.
     pub fn latest(&self) -> EyedropFeed {
-        self.feed.borrow().clone()
+        self.feed.now()
     }
 
     /// A receiver for the surfaces and the daemon to follow.

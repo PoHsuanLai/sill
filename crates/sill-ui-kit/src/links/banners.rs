@@ -12,6 +12,8 @@
 use shell_host::OutputId;
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// The output the banners show on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum BannerOutput {
@@ -56,42 +58,28 @@ pub enum KeyWhat {
 }
 
 /// The daemon's half and every banner surface's receiver. Clone is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct BannerLink {
-    output: watch::Sender<BannerOutput>,
-    keys: watch::Sender<KeyEvent>,
+    output: Shared<BannerOutput>,
+    keys: Shared<KeyEvent>,
     /// The transients that have a card up, the one that appeared last at the end.
-    showing: watch::Sender<Vec<Transient>>,
-}
-
-impl Default for BannerLink {
-    fn default() -> Self {
-        BannerLink::new()
-    }
+    showing: Shared<Vec<Transient>>,
 }
 
 impl BannerLink {
     /// Nowhere yet.
     pub fn new() -> BannerLink {
-        BannerLink {
-            output: watch::Sender::new(BannerOutput::Nowhere),
-            keys: watch::Sender::new(KeyEvent::default()),
-            showing: watch::Sender::new(Vec::new()),
-        }
+        BannerLink::default()
     }
 
     /// Show the banners on `output` (a repeat of the current one notifies nobody).
     pub fn set(&self, output: BannerOutput) {
-        self.output.send_if_modified(|now| {
-            let changed = *now != output;
-            *now = output;
-            changed
-        });
+        self.output.set(output);
     }
 
     /// Where they show now.
     pub fn now(&self) -> BannerOutput {
-        *self.output.borrow()
+        self.output.now()
     }
 
     /// A receiver for a surface to follow.
@@ -101,7 +89,7 @@ impl BannerLink {
 
     /// A card of `transient` has appeared: it is now the newest.
     pub fn appeared(&self, transient: Transient) {
-        self.showing.send_modify(|showing| {
+        self.showing.modify(|showing| {
             showing.retain(|t| *t != transient);
             showing.push(transient);
         });
@@ -110,13 +98,13 @@ impl BannerLink {
     /// `transient` has no card up any more.
     pub fn gone(&self, transient: Transient) {
         self.showing
-            .send_modify(|showing| showing.retain(|t| *t != transient));
+            .modify(|showing| showing.retain(|t| *t != transient));
     }
 
     /// Ask for the keyboard on the transient that appeared last (`sill focus-latest`); nothing
     /// when none is up.
     pub fn ask_keyboard(&self) {
-        let newest = self.showing.borrow().last().copied();
+        let newest = self.showing.now().last().copied();
         if let Some(transient) = newest {
             self.tell(KeyWhat::Asked(transient));
         }
@@ -128,7 +116,7 @@ impl BannerLink {
     }
 
     fn tell(&self, what: KeyWhat) {
-        self.keys.send_modify(|now| {
+        self.keys.modify(|now| {
             *now = KeyEvent {
                 serial: now.serial + 1,
                 what,

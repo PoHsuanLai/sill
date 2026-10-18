@@ -18,6 +18,7 @@ mod osd;
 mod places;
 mod power_menu;
 mod reveal;
+mod shared;
 mod spaces_bar;
 mod split_picker;
 mod switcher;
@@ -31,9 +32,7 @@ pub use edit_widgets::{
 };
 pub use eyedropper::{EyedropFeed, EyedropperLink};
 pub use focus::{Delivery, FocusLink};
-pub use force_quit::{
-    ForceQuitAsked, ForceQuitLink, ForceQuitOpening, ForceQuitSerial, ForceQuitShown,
-};
+pub use force_quit::{ForceQuitAsked, ForceQuitLink, ForceQuitOpening, ForceQuitShown};
 pub use hot_corners::{Corner, CornerHit, CornerLink};
 pub use launcher::{CLIPBOARD_TITLE, LauncherLink, Opening, PanelHit, ShownRows, ShownRowsSection};
 pub use lock::{LockLink, PromptOutput};
@@ -42,6 +41,7 @@ pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, O
 pub use places::PlacementFile;
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal};
+pub(crate) use shared::Shared;
 pub use spaces_bar::{SpacesBarFeed, SpacesBarLink, SpacesBarPicked};
 pub use split_picker::{OfferSerial, SplitAnswer, SplitAnswered, SplitOffer, SplitPickerLink};
 pub use switcher::{AskSerial, Asks, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};

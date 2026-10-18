@@ -5,6 +5,8 @@
 use shell_host::OutputId;
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// Where the prompt is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum PromptOutput {
@@ -14,35 +16,23 @@ pub enum PromptOutput {
 }
 
 /// The daemon's half and every lock surface's receiver. Clone is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LockLink {
-    prompt: watch::Sender<PromptOutput>,
-}
-
-impl Default for LockLink {
-    fn default() -> Self {
-        LockLink::new()
-    }
+    prompt: Shared<PromptOutput>,
 }
 
 impl LockLink {
     pub fn new() -> LockLink {
-        LockLink {
-            prompt: watch::Sender::new(PromptOutput::Nowhere),
-        }
+        LockLink::default()
     }
 
     /// Show the prompt on `output` (a repeat notifies nobody).
     pub fn set(&self, output: PromptOutput) {
-        self.prompt.send_if_modified(|now| {
-            let changed = *now != output;
-            *now = output;
-            changed
-        });
+        self.prompt.set(output);
     }
 
     pub fn now(&self) -> PromptOutput {
-        *self.prompt.borrow()
+        self.prompt.now()
     }
 
     pub fn subscribe(&self) -> watch::Receiver<PromptOutput> {

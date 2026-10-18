@@ -9,6 +9,8 @@
 use shell_host::OutputId;
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// One toggle request: which output's bar, and a serial so two toggles in a row are two
 /// changes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -19,28 +21,20 @@ pub struct ControlCenterAsk {
 }
 
 /// The daemon's half and every bar's receiver. Clone is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ControlCenterLink {
-    ask: watch::Sender<ControlCenterAsk>,
-}
-
-impl Default for ControlCenterLink {
-    fn default() -> Self {
-        ControlCenterLink::new()
-    }
+    ask: Shared<ControlCenterAsk>,
 }
 
 impl ControlCenterLink {
     /// No ask yet.
     pub fn new() -> ControlCenterLink {
-        ControlCenterLink {
-            ask: watch::Sender::new(ControlCenterAsk::default()),
-        }
+        ControlCenterLink::default()
     }
 
     /// Ask the bar on `output` to toggle its control center.
     pub fn toggle(&self, output: OutputId) {
-        self.ask.send_modify(|ask| {
+        self.ask.modify(|ask| {
             *ask = ControlCenterAsk {
                 output: Some(output),
                 serial: ask.serial + 1,

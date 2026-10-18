@@ -7,6 +7,8 @@ use shell_host::OutputId;
 use sill_launcher::AppId;
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// Which way a chord or key moves the selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dir {
@@ -71,28 +73,20 @@ impl Asks {
 }
 
 /// The daemon's half and every switcher surface's receiver. Clone is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SwitcherLink {
-    asked: watch::Sender<Asks>,
-}
-
-impl Default for SwitcherLink {
-    fn default() -> Self {
-        SwitcherLink::new()
-    }
+    asked: Shared<Asks>,
 }
 
 impl SwitcherLink {
     pub fn new() -> SwitcherLink {
-        SwitcherLink {
-            asked: watch::Sender::new(Asks::default()),
-        }
+        SwitcherLink::default()
     }
 
     /// Ask the switcher on `output`; every ask is new, even one equal to the last.
     pub fn ask(&self, output: OutputId, ask: SwitcherAsk) -> AskSerial {
         let mut serial = AskSerial::default();
-        self.asked.send_modify(|asks| {
+        self.asked.modify(|asks| {
             serial = AskSerial(asks.latest().map_or(0, |last| last.serial.0) + 1);
             asks.push(SwitcherAsked {
                 serial,

@@ -13,6 +13,8 @@ use shell_host::OutputId;
 use sill_settings::{DesktopWidgets, Px, WidgetKind};
 use tokio::sync::watch;
 
+use super::Shared;
+
 use super::PlacementFile;
 use crate::widgets::grid::{OutputKey, Placement};
 
@@ -25,29 +27,18 @@ pub enum EditShown {
 }
 
 /// The openers' half and every surface's receiver. Clone is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EditWidgetsLink {
-    shown: watch::Sender<EditShown>,
-    written: watch::Sender<Written>,
+    shown: Shared<EditShown>,
+    written: Shared<Written>,
     writer: Option<WidgetsWriter>,
     places: Option<PlacementFile>,
-}
-
-impl Default for EditWidgetsLink {
-    fn default() -> Self {
-        EditWidgetsLink::new()
-    }
 }
 
 impl EditWidgetsLink {
     /// Closed.
     pub fn new() -> EditWidgetsLink {
-        EditWidgetsLink {
-            shown: watch::Sender::new(EditShown::Closed),
-            written: watch::Sender::new(Written::default()),
-            writer: None,
-            places: None,
-        }
+        EditWidgetsLink::default()
     }
 
     /// The same link with `writer` saving Edit Widgets' changes.
@@ -68,7 +59,7 @@ impl EditWidgetsLink {
         match &self.writer {
             Some(writer) => {
                 writer.write(change);
-                self.written.send_modify(|serial| *serial = serial.next());
+                self.written.modify(|serial| *serial = serial.next());
             }
             None => eprintln!("sill: the desktop has no writer; nothing was saved"),
         }
@@ -97,7 +88,7 @@ impl EditWidgetsLink {
 
     /// The state now.
     pub fn now(&self) -> EditShown {
-        *self.shown.borrow()
+        self.shown.now()
     }
 
     /// A receiver for a surface to follow.
@@ -106,11 +97,7 @@ impl EditWidgetsLink {
     }
 
     fn set(&self, next: EditShown) {
-        self.shown.send_if_modified(|now| {
-            let changed = *now != next;
-            *now = next;
-            changed
-        });
+        self.shown.set(next);
     }
 }
 

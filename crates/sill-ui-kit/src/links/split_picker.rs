@@ -7,6 +7,8 @@
 use sill_model::desktop::{SplitCard, SplitSide};
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// Counts offers; each is one more than the last.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct OfferSerial(pub u64);
@@ -48,32 +50,23 @@ pub struct SplitAnswered {
 
 /// The shared channels, a root context of every picker surface and kept by the daemon. Clone is
 /// cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SplitPickerLink {
-    offer: watch::Sender<Option<SplitOffer>>,
-    answered: watch::Sender<Option<SplitAnswered>>,
-}
-
-impl Default for SplitPickerLink {
-    fn default() -> Self {
-        SplitPickerLink::new()
-    }
+    offer: Shared<Option<SplitOffer>>,
+    answered: Shared<Option<SplitAnswered>>,
 }
 
 impl SplitPickerLink {
     /// No offer, no answer.
     pub fn new() -> SplitPickerLink {
-        SplitPickerLink {
-            offer: watch::Sender::new(None),
-            answered: watch::Sender::new(None),
-        }
+        SplitPickerLink::default()
     }
 
     /// A new offer for the Split View of `first` on `output`, with no windows on it yet. It
     /// replaces any offer before it.
     pub fn begin(&self, first: impl Into<String>, side: SplitSide, output: impl Into<String>) {
         let (first, output) = (first.into(), output.into());
-        self.offer.send_modify(|latest| {
+        self.offer.modify(|latest| {
             let serial = OfferSerial(latest.as_ref().map_or(0, |last| last.serial.0) + 1);
             *latest = Some(SplitOffer {
                 serial,
@@ -88,7 +81,7 @@ impl SplitPickerLink {
     /// One more window on the open offer, after the ones already on it. Nothing without an
     /// offer.
     pub fn add(&self, card: SplitCard) {
-        self.offer.send_modify(|latest| {
+        self.offer.modify(|latest| {
             if let Some(offer) = latest {
                 offer.cards.push(card);
             }
@@ -97,7 +90,7 @@ impl SplitPickerLink {
 
     /// The offer of `first` is over. An offer of another first window stays.
     pub fn end(&self, first: &str) {
-        self.offer.send_if_modified(|latest| {
+        self.offer.modify_if(|latest| {
             let ours = latest.as_ref().is_some_and(|offer| offer.first == first);
             if ours {
                 *latest = None;
@@ -108,7 +101,7 @@ impl SplitPickerLink {
 
     /// The open offer, if any.
     pub fn latest(&self) -> Option<SplitOffer> {
-        self.offer.borrow().clone()
+        self.offer.now()
     }
 
     /// A receiver for the surfaces to follow.
@@ -119,7 +112,7 @@ impl SplitPickerLink {
     /// The person answered the offer of `first`.
     pub fn answer(&self, first: impl Into<String>, answer: SplitAnswer) {
         let first = first.into();
-        self.answered.send_modify(|last| {
+        self.answered.modify(|last| {
             let seq = last.as_ref().map_or(1, |last| last.seq + 1);
             *last = Some(SplitAnswered { seq, first, answer });
         });
@@ -127,7 +120,7 @@ impl SplitPickerLink {
 
     /// The latest answer.
     pub fn last_answer(&self) -> Option<SplitAnswered> {
-        self.answered.borrow().clone()
+        self.answered.now()
     }
 
     /// A receiver for the daemon to follow.

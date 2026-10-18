@@ -12,6 +12,8 @@ use sill_model::desktop::{
 };
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// What the bar surfaces draw from.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SpacesBarFeed {
@@ -40,30 +42,21 @@ pub struct SpacesBarPicked {
 
 /// The shared channels, a root context of every bar surface and kept by the daemon. Clone is
 /// cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SpacesBarLink {
-    feed: watch::Sender<SpacesBarFeed>,
-    picked: watch::Sender<Option<SpacesBarPicked>>,
-}
-
-impl Default for SpacesBarLink {
-    fn default() -> Self {
-        SpacesBarLink::new()
-    }
+    feed: Shared<SpacesBarFeed>,
+    picked: Shared<Option<SpacesBarPicked>>,
 }
 
 impl SpacesBarLink {
     /// Down, with no Spaces and no click.
     pub fn new() -> SpacesBarLink {
-        SpacesBarLink {
-            feed: watch::Sender::new(SpacesBarFeed::default()),
-            picked: watch::Sender::new(None),
-        }
+        SpacesBarLink::default()
     }
 
     /// The bar goes up or down.
     pub fn set_show(&self, show: BarShow) {
-        self.feed.send_if_modified(|feed| {
+        self.feed.modify_if(|feed| {
             let changed = feed.show != show;
             feed.show = show;
             changed
@@ -72,7 +65,7 @@ impl SpacesBarLink {
 
     /// The desktop changed.
     pub fn set_view(&self, view: &DesktopView) {
-        self.feed.send_if_modified(|feed| {
+        self.feed.modify_if(|feed| {
             let changed = feed.view != *view;
             if changed {
                 feed.view = view.clone();
@@ -87,7 +80,7 @@ impl SpacesBarLink {
         part: fn(&mut SpacesBarFeed) -> &mut T,
         change: impl FnOnce(T) -> T,
     ) {
-        self.feed.send_if_modified(|feed| {
+        self.feed.modify_if(|feed| {
             let slot = part(feed);
             let next = change(slot.clone());
             let changed = next != *slot;
@@ -147,7 +140,7 @@ impl SpacesBarLink {
 
     /// What the surfaces draw now.
     pub fn latest(&self) -> SpacesBarFeed {
-        self.feed.borrow().clone()
+        self.feed.now()
     }
 
     /// A receiver for the surfaces to follow.
@@ -157,7 +150,7 @@ impl SpacesBarLink {
 
     /// The person clicked in the bar.
     pub fn pick(&self, pick: BarPick) {
-        self.picked.send_modify(|last| {
+        self.picked.modify(|last| {
             let seq = last.as_ref().map_or(1, |last| last.seq + 1);
             *last = Some(SpacesBarPicked { seq, pick });
         });
@@ -165,7 +158,7 @@ impl SpacesBarLink {
 
     /// The latest click.
     pub fn last_pick(&self) -> Option<SpacesBarPicked> {
-        self.picked.borrow().clone()
+        self.picked.now()
     }
 
     /// A receiver for the daemon to follow.

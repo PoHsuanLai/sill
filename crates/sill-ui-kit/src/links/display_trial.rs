@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use sill_model::desktop::{DisplayTrial, TrialAnswer, TrialId};
 use tokio::sync::watch;
 
-use super::BannerLink;
+use super::{BannerLink, Shared};
 
 /// Counts the compositor's sends of a trial; each is one more than the last, across trials, so
 /// a restart is told from the trial before it even when both carry one id.
@@ -42,8 +42,8 @@ pub struct TrialAnswered {
 /// cheap.
 #[derive(Debug, Clone)]
 pub struct DisplayTrialLink {
-    open: watch::Sender<Option<TrialRun>>,
-    answered: watch::Sender<Option<TrialAnswered>>,
+    open: Shared<Option<TrialRun>>,
+    answered: Shared<Option<TrialAnswered>>,
     sent: Arc<AtomicU64>,
     banners: BannerLink,
 }
@@ -52,8 +52,8 @@ impl DisplayTrialLink {
     /// No trial, no answer; the question shows on the output `banners` names.
     pub fn new(banners: BannerLink) -> DisplayTrialLink {
         DisplayTrialLink {
-            open: watch::Sender::new(None),
-            answered: watch::Sender::new(None),
+            open: Shared::default(),
+            answered: Shared::default(),
             sent: Arc::new(AtomicU64::new(0)),
             banners,
         }
@@ -63,12 +63,13 @@ impl DisplayTrialLink {
     /// with the time it gives, counted from now. It replaces any trial before it.
     pub fn begin(&self, trial: DisplayTrial) {
         let serial = TrialSerial(self.sent.fetch_add(1, Ordering::Relaxed) + 1);
-        self.open.send_replace(Some(TrialRun { serial, trial }));
+        self.open
+            .modify(|open| *open = Some(TrialRun { serial, trial }));
     }
 
     /// The trial `trial` is over. A trial of another number stays.
     pub fn end(&self, trial: TrialId) {
-        self.open.send_if_modified(|latest| {
+        self.open.modify_if(|latest| {
             let ours = latest.as_ref().is_some_and(|run| run.trial.trial == trial);
             if ours {
                 *latest = None;
@@ -79,7 +80,7 @@ impl DisplayTrialLink {
 
     /// The open trial, if any.
     pub fn latest(&self) -> Option<TrialRun> {
-        *self.open.borrow()
+        self.open.now()
     }
 
     /// A receiver for the surfaces to follow.
@@ -95,7 +96,7 @@ impl DisplayTrialLink {
     /// The person answered `trial`. The question comes down at once; the compositor's end of the
     /// trial arrives after and finds nothing open.
     pub fn answer(&self, trial: TrialId, answer: TrialAnswer) {
-        self.answered.send_modify(|last| {
+        self.answered.modify(|last| {
             let seq = last.as_ref().map_or(1, |last| last.seq + 1);
             *last = Some(TrialAnswered { seq, trial, answer });
         });
@@ -104,7 +105,7 @@ impl DisplayTrialLink {
 
     /// The latest answer.
     pub fn last_answer(&self) -> Option<TrialAnswered> {
-        *self.answered.borrow()
+        self.answered.now()
     }
 
     /// A receiver for the daemon to follow.

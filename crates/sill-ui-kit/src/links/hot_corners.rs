@@ -4,6 +4,8 @@
 use shell_host::OutputId;
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// A screen corner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Corner {
@@ -42,28 +44,20 @@ pub struct CornerHit {
 }
 
 /// The surfaces' half and the daemon's receiver. Clone is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CornerLink {
-    hits: watch::Sender<Option<CornerHit>>,
-}
-
-impl Default for CornerLink {
-    fn default() -> Self {
-        CornerLink::new()
-    }
+    hits: Shared<Option<CornerHit>>,
 }
 
 impl CornerLink {
     /// No hit yet.
     pub fn new() -> CornerLink {
-        CornerLink {
-            hits: watch::Sender::new(None),
-        }
+        CornerLink::default()
     }
 
     /// `corner` of `output` fired (its surface's machine said `Fire`, or `sill debug corner`).
     pub fn hit(&self, corner: Corner, output: OutputId) {
-        self.hits.send_modify(|last| {
+        self.hits.modify(|last| {
             let seq = last.map_or(1, |hit| hit.seq + 1);
             *last = Some(CornerHit {
                 corner,
@@ -75,7 +69,7 @@ impl CornerLink {
 
     /// The latest hit.
     pub fn last(&self) -> Option<CornerHit> {
-        *self.hits.borrow()
+        self.hits.now()
     }
 
     /// A receiver for the daemon to follow.

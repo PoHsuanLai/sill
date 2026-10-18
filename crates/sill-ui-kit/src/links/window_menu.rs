@@ -7,6 +7,8 @@
 use sill_model::desktop::WindowEntry;
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// Counts openings; each is one more than the last.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct MenuSerial(pub u64);
@@ -37,31 +39,22 @@ pub struct WindowMenuPicked {
 
 /// The shared channels, a root context of every window menu surface and kept by the daemon.
 /// Clone is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct WindowMenuLink {
-    opening: watch::Sender<Option<WindowMenuOpening>>,
-    picked: watch::Sender<Option<WindowMenuPicked>>,
-}
-
-impl Default for WindowMenuLink {
-    fn default() -> Self {
-        WindowMenuLink::new()
-    }
+    opening: Shared<Option<WindowMenuOpening>>,
+    picked: Shared<Option<WindowMenuPicked>>,
 }
 
 impl WindowMenuLink {
     /// No menu asked for, nothing picked.
     pub fn new() -> WindowMenuLink {
-        WindowMenuLink {
-            opening: watch::Sender::new(None),
-            picked: watch::Sender::new(None),
-        }
+        WindowMenuLink::default()
     }
 
     /// Ask for the menu of `window` at `at`, with the entries `enabled` marks pickable.
     pub fn open(&self, window: impl Into<String>, at: (i32, i32), enabled: u32) {
         let window = window.into();
-        self.opening.send_modify(|latest| {
+        self.opening.modify(|latest| {
             let serial = MenuSerial(latest.as_ref().map_or(0, |last| last.serial.0) + 1);
             *latest = Some(WindowMenuOpening {
                 serial,
@@ -74,7 +67,7 @@ impl WindowMenuLink {
 
     /// The latest opening.
     pub fn latest(&self) -> Option<WindowMenuOpening> {
-        self.opening.borrow().clone()
+        self.opening.now()
     }
 
     /// A receiver for the surfaces to follow.
@@ -85,7 +78,7 @@ impl WindowMenuLink {
     /// The person picked `entry` in the menu of `window`.
     pub fn pick(&self, window: impl Into<String>, entry: WindowEntry) {
         let window = window.into();
-        self.picked.send_modify(|last| {
+        self.picked.modify(|last| {
             let seq = last.as_ref().map_or(1, |last| last.seq + 1);
             *last = Some(WindowMenuPicked { seq, window, entry });
         });
@@ -93,7 +86,7 @@ impl WindowMenuLink {
 
     /// The latest pick.
     pub fn last_pick(&self) -> Option<WindowMenuPicked> {
-        self.picked.borrow().clone()
+        self.picked.now()
     }
 
     /// A receiver for the daemon to follow.

@@ -6,6 +6,8 @@ use shell_host::{KeyboardFocus, OutputId};
 use sill_model::session::SessionAction;
 use tokio::sync::watch;
 
+use super::Shared;
+
 use crate::links::{OpenSerial, Opened, PanelFocus, Reveal};
 
 /// One opening: where, which button starts focused, and which opening it is.
@@ -106,71 +108,51 @@ pub fn leaving(shown: &Reveal<PowerMenuOpening>) -> Reveal<PowerMenuOpening> {
 
 /// The shared channel, given to every surface as a root context and kept by the daemon. Clone
 /// is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct PowerMenuLink {
-    shown: watch::Sender<Reveal<PowerMenuOpening>>,
-}
-
-impl Default for PowerMenuLink {
-    fn default() -> Self {
-        PowerMenuLink::new()
-    }
+    shown: Shared<Reveal<PowerMenuOpening>>,
 }
 
 impl PowerMenuLink {
     /// A hidden power menu.
     pub fn new() -> PowerMenuLink {
-        PowerMenuLink {
-            shown: watch::Sender::new(Reveal::default()),
-        }
+        PowerMenuLink::default()
     }
 
     /// The current value.
     pub fn now(&self) -> Reveal<PowerMenuOpening> {
-        self.shown.borrow().clone()
+        self.shown.now()
     }
 
     /// Open on `output`, focusing `preselect`.
     pub fn open(&self, output: OutputId, preselect: Preselect) {
-        self.shown
-            .send_if_modified(|shown| replace(shown, open(shown, output, preselect)));
+        self.shown.update(|shown| open(shown, output, preselect));
     }
 
     /// `power-menu toggle` on `output`.
     pub fn toggle(&self, output: OutputId) {
-        self.shown
-            .send_if_modified(|shown| replace(shown, toggle(shown, output)));
+        self.shown.update(|shown| toggle(shown, output));
     }
 
     /// `power-menu close`, Escape, a scrim click or a chosen action.
     pub fn close(&self) {
-        self.shown
-            .send_if_modified(|shown| replace(shown, shown.hidden()));
+        self.shown.update(Reveal::hidden);
     }
 
     /// The sheet started its exit (Escape, a scrim click or a chosen action).
     pub fn leaving(&self) {
-        self.shown
-            .send_if_modified(|shown| replace(shown, leaving(shown)));
+        self.shown.update(leaving);
     }
 
     /// The surface's keyboard focus changed.
     pub fn focus(&self, focus: KeyboardFocus) {
-        self.shown
-            .send_if_modified(|shown| replace(shown, shown.after_focus(focus)));
+        self.shown.update(|shown| shown.after_focus(focus));
     }
 
     /// A receiver for a surface to follow.
     pub fn subscribe(&self) -> watch::Receiver<Reveal<PowerMenuOpening>> {
         self.shown.subscribe()
     }
-}
-
-/// Store `next`, saying whether it differs.
-fn replace(shown: &mut Reveal<PowerMenuOpening>, next: Reveal<PowerMenuOpening>) -> bool {
-    let changed = *shown != next;
-    *shown = next;
-    changed
 }
 
 #[cfg(test)]

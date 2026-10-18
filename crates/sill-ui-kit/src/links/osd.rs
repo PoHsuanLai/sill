@@ -11,6 +11,8 @@ use sill_model::units::Percent;
 use sill_model::volume::Mute;
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// What the indicator shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OsdKind {
@@ -100,23 +102,15 @@ pub fn next(
 
 /// The shared channel, a root context of every OSD surface and kept by the daemon. Clone is
 /// cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct OsdLink {
-    latest: watch::Sender<OsdLatest>,
-}
-
-impl Default for OsdLink {
-    fn default() -> Self {
-        OsdLink::new()
-    }
+    latest: Shared<OsdLatest>,
 }
 
 impl OsdLink {
     /// No change yet.
     pub fn new() -> OsdLink {
-        OsdLink {
-            latest: watch::Sender::new(OsdLatest::None),
-        }
+        OsdLink::default()
     }
 
     /// Show a change of `kind` on `outputs` (nothing when `outputs` is empty).
@@ -125,12 +119,12 @@ impl OsdLink {
             return;
         }
         self.latest
-            .send_modify(|latest| *latest = next(latest, kind, outputs, level));
+            .modify(|latest| *latest = next(latest, kind, outputs, level));
     }
 
     /// The latest change.
     pub fn now(&self) -> OsdLatest {
-        self.latest.borrow().clone()
+        self.latest.now()
     }
 
     /// A receiver for a surface to follow.

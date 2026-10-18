@@ -16,7 +16,7 @@ use shell_host::{KeyboardFocus, OutputId};
 use sill_launcher::LauncherMode;
 use tokio::sync::watch;
 
-use crate::links::{OpenSerial, PanelFocus, Reveal};
+use crate::links::{OpenSerial, PanelFocus, Reveal, Shared};
 
 pub use debug::{CLIPBOARD_TITLE, ShownRows, ShownRowsSection};
 pub use opening::Opening;
@@ -63,40 +63,30 @@ fn toggle(shown: &Reveal<Opening>, output: OutputId, now: Instant) -> Reveal<Ope
 /// The shared channels, given to both launcher surfaces as a root context and kept by the
 /// daemon: whether the launcher shows, and which part of the panel takes presses. Clone is
 /// cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LauncherLink {
-    shown: watch::Sender<Reveal<Opening>>,
-    hit: watch::Sender<PanelHit>,
+    shown: Shared<Reveal<Opening>>,
+    hit: Shared<PanelHit>,
     /// The rows the open panel shows, for `sill debug launcher-rows`.
-    rows: watch::Sender<Option<ShownRows>>,
-}
-
-impl Default for LauncherLink {
-    fn default() -> Self {
-        LauncherLink::new()
-    }
+    rows: Shared<Option<ShownRows>>,
 }
 
 impl LauncherLink {
     /// A hidden launcher.
     pub fn new() -> LauncherLink {
-        LauncherLink {
-            shown: watch::Sender::new(Reveal::default()),
-            hit: watch::Sender::new(PanelHit::default()),
-            rows: watch::Sender::new(None),
-        }
+        LauncherLink::default()
     }
 
     /// The current value.
     pub fn now(&self) -> Reveal<Opening> {
-        self.shown.borrow().clone()
+        self.shown.now()
     }
 
     /// `launcher toggle` on `output`.
     pub fn toggle(&self, output: OutputId) {
         let now = ds::base::time::clock::now();
         self.shown
-            .send_modify(|shown| *shown = toggle(shown, output, now));
+            .modify(|shown| *shown = toggle(shown, output, now));
     }
 
     /// `launcher open --query` on `output`.
@@ -108,22 +98,17 @@ impl LauncherLink {
     pub fn open_in(&self, output: OutputId, query: String, mode: LauncherMode) {
         let now = ds::base::time::clock::now();
         self.shown
-            .send_modify(|shown| *shown = open(shown, output, query, mode, now));
+            .modify(|shown| *shown = open(shown, output, query, mode, now));
     }
 
     /// Change the open panel's mode in place; nothing when it is hidden.
     pub fn switch_mode(&self, mode: LauncherMode) {
-        self.shown.send_if_modified(|shown| {
-            let next = switched(shown, mode);
-            let changed = next != *shown;
-            *shown = next;
-            changed
-        });
+        self.shown.update(|shown| switched(shown, mode));
     }
 
     /// `launcher close`, Escape, an activation or a catcher click.
     pub fn close(&self) {
-        self.shown.send_if_modified(|shown| {
+        self.shown.modify_if(|shown| {
             let was = shown.opening().is_some();
             *shown = shown.hidden();
             was
@@ -132,12 +117,7 @@ impl LauncherLink {
 
     /// The panel's keyboard focus changed.
     pub fn focus(&self, focus: KeyboardFocus) {
-        self.shown.send_if_modified(|shown| {
-            let next = shown.after_focus(focus);
-            let changed = next != *shown;
-            *shown = next;
-            changed
-        });
+        self.shown.update(|shown| shown.after_focus(focus));
     }
 
     /// A receiver for a surface to follow.
@@ -147,16 +127,12 @@ impl LauncherLink {
 
     /// The panel measured which part of it takes presses.
     pub fn set_hit(&self, hit: PanelHit) {
-        self.hit.send_if_modified(|now| {
-            let changed = *now != hit;
-            *now = hit;
-            changed
-        });
+        self.hit.set(hit);
     }
 
     /// What the panel takes now.
     pub fn hit(&self) -> PanelHit {
-        *self.hit.borrow()
+        self.hit.now()
     }
 
     /// A receiver for the catcher to follow the panel's part.
@@ -166,16 +142,12 @@ impl LauncherLink {
 
     /// The panel shows `rows` (`None`: it is hidden).
     pub fn show_rows(&self, rows: Option<ShownRows>) {
-        self.rows.send_if_modified(|now| {
-            let changed = *now != rows;
-            *now = rows;
-            changed
-        });
+        self.rows.set(rows);
     }
 
     /// The rows the open panel shows, `None` while no panel is open.
     pub fn rows(&self) -> Option<ShownRows> {
-        self.rows.borrow().clone()
+        self.rows.now()
     }
 }
 

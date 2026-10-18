@@ -6,6 +6,8 @@
 use shell_host::OutputId;
 use tokio::sync::watch;
 
+use super::Shared;
+
 /// The center's state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum CenterShown {
@@ -22,23 +24,15 @@ impl CenterShown {
 }
 
 /// The openers' half and every center surface's receiver. Clone is cheap.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CenterLink {
-    shown: watch::Sender<CenterShown>,
-}
-
-impl Default for CenterLink {
-    fn default() -> Self {
-        CenterLink::new()
-    }
+    shown: Shared<CenterShown>,
 }
 
 impl CenterLink {
     /// Closed.
     pub fn new() -> CenterLink {
-        CenterLink {
-            shown: watch::Sender::new(CenterShown::Closed),
-        }
+        CenterLink::default()
     }
 
     /// Open on `output` (moving it there if it is open elsewhere).
@@ -62,7 +56,7 @@ impl CenterLink {
 
     /// The state now.
     pub fn now(&self) -> CenterShown {
-        *self.shown.borrow()
+        self.shown.now()
     }
 
     /// A receiver for a surface to follow.
@@ -71,11 +65,7 @@ impl CenterLink {
     }
 
     fn set(&self, next: CenterShown) {
-        self.shown.send_if_modified(|now| {
-            let changed = *now != next;
-            *now = next;
-            changed
-        });
+        self.shown.set(next);
     }
 }
 
