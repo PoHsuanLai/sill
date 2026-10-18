@@ -1760,7 +1760,7 @@ only in `sill-services`' dev-dependencies). `Cargo.lock` is the orchestrator's t
 palmrest is a system service now (a dynamic user), with no session to run anything in. A gesture whose
 action needs one reaches the shell as `HostEvent::Palmrest(PalmrestAction)` (shell-host, from palmrest's
 `ToHost::Run`, sent to the shell's connection only). `daemon/palmrest.rs` decides, purely, what each ask
-comes to: `WorkspacePrev/Next/Overview` and a `Shell{words}` line are parsed with the command line's own
+comes to: `Workspace(Prev/Next/Overview)` and a `Shell{words}` line are parsed with the command line's own
 grammar (`Cli::try_parse_from(["sill", words...])`) and sent through the same `answer` an IPC client's request
 takes, so they do what `sill workspace next` and the like do; `quit` and the `debug` probes are refused; a
 `Command{argv}` is a program started without a shell as a child of the shell, reaped on a thread of its own.

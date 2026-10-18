@@ -9,7 +9,7 @@ use std::iter::once;
 use std::process::Stdio;
 
 use clap::Parser;
-use shell_host::PalmrestAction;
+use shell_host::{PalmrestAction, PalmrestWorkspace};
 use sill_ipc::request::Request;
 
 use crate::cli::{Cli, request};
@@ -28,9 +28,9 @@ pub enum Plan {
 /// What `ask` comes to.
 pub fn plan(ask: &PalmrestAction) -> Plan {
     match ask {
-        PalmrestAction::WorkspacePrev => line(&["workspace", "prev"]),
-        PalmrestAction::WorkspaceNext => line(&["workspace", "next"]),
-        PalmrestAction::WorkspaceOverview => line(&["workspace", "overview"]),
+        PalmrestAction::Workspace(PalmrestWorkspace::Prev) => line(&["workspace", "prev"]),
+        PalmrestAction::Workspace(PalmrestWorkspace::Next) => line(&["workspace", "next"]),
+        PalmrestAction::Workspace(PalmrestWorkspace::Overview) => line(&["workspace", "overview"]),
         PalmrestAction::Shell { words } => line(words),
         PalmrestAction::Command { argv } => match argv.split_first() {
             Some((program, args)) => Plan::Program {
@@ -94,17 +94,17 @@ mod tests {
         let cases = [
             (
                 "previous workspace",
-                PalmrestAction::WorkspacePrev,
+                PalmrestAction::Workspace(PalmrestWorkspace::Prev),
                 step(WorkspaceRequest::Prev),
             ),
             (
                 "next workspace",
-                PalmrestAction::WorkspaceNext,
+                PalmrestAction::Workspace(PalmrestWorkspace::Next),
                 step(WorkspaceRequest::Next),
             ),
             (
                 "the overview",
-                PalmrestAction::WorkspaceOverview,
+                PalmrestAction::Workspace(PalmrestWorkspace::Overview),
                 step(WorkspaceRequest::Overview),
             ),
             (
