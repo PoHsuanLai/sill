@@ -15,7 +15,7 @@
 //!   session bus) is what GNOME Calendar and GNOME Online Accounts feed; it answers
 //!   `GetObjectList` with iCalendar text, so the same parser would read it. It is not installed
 //!   here (nor is GOA, whose calendars reach clients only through EDS), so it is a later
-//!   provider behind the same trait.
+//!   provider beside it (an enum of providers).
 //!
 //! Dependencies: none added. `icalendar` brings chrono and expands no rule; `rrule` brings chrono
 //! and chrono-tz (a second compiled-in zone database beside jiff's). jiff is already here.

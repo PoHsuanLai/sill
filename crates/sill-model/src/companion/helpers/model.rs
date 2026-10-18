@@ -12,27 +12,6 @@ use super::draft::Draft;
 use super::models::ModelList;
 use super::routines::RoutinesModel;
 
-/// A sentence a helper told the person, in plain words.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Told {
-    /// Its number: later sentences have larger numbers.
-    pub n: u64,
-    /// The helper it is about.
-    pub helper: HelperId,
-    /// The sentence.
-    pub text: String,
-}
-
-impl From<ToldWire> for Told {
-    fn from(wire: ToldWire) -> Told {
-        Told {
-            n: wire.n,
-            helper: wire.helper,
-            text: wire.text,
-        }
-    }
-}
-
 /// A helper's card as read, with what the person has typed over it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpenCard {
@@ -72,7 +51,7 @@ pub struct HelpersModel {
     /// One line per helper, in the order the companion lists them.
     pub lines: Vec<HelperLine>,
     /// The sentences helpers told the person, oldest first, the newest few kept.
-    pub told: Vec<Told>,
+    pub told: Vec<ToldWire>,
     /// The number of the newest sentence seen: the next list asks for what came after it.
     pub told_after: u64,
     /// The apps a helper may be given.

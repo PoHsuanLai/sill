@@ -1,12 +1,12 @@
 //! The helpers screen's one transition: `(model, message) -> (model, commands)`.
 
-use companion_wire::{HelperCardView, HelperReply, HelpersView};
+use companion_wire::{HelperCardView, HelperReply, HelpersView, ToldWire};
 use docket_core::helper::Ceiling;
 use prov::{AppName, HelperId, SpaceId};
 
 use super::automatic::{self, Automatic};
 use super::draft::{Draft, Reach};
-use super::model::{HelpersModel, Open, OpenCard, Removal, Told};
+use super::model::{HelpersModel, Open, OpenCard, Removal};
 use super::models::{ModelGroup, ModelList};
 use super::msg::{Asked, HelpersCommand, HelpersMsg};
 use super::routines::{self, RoutinesCommand};
@@ -188,9 +188,8 @@ fn listed(model: HelpersModel, view: HelpersView) -> HelpersModel {
     let fresh = view
         .told
         .into_iter()
-        .filter(|t| t.n > model.told_after)
-        .map(Told::from);
-    let mut told: Vec<Told> = model.told.iter().cloned().chain(fresh).collect();
+        .filter(|t| t.n > model.told_after);
+    let mut told: Vec<ToldWire> = model.told.iter().cloned().chain(fresh).collect();
     let extra = told.len().saturating_sub(TOLD_KEPT);
     let told = told.split_off(extra);
     let still_there = |id: &HelperId| view.helpers.iter().any(|line| line.id == *id);
