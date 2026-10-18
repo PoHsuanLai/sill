@@ -42,7 +42,7 @@ use anyview_core::FileAction;
 use anyview_store::read_history;
 use ds_core::word::Word;
 use sill_launcher::{
-    ActionId, Activation, Batch, Choice, Frecency, Item, Needle, Provider, ProviderKind, Query,
+    ActionId, Activation, Choice, Frecency, Item, Needle, Provider, ProviderKind, Query,
     RankWeights, ResultSink, Subject, matching,
 };
 use tokio::sync::watch;
@@ -135,11 +135,7 @@ impl Provider for FilesProvider {
             &mut matcher,
         );
         let items = viewed::with_places(items, views);
-        sink.push(Batch {
-            provider: ProviderKind::Files,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {

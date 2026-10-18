@@ -10,8 +10,8 @@
 
 use docket_core::{ActionRef, CallRequest, Hit, Origin, TargetValue, open_name};
 use sill_launcher::{
-    Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink,
-    Score, Subject,
+    Activation, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink, Score,
+    Subject,
 };
 use sill_model::companion::{Companion, CompanionCommand, CompanionLink, LookupPhase, Opener};
 use sill_services::control::Control;
@@ -44,15 +44,12 @@ impl Provider for ThingsProvider {
         if query.is_cancelled() {
             return;
         }
-        sink.push(Batch {
-            provider: ProviderKind::Things,
-            generation: query.generation,
-            items: hits
-                .iter()
+        sink.push(
+            hits.iter()
                 .enumerate()
                 .map(|(at, hit)| row(hit, at))
                 .collect(),
-        });
+        );
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -212,7 +209,7 @@ mod tests {
         tokio::task::spawn_blocking(move || {
             let mut sink = VecSink::default();
             provider.query(&Query::begin(text, &Cancel::new()), &mut sink);
-            sink.0.into_iter().flat_map(|batch| batch.items).collect()
+            sink.0.into_iter().flatten().collect()
         })
         .await
         .unwrap_or_else(|e| panic!("{e}"))

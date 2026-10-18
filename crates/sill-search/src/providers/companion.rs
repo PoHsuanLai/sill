@@ -8,7 +8,7 @@
 use companion_wire::{Handover, TerminalSession};
 use docket_core::{CardActionId, UndoState};
 use sill_launcher::{
-    Action, ActionId, Activation, Batch, Choice, CompanionAct, IconRef, Item, ItemId, LauncherMode,
+    Action, ActionId, Activation, Choice, CompanionAct, IconRef, Item, ItemId, LauncherMode,
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
 use sill_model::companion::{
@@ -47,11 +47,7 @@ impl Provider for CompanionProvider {
             CompanionLink::Passive => Vec::new(),
             CompanionLink::Ready => rows(&state, query.text.trim(), alone),
         };
-        sink.push(Batch {
-            provider: ProviderKind::Companion,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -390,7 +386,7 @@ mod tests {
         let provider = CompanionProvider { companion: rx };
         let mut sink = VecSink::default();
         provider.query(&query(text, scope), &mut sink);
-        sink.0.into_iter().flat_map(|batch| batch.items).collect()
+        sink.0.into_iter().flatten().collect()
     }
 
     fn titles(items: &[Item]) -> Vec<(&str, &str)> {

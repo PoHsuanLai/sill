@@ -25,7 +25,7 @@ fn query_target(provider: &SettingsProvider, text: &str) -> Vec<SettingsTarget> 
     provider.query(&query, &mut sink);
     sink.0
         .into_iter()
-        .flat_map(|batch| batch.items)
+        .flatten()
         .filter_map(|item| match provider.activate(&item, &Choice::Primary) {
             Activation::OpenSettings { target } => Some(target),
             _ => None,
@@ -109,7 +109,7 @@ fn a_third_party_page_key_carries_its_app_id_as_the_page_label() {
     let item = sink
         .0
         .into_iter()
-        .flat_map(|batch| batch.items)
+        .flatten()
         .find(|item| item.id.0.ends_with("control_center.modules"))
         .expect("control_center.modules should be found by its label");
     assert_eq!(item.subtitle, "sill");

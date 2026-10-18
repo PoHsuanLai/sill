@@ -16,8 +16,8 @@ use sill_services::env::Bus;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use sill_launcher::{
-    Activation, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
-    ProviderKind, Query, RankWeights, ResultSink, SystemCommand, matching, rank_text,
+    Activation, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider, ProviderKind,
+    Query, RankWeights, ResultSink, SystemCommand, matching, rank_text,
 };
 
 /// One row's static shape: its command, title, search aliases and glyph (design/08-ICONS.md
@@ -232,11 +232,7 @@ impl Provider for SystemProvider {
             return;
         }
         items.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.title.cmp(&b.title)));
-        sink.push(Batch {
-            provider: ProviderKind::System,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -312,7 +308,7 @@ mod tests {
         provider.query(&query, &mut sink);
         sink.0
             .into_iter()
-            .flat_map(|batch| batch.items)
+            .flatten()
             .map(|item| item.title)
             .collect()
     }
@@ -421,10 +417,7 @@ mod tests {
         let mut sink = VecSink::default();
         provider.query(&query, &mut sink);
         assert!(
-            sink.0
-                .iter()
-                .flat_map(|b| &b.items)
-                .all(|i| i.actions.is_empty()),
+            sink.0.iter().flatten().all(|i| i.actions.is_empty()),
             "no row carries an action"
         );
     }

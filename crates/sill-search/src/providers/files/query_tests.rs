@@ -72,7 +72,7 @@ fn scripted(answer: FileAnswer) -> Arc<Scripted> {
 fn titles(sink: &VecSink) -> Vec<Vec<String>> {
     sink.0
         .iter()
-        .map(|batch| batch.items.iter().map(|i| i.title.clone()).collect())
+        .map(|items| items.iter().map(|i| i.title.clone()).collect())
         .collect()
 }
 
@@ -97,8 +97,6 @@ fn one_ask_under_home_within_the_budget_and_its_rows_pushed() {
         }]
     );
     assert_eq!(titles(&sink), [["m9-report.pdf"]]);
-    assert_eq!(sink.0[0].provider, ProviderKind::Files);
-    assert_eq!(sink.0[0].generation, query.generation);
 }
 
 #[test]
@@ -165,11 +163,7 @@ fn the_fake_index_keeps_to_home() {
     });
     let mut sink = VecSink::default();
     provider(FilesChoice::Auto, index).query(&Query::begin("report", &Cancel::new()), &mut sink);
-    let subtitles: Vec<&str> = sink.0[0]
-        .items
-        .iter()
-        .map(|i| i.subtitle.as_str())
-        .collect();
+    let subtitles: Vec<&str> = sink.0[0].iter().map(|i| i.subtitle.as_str()).collect();
     assert_eq!(subtitles, ["~/a"]);
 }
 
@@ -221,7 +215,7 @@ fn a_file_the_viewer_remembers_is_a_row_the_index_did_not_bring() {
     let mut sink = VecSink::default();
     files.query(&Query::begin("novel", &Cancel::new()), &mut sink);
     assert_eq!(titles(&sink), [["novel.pdf"]], "the one still on disk");
-    let row = &sink.0[0].items[0];
+    let row = &sink.0[0][0];
     assert_eq!(row.subtitle, "~/elsewhere · Page 143");
     assert!(
         row.actions.iter().any(|action| action.id.0 == "open"),
@@ -256,7 +250,6 @@ fn a_viewed_file_outranks_its_namesake_the_index_brought_with_the_same_age() {
         let mut sink = VecSink::default();
         files.query(&Query::begin("notes", &Cancel::new()), &mut sink);
         sink.0[0]
-            .items
             .iter()
             .map(|row| row.id.0.clone())
             .collect::<Vec<String>>()

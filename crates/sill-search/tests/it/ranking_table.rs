@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
-    AppId, Cancel, Frecency, Placement, Provider, Query, Scope, Section, SectionPlan, UnixTime,
-    VecSink,
+    AppId, Batch, Cancel, Frecency, Placement, Provider, Query, Scope, Section, SectionPlan,
+    UnixTime, VecSink,
 };
 use sill_model::apps::{
     App, AppIcon, AppIndex, AppsEvent, DbusActivation, DesktopActionEntry, Listing, Terminal, step,
@@ -98,7 +98,12 @@ fn shown(text: &str) -> Placement {
     for provider in &providers {
         let mut sink = VecSink::default();
         provider.query(&query, &mut sink);
-        for batch in sink.0 {
+        for items in sink.0 {
+            let batch = Batch {
+                provider: provider.kind(),
+                generation: query.generation,
+                items,
+            };
             results = merge(results, ResultsEvent::Batch(batch));
         }
     }

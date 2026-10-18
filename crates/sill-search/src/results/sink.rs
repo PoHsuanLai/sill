@@ -1,8 +1,8 @@
-//! How a provider's batches leave its blocking task: stamped with the query's provider and
+//! How a provider's rows leave its blocking task: stamped with the query's provider and
 //! generation, dropped at once when a newer keystroke has overtaken them, and followed by one
 //! `Finished` however the query ended (a panicking provider included).
 
-use sill_launcher::{Batch, Generation, ProviderKind, Query, ResultSink};
+use sill_launcher::{Batch, Generation, Item, ProviderKind, Query, ResultSink};
 use tokio::sync::mpsc;
 
 /// What a provider's task tells the runner.
@@ -22,16 +22,16 @@ pub(crate) struct ChannelSink<'a> {
 }
 
 impl ResultSink for ChannelSink<'_> {
-    fn push(&mut self, batch: Batch) {
+    fn push(&mut self, items: Vec<Item>) {
         if self.query.is_cancelled() {
             return;
         }
         // The runner owns generations and knows which provider this task runs, so it stamps
-        // both rather than trusting the provider to copy them.
+        // both: a provider cannot get them wrong.
         let batch = Batch {
             provider: self.provider,
             generation: self.query.generation,
-            items: batch.items,
+            items,
         };
         // A closed channel means the runner is gone; nobody is left to show the rows.
         let _ = self.tx.send(Arrival::Batch(batch));

@@ -10,7 +10,7 @@ use almanac_core::{FactView, MemoryItem, TimelineEntry};
 use ds_core::vocab::MemoryVerb;
 use ds_core::word::Word;
 use sill_launcher::{
-    Action, ActionId, ActionKeys, Activation, Batch, Choice, CompanionAct, IconRef, Item, ItemId,
+    Action, ActionId, ActionKeys, Activation, Choice, CompanionAct, IconRef, Item, ItemId,
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
 use sill_model::companion::{
@@ -57,10 +57,8 @@ impl Provider for MemoryProvider {
             .map(String::as_str)
             .map(notice_row);
         let needle = query.text.trim().to_lowercase();
-        sink.push(Batch {
-            provider: ProviderKind::Memory,
-            generation: query.generation,
-            items: notice
+        sink.push(
+            notice
                 .chain(
                     waiting
                         .iter()
@@ -75,7 +73,7 @@ impl Provider for MemoryProvider {
                 )
                 .filter(|item| needle.is_empty() || item.title.to_lowercase().contains(&needle))
                 .collect(),
-        });
+        );
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -273,7 +271,7 @@ mod tests {
                 ..Query::begin(text, &Cancel::new())
             };
             provider.query(&query, &mut sink);
-            sink.0.into_iter().flat_map(|batch| batch.items).collect()
+            sink.0.into_iter().flatten().collect()
         })
         .await
         .unwrap_or_else(|e| panic!("{e}"))

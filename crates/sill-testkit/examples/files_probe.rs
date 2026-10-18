@@ -167,10 +167,7 @@ async fn rows_within(provider: &Arc<FilesProvider>, args: &Args) -> Vec<Item> {
         let rows = tokio::task::spawn_blocking(move || {
             let mut sink = VecSink::default();
             asked.query(&Query::begin(text, &Cancel::new()), &mut sink);
-            sink.0
-                .into_iter()
-                .flat_map(|batch| batch.items)
-                .collect::<Vec<_>>()
+            sink.0.into_iter().flatten().collect::<Vec<_>>()
         })
         .await
         .unwrap_or_else(|e| panic!("{e}"));

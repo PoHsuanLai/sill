@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use sill_launcher::{
-    Activation, AppId, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
+    Activation, AppId, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
     ProviderKind, Query, RankWeights, ResultSink, Score, matching::matcher, rank_text,
 };
 use sill_model::apps::{AppIndex, AppsEvent, Listing};
@@ -65,11 +65,7 @@ impl Provider for IndexApps {
                 })
             })
             .collect();
-        sink.push(Batch {
-            provider: ProviderKind::Apps,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, _item: &Item, _choice: &Choice) -> Activation {

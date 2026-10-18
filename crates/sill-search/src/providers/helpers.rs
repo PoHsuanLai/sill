@@ -10,9 +10,9 @@ use companion_wire::{HelperLine, HelperNeeds};
 use docket_core::helper::HelperPhase;
 use ds_core::word::Word;
 use sill_launcher::{
-    Action, ActionId, ActionKeys, Activation, Batch, Choice, CompanionAct, HelperAttention,
-    HelperControl, HelperFacts, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink,
-    Scope, Score, Subject,
+    Action, ActionId, ActionKeys, Activation, Choice, CompanionAct, HelperAttention, HelperControl,
+    HelperFacts, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink, Scope, Score,
+    Subject,
 };
 use sill_model::companion::{Companion, CompanionLink, controls_of};
 use tokio::sync::watch;
@@ -41,11 +41,7 @@ impl Provider for HelpersProvider {
             (CompanionLink::Ready, true) => rows(&state.helpers.lines),
             (CompanionLink::Ready, false) | (CompanionLink::Passive, _) => Vec::new(),
         };
-        sink.push(Batch {
-            provider: ProviderKind::Helpers,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -171,7 +167,7 @@ mod tests {
         };
         let mut sink = VecSink::default();
         provider.query(&query, &mut sink);
-        sink.0.into_iter().flat_map(|batch| batch.items).collect()
+        sink.0.into_iter().flatten().collect()
     }
 
     #[test]

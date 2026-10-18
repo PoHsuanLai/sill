@@ -50,7 +50,7 @@ impl Answer {
         };
         let mut sink = VecSink::default();
         provider.query(&query, &mut sink);
-        sink.0.into_iter().flat_map(|batch| batch.items).collect()
+        sink.0.into_iter().flatten().collect()
     }
 
     /// Carry out one command and log it.

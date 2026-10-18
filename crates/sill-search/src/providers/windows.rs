@@ -2,8 +2,8 @@
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
-    Action, ActionId, Activation, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle,
-    Provider, ProviderKind, Query, RankWeights, ResultSink, Score, WindowKey, matching, rank_text,
+    Action, ActionId, Activation, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
+    ProviderKind, Query, RankWeights, ResultSink, Score, WindowKey, matching, rank_text,
 };
 use tokio::sync::watch;
 
@@ -83,11 +83,7 @@ impl Provider for WindowsProvider {
         }
         // Stable: ties keep `toplevels`' own most-recently-activated order.
         items.sort_by_key(|item| std::cmp::Reverse(item.score));
-        sink.push(Batch {
-            provider: ProviderKind::Windows,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -259,7 +255,7 @@ mod tests {
         provider.query(&query, &mut sink);
         sink.0
             .into_iter()
-            .flat_map(|batch| batch.items)
+            .flatten()
             .map(|item| (item.title, item.subtitle))
             .collect()
     }
@@ -326,7 +322,7 @@ mod tests {
         let query = Query::begin("mystery", &cancel);
         let mut sink = VecSink::default();
         provider.query(&query, &mut sink);
-        let item = &sink.0[0].items[0];
+        let item = &sink.0[0][0];
         assert_eq!(item.subtitle, "com.example.unknown");
         assert_eq!(item.icon, IconRef::Glyph("window".to_owned()));
     }

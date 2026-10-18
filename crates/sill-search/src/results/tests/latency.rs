@@ -10,8 +10,8 @@ use std::time::{Duration, Instant};
 
 use sill_launcher::matching::matcher;
 use sill_launcher::{
-    Activation, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
-    ProviderKind, Query, RankWeights, ResultSink, Score, rank_text,
+    Activation, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider, ProviderKind,
+    Query, RankWeights, ResultSink, Score, rank_text,
 };
 use sill_model::apps::{AppIndex, AppsEvent, Listing};
 use sill_model::results::SearchCommand;
@@ -63,11 +63,7 @@ impl Provider for IndexApps {
                 })
             })
             .collect();
-        sink.push(Batch {
-            provider: ProviderKind::Apps,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, _item: &Item, _choice: &Choice) -> Activation {

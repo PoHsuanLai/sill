@@ -41,7 +41,7 @@ fn titles(provider: &AppsProvider, text: &str) -> Vec<String> {
     let mut titles: Vec<String> = sink
         .0
         .into_iter()
-        .flat_map(|batch| batch.items)
+        .flatten()
         .map(|item| item.title)
         .collect();
     titles.sort();

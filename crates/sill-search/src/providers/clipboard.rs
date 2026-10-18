@@ -9,8 +9,8 @@
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
-    Activation, Batch, Choice, Item, Needle, Provider, ProviderKind, Query, ResultSink, Scope,
-    Subject, matching,
+    Activation, Choice, Item, Needle, Provider, ProviderKind, Query, ResultSink, Scope, Subject,
+    matching,
 };
 use tokio::sync::watch;
 
@@ -51,11 +51,7 @@ impl Provider for ClipboardProvider {
         if query.is_cancelled() {
             return;
         }
-        sink.push(Batch {
-            provider: ProviderKind::Clipboard,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {

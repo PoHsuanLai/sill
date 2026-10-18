@@ -14,8 +14,8 @@ pub mod words;
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
-    Activation, Batch, Choice, Frecency, Item, Needle, Provider, ProviderKind, Query, ResultSink,
-    Scope, Subject, matching,
+    Activation, Choice, Frecency, Item, Needle, Provider, ProviderKind, Query, ResultSink, Scope,
+    Subject, matching,
 };
 use tokio::sync::watch;
 
@@ -70,11 +70,7 @@ impl Provider for EmojiProvider {
         if query.is_cancelled() {
             return;
         }
-        sink.push(Batch {
-            provider: ProviderKind::Emoji,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {

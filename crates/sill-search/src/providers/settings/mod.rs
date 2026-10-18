@@ -8,8 +8,8 @@ use std::sync::{Mutex, PoisonError};
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
-    Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink,
-    Score, SettingsTarget,
+    Activation, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink, Score,
+    SettingsTarget,
 };
 
 use ds_settings::schema::{Schema, data_dirs_from};
@@ -133,11 +133,7 @@ impl Provider for SettingsProvider {
         if query.is_cancelled() || items.is_empty() {
             return;
         }
-        sink.push(Batch {
-            provider: ProviderKind::Settings,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, _choice: &Choice) -> Activation {

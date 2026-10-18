@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
-    Action, ActionId, ActionKeys, Activation, AppId, Batch, Choice, DesktopAction, Frecency,
+    Action, ActionId, ActionKeys, Activation, AppId, Choice, DesktopAction, Frecency,
     FrecencyScore, IconRef, Item, ItemId, ItemKey, Needle, Provider, ProviderKind, Query,
     RankWeights, ResultSink, Score, Subject, UnixTime, matching, rank_text,
 };
@@ -88,11 +88,7 @@ impl Provider for AppsProvider {
             return;
         }
         items.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.title.cmp(&b.title)));
-        sink.push(Batch {
-            provider: ProviderKind::Apps,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -277,7 +273,7 @@ mod tests {
         provider.query(&query, &mut sink);
         sink.0
             .into_iter()
-            .flat_map(|batch| batch.items)
+            .flatten()
             .map(|item| item.title)
             .collect()
     }

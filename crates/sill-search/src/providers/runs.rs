@@ -7,7 +7,7 @@
 
 use ds_core::word::Word;
 use sill_launcher::{
-    Action, ActionId, ActionKeys, Activation, Batch, Choice, CompanionAct, IconRef, Item, ItemId,
+    Action, ActionId, ActionKeys, Activation, Choice, CompanionAct, IconRef, Item, ItemId,
     Provider, ProviderKind, Query, ResultSink, RunControl, Scope, Score, Subject,
 };
 use sill_model::companion::{Companion, CompanionLink, RunFacts, run_controls, run_state_of};
@@ -34,11 +34,7 @@ impl Provider for RunsProvider {
             CompanionLink::Passive => Vec::new(),
             CompanionLink::Ready => rows(&state, alone),
         };
-        sink.push(Batch {
-            provider: ProviderKind::Runs,
-            generation: query.generation,
-            items,
-        });
+        sink.push(items);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -165,7 +161,7 @@ mod tests {
         };
         let mut sink = VecSink::default();
         provider.query(&query, &mut sink);
-        sink.0.into_iter().flat_map(|batch| batch.items).collect()
+        sink.0.into_iter().flatten().collect()
     }
 
     #[test]
@@ -226,6 +222,6 @@ mod tests {
         let provider = RunsProvider { companion: rx };
         let mut sink = VecSink::default();
         provider.query(&Query::begin("", &Cancel::new()), &mut sink);
-        assert!(sink.0.iter().all(|b| b.items.is_empty()));
+        assert!(sink.0.iter().all(Vec::is_empty));
     }
 }

@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use sill_launcher::{
-    Action, ActionId, Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind,
-    Query, ResultSink, Score,
+    Action, ActionId, Activation, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query,
+    ResultSink, Score,
 };
 
 use eval::{EvalOutcome, evaluate};
@@ -84,11 +84,7 @@ impl Provider for CalculatorProvider {
         if query.is_cancelled() {
             return;
         }
-        sink.push(Batch {
-            provider: ProviderKind::Calculator,
-            generation: query.generation,
-            items: vec![result_item(&value)],
-        });
+        sink.push(vec![result_item(&value)]);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -162,7 +158,7 @@ mod tests {
         provider.query(&query, &mut sink);
         sink.0
             .into_iter()
-            .flat_map(|batch| batch.items)
+            .flatten()
             .next()
             .unwrap_or_else(|| panic!("{text:?} should evaluate to one row"))
     }

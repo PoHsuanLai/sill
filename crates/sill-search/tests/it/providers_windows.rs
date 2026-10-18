@@ -110,7 +110,7 @@ fn rows(provider: &WindowsProvider, text: &str) -> Vec<(String, String)> {
     let mut rows: Vec<(String, String)> = sink
         .0
         .into_iter()
-        .flat_map(|batch| batch.items)
+        .flatten()
         .map(|item| (item.title, item.subtitle))
         .collect();
     rows.sort();

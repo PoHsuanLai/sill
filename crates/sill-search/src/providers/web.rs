@@ -8,8 +8,8 @@
 
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use sill_launcher::{
-    Action, ActionId, ActionKeys, Activation, Batch, Choice, IconRef, Item, ItemId, OpenTarget,
-    OwnAction, Provider, ProviderKind, Query, ResultSink, Score, Subject, WebFacts,
+    Action, ActionId, ActionKeys, Activation, Choice, IconRef, Item, ItemId, OpenTarget, OwnAction,
+    Provider, ProviderKind, Query, ResultSink, Score, Subject, WebFacts,
 };
 use tokio::sync::watch;
 
@@ -75,11 +75,7 @@ impl Provider for WebProvider {
         if query.is_cancelled() {
             return;
         }
-        sink.push(Batch {
-            provider: ProviderKind::Web,
-            generation: query.generation,
-            items: vec![item],
-        });
+        sink.push(vec![item]);
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {

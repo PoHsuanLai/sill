@@ -10,8 +10,8 @@ use std::time::Duration;
 use tokio::sync::watch;
 
 use sill_launcher::{
-    Activation, AppId, Batch, Choice, DesktopAction, IconRef, Item, ItemId, Provider, ProviderKind,
-    Query, ResultSink, Score, WindowKey,
+    Activation, AppId, Choice, DesktopAction, IconRef, Item, ItemId, Provider, ProviderKind, Query,
+    ResultSink, Score, WindowKey,
 };
 
 /// Whether the fake stops when its query is overtaken.
@@ -165,7 +165,7 @@ impl Provider for Fake {
             .log
             .send_modify(|log| log.asked.push(query.text.clone()));
         let first = lock(&script.first).clone();
-        sink.push(batch(script.kind, query, &first, ""));
+        sink.push(rows_of(script.kind, &first, ""));
         if script.second.is_empty() {
             return;
         }
@@ -179,7 +179,7 @@ impl Provider for Fake {
             heard(Heard::Cancelled);
             return;
         }
-        sink.push(batch(script.kind, query, &script.second, &query.text));
+        sink.push(rows_of(script.kind, &script.second, &query.text));
         heard(Heard::Finished);
     }
 
@@ -206,9 +206,8 @@ impl Provider for Fake {
     }
 }
 
-fn batch(kind: ProviderKind, query: &Query, rows: &[(String, u32)], tag: &str) -> Batch {
-    let items = rows
-        .iter()
+fn rows_of(kind: ProviderKind, rows: &[(String, u32)], tag: &str) -> Vec<Item> {
+    rows.iter()
         .map(|(title, score)| {
             let title = if tag.is_empty() {
                 title.clone()
@@ -226,12 +225,7 @@ fn batch(kind: ProviderKind, query: &Query, rows: &[(String, u32)], tag: &str) -
                 subject: sill_launcher::Subject::None,
             }
         })
-        .collect();
-    Batch {
-        provider: kind,
-        generation: query.generation,
-        items,
-    }
+        .collect()
 }
 
 fn owned(rows: &[(&str, u32)]) -> Vec<(String, u32)> {
