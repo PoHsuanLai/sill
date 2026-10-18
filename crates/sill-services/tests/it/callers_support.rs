@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use peephole_bus::peephole::fake::{introduced_program, introduced_service, introduced_unverified};
 use peephole_bus::peephole_core::{AppKey, ExePath, Pin, Proof, Standing, Table, WhyNot};
-use peephole_bus::{BusPeers, ManagerCheck, Tokio};
+use peephole_bus::{BusPeers, ManagerCheck, Offload};
 use sill_services::callers::{CallerSource, Peers};
 use zbus::Connection;
 
@@ -141,7 +141,7 @@ impl Introduced {
 impl CallerSource for Introduced {
     fn peers_on(&self, connection: Connection) -> Arc<Peers> {
         let peers: Arc<Peers> = Arc::new(
-            BusPeers::new(connection, Table::empty(), ManagerCheck::Unchecked).with_offload(Tokio),
+            BusPeers::new(connection, Table::empty(), ManagerCheck::Unchecked).with_offload(Offload::Tokio),
         );
         for (name, standing) in self
             .standings

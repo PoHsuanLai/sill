@@ -6,12 +6,12 @@ use std::sync::Arc;
 
 use peephole_bus::peephole::{RealProc, TableFiles};
 use peephole_bus::peephole_core::{Proof, Requirement, Table, roles};
-use peephole_bus::{BusPeers, ManagerCheck, ManagerLink, Tokio};
+use peephole_bus::{BusPeers, ManagerCheck, ManagerLink, Offload};
 use zbus::Connection;
 
 /// How callers on a bus are told apart: their process, held by a pidfd, judged against the caller
 /// table. The probe runs on tokio's blocking pool.
-pub type Peers = BusPeers<RealProc, Tokio, ManagerLink<RealProc>>;
+pub type Peers = BusPeers<RealProc, ManagerLink<RealProc>>;
 
 /// What gives a service the [`Peers`] of the connection it serves on. The shell's is
 /// [`DesktopCallers`]; a test brings its own, which keeps the peers it hands out so that it can
@@ -53,6 +53,6 @@ impl DesktopCallers {
 impl CallerSource for DesktopCallers {
     fn peers_on(&self, connection: Connection) -> Arc<Peers> {
         let manager = ManagerCheck::Verified(Requirement::new(roles::MANAGER, Proof::Exe));
-        Arc::new(BusPeers::new(connection, self.table.clone(), manager).with_offload(Tokio))
+        Arc::new(BusPeers::new(connection, self.table.clone(), manager).with_offload(Offload::Tokio))
     }
 }

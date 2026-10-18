@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use peephole_bus::peephole::fake::{introduced_program, introduced_service};
 use peephole_bus::peephole_core::{Pin, Proof, Standing, Table};
-use peephole_bus::{BusPeers, ManagerCheck, Tokio};
+use peephole_bus::{BusPeers, ManagerCheck, Offload};
 use sill_services::callers::{CallerSource, Peers};
 use zbus::Connection;
 
@@ -74,7 +74,7 @@ impl VoicedCallers {
 impl CallerSource for VoicedCallers {
     fn peers_on(&self, connection: Connection) -> Arc<Peers> {
         let peers: Arc<Peers> = Arc::new(
-            BusPeers::new(connection, Table::empty(), ManagerCheck::Unchecked).with_offload(Tokio),
+            BusPeers::new(connection, Table::empty(), ManagerCheck::Unchecked).with_offload(Offload::Tokio),
         );
         let is = *self.is.lock().unwrap_or_else(PoisonError::into_inner);
         peers.introduce(&self.voiced, is.standing());
