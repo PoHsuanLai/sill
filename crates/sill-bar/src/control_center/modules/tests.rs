@@ -1,20 +1,25 @@
 //! The module table: every kind is listed once, each answers for its span and its bar item, and
 //! the bar's items stand in the order the settings offer them.
 
+use ds::base::word::Word;
 use sill_settings::{ControlCenterModule, ControlCenterSettings, InMenuBar};
 
-use super::{KINDS, Span, module};
+use super::{Span, module};
 use crate::bar::BarMenu;
 use crate::control_center::MENU_BAR_ORDER;
 
 #[test]
 fn every_kind_is_listed_once_and_the_default_grid_shows_them_all() {
-    let mut listed = KINDS.to_vec();
+    let mut listed = ControlCenterModule::ALL.to_vec();
     listed.dedup();
-    assert_eq!(listed, KINDS.to_vec(), "no kind twice in a row");
+    assert_eq!(
+        listed,
+        ControlCenterModule::ALL.to_vec(),
+        "no kind twice in a row"
+    );
     let mut shown = ControlCenterSettings::default().modules;
     shown.sort_by_key(|kind| format!("{kind:?}"));
-    let mut all = KINDS.to_vec();
+    let mut all = ControlCenterModule::ALL.to_vec();
     all.sort_by_key(|kind| format!("{kind:?}"));
     assert_eq!(shown, all, "the default modules are every kind");
 }
@@ -53,7 +58,7 @@ fn a_module_is_a_bar_item_exactly_when_the_settings_can_show_it() {
         menu_bar_now_playing: InMenuBar::Show,
         ..ControlCenterSettings::default()
     };
-    for kind in KINDS {
+    for kind in ControlCenterModule::ALL.iter().copied() {
         let item = module(kind).bar_item();
         let offered = module(kind).menu_bar(&shown);
         let want = if item.is_some() {

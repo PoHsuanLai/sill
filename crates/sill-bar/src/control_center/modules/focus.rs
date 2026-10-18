@@ -10,7 +10,6 @@ use sill_ui_kit::links::FocusLink;
 
 use super::cc_module::{CcCx, CcModule, Span};
 use crate::control_center::focus_status;
-use crate::control_center::modules::flipped;
 use sill_ui_kit::hooks::use_focus_mode;
 
 /// The Focus tile.
@@ -26,7 +25,7 @@ pub fn FocusModule() -> Element {
             value: focus_state(mode),
             onclick: move |_| {
                 // Gone: the daemon's focus task has stopped; the tile keeps what it last read.
-                let _delivery = link.set(mode_of(flipped(focus_state(mode))));
+                let _delivery = link.set(mode_of(focus_state(mode).flipped()));
             },
         }
     }

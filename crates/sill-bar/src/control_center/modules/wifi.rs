@@ -14,7 +14,6 @@ use sill_shell_kit::prelude::*;
 
 use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use crate::bar::{BarMenu, StatusIcon};
-use crate::control_center::modules::flipped;
 use crate::control_center::page::Detail;
 use crate::control_center::pages::wifi_networks::WifiPane;
 use crate::control_center::wifi_status;
@@ -40,7 +39,7 @@ pub fn WifiModule(on_detail: EventHandler<Detail>) -> Element {
             availability: radio_availability(&wifi),
             onclick: move |_| {
                 // A stopped service drops it: the tile shows the radio it last published.
-                let _gone = control.send(WifiCommand::Radio(radio_of(flipped(state))));
+                let _gone = control.send(WifiCommand::Radio(radio_of(state.flipped())));
             },
             on_detail: move |_| on_detail.call(Detail::Wifi),
         }

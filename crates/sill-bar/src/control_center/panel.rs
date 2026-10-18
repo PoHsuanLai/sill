@@ -16,7 +16,7 @@ use sill_shell_kit::control_center::module_grid::GridColumns;
 use sill_shell_kit::prelude::*;
 
 use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
-use super::modules::{CcCx, KINDS, Module, module};
+use super::modules::{CcCx, Module, module};
 use super::page::{CcPage, Detail, PageInput, PageOut, step_page};
 use super::pages::foot::ClosePanel;
 use sill_ui_kit::hooks::use_settings;
@@ -74,8 +74,9 @@ pub(crate) fn control_center(
         on_detail: EventHandler::new(|_| {}),
         on_back: Some(EventHandler::new(move |()| go.call(PageInput::Back))),
     };
-    let detail = KINDS
-        .into_iter()
+    let detail = ControlCenterModule::ALL
+        .iter()
+        .copied()
         .find_map(|kind| module(kind).detail(opened(), &cx))
         .unwrap_or_else(|| rsx! {});
     let style = panel_style(cc.width_px.0, cc.grid_padding_px.0, cap);

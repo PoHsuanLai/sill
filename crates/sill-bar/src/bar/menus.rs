@@ -1,9 +1,10 @@
 //! The bar's menus: one per title and status item (design/20 §1.1), each a [`MenuId`] for the
 //! tracking machine and a [`MenuSide`] for the popup configuration.
 
+use ds::base::word::Word;
 use sill_settings::ControlCenterModule;
 
-use crate::control_center::modules::{KINDS, module};
+use crate::control_center::modules::module;
 
 use super::popup::MenuSide;
 use super::track::MenuId;
@@ -127,7 +128,7 @@ impl BarMenu {
     /// The control center module whose component a module item's dropdown shows; `None` for the
     /// app menu and the control center.
     pub(crate) fn module(self) -> Option<ControlCenterModule> {
-        KINDS.into_iter().find(|&kind| {
+        ControlCenterModule::ALL.iter().copied().find(|&kind| {
             module(kind)
                 .bar_item()
                 .is_some_and(|item| item.menu == self)

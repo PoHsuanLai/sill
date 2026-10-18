@@ -12,7 +12,6 @@ use sill_shell_kit::prelude::*;
 use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use crate::bar::{BarMenu, StatusIcon};
 use crate::control_center::modules::bluetooth_ask::use_power_request;
-use crate::control_center::modules::flipped;
 use crate::control_center::page::Detail;
 use crate::control_center::pages::bluetooth_devices::BluetoothPane;
 use crate::control_center::{bluetooth_status, bluetooth_tile_status};
@@ -34,7 +33,7 @@ pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
             status: Some(TextLine::from(bluetooth_tile_status(&bluetooth))),
             value: state,
             availability: adapter_availability(&bluetooth),
-            onclick: move |_| request.call(power_of(flipped(state))),
+            onclick: move |_| request.call(power_of(state.flipped())),
             on_detail: move |_| on_detail.call(Detail::Bluetooth),
         }
     }
