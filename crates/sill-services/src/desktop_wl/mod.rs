@@ -26,7 +26,7 @@ pub use choose::backend_of;
 pub use command::{Refusal, desktop_of, wire_of};
 pub use ids::space_id;
 pub use offer::{offer_of_protocols, offer_of_registry};
-pub use outputs::{ScaleRefusal, config_for_scale, heads_of};
+pub use outputs::heads_of;
 pub use service::WindowsService;
 pub use subjects::project as project_subjects;
 pub use toplevels::project as project_toplevels;

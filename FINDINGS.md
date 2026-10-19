@@ -250,17 +250,10 @@ A settled item is deleted, not marked closed.
 
 ## Standing facts: displays
 
-- **Scale policy**: density along the diagonal from the EDID's preferred-timing millimetres (else
-  the base block's centimetres, else the compositor's size) over `display.density_target_ppi`
-  (109). `PreferWhole` (default): from 1.5 up, round half-up to a whole scale if that leaves at
-  least 1280 logical px across, else the nearest of 1, 1.25, 1.5, 1.75, 2, 2.5, 3. No usable size
-  (0 mm, or outside 40-600 ppi): 2 at 3840 px wide and over, else 1. A 27" 4K is 2, a 32" 4K
-  1.25, a 13.5" 2256 x 1504 1.75.
-- **Applied once per identity**, on first sight (`$XDG_STATE_HOME/sill/displays.json`, the key an
-  FNV-1a of make, product and serial; the serial is never stored in clear), through
-  the native output management. A recorded
-  display is never rescaled; `display.scale_overrides` applies a row when it is added or edited.
-  A failed set records nothing.
+- **sill has no scale policy**: the compositor (casement's `ScalePolicy`) picks a display's
+  scale on first sight, before any client draws; sill reads the heads and shows the scale. There
+  are no `display.scale*` or `display.density_target_ppi` keys, and no `displays.json`. Density
+  (EDID millimetres over the native mode, 40-600 ppi) still feeds the font-rendering default.
 - **EDID** is parsed by hand (a fixed layout). Gamut: Display P3 when the panel covers 90 % of P3
   and is at most 1.15 x its area; Wide at 1.2 x sRGB or more; else sRGB.
   `display.color_management` has nothing to hand the gamut to until the compositor has
@@ -465,7 +458,7 @@ A settled item is deleted, not marked closed.
   told the key is unknown. `dock.hold_to_menu_ms` and `notifications.banner_hold_ms` are read (the
   dock machine's press, the banner hold) and stay.
 - **`screenshot.tool` is typed at load** (`ShotTool`, stored as its text). `calendar.sources`,
-  `screenshot.folders`, `display.scale_overrides` and `widgets.world_clocks` stay text: their
+  `screenshot.folders` and `widgets.world_clocks` stay text: their
   parse needs `$HOME` (`~/`) or belongs to the reader, and a typed form would rewrite the
   person's text on save.
 - **Numbers the docs leave open**: the rank's prefix boost 0.1; frecency buckets at 4/14/31/90

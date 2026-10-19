@@ -84,7 +84,7 @@ pub struct WidgetsSettings {
     )]
     pub desktop_gap_px: Px,
     /// `;`-separated IANA zone names; a `Vec` of text is not derivable in the settings macro
-    /// yet (`display.scale_overrides` does the same).
+    /// yet.
     #[settings(
         label = "World clock cities",
         help = "Time zones for the World Clock widget, separated by `;`: `Europe/London; America/New_York`.",

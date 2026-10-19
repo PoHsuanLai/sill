@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::scale::Ppi;
+use super::ppi::Ppi;
 
 /// How glyph edges are smoothed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -115,7 +115,7 @@ fn attribute<'a>(head: &'a str, key: &str) -> Option<&'a str> {
 #[cfg(test)]
 mod tests {
     use super::{Hinting, conflicts, font_rendering_for, is_ours, snippet};
-    use crate::displays::scale::Ppi;
+    use crate::displays::ppi::Ppi;
 
     #[test]
     fn hinting_turns_off_at_high_density() {

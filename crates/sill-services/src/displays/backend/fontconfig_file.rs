@@ -114,9 +114,9 @@ fn read(dir: &Path, conf_d: &Path, ours: &Path) -> FontFiles {
 #[cfg(test)]
 mod tests {
     use super::{FontFileAction, FontFiles, plan, sync};
+    use sill_model::displays::Ppi;
     use sill_model::displays::font::{FILE_NAME, font_rendering_for, snippet};
     use sill_model::displays::policy::FontRenderingMode;
-    use sill_model::displays::scale::Ppi;
 
     #[test]
     fn the_plan_follows_the_rule() {

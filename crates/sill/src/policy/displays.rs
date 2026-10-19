@@ -1,7 +1,7 @@
 //! The displays service's policy: the `display.*` settings translated into the service's
 //! [`DisplayPolicy`] (sill-services may not see sill-settings, which brings dioxus).
 
-use sill_model::displays::{DisplayPolicy, DisplaysCommand, NightWarmth, Ppi, ScaleOverride};
+use sill_model::displays::{DisplayPolicy, DisplaysCommand, NightWarmth};
 
 use super::Policy;
 use sill_settings::{DisplaySettings, NightWarmthMode, ShellFile};
@@ -9,14 +9,6 @@ use sill_settings::{DisplaySettings, NightWarmthMode, ShellFile};
 /// `display.*` as the service's policy.
 pub fn policy_from(settings: &DisplaySettings) -> DisplayPolicy {
     DisplayPolicy {
-        scale: settings.scale,
-        scale_overrides: settings
-            .scale_overrides
-            .split(';')
-            .filter_map(ScaleOverride::parse)
-            .collect(),
-        density_target: Ppi(settings.density_target_ppi.0),
-        scale_rounding: settings.scale_rounding,
         keys_target: settings.brightness_keys_target,
         hardware_volume: settings.hardware_volume,
         night_warmth: match settings.night_warmth {
@@ -48,10 +40,8 @@ impl Policy for DisplaysBridge {
 
 #[cfg(test)]
 mod tests {
-    use sill_model::displays::ScaleOverride;
     use sill_model::displays::{
-        DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth, Ppi, ScaleMode,
-        ScaleRounding,
+        DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth,
     };
     use sill_model::units::Percent;
     use sill_settings::{DisplaySettings, NightWarmthMode};
@@ -69,10 +59,6 @@ mod tests {
     #[test]
     fn every_setting_reaches_the_policy() {
         let settings = DisplaySettings {
-            scale: ScaleMode::Manual,
-            scale_overrides: "BNQ-8074-00ff = 1.75; nonsense; DEL-a0b1-1=2".to_owned(),
-            density_target_ppi: sill_settings::Count(120),
-            scale_rounding: ScaleRounding::Nearest,
             brightness_keys_target: KeysTarget::AllOutputs,
             hardware_volume: HardwareVolume::Off,
             night_warmth: NightWarmthMode::Hardware,
@@ -82,13 +68,6 @@ mod tests {
         assert_eq!(
             policy_from(&settings),
             DisplayPolicy {
-                scale: ScaleMode::Manual,
-                scale_overrides: ["BNQ-8074-00ff = 1.75", "DEL-a0b1-1=2"]
-                    .iter()
-                    .filter_map(|r| ScaleOverride::parse(r))
-                    .collect(),
-                density_target: Ppi(120),
-                scale_rounding: ScaleRounding::Nearest,
                 keys_target: KeysTarget::AllOutputs,
                 hardware_volume: HardwareVolume::Off,
                 night_warmth: NightWarmth::Hardware(Percent(30)),

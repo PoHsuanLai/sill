@@ -1,4 +1,4 @@
-//! The displays: every output's description and scale, the DDC monitors and backlights, and the
+//! The displays: every output's description, the DDC monitors and backlights, and the
 //! pure rules for brightness, warmth, font rendering and the monitor speakers.
 
 pub mod brightness;
@@ -14,9 +14,9 @@ mod model;
 pub mod output;
 pub mod plan;
 pub mod policy;
+pub mod ppi;
 pub mod randr;
 pub mod scale;
-pub mod seen;
 mod step;
 #[cfg(test)]
 mod tests;
@@ -34,11 +34,8 @@ pub use gamut::{Gamut, classify};
 pub use identity::IdentityKey;
 pub use model::{Displays, FOLLOW_EVERY_MS, Following};
 pub use output::DisplayOutput;
-pub use policy::{
-    DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth, ScaleMode,
-    ScaleOverride,
-};
-pub use scale::{DisplayScale, Ppi, ScaleRounding, default_scale};
-pub use seen::decide_scale;
+pub use policy::{DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth};
+pub use ppi::Ppi;
+pub use scale::DisplayScale;
 pub use step::step;
 pub use warmth::warmth_gains;

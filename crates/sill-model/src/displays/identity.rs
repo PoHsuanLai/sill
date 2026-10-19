@@ -6,9 +6,8 @@ use serde::{Deserialize, Serialize};
 use super::edid::{Edid, Serial};
 
 /// `BNQ-8074-1f2e3d4c5b6a7980`: manufacturer, product code, and a 64-bit FNV-1a hash of
-/// manufacturer, product and serial together. The key `displays.json` and
-/// `display.scale_overrides` use; stable across releases (the hash is fixed here, not
-/// `std`'s randomised one).
+/// manufacturer, product and serial together. Stable across releases (the hash is fixed here,
+/// not `std`'s randomised one).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct IdentityKey(pub String);

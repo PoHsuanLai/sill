@@ -11,12 +11,13 @@ use sill_model::displays::brightness::Backlight;
 use sill_model::displays::ddc::{DdcDisplay, Feature, Write};
 use sill_model::displays::font::font_rendering_for;
 use sill_model::displays::hw_volume::follow;
-use sill_model::displays::output::{DisplayOutput, max_density};
+use sill_model::displays::output::{DisplayOutput, describe, max_density};
 use sill_model::displays::plan::{
     BrightnessAction, Originals, Probe, brightness_actions, probe_needed, set_brightness_action,
     warmth_writes,
 };
 use sill_model::displays::policy::DisplayPolicy;
+use sill_model::displays::randr::Enablement;
 use sill_model::displays::{
     Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, step,
 };
@@ -25,9 +26,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::ddc::worker;
 use super::ddc::worker::DdcJob;
-use super::scale_pass::scale_pass;
-use super::seen_file::{load, path_in, save};
-use super::sink_wlr::OutputsRoute;
+use super::outputs_route::OutputsRoute;
 use super::{backlight, fontconfig_file};
 use crate::env::ddc::{DdcBus, connected};
 use crate::env::{Bus, Dirs, WaylandRoute};
@@ -39,15 +38,13 @@ pub struct Paths {
     pub drm: PathBuf,
     /// `/sys/class/backlight`.
     pub backlight: PathBuf,
-    /// `displays.json`; `None` without a state directory (nothing is remembered).
-    pub seen: Option<PathBuf>,
     /// `~/.config/fontconfig`; `None` without a config directory (no snippet).
     pub fontconfig: Option<PathBuf>,
     /// The DDC buses: the real ones, or (a debug build's dev scripts, tests) made-up monitors.
     pub ddc: Arc<dyn DdcBus>,
     /// logind, which sets a backlight as this session.
     pub system: Bus,
-    /// The compositor whose outputs are read and scaled.
+    /// The compositor whose outputs are read.
     pub wayland: WaylandRoute,
 }
 
@@ -57,7 +54,6 @@ impl Paths {
         Paths {
             drm: PathBuf::from("/sys/class/drm"),
             backlight: PathBuf::from("/sys/class/backlight"),
-            seen: Some(path_in(dirs)),
             fontconfig: Some(fontconfig_file::dir_in(dirs)),
             ddc,
             system,
@@ -172,19 +168,10 @@ impl Service {
 
     async fn policy_changed(&mut self, policy: DisplayPolicy) {
         let first = self.policy.is_none();
-        let outputs_differ = self.policy.as_ref().is_none_or(|old| {
-            (
-                old.scale,
-                &old.scale_overrides,
-                old.density_target,
-                old.font_rendering,
-            ) != (
-                policy.scale,
-                &policy.scale_overrides,
-                policy.density_target,
-                policy.font_rendering,
-            )
-        });
+        let outputs_differ = self
+            .policy
+            .as_ref()
+            .is_none_or(|old| old.font_rendering != policy.font_rendering);
         self.policy = Some(policy);
         if first {
             self.start_ddc();
@@ -222,7 +209,7 @@ impl Service {
         }
     }
 
-    /// The scale pass, the fontconfig snippet and the backlights, on the blocking pool.
+    /// The outputs, the fontconfig snippet and the backlights, on the blocking pool.
     async fn rescan_outputs(&mut self) {
         let Some(policy) = self.policy.clone() else {
             return;
@@ -338,40 +325,30 @@ impl Service {
     }
 }
 
-/// One outputs pass: describe, decide and set scales, remember them, keep the fontconfig
-/// snippet in step with the densest display, and read the backlights.
+/// One outputs pass: describe the compositor's enabled outputs, keep the fontconfig snippet in
+/// step with the densest display, and read the backlights.
 fn outputs_pass(
     paths: &Paths,
     policy: &DisplayPolicy,
 ) -> (Vec<DisplayOutput>, Vec<Backlight>, Vec<String>) {
     let connectors = connected(&paths.drm);
-    let before = paths.seen.as_deref().map(load).unwrap_or_default();
-    let pass = scale_pass(
-        &mut OutputsRoute::pick(&paths.wayland),
-        &connectors,
-        before.clone(),
-        policy,
-    );
-    let mut failures: Vec<String> = pass
-        .failures
+    let mut failures = Vec::new();
+    let heads = OutputsRoute::pick(&paths.wayland)
+        .heads()
+        .unwrap_or_else(|error| {
+            failures.push(format!("outputs: {error}"));
+            Vec::new()
+        });
+    let outputs: Vec<DisplayOutput> = heads
         .iter()
-        .map(|e| format!("scale: {e}"))
+        .filter(|head| head.enablement == Enablement::Enabled)
+        .map(|head| describe(head, connectors.iter().find(|c| c.name == head.name)))
         .collect();
-    if pass.seen != before
-        && let Some(path) = &paths.seen
-        && let Err(error) = save(path, &pass.seen)
-    {
-        failures.push(format!("remembering displays: {error}"));
-    }
     if let Some(dir) = &paths.fontconfig {
-        let rendering = max_density(&pass.outputs).map(font_rendering_for);
+        let rendering = max_density(&outputs).map(font_rendering_for);
         if let Err(error) = fontconfig_file::sync(dir, policy.font_rendering, rendering) {
             failures.push(format!("fontconfig: {error}"));
         }
     }
-    (
-        pass.outputs,
-        backlight::read_all(&paths.backlight),
-        failures,
-    )
+    (outputs, backlight::read_all(&paths.backlight), failures)
 }

@@ -172,9 +172,6 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   `sill launcher toggle` (or use Cmd+Space above) and press it: the launcher opens, and a
   second press closes it. The compositor must resolve `sill` on its own `PATH` and the spawned
   client must reach the daemon's socket; no injected key reaches a compositor's shortcut matcher.
-- [ ] **Scale policy on first sight**: a display seen for the first time gets 2x (BenQ MA270U),
-  and a scale set by hand afterwards is never changed back. The desktop at 2x reads
-  comfortably; text and icons are sharp.
 - [ ] **Brightness keys on the external monitor** (DDC/CI, with the brightness shortcuts bound to
   `sill display brightness up|down`): the keys (or `sill display brightness up|down`) move the BenQ MA270U's backlight
   within about a quarter second, sill's OSD shows the level, no stuck value after fast repeats.

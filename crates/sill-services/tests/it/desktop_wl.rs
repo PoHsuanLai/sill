@@ -1,14 +1,14 @@
 //! The standard-protocol arm over desktop-client's fake: a scripted ext/wlr session becomes the
 //! windows and workspaces the shell draws (recency, sizing, workspaces), the desktop view
 //! (apps, Spaces, what is active), the requests the shell's commands become, the displays'
-//! heads and scale configuration, and the arm the globals choose.
+//! heads, and the arm the globals choose.
 
 use std::collections::BTreeSet;
 
 use casement_protocols::vocab::{PlaceTarget, Shown};
 use desktop_client::fake::FakeDesktop;
 use desktop_client::output::{
-    Enabled, HeadChange, HeadChangeRequest, ModeChange, OutputEvent, RefreshMilliHz, ScaleMilli,
+    Enabled, HeadChange, ModeChange, OutputEvent, RefreshMilliHz, ScaleMilli,
 };
 use desktop_client::toplevel::{ToplevelChange, ToplevelEvent, ToplevelFlag, ToplevelFlags};
 use desktop_client::workspace::{
@@ -30,8 +30,8 @@ use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::keyboard::focused;
 use sill_model::windows::{Activity, Sizing, Toplevels, WindowState, WlCommand};
 use sill_services::desktop_wl::{
-    Refusal, ScaleRefusal, backend_of, config_for_scale, desktop_of, desktop_view, heads_of,
-    offer_of_protocols, project_toplevels, project_workspaces, space_id, wire_of,
+    Refusal, backend_of, desktop_of, desktop_view, heads_of, offer_of_protocols, project_toplevels,
+    project_workspaces, space_id, wire_of,
 };
 
 fn full_offer() -> ProtocolSet {
@@ -649,27 +649,4 @@ fn heads_are_described_as_the_displays_read_them() {
         Some((3840, 2160, 59997))
     );
     assert_eq!(head.scale, DisplayScale(150));
-}
-
-#[test]
-fn a_scale_becomes_a_configuration_that_keeps_the_rest() {
-    let mut session = Session::new();
-    one_head(&mut session);
-    let outputs = &session.state().outputs;
-    let name = OutputName("DP-1".to_owned());
-    let config =
-        config_for_scale(outputs, &name, DisplayScale(200)).unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(config.heads.len(), 1);
-    match &config.heads[0].request {
-        HeadChangeRequest::Enable(settings) => {
-            assert_eq!(settings.scale, Some(ScaleMilli::new(2000)));
-            assert_eq!(
-                (&settings.mode, settings.position, settings.transform),
-                (&None, None, None)
-            );
-        }
-        other => panic!("{other:?}"),
-    }
-    let unknown = config_for_scale(outputs, &OutputName("HDMI-9".to_owned()), DisplayScale(100));
-    assert_eq!(unknown, Err(ScaleRefusal::UnknownHead("HDMI-9".to_owned())));
 }

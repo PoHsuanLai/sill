@@ -1,11 +1,9 @@
 //! Displays: Mac-quality defaults derived from what each display reports, nothing
 //! vendor-specific, every default overridable in `display.*`.
 //!
-//! - **Scale.** Every output's EDID (size, native mode) gives its density; `default_scale`
-//!   aims it at 109 points per inch, and the first time sill sees a display it sets that scale
-//!   through the compositor's own output management
-//!   ([`OutputsRoute`], picked from the compositor's globals), then never again
-//!   (`decide_scale`, `$XDG_STATE_HOME/sill/displays.json`).
+//! - **Outputs.** Every output's EDID (size, native mode) gives its density and gamut; the
+//!   compositor's own output management ([`OutputsRoute`], picked from its globals) lists
+//!   them. sill never decides or sets a scale: the compositor chooses it, sill shows it.
 //! - **Gamut.** The EDID primaries classified as sRGB, Display P3 or wide (`classify`); stored
 //!   for colour management, which no compositor offers yet.
 //! - **DDC/CI.** External monitors' brightness, contrast, speaker volume, mute, input and RGB
@@ -20,7 +18,7 @@
 
 mod backend;
 
-pub use backend::{OutputsRoute, ScaleSink, WlrOutputs};
+pub use backend::{OutputsRoute, WlrOutputs};
 
 use std::sync::Arc;
 

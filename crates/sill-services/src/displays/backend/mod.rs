@@ -1,16 +1,12 @@
 //! The displays' effects: sysfs, the backlight over logind, the native output
-//! management (picked from the compositor's globals), the DDC worker, the
-//! record of seen displays and the fontconfig snippet.
+//! management (picked from the compositor's globals, read only), the DDC worker and the
+//! fontconfig snippet.
 
 mod backlight;
 mod ddc;
 mod fontconfig_file;
+mod outputs_route;
 mod run;
-pub(crate) mod scale_pass;
-mod seen_file;
-pub(crate) mod sink;
-mod sink_wlr;
 
+pub use outputs_route::{OutputsRoute, WlrOutputs};
 pub(crate) use run::{Paths, run};
-pub use sink::ScaleSink;
-pub use sink_wlr::{OutputsRoute, WlrOutputs};

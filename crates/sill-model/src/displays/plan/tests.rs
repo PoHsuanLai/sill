@@ -8,7 +8,6 @@ use crate::displays::ddc::{Controls, DdcDisplay, Endpoint, Feature, Level, RgbGa
 use crate::displays::output::describe;
 use crate::displays::policy::{KeysTarget, NightWarmth};
 use crate::displays::randr::Head;
-use crate::displays::scale::{Ppi, ScaleRounding};
 use crate::ids::{DdcId, OutputName};
 use crate::units::Percent;
 use crate::volume::Step;
@@ -52,7 +51,7 @@ fn desk() -> Displays {
     Displays {
         outputs: ["eDP-1", "HDMI-A-2", "DP-1"]
             .iter()
-            .map(|n| describe(&head(n), None, Ppi(109), ScaleRounding::PreferWhole))
+            .map(|n| describe(&head(n), None))
             .collect(),
         ddc: vec![
             monitor(5, "HDMI-A-2", Some(gain(100, 100, 100))),
