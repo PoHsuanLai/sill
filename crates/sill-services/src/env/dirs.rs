@@ -18,6 +18,10 @@ const SYSTEM_PIXMAPS: &str = "/usr/share/pixmaps";
 /// The folder app stores install programs under, outside the data directories.
 const OPT: &str = "/opt";
 
+/// The person's own `/opt` under the home folder, where a program installed without root puts
+/// itself (Zen's own installer does).
+const HOME_OPT: &str = ".local/opt";
+
 /// The folder snap keeps each installed snap in, `<name>/current` being its active revision.
 const SNAP: &str = "/snap";
 
@@ -53,7 +57,7 @@ pub struct Dirs {
     /// The XDG Pictures folder (`user-dirs.dirs`), when one is named.
     pub pictures: Option<PathBuf>,
     /// The app stores' own folders, where a desktop entry may name its icon by absolute path:
-    /// `/opt` and each snap's `current` folder, listed once when the process started (a snap
+    /// `/opt`, `~/.local/opt` and each snap's `current` folder, listed once when the process started (a snap
     /// installed later is seen at the next start).
     pub app_stores: Vec<PathBuf>,
     /// The system app stores' folders of desktop entries: Flatpak's system install, then
@@ -76,7 +80,7 @@ impl Dirs {
             cache: dirs::cache_dir().unwrap_or_else(|| home.join(".cache")),
             runtime: dirs::runtime_dir(),
             pictures: dirs::picture_dir(),
-            app_stores: app_stores_in(Path::new(OPT), Path::new(SNAP)),
+            app_stores: app_stores_in(&[PathBuf::from(OPT), home.join(HOME_OPT)], Path::new(SNAP)),
             store_exports: STORE_EXPORTS.iter().map(PathBuf::from).collect(),
             home,
         }
@@ -96,7 +100,7 @@ impl Dirs {
             cache: root.join("cache"),
             runtime: Some(root.join("run")),
             pictures: None,
-            app_stores: vec![root.join("opt")],
+            app_stores: vec![root.join("opt"), root.join("home").join(HOME_OPT)],
             store_exports: STORE_EXPORTS
                 .iter()
                 .map(|dir| root.join(dir.trim_start_matches('/')))
@@ -162,9 +166,9 @@ impl Dirs {
     }
 }
 
-/// `opt` and the `current` folder of each snap under `snap`, in name order; a snap with no
+/// `opts` and the `current` folder of each snap under `snap`, in name order; a snap with no
 /// `current` folder is left out.
-fn app_stores_in(opt: &Path, snap: &Path) -> Vec<PathBuf> {
+fn app_stores_in(opts: &[PathBuf], snap: &Path) -> Vec<PathBuf> {
     let mut currents: Vec<PathBuf> = std::fs::read_dir(snap)
         .into_iter()
         .flatten()
@@ -173,7 +177,7 @@ fn app_stores_in(opt: &Path, snap: &Path) -> Vec<PathBuf> {
         .filter(|current| current.is_dir())
         .collect();
     currents.sort();
-    std::iter::once(opt.to_path_buf()).chain(currents).collect()
+    opts.iter().cloned().chain(currents).collect()
 }
 
 /// The absolute directories a colon-separated list (`raw`) names, in order.
@@ -280,11 +284,12 @@ mod tests {
         let dirs = Dirs::under(Path::new("/s"));
         let mut want = dirs.icon_dirs();
         want.push(PathBuf::from("/s/opt"));
+        want.push(PathBuf::from("/s/home/.local/opt"));
         assert_eq!(dirs.icon_file_roots(), want);
     }
 
     #[test]
-    fn app_stores_are_opt_and_each_snaps_current_folder() {
+    fn app_stores_are_both_opts_and_each_snaps_current_folder() {
         let scratch = sill_testkit::TempDir::new("app-stores");
         let snap = scratch.path().join("snap");
         for current in [
@@ -296,9 +301,13 @@ mod tests {
             std::fs::create_dir_all(snap.join(current)).unwrap_or_else(|e| panic!("{e}"));
         }
         std::fs::write(snap.join("README"), b"").unwrap_or_else(|e| panic!("{e}"));
-        let opt = scratch.path().join("opt");
+        let opt = [
+            scratch.path().join("opt"),
+            scratch.path().join("home/.local/opt"),
+        ];
         let want: Vec<PathBuf> = [
-            opt.clone(),
+            opt[0].clone(),
+            opt[1].clone(),
             snap.join("core22/current"),
             snap.join("firefox/current"),
             snap.join("vlc/current"),
@@ -307,8 +316,8 @@ mod tests {
         assert_eq!(app_stores_in(&opt, &snap), want);
         assert_eq!(
             app_stores_in(&opt, &scratch.path().join("no-snap")),
-            vec![opt],
-            "a machine without snap has only /opt"
+            opt.to_vec(),
+            "a machine without snap has only the two opts"
         );
     }
 
