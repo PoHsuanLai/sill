@@ -13,7 +13,7 @@ use super::types::{AppChange, AttentionKind, DockEffect, DockEvent, DockState, T
 pub enum BounceKind {
     /// Until the app maps a window, its scope exits, or `deadline`.
     Launch { deadline: Stamp },
-    /// Two periods (1 s).
+    /// Two periods (1.2 s).
     Informational,
     /// Until the app is activated or its urgency clears.
     Critical,
@@ -196,13 +196,14 @@ mod tests {
             kind: BounceKind::Critical,
             since: Stamp(0),
         };
+        // A = 5/8 of a 48 px tile = 30 px, P = 600 ms.
         const CASES: &[(u64, i32)] = &[
             (0, 0),
-            (125, 3600),
-            (250, 4800),
-            (375, 3600),
-            (500, 0),
-            (750, 4800),
+            (150, 2250),
+            (300, 3000),
+            (450, 2250),
+            (600, 0),
+            (900, 3000),
         ];
         for &(ms, want) in CASES {
             assert_eq!(lift(&b, Stamp(ms), &p), Cpx(want), "{ms} ms");
@@ -210,21 +211,21 @@ mod tests {
     }
 
     #[test]
-    fn informational_ends_at_one_second() {
+    fn informational_ends_after_two_periods() {
         // design/10 §10.8 test 8.
         let p = params();
         assert!(bouncing(&run(
             &p,
             &[
                 attention(AttentionKind::Informational),
-                (999, DockEvent::Frame)
+                (1199, DockEvent::Frame)
             ]
         )));
         assert!(!bouncing(&run(
             &p,
             &[
                 attention(AttentionKind::Informational),
-                (1000, DockEvent::Frame)
+                (1200, DockEvent::Frame)
             ]
         )));
     }
@@ -239,11 +240,11 @@ mod tests {
         ];
         assert!(bouncing(&run(
             &p,
-            &[&base[..], &[(5499, DockEvent::Frame)]].concat()
+            &[&base[..], &[(5399, DockEvent::Frame)]].concat()
         )));
         assert!(!bouncing(&run(
             &p,
-            &[&base[..], &[(5500, DockEvent::Frame)]].concat()
+            &[&base[..], &[(5400, DockEvent::Frame)]].concat()
         )));
         // Urgency clearing ends it the same way; a mapped window does not.
         assert!(!bouncing(&run(
@@ -251,7 +252,7 @@ mod tests {
             &[
                 attention(AttentionKind::Critical),
                 change(100, AppChange::UrgencyCleared),
-                (500, DockEvent::Frame)
+                (600, DockEvent::Frame)
             ]
         )));
         assert!(bouncing(&run(
@@ -265,8 +266,8 @@ mod tests {
     }
 
     #[test]
-    fn a_launch_mapped_at_1_3_s_stops_at_1_5_s() {
-        // design/10 §10.8 test 8: "stops at the end of the period containing 1.3 s (1.5 s)".
+    fn a_launch_mapped_at_1_3_s_stops_at_1_8_s() {
+        // design/10 §10.8 test 8: "stops at the end of the period containing 1.3 s (1.8 s)".
         let p = params();
         let after = |events: &[(u64, DockEvent)]| {
             events
@@ -275,16 +276,21 @@ mod tests {
         };
         let mapped = [change(1300, AppChange::Mapped)];
         assert!(bouncing(&after(
-            &[&mapped[..], &[(1499, DockEvent::Frame)]].concat()
+            &[&mapped[..], &[(1799, DockEvent::Frame)]].concat()
         )));
         assert!(!bouncing(&after(
-            &[&mapped[..], &[(1500, DockEvent::Frame)]].concat()
+            &[&mapped[..], &[(1800, DockEvent::Frame)]].concat()
         )));
-        // The cap: still bouncing at 9.9 s with no window, done at 10 s.
+        // The cap: still bouncing at 9.9 s with no window; at 10 s it finishes the hop it is in
+        // (the 17th ends at 10.2 s).
         assert!(bouncing(&after(&[(9_900, DockEvent::Frame)])));
+        assert!(bouncing(&after(&[
+            (10_000, DockEvent::Frame),
+            (10_199, DockEvent::Frame)
+        ])));
         assert!(!bouncing(&after(&[
             (10_000, DockEvent::Frame),
-            (10_000, DockEvent::Frame)
+            (10_200, DockEvent::Frame)
         ])));
     }
 

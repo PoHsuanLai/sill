@@ -99,7 +99,7 @@ fn bounces_and_a_released_drag_settle_at_any_tick_rate() {
             panic!("{rate}: an informational bounce never stopped frames");
         });
         assert!(
-            (1000..=1020).contains(&took),
+            (1200..=1220).contains(&took),
             "{rate}: bounce settled after {took} ms"
         );
         // Press, drag 20 px, release: the drag ends, the hover resumes and settles.
