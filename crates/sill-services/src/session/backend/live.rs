@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use logind_zbus::session::SessionProxy;
+use logind_zbus::user::UserProxy;
 use sill_model::locker::LockerCommand;
 use sill_model::session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, step};
 use sill_model::units::Presence;
@@ -148,15 +149,31 @@ async fn probe(
 
 /// This process's own session id (`Session.Id`, e.g. `"3"`), by way of `GetSessionByPID` and the
 /// session object it names; `None` if logind cannot place this process in any session.
+///
+/// sill runs as the user service `sill.service`, which lives under the user manager and outside
+/// the login session, so `GetSessionByPID` finds nothing on a real login. The session it serves
+/// is then the user's graphical one: logind's `Display` of this user (what a user service of any
+/// desktop reads), when it has one.
 async fn current_session_id(connection: &Connection, manager: &ManagerProxy<'_>) -> Option<String> {
-    let path = manager.get_session_by_PID(std::process::id()).await.ok()?;
-    let session = SessionProxy::builder(connection)
+    if let Ok(path) = manager.get_session_by_PID(std::process::id()).await {
+        let session = SessionProxy::builder(connection)
+            .path(path)
+            .ok()?
+            .build()
+            .await
+            .ok()?;
+        return session.id().await.ok();
+    }
+    let uid = rustix::process::getuid().as_raw();
+    let path = manager.get_user(uid).await.ok()?;
+    let user = UserProxy::builder(connection)
         .path(path)
         .ok()?
         .build()
         .await
         .ok()?;
-    session.id().await.ok()
+    let display = user.display().await.ok()?;
+    Some(display.id().to_owned()).filter(|id| !id.is_empty())
 }
 
 /// Carries out `action` through logind.
