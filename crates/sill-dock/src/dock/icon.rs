@@ -1,11 +1,11 @@
-//! A tile's icon (design/08-ICONS.md §4): the app's own themed icon on quire's neutral plate
+//! A tile's icon (design/08-ICONS.md §4): the app's own themed icon as it is, on no plate
 //! (`Symbolic` for a freedesktop `*-symbolic` file, recoloured like a glyph; `Image` for the
 //! rest), quire's `Window` glyph when the app has none (§4.3), `Trash` for the Trash tile. Every
 //! entry takes this one path.
 //!
-//! The plate is quire's (`IconView { plate }`), which draws a glyph at its 56 % and an image at
-//! its 72 % (`--plate-glyph`, `--plate-inset`); an icon file is still sized at its 72 % share in
-//! whole pixels through `IconSize::Px`, at every magnified size.
+//! The icon fills the whole tile, in whole pixels through `IconSize::Px`, at every magnified size
+//! (the owner, 2026-10-20: no white plate behind the icons; an app with only an outline icon gets
+//! a proper one instead).
 //!
 //! Under Muted and Monochrome the raster goes through the icon cache (`app_icons`); it is
 //! loaded at the largest size the tile is drawn at (magnified, when magnification is on) times
@@ -24,17 +24,14 @@ use crate::dock::items::ItemKind;
 pub use sill_ui_kit::app_icons::IconContext;
 use sill_ui_kit::app_icons::{LogicalPx, pick, theme_art};
 
-/// design/08 §4.1: a third-party icon fills 72 % of the plate.
-pub const ICON_PERMILLE: i32 = 720;
-
 /// What a tile shows, before sizes and styles.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TileArt {
-    /// A quire glyph on the plate.
+    /// A quire glyph.
     Glyph(Icon),
-    /// A symbolic theme icon on the plate, in the plate's ink.
+    /// A symbolic theme icon, in the dock's ink.
     Symbolic(PathBuf),
-    /// A theme (or the entry's own) icon on the plate.
+    /// A theme (or the entry's own) icon.
     Themed(PathBuf),
 }
 
@@ -85,9 +82,9 @@ impl TileSizes {
     }
 }
 
-/// `art` drawn at `sizes` in `cx`: always on quire's plate (§4.1's plate-mask rule).
+/// `art` drawn at `sizes` in `cx`, filling the tile.
 pub fn drawn(art: TileArt, sizes: TileSizes, cx: &IconContext) -> IconSource {
-    let plate_icon = |side: f64| share(f64::from(plate_side(Px(side as f32)).0), ICON_PERMILLE);
+    let plate_icon = |side: f64| f64::from(plate_side(Px(side as f32)).0);
     match art {
         TileArt::Glyph(icon) => IconSource::Glyph(icon),
         TileArt::Symbolic(path) => external(&path, plate_icon(sizes.side))
@@ -110,11 +107,6 @@ fn external(path: &Path, side: f64) -> Option<ExternalIcon> {
         url: IconUrl::file(path).ok()?,
         size: whole(side),
     })
-}
-
-/// `permille` of `side`.
-fn share(side: f64, permille: i32) -> f64 {
-    side * f64::from(permille) / 1000.0
 }
 
 /// `side` in whole pixels (at least one).

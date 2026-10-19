@@ -1,9 +1,8 @@
 //! One dock tile: quire's `DockTile` at the tile's magnified size and bounce lift, in the slot the
-//! frame gives it. `DockTile` draws the plated icon (a quire `IconView` plate; under Muted or
-//! Monochrome its two stops and its glyph ink are re-coloured through `PlateTint::of(style,
-//! tint)`, `None` under Colour), its `Badge` (a count, `999+` past 999), the `ProgressIndicator`
+//! frame gives it. `DockTile` draws the app's icon as it is, on no plate (under Muted or
+//! Monochrome the icon cache re-colours its raster), its `Badge` (a count, `999+` past 999), the `ProgressIndicator`
 //! bar while the app works, the running dot and the hover label (`DockLabel`), and lifts the
-//! plate by a bounce while the dot stays on the baseline. The label is shown and hidden by the
+//! icon by a bounce while the dot stays on the baseline. The label is shown and hidden by the
 //! dock machine alone (`shown`): up from its `ShowLabel` (the fly delay, the warm skip) to its
 //! `HideLabel` (the pointer left, a button went down, a context menu opened). The dock provides
 //! the machine's shown label as context; the frozen `Tile` props are unchanged. The tile takes
@@ -13,8 +12,6 @@ use dioxus::prelude::*;
 use ds::base::vocab::Activity;
 use ds::components::controls::badge::BadgeContent;
 use ds::prelude::*;
-use ds::style::icon::family::PlateFamily;
-use ds::style::icon::plate_tint::PlateTint;
 use ds::style::scale::use_scale;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
@@ -85,8 +82,8 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
             style: "left:{px(left)}px;top:{top}px;width:{side}px;height:{side}px",
             DockTile {
                 icon,
-                plate: Some(PlateFamily::Neutral),
-                plate_tint: PlateTint::of(look.0.style, look.0.tint),
+                // The app's own icon as it is, on no plate (the owner, 2026-10-20).
+                plate: None,
                 badge: badge.and_then(|b| b.shown_count()).map(count),
                 progress: badge.and_then(|b| b.shown_progress()).map(fraction),
                 running,

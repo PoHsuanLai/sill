@@ -108,17 +108,17 @@ fn theme_symbolic_and_glyph_art_draw_their_word_exactly() {
         (
             TileArt::Themed("/i/firefox.svg".into()),
             IconStyle::Colour,
-            "image file:///i/firefox.svg Px(IconPx(35))",
+            "image file:///i/firefox.svg Px(IconPx(48))",
         ),
         (
             TileArt::Themed("/i/firefox.svg".into()),
             IconStyle::Monochrome,
-            "image file:///i/firefox.svg Px(IconPx(35))",
+            "image file:///i/firefox.svg Px(IconPx(48))",
         ),
         (
             TileArt::Symbolic("/i/a-symbolic.svg".into()),
             IconStyle::Monochrome,
-            "symbolic file:///i/a-symbolic.svg Px(IconPx(35))",
+            "symbolic file:///i/a-symbolic.svg Px(IconPx(48))",
         ),
         (
             TileArt::Glyph(Icon::Trash),
@@ -133,7 +133,7 @@ fn theme_symbolic_and_glyph_art_draw_their_word_exactly() {
 }
 
 #[test]
-fn icons_take_their_share_of_the_plate_in_whole_pixels() {
+fn icons_fill_the_tile_in_whole_pixels() {
     let dock = DockSettings::default();
     let size = |side: f64| match drawn(
         TileArt::Themed("/i/term.svg".into()),
@@ -143,10 +143,9 @@ fn icons_take_their_share_of_the_plate_in_whole_pixels() {
         IconSource::Image(e) => e.size,
         other => panic!("{other:?}"),
     };
-    // A 48 px tile's plate is its whole 48 pixels: the icon 34.56.
-    assert_eq!(size(48.0), IconSize::Px(IconPx(35)));
-    // Fully magnified (96 px): a 96 px plate, the icon 69.12.
-    assert_eq!(size(96.0), IconSize::Px(IconPx(69)));
+    // No plate: the icon is the tile's whole 48 pixels, and 96 fully magnified.
+    assert_eq!(size(48.0), IconSize::Px(IconPx(48)));
+    assert_eq!(size(96.0), IconSize::Px(IconPx(96)));
 }
 
 /// Without magnification the theme icon is loaded once, at the tile's rest size (the source
@@ -163,5 +162,5 @@ fn without_magnification_the_rest_size_still_shows_the_file() {
         sizes,
         &cx(IconStyle::Colour, 120),
     );
-    assert_eq!(word(&got), "image file:///i/photos.svg Px(IconPx(35))");
+    assert_eq!(word(&got), "image file:///i/photos.svg Px(IconPx(48))");
 }
