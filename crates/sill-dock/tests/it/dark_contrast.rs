@@ -1,5 +1,5 @@
 //! The dock's glyph tiles in the dark scheme, read off the painted pixels: after a live switch to
-//! Dark the Trash and the window glyph kept their light-scheme ink, dark on a dark plate.
+//! Dark the Trash and the window glyph kept their light-scheme ink, dark on the dark dock.
 
 use std::time::Duration;
 
@@ -16,12 +16,9 @@ const GRAPHIC: f32 = 3.0;
 const INKS: &[(&str, &str)] = &[
     (
         "the Trash glyph",
-        ".ds-dock-tile[*|aria-label=Trash] .ds-plate > svg.ds-ic",
+        ".ds-dock-tile[*|aria-label=Trash] svg.ds-ic",
     ),
-    (
-        "the first window glyph",
-        ".ds-dock-tile .ds-plate > svg.ds-ic",
-    ),
+    ("the first window glyph", ".ds-dock-tile svg.ds-ic"),
 ];
 
 fn appearance(theme: Theme) -> Environment {

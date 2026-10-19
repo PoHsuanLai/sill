@@ -1,6 +1,6 @@
 //! The dock in a `ds_harness::Harness` on the fake services: pinned apps then running ones
 //! grouped by app, the Trash, running dots, the badge, the progress bar, the regions' elements, the
-//! icon style on each plate; a value fed after the first frame changes what it shows.
+//! icon on no plate; a value fed after the first frame changes what it shows.
 
 use std::time::Duration;
 
@@ -68,11 +68,7 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
             "class=\"ds-running-dot\"",
             2,
         ),
-        (
-            "every tile on a neutral plate",
-            "data-family=\"neutral\"",
-            4,
-        ),
+        ("every icon as it is, on no plate", "class=\"ds-plate\"", 0),
         ("no bare art", "class=\"sill-dock-art\"", 0),
         ("the terminal draws its own icon", "icons/foot.svg", 1),
         ("quire's floor in the pill", "class=\"ds-dock-floor\"", 1),
@@ -160,51 +156,20 @@ fn styled(style: IconStyle) -> String {
         .html()
 }
 
-/// Under every style the terminal's own hicolor icon sits on the neutral plate, never bare.
+/// Under every style the terminal's own hicolor icon is drawn as it is, on no plate.
 #[test]
-fn a_mapped_app_still_draws_its_own_icon_on_the_plate() {
+fn a_mapped_app_draws_its_own_icon_on_no_plate() {
     for style in [IconStyle::Colour, IconStyle::Muted, IconStyle::Monochrome] {
         let html = styled(style);
-        assert!(
-            html.contains("data-family=\"neutral\""),
-            "{style:?}: {html}"
-        );
+        assert!(!html.contains("class=\"ds-plate\""), "{style:?}: {html}");
         assert!(
             html.contains("data-kind=\"image\""),
             "{style:?}: an image, not the window glyph\n{html}"
         );
         assert!(
             !html.contains("sill-dock-art"),
-            "{style:?}: no bare art\n{html}"
+            "{style:?}: no art of the dock's own\n{html}"
         );
-    }
-}
-
-/// Under Muted or Monochrome the plate itself carries the icon style:
-/// `IconView`'s `plate_tint` writes `data-icon-style` and the tinted stops and ink as custom
-/// properties (`--plate-base-l` ... `--plate-ink-d`), so quire's own stylesheet re-colours the
-/// plate the same hue as the icon on it, in both schemes at once.
-#[test]
-fn the_plate_carries_the_icon_style_under_muted_and_monochrome() {
-    for (style, word) in [
-        (IconStyle::Muted, "muted"),
-        (IconStyle::Monochrome, "monochrome"),
-    ] {
-        let html = styled(style);
-        assert!(
-            html.contains(&format!("data-icon-style=\"{word}\"")),
-            "{style:?}\n{html}"
-        );
-        for var in [
-            "--plate-base-l:",
-            "--plate-deep-l:",
-            "--plate-ink-l:",
-            "--plate-base-d:",
-            "--plate-deep-d:",
-            "--plate-ink-d:",
-        ] {
-            assert!(html.contains(var), "{style:?}: {var}\n{html}");
-        }
     }
 }
 
