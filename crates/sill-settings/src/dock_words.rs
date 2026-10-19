@@ -27,10 +27,6 @@ words! {
     AutoHide { #[default] Off, On }
     /// `dock.indicators`.
     Indicators { #[default] On, Off }
-    /// `dock.bounce`: gates Informational and Critical bounces.
-    Bounce { #[default] On, Off }
-    /// `dock.launch_animation`: gates the launch bounce.
-    LaunchAnim { #[default] On, Off }
     /// `dock.click_active_app`: `Nothing` is macOS.
     ActiveClick { #[default] Cycle, Nothing }
     /// `dock.trash`.

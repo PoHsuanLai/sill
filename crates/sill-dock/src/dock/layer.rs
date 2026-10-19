@@ -1,5 +1,5 @@
 //! The dock's layer surface (design/10 §10.3.1, §10.7): Top, bottom edge, tall enough for a
-//! magnified tile plus a bounce (`gut + pad + S + T`), reserving `gut + H_p` unless auto-hide
+//! magnified tile and the hover label above it (`gut + pad + S + T`), reserving `gut + H_p` unless auto-hide
 //! is on, no keyboard (OnDemand while its menu is open, shell-host's rule), input and blur
 //! following the `dock-hit` and `dock-pill` elements.
 //!

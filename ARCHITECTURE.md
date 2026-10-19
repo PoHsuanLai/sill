@@ -463,7 +463,7 @@ outside the machine, read by a closure at every step; see quire ARCHITECTURE.md 
 `FrameClock` that makes one from the thread's clock, which a harness's virtual clock drives. sill
 keeps neither a trait nor a stamp of its own.
 
-Intended implementors: dock hover/press/reveal/label/bounce, switcher, osd, banners deck, hot
+Intended implementors: dock hover/press/reveal/label, switcher, osd, banners deck, hot
 corners, screenshot thumb, power menu, polkit stage, notification-center keys, launcher keys. One
 per state that changes over time or by input. A state that only maps values is a free `step`.
 Implemented so far: the confirm sheet's `AnswerGate` (seeded arming), the hot corner (quire's

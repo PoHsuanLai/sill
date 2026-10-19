@@ -1,9 +1,8 @@
 //! Presses, clicks, drags and spring-loading (design/10 §10.3.6-10.3.8, §10.4 "Press").
 
 use ds::base::time::stamp::Stamp;
-use sill_settings::{ActiveClick, DockModifierClicks, LaunchAnim};
+use sill_settings::{ActiveClick, DockModifierClicks};
 
-use super::bounce::{self, BounceKind};
 use super::hover::{self, FreezeCause, Hover};
 use super::params::DockParams;
 use super::types::{
@@ -125,7 +124,7 @@ pub(crate) fn step(
             };
             match hit {
                 Hit::Tile { tile: t, app } if t == tile => {
-                    clicked(dock, tile, button, app, modifier, now, p, out)
+                    clicked(dock, tile, button, app, modifier, p, out)
                 }
                 _ => dock,
             }
@@ -276,14 +275,12 @@ fn manhattan(a: Point, b: Point) -> i32 {
 }
 
 /// The effect of a click released on the tile it pressed (design/10 §10.3.6).
-#[allow(clippy::too_many_arguments)]
 fn clicked(
     dock: DockState,
     tile: TileId,
     button: Button,
     app: TileApp,
     modifier: Modifier,
-    now: Stamp,
     p: &DockParams,
     out: &mut Vec<DockEffect>,
 ) -> DockState {
@@ -308,10 +305,6 @@ fn clicked(
                 tile,
                 instance: Instance::Existing,
             });
-            if p.launch_animation == LaunchAnim::On {
-                let deadline = now.after(p.bounce_launch_cap_ms);
-                return bounce::start(dock, tile, BounceKind::Launch { deadline }, now, out);
-            }
             dock
         }
         (_, Modifier::Alt, _) => activate(dock, tile, ActivateMode::HideCurrent, out),

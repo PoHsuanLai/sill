@@ -17,7 +17,6 @@ use sill_settings::DockMenuOrder;
 use sill_ui_kit::services::Services;
 use tokio::sync::mpsc;
 
-use crate::dock::changes::{Snapshot, changes};
 use crate::dock::context_menu::{OptionHeld, context_menu, menu_entries, menu_windows};
 use crate::dock::effects::{EffectCtx, effect_commands};
 use crate::dock::frame::Frame;
@@ -69,15 +68,10 @@ pub(crate) struct DockSession {
 }
 
 impl DockSession {
-    /// Hand the session this render's view of the world, and feed what changed since the last.
+    /// Hand the session this render's view of the world.
     pub(crate) fn update(&self, deps: SessionDeps) {
-        let now = Snapshot {
-            items: deps.items.clone(),
-            badges: deps.world.badges.clone(),
-        };
         let mut held = self.slots.deps;
         held.set(Some(deps));
-        notice_changes(self.slots, self.feed, now);
     }
 }
 
@@ -88,7 +82,6 @@ struct Slots {
     drawn: Signal<Stamp>,
     drive: CopyValue<Option<FrameDrive>>,
     menu: CopyValue<MenuOpen>,
-    seen: CopyValue<Snapshot>,
     reports: CopyValue<mpsc::UnboundedSender<PopupReport>>,
     deps: CopyValue<Option<SessionDeps>>,
     /// The session's own feed, for its timers (set once the callback exists).
@@ -127,7 +120,6 @@ pub(crate) fn use_dock(initial: DockState) -> DockSession {
         drawn: use_signal(|| Stamp(0)),
         drive: use_hook(|| CopyValue::new(None)),
         menu: use_hook(|| CopyValue::new(MenuOpen::Down)),
-        seen: use_hook(|| CopyValue::new(Snapshot::default())),
         reports: use_hook(|| CopyValue::new(reports_tx)),
         deps: use_hook(|| CopyValue::new(None)),
         feed: use_hook(|| CopyValue::new(None)),
@@ -188,23 +180,6 @@ fn on_report(slots: Slots, feed: Callback<DockInput>, outward: &Outward, report:
     if *menu.peek() == MenuOpen::Up {
         menu.set(MenuOpen::Down);
         feed.call(DockInput::Event(DockEvent::MenuClosed));
-    }
-}
-
-/// The service changes since the last render, fed after it.
-fn notice_changes(slots: Slots, feed: Callback<DockInput>, now: Snapshot) {
-    let mut seen = slots.seen;
-    if *seen.peek() == now {
-        return;
-    }
-    let events = changes(&seen.peek(), &now);
-    seen.set(now);
-    if !events.is_empty() {
-        spawn(async move {
-            for event in events {
-                feed.call(DockInput::Event(event));
-            }
-        });
     }
 }
 

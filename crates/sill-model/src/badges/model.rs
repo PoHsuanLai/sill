@@ -22,7 +22,7 @@ pub struct Badge {
     /// `progress` 0..1 as thousandths.
     pub progress: Permille,
     pub progress_visibility: Visibility,
-    /// `urgent`: starts a Critical bounce (design/10 §10.3.2).
+    /// `urgent`: the app needs the person (the dock does not bounce, design/10 §10.3.5).
     pub urgency: Urgency,
 }
 

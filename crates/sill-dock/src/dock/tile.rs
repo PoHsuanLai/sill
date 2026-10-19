@@ -1,8 +1,8 @@
-//! One dock tile: quire's `DockTile` at the tile's magnified size and bounce lift, in the slot the
-//! frame gives it. `DockTile` draws the app's icon as it is, on no plate (under Muted or
+//! One dock tile: quire's `DockTile` at the tile's magnified size, in the slot the frame gives
+//! it. `DockTile` draws the app's icon as it is, on no plate (under Muted or
 //! Monochrome the icon cache re-colours its raster), its `Badge` (a count, `999+` past 999), the `ProgressIndicator`
-//! bar while the app works, the running dot and the hover label (`DockLabel`), and lifts the
-//! icon by a bounce while the dot stays on the baseline. The label is shown and hidden by the
+//! bar while the app works, the running dot that says the app is open and the hover label
+//! (`DockLabel`); an opening app does not bounce (the owner, 2026-10-20). The label is shown and hidden by the
 //! dock machine alone (`shown`): up from its `ShowLabel` (the fly delay, the warm skip) to its
 //! `HideLabel` (the pointer left, a button went down, a context menu opened). The dock provides
 //! the machine's shown label as context; the frozen `Tile` props are unchanged. The tile takes
@@ -39,9 +39,9 @@ pub struct TileLook(pub IconLook);
 /// The gap between the label and the top of the plate (design/10 §10.3.4).
 const LABEL_GAP: u32 = 7;
 
-/// A tile at `left` with side `size`, lifted `lift` by a bounce.
+/// A tile at `left` with side `size`.
 #[component]
-pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge>) -> Element {
+pub fn Tile(item: DockItem, left: Cpx, size: Cpx, badge: Option<Badge>) -> Element {
     let apps = use_service::<AppsService>();
     let dock = use_section(|file| &file.dock)();
     let index = apps();
@@ -63,8 +63,8 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
     let icon = drawn(tile_art(&item.kind, app), sizes, &cx);
     let rows = Rows::new(&dock);
     let top = px(rows.baseline) - side;
-    // How far the plate's top is below the tile's, less the bounce: the label stands above it.
-    let rise = (side - f64::from(plate_side(Px(side as f32)).0)) / 2.0 - px(lift);
+    // How far the plate's top is below the tile's: the label stands above it.
+    let rise = (side - f64::from(plate_side(Px(side as f32)).0)) / 2.0;
     let running = if item.app != TileApp::NotRunning && dock.indicators == Indicators::On {
         Activity::Active
     } else {
@@ -88,7 +88,6 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
                 progress: badge.and_then(|b| b.shown_progress()).map(fraction),
                 running,
                 side: Px(side as f32),
-                lift: Px(px(lift) as f32),
                 label: name.clone(),
                 // Never quire's own: its card is placed in the pill-sized root's coordinates and
                 // lands the pill's origin away from its tile. The label is drawn below, in the

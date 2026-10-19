@@ -8,7 +8,6 @@
 //! `Tick` and `WakeAt` are the one-shot timer the doc mentions in prose; `Reveal::Fixed` is the
 //! auto-hide-off state; geometry is `Cpx` and progress `Permille`, never floats.
 
-mod bounce;
 mod hover;
 mod label;
 mod params;
@@ -16,7 +15,6 @@ mod press;
 mod reveal;
 mod types;
 
-pub use bounce::{Bounce, BounceKind, lift};
 pub use hover::{FreezeCause, Hover, Moved, displayed};
 pub use label::Label;
 pub use params::DockParams;
@@ -24,8 +22,8 @@ pub use press::{ActivateMode, DropZone, Instance, Press};
 pub use reveal::{Reveal, exclusive_zone, slide_offset};
 pub(crate) use reveal::{hit_region, pill_region, strip_region};
 pub use types::{
-    AppChange, AttentionKind, Button, DockEffect, DockEvent, DockKey, DockState, Hit, MenuState,
-    Modifier, Point, Pointer, Spring, TileApp, TileId,
+    Button, DockEffect, DockEvent, DockKey, DockState, Hit, MenuState, Modifier, Point, Pointer,
+    Spring, TileApp, TileId,
 };
 
 use ds::base::time::stamp::Stamp;
@@ -44,8 +42,7 @@ pub fn step(
             let dock = reveal::step(dock, &event, now, p, &mut out);
             let dock = press::step(dock, &event, now, p, &mut out);
             let dock = label::step(dock, &event, now, p, &mut out);
-            let dock = hover::step(dock, &event, now, p, &mut out);
-            bounce::step(dock, &event, now, p, &mut out)
+            hover::step(dock, &event, now, p, &mut out)
         }
     };
     let dock = frames(dock, &event, now, p, &mut out);
@@ -64,7 +61,6 @@ fn frames(
         return dock;
     }
     let moving = hover::animating(&dock.hover)
-        || !dock.bounces.is_empty()
         || reveal::animating(&dock.reveal)
         || matches!(dock.press, Press::Dragging { .. });
     let pending = matches!(

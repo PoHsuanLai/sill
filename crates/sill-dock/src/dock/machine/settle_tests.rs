@@ -4,7 +4,7 @@
 //! frames.
 
 use super::params::tests::params;
-use super::{AttentionKind, step};
+use super::step;
 use super::{Button, DockEffect, DockEvent, DockState, DropZone, Hit, Point, TileApp, TileId};
 use ds::base::time::stamp::Stamp;
 use sill_model::units::Cpx;
@@ -83,25 +83,9 @@ fn hover_and_leave_settle_at_any_tick_rate() {
 }
 
 #[test]
-fn bounces_and_a_released_drag_settle_at_any_tick_rate() {
+fn a_released_drag_settles_at_any_tick_rate() {
     let p = params();
     for (rate, ticks) in RATES {
-        let (bouncing, _) = step(
-            DockState::default(),
-            DockEvent::Attention {
-                tile: TileId(1),
-                kind: AttentionKind::Informational,
-            },
-            Stamp(0),
-            &p,
-        );
-        let (took, _) = settle(bouncing, 0, ticks, 1500).unwrap_or_else(|| {
-            panic!("{rate}: an informational bounce never stopped frames");
-        });
-        assert!(
-            (1200..=1220).contains(&took),
-            "{rate}: bounce settled after {took} ms"
-        );
         // Press, drag 20 px, release: the drag ends, the hover resumes and settles.
         let press = DockEvent::Press {
             button: Button::Primary,

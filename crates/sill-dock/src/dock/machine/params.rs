@@ -7,10 +7,7 @@ use ds::prelude::*;
 use ds::style::tokens::delay::TipDelay;
 use ds::style::tokens::easing::{CubicBezier, EasingToken};
 use sill_model::units::{Cpx, Permille};
-use sill_settings::{
-    ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
-    Magnification,
-};
+use sill_settings::{ActiveClick, DockModifierClicks, DockSettings, Magnification};
 
 /// The label's first delay: quire's `HoverProfile::Label` (100 ms; design/30 section 1.2), where
 /// it was 350 ms (`--d-fly`) before the dock followed `DockLabel`.
@@ -39,14 +36,6 @@ pub struct DockParams {
     /// `dock.hold_to_menu_move_px`, which is also the drag threshold (A6 "live after 8 px
     /// Manhattan").
     pub drag_threshold: Cpx,
-    pub bounce: BounceSetting,
-    pub launch_animation: LaunchAnim,
-    /// `dock.bounce_period_ms`.
-    pub bounce_period_ms: u64,
-    /// `dock.bounce_launch_cap_ms`.
-    pub bounce_launch_cap_ms: Ms,
-    /// Bounce amplitude: five eighths of a tile at rest (design/10 §10.3.5).
-    pub amplitude: Cpx,
     pub click_active_app: ActiveClick,
     pub modifier_clicks: DockModifierClicks,
     /// `dock.autohide_delay_ms`.
@@ -84,11 +73,6 @@ impl DockParams {
             warm_ms: Ms::from(dock.hover_label_warm_ms.0),
             hold_ms: Ms::from(dock.hold_to_menu_ms.0),
             drag_threshold: px(dock.hold_to_menu_move_px.0),
-            bounce: dock.bounce,
-            launch_animation: dock.launch_animation,
-            bounce_period_ms: u64::from(dock.bounce_period_ms.0),
-            bounce_launch_cap_ms: Ms::from(dock.bounce_launch_cap_ms.0),
-            amplitude: bounce_amplitude(dock.tile_size_px.0),
             click_active_app: dock.click_active_app,
             modifier_clicks: dock.modifier_clicks,
             autohide_delay_ms: Ms::from(dock.autohide_delay_ms.0),
@@ -98,12 +82,6 @@ impl DockParams {
             pill_blur_radius: crate::dock::geometry::pill_blur_radius(dock),
         }
     }
-}
-
-/// How high a tile of `tile` px bounces: five eighths of it (design/10 §10.3.5, Plank's 0.625; a
-/// whole tile hopped too high on the trial login of 2026-10-19).
-fn bounce_amplitude(tile: u16) -> Cpx {
-    Cpx::px(i32::from(tile) * 5 / 8)
 }
 
 #[cfg(test)]
@@ -127,9 +105,6 @@ pub(crate) mod tests {
         assert_eq!(p.warm_ms, Ms(400));
         assert_eq!(p.hold_ms, Ms(600));
         assert_eq!(p.drag_threshold, Cpx::px(8));
-        assert_eq!(p.bounce_period_ms, 600);
-        assert_eq!(p.bounce_launch_cap_ms, Ms(10_000));
-        assert_eq!(p.amplitude, Cpx::px(30), "5/8 of a 48 px tile");
         assert_eq!(p.autohide_delay_ms, Ms(200));
         assert_eq!(p.slide_ms, 500);
         assert_eq!(p.slide_distance, Cpx::px(76), "gut + H_p + 8 = 8 + 60 + 8");

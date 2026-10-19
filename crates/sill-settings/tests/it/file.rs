@@ -9,7 +9,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use sill_model::screenshots::ShotTool;
 use sill_settings::{
-    APP, BarSettings, Bounce, ControlCenterSettings, Dnd, DockSettings, LauncherSettings,
+    APP, BarSettings, ControlCenterSettings, Dnd, DockSettings, Indicators, LauncherSettings,
     MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile,
     SpacesSettings, SwitcherSettings,
 };
@@ -65,7 +65,7 @@ fn a_bad_value_costs_only_its_own_key() {
     let cases: Vec<(&str, &str, ShellFile)> = vec![
         (
             "an unknown enum word keeps its sibling",
-            "[dock]\nbounce = \"bounceyy\"\ntile_size_px = 64\n",
+            "[dock]\nindicators = \"maybe\"\ntile_size_px = 64\n",
             with(|f| f.dock.tile_size_px = Px(64)),
         ),
         (
@@ -94,7 +94,7 @@ fn a_bad_value_costs_only_its_own_key() {
         write(&dir, text.as_bytes());
         let got = load(&dir);
         assert_eq!(got, want, "{name}");
-        assert_eq!(got.dock.bounce, Bounce::On, "{name}");
+        assert_eq!(got.dock.indicators, Indicators::On, "{name}");
     }
 }
 

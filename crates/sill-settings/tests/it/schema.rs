@@ -30,8 +30,6 @@ const BASIC: &[&str] = &[
     "dock.autohide_delay_ms",
     "dock.autohide_slide_ms",
     "dock.indicators",
-    "dock.bounce",
-    "dock.launch_animation",
     "dock.click_active_app",
     "dock.trash",
     "scroll.natural",

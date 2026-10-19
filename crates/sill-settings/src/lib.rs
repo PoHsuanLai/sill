@@ -44,8 +44,8 @@ pub use companion::{
 pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
 pub use display::{DisplaySettings, NightWarmthMode};
 pub use dock::{
-    ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockSettings,
-    Indicators, LaunchAnim, Magnification, TrashTile,
+    ActiveClick, AutoHide, DockFloor, DockMenuOrder, DockModifierClicks, DockSettings, Indicators,
+    Magnification, TrashTile,
 };
 pub use file::{APP, ShellFile};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};

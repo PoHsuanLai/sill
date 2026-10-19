@@ -224,16 +224,6 @@ fn settings_change_what_a_click_does() {
 }
 
 #[test]
-fn a_launch_click_starts_a_launch_bounce() {
-    let (dock, _) = acts(
-        &params(),
-        &click(Button::Primary, TileApp::NotRunning, Modifier::None),
-    );
-    assert_eq!(dock.bounces.len(), 1);
-    assert_eq!(dock.bounces[0].0, T);
-}
-
-#[test]
 fn menus_open_on_secondary_press_and_on_a_held_press() {
     let p = params();
     let cases: Vec<(&str, Script, Vec<DockEffect>)> = vec![

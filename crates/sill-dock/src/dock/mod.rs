@@ -1,9 +1,8 @@
 //! The dock (design/20 §1.2, design/10, 06 §20.1): one per output, pinned apps then running
-//! ones grouped by `match_app`, Plank magnification, bounces, labels, badges, clicks, drags and
+//! ones grouped by `match_app`, Plank magnification, labels, badges, clicks, drags and
 //! auto-hide, driven by the pure [`machine`].
 
 mod activate;
-mod changes;
 pub mod context_menu;
 mod effects;
 mod frame;

@@ -7,8 +7,8 @@ use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
 pub use crate::dock_words::{
-    ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, Indicators,
-    LaunchAnim, Magnification, TrashTile,
+    ActiveClick, AutoHide, DockFloor, DockMenuOrder, DockModifierClicks, Indicators, Magnification,
+    TrashTile,
 };
 
 /// The dock's settings.
@@ -95,18 +95,6 @@ pub struct DockSettings {
     )]
     pub indicators: Indicators,
     #[settings(
-        label = "Bounce for attention",
-        help = "Apps that need you bounce their icon.",
-        section = "Animation"
-    )]
-    pub bounce: Bounce,
-    #[settings(
-        label = "Animate opening apps",
-        help = "An icon bounces while its app starts.",
-        section = "Animation"
-    )]
-    pub launch_animation: LaunchAnim,
-    #[settings(
         label = "Clicking the active app",
         help = "Cycle through its windows, or do nothing.",
         section = "Clicking"
@@ -181,24 +169,6 @@ pub struct DockSettings {
         advanced
     )]
     pub hover_label_warm_ms: Ms,
-    #[settings(
-        label = "Bounce period",
-        help = "One bounce, up and down.",
-        section = "Animation",
-        range = "100..=2000",
-        unit = "ms",
-        advanced
-    )]
-    pub bounce_period_ms: Ms,
-    #[settings(
-        label = "Launch bounce limit",
-        help = "The longest an opening app bounces.",
-        section = "Animation",
-        range = "0..=60000",
-        unit = "ms",
-        advanced
-    )]
-    pub bounce_launch_cap_ms: Ms,
     #[settings(
         label = "Hold for menu",
         help = "How long a press must hold still to open an icon's menu.",
@@ -292,8 +262,6 @@ impl Default for DockSettings {
             autohide_slide_ms: Ms(500),
             autohide_trigger_strip_px: Px(4),
             indicators: Indicators::On,
-            bounce: Bounce::On,
-            launch_animation: LaunchAnim::On,
             click_active_app: ActiveClick::Cycle,
             trash: TrashTile::On,
             pill_radius_px: Px(22),
@@ -303,8 +271,6 @@ impl Default for DockSettings {
             magnify_enter_ms: Ms(120),
             magnify_leave_ms: Ms(200),
             hover_label_warm_ms: Ms(400),
-            bounce_period_ms: Ms(600),
-            bounce_launch_cap_ms: Ms(10_000),
             hold_to_menu_ms: Ms(600),
             hold_to_menu_move_px: Px(8),
             remove_threshold_px: Px(64),

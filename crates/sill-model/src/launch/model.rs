@@ -1,5 +1,4 @@
-//! The scopes we started: the dock stops a launch bounce when the scope
-//! exits (design/10 §10.3.5), and Force Quit needs the unit.
+//! The scopes we started: Force Quit needs the unit.
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;

@@ -4,7 +4,6 @@ use ds::base::time::stamp::Stamp;
 use shell_host::{BlurSpec, ExclusiveZone, RegionSpec};
 use sill_model::units::Cpx;
 
-use super::bounce::Bounce;
 use super::hover::Hover;
 use super::label::Label;
 use super::press::{ActivateMode, DropZone, Instance, Press};
@@ -76,27 +75,6 @@ impl Hit {
     }
 }
 
-/// A change to a tile's app that ends a bounce.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AppChange {
-    /// Its first toplevel appeared.
-    Mapped,
-    /// One of its toplevels became active.
-    Activated,
-    /// LauncherEntry `urgent` went false.
-    UrgencyCleared,
-    /// The scope we launched it in exited.
-    ScopeExited,
-    LaunchFailed,
-}
-
-/// An attention request (LauncherEntry `urgent`, or the IPC design/10 §10.3.5 proposes).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AttentionKind {
-    Informational,
-    Critical,
-}
-
 /// The keys the dock handles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DockKey {
@@ -141,8 +119,6 @@ pub struct DockState {
     pub press: Press,
     pub reveal: Reveal,
     pub menu: MenuState,
-    /// Every bouncing tile.
-    pub bounces: Vec<(TileId, Bounce)>,
     pub spring: Spring,
 }
 
@@ -190,14 +166,6 @@ pub enum DockEvent {
     DndLeave,
     Drop,
     MenuClosed,
-    AppState {
-        tile: TileId,
-        change: AppChange,
-    },
-    Attention {
-        tile: TileId,
-        kind: AttentionKind,
-    },
     /// A `wl_surface.frame` callback.
     Frame,
     /// A one-shot timer asked for with [`DockEffect::WakeAt`] fired.
@@ -207,7 +175,7 @@ pub enum DockEvent {
 /// One thing the component must do.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DockEffect {
-    /// Draw this frame from [`super::displayed`] and the bounces.
+    /// Draw this frame from [`super::displayed`].
     Redraw,
     RequestFrames,
     StopFrames,

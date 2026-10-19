@@ -27,7 +27,7 @@ use crate::dock::geometry::{dock_metrics, pill_corner};
 use crate::dock::io::{SessionDeps, World, use_dock};
 use crate::dock::items::dock_items;
 use crate::dock::layer::layer;
-use crate::dock::machine::{DockParams, DockState, Label, Reveal, displayed, lift, slide_offset};
+use crate::dock::machine::{DockParams, DockState, Label, Reveal, displayed, slide_offset};
 use crate::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::dock::rest_rects::app_rects;
 use crate::dock::tile::{LabelShown, Tile, TileLook, px};
@@ -102,16 +102,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     let (progress, x) = displayed(&machine, at, &params);
     let width = output.logical.width;
     let shown = frame(&items, &file.dock, width, progress, x);
-    let lifts: Vec<Cpx> = items
-        .iter()
-        .map(|item| {
-            machine
-                .bounces
-                .iter()
-                .find(|(tile, _)| *tile == item.tile)
-                .map_or(Cpx(0), |(_, bounce)| lift(bounce, at, &params))
-        })
-        .collect();
     let slide = slide_offset(&machine.reveal, at, &params);
     let rest = frame(
         &items,
@@ -199,13 +189,12 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                             style: separator_style(sep, &rows, file.dock.separator_height_px.0),
                         }
                     }
-                    for ((item, area), lift) in items.iter().zip(&shown.tiles).zip(lifts) {
+                    for (item, area) in items.iter().zip(&shown.tiles) {
                         Tile {
                             key: "{item.tile.0}",
                             item: item.clone(),
                             left: area.left,
                             size: area.width,
-                            lift,
                             badge: item.kind.app_id().and_then(|id| world.badges.apps.get(id)).copied(),
                         }
                     }

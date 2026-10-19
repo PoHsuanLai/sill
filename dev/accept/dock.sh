@@ -191,7 +191,7 @@ step_launch() {
   cp "$OUT_DIR/pixel.png" "$OUT_DIR/launch-after.png"
   took=$(( ($(date +%s%N) - start) / 1000000 ))
   echo "dot pixel after ${took} ms: $after (dot: $found)" | tee -a "$log" >&2
-  # Let the launch bounce land before the badge step looks at the tile.
+  # Let the launched app settle before the badge step looks at the tile.
   sleep 1
   shot "$OUT_DIR/launched.png" >/dev/null 2>&1 || true
   [ "$found" = yes ] && budget_check "the launched app's dot after ${took} ms (less the capture's own $(capture_cost_ms) ms) against 3000 ms" "$(( $(captured_ms "$took") <= 3000 ))"
