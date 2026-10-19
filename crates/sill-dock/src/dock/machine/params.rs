@@ -45,7 +45,7 @@ pub struct DockParams {
     pub bounce_period_ms: u64,
     /// `dock.bounce_launch_cap_ms`.
     pub bounce_launch_cap_ms: Ms,
-    /// Bounce amplitude: one tile at rest (design/10 §10.3.5).
+    /// Bounce amplitude: five eighths of a tile at rest (design/10 §10.3.5).
     pub amplitude: Cpx,
     pub click_active_app: ActiveClick,
     pub modifier_clicks: DockModifierClicks,
@@ -88,7 +88,7 @@ impl DockParams {
             launch_animation: dock.launch_animation,
             bounce_period_ms: u64::from(dock.bounce_period_ms.0),
             bounce_launch_cap_ms: Ms::from(dock.bounce_launch_cap_ms.0),
-            amplitude: px(dock.tile_size_px.0),
+            amplitude: bounce_amplitude(dock.tile_size_px.0),
             click_active_app: dock.click_active_app,
             modifier_clicks: dock.modifier_clicks,
             autohide_delay_ms: Ms::from(dock.autohide_delay_ms.0),
@@ -98,6 +98,12 @@ impl DockParams {
             pill_blur_radius: crate::dock::geometry::pill_blur_radius(dock),
         }
     }
+}
+
+/// How high a tile of `tile` px bounces: five eighths of it (design/10 §10.3.5, Plank's 0.625; a
+/// whole tile hopped too high on the trial login of 2026-10-19).
+fn bounce_amplitude(tile: u16) -> Cpx {
+    Cpx::px(i32::from(tile) * 5 / 8)
 }
 
 #[cfg(test)]
@@ -121,9 +127,9 @@ pub(crate) mod tests {
         assert_eq!(p.warm_ms, Ms(400));
         assert_eq!(p.hold_ms, Ms(600));
         assert_eq!(p.drag_threshold, Cpx::px(8));
-        assert_eq!(p.bounce_period_ms, 500);
+        assert_eq!(p.bounce_period_ms, 600);
         assert_eq!(p.bounce_launch_cap_ms, Ms(10_000));
-        assert_eq!(p.amplitude, Cpx::px(48));
+        assert_eq!(p.amplitude, Cpx::px(30), "5/8 of a 48 px tile");
         assert_eq!(p.autohide_delay_ms, Ms(200));
         assert_eq!(p.slide_ms, 500);
         assert_eq!(p.slide_distance, Cpx::px(76), "gut + H_p + 8 = 8 + 60 + 8");

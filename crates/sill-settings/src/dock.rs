@@ -303,7 +303,7 @@ impl Default for DockSettings {
             magnify_enter_ms: Ms(120),
             magnify_leave_ms: Ms(200),
             hover_label_warm_ms: Ms(400),
-            bounce_period_ms: Ms(500),
+            bounce_period_ms: Ms(600),
             bounce_launch_cap_ms: Ms(10_000),
             hold_to_menu_ms: Ms(600),
             hold_to_menu_move_px: Px(8),
