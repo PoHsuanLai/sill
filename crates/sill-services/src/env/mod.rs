@@ -8,6 +8,7 @@ mod buses;
 mod children;
 pub mod ddc;
 mod dirs;
+mod ibus;
 mod passwd;
 mod release;
 mod session_actions;
@@ -31,6 +32,7 @@ pub use bus_name::{NameState, name_state};
 pub use buses::{Bus, BusKind, BusRoute, Buses, ConnectError};
 pub use children::{Children, ProcessGroup, RealChildren, RecordedChildren, Start};
 pub use dirs::Dirs;
+pub use ibus::IbusRoute;
 pub use passwd::{FakePasswd, Passwd, Person, SystemPasswd, UserId};
 pub use release::{SESSION_MODE_VAR, SessionMode};
 pub use session_actions::{
@@ -49,6 +51,8 @@ pub struct Env {
     pub wayland: WaylandRoute,
     /// The person's directories.
     pub dirs: Dirs,
+    /// Where IBus's own bus is.
+    pub ibus: IbusRoute,
     /// The wall clock the services read.
     pub clock: Arc<dyn WallClock>,
     /// The DDC/CI buses external monitors answer on.
@@ -145,6 +149,7 @@ impl Env {
             claims: NameClaims::Claim,
             wayland: WaylandRoute::Environment,
             dirs: Dirs::from_process(),
+            ibus: IbusRoute::from_process(),
             clock: Arc::new(SystemClock),
             ddc: Arc::new(I2cBuses::default()),
             idle_times: IdleTimesSource::Settings,
@@ -181,6 +186,7 @@ impl Env {
             claims: NameClaims::Passive,
             wayland: WaylandRoute::Socket(scratch.join("no-wayland-socket")),
             dirs: Dirs::under(scratch),
+            ibus: IbusRoute::Absent,
             clock: Arc::new(SystemClock),
             ddc: Arc::new(FileBus::new(scratch.join("no-ddc-monitors.json"))),
             idle_times: IdleTimesSource::Settings,

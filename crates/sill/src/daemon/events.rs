@@ -84,6 +84,17 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
                 reply,
             );
         }
+        HostEvent::App(ShellMsg::Ipc {
+            request:
+                Request::Do(Ask {
+                    action: ActionId::NextInputSource,
+                    ..
+                }),
+            reply,
+        }) => {
+            // Answered once the service says how the switch went, off this thread.
+            crate::actions::input_source::ask(&shell.services, &shell.runtime, reply);
+        }
         HostEvent::App(ShellMsg::Action(asked)) => {
             let Asked { ask, origin } = asked.clone();
             let response = reached(shell, ctx, |ctx, reach| {

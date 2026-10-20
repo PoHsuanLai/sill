@@ -11,7 +11,7 @@
 //! `Request::Do`. Nothing here goes over D-Bus.
 
 mod app;
-mod input_source;
+pub(crate) mod input_source;
 mod launch;
 pub mod next_window;
 pub(crate) mod panel;

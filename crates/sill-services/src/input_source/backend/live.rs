@@ -1,28 +1,25 @@
 //! Carries out Next Input Source: finds the framework on the bus at the time, then switches it.
 //! Tests feed it a private bus with a stand-in controller, never a real fcitx5.
 
-use sill_model::input_source::{InputCommand, InputFramework, InputRefusal, InputSwitch};
+use sill_model::input_source::{InputCommand, InputRefusal, InputSwitch};
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 
-use super::fcitx;
-use crate::env::Bus;
+use super::{fcitx, ibus};
+use crate::env::{Bus, IbusRoute};
 use crate::error::ServiceError;
 use crate::owner;
-
-/// IBus's name on the session bus (the portal it offers sandboxed apps); its own bus is found
-/// through an address file, which the shell does not read.
-const IBUS_PORTAL: &str = "org.freedesktop.portal.IBus";
 
 /// Runs until `commands` closes. Without a session bus the state stays idle.
 pub(crate) async fn run(
     bus: Bus,
+    ibus: IbusRoute,
     tx: watch::Sender<InputSwitch>,
     mut commands: mpsc::UnboundedReceiver<InputCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
     while let Some(InputCommand::Next) = commands.recv().await {
-        let now = match switch(&connection).await {
+        let now = match switch(&connection, &ibus).await {
             Ok(name) => InputSwitch::Switched(name),
             Err(refusal) => {
                 eprintln!("sill-services: input_source: {refusal:?}");
@@ -34,13 +31,14 @@ pub(crate) async fn run(
     Ok(())
 }
 
-/// The framework on the bus now, and what switching it came to.
-async fn switch(connection: &Connection) -> Result<String, InputRefusal> {
+/// The framework running now, and what switching it came to: fcitx5 on the session bus, else
+/// IBus on its own bus.
+async fn switch(connection: &Connection, ibus_route: &IbusRoute) -> Result<String, InputRefusal> {
     if owner::current(connection, fcitx::NAME).await.is_some() {
         return fcitx::switch(connection).await;
     }
-    if owner::current(connection, IBUS_PORTAL).await.is_some() {
-        return Err(InputRefusal::Unsupported(InputFramework::IBus));
+    match ibus::connect(ibus_route).await {
+        Some(own) => ibus::switch(&own).await,
+        None => Err(InputRefusal::NoFramework),
     }
-    Err(InputRefusal::NoFramework)
 }
