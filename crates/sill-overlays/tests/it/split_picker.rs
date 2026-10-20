@@ -78,8 +78,8 @@ fn escape_turns_the_choice_down_and_hides_the_picker() {
     running.harness.advance(Duration::from_millis(100));
     let answered = running.link.last_answer().expect("answered");
     assert_eq!(
-        (answered.first.as_str(), answered.answer),
-        ("w1", SplitAnswer::Cancelled)
+        (answered.first.as_str(), &answered.answer),
+        ("w1", &SplitAnswer::Cancelled)
     );
     assert_eq!(running.harness.count(".sill-split"), 0);
 }
@@ -108,8 +108,8 @@ fn a_click_on_a_tile_picks_that_window() {
     running.harness.advance(Duration::from_millis(100));
     let answered = running.link.last_answer().expect("answered");
     assert_eq!(
-        (answered.first.as_str(), answered.answer),
-        ("w1", SplitAnswer::Picked("w2".to_owned())),
+        (answered.first.as_str(), &answered.answer),
+        ("w1", &SplitAnswer::Picked("w2".to_owned())),
         "the first tile is the most recently used window"
     );
     assert_eq!(running.harness.count(".sill-split"), 0);

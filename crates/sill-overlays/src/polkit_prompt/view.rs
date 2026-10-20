@@ -20,8 +20,8 @@ use sill_services::{Control, PolkitAgentService};
 use sill_shell_kit::lock::vocab::CapsLock;
 use sill_shell_kit::prelude::*;
 
-use super::surface::PANEL_ID;
 use super::model::{PolkitPromptView, prompt_view};
+use super::surface::PANEL_ID;
 use sill_ui_kit::hooks::{use_banner_output, use_control, use_service};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};

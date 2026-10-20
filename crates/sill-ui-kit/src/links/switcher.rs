@@ -60,6 +60,31 @@ impl Asks {
             .collect()
     }
 
+    /// The latest ask.
+    pub fn latest(&self) -> Option<&SwitcherAsked> {
+        self.recent.last()
+    }
+
+    fn push(&mut self, asked: SwitcherAsked) {
+        self.recent.push(asked);
+        let over = self.recent.len().saturating_sub(KEPT);
+        self.recent.drain(..over);
+    }
+}
+
+/// The daemon's half and every switcher surface's receiver. Clone is cheap.
+#[derive(Debug, Clone, Default)]
+pub struct SwitcherLink {
+    asked: Shared<Asks>,
+    /// The outputs whose switcher surface has held the keyboard since its opening began.
+    held: Shared<Vec<OutputId>>,
+}
+
+impl SwitcherLink {
+    pub fn new() -> SwitcherLink {
+        SwitcherLink::default()
+    }
+
     /// An opening began on `output`: its surface awaits the keyboard. A focus loss that was
     /// already on its way from the opening before is then not this one's.
     pub fn opened(&self, output: OutputId) {
@@ -94,31 +119,6 @@ impl Asks {
                 }
             }
         }
-    }
-
-    /// The latest ask.
-    pub fn latest(&self) -> Option<&SwitcherAsked> {
-        self.recent.last()
-    }
-
-    fn push(&mut self, asked: SwitcherAsked) {
-        self.recent.push(asked);
-        let over = self.recent.len().saturating_sub(KEPT);
-        self.recent.drain(..over);
-    }
-}
-
-/// The daemon's half and every switcher surface's receiver. Clone is cheap.
-#[derive(Debug, Clone, Default)]
-pub struct SwitcherLink {
-    asked: Shared<Asks>,
-    /// The outputs whose switcher surface has held the keyboard since its opening began.
-    held: Shared<Vec<OutputId>>,
-}
-
-impl SwitcherLink {
-    pub fn new() -> SwitcherLink {
-        SwitcherLink::default()
     }
 
     /// Ask the switcher on `output`; every ask is new, even one equal to the last.

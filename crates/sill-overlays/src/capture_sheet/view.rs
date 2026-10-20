@@ -30,8 +30,8 @@ use sill_services::capture_pick::CaptureService;
 
 use super::CAPTURE_SHEET_CSS;
 use super::io::use_end;
-use super::surface::PANEL_ID;
 use super::rows::{byline_of, empty_words, key_of, pointer_words, rows_of, source_of, tab_words};
+use super::surface::PANEL_ID;
 use sill_ui_kit::hooks::{use_banner_output, use_service_part};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};

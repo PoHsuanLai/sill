@@ -3,7 +3,7 @@
 //! keyboard, input and blur the thumbnail's own card (`Element("thumb")`), with room around
 //! the card for the Toast material's shadow and the swipe's travel.
 
-use shell_host::{Anchor, ExclusiveZone, LayerConfig, OutputInfo, RegionSpec};
+use shell_host::{Anchor, ExclusiveZone, LayerConfig, OutputInfo};
 
 use sill_settings::ShellFile;
 
@@ -35,11 +35,6 @@ const THUMB_CARD: PanelBlur = PanelBlur {
     radius: THUMB_RADIUS,
 };
 
-/// The card's region.
-pub fn thumb_region() -> RegionSpec {
-    THUMB_CARD.region()
-}
-
 /// The thumbnail on `output`: a column `THUMB_WIDTH` plus room wide, as tall as a 16:10 picture
 /// plus room (a taller picture is letterboxed in the card).
 pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
@@ -57,7 +52,7 @@ pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
 mod tests {
     use sill_settings::ShellFile;
 
-    use super::{ROOM, THUMB_WIDTH, layer, thumb_region};
+    use super::{ROOM, THUMB_CARD, THUMB_WIDTH, layer};
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
     use sill_ui_kit::harness::fake::output_named as output;
 
@@ -71,7 +66,7 @@ mod tests {
         assert_eq!(config.size.height, LayerExtent::Px(153 + 2 * ROOM));
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::None);
-        assert_eq!(config.input, thumb_region());
-        assert_eq!(config.blur, BlurSpec::Region(thumb_region()));
+        assert_eq!(config.input, THUMB_CARD.region());
+        assert_eq!(config.blur, BlurSpec::Region(THUMB_CARD.region()));
     }
 }

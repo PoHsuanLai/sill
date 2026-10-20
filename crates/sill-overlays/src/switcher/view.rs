@@ -18,9 +18,9 @@ use sill_shell_kit::switcher::app_switcher::AppKey;
 use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
 
 use super::io::{SwitcherCtx, use_switcher};
-use super::surface::PANEL_ID;
 use super::pointer::At;
 use super::session::{Session, Windows};
+use super::surface::PANEL_ID;
 use super::tiles::{key_of, output_width, tiles};
 use super::watch::ChordWatch;
 use ds_behaviour::switcher::Phase;

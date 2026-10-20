@@ -107,7 +107,7 @@ fn a_click_on_a_tile_picks_that_space() {
     running.harness.send(Input::click(first));
     running.harness.advance(Duration::from_millis(100));
     let picked = running.link.last_pick().expect("picked");
-    assert_eq!(picked.pick, BarPick::Switch(id("ws-1")));
+    assert_eq!(picked.item, BarPick::Switch(id("ws-1")));
 }
 
 #[test]
@@ -120,7 +120,7 @@ fn a_click_on_the_plus_adds_a_space_on_this_output() {
     running.harness.send(Input::click(plus));
     running.harness.advance(Duration::from_millis(100));
     let picked = running.link.last_pick().expect("picked");
-    assert_eq!(picked.pick, BarPick::Add("DP-1".to_owned()));
+    assert_eq!(picked.item, BarPick::Add("DP-1".to_owned()));
 }
 
 #[test]

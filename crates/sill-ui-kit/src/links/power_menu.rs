@@ -47,7 +47,7 @@ fn showing_as(shown: &Reveal<PowerMenuOpening>, showing: Showing) -> Reveal<Powe
                 showing,
                 ..opening.payload
             },
-            ..opening.clone()
+            ..*opening
         }),
         Reveal::Hidden { .. } => shown.clone(),
     }
