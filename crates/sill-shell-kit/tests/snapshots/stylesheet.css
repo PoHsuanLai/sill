@@ -561,6 +561,7 @@ html,body{margin:0;padding:0;background:transparent}
    a little below the triangle. */
 .ds-acc-advanced{ display:flex; flex-direction:column; gap:var(--s-20); padding-top:var(--s-12); }
 .ds-acc-caption{ font-size:var(--fs-control); line-height:1.45; color:var(--ink-soft); }
+.ds-acc-detail{ user-select:text; overflow-wrap:anywhere; }
 .ds-acc-waiting{ display:flex; align-items:center; gap:var(--s-8); }
 .ds-acc-url{ font-family:var(--font-data); font-size:var(--fs-small); color:var(--ink-soft); word-break:break-all; user-select:text; }
 .ds-acc-code{ align-self:center; padding:var(--s-8) var(--s-16); font-family:var(--font-data); font-size:var(--fs-display); font-weight:700; color:var(--ink); user-select:text; }
@@ -851,6 +852,22 @@ html,body{margin:0;padding:0;background:transparent}
   font-family:var(--font-ui); font-size:var(--fs-meta); color:var(--ink);
 }
 .ds-chip-remove{ border:0; background:none; padding:0; cursor:default; color:var(--ink-faint); line-height:0; }
+
+/* A leading colour dot: the chip's `dot` colour in `--chip-dot`. */
+.ds-chip-dot{ display:inline-block; vertical-align:middle; flex:none; width:12px; height:12px; margin-right:var(--s-4); border-radius:var(--r-pill); background:var(--chip-dot); }
+
+/* Pressable: the face is a button that wears the chip's own type and ink; the chip lays the
+   face and its remove button in a row. Focus ring: the global keyboard rule. */
+.ds-chip[*|data-pressable]{ display:inline-flex; align-items:center; gap:var(--s-5); }
+.ds-chip-press{
+  display:inline-flex; align-items:center; margin:0; padding:0; border:0; border-radius:inherit; background:none;
+  font-family:inherit; font-size:inherit; font-variant-numeric:inherit; color:inherit; white-space:nowrap; cursor:default;
+}
+/* Picked: the ink, a stronger wash and a firmer line, as a toggle Button that is on. A chip with
+   no line of its own gets a ring in its place. */
+.ds-chip[*|data-state=on]{ color:var(--ink); box-shadow:0 0 0 var(--hair) var(--ink-faint); }
+.ds-chip[*|data-variant=neutral][*|data-state=on],
+.ds-chip[*|data-variant=person][*|data-state=on]{ background:var(--fill); border-color:var(--ink-faint); box-shadow:none; }
 /* -- column -- */
 /* Column: children stacked with a token gap (`--column-gap`, set by the component from a spacing
    step) and aligned across the width. Attribute selectors carry `*|` (spike S2). */
@@ -2741,20 +2758,21 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-handle[*|aria-pressed=true]{ transform:scale(1.15); }
 
 .ds-stops{ display:flex; gap:var(--s-6); align-items:center; margin-top:var(--s-8); flex-wrap:wrap; }
-.ds-stop{
-  display:inline-flex; align-items:center; gap:var(--s-5); border:var(--hair) solid var(--line); background:var(--surface-2);
-  border-radius:var(--r-pill); padding:var(--s-3) var(--s-5) var(--s-3) var(--s-4); font-family:var(--font-data); font-variant-numeric:tabular-nums; font-size:var(--fs-caption);
-  color:var(--ink-soft); cursor:default;
-}
-.ds-stop-disc{ width:14px; height:14px; border-radius:var(--r-pill); display:block; }
-.ds-stop[*|aria-pressed=true]{ border-color:var(--ink-faint); color:var(--ink); }
-.ds-stop .ds-stop-remove{ border:0; background:none; padding:0; cursor:default; color:var(--ink-faint); line-height:0; }
 
 .ds-presets{ display:grid; grid-template-columns:repeat(8, 22px); gap:var(--s-6); }
 /* PresetSwatches: the presets as a settings row's control, the checked one ringed. */
 .ds-preset-swatches{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:var(--s-8); }
 .ds-preset-swatches .ds-preset{ width:24px; height:24px; }
 .ds-preset-swatches .ds-preset[*|aria-checked=true]{ box-shadow:0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+/* Custom: the hue wheel's colours while no look of its own is set (then it wears the look, inline);
+   its popover is the editor's colour at a quarter less, the field 120 px tall in a 240 px card,
+   on the popover's own surface (no frame of its own) with the popover's padding. */
+.ds-preset-custom:not([*|data-stops]){
+  background:linear-gradient(135deg,var(--swatch-red) 0%,var(--swatch-yellow) 25%,var(--swatch-green) 50%,var(--swatch-blue) 75%,var(--swatch-purple) 100%); }
+.ds-custom-colour{ width:240px; padding:var(--s-12); gap:var(--s-10); border:0; border-radius:0; background:none; box-shadow:none; }
+.ds-custom-colour .ds-field{ height:120px; }
+/* The slider's knob overhangs its track by half; inset so it stays inside the small card. */
+.ds-custom-colour .ds-slider{ width:auto; margin:0 calc(var(--sl-knob) / 2); }
 .ds-preset{
   width:22px; height:22px; box-sizing:border-box; border-radius:var(--r-pill); border:var(--hair) solid var(--line); cursor:default; padding:0;
 }
@@ -2802,7 +2820,7 @@ html,body{margin:0;padding:0;background:transparent}
   background:linear-gradient(135deg,var(--dot-c1) 0%,var(--dot-c2) 100%); }
 .ds-space-dot[*|data-stops="3"], .ds-preset[*|data-stops="3"], .ds-space-swatch[*|data-stops="3"]{
   background:linear-gradient(135deg,var(--dot-c1) 0%,var(--dot-c2) 50%,var(--dot-c3) 100%); }
-.ds-handle, .ds-stop-disc{ background:var(--dot-c1); }
+.ds-handle{ background:var(--dot-c1); }
 /* -- spaces -- */
 /* Spaces (design/21-SPACES.md section 13): the sidebar head and foot, the parts of a Space's
    menu, and its Edit Space sheet. Colours are the frame's own (`--f-*`) and tokens; nothing is Space-tinted here
@@ -2824,11 +2842,11 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-space-rename{ width:240px; }
 .ds-space-part-acts{ display:flex; justify-content:flex-end; gap:var(--s-6); }
 
-/* The Edit Space sheet (design/34 section 3.8): the title, the grouped form (the name row, then
-   the colour on the group's ground at the row's side inset), and the buttons at the end, Cancel
-   before Save. The form brings its own 20 margin; the title and the buttons share it. */
+/* The Edit Space sheet (design/34 section 3.8): the title (a Title label), the grouped form (the name row,
+   then the colour on the group's ground at the row's side inset), and the buttons at the end,
+   Cancel before Save. The form brings its own 20 margin; the title and the buttons share it. */
 .ds-space-edit{ display:flex; flex-direction:column; min-width:0; }
-.ds-space-edit-title{ margin:0; padding:var(--s-20) var(--s-20) 0; font-size:var(--fs-subject); font-weight:700; color:var(--ink); }
+.ds-space-edit-title{ padding:var(--s-20) var(--s-20) 0; }
 .ds-space-edit-colour{ padding:var(--s-14); }
 .ds-space-edit-acts{ display:flex; justify-content:flex-end; gap:var(--s-8); padding:0 var(--s-20) var(--s-20); }
 /* -- progress -- */
@@ -3696,11 +3714,6 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-card-form-title{ font-size:var(--fs-title); font-weight:600; }
 .ds-card-form-field{ display:flex; flex-direction:column; gap:var(--s-4); }
 .ds-card-form-picks{ display:flex; flex-wrap:wrap; gap:var(--s-6); }
-
-/* A refusal: the headline, then what to do about it. */
-.ds-card-refused{ display:flex; flex-direction:column; gap:var(--s-4); padding:var(--s-10) var(--s-12); border-radius:var(--r-small); background:var(--fill-quaternary); }
-.ds-card-refused[*|data-why=failed]{ background:var(--danger-wash); }
-.ds-card-refused-head{ font-weight:600; }
 
 /* Actions: a row, each button with its effect tag beside it. The one with the keyboard shows
    the button's own focus ring. */

@@ -288,6 +288,8 @@ fn every_table_name_is_declared_on_the_root() {
 /// stops (`SpaceDot`, the editor's presets, handles, discs and swatch), and a
 /// tinted plate's per-scheme stops and ink (`IconView { plate_tint }`).
 const PER_ELEMENT: &[&str] = &[
+    // A chip's leading colour dot (quire `Chip { dot }`).
+    "--chip-dot",
     "--a",
     "--dy",
     "--d",
