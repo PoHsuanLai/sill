@@ -10,7 +10,7 @@ use sill_model::idle::{IdleHint, LogindIdle, logind_idle};
 use zbus::Connection;
 use zbus::proxy::CacheProperties;
 
-use crate::env::{Bus, ConnectError};
+use crate::env::Bus;
 use crate::login_session::session_path;
 
 /// The connected half.
@@ -26,11 +26,11 @@ impl std::fmt::Debug for IdleLogind {
     }
 }
 
-/// A connection to `bus`; `None` when it is absent or cannot be reached.
-pub(crate) async fn bus(bus: &Bus) -> Option<Connection> {
-    match bus.try_connect().await {
+/// A connection to `bus`, waiting for a bus that is not up yet; `None` only when it is absent by
+/// choice.
+async fn bus_waiting(bus: &Bus) -> Option<Connection> {
+    match bus.connect_waiting().await {
         Ok(connection) => Some(connection),
-        Err(ConnectError::NoBus(_)) => None,
         Err(error) => {
             eprintln!("sill: idle: no bus at {:?}: {error}", bus.route());
             None
@@ -38,9 +38,10 @@ pub(crate) async fn bus(bus: &Bus) -> Option<Connection> {
     }
 }
 
-/// Connect to logind on `system`.
+/// Connect to logind on `system`, waiting for the system bus to come up. Run it off the loop (a
+/// task of its own): the wait has no end while the bus stays down.
 pub(crate) async fn connect(system: &Bus, session_id: Option<&str>) -> Option<IdleLogind> {
-    let connection = bus(system).await?;
+    let connection = bus_waiting(system).await?;
     let manager = match ManagerProxy::builder(&connection)
         .cache_properties(CacheProperties::No)
         .build()

@@ -23,6 +23,7 @@ use sill_model::idle::{
 use sill_model::locker::{Lock, LockPhase, LockerCommand};
 use sill_model::untrusted::for_log;
 use tokio::sync::{mpsc, watch};
+use tokio::task::JoinSet;
 use tokio::time::MissedTickBehavior;
 use zbus::fdo::NameOwnerChangedStream;
 
@@ -43,6 +44,8 @@ struct Held {
     wire: Option<Wire>,
     logind: Option<IdleLogind>,
     sleep: Option<PrepareForSleepStream>,
+    /// The wait for logind's bus, while it is not up; ends with `Held`.
+    logind_wait: JoinSet<Option<IdleLogind>>,
     served: Option<Served>,
     departures: Option<NameOwnerChangedStream>,
 }
@@ -119,6 +122,7 @@ pub(crate) async fn run(
                     Err(_) => {}
                 }
             }
+            Some(Ok(Some(found))) = live.held.logind_wait.join_next() => live.logind_up(found),
             Some(change) = next_opt(&mut live.held.departures) => {
                 if let Ok(args) = change.args()
                     && args.new_owner().is_none()
@@ -213,10 +217,11 @@ impl Live {
             // A fresh connection holds nothing: the machine's set must be sent again.
             self.state.held.clear();
         }
-        if self.held.logind.is_none() {
-            self.held.logind =
-                idle_logind::connect(&self.setup.system, self.setup.session_id.as_deref()).await;
-            self.held.sleep = self.held.logind.as_mut().and_then(|l| l.sleep.take());
+        if self.held.logind.is_none() && self.held.logind_wait.is_empty() {
+            let (system, session_id) = (self.setup.system.clone(), self.setup.session_id.clone());
+            self.held.logind_wait.spawn(async move {
+                idle_logind::connect(&system, session_id.as_deref()).await
+            });
         }
         if self.held.served.is_none() {
             let idle = self.tx.subscribe();
@@ -224,6 +229,12 @@ impl Live {
             self.held.served = screensaver::serve(&self.setup.session, calls, idle).await;
             self.held.departures = self.held.served.as_mut().and_then(|s| s.departures.take());
         }
+    }
+
+    /// logind answered, when its bus came up: hold it and follow its sleep signal.
+    fn logind_up(&mut self, mut found: IdleLogind) {
+        self.held.sleep = found.sleep.take();
+        self.held.logind = Some(found);
     }
 
     /// Drop the thread and the buses (the name goes back with its connection).
