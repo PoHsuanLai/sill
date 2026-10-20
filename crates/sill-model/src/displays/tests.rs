@@ -61,3 +61,26 @@ fn targets_and_levels_follow_the_outputs() {
     assert_eq!(displays.brightness(&panel_target), Some(Percent(50)));
     assert_eq!(displays.brightness(&BrightnessTarget::None), None);
 }
+
+#[test]
+fn only_outputs_with_a_readable_brightness_are_listed() {
+    use super::output::describe;
+    use super::randr::Head;
+    let head = |n: &str| Head {
+        name: OutputName(n.to_owned()),
+        ..Head::default()
+    };
+    let displays = Displays {
+        outputs: ["eDP-1", "HDMI-A-2", "DP-1"]
+            .iter()
+            .map(|n| describe(&head(n), None))
+            .collect(),
+        ddc: vec![monitor()],
+        backlights: vec![panel()],
+    };
+    assert_eq!(
+        super::wire_of(&displays.levels()),
+        vec![("eDP-1".to_owned(), 50), ("HDMI-A-2".to_owned(), 49)]
+    );
+    assert_eq!(super::wire_of(&Displays::default().levels()), vec![]);
+}

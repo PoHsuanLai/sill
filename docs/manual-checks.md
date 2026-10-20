@@ -561,3 +561,4 @@ the real daemons or a real keyboard.
 - [ ] **Sheets on the focused window's output** (two displays): focus a window on the second display, then trigger a confirm (`quire-do shell lock`). The sheet shows on that display. A second question while the first is up stays on the same display.
 - [ ] **Confirm click-through**: answer a confirm and click the window under it at once. The click lands. With a confirm up, click another window beside the card. The click lands and the confirm stays.
 - [ ] **Lock links**: lock, then unlock with the password, on each output. The prompt works on every output (the lock now gets only its own link).
+- [ ] **Brightness in Settings**: Settings > Displays shows a Brightness slider under each display that has one (the built-in panel, a monitor that answers DDC/CI) and none under one that does not. Drag it and that display dims. Press a brightness key and the slider follows.

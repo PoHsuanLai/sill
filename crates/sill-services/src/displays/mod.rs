@@ -10,12 +10,14 @@
 //!   gains (`Controls`) on one worker thread, with debounced writes and cached reads.
 //! - **Brightness routing.** Built-in panels through logind, monitors through DDC
 //!   (`BrightnessTarget`), on the output under the pointer or all of them.
+//! - **On the bus.** Each display's brightness for Settings, `org.quire.Displays1` (`bus`).
 //! - **Monitor speakers** follow the software volume when the default sink is the monitor.
 //! - **Night warmth** through the monitors' RGB gains (`warmth_gains`), off by default.
 //! - **Font rendering** for other apps: a fontconfig snippet from the densest display.
 //!
 //! The service is inert until the daemon sends its first [`DisplaysCommand::Policy`].
 
+pub mod bus;
 mod backend;
 
 pub use backend::{OutputsRoute, WlrOutputs};

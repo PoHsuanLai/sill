@@ -25,7 +25,7 @@ pub(crate) enum Role {
     Sync,
     /// The intent router.
     Router,
-    /// Another service of the desktop, which none of the shell's objects answers.
+    /// Settings: `org.quire.Displays1` lets it set a brightness; no other object answers it.
     Settings,
 }
 

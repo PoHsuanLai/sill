@@ -19,6 +19,7 @@ use sill_services::clipboard::ClipboardService;
 use sill_services::clock::ClockService;
 use sill_services::companion::{CompanionLinks, CompanionService};
 use sill_services::displays::DisplaysService;
+use sill_services::displays::bus::{DisplaysBusLinks, DisplaysBusService};
 use sill_services::env::{Dirs, SessionActions};
 use sill_services::events::EventsService;
 use sill_services::guest_asks::{GuestAsksLinks, GuestAsksService};
@@ -82,6 +83,12 @@ services! {
         volume: VolumeService = () => crate::harness::fake::volume();
         /// Inert until the daemon's first policy.
         displays: DisplaysService = volume.state.clone();
+        /// Each display's brightness for Settings (`org.quire.Displays1`); passive until the daemon
+        /// says to serve.
+        displays_bus: DisplaysBusService = DisplaysBusLinks {
+            displays: displays.state.clone(),
+            control: displays.control.clone(),
+        };
         /// The screen-sharing picker transom asks (`org.quire.Shell1.PickCaptureSource`); served on
         /// the connection `intents` holds, passive until the daemon says to serve.
         capture: CaptureService = CaptureLinks {
