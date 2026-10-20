@@ -12,7 +12,7 @@ use sill_launcher::actions::ActionId;
 use sill_model::actions::Subject;
 use sill_shell_kit::prelude::*;
 
-use sill_ui_kit::hooks::{Entrance, use_entrance};
+use sill_ui_kit::hooks::{Entrance, use_entrance, use_link};
 
 /// How a pane closes the popup it is in: provided by the control center and by a module's bar
 /// dropdown.
@@ -42,7 +42,7 @@ impl SettingsOpener {
 pub(crate) fn use_settings_opener() -> SettingsOpener {
     SettingsOpener {
         entrance: use_entrance(),
-        close: try_use_context::<ClosePanel>(),
+        close: use_link::<ClosePanel>(),
     }
 }
 

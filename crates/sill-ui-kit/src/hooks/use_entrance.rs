@@ -8,6 +8,7 @@ use dioxus::prelude::try_use_context;
 use sill_launcher::actions::ActionId;
 use sill_model::actions::Subject;
 
+use super::use_link::use_link;
 use crate::links::{ActionLink, Origin};
 
 /// A component's way to ask for actions. Clone is cheap.
@@ -36,7 +37,7 @@ impl Entrance {
 /// The entrance of the surface being built.
 pub fn use_entrance() -> Entrance {
     Entrance {
-        link: try_use_context::<ActionLink>(),
+        link: use_link::<ActionLink>(),
         origin: try_use_context::<Origin>().unwrap_or_default(),
     }
 }

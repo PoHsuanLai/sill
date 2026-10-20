@@ -24,7 +24,7 @@ use crate::dock::menu_geometry::{GEOM, tile_anchor};
 use crate::dock::pick::{DockCommand, pick_commands};
 use crate::dock::pointer::{DockInput, resolve};
 use ds::base::time::stamp::FrameClock;
-use sill_ui_kit::hooks::use_services;
+use sill_ui_kit::hooks::{use_link, use_services};
 use sill_ui_kit::links::{ActionLink, Origin};
 use sill_ui_kit::menu::{ContextMenu, PopupLook, use_context_menu_closing};
 
@@ -99,7 +99,7 @@ pub(crate) fn use_dock(initial: DockState) -> DockSession {
     let outward = Outward {
         services: use_services(),
         surface: try_use_context::<SurfaceHandle>(),
-        actions: try_use_context::<ActionLink>(),
+        actions: use_link::<ActionLink>(),
     };
     // The session's own feed, for its timers and the menu's close (set once the callback exists).
     let own_feed = use_hook(|| CopyValue::new(None::<Callback<DockInput>>));

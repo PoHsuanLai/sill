@@ -31,7 +31,7 @@ use crate::launcher::preview::keys::{PreviewKey, PreviewState};
 use crate::launcher::run::{EffectFrom, run_effect};
 use crate::launcher::session::Session;
 use crate::launcher::view::{Expanded, View, toggled, view};
-use sill_ui_kit::hooks::{use_service, use_service_part, use_services};
+use sill_ui_kit::hooks::{use_link, use_service, use_service_part, use_services};
 use sill_ui_kit::links::ActionLink;
 use sill_ui_kit::links::{LauncherLink, LauncherOpening, OpenSerial, Reveal};
 
@@ -103,7 +103,7 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         services,
         providers,
         surface,
-        actions: try_use_context::<ActionLink>(),
+        actions: use_link::<ActionLink>(),
         picking: use_hook(|| CopyValue::new(Picking::No)),
         left: use_signal(|| 0),
         palette: use_palette_handle(),

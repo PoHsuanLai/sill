@@ -344,6 +344,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Surface root: services, feed, host seam, appearance, scale, frame clock | `sill_ui_kit::root::SurfaceRoot` (the host seam is `ds_blitz::provide_host()`, called by `mount`, `mount_lock` and each popup root; the seat's `HostSignals` (scale, modality) come from `use_host_signals()`, called by `mount`, `mount_lock` and `PopupFrame`, and a surface reads its scale with `use_host_scale()`) |
 | Active workspace look, space look | `sill_ui_kit::look` (`use_active_look`, `use_space_look`) |
 | Open/close a panel from outside it (serial, output) | `sill_ui_kit::links::Reveal<O>`; every link type is one file in `sill_ui_kit::links` |
+| A surface reading a link the daemon provides | `sill_ui_kit::hooks::use_link::<T>()` (an `Option`; a missing link prints one stderr line per hook instance and the caller keeps its fallback); never `try_use_context` for a link |
 | Visible or hidden layer surface | `shell_host::Visibility` |
 | Layer namespace `sill-<surface>-<output>` | `sill_ui_kit::surface::namespace` |
 | Spawning and closing surfaces per output | `sill::daemon::surfaces` (generic over `Surface`) |

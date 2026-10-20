@@ -32,7 +32,8 @@ use sill_model::session::SessionCommand;
 use sill_model::tray::TrayCommand;
 use sill_services::{AppMenuService, AppsService, SessionService, TrayService, WindowsService};
 use sill_ui_kit::hooks::{
-    use_appearance, use_control, use_service, use_service_part, use_services, use_settings,
+    use_appearance, use_control, use_link, use_service, use_service_part, use_services,
+    use_settings,
 };
 use sill_ui_kit::links::{ActionLink, CenterLink, ControlCenterLink, Origin};
 use sill_ui_kit::menu::PopupLook;
@@ -115,7 +116,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         session: use_service::<SessionService>()(),
     };
     use_menu_follow(output, state.app.as_ref());
-    let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
+    let focus = use_link::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
     let bar = use_menu_session(SessionDeps {
         state,
         services: use_services(),
@@ -125,14 +126,14 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         look,
         namespace: layer(output, &file).namespace,
         output: output.id,
-        actions: try_use_context::<ActionLink>(),
+        actions: use_link::<ActionLink>(),
         settings: use_context::<SettingsFeed>(),
         focus,
         output_name: on,
         bar_width: output.logical.width,
         cap: height_cap(output.logical.height, &file.bar, &file.control_center),
         status_box: status_box(output.logical.width, &file.bar),
-        center: try_use_context::<CenterLink>(),
+        center: use_link::<CenterLink>(),
     });
     use_context_provider(|| bar);
     use_control_center_asks(bar, output.id);
@@ -162,7 +163,7 @@ fn use_menu_follow(output: &OutputInfo, app: Option<&FrontApp>) {
 /// Follow `sill control-center toggle` (the daemon's `ControlCenterLink`, absent in a demo or a
 /// test): an ask for this bar's output toggles its control center.
 fn use_control_center_asks(bar: MenuBar, output: OutputId) {
-    let link = try_use_context::<ControlCenterLink>();
+    let link = use_link::<ControlCenterLink>();
     use_hook(move || {
         let Some(link) = link else {
             return;

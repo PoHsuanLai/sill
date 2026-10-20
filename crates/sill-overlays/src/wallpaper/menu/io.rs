@@ -7,6 +7,7 @@ use shell_host::SurfaceHandle;
 use sill_launcher::SettingsLink;
 use sill_launcher::actions::ActionId;
 use sill_model::actions::Subject;
+use sill_ui_kit::hooks::use_link;
 use sill_ui_kit::links::{ActionLink, Origin};
 use sill_ui_kit::menu::{PopupGeom, PopupLook, point_anchor, use_context_menu};
 
@@ -28,7 +29,7 @@ const WALLPAPER_PAGE: &str = "page:wallpaper";
 /// `look`. Nothing opens without a host (a test render).
 pub(in crate::wallpaper) fn use_desktop_menu(look: PopupLook) -> Callback<DesktopPoint> {
     let surface = try_use_context::<SurfaceHandle>();
-    let actions = try_use_context::<ActionLink>();
+    let actions = use_link::<ActionLink>();
     let mut looks = use_hook(|| CopyValue::new(look));
     looks.set(look);
     let menu = use_context_menu::<DesktopMenu>(DESKTOP_MENU, move |pick| match pick {

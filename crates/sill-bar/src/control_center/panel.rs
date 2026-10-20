@@ -19,7 +19,7 @@ use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
 use super::modules::{CcCx, Module, module};
 use super::page::{CcPage, Detail, PageInput, PageOut, step_page};
 use super::pages::foot::ClosePanel;
-use sill_ui_kit::hooks::use_settings;
+use sill_ui_kit::hooks::{use_link, use_settings};
 
 /// The panel's greatest height on its output ([`super::height_cap`]), which the bar's popup
 /// root provides; past it the panel scrolls.
@@ -33,7 +33,7 @@ pub(crate) fn control_center(
     on_page: Option<EventHandler<CcPage>>,
 ) -> Element {
     let cc = use_settings()().control_center;
-    let cap = try_use_context::<PanelCap>();
+    let cap = use_link::<PanelCap>();
     let mut page = use_signal(CcPage::default);
     // The detail pane last opened: still drawn while it slides out.
     let mut opened = use_signal(|| Detail::Wifi);

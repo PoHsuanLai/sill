@@ -12,7 +12,7 @@ use super::modules::CcCx;
 use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
 use super::pages::foot::ClosePanel;
 use super::panel::{PanelCap, panel_style, use_keyboard_home};
-use sill_ui_kit::hooks::use_settings;
+use sill_ui_kit::hooks::{use_link, use_settings};
 
 /// `module`'s dropdown on the bar of `output`; `on_close` closes the popup (a pick that opens
 /// Settings).
@@ -23,7 +23,7 @@ pub fn ModuleDropdown(
     on_close: EventHandler<()>,
 ) -> Element {
     let cc = use_settings()().control_center;
-    let cap = try_use_context::<PanelCap>();
+    let cap = use_link::<PanelCap>();
     let home = use_keyboard_home();
     use_context_provider(|| ClosePanel(Callback::new(move |()| on_close.call(()))));
     use_context_provider(|| PanelPlate::Bare);
