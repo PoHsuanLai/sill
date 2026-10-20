@@ -1,17 +1,15 @@
-//! `use_appearance`: quire's appearance, from `ds-settings`, unless the root pins one.
-
-use std::sync::Arc;
+//! `use_appearance`: the desktop's appearance, from the one feed the daemon owns, unless the
+//! root pins one.
 
 use dioxus::prelude::{ReadSignal, Signal, try_consume_context, use_hook, use_signal};
-use ds::base::spawner::Spawner;
-use ds_blitz::TokioSpawner;
-use ds_settings::{AppName, ConfigRoot, Environment, Store, SystemPrefsSource, use_environment};
+use ds_settings::Environment;
+use shell_host::use_watch;
+
+use crate::settings::SettingsFeed;
 
 /// An appearance a root pins in place of the desktop's: a test or a headless render provides it
-/// as a root context so its surfaces never read the settings portal or `quire/appearance.toml`.
-/// `use_environment` does both off the harness's thread, on wall time, so under a virtual clock
-/// its replies land whenever the machine gets to them, inside a settle's quiet window too
-/// and what they return is the developer's own desktop, not the test's.
+/// as a root context so its surfaces read neither the settings portal nor
+/// `quire/appearance.toml`, and what they draw is the test's, not the developer's own desktop.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PinnedAppearance(pub Environment);
 
@@ -20,22 +18,21 @@ pub struct PinnedAppearance(pub Environment);
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SwitchableAppearance(pub Signal<Environment>);
 
-/// `quire/appearance.toml` and the settings portal, live; or the root's [`SwitchableAppearance`]
-/// or [`PinnedAppearance`].
+/// The appearance every surface draws from: the root's [`SwitchableAppearance`] or
+/// [`PinnedAppearance`], else the [`SettingsFeed`]'s `appearance` (the daemon's one watch of
+/// `quire/appearance.toml` and the settings portal). A root with none of them gets
+/// `Environment::default()`; no surface starts a watch of its own.
 pub fn use_appearance() -> ReadSignal<Environment> {
     // Read once, so the branch below (and the hooks it calls) is the same on every render.
     let switchable = use_hook(try_consume_context::<SwitchableAppearance>);
     let pinned = use_hook(try_consume_context::<PinnedAppearance>);
-    match (switchable, pinned) {
-        (Some(SwitchableAppearance(signal)), _) => ReadSignal::new(signal),
-        (None, Some(PinnedAppearance(environment))) => {
+    let feed = use_hook(try_consume_context::<SettingsFeed>);
+    match (switchable, pinned, feed) {
+        (Some(SwitchableAppearance(signal)), _, _) => ReadSignal::new(signal),
+        (None, Some(PinnedAppearance(environment)), _) => {
             ReadSignal::new(use_signal(move || environment))
         }
-        (None, None) => {
-            // The runtime the host entered on this thread runs the file and portal watches.
-            let spawner: Arc<dyn Spawner> = use_hook(|| Arc::new(TokioSpawner::current()));
-            let store = Store::new(ConfigRoot::Xdg, AppName::QUIRE);
-            use_environment(store, SystemPrefsSource::Portal, spawner)
-        }
+        (None, None, Some(feed)) => use_watch(feed.appearance),
+        (None, None, None) => ReadSignal::new(use_signal(Environment::default)),
     }
 }

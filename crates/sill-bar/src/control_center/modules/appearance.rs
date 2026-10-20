@@ -1,16 +1,16 @@
 //! The Appearance module: the theme as a quire `SegmentedControl`, its value from
-//! `use_appearance`, a change written to `quire/appearance.toml` through `ds-settings` (the file
-//! quire's own settings watch then publishes to every surface). The accent is not here: it lives
+//! `use_appearance`, a change written by `write_appearance` (the file the daemon's
+//! appearance watch then publishes to every surface). The accent is not here: it lives
 //! in Settings (cleanup DECISIONS: the control center keeps the dark-mode switch only).
 
 use dioxus::prelude::*;
 use ds::components::controls::segmented::Tracking;
 use ds::prelude::*;
-use ds_settings::{AppName, AppearanceFile, ConfigRoot, Store};
 use sill_shell_kit::prelude::*;
 
 use super::cc_module::{CcCx, CcModule, Span};
 use crate::control_center::modules::use_plate;
+use sill_ui_kit::appearance_write::write_appearance;
 use sill_ui_kit::hooks::use_appearance;
 
 /// The Appearance module.
@@ -31,30 +31,11 @@ pub fn AppearanceModule() -> Element {
                     label: "Theme",
                     choices: Choice::pairs(Theme::ALL.iter().map(|theme| (*theme, theme.label()))),
                     tracking: Tracking::SelectOne(value.theme),
-                    onchange: move |theme| save(Appearance { theme, ..value }),
+                    onchange: move |theme| write_appearance(Appearance { theme, ..value }),
                 }
             }
         }
     }
-}
-
-/// Write `next` into `quire/appearance.toml`, keeping everything else in the file. A file that
-/// cannot be written leaves the appearance as it was, which the picker then shows.
-fn save(next: Appearance) {
-    let store = Store::new(ConfigRoot::Xdg, AppName::QUIRE);
-    let file = with_appearance(store.load::<AppearanceFile>().value, next);
-    if let Err(error) = store.save(&file) {
-        eprintln!("sill: writing the appearance: {error}");
-    }
-}
-
-/// `file` with `next`'s theme, accent and motion.
-fn with_appearance(file: AppearanceFile, next: Appearance) -> AppearanceFile {
-    let mut file = file;
-    file.appearance.theme = next.theme;
-    file.appearance.accent = next.accent;
-    file.appearance.motion_level = next.motion;
-    file
 }
 
 /// The Appearance module as the control center draws it: a row, never a bar item.
@@ -67,25 +48,5 @@ impl CcModule for AppearanceCc {
 
     fn tile(&self, _cx: &CcCx) -> Element {
         rsx! { AppearanceModule {} }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::with_appearance;
-    use ds::prelude::*;
-    use ds_settings::AppearanceFile;
-
-    #[test]
-    fn a_pick_changes_only_the_three_fields() {
-        let next = Appearance {
-            theme: Theme::Dark,
-            accent: Accent::ALL[1],
-            motion: Motion::Reduced,
-            ..Appearance::default()
-        };
-        let file = with_appearance(AppearanceFile::default(), next);
-        assert_eq!(file.appearance.appearance(), next);
-        assert_eq!(file.icons, AppearanceFile::default().icons);
     }
 }

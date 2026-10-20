@@ -205,6 +205,7 @@ impl<S: Surface> SurfaceSetup<S> {
         let feed = SettingsFeed {
             settings: settings_rx,
             user_style: user_style_rx,
+            appearance: watch::channel(Environment::default()).1,
         };
         let context_link = link.clone();
         let build: Build = Rc::new(move || {

@@ -69,9 +69,13 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let first = settings::load(&store);
     let (settings, settings_rx) = watch::channel(first.clone());
     let (user_style, user_style_rx) = watch::channel(settings::load_user_style(&store));
+    let appearance_store = settings::appearance_store();
+    let first_appearance = settings::load_appearance(&appearance_store);
+    let (appearance, appearance_rx) = watch::channel(first_appearance.clone());
     let settings_feed = SettingsFeed {
         settings: settings_rx,
         user_style: user_style_rx,
+        appearance: appearance_rx,
     };
     let links = build_links(&runtime, &settings_feed, &store);
     services::follow_settings(runtime.handle(), &settings_feed, &links, &services, &env);
@@ -136,6 +140,12 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         stopped_tx,
     );
     crate::release::spawn_confirmation(runtime.handle(), &env, host_handle.clone());
+    settings::spawn_appearance_watch(
+        &runtime,
+        &appearance_store,
+        first_appearance,
+        host_handle.clone(),
+    );
     spawn_followers(
         &runtime,
         &services,
@@ -161,6 +171,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         store,
         settings,
         user_style,
+        appearance,
         links,
         keys: sill_model::keyboard::ShellKeys::default(),
         seat,

@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 use std::time::Instant;
 
-use ds_settings::{Store, UserStyle};
+use ds_settings::{Environment, Store, UserStyle};
 use shell_host::{
     CloseReason, HostCtx, HostEvent, KeyboardFocus, LayerOp, PalmrestAction, SurfaceId,
 };
@@ -49,6 +49,8 @@ pub struct Shell {
     pub settings: watch::Sender<ShellFile>,
     /// The person's `style.css`, which every surface root draws.
     pub user_style: watch::Sender<UserStyle>,
+    /// The desktop's appearance, which every surface root draws.
+    pub appearance: watch::Sender<Environment>,
     /// The links every surface root is given and the requests write.
     pub links: Links,
     /// Which of the shell's surfaces hold the keyboard, told to the keycap service.
@@ -224,6 +226,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     // focus mode) the same way `sill reload` does; geometry follows the same event just below.
     settings::publish_watched(&shell.settings, &event);
     settings::publish_watched_style(&shell.user_style, &event);
+    settings::publish_watched_appearance(&shell.appearance, &event);
     rescan_displays(&shell.services, &event);
     on_event(ctx, &mut shell.outputs, event);
     spawn_missing(shell, ctx);
@@ -344,7 +347,7 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
             ctx.set_scroll_config(crate::scroll::config(&file));
         }
         // Published by `host_event` to the feed the surfaces draw it from; no geometry follows.
-        HostEvent::App(ShellMsg::UserStyle(_)) => {}
+        HostEvent::App(ShellMsg::UserStyle(_) | ShellMsg::Appearance(_)) => {}
         // Answered by `handle`, which holds the lock's state.
         HostEvent::App(ShellMsg::Lock(_)) => {}
         // Answered by `handle`, which maps the idle dim surfaces.
