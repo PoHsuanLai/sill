@@ -369,7 +369,7 @@ fn Launcher() -> Element {
                     empty: "Nothing".to_owned(),
                     oninput: move |_| {},
                     onpick: move |_| {},
-                    onclose: move |()| {},
+                    onclose: move |_| {},
                     host: CommandPaletteHost::Surface,
                     corner: Some(Corner::Squircle(Px(14.0))),
                 }

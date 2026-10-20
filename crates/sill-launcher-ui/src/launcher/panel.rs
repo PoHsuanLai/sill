@@ -353,7 +353,7 @@ fn palette(
             empty: empty_text(&session.query),
             oninput: move |text: String| input.typed(text),
             onpick: move |row: RowRef| pick.pick(row, sill_launcher::Choice::Primary),
-            onclose: move |()| close.dismissed(),
+            onclose: move |_| close.dismissed(),
             host: CommandPaletteHost::Surface,
             id: CARD_ID.to_owned(),
             corner: Some(Corner::Squircle(Px(CARD_RADIUS))),
