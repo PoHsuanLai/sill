@@ -320,7 +320,10 @@ fn spawn_missing(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>) {
             .pick(OutputPolicy::Main, None)
             .map_or(BannerOutput::Nowhere, BannerOutput::On),
     );
-    shell.links.sheets.set(shell.sheet_latch.output(&shell.outputs));
+    shell
+        .links
+        .sheets
+        .set(shell.sheet_latch.output(&shell.outputs));
     shell.links.lock.set(crate::lock::prompt_among(
         shell.links.lock.now(),
         &shell.outputs,
@@ -372,6 +375,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         HostEvent::App(ShellMsg::Summon(_)) => {}
         // Answered by `handle`, which holds the links and the services.
         HostEvent::App(ShellMsg::Note(_)) => {}
+        // Answered by `handle`, which holds the sheet latch and the links.
+        HostEvent::App(ShellMsg::Sheets) => {}
         // Answered by `handle`, which carries it out through `actions::perform`.
         HostEvent::App(ShellMsg::Action(_)) => {}
         // Answered by `handle`, which holds the seat.

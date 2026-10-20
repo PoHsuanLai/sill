@@ -112,12 +112,7 @@ impl SheetLatch {
 
 /// Tell the host to look at the questions again whenever one of the sources changes, until the
 /// host is gone.
-pub fn spawn_follower(
-    rt: &Handle,
-    services: &Services,
-    links: &Links,
-    host: HostHandle<ShellMsg>,
-) {
+pub fn spawn_follower(rt: &Handle, services: &Services, links: &Links, host: HostHandle<ShellMsg>) {
     nudge(rt, services.intents.state.clone(), &host);
     nudge(rt, services.polkit_agent.state.clone(), &host);
     nudge(rt, services.capture.state.clone(), &host);
@@ -162,12 +157,42 @@ mod tests {
         let held = |at: &Option<OutputName>| Held(at.clone());
         let cases = [
             ("idle stays idle", Idle, Nothing, a.clone(), Idle),
-            ("the first takes the focus", Idle, Something, a.clone(), held(&a)),
-            ("no focused window is held", Idle, Something, None, Held(None)),
-            ("a click elsewhere keeps it", held(&a), Something, b.clone(), held(&a)),
+            (
+                "the first takes the focus",
+                Idle,
+                Something,
+                a.clone(),
+                held(&a),
+            ),
+            (
+                "no focused window is held",
+                Idle,
+                Something,
+                None,
+                Held(None),
+            ),
+            (
+                "a click elsewhere keeps it",
+                held(&a),
+                Something,
+                b.clone(),
+                held(&a),
+            ),
             ("focus lost keeps it", held(&a), Something, None, held(&a)),
-            ("the last question lets go", held(&a), Nothing, a.clone(), Idle),
-            ("the next burst takes the new focus", Idle, Something, b.clone(), held(&b)),
+            (
+                "the last question lets go",
+                held(&a),
+                Nothing,
+                a.clone(),
+                Idle,
+            ),
+            (
+                "the next burst takes the new focus",
+                Idle,
+                Something,
+                b.clone(),
+                held(&b),
+            ),
         ];
         for (name, before, asking, focused, after) in cases {
             assert_eq!(before.next(asking, focused), after, "{name}");
