@@ -121,11 +121,14 @@ fn the_manifest_and_the_shells_actions_name_each_other() {
         }
     }
     // Every declared action the shell does as an action of its own (not a window, an app or a
-    // menu ask, which take ids from a listing) is the intent of at least one of them.
+    // menu ask, which take ids from a listing) is the intent of at least one of them. Only the
+    // required parameters are given: an optional one can make it a listing ask
+    // (`shell.workspace.switch` given a workspace).
     for action in &manifest.manifest().actions {
         let given = action
             .params
             .iter()
+            .filter(|p| matches!(p.need, ParamNeed::Required))
             .map(|p| (p.name.clone(), value_for(p)))
             .collect();
         let call = invocation(&action.name, given);
