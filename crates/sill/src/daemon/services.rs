@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use sill_model::capture_pick::CaptureCommand;
 use sill_model::companion::SummonOut;
-use sill_model::desktop::DesktopCommand;
+use sill_model::desktop::{DesktopCommand, DesktopView};
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_model::voice::VoiceConsent;
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
-use sill_services::WindowsService;
+use sill_services::{WindowsLinks, WindowsService};
 use sill_services::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
 use sill_services::accounts::{AccountsLinks, AccountsService};
 use sill_services::apps::AppsService;
@@ -45,6 +45,7 @@ use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use tokio::runtime::Handle as Runtime;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::watch;
 
 use crate::policy::{
     calendar::CalendarBridge, clipboard::ClipboardBridge, companion::CompanionBridge,
@@ -71,6 +72,8 @@ pub(crate) fn start(
     // The connection the intents service claims `org.quire.Shell` on, which the companion speaks
     // on as the launcher.
     let (seat_publisher, seat_view) = seat();
+    // The windows service writes the desktop's view; every reader of it holds this receiver.
+    let (desktop_tx, desktop) = watch::channel(DesktopView::default());
     let apps = spawn::<AppsService>(rt, env, ());
     // Passive (never asks for the bus name) until the daemon sends its first policy.
     // What the person does to a notification is said here; the services with notices hear it.
@@ -116,7 +119,13 @@ pub(crate) fn start(
         },
     );
     let battery = spawn::<BatteryService>(rt, env, ());
-    let windows = spawn::<WindowsService>(rt, env, ());
+    let windows = spawn::<WindowsService>(
+        rt,
+        env,
+        WindowsLinks {
+            desktop: desktop_tx,
+        },
+    );
     let clipboard = spawn::<ClipboardService>(rt, env, ());
     let locker = spawn::<LockerService>(rt, env, ());
     let session = spawn::<SessionService>(
@@ -265,6 +274,7 @@ pub(crate) fn start(
         work_areas: spawn::<WorkAreaService>(rt, env, ()),
         workspace_looks: spawn::<WorkspaceLooksService>(rt, env, ()),
         dirs: env.dirs.clone(),
+        desktop,
         dock_rects: sill_ui_kit::dock_rects::DockRects::default(),
         session_actions: Arc::clone(&env.session_actions),
     }

@@ -86,7 +86,7 @@ pub use clipboard::ClipboardService;
 pub use clock::ClockService;
 pub use companion::{CompanionLinks, CompanionService};
 pub use control::Control;
-pub use desktop_wl::WindowsService;
+pub use desktop_wl::{WindowsLinks, WindowsService};
 pub use displays::DisplaysService;
 pub use error::ServiceError;
 pub use events::EventsService;

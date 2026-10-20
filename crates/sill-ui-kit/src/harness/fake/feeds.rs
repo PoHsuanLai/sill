@@ -203,6 +203,8 @@ pub fn services() -> (Services, Feeds) {
         intents,
         companion,
         voice,
+        desktop: tokio::sync::watch::Sender::new(sill_model::desktop::DesktopView::default())
+            .subscribe(),
         dock_rects: crate::dock_rects::DockRects::default(),
         // Nowhere real: a surface that reads a file under these finds nothing.
         dirs: sill_services::env::Dirs::under(std::path::Path::new(

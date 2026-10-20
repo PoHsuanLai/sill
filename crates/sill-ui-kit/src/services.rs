@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use sill_model::desktop::DesktopView;
 use sill_search::results::ResultsService;
 use sill_services::WindowsService;
 use sill_services::accounts::AccountsService;
@@ -46,6 +47,7 @@ use sill_services::wallpaper::WallpaperService;
 use sill_services::wifi::WifiService;
 use sill_services::work_areas::WorkAreaService;
 use sill_services::workspace_looks::WorkspaceLooksService;
+use tokio::sync::watch;
 
 /// Every running service, each field named after its module. Surfaces read a service through
 /// `sill-ui-kit::hooks::use_service` and command it through `use_control`; nothing here is a
@@ -70,6 +72,10 @@ pub struct Services {
     pub pins: Handle<PinsService>,
     pub apps: Handle<AppsService>,
     pub windows: Handle<WindowsService>,
+    /// The desktop as the compositor's own protocol describes it (apps, windows, Spaces), projected
+    /// by the windows service from the state `windows` is projected from. The one channel every
+    /// reader of the desktop's view holds; empty on any other compositor.
+    pub desktop: watch::Receiver<DesktopView>,
     pub launch: Handle<LaunchService>,
     /// The clipboard history: passive until the daemon's policy.
     pub clipboard: Handle<ClipboardService>,

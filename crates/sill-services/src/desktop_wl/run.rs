@@ -4,8 +4,9 @@
 
 use std::io;
 
-use desktop_client::Desktop;
 use desktop_client::client::DesktopClient;
+use desktop_client::{Desktop, DesktopBackend as Offered, DesktopState};
+use sill_model::desktop::DesktopView;
 use sill_model::windows::{Toplevels, WindowModel, WlCommand};
 use smithay_client_toolkit::reexports::calloop;
 use smithay_client_toolkit::reexports::calloop::generic::Generic;
@@ -17,6 +18,7 @@ use wayland_client::backend::WaylandError;
 use super::command::{Refusal, desktop_of, wire_of};
 use super::commands::{forward_commands, park_commands};
 use super::publish::Publish;
+use super::quire::quire_view;
 use super::{subjects, toplevels, workspaces};
 
 /// The thread's body: follow the compositor until every `Control` is dropped or the connection
@@ -59,11 +61,12 @@ impl Wlr {
         let _events_are_reduced_into_the_state = self.client.drain_events();
         let state = self.client.state();
         let recency = toplevels::project(std::mem::take(&mut self.recency), state);
-        self.publish.replace(WindowModel {
+        let model = WindowModel {
             workspaces: workspaces::project(state),
             toplevels: recency.clone(),
             subjects: subjects::project(state),
-        });
+        };
+        self.publish.replace(model, desktop_of_state(state));
         self.recency = recency;
     }
 
@@ -100,6 +103,16 @@ impl Wlr {
             Err(Refusal::Unsupported) => {}
             Err(refusal) => eprintln!("sill: desktop_wl: {refusal}"),
         }
+    }
+}
+
+/// The desktop's view of `state`: the Quire state projected when the compositor is the
+/// desktop's own, so the view and the windows come from one `DesktopState` and cannot disagree
+/// on which window is active; empty on any other compositor.
+fn desktop_of_state(state: &DesktopState) -> DesktopView {
+    match state.backend() {
+        Some(Offered::Quire) => quire_view(state),
+        Some(_) | None => DesktopView::default(),
     }
 }
 
