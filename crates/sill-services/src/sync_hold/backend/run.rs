@@ -13,7 +13,7 @@ use zbus::{Connection, MessageStream};
 use super::links::SyncHoldLinks;
 use super::notice;
 use super::wire::{self, Heard};
-use crate::accounts::label_of;
+use crate::account_label::label_of;
 use crate::control::Control;
 use crate::env::Bus;
 use crate::error::ServiceError;

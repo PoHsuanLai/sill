@@ -1,12 +1,13 @@
 //! accountd's side of the conversation: who needs signing in, an account's label and standing,
 //! and the call that signs one in again.
 
-use porter_dbus::{ACCOUNTS_BUS, AccountProxy, Details};
+use porter_dbus::{ACCOUNTS_BUS, Details};
 use sill_model::accounts::{AccountKey, AccountStanding, AccountsEvent, NeedsSignIn, SignInAsk};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
+use crate::account_label::account;
 use crate::stream::next;
 use ds_core::word::Word;
 
@@ -15,9 +16,6 @@ pub(crate) const ACCOUNTS: &str = ACCOUNTS_BUS;
 
 /// accountd's `ReauthReason` word for Google's seven-day sign-out of an unverified app.
 const TESTING_EXPIRED: &str = "testing_app_expired";
-
-/// What the notice calls an account whose label cannot be read.
-const UNNAMED: &str = "An account";
 
 /// The accounts that need signing in again now, with their labels, as accountd lists them for the
 /// shell; asking is also how accountd learns this connection, which it then sends `NeedsReauth`
@@ -55,23 +53,6 @@ pub(crate) async fn listed(connection: &Connection) -> zbus::Result<Vec<NeedsSig
         }
         Err(error) => Err(error),
     }
-}
-
-async fn account(connection: &Connection, key: &AccountKey) -> zbus::Result<AccountProxy<'static>> {
-    AccountProxy::builder(connection)
-        .path(key.as_str().to_owned())?
-        .build()
-        .await
-}
-
-/// The account's label, or a plain stand-in when accountd will not say.
-pub(crate) async fn label_of(connection: &Connection, key: &AccountKey) -> String {
-    match account(connection, key).await {
-        Ok(proxy) => proxy.label().await.ok(),
-        Err(_) => None,
-    }
-    .filter(|label| !label.is_empty())
-    .unwrap_or_else(|| UNNAMED.to_owned())
 }
 
 /// Which sign-in the account asks for; a plain sign-in again when accountd will not say.

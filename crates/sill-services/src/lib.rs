@@ -13,6 +13,7 @@
 //! This crate never reaches `dioxus` (`scripts/check-boundary.sh`): the hooks that read these
 //! channels live in `sill-ui-kit::hooks`.
 
+mod account_label;
 pub mod accounts;
 pub mod app_menu;
 pub mod apps;

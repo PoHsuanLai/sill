@@ -18,6 +18,7 @@ use zbus::{Connection, MessageStream};
 use super::links::AccountsLinks;
 use super::retry::{self, Retry, Wait};
 use super::{notice, wire};
+use crate::account_label::label_of;
 use crate::accounts::AccountsService;
 use crate::env::Bus;
 use crate::error::ServiceError;
@@ -184,7 +185,7 @@ impl Live {
     fn heard(&self, account: AccountKey) {
         let (connection, told) = (self.connection.clone(), self.told.clone());
         self.rt.spawn(async move {
-            let label = wire::label_of(&connection, &account).await;
+            let label = label_of(&connection, &account).await;
             let ask = wire::ask_of(&connection, &account).await;
             let _ = told.send(AccountsEvent::NeedsSignIn(NeedsSignIn {
                 account,
@@ -211,7 +212,7 @@ impl Live {
             match wire::sign_in_again(&connection, &account).await {
                 Ok(()) => {}
                 Err(error) if refusal_of(&error) == Some(Refusal::NoLauncher) => {
-                    let label = wire::label_of(&connection, &account).await;
+                    let label = label_of(&connection, &account).await;
                     let post = notice::no_launcher_posting(&label);
                     let _ = notifications.send(NotificationsCommand::Post(Box::new(post)));
                 }
