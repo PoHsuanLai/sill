@@ -10,11 +10,11 @@ use ds::prelude::*;
 use sill_launcher::SessionAction;
 use sill_launcher::WindowKey;
 use sill_model::app_menu::{AppMenus, MenuApp, OwnGroup, QuitRow, Titles, own_groups, titles};
-use sill_model::apps::{AppIndex, match_app};
+use sill_model::apps::AppIndex;
 use sill_model::ids::OutputName;
 use sill_model::session::{Offer, Session, words};
 use sill_model::tray::Tray;
-use sill_model::windows::Toplevels;
+use sill_model::windows::{Toplevels, app_of};
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
@@ -135,13 +135,8 @@ pub(crate) fn front_app(
     apps: &AppIndex,
     output: Option<&OutputName>,
 ) -> Option<FrontApp> {
-    let front = toplevels
-        .windows
-        .iter()
-        .find(|w| output.is_none_or(|o| w.outputs.contains(o)))?;
-    let name = match_app(&front.app_id, None, apps)
-        .and_then(|id| apps.get(&id).map(|app| app.name.clone()))
-        .unwrap_or_else(|| front.app_id.clone());
+    let front = toplevels.front(output)?;
+    let name = app_of(front, apps).name(apps);
     let windows = toplevels
         .windows
         .iter()

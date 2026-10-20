@@ -9,8 +9,8 @@
 
 use ds::prelude::*;
 use sill_launcher::AppId;
-use sill_model::apps::{App, AppIndex, match_app};
-use sill_model::windows::{Activity, Toplevel, Toplevels, WindowState};
+use sill_model::apps::{App, AppIndex};
+use sill_model::windows::{Activity, Toplevel, Toplevels, WindowState, app_of};
 use sill_settings::DockMenuOrder;
 
 use crate::dock::items::{DockItem, ItemKind};
@@ -131,7 +131,7 @@ fn checked(on: bool) -> Checked {
     }
 }
 
-/// The windows the menu lists for `item`, most recent first: its app's, as `match_app`
+/// The windows the menu lists for `item`, most recent first: its app's, as `app_of`
 /// against that app's entry alone decides, or the raw app id's for an unmatched tile.
 pub fn menu_windows<'a>(
     item: &DockItem,
@@ -142,9 +142,7 @@ pub fn menu_windows<'a>(
         apps: app.cloned().into_iter().collect(),
     };
     let belongs = |w: &Toplevel| match &item.kind {
-        ItemKind::Pinned(id) | ItemKind::Running(id) => {
-            w.app_id == id.0 || match_app(&w.app_id, None, &one).as_ref() == Some(id)
-        }
+        ItemKind::Pinned(id) | ItemKind::Running(id) => app_of(w, &one).id() == *id,
         ItemKind::Unmatched(raw) => w.app_id == *raw,
         ItemKind::Trash => false,
     };

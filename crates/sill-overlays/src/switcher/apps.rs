@@ -7,8 +7,8 @@
 
 use sill_launcher::{AppId, WindowKey};
 
-use sill_model::apps::{AppIndex, match_app};
-use sill_model::windows::{Toplevel, Toplevels, WindowState, WlCommand};
+use sill_model::apps::AppIndex;
+use sill_model::windows::{Toplevel, Toplevels, WindowState, WlCommand, app_of};
 
 /// Whether an app has a window on screen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -29,14 +29,15 @@ pub struct SwitcherApp {
 }
 
 /// `toplevels` (already most recently activated first) grouped by app, in the order each app's
-/// most recent window appears; a window is its app's by [`sill_model::apps::match_app`] over `index`, else
+/// most recent window appears; a window is its app's by [`sill_model::windows::app_of`] over `index`, else
 /// its raw `app_id` (so an app with no desktop entry still gets a tile); a window with an empty
 /// `app_id` is skipped.
 pub fn switcher_apps(toplevels: &Toplevels, index: &AppIndex) -> Vec<SwitcherApp> {
     toplevels
         .windows
         .iter()
-        .filter_map(|window| app_of(window, index).map(|app| (app, window)))
+        .filter(|window| !window.app_id.trim().is_empty())
+        .map(|window| (app_of(window, index).id(), window))
         .fold(Vec::new(), |mut apps: Vec<SwitcherApp>, (app, window)| {
             match apps.iter_mut().find(|known| known.app == app) {
                 Some(known) => {
@@ -51,15 +52,6 @@ pub fn switcher_apps(toplevels: &Toplevels, index: &AppIndex) -> Vec<SwitcherApp
             }
             apps
         })
-}
-
-/// The app a window belongs to: its desktop entry, else its raw `app_id`; none when empty.
-fn app_of(window: &Toplevel, index: &AppIndex) -> Option<AppId> {
-    let raw = window.app_id.trim();
-    if raw.is_empty() {
-        return None;
-    }
-    Some(match_app(raw, None, index).unwrap_or_else(|| AppId(raw.to_owned())))
 }
 
 fn shown_of(window: &Toplevel) -> AppShown {

@@ -107,19 +107,22 @@ impl Workspaces {
     /// workspace (the main display's, in the compositor's order). There is no wrap-around: at
     /// the first or last workspace this is `None`, as keyboard shortcuts stop there.
     pub fn neighbour(&self, step: Step) -> Option<WorkspaceKey> {
-        let group = self
-            .groups
-            .iter()
-            .find(|g| g.workspaces.iter().any(|w| w.activity == Activity::Active))?;
-        let at = group
-            .workspaces
-            .iter()
-            .position(|w| w.activity == Activity::Active)?;
+        let group = self.main_group()?;
+        let at = group.active_index()?;
         let to = match step {
             Step::Prev => at.checked_sub(1)?,
             Step::Next => at + 1,
         };
         group.workspaces.get(to).map(|w| w.key)
+    }
+
+    /// The group an index or a step counts in: the first with an active workspace (the main
+    /// display's, in the compositor's order), else the first.
+    pub fn main_group(&self) -> Option<&WorkspaceGroup> {
+        self.groups
+            .iter()
+            .find(|g| g.active_index().is_some())
+            .or_else(|| self.groups.first())
     }
 
     /// The group showing on `output`, if any.
@@ -129,10 +132,21 @@ impl Workspaces {
 
     /// The active workspace of the group on `output`.
     pub fn active_on(&self, output: &OutputName) -> Option<&Workspace> {
-        self.group_on(output)?
-            .workspaces
+        self.group_on(output)?.active()
+    }
+}
+
+impl WorkspaceGroup {
+    /// The position of the active workspace in this group.
+    pub fn active_index(&self) -> Option<usize> {
+        self.workspaces
             .iter()
-            .find(|w| w.activity == Activity::Active)
+            .position(|w| w.activity == Activity::Active)
+    }
+
+    /// The active workspace of this group.
+    pub fn active(&self) -> Option<&Workspace> {
+        self.workspaces.get(self.active_index()?)
     }
 }
 
@@ -277,5 +291,24 @@ mod tests {
         for (all, step, want) in cases {
             assert_eq!(key(&all, step), want, "{step:?}");
         }
+    }
+
+    #[test]
+    fn the_main_group_is_the_first_with_an_active_workspace_else_the_first() {
+        let mut idle = two_outputs(1, 3);
+        for w in &mut idle.groups[0].workspaces {
+            w.activity = Activity::Inactive;
+        }
+        let main = |all: &Workspaces| all.main_group().map(|g| g.key.0);
+        assert_eq!(main(&two_outputs(1, 3)), Some(1));
+        assert_eq!(
+            main(&idle),
+            Some(2),
+            "the first group with an active workspace"
+        );
+        idle.groups[1].workspaces[0].activity = Activity::Inactive;
+        idle.groups[1].workspaces[1].activity = Activity::Inactive;
+        assert_eq!(main(&idle), Some(1), "no active workspace: the first group");
+        assert_eq!(main(&Workspaces::default()), None);
     }
 }

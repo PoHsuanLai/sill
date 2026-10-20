@@ -2,7 +2,6 @@
 //! fields. Window titles and app ids are the apps' words, so they are squeezed onto one line
 //! with no quote in them and cut short; the listing is labelled untrusted by the service.
 
-use super::window_plan::main_group;
 use crate::units::Urgency;
 use crate::windows::{
     Activity, Sizing, Toplevel, WindowModel, WindowState, Workspace, WorkspaceGroup, Workspaces,
@@ -26,7 +25,8 @@ pub fn windows_text(wl: &WindowModel) -> String {
 
 /// One line per workspace of the main group, in order.
 pub fn workspaces_text(workspaces: &Workspaces) -> String {
-    let lines = main_group(workspaces)
+    let lines = workspaces
+        .main_group()
         .map(|g| {
             g.workspaces
                 .iter()

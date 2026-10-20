@@ -3,7 +3,7 @@
 //! recently used one on the front window's workspaces; with one window there is nothing to do.
 
 use sill_ipc::response::Response;
-use sill_model::windows::{Activity, Toplevel, Toplevels, WlCommand};
+use sill_model::windows::{Toplevel, Toplevels, WlCommand};
 
 use super::reach::Reach;
 use super::reply::sent;
@@ -20,10 +20,7 @@ pub fn ask(reach: &Reach) -> Response {
 
 /// The command that brings the next window of the front app forward, if it has another.
 fn next(all: &Toplevels) -> Option<WlCommand> {
-    let front = all
-        .windows
-        .iter()
-        .find(|w| w.activity == Activity::Active)?;
+    let front = all.active()?;
     let mine: Vec<&Toplevel> = all
         .windows
         .iter()

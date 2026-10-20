@@ -7,8 +7,8 @@ use sill_launcher::{
 };
 use tokio::sync::watch;
 
-use sill_model::apps::{AppIcon, AppIndex, match_app};
-use sill_model::windows::{WindowModel, Workspaces};
+use sill_model::apps::{AppIcon, AppIndex};
+use sill_model::windows::{WindowModel, Workspaces, app_of};
 
 /// The id of a window row's one action: asks the daemon to close it (`Activation::CloseWindow`).
 const CLOSE_ACTION: &str = "close";
@@ -42,7 +42,7 @@ impl Provider for WindowsProvider {
 
         let mut items = Vec::new();
         for window in &toplevels.windows {
-            let app = match_app(&window.app_id, None, &apps).and_then(|id| apps.get(&id));
+            let app = app_of(window, &apps).entry(&apps);
             let app_name = app.map_or(window.app_id.as_str(), |a| a.name.as_str());
             let workspace = window
                 .workspaces

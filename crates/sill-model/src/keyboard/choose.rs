@@ -4,8 +4,8 @@ use keycap_protocol::ProfileName;
 
 use super::model::{CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, UserOverrides};
 use super::source::ProfileSource;
-use crate::apps::{AppIndex, match_app};
-use crate::windows::{Activity, Toplevels};
+use crate::apps::AppIndex;
+use crate::windows::{Toplevels, app_of};
 
 /// The first source that has a profile for `window`, in the order given; the default profile
 /// when none does or nothing is focused.
@@ -39,10 +39,7 @@ pub fn wanted(
 /// layer surfaces, which the compositor never lists as toplevels, so they can never be the
 /// focused window here, and no source is ever asked about them.
 pub fn focused<'a>(toplevels: &'a Toplevels, apps: &'a AppIndex) -> Option<FocusedWindow<'a>> {
-    let toplevel = toplevels
-        .windows
-        .iter()
-        .find(|window| window.activity == Activity::Active)?;
-    let app = match_app(&toplevel.app_id, None, apps).and_then(|id| apps.get(&id));
+    let toplevel = toplevels.active()?;
+    let app = app_of(toplevel, apps).entry(apps);
     Some(FocusedWindow { toplevel, app })
 }

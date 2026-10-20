@@ -1,12 +1,13 @@
 //! Which app a notification came from, and the icon its card shows: the sender's `app_icon`
 //! (a file, or a theme name the caller resolves), else its desktop entry's icon, else a bell.
-//! The entry is found as a window's is (`sill_model::apps::match_app`: the `desktop-entry` hint,
+//! The entry is found as a window's is (`sill_model::windows::app_for`: the `desktop-entry` hint,
 //! else the app name, whole or by its last labels), then by the entry's own `Name`.
 
 use std::path::{Path, PathBuf};
 
-use sill_model::apps::{App, AppIcon, AppIndex, match_app};
+use sill_model::apps::{App, AppIcon, AppIndex};
 use sill_model::notifications::{AppRef, IconRef};
+use sill_model::windows::app_for;
 
 /// The icon a card draws.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,15 +23,13 @@ pub enum CardArt {
 /// The desktop entry `app` names, if the index has it.
 pub fn entry_for<'a>(app: &AppRef, index: &'a AppIndex) -> Option<&'a App> {
     let claimed = app.desktop_entry.as_deref().unwrap_or(app.name.as_str());
-    match_app(claimed, None, index)
-        .and_then(|id| index.get(&id))
-        .or_else(|| {
-            let name = app.name.trim();
-            index
-                .apps
-                .iter()
-                .find(|entry| !name.is_empty() && entry.name.eq_ignore_ascii_case(name))
-        })
+    app_for(claimed, index).entry(index).or_else(|| {
+        let name = app.name.trim();
+        index
+            .apps
+            .iter()
+            .find(|entry| !name.is_empty() && entry.name.eq_ignore_ascii_case(name))
+    })
 }
 
 /// What `app`'s card shows, `entry` being its desktop entry and `lookup` the icon theme.

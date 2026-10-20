@@ -1,11 +1,11 @@
 //! Whether a session action may go on: the ones that end the apps quit them first.
 
 use sill_launcher::Confirm;
-use sill_model::apps::match_app;
 use sill_model::notifications::{
     AppRef, Body, Expiry, Hints, IconRef, NotificationsCommand, Posting,
 };
 use sill_model::session::{SessionAction, words};
+use sill_model::windows::app_for;
 
 use super::super::SessionLinks;
 use super::super::quit_apps::{LiveApps, OpenWindow, QuitOutcome, Scopes, quit_apps};
@@ -48,9 +48,7 @@ fn tell(links: &SessionLinks, action: SessionAction, windows: &[OpenWindow]) {
     let Some(first) = windows.first() else { return };
     let name = {
         let index = links.apps.borrow();
-        match_app(&first.app_id, None, &index)
-            .and_then(|id| index.get(&id).map(|app| app.name.clone()))
-            .unwrap_or_else(|| first.app_id.clone())
+        app_for(&first.app_id, &index).name(&index)
     };
     let (summary, body) = words::held(action, &name);
     let posting = Posting {

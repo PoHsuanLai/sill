@@ -12,7 +12,7 @@ use ds::prelude::*;
 use ds::style::space::presets::default_look;
 use shell_host::OutputInfo;
 use sill_model::ids::{OutputName, WorkspaceKey};
-use sill_model::windows::{Activity, WorkspaceGroup, Workspaces};
+use sill_model::windows::{WorkspaceGroup, Workspaces};
 use sill_services::WindowsService;
 use sill_settings::SpacesSettings;
 
@@ -32,13 +32,9 @@ pub fn active_workspace(
     workspaces: &Workspaces,
     output: Option<&OutputName>,
 ) -> Option<(WorkspaceKey, usize)> {
-    group_for(&workspaces.groups, output).and_then(|group| {
-        group
-            .workspaces
-            .iter()
-            .position(|w| w.activity == Activity::Active)
-            .map(|index| (group.workspaces[index].key, index))
-    })
+    let group = group_for(&workspaces.groups, output)?;
+    let index = group.active_index()?;
+    group.active().map(|w| (w.key, index))
 }
 
 /// The look of the active workspace on `output` (design/21 §5 rule 6); the first preset while

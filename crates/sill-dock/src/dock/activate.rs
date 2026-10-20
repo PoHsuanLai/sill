@@ -4,7 +4,7 @@
 //! most recently activated first.
 
 use sill_model::ids::WorkspaceKey;
-use sill_model::windows::{Activity, Toplevel, Toplevels, WlCommand};
+use sill_model::windows::{Toplevel, Toplevels, WlCommand};
 
 use crate::dock::machine::ActivateMode;
 
@@ -26,7 +26,7 @@ pub fn activation(
         ActivateMode::Reopen => Vec::new(),
         ActivateMode::Cycle => cycle(mine, workspace).into_iter().collect(),
         ActivateMode::HideCurrent => {
-            let front = all.windows.iter().find(|w| w.activity == Activity::Active);
+            let front = all.active();
             let hidden = front
                 .filter(|f| !mine.iter().any(|m| m.key == f.key))
                 .map(|f| minimize_app(all, &f.app_id))

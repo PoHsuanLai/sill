@@ -17,10 +17,25 @@ impl Toplevels {
     /// The first output of the active window: where a key press acts when the pointer's output is
     /// not known. `None` without an active window or when it names no output.
     pub fn focused_output(&self) -> Option<OutputName> {
+        self.active()?.outputs.first().cloned()
+    }
+
+    /// The window that has focus: the first with `Activity::Active`. `None` while nothing is
+    /// focused; callers that act on focus (keys, profiles, the companion) use this.
+    pub fn active(&self) -> Option<&Toplevel> {
+        self.windows.iter().find(|w| w.activity == Activity::Active)
+    }
+
+    /// The window a person would call frontmost on `output` (any output for `None`): the
+    /// active window when it is there, else the most recently activated one there. For
+    /// showing "the front app"; use [`Self::active`] to act on focus.
+    pub fn front(&self, output: Option<&OutputName>) -> Option<&Toplevel> {
+        let there = |w: &&Toplevel| output.is_none_or(|o| w.outputs.contains(o));
         self.windows
             .iter()
+            .filter(there)
             .find(|w| w.activity == Activity::Active)
-            .and_then(|w| w.outputs.first().cloned())
+            .or_else(|| self.windows.iter().find(there))
     }
 }
 
@@ -214,6 +229,36 @@ mod tests {
                 .map(|o| OutputName((*o).to_owned()))
                 .collect(),
         }
+    }
+
+    #[test]
+    fn the_front_window_prefers_active_then_most_recent_on_the_output() {
+        let windows = vec![
+            named_window(1, Activity::Inactive, &["DP-1"]),
+            named_window(2, Activity::Inactive, &["DP-2"]),
+            named_window(3, Activity::Active, &["DP-2"]),
+        ];
+        let on = |o: &str| Some(OutputName(o.to_owned()));
+        let cases = [
+            ("any output: the active one", None, Some(3)),
+            ("the active window's output", on("DP-2"), Some(3)),
+            (
+                "an output without it: the most recent there",
+                on("DP-1"),
+                Some(1),
+            ),
+            ("an unknown output", on("HDMI-1"), None),
+        ];
+        for (name, output, want) in cases {
+            let all = Toplevels {
+                windows: windows.clone(),
+            };
+            let got = all.front(output.as_ref()).map(|w| w.key.0);
+            assert_eq!(got, want, "{name}");
+        }
+        let none_active = of(&[4, 5]);
+        assert_eq!(none_active.active(), None);
+        assert_eq!(none_active.front(None).map(|w| w.key.0), Some(4));
     }
 
     #[test]

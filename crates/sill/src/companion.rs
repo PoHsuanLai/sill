@@ -14,7 +14,6 @@ use sill_ipc::response::Response;
 use sill_ipc::show::CompanionRequest;
 use sill_launcher_ui::Launcher;
 use sill_model::companion::{CompanionCommand, FocusInput, LauncherFacts, SummonOut};
-use sill_model::windows::Activity;
 use sill_services::Control;
 use sill_ui_kit::links::{LauncherLink, Reveal};
 use sill_ui_kit::services::Services;
@@ -29,11 +28,7 @@ use crate::outputs::Outputs;
 /// panel.
 pub fn focus_of(services: &Services, launcher: &LauncherLink) -> FocusInput {
     let toplevels = services.windows.state.borrow();
-    let active = toplevels
-        .toplevels
-        .windows
-        .iter()
-        .find(|window| window.activity == Activity::Active);
+    let active = toplevels.toplevels.active();
     FocusInput {
         window: active.map(|window| window.key),
         app: active.and_then(|window| prov::AppName::parse(&window.app_id).ok()),

@@ -7,9 +7,9 @@
 //! stays on its app when another app's tile appears before it.
 
 use sill_launcher::AppId;
-use sill_model::apps::{AppIndex, match_app};
+use sill_model::apps::AppIndex;
 use sill_model::pins::DockPins;
-use sill_model::windows::{Activity, Toplevel, Toplevels, WindowState};
+use sill_model::windows::{Activity, AppMatch, Toplevel, Toplevels, WindowState, app_of};
 use sill_settings::TrashTile;
 
 use crate::dock::machine::{TileApp, TileId};
@@ -99,9 +99,9 @@ fn running_groups<'a>(
 
 /// The group `window` belongs to.
 fn group_of(window: &Toplevel, index: &AppIndex) -> ItemKind {
-    match match_app(&window.app_id, None, index) {
-        Some(id) => ItemKind::Running(id),
-        None => ItemKind::Unmatched(window.app_id.clone()),
+    match app_of(window, index) {
+        AppMatch::Entry(id) => ItemKind::Running(id),
+        AppMatch::Unmatched(raw) => ItemKind::Unmatched(raw),
     }
 }
 

@@ -8,7 +8,7 @@ use super::listing::{windows_text, workspaces_text};
 use super::window_ask::{WindowAsk, WorkspaceRef};
 use crate::app_menu::{OwnItem, own_commands, window_of};
 use crate::ids::WorkspaceKey;
-use crate::windows::{Activity, Toplevel, WindowModel, WlCommand, Workspaces};
+use crate::windows::{Toplevel, WindowModel, WlCommand, Workspaces};
 
 /// Why an ask was not done. The words never carry the argument's own text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,18 +99,9 @@ fn workspace_key(workspaces: &Workspaces, to: &WorkspaceRef) -> Result<Workspace
                 .flat_map(|g| &g.workspaces)
                 .find(|w| Some(w.key.0) == key)
         }
-        WorkspaceRef::Index(at) => main_group(workspaces)
+        WorkspaceRef::Index(at) => workspaces
+            .main_group()
             .and_then(|g| g.workspaces.get(usize::try_from(*at).ok()?.checked_sub(1)?)),
     };
     found.map(|w| w.key).ok_or(WindowFault::NoSuchWorkspace)
-}
-
-/// The group an index counts in: the first with an active workspace (the main display's), else
-/// the first.
-pub(super) fn main_group(workspaces: &Workspaces) -> Option<&crate::windows::WorkspaceGroup> {
-    workspaces
-        .groups
-        .iter()
-        .find(|g| g.workspaces.iter().any(|w| w.activity == Activity::Active))
-        .or_else(|| workspaces.groups.first())
 }

@@ -15,7 +15,7 @@ use sill_launcher::WindowKey;
 use sill_model::desktop::open_mission_control;
 use sill_model::ids::WorkspaceKey;
 use sill_model::locker::LockerCommand;
-use sill_model::windows::{Activity, Toplevel, WindowState, WlCommand};
+use sill_model::windows::{Toplevel, WindowState, WlCommand};
 use sill_settings::{CornerAction, ShellFile};
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
@@ -162,13 +162,7 @@ async fn act(
                 .workspaces
                 .groups
                 .iter()
-                .filter_map(|group| {
-                    group
-                        .workspaces
-                        .iter()
-                        .find(|workspace| workspace.activity == Activity::Active)
-                        .map(|workspace| workspace.key)
-                })
+                .filter_map(|group| group.active().map(|workspace| workspace.key))
                 .collect();
             let (commands, next) = show_desktop(&windows, &active, stash);
             *stash = next;
