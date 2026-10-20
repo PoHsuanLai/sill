@@ -167,7 +167,7 @@ code into `tests.rs`. Exceptions and renames:
 | `battery`, `kbd_backlight`, `power_profile`, `volume`, `session`, `badges`, `clock`: `model.rs`, `format.rs` | `sill-model/src/<x>/`; `live.rs`, `upower.rs`, `ppd.rs` -> `<x>/backend/` |
 | `providers/`, `results/{registry,run,sink,history,frecency_file,effect}.rs`, `preview.rs` | `sill-search/src/providers/`, `results/`, `preview.rs` |
 | `results/{model,arrange,policy}.rs` | `sill-model/src/results/` |
-| `services.rs` (`Services`, `Member`) | `sill-ui-kit/src/services.rs`; `Services::spawn` becomes `sill/src/daemon/services.rs::start` |
+| `services.rs` (`Services`, `Member`) | `sill-ui-kit/src/services/` (`registry.rs` declares every service; `Services::start` spawns them) |
 | `magnify/` | `sill-dock/src/magnify/` |
 | `switcher.rs` | `sill-overlays/src/switcher/apps.rs` |
 | `curve.rs` (unused) | deleted; easing is `ds-motion`'s |
@@ -313,7 +313,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | A service's pure transition | `sill_model::<service>::step::step` |
 | A service's I/O | `sill_services::<service>::backend` |
 | Every running service's handle, `Member`, `use_service` | `sill_ui_kit::services`, `sill_ui_kit::hooks` |
-| Starting every service in `Deps` order | `sill::daemon::services::start` |
+| Declaring a service, starting every service in `Deps` order, the fakes | `sill_ui_kit::services::registry` (`services!`; `Services::start`, `Services::fake`) |
 | Units and ids (`Cpx`, `Minutes`, `AppId`, `WorkspaceKey`) | `sill_model::{units, ids}` (`Percent`, `Fraction`, `Stamp`: `ds-core`) |
 | Retry and stale-answer stamps | `sill_model::attempt` |
 | A closed vocabulary shared by a settings key and a service | `sill_model::vocab` or the service dir, implementing `ds_core::Word` |
@@ -605,9 +605,13 @@ Each ends with its tests. Name the concept once and use it in every file name be
    - watch files and folders with `debounced::Debounced`, and a Wayland connection with
      `wayland_thread::Follow`.
 5. `pub mod <x>;` in `sill-services/src/lib.rs`; re-export the marker only.
-6. `sill-ui-kit/src/services.rs`: a `Handle<XService>` field and a `members!` line; the harness
-   `FakeServices` gets its default. `sill/src/daemon/services.rs::start`: one `spawn` line, after
-   the services in its `Deps`.
+6. `sill-ui-kit/src/services/registry.rs`: one line in `services!`, after the services in its
+   deps: `field: XService = <deps expression>;` (add `=> <fake state>` when its fake should not
+   start at the default). That one line is the `Services` field, the `Member` impl, the spawn
+   (declaration order is start order, and a deps expression can only name services above it) and
+   the fake. If a test or demo needs to feed it, claim its halves in
+   `sill-ui-kit/src/harness/fake/feeds.rs` (`Feeds`); an unclaimed fake is kept alive for you.
+   Anything the deps need from the daemon (a channel it reads) is a field of `Wiring`.
 7. A service that claims a bus name needs nothing to be told: `Env::claims` decides. If it must
    stay passive until the person's settings say what to do, add a `Policy` (recipe below).
 8. Tests: the `step` table in `sill-model`; `sill-services/tests/<x>_bus.rs` on `PrivateBus`
@@ -620,7 +624,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 1. `sill-settings/src/<domain>.rs` holds typed fields (recipe: settings key).
 2. `sill/src/policy/<x>.rs`: `struct XBridge`, `impl Policy` (`of` builds typed values,
    `command` wraps them); add `mod`.
-3. `daemon/services.rs::start`: `follow(rt, settings.clone(), XBridge, handle.control.clone())`.
+3. `daemon/services.rs::follow_settings`: `follow(rt, settings(), XBridge, services.x.control.clone())`.
 4. Tests: `of` table in the same file over `ShellFile` values; `follow` is tested once, in
    `policy/follow.rs`.
 
@@ -856,7 +860,7 @@ The notification center is the only place widgets are drawn; their providers liv
 ## 8. The daemon
 
 `sill run` (`daemon/run.rs`) takes the single-instance lock, builds `Env` (`run_args.rs`),
-starts services (`daemon/services.rs`) and settings (`daemon/settings/`), starts the IPC server
+starts services (`Services::start`) and settings (`daemon/settings/`), starts the IPC server
 (`ipc/server.rs`), connects the host and reconciles one row of surfaces per output
 (`outputs.rs`, `daemon/surfaces.rs`). `Links` is built once in `run.rs`. The `debug`
 feature adds `sill debug ...` and the fake DDC flags; a build without it refuses them.

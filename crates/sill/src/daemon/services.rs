@@ -1,51 +1,14 @@
-//! Starting every service, each after the ones in its `Deps`, into the [`Services`] every
-//! surface reads.
-
-use std::sync::Arc;
+//! Telling the services that are passive until told what to do, once the settings are read.
+//! Starting them is `sill_ui_kit::services::Services::start`, declared in the kit's registry.
 
 use sill_model::capture_pick::CaptureCommand;
-use sill_model::companion::SummonOut;
-use sill_model::desktop::{DesktopCommand, DesktopView};
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
-use sill_model::voice::VoiceConsent;
-use sill_search::results::{ResultsLinks, ResultsService, Sources};
-use sill_services::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
-use sill_services::accounts::{AccountsLinks, AccountsService};
-use sill_services::apps::AppsService;
-use sill_services::auth::AuthService;
-use sill_services::battery::BatteryService;
-use sill_services::capture_pick::{CaptureLinks, CaptureService};
-use sill_services::clipboard::ClipboardService;
-use sill_services::companion::{CompanionLinks, CompanionService};
-use sill_services::displays::DisplaysService;
 use sill_services::env::Env;
-use sill_services::guest_asks::{GuestAsksLinks, GuestAsksService};
-use sill_services::idle::{IdleLinks, IdleService};
-use sill_services::intents::{IntentsLinks, IntentsService, ShellCall};
-use sill_services::keycap::{KeycapLinks, KeycapService};
-use sill_services::launch::{LaunchLinks, LaunchService};
-use sill_services::locker::LockerService;
-use sill_services::night_shift::NightShiftService;
-use sill_services::notifications::{Answers, NotificationsService};
-use sill_services::screenshots::ScreenshotsService;
-use sill_services::seat::seat;
-use sill_services::service::spawn;
-use sill_services::session::{SessionLinks, SessionService};
-use sill_services::sync_hold::{SyncHoldLinks, SyncHoldService};
-use sill_services::voice::{VoiceLinks, VoiceService};
-use sill_services::volume::VolumeService;
-use sill_services::work_areas::WorkAreaService;
-use sill_services::workspace_looks::WorkspaceLooksService;
-use sill_services::{AppMenuDeps, AppMenuService, MenuLinks};
-use sill_services::{WindowsLinks, WindowsService};
-use sill_ui_kit::app_menu::menu_name_of;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use tokio::runtime::Handle as Runtime;
-use tokio::sync::mpsc::UnboundedSender;
-use tokio::sync::watch;
 
 use crate::policy::{
     calendar::CalendarBridge, clipboard::ClipboardBridge, companion::CompanionBridge,
@@ -54,232 +17,6 @@ use crate::policy::{
     screenshots::ScreenshotsBridge, search::SearchBridge, voice::VoiceBridge,
     wallpaper::WallpaperBridge,
 };
-
-/// Start every service on `rt` (the `windows` and volume threads on their own threads)
-/// against `env`'s seams, each after the ones it depends on. A service whose system half is
-/// missing still yields its receiver, at its default. `shell_calls` is where the shell's own
-/// actions go, `summons` where a summon's launcher effects go, `consents` where the answer to
-/// the voice consent sheet goes and `permission_answers` where the answer to a question the
-/// compositor asked goes.
-pub(crate) fn start(
-    rt: &Runtime,
-    env: &Env,
-    shell_calls: UnboundedSender<ShellCall>,
-    summons: UnboundedSender<SummonOut>,
-    consents: UnboundedSender<VoiceConsent>,
-    permission_answers: UnboundedSender<DesktopCommand>,
-) -> Services {
-    // The connection the intents service claims `org.quire.Shell` on, which the companion speaks
-    // on as the launcher.
-    let (seat_publisher, seat_view) = seat();
-    // The windows service writes the desktop's view; every reader of it holds this receiver.
-    let (desktop_tx, desktop) = watch::channel(DesktopView::default());
-    let apps = spawn::<AppsService>(rt, env, ());
-    // Passive (never asks for the bus name) until the daemon sends its first policy.
-    // What the person does to a notification is said here; the services with notices hear it.
-    let answers = Answers::default();
-    let notifications = spawn::<NotificationsService>(rt, env, answers.clone());
-    let launch = spawn::<LaunchService>(
-        rt,
-        env,
-        LaunchLinks {
-            apps: apps.state.clone(),
-            notifications: notifications.control.clone(),
-        },
-    );
-    let companion = spawn::<CompanionService>(
-        rt,
-        env,
-        CompanionLinks {
-            seat: seat_view.clone(),
-            summons,
-            launch: launch.control.clone(),
-        },
-    );
-    let voice = spawn::<VoiceService>(
-        rt,
-        env,
-        VoiceLinks {
-            seat: seat_view.clone(),
-            companion: companion.control.clone(),
-            consents,
-        },
-    );
-    let volume = spawn::<VolumeService>(rt, env, ());
-    let displays = spawn::<DisplaysService>(rt, env, volume.state.clone());
-    // The screen-sharing picker: exported on the seat's connection once the daemon says to serve.
-    let capture = spawn::<CaptureService>(
-        rt,
-        env,
-        CaptureLinks {
-            seat: seat_view,
-            displays: displays.state.clone(),
-            desktop: desktop.clone(),
-            apps: apps.state.clone(),
-            answers: permission_answers,
-        },
-    );
-    let battery = spawn::<BatteryService>(rt, env, ());
-    let windows = spawn::<WindowsService>(
-        rt,
-        env,
-        WindowsLinks {
-            desktop: desktop_tx,
-        },
-    );
-    let clipboard = spawn::<ClipboardService>(rt, env, ());
-    let locker = spawn::<LockerService>(rt, env, ());
-    let session = spawn::<SessionService>(
-        rt,
-        env,
-        SessionLinks {
-            locker: locker.control.clone(),
-            windows: windows.state.clone(),
-            wl: windows.control.clone(),
-            apps: apps.state.clone(),
-            notifications: notifications.control.clone(),
-        },
-    );
-    let results = spawn::<ResultsService>(
-        rt,
-        env,
-        Sources::Services(ResultsLinks {
-            apps: apps.state.clone(),
-            windows: windows.state.clone(),
-            clipboard: clipboard.state.clone(),
-            companion: companion.state.clone(),
-            companion_control: companion.control.clone(),
-            session: session.state.clone(),
-            wl: windows.control.clone(),
-        }),
-    );
-    let auth = spawn::<AuthService>(rt, env, ());
-    let idle = spawn::<IdleService>(
-        rt,
-        env,
-        IdleLinks {
-            lock: locker.state.clone(),
-            battery: battery.state.clone(),
-            locker: locker.control.clone(),
-            auth: auth.control.clone(),
-        },
-    );
-    let screenshots = spawn::<ScreenshotsService>(rt, env, ());
-    let shots = screenshots.state.clone();
-    let keycap = spawn::<KeycapService>(
-        rt,
-        env,
-        KeycapLinks {
-            windows: windows.state.clone(),
-            apps: apps.state.clone(),
-            notifications: notifications.control.clone(),
-            notes: notifications.state.clone(),
-        },
-    );
-    let accounts = spawn::<AccountsService>(
-        rt,
-        env,
-        AccountsLinks {
-            notifications: notifications.control.clone(),
-            notes: notifications.state.clone(),
-            answers: answers.clone(),
-        },
-    );
-    let accounts_sheet = spawn::<AccountsSheetService>(
-        rt,
-        env,
-        AccountsSheetLinks {
-            launch: launch.control.clone(),
-        },
-    );
-    let sync_hold = spawn::<SyncHoldService>(
-        rt,
-        env,
-        SyncHoldLinks {
-            notifications: notifications.control.clone(),
-            notes: notifications.state.clone(),
-            answers: answers.clone(),
-            launch: launch.control.clone(),
-        },
-    );
-    let guest_asks = spawn::<GuestAsksService>(
-        rt,
-        env,
-        GuestAsksLinks {
-            notifications: notifications.control.clone(),
-            notes: notifications.state.clone(),
-            answers: answers.clone(),
-        },
-    );
-    // Night Shift tells casement which monitors the displays service warms itself.
-    let night_shift = spawn::<NightShiftService>(rt, env, displays.state.clone());
-    Services {
-        clock: spawn(rt, env, ()),
-        network: spawn(rt, env, ()),
-        wifi: spawn(rt, env, ()),
-        displays,
-        bluetooth: spawn(rt, env, ()),
-        kbd_backlight: spawn(rt, env, ()),
-        power_profile: spawn(rt, env, ()),
-        now_playing: spawn(rt, env, ()),
-        badges: spawn(rt, env, ()),
-        tray: spawn(rt, env, ()),
-        app_menu: spawn::<AppMenuService>(
-            rt,
-            env,
-            AppMenuDeps {
-                name_of: menu_name_of,
-                windows: windows.state.clone(),
-            },
-        ),
-        pins: spawn(rt, env, apps.state.clone()),
-        wallpaper: spawn(rt, env, ()),
-        session,
-        notifications,
-        events: spawn(rt, env, ()),
-        screenshots,
-        polkit_agent: spawn(rt, env, ()),
-        intents: spawn::<IntentsService>(
-            rt,
-            env,
-            IntentsLinks {
-                calls: shell_calls,
-                menus: MenuLinks {
-                    toplevels: windows.state.clone(),
-                    wl: windows.control.clone(),
-                    name_of: menu_name_of,
-                },
-                shots,
-                seat: seat_publisher,
-            },
-        ),
-        capture,
-        companion,
-        voice,
-        volume,
-        battery,
-        apps,
-        windows,
-        launch,
-        clipboard,
-        results,
-        locker,
-        auth,
-        idle,
-        keycap,
-        accounts,
-        accounts_sheet,
-        sync_hold,
-        guest_asks,
-        night_shift,
-        work_areas: spawn::<WorkAreaService>(rt, env, ()),
-        workspace_looks: spawn::<WorkspaceLooksService>(rt, env, ()),
-        dirs: env.dirs.clone(),
-        desktop,
-        dock_rects: sill_ui_kit::dock_rects::DockRects::default(),
-        session_actions: Arc::clone(&env.session_actions),
-    }
-}
 
 /// Tell each service that is passive until told what it should do: sill's own lock and polkit
 /// agent, and the policies the settings decide (the first one sent ends a service's passive
@@ -381,9 +118,9 @@ pub(crate) fn follow_settings(
 
 #[cfg(test)]
 mod tests {
-    use super::start;
     use sill_services::env::Env;
     use sill_testkit::TempDir;
+    use sill_ui_kit::services::{Services, Wiring};
 
     /// `start` must never panic — the daemon has to reach the host connect and the
     /// IPC server — and every passive service holds its default (a service without its bus or
@@ -398,15 +135,22 @@ mod tests {
         let (calls, _shell_calls) = tokio::sync::mpsc::unbounded_channel();
         let (summons, _launcher_effects) = tokio::sync::mpsc::unbounded_channel();
         let (consents, _written) = tokio::sync::mpsc::unbounded_channel();
-        let services = start(
+        let services = Services::start(
             rt.handle(),
             &Env::isolated(scratch.path()),
-            calls,
-            summons,
-            consents,
-            tokio::sync::mpsc::unbounded_channel().0,
+            Wiring::new(
+                calls,
+                summons,
+                consents,
+                tokio::sync::mpsc::unbounded_channel().0,
+            ),
         );
 
+        assert_eq!(
+            services.held(),
+            Services::DECLARED,
+            "every declared service is started"
+        );
         assert!(services.clock.state.borrow().0.year() > 2000);
         assert_eq!(*services.apps.state.borrow(), Default::default());
         assert_eq!(*services.badges.state.borrow(), Default::default());

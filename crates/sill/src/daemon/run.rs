@@ -19,7 +19,7 @@ use sill_ui_kit::links::{
     EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PowerMenuLink,
     SheetLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
-use sill_ui_kit::services::Services;
+use sill_ui_kit::services::{Services, Wiring};
 use sill_ui_kit::settings::SettingsFeed;
 use tokio::runtime::Runtime;
 use tokio::sync::watch;
@@ -58,13 +58,10 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let (summons_tx, summons) = tokio::sync::mpsc::unbounded_channel();
     let (consents_tx, consents) = tokio::sync::mpsc::unbounded_channel();
     let (answers_tx, answers) = tokio::sync::mpsc::unbounded_channel();
-    let services = services::start(
+    let services = Services::start(
         runtime.handle(),
         &env,
-        shell_calls,
-        summons_tx,
-        consents_tx,
-        answers_tx,
+        Wiring::new(shell_calls, summons_tx, consents_tx, answers_tx),
     );
     let store = settings::store(&env.dirs.config);
     let first = settings::load(&store);
