@@ -1,6 +1,6 @@
 //! The state types (data only).
 
-use crate::launch::SettingsAccount;
+use sill_launcher::SettingsLink;
 
 /// syncd's name for a dataset, `<account>/<dataset>`: opaque here, and the only thing a signal
 /// and the notification's action both say it by.
@@ -29,8 +29,8 @@ pub struct Hold {
     pub discard: u64,
     /// How many files the dataset holds.
     pub held: u64,
-    /// The account's object path, where Settings opens.
-    pub account: SettingsAccount,
+    /// Where Settings opens: the account's detail (`account:<object path>`).
+    pub account: SettingsLink,
 }
 
 /// The holds now on, in the order they were told.

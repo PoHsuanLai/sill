@@ -3,7 +3,7 @@
 
 use porter_dbus::SyncProxy;
 use sill_model::accounts::AccountKey;
-use sill_model::launch::LaunchCommand;
+use sill_model::launch::{LaunchCommand, SettingsOpen};
 use sill_model::notifications::{NotesState, NotificationsCommand};
 use sill_model::sync_hold::{
     Dataset, Posted, SyncHoldCommand, SyncHoldEffect, SyncHoldEvent, SyncHoldState, shown_for, step,
@@ -158,7 +158,9 @@ impl Live {
                 if let Some(hold) = self.state.holds.iter().find(|h| h.dataset == dataset) {
                     let _ = self
                         .launch
-                        .send(LaunchCommand::OpenSettings(hold.account.clone()));
+                        .send(LaunchCommand::OpenSettings(SettingsOpen::at(
+                            hold.account.clone(),
+                        )));
                 }
             }
             actions::Said::Closed(id) => self.posted.closed(id),

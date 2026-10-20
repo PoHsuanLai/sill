@@ -65,7 +65,7 @@ pub use scroll::{
     Momentum, MomentumModel, NaturalScroll, RubberBand, ScrollSettings, ScrollbarVisibility,
 };
 pub use scrollbar::{ScrollbarSettings, TrackClick};
-pub use session::{LockClock, SessionSettings};
+pub use session::SessionSettings;
 pub use spaces::SpacesSettings;
 pub use switcher::SwitcherSettings;
 pub use voice::{HoldToTalk, VoiceConsent, VoiceSettings, params as voice_params};

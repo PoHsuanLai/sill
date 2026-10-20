@@ -9,7 +9,7 @@ use sill_model::apps::AppIndex;
 use sill_model::badges::Badges;
 use sill_model::battery::Battery;
 use sill_model::bluetooth::{Bluetooth, BluetoothCommand};
-use sill_model::clock::ClockText;
+use sill_model::clock::ClockMinute;
 use sill_model::launch::Launches;
 use sill_model::network::Network;
 use sill_model::now_playing::{Media, MediaCommand};
@@ -27,7 +27,7 @@ use tokio::sync::{mpsc, watch};
 /// The senders behind a fake [`Services`], and the command queues the bar writes to.
 #[derive(Debug)]
 pub struct Feeds {
-    pub clock: watch::Sender<ClockText>,
+    pub clock: watch::Sender<ClockMinute>,
     pub battery: watch::Sender<Battery>,
     pub network: watch::Sender<Network>,
     pub volume: watch::Sender<Volume>,

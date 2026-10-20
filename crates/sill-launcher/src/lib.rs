@@ -17,13 +17,12 @@ pub mod provider;
 pub mod query;
 pub mod rank;
 pub mod session;
+pub mod settings_link;
 pub mod sink;
 pub mod subject;
 pub mod time;
 
-pub use activation::{
-    Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, ViewerOpen, WindowKey,
-};
+pub use activation::{Activation, DesktopAction, OpenTarget, SystemCommand, ViewerOpen, WindowKey};
 pub use companion::{CompanionAct, HelperControl, LauncherMode, RunControl};
 pub use frecency::{Counting, Frecency, FrecencyScore, ItemKey, Use, age_bucket, counting};
 pub use ids::{ActionId, AppId, ClipKey, ItemId, ProviderKind};
@@ -39,6 +38,7 @@ pub use rank::sections::{
 };
 pub use rank::{Prefix, RankWeights, Score, rank, rank_text};
 pub use session::{Confirm, SessionAction};
+pub use settings_link::SettingsLink;
 pub use sink::{Batch, ResultSink, VecSink};
 pub use subject::{
     CharCount, ClipFacts, ClipKind, EmojiFacts, Excerpt, FileFacts, HelperAttention, HelperFacts,

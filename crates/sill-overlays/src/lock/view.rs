@@ -4,7 +4,7 @@
 //! prompt }`: the wallpaper is [`super::backdrop::backdrop_for`] over `use_service::<WallpaperService>()` in
 //! the scheme `use_appearance()` resolves (`ImageSource::file`; `None` lets quire paint its veil
 //! alone); the clock is `sill_shell_kit::prelude::LockClock` from [`super::model::clock_lines`] over the minute
-//! (`use_service::<ClockService>()` wakes it) and `session.lock_clock`; the prompt, only on the
+//! (`use_service::<ClockService>()` wakes it) and `use_hours()`; the prompt, only on the
 //! output the [`sill_ui_kit::links::LockLink`] names, is `sill_shell_kit::prelude::LockPrompt` with [`super::model::lock_user`] over
 //! `use_service::<AuthService>().account`, [`super::model::prompt_state`] over
 //! `use_service::<AuthService>().phase`, the Caps Lock mark from shell-host's `use_modifiers()`

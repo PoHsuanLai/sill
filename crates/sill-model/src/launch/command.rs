@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, DesktopAction, OpenTarget};
 
-use super::{FailureCause, LaunchDone, LaunchedScope, ScopeUnit, SettingsPage, SettingsVisit};
+use super::{FailureCause, LaunchDone, LaunchedScope, ScopeUnit, SettingsOpen};
 
 /// What became of a launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,18 +57,10 @@ pub enum LaunchCommand {
     ForceQuit(AppId),
     /// Open a file, reveal it, or open an address with the default handler (the launcher's rows).
     Open(OpenRequest),
-    /// Open the quire Settings app at an account, by bus activation of `org.quire.Settings`.
-    OpenSettings(SettingsAccount),
-    /// Open the quire Settings app at a page, by bus activation of `org.quire.Settings`.
-    OpenSettingsPage(SettingsPage),
-    /// Open the quire Settings app at a page named by its slug (a settings result), with a token.
-    OpenSettingsAt(SettingsVisit),
+    /// Open the quire Settings app at a place, by bus activation of `org.quire.Settings`.
+    OpenSettings(SettingsOpen),
 }
 
 /// The bus name Settings runs under: the only name porter trusts for the Settings role, so it is
 /// always started by activation (as `org.quire.Settings.service`), never as an app scope.
 pub const SETTINGS_BUS_NAME: &str = "org.quire.Settings";
-
-/// An account's object path (`/org/quire/Accounts1/account/<segment>`), the place Settings opens at.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct SettingsAccount(pub String);

@@ -9,6 +9,7 @@ use crate::companion::CompanionAct;
 use crate::ids::{AppId, ClipKey};
 use crate::query::Generation;
 use crate::session::SessionAction;
+use crate::settings_link::SettingsLink;
 
 /// The effect of choosing a result.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -25,8 +26,8 @@ pub enum Activation {
     /// Replace the launcher's query with `text` and keep it open (the calculator's secondary
     /// action: carry on calculating from the result).
     Insert { text: String },
-    /// Open a settings page.
-    OpenSettings { target: SettingsTarget },
+    /// Open Settings at a place.
+    OpenSettings { target: SettingsLink },
     /// A session command.
     System(SystemCommand),
     /// Open a file, its folder, or an address with the default handler (`xdg-open`, with the
@@ -91,15 +92,6 @@ pub enum DesktopAction {
 #[serde(transparent)]
 pub struct WindowKey(pub u64);
 
-/// A settings destination.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum SettingsTarget {
-    /// The page of Settings a key lives on, by the slug Settings knows it by (`dock`): a key
-    /// found by the launcher (design/22-SETTINGS.md §9.3 "deep links") opens its page.
-    Page(String),
-}
-
 /// The system provider's commands: a session action, or sill's own reload.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -112,12 +104,11 @@ pub enum SystemCommand {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, ViewerOpen, WindowKey,
-    };
+    use super::{Activation, DesktopAction, OpenTarget, SystemCommand, ViewerOpen, WindowKey};
     use crate::ids::{AppId, ClipKey};
     use crate::query::Generation;
     use crate::session::SessionAction;
+    use crate::settings_link::SettingsLink;
     use std::path::PathBuf;
 
     /// Every variant's wire form, pinned: the daemon and the launcher UI agree on these.
@@ -157,9 +148,9 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsTarget::Page("appearance".to_owned()),
+                    target: SettingsLink("page:appearance".to_owned()),
                 },
-                r#"{"kind":"open_settings","v":{"target":{"kind":"page","v":"appearance"}}}"#,
+                r#"{"kind":"open_settings","v":{"target":"page:appearance"}}"#,
             ),
             (
                 Activation::System(SystemCommand::Session(SessionAction::PowerOff)),

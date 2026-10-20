@@ -2,7 +2,7 @@ use sill_launcher::{AppId, ItemId, ItemKey, ProviderKind, UnixTime};
 
 use super::{ModelOffered, Store, first_apps, first_dock, first_frecency, first_model_offer};
 use crate::apps::{AppIndex, AppsEvent, Listing, step, test_app};
-use crate::launch::SettingsPage;
+use crate::launch::assistant_model_setup;
 use crate::pins::DockPins;
 
 const NOW: UnixTime = UnixTime(1_790_000_000);
@@ -127,26 +127,26 @@ fn the_launchers_recent_row_is_seeded_with_the_first_app_on_top() {
 
 #[test]
 fn the_first_start_offers_the_first_run_picker_once() {
-    const CASES: &[(&str, Store, Option<SettingsPage>)] = &[
+    let cases = [
         (
             "never offered",
             Store::Missing,
-            Some(SettingsPage::AssistantModelSetup),
+            Some(assistant_model_setup()),
         ),
         ("already offered", Store::Present, None),
     ];
-    for (name, record, want) in CASES {
-        assert_eq!(first_model_offer(*record), *want, "{name}");
+    for (name, record, want) in cases {
+        assert_eq!(first_model_offer(record), want, "{name}");
     }
 }
 
 #[test]
 fn the_record_of_the_offer_round_trips() {
     let record = ModelOffered {
-        page: SettingsPage::AssistantModelSetup,
+        page: assistant_model_setup(),
     };
     let text = serde_json::to_string(&record).unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(text, r#"{"page":"assistant_model_setup"}"#);
+    assert_eq!(text, r#"{"page":"page:assistant-model-setup"}"#);
     let back: ModelOffered = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(back, record);
 }

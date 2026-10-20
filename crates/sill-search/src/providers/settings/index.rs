@@ -4,7 +4,7 @@
 use nucleo_matcher::Matcher;
 use sill_launcher::{FrecencyScore, Needle, RankWeights, Score, rank_text};
 
-use ds_settings::schema::{KeySpec, Page, Schema};
+use ds_settings::schema::{KeySpec, PageId, PageTable, Schema};
 
 /// One settings key, flattened out of whichever schema named it (design/22 §9.3: "the query...
 /// resolves... no hand-kept table" — every field here comes straight off the schema).
@@ -16,36 +16,19 @@ pub struct IndexedKey {
     pub help: String,
     /// The page's display name, for the row's subtitle.
     pub page_label: String,
-    /// The slug Settings knows the key's page by: what opening that page names.
-    pub page_slug: String,
+    /// The id of the key's page: what opening that page names.
+    pub page: PageId,
 }
 
-/// The slug Settings knows `page` by: the fixed pages by their snake-case name, a third-party
-/// page by `app:<id>` (the same naming as detent's page slugs).
-fn slug_of(page: &Page) -> String {
-    match page {
-        Page::Appearance => "appearance".to_owned(),
-        Page::Dock => "dock".to_owned(),
-        Page::MouseAndGestures => "mouse_and_gestures".to_owned(),
-        Page::KeyboardAndShortcuts => "keyboard_and_shortcuts".to_owned(),
-        Page::Notifications => "notifications".to_owned(),
-        Page::Spaces => "spaces".to_owned(),
-        Page::Accounts => "accounts".to_owned(),
-        Page::Privacy => "privacy".to_owned(),
-        Page::Power => "power".to_owned(),
-        Page::Apps => "apps".to_owned(),
-        Page::Intelligence => "intelligence".to_owned(),
-        Page::Viewer => "viewer".to_owned(),
-        Page::App(id) => format!("app:{id}"),
-    }
-}
-
-impl From<&KeySpec> for IndexedKey {
-    fn from(spec: &KeySpec) -> IndexedKey {
+impl IndexedKey {
+    /// `spec` as `table` names its page: the declared id and title, else the page's own.
+    fn of(spec: &KeySpec, table: &PageTable) -> IndexedKey {
         IndexedKey {
             path: spec.path.0.clone(),
-            page_label: spec.page.label().to_owned(),
-            page_slug: slug_of(&spec.page),
+            page_label: table.title_of(&spec.page).0,
+            page: table
+                .resolve(spec.page.id().as_str())
+                .unwrap_or_else(|| spec.page.id()),
             label: spec.label.0.clone(),
             help: spec.help.0.clone(),
         }
@@ -61,11 +44,12 @@ pub struct SettingsIndex {
 impl SettingsIndex {
     /// Flattens every schema's keys into one index, in the order the schemas were found.
     pub fn build(schemas: &[Schema]) -> SettingsIndex {
+        let table = PageTable::of_schemas(schemas);
         SettingsIndex {
             keys: schemas
                 .iter()
                 .flat_map(|schema| &schema.key)
-                .map(IndexedKey::from)
+                .map(|spec| IndexedKey::of(spec, &table))
                 .collect(),
         }
     }
@@ -135,7 +119,7 @@ mod tests {
             label: label.to_owned(),
             help: help.to_owned(),
             page_label: page.to_owned(),
-            page_slug: page.to_lowercase(),
+            page: PageId::new(&page.to_lowercase()),
         }
     }
 

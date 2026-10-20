@@ -16,7 +16,7 @@ use docket_core::{ContextKeep, Keep};
 use docket_dbus::{COMPANION_BUS, INTENTS_BUS, answer_path};
 use prov::SpaceId;
 use sill_model::companion::{AskInput, CompanionCommand};
-use sill_model::launch::{LaunchCommand, SettingsPage};
+use sill_model::launch::{LaunchCommand, SettingsOpen, assistant_model};
 use zbus::Connection;
 
 const HAIKU_LINE: &str = "Answered by Claude Haiku 4.5 via OpenRouter (already loaded)";
@@ -224,7 +224,7 @@ async fn a_turn_that_meets_no_model_opens_the_model_picker_once_and_says_nothing
     bench.views(&refused).await;
     assert_eq!(
         bench.desk.next_launched().await,
-        LaunchCommand::OpenSettingsPage(SettingsPage::AssistantModel)
+        LaunchCommand::OpenSettings(SettingsOpen::at(assistant_model()))
     );
     // The refusal written again, then a later view: by the time the later view is held, the
     // service has handled the repeat, and it asked for nothing more.

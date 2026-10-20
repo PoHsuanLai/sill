@@ -9,14 +9,16 @@ use ds::root::pass_through::ExtraClass;
 use shell_host::{OutputInfo, use_watch};
 use sill_shell_kit::prelude::*;
 
+use sill_model::clock::format_clock;
 use sill_services::ClockService;
-use sill_ui_kit::hooks::use_service;
+use sill_ui_kit::hooks::{use_hours, use_service};
 use sill_ui_kit::links::CenterLink;
 
 /// The clock status item.
 #[component]
 pub fn ClockItem(output: OutputInfo) -> Element {
-    let clock = use_service::<ClockService>()();
+    let minute = use_service::<ClockService>()();
+    let hours = use_hours();
     // A bar without the daemon's links (the demo, a render test) toggles a center of its own.
     let given = try_use_context::<CenterLink>();
     let link = use_hook(move || given.unwrap_or_default());
@@ -33,7 +35,7 @@ pub fn ClockItem(output: OutputInfo) -> Element {
                 ..Common::default()
             },
             shown: open,
-            label: clock.text,
+            label: format_clock(minute.0, hours),
             onclick: move |_| link.toggle(output.id),
         }
     }

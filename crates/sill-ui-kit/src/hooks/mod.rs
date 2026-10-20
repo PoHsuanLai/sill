@@ -6,6 +6,7 @@
 mod use_appearance;
 mod use_banner_output;
 mod use_focus_mode;
+mod use_hours;
 mod use_service;
 mod use_services;
 mod use_settings;
@@ -14,6 +15,7 @@ mod use_user_style;
 pub use use_appearance::{PinnedAppearance, SwitchableAppearance, use_appearance};
 pub use use_banner_output::use_banner_output;
 pub use use_focus_mode::use_focus_mode;
+pub use use_hours::{PinnedLocale, use_hours};
 pub use use_service::{use_control, use_service, use_service_part};
 pub use use_services::use_services;
 pub use use_settings::{use_section, use_settings};

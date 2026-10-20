@@ -10,7 +10,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use crate::accounts_bus::accounts_support::{ACCOUNT, FakeAccountd, Listing};
-use sill_model::launch::{LaunchCommand, SettingsAccount};
+use sill_launcher::SettingsLink;
+use sill_model::launch::{LaunchCommand, SettingsOpen};
 use sill_model::notifications::{
     Activation, NameHolder, NotesState, NotificationId, NotificationsCommand, NotificationsPolicy,
     ServerMode,
@@ -233,9 +234,9 @@ async fn a_hold_is_told_opens_settings_at_the_account_and_is_withdrawn_when_it_e
     let launched = tokio::time::timeout(SETTLE, shell.launched.recv()).await;
     assert_eq!(
         launched.ok().flatten(),
-        Some(LaunchCommand::OpenSettings(SettingsAccount(
-            ACCOUNT.to_owned()
-        )))
+        Some(LaunchCommand::OpenSettings(SettingsOpen::at(SettingsLink(
+            format!("account:{ACCOUNT}")
+        ))))
     );
 
     syncd.tell(Held::new()).await;

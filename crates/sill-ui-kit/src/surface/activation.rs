@@ -5,8 +5,8 @@
 use std::time::Duration;
 
 use shell_host::SurfaceHandle;
-use sill_launcher::{AppId, DesktopAction};
-use sill_model::launch::{LaunchCommand, LaunchRequest};
+use sill_launcher::{AppId, DesktopAction, SettingsLink};
+use sill_model::launch::{LaunchCommand, LaunchRequest, SettingsOpen};
 use sill_services::ServiceError;
 use sill_services::control::Control;
 
@@ -45,4 +45,23 @@ pub async fn launch_with_token(
         uris,
         token,
     }))
+}
+
+/// The app Settings runs as: the one an activation token for Settings is asked for.
+pub const SETTINGS_APP: &str = "org.quire.Settings";
+
+/// Open Settings at `link` through `launch` with a token asked of `surface` (none when the
+/// surface is gone or the compositor gives none): the one path every entrance to Settings takes.
+pub async fn open_settings_with_token(
+    surface: Option<&SurfaceHandle>,
+    launch: &Control<LaunchCommand>,
+    link: SettingsLink,
+) -> Result<(), ServiceError> {
+    let token = match surface {
+        Some(surface) => activation_token(surface, Some(SETTINGS_APP.to_owned())).await,
+        None => None,
+    };
+    launch.send(LaunchCommand::OpenSettings(
+        SettingsOpen::at(link).with_token(token),
+    ))
 }

@@ -23,7 +23,7 @@ use sill_model::companion::{
     CompanionParams, HelpersCommand, HelpersMsg, SummonOut, TerminalsCommand, card_call,
     going_runs, promote_card, step, unresolved_handles, wake,
 };
-use sill_model::launch::{LaunchCommand, SettingsPage};
+use sill_model::launch::{LaunchCommand, SettingsOpen, assistant_model};
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
@@ -279,7 +279,7 @@ impl Live {
             }
             CompanionEffect::PickModel
             | CompanionEffect::Helpers(HelpersCommand::OpenModelPicker) => {
-                let page = LaunchCommand::OpenSettingsPage(SettingsPage::AssistantModel);
+                let page = LaunchCommand::OpenSettings(SettingsOpen::at(assistant_model()));
                 if let Err(error) = self.launch.send(page) {
                     eprintln!("sill: companion: opening the model picker: {error}");
                 }

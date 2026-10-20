@@ -31,6 +31,7 @@ sill-ui-kit = { workspace = true, features = ["harness"] }
 dioxus-ssr = { workspace = true }
 ds-lint = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
+jiff = { workspace = true }
 
 [[example]]
 name = "bar_demo"

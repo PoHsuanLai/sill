@@ -12,7 +12,7 @@ use sill_shell_kit::prelude::*;
 use super::backdrop::backdrop_for;
 use super::model::{clock_lines, lock_user, prompt_state};
 use sill_services::{AuthService, ClockService, WallpaperService};
-use sill_ui_kit::hooks::{use_service, use_services, use_settings};
+use sill_ui_kit::hooks::{use_hours, use_service, use_services};
 use sill_ui_kit::links::{LockLink, PromptOutput};
 
 /// Where shell-host's session lock is, as the surface needs it.
@@ -69,7 +69,7 @@ pub(super) fn LockBody(
     on_unlock: Option<Callback<()>>,
 ) -> Element {
     let services = use_services();
-    let settings = use_settings()();
+    let hours = use_hours();
     let wallpapers = use_service::<WallpaperService>()();
     let auth_signal = use_service::<AuthService>();
     let auth = auth_signal();
@@ -83,9 +83,8 @@ pub(super) fn LockBody(
     };
     use_unlock_fade(auth_signal, host, here, on_unlock);
 
-    let format = settings.session.lock_clock;
     let now = jiff::Zoned::now();
-    let lines = clock_lines(&now, format);
+    let lines = clock_lines(&now, hours);
     let wallpaper = output
         .name
         .clone()

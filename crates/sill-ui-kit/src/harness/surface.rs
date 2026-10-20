@@ -16,7 +16,7 @@ use sill_settings::ShellFile;
 use tokio::sync::watch;
 
 use super::fake;
-use crate::hooks::{PinnedAppearance, SwitchableAppearance};
+use crate::hooks::{PinnedAppearance, PinnedLocale, SwitchableAppearance};
 use crate::services::Services;
 use crate::surface::{MountProps, Surface, mount};
 
@@ -209,6 +209,8 @@ impl<S: Surface> SurfaceSetup<S> {
         let context_link = link.clone();
         let build: Build = Rc::new(move || {
             use_context_provider(|| services.clone());
+            // Times read the same on every machine: the C locale, 24-hour.
+            use_context_provider(|| PinnedLocale("C".to_owned()));
             use_context_provider(|| feed.clone());
             let live =
                 use_context_provider(|| SwitchableAppearance(Signal::new(appearance.0.clone())));

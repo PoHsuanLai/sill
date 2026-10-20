@@ -11,7 +11,9 @@
 
 use std::path::PathBuf;
 
-use sill_launcher::{Activation, Cancel, Choice, Provider, Query, SettingsTarget, VecSink};
+use ds_settings::schema::PageId;
+use ds_settings::target::SettingsTarget;
+use sill_launcher::{Activation, Cancel, Choice, Provider, Query, VecSink};
 use sill_search::providers::SettingsProvider;
 
 fn fixture_dir() -> PathBuf {
@@ -27,7 +29,7 @@ fn query_target(provider: &SettingsProvider, text: &str) -> Vec<SettingsTarget> 
         .into_iter()
         .flatten()
         .filter_map(|item| match provider.activate(&item, &Choice::Primary) {
-            Activation::OpenSettings { target } => Some(target),
+            Activation::OpenSettings { target } => target.0.parse().ok(),
             _ => None,
         })
         .collect()
@@ -39,7 +41,7 @@ fn dark_mode_resolves_to_appearance_theme() {
     let targets = query_target(&provider, "dark mode");
     assert_eq!(
         targets.first(),
-        Some(&SettingsTarget::Page("appearance".to_owned())),
+        Some(&SettingsTarget::Page(PageId::new("appearance"))),
         "{targets:?}"
     );
 }
@@ -50,7 +52,7 @@ fn magnification_resolves_to_dock_magnification() {
     let targets = query_target(&provider, "magnification");
     assert_eq!(
         targets.first(),
-        Some(&SettingsTarget::Page("dock".to_owned())),
+        Some(&SettingsTarget::Page(PageId::new("dock"))),
         "{targets:?}"
     );
 }
@@ -61,7 +63,7 @@ fn natural_scrolling_resolves_to_scroll_natural() {
     let targets = query_target(&provider, "natural scrolling");
     assert_eq!(
         targets.first(),
-        Some(&SettingsTarget::Page("mouse_and_gestures".to_owned())),
+        Some(&SettingsTarget::Page(PageId::new("mouse-and-gestures"))),
         "{targets:?}"
     );
 }
@@ -88,12 +90,12 @@ fn both_fixture_schemas_are_discovered() {
         ("appearance.theme", "appearance"),
         ("appearance.accent", "appearance"),
         ("dock.magnification", "dock"),
-        ("scroll.natural", "mouse_and_gestures"),
-        ("control_center.modules", "app:sill"),
+        ("scroll.natural", "mouse-and-gestures"),
+        ("control_center.modules", "sill"),
     ] {
         let targets = query_target(&provider, path);
         assert!(
-            targets.contains(&SettingsTarget::Page(page.to_owned())),
+            targets.contains(&SettingsTarget::Page(PageId::new(page))),
             "expected {path} to open {page}, got {targets:?}"
         );
     }

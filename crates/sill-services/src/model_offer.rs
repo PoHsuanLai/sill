@@ -8,7 +8,7 @@
 
 use std::path::{Path, PathBuf};
 
-use sill_model::launch::LaunchCommand;
+use sill_model::launch::{LaunchCommand, SettingsOpen};
 use sill_model::seed::{ModelOffered, first_model_offer};
 
 use crate::control::Control;
@@ -27,11 +27,11 @@ pub fn path_in(dirs: &Dirs) -> PathBuf {
 /// be recorded is not made at all rather than made at every start.
 pub fn offer_first_run(dirs: &Dirs, launch: &Control<LaunchCommand>) -> Result<(), ServiceError> {
     let path = path_in(dirs);
-    let Some(page) = first_model_offer(store_of(&path)) else {
+    let Some(link) = first_model_offer(store_of(&path)) else {
         return Ok(());
     };
-    save(&path, &ModelOffered { page })?;
-    launch.send(LaunchCommand::OpenSettingsPage(page))
+    save(&path, &ModelOffered { page: link.clone() })?;
+    launch.send(LaunchCommand::OpenSettings(SettingsOpen::at(link)))
 }
 
 /// Write `offered` to `path` durably ([`crate::durable`]).

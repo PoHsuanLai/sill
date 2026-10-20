@@ -67,7 +67,7 @@ pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
                     },
                 }
             }
-            SettingsFoot { label: "Bluetooth Settings…".to_owned() }
+            SettingsFoot { label: "Bluetooth Settings…".to_owned(), page: "bluetooth" }
         }
     }
 }

@@ -9,10 +9,11 @@ use std::sync::{Mutex, PoisonError};
 use nucleo_matcher::Matcher;
 use sill_launcher::{
     Activation, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink, Score,
-    SettingsTarget,
+    SettingsLink,
 };
 
 use ds_settings::schema::{Schema, data_dirs_from};
+use ds_settings::target::SettingsTarget;
 use index::{IndexedKey, SettingsIndex};
 use schema_files::{fingerprint, schema_paths};
 
@@ -145,7 +146,7 @@ impl Provider for SettingsProvider {
             .iter()
             .find(|key| key.path == path)
             .map_or(Activation::Nothing, |key| Activation::OpenSettings {
-                target: SettingsTarget::Page(key.page_slug.clone()),
+                target: SettingsLink(SettingsTarget::Page(key.page.clone()).to_string()),
             })
     }
 }

@@ -6,16 +6,13 @@
 use shell_host::{OutputId, SurfaceHandle};
 use sill_model::clipboard::ClipboardCommand;
 use sill_model::companion::CompanionCommand;
-use sill_model::launch::{LaunchCommand, OpenRequest, SettingsVisit};
+use sill_model::launch::{LaunchCommand, OpenRequest};
 use sill_services::ServiceError;
 use sill_ui_kit::services::Services;
 
 use crate::launcher::activate::{LauncherEffect, Unreachable};
 use crate::launcher::companion::command_of;
 use sill_ui_kit::links::{PowerMenuLink, Preselect};
-
-/// The app id Settings runs under: what its activation token names.
-const SETTINGS_APP: &str = "org.quire.Settings";
 
 /// Where an effect is carried out from: the panel's surface (a launch's token), its output
 /// and the power menu's link (a Log Out, Restart or Shut Down row opens it there).
@@ -53,18 +50,13 @@ pub async fn run_effect(
                 .control
                 .send(LaunchCommand::Open(OpenRequest { target, token }))
         }
-        LauncherEffect::OpenSettings(slug) => {
-            let token = match &from.surface {
-                Some(surface) => {
-                    sill_ui_kit::surface::activation_token(surface, Some(SETTINGS_APP.to_owned()))
-                        .await
-                }
-                None => None,
-            };
-            services
-                .launch
-                .control
-                .send(LaunchCommand::OpenSettingsAt(SettingsVisit { slug, token }))
+        LauncherEffect::OpenSettings(link) => {
+            sill_ui_kit::surface::open_settings_with_token(
+                from.surface.as_ref(),
+                &services.launch.control,
+                link,
+            )
+            .await
         }
         LauncherEffect::SetClipboard(entry) => services
             .clipboard

@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use sill_model::clock::{ClockCommand, ClockText, format_clock, until_next_minute};
+use sill_model::clock::{ClockCommand, ClockMinute, until_next_minute};
 use tokio::sync::{mpsc, watch};
 
 use crate::env::WallClock;
@@ -15,9 +15,9 @@ enum Wake {
     Deaf,
 }
 
-/// Publish the time at each minute boundary and on `Refresh`, until every receiver is gone.
+/// Publish the minute at each minute boundary and on `Refresh`, until every receiver is gone.
 pub(crate) async fn run(
-    tx: watch::Sender<ClockText>,
+    tx: watch::Sender<ClockMinute>,
     mut commands: mpsc::UnboundedReceiver<ClockCommand>,
     clock: Arc<dyn WallClock>,
 ) {
@@ -39,18 +39,18 @@ pub(crate) async fn run(
         if matches!(wake, Wake::Deaf) {
             listening = false;
         }
-        let text = format_clock(clock.now().datetime());
-        tx.send_if_modified(|shown| publish(shown, text));
+        let minute = ClockMinute(clock.now().datetime());
+        tx.send_if_modified(|shown| publish(shown, minute));
     }
 }
 
-/// Replace `shown` with `text`; whether it changed (a `Refresh` inside the same minute does
+/// Replace `shown` with `minute`; whether it changed (a `Refresh` inside the same minute does
 /// not wake the bar).
-fn publish(shown: &mut ClockText, text: ClockText) -> bool {
-    if *shown == text {
+fn publish(shown: &mut ClockMinute, minute: ClockMinute) -> bool {
+    if *shown == minute {
         return false;
     }
-    *shown = text;
+    *shown = minute;
     true
 }
 
@@ -62,20 +62,17 @@ mod tests {
     use crate::clock::ClockService;
     use crate::env::FixedClock;
     use crate::service::spawn;
-    use sill_model::clock::{ClockCommand, ClockText};
+    use sill_model::clock::{ClockCommand, ClockMinute};
     use sill_testkit::TempDir;
 
     #[test]
     fn only_a_new_minute_wakes_the_bar() {
-        let text = |t: &str| ClockText { text: t.to_owned() };
-        let cases = [
-            ("same minute", "Thu 24 Sep 14:05", "Thu 24 Sep 14:05", false),
-            ("next minute", "Thu 24 Sep 14:05", "Thu 24 Sep 14:06", true),
-        ];
+        let minute = |m: i8| ClockMinute(jiff::civil::date(2026, 9, 24).at(14, m, 0, 0));
+        let cases = [("same minute", 5, 5, false), ("next minute", 5, 6, true)];
         for (name, before, after, changed) in cases {
-            let mut shown = text(before);
-            assert_eq!(publish(&mut shown, text(after)), changed, "{name}");
-            assert_eq!(shown, text(after), "{name}");
+            let mut shown = minute(before);
+            assert_eq!(publish(&mut shown, minute(after)), changed, "{name}");
+            assert_eq!(shown, minute(after), "{name}");
         }
     }
 
@@ -95,7 +92,10 @@ mod tests {
             ..crate::env::Env::isolated(scratch.path())
         };
         let clock = spawn::<ClockService>(rt.handle(), &env, ());
-        assert_eq!(clock.state.borrow().text, "Thu 24 Sep 14:05");
+        assert_eq!(
+            *clock.state.borrow(),
+            ClockMinute(jiff::civil::date(2026, 9, 24).at(14, 5, 0, 0))
+        );
         assert!(clock.control.send(ClockCommand::Refresh).is_ok());
     }
 }

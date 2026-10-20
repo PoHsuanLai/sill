@@ -1,7 +1,7 @@
 //! syncd's `NeedsConfirmation` signal, as a hold or the end of one.
 
 use porter_dbus::Details;
-use sill_model::launch::SettingsAccount;
+use sill_launcher::SettingsLink;
 use sill_model::sync_hold::{Dataset, Hold};
 use zbus::zvariant::OwnedValue;
 
@@ -16,7 +16,7 @@ pub(crate) enum Heard {
         dataset: Dataset,
         discard: u64,
         held: u64,
-        account: SettingsAccount,
+        account: SettingsLink,
     },
     /// The hold ended (an empty dict).
     Ended(Dataset),
@@ -38,7 +38,7 @@ pub(crate) fn heard(dataset: &str, details: &Details) -> Option<Heard> {
         dataset,
         discard: count("discard")?,
         held: count("held")?,
-        account: SettingsAccount(account),
+        account: SettingsLink(format!("account:{account}")),
     })
 }
 
@@ -86,7 +86,7 @@ mod tests {
                 dataset: Dataset::new("work/files"),
                 discard: 30,
                 held: 40,
-                account: SettingsAccount("/org/quire/Accounts1/account/work".to_owned()),
+                account: SettingsLink("account:/org/quire/Accounts1/account/work".to_owned()),
             })
         );
         assert_eq!(

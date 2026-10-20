@@ -1,5 +1,6 @@
 use jiff::civil::date;
 use jiff::tz::TimeZone;
+use sill_model::clock::ClockHours;
 use sill_model::events::{CalEvent, EventTime};
 use sill_model::events::{CalendarName, EventUid};
 
@@ -94,6 +95,11 @@ fn an_events_time_line_reads_from_now() {
         ),
     ];
     for (event, want) in cases {
-        assert_eq!(event_lines(&event, now, &utc), want, "{}", event.title);
+        assert_eq!(
+            event_lines(&event, now, &utc, ClockHours::H24),
+            want,
+            "{}",
+            event.title
+        );
     }
 }

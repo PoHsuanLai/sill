@@ -7,7 +7,7 @@ use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{
     Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
 };
-use sill_model::clock::ClockText;
+use sill_model::clock::ClockMinute;
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
 use sill_model::network::{Connectivity, Link, Network};
 use sill_model::now_playing::Media;
@@ -111,10 +111,8 @@ pub fn toplevels_on(output: &str) -> Toplevels {
 }
 
 /// The fixed values every test and the demo start from.
-pub fn clock() -> ClockText {
-    ClockText {
-        text: "Thu 24 Sep 14:05".to_owned(),
-    }
+pub fn clock() -> ClockMinute {
+    ClockMinute(jiff::civil::date(2026, 9, 24).at(14, 5, 0, 0))
 }
 
 pub fn battery() -> Battery {

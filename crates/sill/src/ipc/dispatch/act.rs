@@ -15,7 +15,7 @@ use tokio::sync::watch;
 use super::reach::Reach;
 use super::reply::{failed, sent};
 use super::{keys, next_window, switcher, workspace};
-use crate::daemon::settings::{KeyEdit, patch};
+use crate::daemon::settings::write_key;
 
 /// The change `request` asks for.
 pub fn dispatch(reach: &Reach, request: ActRequest) -> Response {
@@ -84,8 +84,7 @@ fn toggle_dock_hide(store: &Store, settings: &watch::Sender<ShellFile>) -> Respo
         AutoHide::Off => AutoHide::On,
         AutoHide::On => AutoHide::Off,
     };
-    let saved = KeyEdit::of("dock.autohide", &now).and_then(|edit| patch(store, &[edit]));
-    if let Err(error) = saved {
+    if let Err(error) = write_key(store, "dock.autohide", &now) {
         return failed(
             FailureKind::Internal,
             format!("saving the settings: {error}"),

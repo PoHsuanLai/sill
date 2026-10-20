@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use sill_bar::Bar;
 use sill_model::battery::Battery;
-use sill_model::clock::ClockText;
+use sill_model::clock::ClockMinute;
 use sill_model::tray::{
     Check, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind,
     TrayStatus,
@@ -82,9 +82,9 @@ fn fed_values_replace_the_defaults() {
     let mut bar = start();
     let before = bar.harness.html();
     let feeds = &bar.feeds;
-    feeds.clock.send_replace(ClockText {
-        text: "Fri 25 Sep 09:00".to_owned(),
-    });
+    feeds
+        .clock
+        .send_replace(ClockMinute(jiff::civil::date(2026, 9, 25).at(9, 0, 0, 0)));
     feeds.battery.send_replace(Battery {
         presence: Presence::Absent,
         ..Battery::default()

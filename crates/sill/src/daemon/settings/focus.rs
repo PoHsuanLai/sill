@@ -11,8 +11,8 @@ use sill_ui_kit::links::FocusLink;
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use super::patch::{KeyEdit, patch};
 use super::store::load;
+use super::write_key::write_key;
 
 /// Start the focus task on `rt`: its mode follows `settings` through [`focus_mode`], and each set
 /// patches `notifications.dnd` of the file in `store` (the mode is stored with
@@ -55,8 +55,7 @@ async fn run(
 /// Writes `mode` into the store's `settings.toml`: the one key `notifications.dnd`, in place.
 fn write(store: &Store, mode: FocusMode) {
     let dnd = with_focus_mode(load(store), mode).notifications.dnd;
-    let done = KeyEdit::of("notifications.dnd", &dnd).and_then(|edit| patch(store, &[edit]));
-    if let Err(error) = done {
+    if let Err(error) = write_key(store, "notifications.dnd", &dnd) {
         eprintln!("sill: focus: could not save settings.toml: {error}");
     }
 }

@@ -10,6 +10,7 @@
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_launcher::{HelperAttention, Item, Subject, UnixTime};
+use sill_model::clock::{ClockHours, time_of_day};
 use sill_model::companion::WAITING_BADGE;
 use sill_model::notifications::UnixMs;
 
@@ -61,14 +62,17 @@ pub struct RowDetail {
 /// "12 Sep 2025"); clipboard: detail the provider's subtitle, trail its age ("now", "5m",
 /// "2h", "3d", the notification card's `age_label`); web: detail the engine; others: the
 /// subtitle and no trail.
-pub fn row_detail(item: &Item, now: UnixTime) -> RowDetail {
-    detail_in(item, now, &TimeZone::system())
+pub fn row_detail(item: &Item, now: UnixTime, hours: ClockHours) -> RowDetail {
+    detail_in(item, now, &TimeZone::system(), hours)
 }
 
 /// [`row_detail`] in `zone` (tests pin one).
-fn detail_in(item: &Item, now: UnixTime, zone: &TimeZone) -> RowDetail {
+fn detail_in(item: &Item, now: UnixTime, zone: &TimeZone, hours: ClockHours) -> RowDetail {
     let (detail, trail) = match &item.subject {
-        Subject::File(facts) => (item.subtitle.clone(), when(facts.modified, now, zone)),
+        Subject::File(facts) => (
+            item.subtitle.clone(),
+            when(facts.modified, now, zone, hours),
+        ),
         Subject::Clip(facts) => (
             item.subtitle.clone(),
             age_label(age(ms(facts.copied), ms(now))),
@@ -101,9 +105,9 @@ fn ms(at: UnixTime) -> UnixMs {
     UnixMs(i64::try_from(at.0.saturating_mul(1000)).unwrap_or(i64::MAX))
 }
 
-/// `at` as the mail list words a time at `now`: `14:05` today, `Yesterday`, a weekday within
+/// `at` as the mail list words a time at `now`: `14:05` (or `2:05 PM`) today, `Yesterday`, a weekday within
 /// the week, `12 Sep` within the year, else `12 Sep 2025`. A time in the future reads as a date.
-fn when(at: UnixTime, now: UnixTime, zone: &TimeZone) -> String {
+fn when(at: UnixTime, now: UnixTime, zone: &TimeZone, hours: ClockHours) -> String {
     let zoned = |t: UnixTime| {
         i64::try_from(t.0)
             .ok()
@@ -115,7 +119,7 @@ fn when(at: UnixTime, now: UnixTime, zone: &TimeZone) -> String {
     };
     let days = (now.date() - at.date()).get_days();
     match days {
-        0 => at.strftime("%H:%M").to_string(),
+        0 => time_of_day(at.time(), hours),
         1 => "Yesterday".to_owned(),
         2..=6 => at.strftime("%a").to_string(),
         _ if at.year() == now.year() => at.strftime("%-d %b").to_string(),
@@ -131,6 +135,8 @@ mod tests {
         CharCount, ClipFacts, ClipKey, ClipKind, Excerpt, FileFacts, IconRef, Item, ItemId, Mime,
         ProviderKind, Score, Subject, UnixTime, WebFacts,
     };
+
+    use sill_model::clock::ClockHours;
 
     use super::{RowDetail, RowKind, detail_in, row_detail, row_kind};
 
@@ -178,10 +184,24 @@ mod tests {
         let utc = jiff::tz::TimeZone::UTC;
         for &(ago, want) in CASES {
             let row = file_row(UnixTime(NOW.0 - ago));
-            assert_eq!(detail_in(&row, NOW, &utc).trail, want, "{ago}s ago");
+            assert_eq!(
+                detail_in(&row, NOW, &utc, ClockHours::H24).trail,
+                want,
+                "{ago}s ago"
+            );
         }
         let later = file_row(UnixTime(NOW.0 + 86_400 * 2));
-        assert_eq!(detail_in(&later, NOW, &utc).trail, "23 Sep", "the future");
+        assert_eq!(
+            detail_in(&later, NOW, &utc, ClockHours::H24).trail,
+            "23 Sep",
+            "the future"
+        );
+        let today = file_row(NOW);
+        assert_eq!(
+            detail_in(&today, NOW, &utc, ClockHours::H12).trail,
+            "2:13 PM",
+            "twelve hours"
+        );
     }
 
     #[test]
@@ -199,7 +219,7 @@ mod tests {
             ..file_row(NOW)
         };
         assert_eq!(
-            row_detail(&clip, NOW),
+            row_detail(&clip, NOW, ClockHours::H24),
             RowDetail {
                 detail: "Text".to_owned(),
                 trail: "5m".to_owned()
@@ -212,13 +232,16 @@ mod tests {
             }),
             ..file_row(NOW)
         };
-        assert_eq!(row_detail(&web, NOW).detail, "duckduckgo.com");
-        assert_eq!(row_detail(&web, NOW).trail, "");
+        assert_eq!(
+            row_detail(&web, NOW, ClockHours::H24).detail,
+            "duckduckgo.com"
+        );
+        assert_eq!(row_detail(&web, NOW, ClockHours::H24).trail, "");
     }
 
     #[test]
     fn a_file_row_says_where_it_is_and_when_it_changed() {
-        let detail = row_detail(&file_row(UnixTime(NOW.0 - 86_400)), NOW);
+        let detail = row_detail(&file_row(UnixTime(NOW.0 - 86_400)), NOW, ClockHours::H24);
         assert_eq!(
             detail,
             RowDetail {

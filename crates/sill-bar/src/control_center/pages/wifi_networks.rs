@@ -17,7 +17,7 @@ use sill_model::wifi::{
 use sill_shell_kit::prelude::*;
 
 use super::feature_switch::{FeatureSwitch, back_button};
-use super::foot::{SettingsFoot, use_settings_opener};
+use super::foot::{SettingsFoot, page_link, use_settings_opener};
 use crate::control_center::item_phase::{
     Aim, FAILED_WORDS, Item, ItemPhase, RowDisc, aim_after, item_phase,
 };
@@ -87,14 +87,14 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
                             WifiPick::Join(ssid) => control.send(WifiCommand::Connect(ssid)),
                             WifiPick::Leave => control.send(WifiCommand::Disconnect),
                             WifiPick::Setup => {
-                                opener.open();
+                                opener.open(page_link("wifi"));
                                 Ok(())
                             }
                         };
                     },
                 }
             }
-            SettingsFoot { label: "Wi-Fi Settings…".to_owned() }
+            SettingsFoot { label: "Wi-Fi Settings…".to_owned(), page: "wifi" }
         }
     }
 }

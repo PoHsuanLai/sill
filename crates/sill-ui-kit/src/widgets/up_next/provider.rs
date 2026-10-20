@@ -16,6 +16,7 @@ use ds::style::tokens::label_hue::LabelHue;
 use jiff::Timestamp;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
+use sill_model::clock::{ClockHours, time_of_day};
 use sill_model::events::{Agenda, CalEvent, CalendarName, Days, EventTime, SourceStatus, up_next};
 use sill_shell_kit::widget::calendar::EventLine;
 
@@ -32,13 +33,18 @@ pub const EVENT_ROWS: usize = 2;
 pub struct EventLines {
     /// The title, "Untitled" when empty.
     pub title: String,
-    /// `All day`, `Now`, `10:00 – 11:30`, `Tomorrow 09:00`, `Mon 09:00`: 24-hour, like the bar
-    /// clock (a 12-hour form has no settings key yet).
+    /// `All day`, `Now`, `10:00 – 11:30`, `Tomorrow 09:00`, `Mon 09:00`: the times in the
+    /// desktop's hours, like the bar clock (`9:00 AM` on a 12-hour clock).
     pub when: String,
 }
 
 /// `event`'s lines as seen at `now` in `zone`.
-pub fn event_lines(event: &CalEvent, now: Timestamp, zone: &TimeZone) -> EventLines {
+pub fn event_lines(
+    event: &CalEvent,
+    now: Timestamp,
+    zone: &TimeZone,
+    hours: ClockHours,
+) -> EventLines {
     let title = match event.title.trim().is_empty() {
         true => "Untitled".to_owned(),
         false => event.title.clone(),
@@ -50,7 +56,7 @@ pub fn event_lines(event: &CalEvent, now: Timestamp, zone: &TimeZone) -> EventLi
         EventTime::Timed { start, end } if start <= now && now < end => "Now".to_owned(),
         EventTime::Timed { start, end } => {
             let from = start.to_zoned(zone.clone());
-            let hm = |at: &jiff::Zoned| format!("{:02}:{:02}", at.hour(), at.minute());
+            let hm = |at: &jiff::Zoned| time_of_day(at.time(), hours);
             match (from.date() == today, end > start) {
                 (true, true) => format!("{} – {}", hm(&from), hm(&end.to_zoned(zone.clone()))),
                 (true, false) => hm(&from),
@@ -113,12 +119,13 @@ pub fn up_next_entry(
     zone: &TimeZone,
     ahead: Days,
     max: usize,
+    hours: ClockHours,
 ) -> UpNextEntry {
     let today = now.to_zoned(zone.clone()).date();
     let rows = up_next(&agenda.events, now, zone, ahead, max)
         .iter()
         .map(|event| {
-            let lines = event_lines(event, now, zone);
+            let lines = event_lines(event, now, zone, hours);
             UpNextRow {
                 hue: calendar_hue(&event.calendar),
                 title: lines.title,
@@ -139,7 +146,12 @@ pub fn up_next_entry(
 /// Today's events still to come, as the month widget lists them (its Medium card shows the
 /// first; quire caps the list at `sill_shell_kit::widget::LARGE_EVENTS`): the same agenda and lines Up Next
 /// draws.
-pub fn today_events(agenda: &Agenda, now: Timestamp, zone: &TimeZone) -> Vec<EventLine> {
+pub fn today_events(
+    agenda: &Agenda,
+    now: Timestamp,
+    zone: &TimeZone,
+    hours: ClockHours,
+) -> Vec<EventLine> {
     up_next(
         &agenda.events,
         now,
@@ -149,7 +161,7 @@ pub fn today_events(agenda: &Agenda, now: Timestamp, zone: &TimeZone) -> Vec<Eve
     )
     .iter()
     .map(|event| {
-        let lines = event_lines(event, now, zone);
+        let lines = event_lines(event, now, zone, hours);
         EventLine {
             time: lines.when,
             title: lines.title,

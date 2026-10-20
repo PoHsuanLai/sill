@@ -13,7 +13,7 @@ use sill_launcher::{
     SkinTone, Subject, UnixTime,
 };
 
-use super::{Draw, HeaderAction, palette_groups};
+use super::{ClockHours, Draw, HeaderAction, palette_groups};
 use crate::launcher::entries::tile;
 
 const NOW: UnixTime = UnixTime(1_790_000_000);
@@ -101,6 +101,7 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
         thumb_of: &|_, _| None,
         clip_image: &|_| None,
         now: NOW,
+        hours: ClockHours::H24,
     };
     // A handler needs a Dioxus runtime to be made in.
     let mut dom = VirtualDom::new(|| rsx! {});
@@ -175,6 +176,7 @@ fn each_row_carries_its_chord_for_the_selection() {
         thumb_of: &|_, _| None,
         clip_image: &|_| None,
         now: NOW,
+        hours: ClockHours::H24,
     };
     let mut dom = VirtualDom::new(|| rsx! {});
     dom.rebuild_in_place();
@@ -220,6 +222,7 @@ fn an_emoji_in_a_list_is_its_name_led_by_the_glyph() {
         thumb_of: &|_, _| None,
         clip_image: &|_| None,
         now: NOW,
+        hours: ClockHours::H24,
     };
     let section = ShownSection {
         section: Section::Recent,

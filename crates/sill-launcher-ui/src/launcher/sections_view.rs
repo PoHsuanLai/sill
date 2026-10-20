@@ -19,6 +19,7 @@ use sill_launcher::{ClipKey, ClipKind, Item, More, Section, ShownSection, Subjec
 use crate::launcher::entries::{RowRef, kind_trail, row_chord};
 use crate::launcher::groups::Mix;
 use crate::launcher::rows::row_detail;
+use sill_model::clock::ClockHours;
 
 /// A section header's trailing action.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -56,12 +57,14 @@ pub struct Draw<'a> {
     pub thumb_of: &'a dyn Fn(&str, &Path) -> Option<ImageSource>,
     pub clip_image: &'a dyn Fn(ClipKey) -> Option<ImageSource>,
     pub now: UnixTime,
+    pub hours: ClockHours,
 }
 
 impl std::fmt::Debug for Draw<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Draw")
             .field("now", &self.now)
+            .field("hours", &self.hours)
             .finish_non_exhaustive()
     }
 }
@@ -125,7 +128,7 @@ impl Draw<'_> {
     /// `item` as a plain row: title, detail, the trail (a file's date, a clip's age, else a
     /// mixed section's kind) and its chord, which quire shows while it is the selection.
     fn plain(&self, item: &Item, mix: Mix) -> PaletteRow<RowRef> {
-        let words = row_detail(item, self.now);
+        let words = row_detail(item, self.now, self.hours);
         let trail = match words.trail.is_empty() {
             false => Accessory::Text(words.trail.clone()),
             true => kind_trail(item, mix),
@@ -157,7 +160,7 @@ impl Draw<'_> {
     /// age (both in the shape, so the trail keeps only a mixed section's kind), else
     /// [`Draw::plain`].
     fn shaped(&self, item: &Item, mix: Mix) -> PaletteRow<RowRef> {
-        let words = row_detail(item, self.now);
+        let words = row_detail(item, self.now, self.hours);
         let shape = match &item.subject {
             Subject::File(file) => RowShape::File {
                 thumb: (self.thumb_of)(&file.mime.0, &file.path),

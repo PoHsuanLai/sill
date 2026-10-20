@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
     Activation, AppId, Choice, ClipKey, CompanionAct, DesktopAction, Generation, Item, Mime,
-    OpenTarget, Provider, ProviderKind, SettingsTarget, Subject, SystemCommand, ViewerOpen,
+    OpenTarget, Provider, ProviderKind, SettingsLink, Subject, SystemCommand, ViewerOpen,
 };
 use std::path::PathBuf;
 
@@ -118,8 +118,8 @@ pub enum LauncherEffect {
     Insert(String),
     /// Ask for an activation token, then open the file, folder or address.
     Open(OpenTarget),
-    /// Ask for an activation token, then open Settings at the page this slug names.
-    OpenSettings(String),
+    /// Ask for an activation token, then open Settings at this place.
+    OpenSettings(SettingsLink),
     /// Make a clipboard history entry the clipboard again.
     SetClipboard(ClipKey),
     /// Drop a clipboard history entry and stay open.
@@ -188,9 +188,7 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
         Activation::FocusWindow { .. } | Activation::CloseWindow { .. } => LauncherEffect::ByRunner,
         Activation::Copy { text } => LauncherEffect::Copy(text),
         Activation::Insert { text } => LauncherEffect::Insert(text),
-        Activation::OpenSettings {
-            target: SettingsTarget::Page(slug),
-        } => LauncherEffect::OpenSettings(slug),
+        Activation::OpenSettings { target } => LauncherEffect::OpenSettings(target),
         Activation::System(command) => system_effect(command),
         Activation::Open { target } => LauncherEffect::Open(target),
         Activation::SetClipboard { entry } => LauncherEffect::SetClipboard(entry),
@@ -261,7 +259,7 @@ mod tests {
     use super::{AfterEffect, LauncherEffect, LauncherProviders, Unreachable, effect_of};
     use sill_launcher::{
         Activation, AppId, Choice, DesktopAction, IconRef, Item, ItemId, Provider, ProviderKind,
-        Query, ResultSink, Score, SettingsTarget, SystemCommand, WindowKey,
+        Query, ResultSink, Score, SettingsLink, SystemCommand, WindowKey,
     };
     use std::sync::Arc;
 
@@ -349,9 +347,9 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsTarget::Page("dock".to_owned()),
+                    target: SettingsLink("page:dock".to_owned()),
                 },
-                LauncherEffect::OpenSettings("dock".to_owned()),
+                LauncherEffect::OpenSettings(SettingsLink("page:dock".to_owned())),
             ),
             (Activation::Nothing, LauncherEffect::Nothing),
         ];

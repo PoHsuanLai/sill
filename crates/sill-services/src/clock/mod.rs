@@ -1,16 +1,16 @@
-//! The bar clock: a task that sleeps to each minute boundary and publishes the formatted time.
+//! The bar clock: a task that sleeps to each minute boundary and publishes the local time.
 
 mod backend;
 
 use std::sync::Arc;
 
-use sill_model::clock::{ClockCommand, ClockText, format_clock};
+use sill_model::clock::{ClockCommand, ClockMinute};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-/// The bar clock as a [`Service`]: formats the wall clock's local time now, then at every
+/// The bar clock as a [`Service`]: publishes the wall clock's local time now, then at every
 /// minute boundary (the system clock reads the zone afresh, so a time-zone change shows at the
 /// next minute, or at once on `Refresh`).
 #[derive(Debug)]
@@ -18,12 +18,12 @@ pub enum ClockService {}
 
 impl Service for ClockService {
     const NAME: &'static str = "clock";
-    type State = ClockText;
+    type State = ClockMinute;
     type Command = ClockCommand;
     type Deps = ();
 
-    fn initial(env: &Env, (): &()) -> ClockText {
-        format_clock(env.clock.now().datetime())
+    fn initial(env: &Env, (): &()) -> ClockMinute {
+        ClockMinute(env.clock.now().datetime())
     }
 
     fn run(

@@ -6,7 +6,7 @@ use ds::components::content::avatar::{
 };
 use ds::prelude::*;
 use sill_model::auth::{Account, AuthPhase, AvatarSource, UserName};
-use sill_settings::LockClock;
+use sill_model::clock::{ClockHours, time_digits};
 use sill_shell_kit::lock::vocab::{CapsLock, LockUser, PromptState};
 use sill_shell_kit::user_picture::picture::UserPicture;
 
@@ -73,16 +73,17 @@ fn face_of(name: &str, user: &UserName) -> AvatarFace {
 /// The clock's two lines, for quire's `LockClock`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct ClockLines {
-    /// `14:05` (`H24`) or `2:05` (`H12`, no AM/PM, macOS's lock screen).
+    /// `14:05` (24-hour) or `2:05` (12-hour, no AM/PM, macOS's lock screen).
     pub time: String,
     /// `Saturday, 26 September` (macOS: the weekday and the date above the time).
     pub date: String,
 }
 
-/// `now` as the lock screen's clock.
-pub fn clock_lines(now: &jiff::Zoned, format: LockClock) -> ClockLines {
+/// `now` as the lock screen's clock: the time in `hours` (without AM or PM, as macOS writes it)
+/// and the date.
+pub fn clock_lines(now: &jiff::Zoned, hours: ClockHours) -> ClockLines {
     ClockLines {
-        time: time_text(now, format),
+        time: time_digits(now.time(), hours),
         date: format!(
             "{}, {} {}",
             now.strftime("%A"),
@@ -92,21 +93,12 @@ pub fn clock_lines(now: &jiff::Zoned, format: LockClock) -> ClockLines {
     }
 }
 
-/// The time as the lock clock words it: `14:05`, or `2:05` (no AM/PM).
-fn time_text(at: &jiff::Zoned, format: LockClock) -> String {
-    let hour = at.hour();
-    match format {
-        LockClock::H24 => format!("{hour:02}:{:02}", at.minute()),
-        LockClock::H12 => format!("{}:{:02}", (hour + 11) % 12 + 1, at.minute()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use ds::prelude::*;
     use sill_model::auth::AuthPhase;
     use sill_model::auth::{Account, AuthFault, AvatarSource, RealName, UserName};
-    use sill_settings::LockClock;
+    use sill_model::clock::ClockHours;
     use sill_shell_kit::lock::vocab::{CapsLock, PromptState};
     use sill_shell_kit::user_picture::picture::UserPicture;
 
@@ -173,22 +165,22 @@ mod tests {
         let cases = [
             (
                 "2026-09-26T14:05:00+08:00[Asia/Taipei]",
-                LockClock::H24,
+                ClockHours::H24,
                 lines("14:05", "Saturday, 26 September"),
             ),
             (
                 "2026-09-26T14:05:00+08:00[Asia/Taipei]",
-                LockClock::H12,
+                ClockHours::H12,
                 lines("2:05", "Saturday, 26 September"),
             ),
             (
                 "2026-01-01T00:07:00+00:00[UTC]",
-                LockClock::H12,
+                ClockHours::H12,
                 lines("12:07", "Thursday, 1 January"),
             ),
             (
                 "2026-01-01T09:07:00+00:00[UTC]",
-                LockClock::H24,
+                ClockHours::H24,
                 lines("09:07", "Thursday, 1 January"),
             ),
         ];

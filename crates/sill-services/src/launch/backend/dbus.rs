@@ -3,11 +3,9 @@
 
 use std::collections::HashMap;
 
-use ds_core::word::Word;
+use sill_launcher::SettingsLink;
 use sill_model::apps::App;
-use sill_model::launch::{
-    LaunchRequest, SETTINGS_BUS_NAME, SettingsAccount, SettingsPage, SettingsVisit,
-};
+use sill_model::launch::{LaunchRequest, SETTINGS_BUS_NAME, SettingsOpen};
 use zbus::Connection;
 use zbus::zvariant::Value;
 
@@ -38,25 +36,21 @@ pub async fn activate(
     Ok(())
 }
 
-/// `org.freedesktop.Application.ActivateAction("open-account", [path])` on `org.quire.Settings`:
-/// the bus starts it as its own unit when it is not running, and Settings opens at the account.
-pub async fn open_settings(connection: &Connection, account: &SettingsAccount) -> zbus::Result<()> {
-    settings_action(connection, "open-account", &account.0, None).await
+/// Settings at the place `open` names, with the token that lets Settings take focus. Settings
+/// takes a page by `open-page` and an account by `open-account`; any other place goes to
+/// `open-page` as its whole text.
+pub async fn open_settings(connection: &Connection, open: &SettingsOpen) -> zbus::Result<()> {
+    let (action, name) = settings_call(&open.link);
+    settings_action(connection, action, name, open.token.as_deref()).await
 }
 
-/// `org.freedesktop.Application.ActivateAction("open-page", [slug])` on `org.quire.Settings`:
-/// Settings opens at the page the slug names.
-pub async fn open_settings_page(connection: &Connection, page: SettingsPage) -> zbus::Result<()> {
-    settings_action(connection, "open-page", page.slug(), None).await
-}
-
-/// As [`open_settings_page`], for a page named by its slug, with the token that lets Settings
-/// take focus.
-pub async fn open_settings_slug(
-    connection: &Connection,
-    visit: &SettingsVisit,
-) -> zbus::Result<()> {
-    settings_action(connection, "open-page", &visit.slug, visit.token.as_deref()).await
+/// The Settings action and its parameter for `link`.
+fn settings_call(link: &SettingsLink) -> (&'static str, &str) {
+    match link.0.split_once(':') {
+        Some(("account", id)) => ("open-account", id),
+        Some(("page", id)) => ("open-page", id),
+        _ => ("open-page", link.0.as_str()),
+    }
 }
 
 /// One action of Settings with its one string parameter.
@@ -117,7 +111,8 @@ fn object_path(id: &str) -> String {
 mod tests {
     use std::path::Path;
 
-    use super::{file_uri, object_path};
+    use super::{file_uri, object_path, settings_call};
+    use sill_launcher::SettingsLink;
 
     #[test]
     fn a_desktop_files_uri_is_percent_encoded() {
@@ -149,6 +144,27 @@ mod tests {
         ];
         for (id, want) in CASES {
             assert_eq!(object_path(id), *want, "{id}");
+        }
+    }
+
+    #[test]
+    fn a_link_picks_the_action_settings_serves() {
+        const CASES: &[(&str, &str, &str)] = &[
+            ("page:wifi", "open-page", "wifi"),
+            (
+                "account:/org/quire/Accounts1/account/work",
+                "open-account",
+                "/org/quire/Accounts1/account/work",
+            ),
+            (
+                "key:dock.magnified_size_px",
+                "open-page",
+                "key:dock.magnified_size_px",
+            ),
+        ];
+        for (link, action, name) in CASES {
+            let link = SettingsLink((*link).to_owned());
+            assert_eq!(settings_call(&link), (*action, *name), "{link:?}");
         }
     }
 }

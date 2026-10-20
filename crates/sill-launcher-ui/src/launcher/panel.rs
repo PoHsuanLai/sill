@@ -38,11 +38,12 @@ use crate::launcher::row_thumb::use_row_thumbs;
 use crate::launcher::sections_view::{Draw, palette_groups};
 use crate::launcher::session::Session;
 use crate::launcher::view::View;
+use sill_model::clock::ClockHours;
 use sill_model::voice::listening_line;
 use sill_search::ResultsService;
 use sill_services::{ClipboardService, VoiceService};
 use sill_ui_kit::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
-use sill_ui_kit::hooks::{use_appearance, use_service, use_service_part, use_settings};
+use sill_ui_kit::hooks::{use_appearance, use_hours, use_service, use_service_part, use_settings};
 use sill_ui_kit::links::LauncherLink;
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::root::{SurfaceRoot, use_host_scale};
@@ -109,6 +110,7 @@ impl Shown {
 pub(crate) fn launcher(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
+    let hours = use_hours();
     let look = use_active_look(&output);
     let appearance = environment.settings.appearance.appearance();
     let icons = RowIcons {
@@ -177,7 +179,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                     class: "sill-launcher-body",
                     style: "margin-left:{left}px;width:{width}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
-                        {palette(&panel, &shown, foot, &icons, Images { thumb_of: &thumb_of, clip_image: &clip_image }, Beside { aside })}
+                        {palette(&panel, &shown, foot, &icons, Images { thumb_of: &thumb_of, clip_image: &clip_image }, Beside { aside }, hours)}
                     }
                 }
             }
@@ -301,6 +303,7 @@ fn palette(
     icons: &RowIcons,
     images: Images<'_>,
     beside: Beside,
+    hours: ClockHours,
 ) -> Element {
     let Images {
         thumb_of,
@@ -326,6 +329,7 @@ fn palette(
         thumb_of,
         clip_image,
         now: now(),
+        hours,
     };
     let on_more = |section: Section| {
         let panel = panel.clone();

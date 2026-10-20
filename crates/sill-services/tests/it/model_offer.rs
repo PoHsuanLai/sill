@@ -2,7 +2,7 @@
 //! recorded; a later start, or a start after the record was written, opens nothing. Scratch
 //! directories only, no bus.
 
-use sill_model::launch::{LaunchCommand, SettingsPage};
+use sill_model::launch::{LaunchCommand, SettingsOpen, assistant_model_setup};
 use sill_model::seed::ModelOffered;
 use sill_services::control::Control;
 use sill_services::env::Dirs;
@@ -23,13 +23,13 @@ fn the_first_start_opens_the_first_run_picker_and_a_later_one_does_not() {
     offer_first_run(&dirs, &launch).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(
         opened(&mut heard),
-        vec![LaunchCommand::OpenSettingsPage(
-            SettingsPage::AssistantModelSetup
-        )]
+        vec![LaunchCommand::OpenSettings(SettingsOpen::at(
+            assistant_model_setup()
+        ))]
     );
     let text = std::fs::read_to_string(path_in(&dirs)).unwrap_or_else(|e| panic!("{e}"));
     let record: ModelOffered = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(record.page, SettingsPage::AssistantModelSetup);
+    assert_eq!(record.page, assistant_model_setup());
 
     offer_first_run(&dirs, &launch).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(opened(&mut heard), Vec::new(), "the second start is quiet");

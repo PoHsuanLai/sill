@@ -1,10 +1,8 @@
 use sill_launcher::AppId;
 
-use ds_core::word::Word;
-
 use super::{
     DONE_KEPT, FailureCause, LaunchDone, LaunchOutcome, LaunchTiming, LaunchedScope, Launches, Pid,
-    ScopeUnit, SettingsPage, Stamp, answer_to, launch_line, step,
+    ScopeUnit, Stamp, answer_to, assistant_model, assistant_model_setup, launch_line, step,
 };
 
 fn scope(app: &str, n: u32) -> LaunchedScope {
@@ -73,16 +71,9 @@ fn scopes_come_and_go() {
 }
 
 #[test]
-fn settings_pages_are_opened_by_the_slugs_settings_serves() {
-    const CASES: &[(SettingsPage, &str)] = &[
-        (SettingsPage::AssistantModel, "assistant-model"),
-        (SettingsPage::AssistantModelSetup, "assistant-model-setup"),
-    ];
-    for (page, slug) in CASES {
-        assert_eq!(page.slug(), *slug, "{page:?}");
-        assert_eq!(SettingsPage::parse(slug), Some(*page), "{slug}");
-    }
-    assert_eq!(SettingsPage::ALL.len(), CASES.len());
+fn the_model_pages_are_opened_by_the_ids_settings_serves() {
+    assert_eq!(assistant_model().0, "page:assistant-model");
+    assert_eq!(assistant_model_setup().0, "page:assistant-model-setup");
 }
 
 fn timing(

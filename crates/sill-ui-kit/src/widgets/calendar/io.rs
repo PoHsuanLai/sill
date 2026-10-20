@@ -15,7 +15,7 @@ use sill_shell_kit::widget::calendar::{MonthEntry, MonthFace, MonthIntent, Today
 
 use super::grid::{Step, busy_days, month_grid};
 use super::shown::{Shown, grid_data, weekday_name};
-use crate::hooks::{use_section, use_service};
+use crate::hooks::{use_hours, use_section, use_service};
 use crate::widgets::up_next::today_events;
 use crate::widgets::{Feed, WidgetKind, WidgetProvider};
 use sill_services::{ClockService, EventsService};
@@ -30,6 +30,7 @@ impl WidgetProvider for CalendarProvider {
 
     fn use_feed() -> Feed<MonthWidget> {
         let _minute = use_service::<ClockService>()();
+        let hours = use_hours();
         let agenda = use_service::<EventsService>()();
         let calendar = use_section(|file| &file.calendar)();
         let today = agenda.today;
@@ -47,7 +48,7 @@ impl WidgetProvider for CalendarProvider {
                 weekday: weekday_name(today).to_owned(),
                 day: u8::try_from(today.day()).unwrap_or(1),
             }),
-            events: today_events(&agenda, Timestamp::now(), &zone),
+            events: today_events(&agenda, Timestamp::now(), &zone, hours),
             no_events: "No events today".to_owned(),
             ..MonthFace::of(grid_data(&grid, today), weeks)
         };

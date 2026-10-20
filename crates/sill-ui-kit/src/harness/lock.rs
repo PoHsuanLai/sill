@@ -15,7 +15,7 @@ use tokio::sync::watch;
 
 use super::fake;
 use super::surface::{Build, WORLD, app};
-use crate::hooks::PinnedAppearance;
+use crate::hooks::{PinnedAppearance, PinnedLocale};
 use crate::links::LockLink;
 use crate::services::Services;
 use crate::surface::{LockSurface, MountLockProps, mount_lock};
@@ -120,6 +120,8 @@ impl LockSetup {
         let context_link = link.clone();
         let build: Build = Rc::new(move || {
             use_context_provider(|| services.clone());
+            // Times read the same on every machine: the C locale, 24-hour.
+            use_context_provider(|| PinnedLocale("C".to_owned()));
             use_context_provider(|| feed.clone());
             use_context_provider(|| appearance.clone());
             use_context_provider(|| context_link.clone());

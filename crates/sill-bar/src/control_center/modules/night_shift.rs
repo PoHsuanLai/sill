@@ -8,14 +8,15 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::root::pass_through::ExtraClass;
+use sill_model::clock::{ClockHours, time_of_minute};
 use sill_model::night_shift::{
-    MinuteOfDay, NightShift, NightShiftCommand, Shown, shown, warmth_at, warmth_fraction,
+    NightShift, NightShiftCommand, Shown, shown, warmth_at, warmth_fraction,
 };
 use sill_services::NightShiftService;
 use sill_shell_kit::prelude::*;
 
 use super::use_plate;
-use sill_ui_kit::hooks::{use_control, use_service};
+use sill_ui_kit::hooks::{use_control, use_hours, use_service};
 
 /// The row's element id (a handle for tests and a person's stylesheet).
 const ROW_ID: &str = "night-shift";
@@ -32,7 +33,7 @@ pub(crate) struct Face {
 }
 
 /// The row for `night_shift`; none while casement's settings cannot be reached.
-pub(crate) fn face_of(night_shift: &NightShift) -> Option<Face> {
+pub(crate) fn face_of(night_shift: &NightShift, hours: ClockHours) -> Option<Face> {
     let level = Fraction(warmth_fraction(night_shift.light.warmth));
     let (line, switch, warmth) = match shown(night_shift) {
         Shown::Unavailable => return None,
@@ -40,7 +41,11 @@ pub(crate) fn face_of(night_shift: &NightShift) -> Option<Face> {
         Shown::OnUntilTomorrow => ("On until tomorrow".to_owned(), Check::On, Some(level)),
         Shown::On => ("On".to_owned(), Check::On, Some(level)),
         Shown::Scheduled { from, to } => (
-            format!("Scheduled, {} to {}", clock(from), clock(to)),
+            format!(
+                "Scheduled, {} to {}",
+                time_of_minute(from.minutes(), hours),
+                time_of_minute(to.minutes(), hours)
+            ),
             Check::Off,
             Some(level),
         ),
@@ -50,11 +55,6 @@ pub(crate) fn face_of(night_shift: &NightShift) -> Option<Face> {
         switch,
         warmth,
     })
-}
-
-/// A time of day as the 24-hour clock writes it.
-fn clock(minute: MinuteOfDay) -> String {
-    format!("{:02}:{:02}", minute.minutes() / 60, minute.minutes() % 60)
 }
 
 /// The command a flip of the switch to `to` sends.
@@ -70,7 +70,7 @@ pub(crate) fn command_of(to: Check) -> NightShiftCommand {
 pub(crate) fn NightShiftRow() -> Element {
     let state = use_service::<NightShiftService>()();
     let control = use_control::<NightShiftService>();
-    let Some(face) = face_of(&state) else {
+    let Some(face) = face_of(&state, use_hours()) else {
         return rsx! {};
     };
     let warmth = control.clone();
@@ -120,7 +120,7 @@ mod tests {
         Backend, Manual, NightLight, NightShift, Reach, Schedule, UnixSeconds,
     };
 
-    use super::{Face, command_of, face_of};
+    use super::{ClockHours, Face, command_of, face_of};
     use sill_model::night_shift::NightShiftCommand;
 
     fn ready(schedule: Schedule, manual: Option<Manual>, backend: Backend) -> NightShift {
@@ -174,7 +174,7 @@ mod tests {
             ),
         ];
         for (name, state, want) in cases {
-            assert_eq!(face_of(&state), want, "{name}");
+            assert_eq!(face_of(&state, ClockHours::H24), want, "{name}");
         }
     }
 

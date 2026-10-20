@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 use sill_launcher::{
     Action, ActionId, Activation, AppId, Choice, DesktopAction, Frecency, IconRef, Item, ItemId,
     ItemKey, Placement, Provider, ProviderKind, Query, QueryShape, ResultSink, Score, SectionPlan,
-    SectionSpan, SettingsTarget, SystemCommand, UnixTime, WindowKey, place,
+    SectionSpan, SettingsLink, SystemCommand, UnixTime, WindowKey, place,
 };
 use sill_launcher_ui::launcher::LauncherProviders;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
@@ -281,7 +281,7 @@ impl Provider for FakeProvider {
                 text: "42".to_owned(),
             },
             (ProviderKind::Settings, _) => Activation::OpenSettings {
-                target: SettingsTarget::Page(item.id.0.clone()),
+                target: SettingsLink(format!("page:{}", item.id.0)),
             },
             (ProviderKind::System, _) => {
                 Activation::System(SystemCommand::Session(sill_launcher::SessionAction::Lock))
