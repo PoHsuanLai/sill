@@ -41,6 +41,7 @@ pub fn action_of(verb: ShellVerb) -> ActionId {
         ShellVerb::ControlCenterToggle => ActionId::ControlCenter,
         ShellVerb::NotificationCenterToggle => ActionId::NotificationCenter,
         ShellVerb::EmojiAndSymbols => ActionId::EmojiAndSymbols,
+        ShellVerb::NextInputSource => ActionId::NextInputSource,
     }
 }
 
