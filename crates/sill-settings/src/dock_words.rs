@@ -32,7 +32,7 @@ words! {
     /// `dock.trash`.
     TrashTile { #[default] On, Off }
     /// `dock.context_menu_order`.
-    DockMenuOrder { #[default] WindowsFirst, AppleOrder }
+    DockMenuOrder { #[default] AppleOrder, WindowsFirst }
     /// `dock.modifier_clicks`.
     DockModifierClicks { #[default] AppleMapping, Off }
     /// `dock.floor`: the reflective band along the pill's floor, under the tiles.

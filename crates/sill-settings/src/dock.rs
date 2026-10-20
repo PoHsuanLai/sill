@@ -207,7 +207,7 @@ pub struct DockSettings {
     pub spring_load_ms: Ms,
     #[settings(
         label = "Menu order",
-        help = "Windows first, or Apple's order.",
+        help = "The Mac's order, or the windows first.",
         section = "Clicking",
         advanced
     )]
@@ -275,7 +275,7 @@ impl Default for DockSettings {
             hold_to_menu_move_px: Px(8),
             remove_threshold_px: Px(64),
             spring_load_ms: Ms(500),
-            context_menu_order: DockMenuOrder::WindowsFirst,
+            context_menu_order: DockMenuOrder::AppleOrder,
             modifier_clicks: DockModifierClicks::AppleMapping,
             pill_padding_px: Px(6),
             running_dot_gap_px: Px(3),
