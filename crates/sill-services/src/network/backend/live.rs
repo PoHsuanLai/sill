@@ -19,7 +19,6 @@ use crate::machine::Published;
 use crate::owner::{self, Ended};
 use crate::stream::next;
 
-
 /// Follows NetworkManager and runs until `commands` closes (the `Control` was dropped). Without
 /// it `tx` is left at its seeded default (disconnected); NetworkManager starting late or
 /// restarting is followed through `NameOwnerChanged` ([`crate::owner`]).

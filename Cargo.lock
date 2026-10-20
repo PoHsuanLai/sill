@@ -130,6 +130,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "airwaves-bluez"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/airwaves?tag=v0.1.0#1f226c8032d729bff8cd978bc54deb554da66ca2"
+dependencies = [
+ "zbus",
+]
+
+[[package]]
+name = "airwaves-nm"
+version = "0.1.0"
+source = "git+https://github.com/PoHsuanLai/airwaves?tag=v0.1.0#1f226c8032d729bff8cd978bc54deb554da66ca2"
+dependencies = [
+ "zbus",
+]
+
+[[package]]
 name = "alloc-no-stdlib"
 version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7247,6 +7263,8 @@ dependencies = [
 name = "sill-services"
 version = "0.1.0"
 dependencies = [
+ "airwaves-bluez",
+ "airwaves-nm",
  "almanac-core",
  "almanac-dbus",
  "anyview-core",
