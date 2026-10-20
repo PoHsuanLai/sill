@@ -26,6 +26,7 @@ use super::mpris::{MediaPlayer2Proxy, PLAYER_INTERFACE, PlayerProxy};
 use crate::deadline::{PLAYER_CALL, within};
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::machine::Published;
 use crate::stream::next;
 
 const MPRIS_PREFIX: &str = "org.mpris.MediaPlayer2.";
@@ -38,6 +39,7 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<MediaCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
+    let tx = Published::new(tx, step);
     let dbus = DBusProxy::new(&connection).await?;
     let mut owner_changes = dbus.receive_name_owner_changed().await?;
     let mut prop_changes =
@@ -117,7 +119,7 @@ fn is_mpris_name(name: &str) -> bool {
 async fn discover(
     connection: &Connection,
     dbus: &DBusProxy<'_>,
-    tx: &watch::Sender<Media>,
+    tx: &Published<Media, MediaEvent>,
     art: &ArtFetcher,
     owners: &mut HashMap<OwnedUniqueName, PlayerId>,
     cache_dir: Option<&Path>,
@@ -126,7 +128,7 @@ async fn discover(
     owners.clear();
     let mut media = Media::default();
     let Ok(names) = dbus.list_names().await else {
-        let _ = tx.send(media);
+        tx.set(media);
         return;
     };
     let wanted: Vec<String> = names
@@ -168,14 +170,14 @@ async fn discover(
         }
         media.players.push(player);
     }
-    let _ = tx.send(media);
+    tx.set(media);
 }
 
 /// A name gained or lost an owner: a player appeared (or replaced its process) or left.
 async fn handle_owner_change(
     signal: &NameOwnerChanged,
     connection: &Connection,
-    tx: &watch::Sender<Media>,
+    tx: &Published<Media, MediaEvent>,
     art: &ArtFetcher,
     owners: &mut HashMap<OwnedUniqueName, PlayerId>,
     cache_dir: Option<&Path>,
@@ -198,13 +200,13 @@ async fn handle_owner_change(
             if let Some((player, pending)) =
                 snapshot(connection, name, stamp(origin), cache_dir).await
             {
-                apply(tx, MediaEvent::Player(player));
+                tx.feed(MediaEvent::Player(player));
                 if let Some(job) = pending {
                     art.spawn(id, job);
                 }
             }
         }
-        None => apply(tx, MediaEvent::Removed(id)),
+        None => tx.feed(MediaEvent::Removed(id)),
     }
 }
 
@@ -213,7 +215,7 @@ async fn handle_owner_change(
 async fn handle_properties_changed(
     message: &Message,
     connection: &Connection,
-    tx: &watch::Sender<Media>,
+    tx: &Published<Media, MediaEvent>,
     art: &ArtFetcher,
     owners: &HashMap<OwnedUniqueName, PlayerId>,
     cache_dir: Option<&Path>,
@@ -243,7 +245,7 @@ async fn handle_properties_changed(
         fresh.changed = before.changed;
     }
     if fresh != before {
-        apply(tx, MediaEvent::Player(fresh));
+        tx.feed(MediaEvent::Player(fresh));
     }
     if let Some(job) = pending {
         art.spawn(id, job);
@@ -254,7 +256,7 @@ async fn handle_properties_changed(
 async fn handle_seeked(
     message: &Message,
     connection: &Connection,
-    tx: &watch::Sender<Media>,
+    tx: &Published<Media, MediaEvent>,
     owners: &HashMap<OwnedUniqueName, PlayerId>,
     origin: Instant,
 ) {
@@ -268,7 +270,7 @@ async fn handle_seeked(
 /// its timeline; a player that is not listed is dropped by the reducer.
 async fn reread_timeline(
     connection: &Connection,
-    tx: &watch::Sender<Media>,
+    tx: &Published<Media, MediaEvent>,
     id: PlayerId,
     origin: Instant,
 ) {
@@ -279,7 +281,7 @@ async fn reread_timeline(
     })
     .await;
     if let Ok(Some(timeline)) = read {
-        apply(tx, MediaEvent::Timeline { id, timeline });
+        tx.feed(MediaEvent::Timeline { id, timeline });
     }
 }
 
@@ -297,7 +299,7 @@ fn sender_player(
 /// abilities disallow it.
 async fn press(
     connection: &Connection,
-    tx: &watch::Sender<Media>,
+    tx: &Published<Media, MediaEvent>,
     player: &PlayerId,
     verb: MediaVerb,
 ) {
@@ -477,10 +479,4 @@ fn metadata_micros(metadata: &HashMap<String, OwnedValue>, key: &str) -> Option<
 
 fn stamp(origin: Instant) -> Stamp {
     Stamp(u64::try_from(origin.elapsed().as_millis()).unwrap_or(u64::MAX))
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-pub(super) fn apply(tx: &watch::Sender<Media>, event: MediaEvent) {
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
 }

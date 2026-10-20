@@ -14,12 +14,12 @@ use std::time::UNIX_EPOCH;
 use sill_model::now_playing::{
     Art, ArtSource, Media, MediaEvent, PlayerId, art_cache_name, art_source, local_art_cache_name,
 };
-use tokio::sync::watch;
 use zbus::zvariant::OwnedValue;
 
 pub(crate) use fetcher::ArtFetcher;
 
-use super::run::{apply, metadata_string};
+use super::run::metadata_string;
+use crate::machine::Published;
 
 /// The largest cover a fetch or a copy may bring: a cover is drawn a few hundred pixels across.
 const ART_MAX_BYTES: u64 = 5 * 1024 * 1024;
@@ -83,14 +83,14 @@ fn local_cache_path(from: &Path, dir: &Path) -> Option<PathBuf> {
 }
 
 /// A cover arrived: folds the cached path into whatever that player's track looks like now.
-pub(crate) fn apply_art(tx: &watch::Sender<Media>, id: PlayerId, path: PathBuf) {
+pub(crate) fn apply_art(tx: &Published<Media, MediaEvent>, id: PlayerId, path: PathBuf) {
     let media = tx.borrow().clone();
     let Some(player) = media.players.iter().find(|p| p.id == id) else {
         return;
     };
     let mut track = player.track.clone();
     track.art = Art::File(path);
-    apply(tx, MediaEvent::Track { id, track });
+    tx.feed(MediaEvent::Track { id, track });
 }
 
 #[cfg(test)]
