@@ -90,7 +90,7 @@ mod tests {
     #[test]
     fn every_ask_is_news_even_the_same_action_twice() {
         let link = ActionLink::new();
-        let mut follower = link.subscribe();
+        let follower = link.subscribe();
         assert_eq!(link.last(), None);
         link.do_it(ActionId::Lock, Origin::anywhere());
         link.do_it(ActionId::Lock, Origin::anywhere());

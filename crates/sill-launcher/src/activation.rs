@@ -9,7 +9,6 @@ use crate::actions::ActionId;
 use crate::companion::CompanionAct;
 use crate::ids::{AppId, ClipKey};
 use crate::query::Generation;
-use crate::session::SessionAction;
 use crate::settings_link::SettingsLink;
 
 /// The effect of choosing a result.

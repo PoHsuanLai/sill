@@ -160,7 +160,7 @@ mod tests {
     use sill_launcher::actions::ActionId as ShellAction;
     use sill_launcher::{
         ActionId, Activation, Cancel, Choice, Item, ItemId, Provider, ProviderKind, Query, Score,
-        SessionAction, VecSink,
+        VecSink,
     };
     use sill_model::session::{Offer, Session};
     use sill_model::units::Presence;

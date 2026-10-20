@@ -7,7 +7,7 @@ use crate::screenshots::ShotKind;
 
 #[test]
 fn every_action_has_a_label_an_effect_and_a_chord_where_one_stands_for_it() {
-    for id in ActionId::ALL {
+    for &id in ActionId::ALL {
         let action = def(id);
         assert_eq!(action.id, id);
         assert!(!action.label.trim().is_empty(), "{id:?}");
@@ -145,7 +145,7 @@ fn an_ask_has_a_pinned_wire_form() {
 
 #[test]
 fn every_action_is_written_as_its_slug_on_the_wire() {
-    for id in ActionId::ALL {
+    for &id in ActionId::ALL {
         let wire = serde_json::to_string(&id).unwrap_or_default();
         assert_eq!(wire, format!("\"{}\"", id.slug()), "{id:?}");
     }
