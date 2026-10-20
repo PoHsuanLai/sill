@@ -13,6 +13,7 @@
 use std::path::PathBuf;
 
 use ds::prelude::Availability;
+use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex};
 use sill_model::windows::{Toplevel, Toplevels, app_of};
 use sill_settings::{AutoHide, Magnification};
@@ -51,8 +52,8 @@ pub enum DockMenuRow {
     Quit,
     ForceQuit,
     Separator,
-    /// The Trash tile's Open.
-    OpenTrash,
+    /// The Trash tile's Open, in this file manager.
+    OpenTrash(AppId),
     EmptyTrash(Availability),
     /// Turn Hiding On / Off, by the state it is in now.
     Hiding(AutoHide),

@@ -281,7 +281,10 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
     let entry = item.kind.app_id().and_then(|id| deps.world.index.get(id));
     let toplevels = &deps.world.toplevels;
     let (rows, windows) = match item.kind {
-        ItemKind::Trash => (trash::rows(empty_trash_availability()), Vec::new()),
+        ItemKind::Trash => (
+            trash::rows(deps.world.index.file_manager(), empty_trash_availability()),
+            Vec::new(),
+        ),
         ItemKind::Pinned(_) | ItemKind::Running(_) | ItemKind::Unmatched(_) => (
             app::rows(
                 item,

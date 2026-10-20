@@ -177,7 +177,7 @@ fn row_entry(
         DockMenuRow::Hide => Line::new("Hide", DockPick::Hide(target.keys.clone())),
         DockMenuRow::Quit => Line::new("Quit", DockPick::Quit(target.keys.clone())),
         DockMenuRow::ForceQuit => Line::new("Force Quit", owned(DockPick::ForceQuit)?),
-        DockMenuRow::OpenTrash => Line::new("Open", DockPick::OpenTrash),
+        DockMenuRow::OpenTrash(files) => Line::new("Open", DockPick::OpenTrash(files.clone())),
         DockMenuRow::EmptyTrash(availability) => {
             Line::new("Empty Trash", DockPick::EmptyTrash).available(*availability)
         }

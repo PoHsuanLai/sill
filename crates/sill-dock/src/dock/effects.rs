@@ -61,7 +61,7 @@ pub fn effect_commands(effect: &DockEffect, ctx: &EffectCtx<'_>) -> Vec<DockComm
 
 fn launch(item: &DockItem, instance: Instance, ctx: &EffectCtx<'_>) -> Vec<DockCommand> {
     let Some(app) = item.kind.app_id() else {
-        return trash(item);
+        return trash(item, ctx.index);
     };
     let has_new_window = ctx
         .index
@@ -74,17 +74,22 @@ fn launch(item: &DockItem, instance: Instance, ctx: &EffectCtx<'_>) -> Vec<DockC
     vec![open(app.clone(), action, Vec::new())]
 }
 
-/// The Trash tile's launch: the file manager on `trash:///`.
-fn trash(item: &DockItem) -> Vec<DockCommand> {
+/// The Trash tile's launch: the file manager on `trash:///`; nothing when none is installed.
+fn trash(item: &DockItem, index: &AppIndex) -> Vec<DockCommand> {
     match item.kind {
-        ItemKind::Trash => vec![open_trash()],
+        ItemKind::Trash => index
+            .file_manager()
+            .cloned()
+            .map(open_trash)
+            .into_iter()
+            .collect(),
         _ => Vec::new(),
     }
 }
 
 fn activate(item: &DockItem, mode: ActivateMode, ctx: &EffectCtx<'_>) -> Vec<DockCommand> {
     if item.kind == ItemKind::Trash {
-        return trash(item);
+        return trash(item, ctx.index);
     }
     if mode == ActivateMode::Reopen {
         return launch(item, Instance::Existing, ctx);

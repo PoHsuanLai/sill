@@ -11,9 +11,6 @@ use sill_model::actions::{Ask, Start, Subject};
 use sill_model::pins::PinEvent;
 use sill_model::windows::WlCommand;
 
-/// The file manager the Trash tile opens `trash:///` in (design/10 §10.3.9).
-const FILES_APP: &str = "org.gnome.Nautilus";
-
 /// The Settings page the dock's own menu opens ("Dock Settings…").
 const DOCK_PAGE: &str = "dock";
 
@@ -47,8 +44,8 @@ pub enum DockPick {
         front: Option<WindowKey>,
     },
     OpenAtLogin(LoginChange),
-    /// The Trash tile's Open.
-    OpenTrash,
+    /// The Trash tile's Open, in the file manager the index found.
+    OpenTrash(AppId),
     /// Empty Trash: the shell asks first.
     EmptyTrash,
     /// Turn dock hiding on or off.
@@ -82,13 +79,9 @@ pub fn open(app: AppId, action: DesktopAction, uris: Vec<String>) -> DockCommand
     DockCommand::Do(Ask::on(ActionId::OpenApp, Subject::Start(start)))
 }
 
-/// The Trash tile's launch: the file manager on `trash:///`.
-pub fn open_trash() -> DockCommand {
-    open(
-        AppId(FILES_APP.to_owned()),
-        DesktopAction::Default,
-        vec!["trash:///".to_owned()],
-    )
+/// The Trash tile's launch: `files`, the file manager, on `trash:///` (design/10 §10.3.9).
+pub fn open_trash(files: AppId) -> DockCommand {
+    open(files, DesktopAction::Default, vec!["trash:///".to_owned()])
 }
 
 /// The commands `pick` sends, in order.
@@ -114,7 +107,7 @@ pub fn pick_commands(pick: &DockPick) -> Vec<DockCommand> {
             .map(DockCommand::Wl)
             .collect(),
         DockPick::OpenAtLogin(change) => vec![DockCommand::AtLogin(change.clone())],
-        DockPick::OpenTrash => vec![open_trash()],
+        DockPick::OpenTrash(files) => vec![open_trash(files.clone())],
         DockPick::EmptyTrash => vec![DockCommand::Do(Ask::of(ActionId::EmptyTrash))],
         DockPick::ToggleHiding => vec![DockCommand::Do(Ask::of(ActionId::ToggleDockHide))],
         DockPick::ToggleMagnification => {
@@ -201,7 +194,7 @@ mod tests {
                 DockPick::OpenAtLogin(LoginChange::Off { app: term() }),
                 vec![DockCommand::AtLogin(LoginChange::Off { app: term() })],
             ),
-            (DockPick::OpenTrash, vec![open_trash()]),
+            (DockPick::OpenTrash(term()), vec![open_trash(term())]),
             (
                 DockPick::EmptyTrash,
                 vec![DockCommand::Do(Ask::of(ActionId::EmptyTrash))],

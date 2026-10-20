@@ -5,29 +5,39 @@ use ds::prelude::*;
 use super::rows;
 use crate::dock::context_menu::{DockMenuRow, menu_entries};
 use crate::dock::pick::DockPick;
+use sill_launcher::AppId;
 use sill_settings::DockMenuOrder;
 
+fn files() -> AppId {
+    AppId("org.kde.dolphin".to_owned())
+}
+
 fn entries(empty_trash: Availability) -> Vec<(String, DockPick, Availability)> {
-    menu_entries(&rows(empty_trash), None, &[], DockMenuOrder::AppleOrder)
-        .into_iter()
-        .filter_map(|e| match e {
-            MenuItem::Item {
-                title,
-                value,
-                availability,
-                ..
-            } => Some((title, value, availability)),
-            _ => None,
-        })
-        .collect()
+    menu_entries(
+        &rows(Some(&files()), empty_trash),
+        None,
+        &[],
+        DockMenuOrder::AppleOrder,
+    )
+    .into_iter()
+    .filter_map(|e| match e {
+        MenuItem::Item {
+            title,
+            value,
+            availability,
+            ..
+        } => Some((title, value, availability)),
+        _ => None,
+    })
+    .collect()
 }
 
 #[test]
 fn the_trash_offers_open_and_empty_trash() {
     assert_eq!(
-        rows(Availability::Enabled),
+        rows(Some(&files()), Availability::Enabled),
         [
-            DockMenuRow::OpenTrash,
+            DockMenuRow::OpenTrash(files()),
             DockMenuRow::EmptyTrash(Availability::Enabled)
         ]
     );
@@ -36,7 +46,7 @@ fn the_trash_offers_open_and_empty_trash() {
         [
             (
                 "Open".to_owned(),
-                DockPick::OpenTrash,
+                DockPick::OpenTrash(files()),
                 Availability::Enabled
             ),
             (
@@ -45,6 +55,14 @@ fn the_trash_offers_open_and_empty_trash() {
                 Availability::Enabled
             ),
         ]
+    );
+}
+
+#[test]
+fn without_a_file_manager_there_is_no_open() {
+    assert_eq!(
+        rows(None, Availability::Enabled),
+        [DockMenuRow::EmptyTrash(Availability::Enabled)]
     );
 }
 

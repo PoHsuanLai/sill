@@ -5,7 +5,10 @@ use std::path::PathBuf;
 use ds_helpers::{AppKeys, match_app};
 use keycap_protocol::ProfileName;
 use serde::{Deserialize, Serialize};
-use sill_launcher::AppId;
+use sill_launcher::{AppId, Mime};
+
+/// The registered category of a file manager (Nautilus, Dolphin, Thunar, Nemo...).
+const FILE_MANAGER: &str = "FileManager";
 
 /// Every installed application, sorted by id, one entry per id (the first found in XDG
 /// precedence order wins).
@@ -50,6 +53,19 @@ impl AppIndex {
     /// by the five rules of [`ds_helpers::match_app`], the one matcher every shell part shares.
     pub fn matching(&self, app_id: &str, wm_class: Option<&str>) -> Option<&App> {
         self.apps.get(match_app(app_id, wm_class, &self.keys)?)
+    }
+
+    /// The file manager the Trash opens in: the first listed entry, by id, that is a
+    /// `FileManager` and opens folders; none when no such app is installed.
+    pub fn file_manager(&self) -> Option<&AppId> {
+        self.apps
+            .iter()
+            .find(|app| {
+                app.listing == Listing::Shown
+                    && app.categories.iter().any(|c| c == FILE_MANAGER)
+                    && app.mime_types.iter().any(|m| m == Mime::FOLDER)
+            })
+            .map(|app| &app.id)
     }
 }
 
@@ -322,6 +338,37 @@ pub(crate) mod tests {
         let bus = |id: &str| index.matching(id, None).map(App::bus_name);
         assert_eq!(bus("steam"), Some("com.valvesoftware.Steam.Main"));
         assert_eq!(bus("firefox"), Some("org.mozilla.firefox"));
+    }
+
+    #[test]
+    fn the_file_manager_is_a_listed_file_manager_that_opens_folders() {
+        let folders = |id: &str, categories: &[&str]| {
+            let mut entry = app(id, id);
+            entry.mime_types = vec!["inode/directory".to_owned()];
+            entry.categories = categories.iter().map(|c| (*c).to_owned()).collect();
+            entry
+        };
+        let mut hidden = folders("a.hidden", &["System", "FileManager"]);
+        hidden.listing = Listing::Hidden;
+        let index = step(
+            AppIndex::default(),
+            AppsEvent::Scanned(vec![
+                folders("code", &["Development"]),
+                hidden,
+                folders("org.kde.dolphin", &["System", "FileManager"]),
+                folders("org.gnome.Nautilus", &["System", "FileManager"]),
+            ]),
+        );
+        assert_eq!(
+            index.file_manager().map(|id| id.0.as_str()),
+            Some("org.gnome.Nautilus"),
+            "an editor that opens folders is not one; the first by id wins"
+        );
+        let none = step(
+            AppIndex::default(),
+            AppsEvent::Scanned(vec![folders("code", &["Development"])]),
+        );
+        assert_eq!(none.file_manager(), None);
     }
 
     #[test]

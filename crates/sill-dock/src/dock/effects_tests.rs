@@ -14,6 +14,14 @@ use sill_model::pins::{DockPins, PinAt, PinEvent};
 use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use std::path::PathBuf;
 
+/// A file manager: it opens folders and says it is one.
+fn files() -> App {
+    let mut entry = app("files", &[]);
+    entry.mime_types = vec!["inode/directory".to_owned()];
+    entry.categories = vec!["System".to_owned(), "FileManager".to_owned()];
+    entry
+}
+
 fn app(id: &str, actions: &[&str]) -> App {
     App {
         id: AppId(id.to_owned()),
@@ -95,7 +103,7 @@ fn world() -> World {
             ],
         },
         index: AppIndex::new(vec![
-            app("files", &[]),
+            files(),
             app("firefox", &[]),
             app("term", &["new-window"]),
         ]),
@@ -177,7 +185,7 @@ fn every_outward_effect_becomes_its_commands() {
                 mode: ActivateMode::Raise,
             },
             vec![launch(
-                "org.gnome.Nautilus",
+                "files",
                 DesktopAction::Default,
                 vec!["trash:///".to_owned()],
             )],
