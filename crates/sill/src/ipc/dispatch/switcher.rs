@@ -1,19 +1,16 @@
 //! The app switcher's asks: the chord verbs from `sill switcher` and the made-up open from
 //! `sill debug switcher`, written to the switcher's link for the output it opens on.
 //!
-//! Which output: the one under the pointer (design/13) is not known to the daemon, so the main
-//! display (the banners' output).
+//! Which output: [`super::panel_output`]'s rule.
 
-use shell_host::OutputId;
 use sill_ipc::act::SwitcherRequest;
 use sill_ipc::response::Response;
 use sill_overlays::Switcher;
-use sill_ui_kit::links::BannerOutput;
 use sill_ui_kit::links::{Dir, SwitcherAsk};
 
+use super::panel_output::panel_output;
 use super::reach::Reach;
 use super::reply::unsupported;
-use crate::outputs::Outputs;
 
 /// `sill switcher next|prev|cancel|commit`.
 pub fn chord(reach: &Reach, request: SwitcherRequest) -> Response {
@@ -22,30 +19,12 @@ pub fn chord(reach: &Reach, request: SwitcherRequest) -> Response {
 
 /// Write `ask` for the switcher's output.
 pub fn ask(reach: &Reach, ask: SwitcherAsk) -> Response {
-    match target(reach.outputs, reach.links.banners.now()) {
+    match panel_output::<Switcher>(reach.outputs, reach.services) {
         Some(output) => {
             reach.links.switcher.ask(output, ask);
             Response::Done
         }
         None => unsupported("no output has a switcher surface"),
-    }
-}
-
-/// The output the switcher opens on: the banners' (the main display), else the first with a
-/// switcher surface.
-fn target(outputs: &Outputs, banners: BannerOutput) -> Option<OutputId> {
-    let has_switcher = |id: OutputId| {
-        outputs
-            .get(id)
-            .is_some_and(|s| s.surface_of::<Switcher>().is_some())
-    };
-    match banners {
-        BannerOutput::On(id) if has_switcher(id) => Some(id),
-        _ => outputs
-            .outputs
-            .iter()
-            .find(|(_, s)| s.surface_of::<Switcher>().is_some())
-            .map(|(info, _)| info.id),
     }
 }
 

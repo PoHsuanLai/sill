@@ -71,17 +71,9 @@ pub fn apply(outputs: &Outputs, services: &Services, launcher: &LauncherLink, ou
     }
 }
 
-/// The output the panel opens on: the active window's output when it has a launcher surface,
-/// else the first that has one.
+/// The output the panel opens on: [`crate::ipc::dispatch::panel_output`]'s rule.
 pub fn launcher_output(outputs: &Outputs, services: &Services) -> Option<OutputId> {
-    let focus = services.windows.state.borrow().toplevels.focused_output();
-    let with_surface: Vec<(OutputId, Option<String>)> = outputs
-        .outputs
-        .iter()
-        .filter(|(_, surfaces)| surfaces.surface_of::<Launcher>().is_some())
-        .map(|(info, _)| (info.id, info.name.clone()))
-        .collect();
-    crate::ipc::dispatch::focused_or_first(&with_surface, focus.as_ref())
+    crate::ipc::dispatch::panel_output::<Launcher>(outputs, services)
 }
 
 /// Hand each launcher effect the service asks for to the host thread, and tell the service when

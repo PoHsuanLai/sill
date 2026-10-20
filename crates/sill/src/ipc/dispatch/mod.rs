@@ -5,6 +5,7 @@ mod act;
 mod debug;
 mod keys;
 mod next_window;
+mod panel_output;
 pub(crate) mod quit;
 mod reach;
 mod reply;
@@ -14,7 +15,7 @@ mod status;
 mod switcher;
 mod workspace;
 
+pub(crate) use panel_output::panel_output;
 pub use reach::{Carried, DesktopLine, Reach};
 pub(crate) use reply::sent;
 pub use route::route;
-pub(crate) use show::focused_or_first;
