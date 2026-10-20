@@ -163,7 +163,10 @@ pub(super) fn write_skip(dir: &Path, skip: &[OutputName]) -> Result<Skipping, Fi
     let edit = if wanted.is_empty() {
         Edit::Unset(key)
     } else {
-        Edit::Set(key, Value::Array(wanted.into_iter().map(Value::String).collect()))
+        Edit::Set(
+            key,
+            Value::Array(wanted.into_iter().map(Value::String).collect()),
+        )
     };
     apply(&path, &[edit])?;
     Ok(Skipping::Changed)

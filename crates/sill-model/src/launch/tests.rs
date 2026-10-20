@@ -73,7 +73,10 @@ fn scopes_come_and_go() {
 #[test]
 fn the_model_pages_are_opened_by_the_ids_settings_serves() {
     assert_eq!(assistant_model().to_string(), "page:assistant-model");
-    assert_eq!(assistant_model_setup().to_string(), "page:assistant-model-setup");
+    assert_eq!(
+        assistant_model_setup().to_string(),
+        "page:assistant-model-setup"
+    );
 }
 
 fn timing(

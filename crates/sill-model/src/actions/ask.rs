@@ -49,7 +49,8 @@ pub enum Subject {
     /// An app, started some particular way.
     Start(Start),
     Windows(Vec<WindowKey>),
-    Settings(#[serde(with = "sill_launcher::settings_target::text")] SettingsTarget),
+    #[serde(with = "sill_launcher::settings_target::text")]
+    Settings(SettingsTarget),
 }
 
 impl Subject {

@@ -20,6 +20,7 @@ const SECTIONS: &[(&str, &str)] = &[
     ("### 3.13 `control_center`", "### 3.14 `spaces`"),
     ("### 3.14 `spaces`", "### 3.26 `ai`"),
     ("### 3.30 `companion`", "### 3.31 `viewer`"),
+    ("### 3.33 `wallpaper`", "## 4. Rust shape"),
 ];
 
 /// §3.1 rows that are sill's, not `AppearanceSettings`': the mirror image of ds-settings'
@@ -40,8 +41,6 @@ const RETIRED: &[&str] = &[
     "widgets.desktop_cell_px",
     "widgets.desktop_gap_px",
     "widgets.world_clocks",
-    // The lock clock follows region.hours (quire f1830b09 drops the row; v0.3.36 still has it).
-    "session.lock_clock",
 ];
 
 fn doc_keys() -> Vec<String> {

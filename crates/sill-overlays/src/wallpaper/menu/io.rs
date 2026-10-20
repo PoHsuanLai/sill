@@ -4,8 +4,8 @@
 
 use dioxus::prelude::*;
 use shell_host::SurfaceHandle;
-use sill_launcher::settings_target::page;
 use sill_launcher::actions::ActionId;
+use sill_launcher::settings_target::page;
 use sill_model::actions::Subject;
 use sill_ui_kit::hooks::use_link;
 use sill_ui_kit::links::{ActionLink, Origin};

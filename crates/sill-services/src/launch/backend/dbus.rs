@@ -109,8 +109,8 @@ fn object_path(id: &str) -> String {
 mod tests {
     use std::path::Path;
 
-    use super::{file_uri, object_path, settings_call};
-    
+    use super::{file_uri, object_path};
+
     #[test]
     fn a_desktop_files_uri_is_percent_encoded() {
         const CASES: &[(&str, &str)] = &[

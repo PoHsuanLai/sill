@@ -236,9 +236,9 @@ async fn a_hold_is_told_opens_settings_at_the_account_and_is_withdrawn_when_it_e
     let launched = tokio::time::timeout(SETTLE, shell.launched.recv()).await;
     assert_eq!(
         launched.ok().flatten(),
-        Some(LaunchCommand::OpenSettings(SettingsOpen::at(SettingsTarget::Account(
-            AccountRef(ACCOUNT.to_owned())
-        ))))
+        Some(LaunchCommand::OpenSettings(SettingsOpen::at(
+            SettingsTarget::Account(AccountRef(ACCOUNT.to_owned()))
+        )))
     );
 
     syncd.tell(Held::new()).await;

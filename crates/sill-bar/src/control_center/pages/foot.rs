@@ -6,8 +6,8 @@ use dioxus::prelude::*;
 use ds::components::controls::button_model::Bezel;
 use ds::prelude::*;
 use sill_launcher::SettingsTarget;
-use sill_launcher::settings_target::page;
 use sill_launcher::actions::ActionId;
+use sill_launcher::settings_target::page;
 use sill_model::actions::Subject;
 use sill_shell_kit::prelude::*;
 
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn a_foot_links_to_its_page_by_id() {
-        assert_eq!(page_link("wifi").0, "page:wifi");
-        assert_eq!(page_link("bluetooth").0, "page:bluetooth");
+        assert_eq!(page_link("wifi").to_string(), "page:wifi");
+        assert_eq!(page_link("bluetooth").to_string(), "page:bluetooth");
     }
 }

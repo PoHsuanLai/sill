@@ -2,8 +2,8 @@
 //! entrance hands over) and the activation token that lets Settings take focus.
 
 use serde::{Deserialize, Serialize};
-use sill_launcher::settings_target::page;
 use sill_launcher::SettingsTarget;
+use sill_launcher::settings_target::page;
 
 /// A request to open Settings at `link`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

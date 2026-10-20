@@ -1,6 +1,8 @@
 use ds_core::word::Word;
 use sill_launcher::actions::ActionId;
-use sill_launcher::{AppId, Confirm, DesktopAction, SessionAction, WindowKey, settings_target::page};
+use sill_launcher::{
+    AppId, Confirm, DesktopAction, SessionAction, WindowKey, settings_target::page,
+};
 
 use super::{Ask, Effect, Needs, Panel, Start, Subject, def, panel_action, screenshot_action};
 use crate::screenshots::ShotKind;
@@ -152,10 +154,7 @@ fn an_ask_has_a_pinned_wire_form() {
             r#"{"action":"quit-app","subject":{"kind":"windows","v":[1,2]}}"#,
         ),
         (
-            Ask::on(
-                ActionId::OpenSettings,
-                Subject::Settings(page("wallpaper")),
-            ),
+            Ask::on(ActionId::OpenSettings, Subject::Settings(page("wallpaper"))),
             r#"{"action":"open-settings","subject":{"kind":"settings","v":"page:wallpaper"}}"#,
         ),
     ];
