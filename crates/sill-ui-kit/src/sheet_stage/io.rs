@@ -1,10 +1,11 @@
 //! The effects end of the stage: follow a wanted value onto it, map the surface to match, and
-//! settle it when the sheet's exit has played.
+//! settle it when the sheet's exit has played. The surface's input region follows the stage too:
+//! the whole output while a value is up, nothing from the moment its exit starts.
 
 use dioxus::prelude::*;
 use shell_host::{SurfaceHandle, Visibility};
 
-use super::model::{Mapped, SheetStage, StageIn};
+use super::model::{Mapped, Pointer, SheetStage, StageIn};
 use super::step::advance;
 
 /// The stage following `wanted` (read inside an effect, so the signals it reads drive it), and
@@ -16,6 +17,7 @@ where
 {
     let stage = use_signal(|| SheetStage::<T>::Empty);
     use_effect(move || step(stage, StageIn::Want(wanted())));
+    use_follow_pointer(move || stage.read().pointer());
     let surface = try_use_context::<SurfaceHandle>();
     let mut applied = use_hook(|| CopyValue::new(Mapped::No));
     use_effect(move || {
@@ -32,6 +34,23 @@ where
         }
     });
     stage
+}
+
+/// The surface's input region following `pointer` (read inside an effect, so the signals it reads
+/// drive it). Nothing to set without a host (a test, an SSR render).
+pub fn use_follow_pointer(pointer: impl Fn() -> Pointer + 'static) {
+    let surface = try_use_context::<SurfaceHandle>();
+    let mut applied = use_hook(|| CopyValue::new(None::<Pointer>));
+    use_effect(move || {
+        let now = pointer();
+        if *applied.peek() == Some(now) {
+            return;
+        }
+        applied.set(Some(now));
+        if let Some(surface) = &surface {
+            surface.set_input_region(now.region());
+        }
+    });
 }
 
 /// The sheet's exit settled (its `on_hidden`): an exit that played unmaps the surface.

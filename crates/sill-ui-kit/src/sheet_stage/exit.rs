@@ -5,6 +5,8 @@
 
 use ds::prelude::*;
 
+use super::model::Pointer;
+
 /// Whether a sheet is up, or leaving with the answer to carry out once it has gone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SheetExit<A> {
@@ -39,6 +41,14 @@ impl<A: Clone> SheetExit<A> {
         match self {
             SheetExit::Open => Shown::Visible,
             SheetExit::Leaving(_) => Shown::Hidden,
+        }
+    }
+
+    /// Whether the sheet takes pointer input: only while it is open, never while it leaves.
+    pub fn pointer(&self) -> Pointer {
+        match self {
+            SheetExit::Open => Pointer::Taken,
+            SheetExit::Leaving(_) => Pointer::Passed,
         }
     }
 
