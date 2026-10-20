@@ -333,6 +333,7 @@ docket-dbus = { path = "../docket/crates/docket-dbus" }
 # sibling checkout it already names by path, so the graph holds one casement-protocols.
 [patch."https://github.com/PoHsuanLai/casement-protocols.git"]
 casement-protocols = { path = "../casement-protocols" }
+shell-verbs = { path = "../casement-protocols/shell-verbs" }
 
 [patch."https://github.com/PoHsuanLai/porter"]
 porter-client = { path = "../porter/crates/porter-client" }
