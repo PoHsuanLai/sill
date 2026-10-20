@@ -2,6 +2,7 @@
 
 use porter_dbus::Details;
 use sill_launcher::SettingsLink;
+use sill_model::accounts::AccountKey;
 use sill_model::sync_hold::{Dataset, Hold};
 use zbus::zvariant::OwnedValue;
 
@@ -16,7 +17,7 @@ pub(crate) enum Heard {
         dataset: Dataset,
         discard: u64,
         held: u64,
-        account: SettingsLink,
+        account: AccountKey,
     },
     /// The hold ended (an empty dict).
     Ended(Dataset),
@@ -38,7 +39,7 @@ pub(crate) fn heard(dataset: &str, details: &Details) -> Option<Heard> {
         dataset,
         discard: count("discard")?,
         held: count("held")?,
-        account: SettingsLink(format!("account:{account}")),
+        account: AccountKey::new(account),
     })
 }
 
@@ -56,7 +57,7 @@ impl Heard {
                 account_name,
                 discard,
                 held,
-                account,
+                account: SettingsLink(format!("account:{}", account.as_str())),
             }),
             Heard::Ended(_) => None,
         }
@@ -86,7 +87,7 @@ mod tests {
                 dataset: Dataset::new("work/files"),
                 discard: 30,
                 held: 40,
-                account: SettingsLink("account:/org/quire/Accounts1/account/work".to_owned()),
+                account: AccountKey::new("/org/quire/Accounts1/account/work"),
             })
         );
         assert_eq!(

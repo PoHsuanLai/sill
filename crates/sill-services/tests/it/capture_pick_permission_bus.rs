@@ -78,7 +78,10 @@ async fn transom_asks_and_each_button_comes_back_as_its_number() {
             .unwrap_or_else(|e| panic!("{outcome:?}: {e}"));
         assert_eq!(answer, want, "{outcome:?}");
         assert!(
-            service.state.borrow().permission.is_none(),
+            wait_for(&mut service.state, |s: &CapturePicker| s
+                .permission
+                .is_none())
+            .await,
             "{outcome:?}: the sheet is free again"
         );
     }

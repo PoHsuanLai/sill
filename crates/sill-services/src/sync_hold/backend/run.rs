@@ -2,7 +2,6 @@
 //! and the commands, stepping [`SyncHoldState`] and posting its notices.
 
 use porter_dbus::SyncProxy;
-use sill_model::accounts::AccountKey;
 use sill_model::launch::{LaunchCommand, SettingsOpen};
 use sill_model::notifications::{NotesState, NotificationsCommand};
 use sill_model::sync_hold::{
@@ -124,8 +123,7 @@ impl Live {
                 let Heard::Held { account, .. } = &held else {
                     return;
                 };
-                let name =
-                    accounts_wire::label_of(&self.connection, &AccountKey::new(&account.0)).await;
+                let name = accounts_wire::label_of(&self.connection, account).await;
                 if let Some(hold) = held.hold(name) {
                     self.apply(SyncHoldEvent::Held(hold));
                 }
