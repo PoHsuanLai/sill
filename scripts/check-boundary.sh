@@ -17,7 +17,8 @@ cd "$(dirname "$0")/.."
 # audio, no design system. sill-settings is data and UI-free, but it names ds-settings (its dioxus
 # feature off), whose file I/O brings zbus and tokio, so only the UI is forbidden to it.
 # sill-services and sill-search are effectful but UI-free: their state reaches surfaces only
-# through watch channels read by sill-ui-kit's hooks, so neither links a renderer.
+# through watch channels read by sill-ui-kit's hooks, so neither links a renderer. sill-services
+# names ds-settings (its dioxus feature off) for Night Shift's SettingsWriter edits.
 # sill-testkit is std only and names no sill crate.
 # sill-shell-kit (the shell-only parts over quire's `ds`) names no other sill crate and no service,
 # bus, runtime or compositor client: it is what the surfaces and sill-ui-kit draw with.
@@ -39,7 +40,7 @@ RULES=(
   "sill-model: $PURE"
   "sill-settings: $UI_FREE"
   "sill-ipc: $PURE"
-  "sill-services: $UI_FREE ds-settings"
+  "sill-services: $UI_FREE"
   "sill-search: $UI_FREE"
   "sill-shell-kit: sill-launcher sill-model sill-settings sill-ipc sill-services sill-search sill-testkit sill-ui-kit ${SURFACES[*]} sill zbus tokio wayland-client libpulse-binding shell-host ds-blitz blitz-dom"
   "sill-testkit: sill-launcher sill-model sill-settings sill-ipc sill-services sill-search sill-shell-kit sill-ui-kit ${SURFACES[*]} sill"
