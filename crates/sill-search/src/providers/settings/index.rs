@@ -286,7 +286,7 @@ kind = "power"
                     "dock.magnification",
                     "Magnification",
                     "Icons grow as the pointer nears them.",
-                    "Dock"
+                    "Desktop & Dock"
                 ),
                 (
                     "idle.lock_after_mins",
