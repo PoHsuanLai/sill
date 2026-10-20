@@ -9,8 +9,6 @@ mod fake;
 mod registry;
 mod wiring;
 
-#[cfg(feature = "harness")]
-pub(crate) use registry::Ios;
 pub use registry::Services;
 use sill_services::service::{Handle, Service};
 pub use wiring::Wiring;
