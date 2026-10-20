@@ -21,6 +21,6 @@ pub use command::{IntentsAsk, IntentsCommand, IntentsEffect, IntentsEvent};
 pub use docket_core::{
     ActionRef, ConfirmId, ConfirmOffer, Gesture, NeverOffer, StandingGrantId, UndoOffer,
 };
-pub use model::{Intents, IntentsLink, LinkTrouble};
+pub use model::{Intents, IntentsLink};
 pub use prov::Effect;
 pub use step::step;

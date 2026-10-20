@@ -1,55 +1,56 @@
-//! The loop: keep the published list current from the daemon's `Publish`, and once told to
-//! `Serve` answer on the bus and say when the list changes.
+//! The loop: keep the published list current from the daemon's `Publish`, claiming the bus name
+//! at the start (unless the [`Env`](crate::env::Env) leaves names alone) and saying when the list
+//! changes.
 
-use sill_model::workspace_looks::{WorkspaceLooks, WorkspaceLooksCommand, WorkspaceLooksLink};
+use sill_model::workspace_looks::{WorkspaceLooks, WorkspaceLooksCommand};
 use tokio::sync::watch;
 use zbus::Connection;
 
 use super::object::WorkspacesObject;
-use super::serve;
-use crate::env::Bus;
+use crate::env::{Bus, NameClaims};
+use crate::serve;
 use crate::service::ServiceIo;
-use crate::workspace_looks::{PATH, WorkspaceLooksService};
+use crate::workspace_looks::{BUS_NAME, PATH, WorkspaceLooksService};
 
-pub(crate) async fn run(bus: Bus, io: ServiceIo<WorkspaceLooksService>) {
+pub(crate) async fn run(bus: Bus, claims: NameClaims, io: ServiceIo<WorkspaceLooksService>) {
     let ServiceIo {
         state,
         mut commands,
     } = io;
-    let mut seat: Option<Connection> = None;
-    while let Some(command) = commands.recv().await {
-        match command {
-            WorkspaceLooksCommand::Serve if seat.is_none() => seat = claim(&bus, &state).await,
-            WorkspaceLooksCommand::Serve => {}
-            WorkspaceLooksCommand::Publish(workspaces) => {
-                let changed = state.send_if_modified(|published| {
-                    let changed = published.workspaces != workspaces;
-                    if changed {
-                        published.workspaces = workspaces;
-                    }
-                    changed
-                });
-                if let (true, Some(connection)) = (changed, &seat) {
-                    announce(connection).await;
-                }
+    let seat = match claims {
+        NameClaims::Claim => claim(&bus, &state).await,
+        NameClaims::Passive => None,
+    };
+    while let Some(WorkspaceLooksCommand::Publish(workspaces)) = commands.recv().await {
+        let changed = state.send_if_modified(|published| {
+            let changed = published.workspaces != workspaces;
+            if changed {
+                published.workspaces = workspaces;
             }
+            changed
+        });
+        if let (true, Some(connection)) = (changed, &seat) {
+            announce(connection).await;
         }
     }
 }
 
 async fn claim(bus: &Bus, state: &watch::Sender<WorkspaceLooks>) -> Option<Connection> {
-    match serve::take(bus, state.subscribe()).await {
-        Ok(connection) => {
-            state.send_modify(|published| published.link = WorkspaceLooksLink::Serving);
-            Some(connection)
-        }
-        Err(trouble) => {
-            state.send_modify(|published| {
-                published.link = WorkspaceLooksLink::Unavailable(trouble);
-            });
-            None
-        }
-    }
+    let claimed = serve::claim(bus, BUS_NAME, async |connection| {
+        let object = WorkspacesObject {
+            state: state.subscribe(),
+        };
+        connection
+            .object_server()
+            .at(PATH, object)
+            .await
+            .map(|_| ())
+            .map_err(serve::refused)
+    })
+    .await;
+    let (link, seat) = serve::held(claimed);
+    state.send_modify(|published| published.link = link);
+    seat
 }
 
 /// Send `PropertiesChanged` for `Workspaces`.

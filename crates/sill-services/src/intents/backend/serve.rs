@@ -1,24 +1,25 @@
 //! Taking the bus: one connection, the names in the order that keeps intentd's trust check true.
 
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 
 use docket_dbus::callers::{Identity, intentd_only};
 use docket_dbus::{CONFIRM_BUS, CONFIRM_PATH};
-use sill_model::intents::LinkTrouble;
 use sill_model::screenshots::Shots;
+use sill_model::serve::ClaimError;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::watch;
 use zbus::Connection;
-use zbus::fdo::RequestNameFlags;
 
 use super::objects::{Call, ConfirmObject};
 use super::provider::{NoSummon, ShellContext, ShellProvider, manifest};
 use crate::app_menu::{MenuAgent, MenuLinks};
 use crate::callers::CallerSource;
-use crate::env::{Bus, ConnectError};
+use crate::env::Bus;
 use crate::intents::ShellCall;
+use crate::serve;
 
 /// The connection that serves the provider and the sheet.
 pub(super) struct Seat {
@@ -36,56 +37,42 @@ pub(super) async fn take(
     menus: MenuLinks,
     shots: watch::Receiver<Shots>,
     proc_root: PathBuf,
-) -> Result<Seat, LinkTrouble> {
-    let connection = match bus.try_connect().await {
-        Ok(connection) => connection,
-        Err(ConnectError::NoBus(_)) => return Err(LinkTrouble::NoBus),
-        Err(ConnectError::Refused(why)) => return Err(LinkTrouble::Refused(why)),
-    };
-    let manifest = manifest().map_err(|error| LinkTrouble::Refused(error.to_string()))?;
-    let app = manifest.manifest().app.clone();
-    let intentd = Arc::new(intentd_at(&connection, &proc_root));
-    let peers = callers.peers_on(connection.clone());
-    let provider = ShellProvider {
-        manifest,
-        calls: shell,
-        menus: MenuAgent::over(connection.clone(), menus.clone(), proc_root, peers.clone()),
-        windows: menus,
-        shots,
-    };
-    docket_client::serve_on_with(
-        &connection,
-        provider,
-        ShellContext { app },
-        NoSummon,
-        intentd,
-    )
-    .await
-    .map_err(|error| trouble(error.to_string()))?;
-    connection
-        .object_server()
-        .at(
-            CONFIRM_PATH,
-            ConfirmObject {
-                calls,
-                serials: Arc::new(AtomicU64::new(0)),
-                peers,
-            },
+) -> Result<Seat, ClaimError> {
+    let claimed = serve::claim(bus, CONFIRM_BUS, async move |connection| {
+        let manifest = manifest().map_err(serve::refused)?;
+        let app = manifest.manifest().app.clone();
+        let intentd = Arc::new(intentd_at(connection, &proc_root));
+        let peers = callers.peers_on(connection.clone());
+        let provider = ShellProvider {
+            manifest,
+            calls: shell,
+            menus: MenuAgent::over(connection.clone(), menus.clone(), proc_root, peers.clone()),
+            windows: menus,
+            shots,
+        };
+        docket_client::serve_on_with(
+            connection,
+            provider,
+            ShellContext { app },
+            NoSummon,
+            intentd,
         )
         .await
-        .map_err(|error| LinkTrouble::Refused(error.to_string()))?;
-    let reply = connection
-        .request_name_with_flags(CONFIRM_BUS, RequestNameFlags::DoNotQueue.into())
-        .await
-        .map_err(|error| trouble(error.to_string()))?;
-    match reply {
-        zbus::fdo::RequestNameReply::PrimaryOwner | zbus::fdo::RequestNameReply::AlreadyOwner => {
-            Ok(Seat { connection })
-        }
-        zbus::fdo::RequestNameReply::InQueue | zbus::fdo::RequestNameReply::Exists => {
-            Err(LinkTrouble::NameTaken(format!("{CONFIRM_BUS} is taken")))
-        }
-    }
+        .map_err(docket_trouble)?;
+        let confirm = ConfirmObject {
+            calls,
+            serials: Arc::new(AtomicU64::new(0)),
+            peers,
+        };
+        connection
+            .object_server()
+            .at(CONFIRM_PATH, confirm)
+            .await
+            .map(|_| ())
+            .map_err(serve::refused)
+    })
+    .await;
+    claimed.map(|connection| Seat { connection })
 }
 
 /// Who may call the provider: intentd's unit only. Under the system's `/proc` its main process is
@@ -96,12 +83,14 @@ fn intentd_at(connection: &Connection, proc_root: &Path) -> Identity {
     Identity::on(connection.clone(), intentd_only(), fixture)
 }
 
-/// A name that is taken says so in its text (docket's "is taken", zbus's "already taken");
-/// anything else is the bus refusing.
-fn trouble(text: String) -> LinkTrouble {
-    if text.contains("taken") {
-        LinkTrouble::NameTaken(text)
+/// docket's `serve_on_with` reports a name that is taken only as text ("<name> is taken"), so
+/// this is the one place that reads it; everything sill claims itself says it with a type
+/// ([`serve::take_name`]).
+fn docket_trouble(error: impl Display) -> ClaimError {
+    let text = error.to_string();
+    if text.contains("is taken") {
+        ClaimError::NameTaken(text)
     } else {
-        LinkTrouble::Refused(text)
+        ClaimError::Refused(text)
     }
 }

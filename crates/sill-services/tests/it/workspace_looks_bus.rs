@@ -4,11 +4,11 @@
 
 use std::time::Duration;
 
+use sill_model::serve::ClaimError;
 use sill_model::workspace_looks::{
     PublishedWorkspace, WorkspaceLooks, WorkspaceLooksCommand, WorkspaceLooksLink,
-    WorkspaceLooksTrouble,
 };
-use sill_services::env::{BusRoute, Buses, Env};
+use sill_services::env::{BusRoute, Buses, Env, NameClaims};
 use sill_services::service::{Handle, spawn};
 use sill_services::workspace_looks::WorkspaceLooksService;
 use sill_testkit::{PrivateBus, TempDir};
@@ -51,6 +51,7 @@ fn start(bus: &PrivateBus) -> (Handle<WorkspaceLooksService>, TempDir) {
     let scratch = TempDir::new("workspace-looks-bus");
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        claims: NameClaims::Claim,
         ..Env::isolated(scratch.path())
     };
     let handle = spawn::<WorkspaceLooksService>(&tokio::runtime::Handle::current(), &env, ());
@@ -72,14 +73,14 @@ async fn the_property_answers_and_a_change_is_announced() {
         return;
     };
     let (mut shell, _scratch) = start(&bus);
-    // Published before the name is taken: the first reader still sees it.
     let _ = shell
         .control
         .send(WorkspaceLooksCommand::Publish(vec![workspace("a", true)]));
-    let _ = shell.control.send(WorkspaceLooksCommand::Serve);
+    // Serving with the list published: the first reader sees it.
     assert!(
         wait_for(&mut shell.state, |s: &WorkspaceLooks| s.link
-            == WorkspaceLooksLink::Serving)
+            == WorkspaceLooksLink::Serving
+            && s.workspaces.len() == 1)
         .await
     );
 
@@ -134,12 +135,11 @@ async fn a_taken_name_is_reported() {
         .await
         .unwrap_or_else(|e| panic!("{e}"));
     let (mut shell, _scratch) = start(&bus);
-    let _ = shell.control.send(WorkspaceLooksCommand::Serve);
     assert!(
-        wait_for(&mut shell.state, |s: &WorkspaceLooks| s.link
-            == WorkspaceLooksLink::Unavailable(
-                WorkspaceLooksTrouble::NameTaken
-            ))
+        wait_for(&mut shell.state, |s: &WorkspaceLooks| matches!(
+            s.link,
+            WorkspaceLooksLink::Unavailable(ClaimError::NameTaken(_))
+        ))
         .await,
         "{:?}",
         shell.state.borrow().link

@@ -11,5 +11,5 @@ mod reduce;
 mod tests;
 
 pub use command::WorkAreaCommand;
-pub use model::{Edge, Rect, WorkArea, WorkAreaLink, WorkAreas, WorkTrouble, Zone};
+pub use model::{Edge, Rect, WorkArea, WorkAreaLink, WorkAreas, Zone};
 pub use reduce::{work_area, work_rect};

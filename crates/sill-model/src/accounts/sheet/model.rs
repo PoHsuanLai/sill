@@ -5,6 +5,7 @@ use porter_core::Toggle;
 use porter_core::sheet::{ServiceChoice, SheetView};
 
 use super::draft::{CopyMark, FieldDraft, ListKey, SubmitCount};
+use crate::serve::ServeLink;
 
 /// The most sheets held at once: accountd opens one per request and waits on it, so a queue
 /// longer than this is something other than accountd.
@@ -35,29 +36,8 @@ impl SheetHandle {
     }
 }
 
-/// Why the shell is not serving the sheet.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SheetTrouble {
-    /// There is no session bus.
-    NoBus,
-    /// Another process owns `org.quire.AccountsSheet1`.
-    NameTaken,
-    /// The bus refused, with its words.
-    Refused(String),
-}
-
-/// Whether the shell serves `org.quire.AccountsSheet1`. A service that cannot says why, and never
-/// sits at its default pretending.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum SheetLink {
-    /// Not asked to serve yet.
-    #[default]
-    Passive,
-    /// The name is owned and accountd may open sheets.
-    Serving,
-    /// It could not be.
-    Unavailable(SheetTrouble),
-}
+/// Whether the shell serves `org.quire.AccountsSheet1`.
+pub type SheetLink = ServeLink;
 
 /// What the person has done on a sheet that is not yet sent: every value the sheet shows that the
 /// shell owns. Rebuilt from the view each time the view changes ([`super::draft`]).

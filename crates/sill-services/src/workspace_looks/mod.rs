@@ -10,7 +10,8 @@
 //!   - Change signal: the standard `PropertiesChanged` for `Workspaces`, sent whenever a
 //!     workspace, a name, a look or the active one changes.
 //! - Read-only: nothing can be set or called.
-//! - **Passive until [`WorkspaceLooksCommand::Serve`]**: a test's `start` never claims the name.
+//! - **Claims the name at start**, unless [`Env::claims`](crate::env::Env) is `Passive` (a test's
+//!   `start` never claims it).
 
 mod backend;
 
@@ -40,8 +41,9 @@ impl Service for WorkspaceLooksService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.session.clone();
+        let claims = env.claims;
         async move {
-            backend::run(bus, io).await;
+            backend::run(bus, claims, io).await;
             Ok(())
         }
     }

@@ -43,6 +43,8 @@ pub use wayland::{WaylandRoute, WaylandUnreached};
 #[derive(Debug, Clone)]
 pub struct Env {
     pub buses: Buses,
+    /// Whether the services that serve a well-known bus name claim it when they start.
+    pub claims: NameClaims,
     /// The compositor the services' own Wayland connections talk to.
     pub wayland: WaylandRoute,
     /// The person's directories.
@@ -91,6 +93,18 @@ pub struct Env {
     pub release_bin: Option<PathBuf>,
 }
 
+/// Whether the services that serve a well-known bus name (`org.quire.Outputs1`, the accounts
+/// sheet, the seat at intentd) claim it when they start. A test's `start` never does, so it
+/// cannot take a name from the person's running shell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NameClaims {
+    /// Claim the names at start.
+    #[default]
+    Claim,
+    /// Leave every name alone; the state stays at its passive default.
+    Passive,
+}
+
 /// When the keycap service asks systemd about its unit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UnitWait {
@@ -128,6 +142,7 @@ impl Env {
         Env {
             polkit: polkit_agent::PolkitRoute::system(buses.system.clone()),
             buses,
+            claims: NameClaims::Claim,
             wayland: WaylandRoute::Environment,
             dirs: Dirs::from_process(),
             clock: Arc::new(SystemClock),
@@ -156,13 +171,14 @@ impl Env {
     /// every directory inside `scratch`, the system clock (read only), DDC monitors from a file
     /// that is not there (none), no polkit helper, session actions that are only recorded, and a
     /// password check that refuses everything, a made-up person for the account, no processes
-    /// running, no child started (each is recorded), no keycap socket and callers judged against an empty table (every call to a
+    /// running, no child started (each is recorded), no keycap socket, no bus name claimed and callers judged against an empty table (every call to a
     /// shell object is refused until a test says who its stand-ins are). For tests that start
     /// services and must never reach the person's session or files. `scratch` must exist: the
     /// wallpaper service watches the nearest existing folder above the wallpaper's source file.
     pub fn isolated(scratch: &Path) -> Env {
         Env {
             buses: Buses::absent(),
+            claims: NameClaims::Passive,
             wayland: WaylandRoute::Socket(scratch.join("no-wayland-socket")),
             dirs: Dirs::under(scratch),
             clock: Arc::new(SystemClock),

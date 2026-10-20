@@ -1,6 +1,6 @@
 //! The vocabulary: one published workspace, what the service holds, and what it is told.
 
-use crate::work_areas::{WorkAreaLink, WorkTrouble};
+use crate::serve::ServeLink;
 
 /// One workspace as an app sees it.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -18,11 +18,8 @@ pub struct PublishedWorkspace {
     pub active: bool,
 }
 
-/// Why the bus name is not served.
-pub type WorkspaceLooksTrouble = WorkTrouble;
-
 /// Whether the workspaces are on the bus.
-pub type WorkspaceLooksLink = WorkAreaLink;
+pub type WorkspaceLooksLink = ServeLink;
 
 /// What the service publishes.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -35,8 +32,6 @@ pub struct WorkspaceLooks {
 /// What the service is told.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorkspaceLooksCommand {
-    /// Claim the bus name and answer; sent once by the daemon.
-    Serve,
     /// These are now the workspaces (the daemon sends them when they change).
     Publish(Vec<PublishedWorkspace>),
 }

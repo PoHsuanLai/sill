@@ -1,6 +1,8 @@
 //! The vocabulary: a rectangle, an edge zone, one output's work area, and what the service
 //! publishes.
 
+use crate::serve::ServeLink;
+
 /// An axis-aligned rectangle in the compositor's logical pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Rect {
@@ -41,26 +43,8 @@ pub struct WorkArea {
     pub scale: u32,
 }
 
-/// Why the bus name is not served.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum WorkTrouble {
-    /// No session bus.
-    NoBus,
-    /// Another process owns the name.
-    NameTaken,
-    /// The bus refused, with its reason.
-    Refused(String),
-}
-
 /// Whether the work areas are on the bus.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum WorkAreaLink {
-    /// Not told to serve yet: nothing claims the name.
-    #[default]
-    Passive,
-    Serving,
-    Unavailable(WorkTrouble),
-}
+pub type WorkAreaLink = ServeLink;
 
 /// What the service publishes.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

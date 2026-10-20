@@ -14,7 +14,5 @@ mod tests;
 
 pub use command::{AccountsSheetCommand, Admit, SheetAction, SheetEvent, SheetOut, admits};
 pub use draft::{CopyMark, FieldDraft, ListKey, SubmitCount};
-pub use model::{
-    AccountsSheets, Awaiting, Draft, MAX_OPEN, OpenSheet, SheetHandle, SheetLink, SheetTrouble,
-};
+pub use model::{AccountsSheets, Awaiting, Draft, MAX_OPEN, OpenSheet, SheetHandle, SheetLink};
 pub use step::step;

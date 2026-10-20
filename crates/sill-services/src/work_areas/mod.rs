@@ -8,7 +8,8 @@
 //!   - Change signal: the standard `PropertiesChanged` for `WorkAreas`, sent whenever an output,
 //!     a panel's height or the dock's reveal changes the list.
 //! - Read-only: nothing can be set or called.
-//! - **Passive until [`WorkAreaCommand::Serve`]**: a test's `start` never claims the name.
+//! - **Claims the name at start**, unless [`Env::claims`](crate::env::Env) is `Passive` (a test's
+//!   `start` never claims it).
 
 mod backend;
 
@@ -39,8 +40,9 @@ impl Service for WorkAreaService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.session.clone();
+        let claims = env.claims;
         async move {
-            backend::run(bus, io).await;
+            backend::run(bus, claims, io).await;
             Ok(())
         }
     }

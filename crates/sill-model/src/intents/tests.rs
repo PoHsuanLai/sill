@@ -10,7 +10,8 @@ use prov::{Actor, AppName, Effect, SpaceId, UnixSeconds};
 
 use super::sheet::{Reply, Serial, SheetChoice, SheetEffect, SheetEvent};
 use super::terminal::{Breaker, TerminalEvent};
-use super::{Intents, IntentsEffect, IntentsEvent, IntentsLink, LinkTrouble, step};
+use super::{Intents, IntentsEffect, IntentsEvent, IntentsLink, step};
+use crate::serve::ClaimError;
 
 pub(crate) fn app(name: &str) -> AppName {
     AppName::parse(name).unwrap_or_else(|e| panic!("{name}: {e}"))
@@ -67,7 +68,7 @@ fn a_link_that_stops_serving_drops_the_questions_nobody_waits_for() {
     assert_eq!(queued.sheets.queue.len(), 1);
     for link in [
         IntentsLink::Passive,
-        IntentsLink::Unavailable(LinkTrouble::NoBus),
+        IntentsLink::Unavailable(ClaimError::NoBus),
     ] {
         let (after, effects) = step(queued.clone(), IntentsEvent::Link(link.clone()));
         assert_eq!(after.link, link);

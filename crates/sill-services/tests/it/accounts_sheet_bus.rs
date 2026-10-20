@@ -14,12 +14,13 @@ use porter_core::sheet::{
 use porter_core::{ProviderId, SecretText};
 use porter_dbus::AccountsSheetProxy;
 use sill_model::accounts::sheet::{
-    AccountsSheetCommand, AccountsSheets, SheetAction, SheetHandle, SheetLink, SheetTrouble,
+    AccountsSheetCommand, AccountsSheets, SheetAction, SheetHandle, SheetLink,
 };
 use sill_model::launch::LaunchCommand;
+use sill_model::serve::ClaimError;
 use sill_services::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
 use sill_services::control::Control;
-use sill_services::env::{BusRoute, Buses, Env};
+use sill_services::env::{BusRoute, Buses, Env, NameClaims};
 use sill_services::service::{Handle, spawn};
 use sill_testkit::{PrivateBus, TempDir};
 use std::pin::Pin;
@@ -92,11 +93,16 @@ pub(crate) struct Shell {
 }
 
 pub(crate) fn shell(bus: &PrivateBus) -> Shell {
+    shell_claiming(bus, NameClaims::Claim)
+}
+
+fn shell_claiming(bus: &PrivateBus, claims: NameClaims) -> Shell {
     let scratch = TempDir::new("accounts-sheet-bus");
     let callers = Introduced::new();
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
         callers: callers.clone(),
+        claims,
         ..Env::isolated(scratch.path())
     };
     let (launch, launched) = Control::channel();
@@ -114,7 +120,6 @@ pub(crate) fn shell(bus: &PrivateBus) -> Shell {
 }
 
 pub(crate) async fn serving(shell: &mut Shell) {
-    let _ = shell.sheet.control.send(AccountsSheetCommand::Serve);
     assert!(
         wait_for(&mut shell.sheet.state, |s: &AccountsSheets| s.link
             == SheetLink::Serving)
@@ -463,12 +468,12 @@ async fn a_bad_call_is_refused_and_accountd_leaving_takes_the_sheets_down() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn the_name_is_claimed_only_when_told_to_serve_and_never_taken_from_another() {
+async fn a_passive_environment_claims_nothing_and_a_taken_name_is_never_fought_over() {
     let Some(bus) = PrivateBus::start() else {
         eprintln!("skipped: no dbus-daemon");
         return;
     };
-    let mut shell = shell(&bus);
+    let _passive = shell_claiming(&bus, NameClaims::Passive);
     tokio::time::sleep(QUIET).await;
     let stranger = connect(&bus, None).await;
     let dbus = zbus::fdo::DBusProxy::new(&stranger)
@@ -478,13 +483,15 @@ async fn the_name_is_claimed_only_when_told_to_serve_and_never_taken_from_anothe
         .unwrap_or_else(|e| panic!("{e}"));
     assert!(
         !dbus.name_has_owner(name.clone()).await.unwrap_or(true),
-        "the name was claimed before Serve"
+        "a passive environment claimed the name"
     );
     let _holder = connect(&bus, Some("org.quire.AccountsSheet1")).await;
-    let _ = shell.sheet.control.send(AccountsSheetCommand::Serve);
+    let mut shell = shell(&bus);
     assert!(
-        wait_for(&mut shell.sheet.state, |s: &AccountsSheets| s.link
-            == SheetLink::Unavailable(SheetTrouble::NameTaken))
+        wait_for(&mut shell.sheet.state, |s: &AccountsSheets| matches!(
+            s.link,
+            SheetLink::Unavailable(ClaimError::NameTaken(_))
+        ))
         .await,
         "{:?}",
         shell.sheet.state.borrow().link

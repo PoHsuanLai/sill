@@ -4,10 +4,9 @@
 
 use std::time::Duration;
 
-use sill_model::work_areas::{
-    Rect, WorkArea, WorkAreaCommand, WorkAreaLink, WorkAreas, WorkTrouble,
-};
-use sill_services::env::{BusRoute, Buses, Env};
+use sill_model::serve::ClaimError;
+use sill_model::work_areas::{Rect, WorkArea, WorkAreaCommand, WorkAreaLink, WorkAreas};
+use sill_services::env::{BusRoute, Buses, Env, NameClaims};
 use sill_services::service::{Handle, spawn};
 use sill_services::work_areas::WorkAreaService;
 use sill_testkit::{PrivateBus, TempDir};
@@ -60,6 +59,7 @@ fn start(bus: &PrivateBus) -> (Handle<WorkAreaService>, TempDir) {
     let scratch = TempDir::new("work-areas-bus");
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        claims: NameClaims::Claim,
         ..Env::isolated(scratch.path())
     };
     let handle = spawn::<WorkAreaService>(&tokio::runtime::Handle::current(), &env, ());
@@ -81,14 +81,14 @@ async fn the_property_answers_and_a_change_is_announced() {
         return;
     };
     let (mut shell, _scratch) = start(&bus);
-    // Published before the name is taken: the first reader still sees it.
     let _ = shell
         .control
         .send(WorkAreaCommand::Publish(vec![area(1, 32)]));
-    let _ = shell.control.send(WorkAreaCommand::Serve);
+    // Serving with the list published: the first reader sees it.
     assert!(
         wait_for(&mut shell.state, |s: &WorkAreas| s.link
-            == WorkAreaLink::Serving)
+            == WorkAreaLink::Serving
+            && s.areas.len() == 1)
         .await
     );
 
@@ -143,10 +143,11 @@ async fn a_taken_name_is_reported() {
         .await
         .unwrap_or_else(|e| panic!("{e}"));
     let (mut shell, _scratch) = start(&bus);
-    let _ = shell.control.send(WorkAreaCommand::Serve);
     assert!(
-        wait_for(&mut shell.state, |s: &WorkAreas| s.link
-            == WorkAreaLink::Unavailable(WorkTrouble::NameTaken))
+        wait_for(&mut shell.state, |s: &WorkAreas| matches!(
+            s.link,
+            WorkAreaLink::Unavailable(ClaimError::NameTaken(_))
+        ))
         .await,
         "{:?}",
         shell.state.borrow().link

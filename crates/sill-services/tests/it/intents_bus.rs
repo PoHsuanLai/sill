@@ -20,13 +20,14 @@ use sill_launcher::WindowKey;
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::intents::sheet::SheetChoice;
 use sill_model::intents::terminal::{Breaker, ControlReach};
-use sill_model::intents::{Intents, IntentsCommand, IntentsLink, LinkTrouble};
+use sill_model::intents::{Intents, IntentsCommand, IntentsLink};
 use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
+use sill_model::serve::ClaimError;
 use sill_model::windows::{
     Activity, Sizing, Toplevel, Toplevels, WindowModel, WindowState, WlCommand,
 };
 use sill_services::control::Control;
-use sill_services::env::{BusRoute, Buses, Env};
+use sill_services::env::{BusRoute, Buses, Env, NameClaims};
 use sill_services::seat::seat;
 use sill_services::service::{Handle, spawn};
 use sill_services::{IntentsLinks, IntentsService, MenuLinks, ShellCall};
@@ -161,7 +162,7 @@ pub(crate) async fn connect(address: &str) -> Connection {
         .unwrap_or_else(|e| panic!("connecting to the private bus: {e}"))
 }
 
-/// A private bus, the seat started on it (passive), and the stand-in intentd owning its name.
+/// A private bus, the seat started on it (claiming its names), and the stand-in intentd owning its name.
 async fn desk() -> Option<Desk> {
     desk_with(no_menus(), watch::channel(Shots::default()).1).await
 }
@@ -177,13 +178,24 @@ pub(crate) async fn desk_as(
     shots: watch::Receiver<Shots>,
     who: Who,
 ) -> Option<Desk> {
-    let bus = PrivateBus::start()?;
+    Some(desk_on(PrivateBus::start()?, menus, shots, who, NameClaims::Claim).await)
+}
+
+/// As [`desk_as`], on `bus` (a test may arrange the bus first) and with `claims` for the seat.
+async fn desk_on(
+    bus: PrivateBus,
+    menus: MenuLinks,
+    shots: watch::Receiver<Shots>,
+    who: Who,
+    claims: NameClaims,
+) -> Desk {
     let procs = intentd_is_this_process();
     let callers = Introduced::new();
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
         proc_root: procs.path().to_owned(),
         callers: callers.clone(),
+        claims,
         ..Env::isolated(Path::new("/nonexistent/sill-intents-bus"))
     };
     let (calls, shell_calls) = mpsc::unbounded_channel();
@@ -209,7 +221,7 @@ pub(crate) async fn desk_as(
         .request_name(INTENTS_BUS)
         .await
         .unwrap_or_else(|e| panic!("{e}"));
-    Some(Desk {
+    Desk {
         procs,
         bus,
         seat,
@@ -217,7 +229,7 @@ pub(crate) async fn desk_as(
         intentd,
         held,
         callers,
-    })
+    }
 }
 
 async fn until(rx: &mut watch::Receiver<Intents>, what: &str, ok: impl FnMut(&Intents) -> bool) {
@@ -232,13 +244,9 @@ async fn until(rx: &mut watch::Receiver<Intents>, what: &str, ok: impl FnMut(&In
 }
 
 impl Desk {
-    /// Serve, and wait until the seat says so.
+    /// Wait until the seat says it serves.
     pub(crate) async fn serving(&self) -> watch::Receiver<Intents> {
         let mut state = self.seat.state.clone();
-        self.seat
-            .control
-            .send(IntentsCommand::Serve)
-            .unwrap_or_else(|e| panic!("{e}"));
         until(&mut state, "the seat serving", |s| {
             s.link == IntentsLink::Serving
         })
@@ -283,8 +291,19 @@ pub(crate) fn no_menus() -> MenuLinks {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_seat_that_was_not_told_to_serve_owns_no_name() {
-    let Some(desk) = desk().await else { return };
+async fn a_seat_in_a_passive_environment_owns_no_name() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let shots = watch::channel(Shots::default()).1;
+    let desk = desk_on(
+        bus,
+        no_menus(),
+        shots,
+        Who::Service(Role::Router),
+        NameClaims::Passive,
+    )
+    .await;
     tokio::time::sleep(Duration::from_millis(300)).await;
     let dbus = fdo::DBusProxy::new(&desk.intentd)
         .await
@@ -294,7 +313,7 @@ async fn a_seat_that_was_not_told_to_serve_owns_no_name() {
             .name_has_owner(name.try_into().unwrap_or_else(|e| panic!("{e}")))
             .await
             .unwrap_or_else(|e| panic!("{e}"));
-        assert!(!owned, "{name} is claimed before `Serve`");
+        assert!(!owned, "{name} is claimed by a passive seat");
     }
     assert_eq!(desk.seat.state.borrow().link, IntentsLink::Passive);
     drop(desk.bus);
@@ -578,19 +597,26 @@ async fn revoking_and_resuming_go_to_intentd_and_the_breaker_follows_its_signal(
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_name_somebody_else_owns_is_the_links_trouble() {
     for taken in ["org.quire.Shell", CONFIRM_BUS] {
-        let Some(desk) = desk().await else { return };
-        let squatter = connect(&desk.bus.address).await;
+        let Some(bus) = PrivateBus::start() else {
+            return;
+        };
+        let squatter = connect(&bus.address).await;
         squatter
             .request_name(taken)
             .await
             .unwrap_or_else(|e| panic!("{e}"));
-        desk.seat
-            .control
-            .send(IntentsCommand::Serve)
-            .unwrap_or_else(|e| panic!("{e}"));
+        let shots = watch::channel(Shots::default()).1;
+        let desk = desk_on(
+            bus,
+            no_menus(),
+            shots,
+            Who::Service(Role::Router),
+            NameClaims::Claim,
+        )
+        .await;
         let mut state = desk.seat.state.clone();
         until(&mut state, "the link's trouble", |s| {
-            matches!(s.link, IntentsLink::Unavailable(LinkTrouble::NameTaken(_)))
+            matches!(s.link, IntentsLink::Unavailable(ClaimError::NameTaken(_)))
         })
         .await;
     }
@@ -598,7 +624,10 @@ async fn a_name_somebody_else_owns_is_the_links_trouble() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn no_session_bus_is_no_sheet_and_not_a_crash() {
-    let env = Env::isolated(Path::new("/nonexistent/sill-intents-bus"));
+    let env = Env {
+        claims: NameClaims::Claim,
+        ..Env::isolated(Path::new("/nonexistent/sill-intents-bus"))
+    };
     let (calls, _rx) = mpsc::unbounded_channel();
     let seat = spawn::<IntentsService>(
         &tokio::runtime::Handle::current(),
@@ -610,12 +639,9 @@ async fn no_session_bus_is_no_sheet_and_not_a_crash() {
             seat: seat().0,
         },
     );
-    seat.control
-        .send(IntentsCommand::Serve)
-        .unwrap_or_else(|e| panic!("{e}"));
     let mut state = seat.state.clone();
     until(&mut state, "no bus", |s| {
-        s.link == IntentsLink::Unavailable(LinkTrouble::NoBus)
+        s.link == IntentsLink::Unavailable(ClaimError::NoBus)
     })
     .await;
     // The handle still takes commands.

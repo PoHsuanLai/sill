@@ -10,8 +10,6 @@ use super::terminal::TerminalEvent;
 /// What the daemon and the surfaces tell the service.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IntentsCommand {
-    /// Take the bus names and serve. The service is passive until the first one.
-    Serve,
     /// The person answered the confirmation `id` on screen.
     Answer { id: ConfirmId, choice: SheetChoice },
     /// The person pressed "Use this brief" on the brief sheet `id`; `text` is the field as they

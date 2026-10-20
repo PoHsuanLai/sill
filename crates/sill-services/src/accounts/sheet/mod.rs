@@ -16,7 +16,8 @@
 //!   that opened the handle.
 //! - **`Input` goes to accountd alone.** It is sent to the opener's unique name, never broadcast,
 //!   because it may carry a typed password; nothing here logs it or keeps it after it is sent.
-//! - **Passive until [`AccountsSheetCommand::Serve`]**: a test's `start` never claims a name.
+//! - **Claims the name at start**, unless [`Env::claims`](crate::env::Env) is `Passive` (a test's
+//!   `start` never claims it).
 //! - **The host opens the page** a browser step shows (accountd opens none); showing the same page
 //!   again (accountd's answer to `OpenAgain`) opens it again, through the launch service.
 //! - A service leaving the bus (or being replaced) takes down its own sheets, and only those.
@@ -54,9 +55,10 @@ impl Service for AccountsSheetService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.session.clone();
+        let claims = env.claims;
         let callers = std::sync::Arc::clone(&env.callers);
         async move {
-            backend::run(bus, callers, deps, io).await;
+            backend::run(bus, claims, callers, deps, io).await;
             Ok(())
         }
     }

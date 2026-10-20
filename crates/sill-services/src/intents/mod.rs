@@ -14,8 +14,8 @@
 //! - the **control** client: the terminal's standing grants (`Control.TerminalGrants`,
 //!   `Control.RevokeTerminalGrant`) and `Control.Resume` for a terminal the breaker paused.
 //!
-//! **Passive until the daemon's first [`IntentsCommand::Serve`]**: a test's `start` never claims a
-//! name; every live test runs on a private bus with a stand-in asker. With no session bus the link
+//! **Claims the names at start**, unless [`Env::claims`] is `Passive` (a test's `start` never
+//! claims them; every live test runs on a private bus with a stand-in asker). With no session bus the link
 //! is `Unavailable(NoBus)` and intentd, finding no trusted sheet, dismisses what it asks.
 
 mod backend;

@@ -57,6 +57,7 @@ pub mod power_profile;
 mod restart;
 pub mod screenshots;
 pub mod seat;
+mod serve;
 pub mod service;
 pub mod session;
 mod stream;

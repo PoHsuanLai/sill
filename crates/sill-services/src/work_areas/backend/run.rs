@@ -1,53 +1,56 @@
-//! The loop: keep the published list current from the daemon's `Publish`, and once told to
-//! `Serve` answer on the bus and say when the list changes.
+//! The loop: keep the published list current from the daemon's `Publish`, claiming the bus name
+//! at the start (unless the [`Env`](crate::env::Env) leaves names alone) and saying when the list
+//! changes.
 
-use sill_model::work_areas::{WorkAreaCommand, WorkAreaLink, WorkAreas};
+use sill_model::work_areas::{WorkAreaCommand, WorkAreas};
 use tokio::sync::watch;
 use zbus::Connection;
 
 use super::object::OutputsObject;
-use super::serve;
-use crate::env::Bus;
+use crate::env::{Bus, NameClaims};
+use crate::serve;
 use crate::service::ServiceIo;
-use crate::work_areas::{PATH, WorkAreaService};
+use crate::work_areas::{BUS_NAME, PATH, WorkAreaService};
 
-pub(crate) async fn run(bus: Bus, io: ServiceIo<WorkAreaService>) {
+pub(crate) async fn run(bus: Bus, claims: NameClaims, io: ServiceIo<WorkAreaService>) {
     let ServiceIo {
         state,
         mut commands,
     } = io;
-    let mut seat: Option<Connection> = None;
-    while let Some(command) = commands.recv().await {
-        match command {
-            WorkAreaCommand::Serve if seat.is_none() => seat = claim(&bus, &state).await,
-            WorkAreaCommand::Serve => {}
-            WorkAreaCommand::Publish(areas) => {
-                let changed = state.send_if_modified(|published| {
-                    let changed = published.areas != areas;
-                    if changed {
-                        published.areas = areas;
-                    }
-                    changed
-                });
-                if let (true, Some(connection)) = (changed, &seat) {
-                    announce(connection).await;
-                }
+    let seat = match claims {
+        NameClaims::Claim => claim(&bus, &state).await,
+        NameClaims::Passive => None,
+    };
+    while let Some(WorkAreaCommand::Publish(areas)) = commands.recv().await {
+        let changed = state.send_if_modified(|published| {
+            let changed = published.areas != areas;
+            if changed {
+                published.areas = areas;
             }
+            changed
+        });
+        if let (true, Some(connection)) = (changed, &seat) {
+            announce(connection).await;
         }
     }
 }
 
 async fn claim(bus: &Bus, state: &watch::Sender<WorkAreas>) -> Option<Connection> {
-    match serve::take(bus, state.subscribe()).await {
-        Ok(connection) => {
-            state.send_modify(|published| published.link = WorkAreaLink::Serving);
-            Some(connection)
-        }
-        Err(trouble) => {
-            state.send_modify(|published| published.link = WorkAreaLink::Unavailable(trouble));
-            None
-        }
-    }
+    let claimed = serve::claim(bus, BUS_NAME, async |connection| {
+        let object = OutputsObject {
+            state: state.subscribe(),
+        };
+        connection
+            .object_server()
+            .at(PATH, object)
+            .await
+            .map(|_| ())
+            .map_err(serve::refused)
+    })
+    .await;
+    let (link, seat) = serve::held(claimed);
+    state.send_modify(|published| published.link = link);
+    seat
 }
 
 /// Send `PropertiesChanged` for `WorkAreas`.

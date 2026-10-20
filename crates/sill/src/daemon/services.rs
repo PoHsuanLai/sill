@@ -3,16 +3,12 @@
 
 use std::sync::Arc;
 
-use sill_model::accounts::sheet::AccountsSheetCommand;
 use sill_model::capture_pick::CaptureCommand;
 use sill_model::companion::SummonOut;
 use sill_model::desktop::DesktopCommand;
-use sill_model::intents::IntentsCommand;
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_model::voice::VoiceConsent;
-use sill_model::work_areas::WorkAreaCommand;
-use sill_model::workspace_looks::WorkspaceLooksCommand;
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
 use sill_services::WindowsService;
 use sill_services::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
@@ -289,25 +285,12 @@ pub(crate) fn follow_settings(
         },
         services.notifications.control.clone(),
     );
-    // The lock, the polkit agent and the seat at intentd (the confirmation sheet, the terminal's
-    // grants, `org.quire.Shell`) are sill's own.
+    // The lock and the polkit agent are sill's own; the seat at intentd (the confirmation sheet,
+    // the terminal's grants, `org.quire.Shell`), the accounts sheet and the outputs' and
+    // workspaces' names claim themselves at start (`Env::claims`).
     let _ = services.locker.control.send(LockerCommand::Configure);
-    let _ = services.intents.control.send(IntentsCommand::Serve);
     // The screen-sharing picker answers on `org.quire.Shell1`, on the same connection.
     let _ = services.capture.control.send(CaptureCommand::Serve);
-    // The accounts sheet is sill's too: accountd draws its consent and add-account steps here.
-    let _ = services
-        .accounts_sheet
-        .control
-        .send(AccountsSheetCommand::Serve);
-    // The outputs' work areas answer on `org.quire.Outputs1`; `crate::work_areas` feeds them.
-    let _ = services.work_areas.control.send(WorkAreaCommand::Serve);
-    // The workspaces and their looks answer on `org.quire.Workspaces1`; `crate::workspace_looks`
-    // feeds them.
-    let _ = services
-        .workspace_looks
-        .control
-        .send(WorkspaceLooksCommand::Serve);
     let _ = services
         .polkit_agent
         .control

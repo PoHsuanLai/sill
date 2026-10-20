@@ -8,8 +8,5 @@ mod reduce;
 #[cfg(test)]
 mod tests;
 
-pub use model::{
-    PublishedWorkspace, WorkspaceLooks, WorkspaceLooksCommand, WorkspaceLooksLink,
-    WorkspaceLooksTrouble,
-};
+pub use model::{PublishedWorkspace, WorkspaceLooks, WorkspaceLooksCommand, WorkspaceLooksLink};
 pub use reduce::published;

@@ -50,9 +50,6 @@ pub enum SheetAction {
 /// What the service hears and what it can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountsSheetCommand {
-    /// Claim `org.quire.AccountsSheet1` (the daemon sends it once the session is up; the service
-    /// is passive until then).
-    Serve,
     /// The person did this on the sheet of `handle`.
     Act(SheetHandle, SheetAction),
 }

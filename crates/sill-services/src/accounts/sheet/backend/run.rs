@@ -1,11 +1,12 @@
-//! The loop: passive until `Serve`, then the calls from accountd and the person's actions, each a
-//! [`SheetEvent`] fed to the pure step; what the step asks (an `Input` signal) is carried out here.
+//! The loop: claim the name at the start (unless the environment leaves names alone), then the
+//! calls from accountd and the person's actions, each a [`SheetEvent`] fed to the pure step; what
+//! the step asks (an `Input` signal) is carried out here.
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use porter_core::sheet::SheetInput;
-use porter_dbus::SHEET_PATH;
+use porter_dbus::{SHEET_BUS, SHEET_PATH};
 use sill_launcher::OpenTarget;
 use sill_model::accounts::sheet::{
     AccountsSheetCommand, AccountsSheets, Admit, SheetEvent, SheetHandle, SheetLink, SheetOut,
@@ -17,17 +18,18 @@ use zbus::Connection;
 use zbus::fdo;
 
 use super::callers::{Caller, Host};
-use super::objects::Call;
-use super::serve;
+use super::objects::{Call, SheetObject};
 use crate::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
 use crate::callers::CallerSource;
 use crate::control::Control;
-use crate::env::Bus;
+use crate::env::{Bus, NameClaims};
 use crate::owner;
+use crate::serve;
 use crate::service::ServiceIo;
 
 pub(crate) async fn run(
     bus: Bus,
+    claims: NameClaims,
     callers: Arc<dyn CallerSource>,
     links: AccountsSheetLinks,
     io: ServiceIo<AccountsSheetService>,
@@ -36,20 +38,36 @@ pub(crate) async fn run(
         state: tx,
         mut commands,
     } = io;
-    loop {
-        match commands.recv().await {
-            Some(AccountsSheetCommand::Serve) => break,
-            // Nothing is answered before the daemon says to serve.
-            Some(AccountsSheetCommand::Act(..)) => {}
-            None => return,
-        }
-    }
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
-    let connection = match serve::take(&bus, callers.as_ref(), calls_tx).await {
-        Ok(connection) => connection,
-        Err(trouble) => {
-            tx.send_modify(|state| state.link = SheetLink::Unavailable(trouble));
-            // Held until the service is dropped, so its handle keeps answering sends.
+    let callers = callers.as_ref();
+    let claimed = match claims {
+        NameClaims::Claim => {
+            serve::claim(&bus, SHEET_BUS, async move |connection| {
+                let peers = callers.peers_on(connection.clone());
+                let sheet = SheetObject {
+                    calls: calls_tx,
+                    peers,
+                };
+                connection
+                    .object_server()
+                    .at(SHEET_PATH, sheet)
+                    .await
+                    .map(|_| ())
+                    .map_err(serve::refused)
+            })
+            .await
+        }
+        NameClaims::Passive => {
+            // Nothing is answered while the names are left alone; held until the service is
+            // dropped, so its handle keeps answering sends.
+            while commands.recv().await.is_some() {}
+            return;
+        }
+    };
+    let connection = match serve::held(claimed) {
+        (_, Some(connection)) => connection,
+        (link, None) => {
+            tx.send_modify(|state| state.link = link);
             while commands.recv().await.is_some() {}
             return;
         }
@@ -70,7 +88,6 @@ pub(crate) async fn run(
                 Some(AccountsSheetCommand::Act(handle, action)) => {
                     live.feed(SheetEvent::Acted(handle, action));
                 }
-                Some(AccountsSheetCommand::Serve) => {}
                 None => break,
             },
             Some(call) = calls.recv() => live.call(call),

@@ -10,7 +10,8 @@
 use std::sync::mpsc;
 
 use shell_host::HostHandle;
-use sill_model::intents::{Intents, IntentsLink, LinkTrouble};
+use sill_model::intents::{Intents, IntentsLink};
+use sill_model::serve::ClaimError;
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -19,10 +20,10 @@ use crate::daemon::msg::ShellMsg;
 /// What the bus said, when the seat could not take a name because another program owns it.
 pub fn taken(link: &IntentsLink) -> Option<&str> {
     match link {
-        IntentsLink::Unavailable(LinkTrouble::NameTaken(said)) => Some(said),
+        IntentsLink::Unavailable(ClaimError::NameTaken(said)) => Some(said),
         IntentsLink::Passive
         | IntentsLink::Serving
-        | IntentsLink::Unavailable(LinkTrouble::NoBus | LinkTrouble::Refused(_)) => None,
+        | IntentsLink::Unavailable(ClaimError::NoBus | ClaimError::Refused(_)) => None,
     }
 }
 
@@ -65,7 +66,8 @@ pub fn spawn(
 
 #[cfg(test)]
 mod tests {
-    use sill_model::intents::{Intents, IntentsLink, LinkTrouble};
+    use sill_model::intents::{Intents, IntentsLink};
+    use sill_model::serve::ClaimError;
     use tokio::sync::watch;
 
     use super::{line, taken, until_taken};
@@ -75,15 +77,15 @@ mod tests {
         let cases = [
             ("not asked yet", IntentsLink::Passive, None),
             ("serving", IntentsLink::Serving, None),
-            ("no bus", IntentsLink::Unavailable(LinkTrouble::NoBus), None),
+            ("no bus", IntentsLink::Unavailable(ClaimError::NoBus), None),
             (
                 "the bus refused",
-                IntentsLink::Unavailable(LinkTrouble::Refused("no".to_owned())),
+                IntentsLink::Unavailable(ClaimError::Refused("no".to_owned())),
                 None,
             ),
             (
                 "taken",
-                IntentsLink::Unavailable(LinkTrouble::NameTaken(
+                IntentsLink::Unavailable(ClaimError::NameTaken(
                     "org.quire.Shell is taken".to_owned(),
                 )),
                 Some("org.quire.Shell is taken"),
@@ -104,7 +106,7 @@ mod tests {
     #[tokio::test]
     async fn a_name_taken_before_or_after_the_watch_began_ends_it_with_the_line() {
         let held = Intents {
-            link: IntentsLink::Unavailable(LinkTrouble::NameTaken(
+            link: IntentsLink::Unavailable(ClaimError::NameTaken(
                 "org.quire.Shell is taken".to_owned(),
             )),
             ..Intents::default()

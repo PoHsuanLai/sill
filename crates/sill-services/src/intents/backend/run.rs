@@ -1,9 +1,9 @@
 //! The service's loop.
 //!
-//! Passive until `Serve`; then [`serve::take`] claims the names and the state says `Serving` (or
-//! why not). From there every thing that happens is an [`IntentsEvent`] fed to the pure `step`:
-//! a `Confirm` call (given its asker, remembered by serial), a `Cancel`, the person's answer
-//! (stamped with the wall clock), a question's expiry (a sleep of its own), intentd arriving or
+//! [`serve::take`] claims the names at the start (unless the environment leaves names alone) and
+//! the state says `Serving` (or why not). From there every thing that happens is an
+//! [`IntentsEvent`] fed to the pure `step`: a `Confirm` call (given its asker, remembered by
+//! serial), a `Cancel`, the person's answer (stamped with the wall clock), a question's expiry (a sleep of its own), intentd arriving or
 //! leaving (the owner of `org.quire.Intents1`: arriving reads the grants, leaving drops the
 //! questions nobody waits for), and the control's signals. What `step` asks of the outside is
 //! carried out here: the `Response` signal to the asker alone, the sleeps, the reads.
@@ -29,7 +29,7 @@ use super::objects::{Asker, Call, REQUEST_INTERFACE, retire};
 use super::serve::{self, Seat};
 use crate::call_error::CallError;
 use crate::callers::CallerSource;
-use crate::env::{Bus, Env, WallClock};
+use crate::env::{Bus, Env, NameClaims, WallClock};
 use crate::intents::{IntentsLinks, IntentsService};
 use crate::owner;
 use crate::service::ServiceIo;
@@ -41,6 +41,7 @@ const GRANT_SETTLE: Duration = Duration::from_millis(400);
 /// What the loop reaches outside the process.
 pub(crate) struct Reach {
     session: Bus,
+    claims: NameClaims,
     clock: Arc<dyn WallClock>,
     proc_root: PathBuf,
     callers: Arc<dyn CallerSource>,
@@ -50,6 +51,7 @@ impl Reach {
     pub(crate) fn of(env: &Env) -> Reach {
         Reach {
             session: env.buses.session.clone(),
+            claims: env.claims,
             clock: Arc::clone(&env.clock),
             proc_root: env.proc_root.clone(),
             callers: Arc::clone(&env.callers),
@@ -73,13 +75,11 @@ pub(crate) async fn run(reach: Reach, links: IntentsLinks, io: ServiceIo<Intents
         state: tx,
         mut commands,
     } = io;
-    loop {
-        match commands.recv().await {
-            Some(IntentsCommand::Serve) => break,
-            // Nothing is answered, revoked or read before the daemon says to serve.
-            Some(_) => {}
-            None => return,
-        }
+    if reach.claims == NameClaims::Passive {
+        // Nothing is answered, revoked or read while the names are left alone; held until the
+        // service is dropped, so its handle keeps answering sends.
+        while commands.recv().await.is_some() {}
+        return;
     }
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
     let (inner_tx, mut inner) = mpsc::unbounded_channel();
@@ -203,7 +203,6 @@ impl Live {
 
     fn command(&mut self, command: IntentsCommand) {
         match command {
-            IntentsCommand::Serve => {}
             IntentsCommand::Answer { id, choice } => self.answer(id, choice),
             IntentsCommand::AnswerBrief { id, text } => self.answer_brief(id, text),
             IntentsCommand::RevokeGrant(grant) => self.revoke(grant),
