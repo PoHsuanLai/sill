@@ -12,9 +12,10 @@ use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Presence
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "voice-consent-panel";
 
-/// The layer: over the whole output, the pointer everywhere on it.
-pub(super) const PRESET: LayerPreset = LayerPreset::FullOutputSheet {
-    blur: Some(PanelBlur::sheet(PANEL_ID)),
+/// The layer: over the whole output, but the pointer only on the panel, so a click beside the
+/// sheet reaches the window under it (the sheet draws no scrim and closes on no outside press).
+pub(super) const PRESET: LayerPreset = LayerPreset::PanelOnly {
+    panel: PanelBlur::sheet(PANEL_ID),
 };
 
 /// The sheet that asks before the microphone may open.

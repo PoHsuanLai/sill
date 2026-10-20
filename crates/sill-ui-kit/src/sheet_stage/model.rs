@@ -1,6 +1,7 @@
 //! The stage's state types.
 
 use ds::prelude::*;
+use shell_host::Visibility;
 
 use crate::surface::Pointer;
 
@@ -31,6 +32,16 @@ pub(super) enum StageIn<T> {
 pub enum Mapped {
     Yes,
     No,
+}
+
+impl Mapped {
+    /// The surface's visibility for this mapping.
+    pub fn visibility(self) -> Visibility {
+        match self {
+            Mapped::Yes => Visibility::Shown,
+            Mapped::No => Visibility::Hidden,
+        }
+    }
 }
 
 impl<T> SheetStage<T> {

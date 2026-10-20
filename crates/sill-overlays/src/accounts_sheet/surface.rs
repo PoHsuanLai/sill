@@ -9,6 +9,11 @@ use super::view::accounts_sheet;
 use sill_ui_kit::links::{BannerLink, Links};
 use sill_ui_kit::surface::{LayerPreset, OutputPolicy, Place, Presence, Surface};
 
+/// The layer: over the whole output, the pointer everywhere on it while the sheet is up. The
+/// surface unmaps at once when the step goes (no exit is played), so there is no stage to pass
+/// the pointer through.
+pub(super) const PRESET: LayerPreset = LayerPreset::FullOutputSheet { blur: None };
+
 /// The sheet accountd draws its consent question and add-account steps on.
 #[derive(Debug)]
 pub enum AccountsSheet {}
@@ -31,7 +36,7 @@ impl Surface for AccountsSheet {
     }
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
-        LayerPreset::FullOutputSheet { blur: None }.config(Self::NAME, output)
+        PRESET.config(Self::NAME, output)
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

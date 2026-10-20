@@ -4,12 +4,13 @@
 //! answer hides the surface at once; the daemon's end of the question arrives after.
 
 use dioxus::prelude::*;
-use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
+use shell_host::{OutputInfo, Visibility, use_watch};
 use sill_model::capture_pick::{AskId, CaptureCommand, ColorOutcome};
 use sill_model::desktop::OutputShot;
 use sill_services::Control;
 use sill_services::capture_pick::CaptureService;
 use sill_ui_kit::hooks::use_control;
+use sill_ui_kit::hooks::use_follow_visibility as follow_visibility;
 use sill_ui_kit::links::{EyedropFeed, EyedropperLink};
 
 use super::model::shown_on;
@@ -65,19 +66,8 @@ fn use_exists(link: &EyedropperLink) {
 /// Map this surface while there is something to draw on it, unmap it otherwise. Nothing to do
 /// without a host (a test, an SSR render).
 fn use_follow_visibility(sampler: Sampler) {
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(None::<Visibility>));
-    use_effect(move || {
-        let visible = match sampler.shown() {
-            Some(_) => Visibility::Shown,
-            None => Visibility::Hidden,
-        };
-        if *applied.peek() == Some(visible) {
-            return;
-        }
-        applied.set(Some(visible));
-        if let Some(surface) = &surface {
-            surface.set_visibility(visible);
-        }
+    follow_visibility(move || match sampler.shown() {
+        Some(_) => Visibility::Shown,
+        None => Visibility::Hidden,
     });
 }

@@ -40,22 +40,17 @@ fn the_sheets_are_keyboard_exclusive_full_output_overlays() {
             sheet,
             Region::Whole,
         ),
-        // The confirm takes the pointer on its panel only: a click beside it reaches the window.
+        // The confirm, permission, consent and polkit sheets take the pointer on their panel only: a click beside it reaches the window.
         (layer_of::<ConfirmSheet>(), "confirm", sheet, sheet),
-        (
-            layer_of::<PermissionSheet>(),
-            "permission",
-            sheet,
-            Region::Whole,
-        ),
+        (layer_of::<PermissionSheet>(), "permission", sheet, sheet),
         (
             layer_of::<VoiceConsentSheet>(),
             "voice-consent",
             sheet,
-            Region::Whole,
+            sheet,
         ),
         (layer_of::<CaptureSheet>(), "capture", sheet, Region::Whole),
-        (layer_of::<PolkitPrompt>(), "polkit", sheet, Region::Whole),
+        (layer_of::<PolkitPrompt>(), "polkit", sheet, sheet),
         (layer_of::<PowerMenu>(), "power-menu", sheet, Region::Whole),
         // The switcher's panel is `Material::Osd`'s 18, and takes input only on itself.
         (

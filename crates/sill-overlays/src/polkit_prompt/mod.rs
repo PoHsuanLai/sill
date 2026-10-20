@@ -5,7 +5,7 @@
 //! avatar and name of the identity asked for, the action's sentence, the details as a hover
 //! card, a secret field, Cancel and Authenticate; `Wrong` shakes once) in `Ds { material: Sheet,
 //! extent: Viewport }` (`view.rs`). Keyboard `Exclusive`; Enter submits and Escape
-//! and the scrim cancel, all inside quire's component.
+//! cancels, all inside quire's component; the pointer reaches the panel only.
 //!
 //! An answer goes to the agent as `PolkitCommand::Answer` (the text wrapped in a `Secret` at
 //! once, never kept), a cancel as `Dismiss`; the surface never talks to polkit.

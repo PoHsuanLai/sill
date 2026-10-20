@@ -4,7 +4,8 @@
 //! (which the daemon puts on the link) arrives after.
 
 use dioxus::prelude::*;
-use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
+use shell_host::{OutputInfo, Visibility, use_watch};
+use sill_ui_kit::hooks::use_follow_visibility as follow_visibility;
 use sill_ui_kit::links::{OfferSerial, SplitAnswer, SplitOffer, SplitPickerLink};
 
 use super::model::shows_on;
@@ -65,19 +66,8 @@ impl Picker {
 /// Map this surface while an offer shows on its output, unmap it otherwise. Nothing to do
 /// without a host (a test, an SSR render).
 fn use_follow_visibility(picker: Picker) {
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(None::<Visibility>));
-    use_effect(move || {
-        let visible = match picker.shown() {
-            Some(_) => Visibility::Shown,
-            None => Visibility::Hidden,
-        };
-        if *applied.peek() == Some(visible) {
-            return;
-        }
-        applied.set(Some(visible));
-        if let Some(surface) = &surface {
-            surface.set_visibility(visible);
-        }
+    follow_visibility(move || match picker.shown() {
+        Some(_) => Visibility::Shown,
+        None => Visibility::Hidden,
     });
 }

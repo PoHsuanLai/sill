@@ -9,6 +9,10 @@ use super::view::color_sampler;
 use sill_ui_kit::links::{EyedropperLink, Links};
 use sill_ui_kit::surface::{LayerPreset, Place, Presence, Surface};
 
+/// The layer: over the whole output, the pointer everywhere on it (the picker covers the screen
+/// on purpose). The surface unmaps at once on an answer, with no exit to play.
+pub(super) const PRESET: LayerPreset = LayerPreset::FullOutputSheet { blur: None };
+
 /// The surface that lets the person point at a colour on the screen.
 #[derive(Debug)]
 pub enum ColorSampler {}
@@ -29,7 +33,7 @@ impl Surface for ColorSampler {
     }
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
-        LayerPreset::FullOutputSheet { blur: None }.config(Self::NAME, output)
+        PRESET.config(Self::NAME, output)
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

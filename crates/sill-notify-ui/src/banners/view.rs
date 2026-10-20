@@ -27,7 +27,7 @@ use super::keys::banner_key;
 use super::layer::ROOM;
 use super::stack::stack;
 use super::step::{BannerIn, BannerParams};
-use sill_ui_kit::hooks::{use_control, use_service_part, use_settings};
+use sill_ui_kit::hooks::{use_control, use_follow_visibility, use_service_part, use_settings};
 use sill_ui_kit::links::{BannerLink, KeyWhat, Transient};
 use sill_ui_kit::notification_card::{
     CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
@@ -230,20 +230,9 @@ fn use_regions(regions: Regions) {
 /// Map the surface once a card is drawn; unmap it once none is (the stack has played the last
 /// one out and said so).
 fn use_map_while_showing(column: Column) {
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Showing::Nothing));
-    use_effect(move || {
-        let showing = column.deck.read().showing();
-        if *applied.peek() == showing {
-            return;
-        }
-        applied.set(showing);
-        if let Some(surface) = &surface {
-            surface.set_visibility(match showing {
-                Showing::Cards => Visibility::Shown,
-                Showing::Nothing => Visibility::Hidden,
-            });
-        }
+    use_follow_visibility(move || match column.deck.read().showing() {
+        Showing::Cards => Visibility::Shown,
+        Showing::Nothing => Visibility::Hidden,
     });
 }
 

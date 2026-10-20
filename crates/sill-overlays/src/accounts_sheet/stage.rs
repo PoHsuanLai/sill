@@ -3,15 +3,9 @@
 
 use sill_model::accounts::sheet::AccountsSheets;
 use sill_model::accounts::sheet::SheetHandle;
+use sill_ui_kit::sheet_stage::Mapped;
 
 use super::props::{Step, step_of};
-
-/// Whether the surface is mapped.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Mapped {
-    Yes,
-    No,
-}
 
 /// Whether the banners' output is this one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

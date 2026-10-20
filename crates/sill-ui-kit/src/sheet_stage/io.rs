@@ -3,10 +3,11 @@
 //! the preset's input while a value is up, nothing from the moment its exit starts.
 
 use dioxus::prelude::*;
-use shell_host::{RegionSpec, SurfaceHandle, Visibility};
+use shell_host::{RegionSpec, SurfaceHandle};
 
-use super::model::{Mapped, SheetStage, StageIn};
+use super::model::{SheetStage, StageIn};
 use super::step::advance;
+use crate::hooks::use_follow_visibility;
 use crate::surface::{LayerPreset, Pointer};
 
 /// The stage following `wanted` (read inside an effect, so the signals it reads drive it), and
@@ -22,21 +23,7 @@ where
     let stage = use_signal(|| SheetStage::<T>::Empty);
     use_effect(move || step(stage, StageIn::Want(wanted())));
     use_follow_pointer(preset, move || stage.read().pointer());
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Mapped::No));
-    use_effect(move || {
-        let mapped = stage.read().mapped();
-        if *applied.peek() == mapped {
-            return;
-        }
-        applied.set(mapped);
-        if let Some(surface) = &surface {
-            surface.set_visibility(match mapped {
-                Mapped::Yes => Visibility::Shown,
-                Mapped::No => Visibility::Hidden,
-            });
-        }
-    });
+    use_follow_visibility(move || stage.read().mapped().visibility());
     stage
 }
 

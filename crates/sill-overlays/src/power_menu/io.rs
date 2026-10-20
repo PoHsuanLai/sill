@@ -6,11 +6,12 @@
 //! which the acceptance script proves before it presses Enter.
 
 use dioxus::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
+use shell_host::{OutputId, use_watch};
 use sill_model::session::{Session, SessionAction, SessionCommand};
 use sill_services::Control;
 use sill_services::env::ActionReach;
 use sill_settings::PowerMenuDefault;
+use sill_ui_kit::hooks::use_follow_visibility as follow_visibility;
 use sill_ui_kit::services::Services;
 
 use super::choice::{initial, offered};
@@ -155,18 +156,7 @@ fn use_keyboard_line(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: Output
 /// Map this surface while the menu shows on `output`, unmap it otherwise. Nothing to do without
 /// a host (a test, an SSR render).
 fn use_follow_visibility(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: OutputId) {
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(None::<Visibility>));
-    use_effect(move || {
-        let visible = shown.read().shows_on(output);
-        if *applied.peek() == Some(visible) {
-            return;
-        }
-        applied.set(Some(visible));
-        if let Some(surface) = &surface {
-            surface.set_visibility(visible);
-        }
-    });
+    follow_visibility(move || shown.read().shows_on(output));
 }
 
 /// The actions `session` offers, in the buttons' order, as their labels joined by commas (the

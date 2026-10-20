@@ -11,10 +11,10 @@ use ds_shell::prelude::{
     BrowserWait, ConsentBody, ProviderList, ReviewServices, ShowCode, SignInFailed, SignInForm,
     SignInWorking,
 };
-use shell_host::{OutputInfo, SurfaceHandle, Visibility};
+use shell_host::OutputInfo;
 use sill_model::accounts::sheet::{AccountsSheets, SheetAction};
 use sill_services::accounts::sheet::AccountsSheetService;
-use sill_ui_kit::hooks::{use_banner_output, use_service};
+use sill_ui_kit::hooks::{use_banner_output, use_follow_visibility, use_service};
 use sill_ui_kit::root::SurfaceRoot;
 
 use super::ACCOUNTS_SHEET_CSS;
@@ -22,7 +22,7 @@ use super::continue_as::ContinueBody;
 use super::events;
 use super::io::{Io, use_io};
 use super::props::{Purpose, Step};
-use super::stage::{Drawn, Here, Mapped, drawn};
+use super::stage::{Drawn, Here, drawn};
 
 pub(super) fn accounts_sheet(output: OutputInfo) -> Element {
     let shown = use_drawn(output.clone());
@@ -212,7 +212,7 @@ fn body(step: Step, io: Io) -> Element {
 }
 
 /// The step on screen on `output`, following the service and the banners' output, and the
-/// surface's mapping following it. Nothing to map without a host (a test, an SSR render).
+/// surface's mapping following it.
 fn use_drawn(output: OutputInfo) -> Memo<Option<Drawn>> {
     let sheets: ReadSignal<AccountsSheets> = use_service::<AccountsSheetService>();
     let banners = use_banner_output();
@@ -224,20 +224,6 @@ fn use_drawn(output: OutputInfo) -> Memo<Option<Drawn>> {
         };
         drawn(&sheets.read(), here)
     });
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Mapped::No));
-    use_effect(move || {
-        let mapped = Drawn::mapped(shown.read().as_ref());
-        if *applied.peek() == mapped {
-            return;
-        }
-        applied.set(mapped);
-        if let Some(surface) = &surface {
-            surface.set_visibility(match mapped {
-                Mapped::Yes => Visibility::Shown,
-                Mapped::No => Visibility::Hidden,
-            });
-        }
-    });
+    use_follow_visibility(move || Drawn::mapped(shown.read().as_ref()).visibility());
     shown
 }
