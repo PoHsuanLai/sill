@@ -16,8 +16,8 @@ use sill_services::env::Dirs;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     ActionLink, BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink,
-    EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PowerMenuLink,
-    SheetLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
+    EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink,
+    PowerMenuLink, SheetLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::{Services, Wiring};
 use sill_ui_kit::settings::SettingsFeed;

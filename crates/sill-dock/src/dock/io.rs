@@ -7,9 +7,9 @@
 //! so an idle dock renders nothing. A `Redraw` stamps the time the next render draws at.
 
 use dioxus::prelude::*;
-use ds::prelude::MenuItem;
 use ds::base::time::clock::sleep;
 use ds::base::time::stamp::Stamp;
+use ds::prelude::MenuItem;
 use shell_host::{FrameDrive, Rect, SurfaceHandle};
 use sill_model::badges::Badges;
 use sill_settings::{AutoHide, DockMenuOrder, Magnification};
@@ -317,12 +317,9 @@ fn show(
     anchor: Option<Rect>,
 ) {
     let menu = slots.menu.peek().clone();
-    let (Some(anchor), Some(_), true, false) = (
-        anchor,
-        &outward.surface,
-        menu.is_free(),
-        entries.is_empty(),
-    ) else {
+    let (Some(anchor), Some(_), true, false) =
+        (anchor, &outward.surface, menu.is_free(), entries.is_empty())
+    else {
         close_menu(slots.feed);
         return;
     };

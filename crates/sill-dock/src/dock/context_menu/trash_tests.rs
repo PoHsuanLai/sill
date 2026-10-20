@@ -34,7 +34,11 @@ fn the_trash_offers_open_and_empty_trash() {
     assert_eq!(
         entries(Availability::Enabled),
         [
-            ("Open".to_owned(), DockPick::OpenTrash, Availability::Enabled),
+            (
+                "Open".to_owned(),
+                DockPick::OpenTrash,
+                Availability::Enabled
+            ),
             (
                 "Empty Trash".to_owned(),
                 DockPick::EmptyTrash,

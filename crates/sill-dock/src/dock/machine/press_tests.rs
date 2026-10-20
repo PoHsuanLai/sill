@@ -271,7 +271,10 @@ fn the_dock_menu_opens_on_a_secondary_press_over_the_pill_only() {
     assert_eq!(dock.menu, MenuState::Open);
     for (name, event) in [
         ("primary press", on_pill(Button::Primary, Hit::Pill)),
-        ("secondary outside", on_pill(Button::Secondary, Hit::Outside)),
+        (
+            "secondary outside",
+            on_pill(Button::Secondary, Hit::Outside),
+        ),
     ] {
         assert_eq!(acts(&p, &[(0, event)]).1, vec![], "{name}");
     }

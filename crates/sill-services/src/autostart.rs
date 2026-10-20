@@ -41,7 +41,9 @@ impl Login {
 
 /// `app`'s autostart file under `dirs`' config directory.
 pub fn file_of(dirs: &Dirs, app: &AppId) -> PathBuf {
-    dirs.config.join("autostart").join(format!("{}.desktop", app.0))
+    dirs.config
+        .join("autostart")
+        .join(format!("{}.desktop", app.0))
 }
 
 /// Whether `text` carries sill's mark.

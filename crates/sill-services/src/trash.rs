@@ -29,7 +29,10 @@ pub fn empty(dirs: &Dirs) -> Result<(), ServiceError> {
         clear(&root.join("info")),
         remove_cache(&root.join("directorysizes")),
     ];
-    failures.into_iter().find_map(Result::err).map_or(Ok(()), Err)
+    failures
+        .into_iter()
+        .find_map(Result::err)
+        .map_or(Ok(()), Err)
 }
 
 /// [`empty`] on a thread of its own; a failure is logged, there being nobody to tell.
@@ -61,7 +64,10 @@ fn clear(folder: &Path) -> Result<(), ServiceError> {
             gone.map_err(|e| io(&path, e))
         })
         .collect();
-    results.into_iter().find_map(Result::err).map_or(Ok(()), Err)
+    results
+        .into_iter()
+        .find_map(Result::err)
+        .map_or(Ok(()), Err)
 }
 
 fn remove_cache(file: &Path) -> Result<(), ServiceError> {

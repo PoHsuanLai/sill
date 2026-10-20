@@ -35,9 +35,9 @@ use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
-    DisplayTrialLink, EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind,
-    OsdLink, PowerMenuLink, Preselect, PromptOutput, SheetLink, SheetOutput, SpacesBarLink,
-    SplitPickerLink, SwitcherAsk, SwitcherLink,
+    DisplayTrialLink, EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource,
+    LockLink, OsdKind, OsdLink, PowerMenuLink, Preselect, PromptOutput, SheetLink, SheetOutput,
+    SpacesBarLink, SplitPickerLink, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::surface::Surface;
 

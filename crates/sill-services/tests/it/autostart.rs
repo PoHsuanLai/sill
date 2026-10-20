@@ -6,7 +6,8 @@ use sill_services::autostart::{Login, file_of, login_of, turn_off, turn_on};
 use sill_services::env::Dirs;
 use sill_testkit::TempDir;
 
-const ENTRY: &str = "[Desktop Entry]\nName=Example\nExec=example %U\n\n[Desktop Action new]\nName=New\n";
+const ENTRY: &str =
+    "[Desktop Entry]\nName=Example\nExec=example %U\n\n[Desktop Action new]\nName=New\n";
 
 fn app() -> AppId {
     AppId("example".to_owned())
