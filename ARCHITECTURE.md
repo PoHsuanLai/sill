@@ -155,7 +155,7 @@ code into `tests.rs`. Exceptions and renames:
 | `notifications/{state,reduce,rules,content,markup,markup_parse,ids,capabilities,policy,limits,origin,rate}.rs` | `sill-model/src/notifications/` |
 | `notifications/{dbus,guard,wire,picture,senders,live,history_file,name_watch}.rs` | `notifications/backend/` |
 | `pins/model.rs` | `sill-model/src/pins/` |
-| `pins/{fs_watch,run}.rs`, `pins/test_support.rs` | `pins/backend/run.rs`, and `fs_watch.rs` becomes the shared `file_touch.rs` (`keycap` watches `keycap.toml` with it); `test_support.rs` goes to `sill-testkit` |
+| `pins/{fs_watch,run}.rs`, `pins/test_support.rs` | `pins/backend/run.rs`, and `fs_watch.rs` becomes the shared `debounced.rs` (`keycap` watches `keycap.toml` with it); `test_support.rs` goes to `sill-testkit` |
 | `polkit_agent/{types,machine,identity,helper}.rs` | `sill-model/src/polkit_agent/` |
 | `polkit_agent/{bus,dbus,run,live}.rs` | `polkit_agent/backend/` |
 | `screenshots/{reduce,names}.rs`; `tool.rs` (parse only) | `sill-model/src/screenshots/`; the tool string is parsed at load by `sill-settings` into a typed `ShotTool` |

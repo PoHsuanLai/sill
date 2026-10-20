@@ -19,7 +19,7 @@ use tokio::time::{Duration, Instant, sleep_until};
 use super::links::{KeycapLinks, Reach};
 use super::socket::{self, Link};
 use super::{config, notice, systemd};
-use crate::debounced::{self, Debounced};
+use crate::debounced;
 use crate::error::ServiceError;
 use crate::keycap::KeycapService;
 use crate::notices::Board;
