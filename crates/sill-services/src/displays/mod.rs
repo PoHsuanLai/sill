@@ -17,8 +17,8 @@
 //!
 //! The service is inert until the daemon sends its first [`DisplaysCommand::Policy`].
 
-pub mod bus;
 mod backend;
+pub mod bus;
 
 pub use backend::{OutputsRoute, WlrOutputs};
 
