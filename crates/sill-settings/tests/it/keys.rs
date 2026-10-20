@@ -40,6 +40,8 @@ const RETIRED: &[&str] = &[
     "widgets.desktop_cell_px",
     "widgets.desktop_gap_px",
     "widgets.world_clocks",
+    // The lock clock follows region.hours (quire f1830b09 drops the row; v0.3.36 still has it).
+    "session.lock_clock",
 ];
 
 fn doc_keys() -> Vec<String> {
