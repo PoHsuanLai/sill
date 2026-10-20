@@ -190,7 +190,11 @@ fn drain(
 }
 
 /// Subscribes to sink and server changes, refreshing the default sink on every one.
-fn subscribe(context: &Rc<RefCell<Context>>, tx: &Published<Volume, VolumeEvent>, sink: &Rc<RefCell<Sink>>) {
+fn subscribe(
+    context: &Rc<RefCell<Context>>,
+    tx: &Published<Volume, VolumeEvent>,
+    sink: &Rc<RefCell<Sink>>,
+) {
     let context_ref = Rc::clone(context);
     let tx = tx.clone();
     let sink_ref = Rc::clone(sink);
@@ -205,7 +209,11 @@ fn subscribe(context: &Rc<RefCell<Context>>, tx: &Published<Volume, VolumeEvent>
 }
 
 /// Re-reads the default sink and sends the resulting `Volume` (or `SinkGone` if there is none).
-fn refresh(context: &Rc<RefCell<Context>>, tx: &Published<Volume, VolumeEvent>, sink: &Rc<RefCell<Sink>>) {
+fn refresh(
+    context: &Rc<RefCell<Context>>,
+    tx: &Published<Volume, VolumeEvent>,
+    sink: &Rc<RefCell<Sink>>,
+) {
     let introspector = context.borrow().introspect();
     let context = Rc::clone(context);
     let tx = tx.clone();
@@ -243,13 +251,11 @@ fn fetch_sink(
             } else {
                 Mute::Audible
             };
-            tx.feed(
-                VolumeEvent::Sink {
-                    sink: info.description.as_deref().unwrap_or_default().to_owned(),
-                    level: percent_of(info.volume.avg()),
-                    mute,
-                },
-            );
+            tx.feed(VolumeEvent::Sink {
+                sink: info.description.as_deref().unwrap_or_default().to_owned(),
+                level: percent_of(info.volume.avg()),
+                mute,
+            });
         }
         ListResult::End => {
             if !seen {

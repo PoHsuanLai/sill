@@ -219,9 +219,9 @@ impl Live {
         }
         if self.held.logind.is_none() && self.held.logind_wait.is_empty() {
             let (system, session_id) = (self.setup.system.clone(), self.setup.session_id.clone());
-            self.held.logind_wait.spawn(async move {
-                idle_logind::connect(&system, session_id.as_deref()).await
-            });
+            self.held
+                .logind_wait
+                .spawn(async move { idle_logind::connect(&system, session_id.as_deref()).await });
         }
         if self.held.served.is_none() {
             let idle = self.tx.subscribe();

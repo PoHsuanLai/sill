@@ -33,12 +33,10 @@ pub(crate) fn run_connect(
     let Some(path) = tracked.device_path.get(&address).cloned() else {
         return;
     };
-    tx.feed(
-        BluetoothEvent::Connection {
-            address: address.clone(),
-            connection: BtConnection::Connecting,
-        },
-    );
+    tx.feed(BluetoothEvent::Connection {
+        address: address.clone(),
+        connection: BtConnection::Connecting,
+    });
     let connection = connection.clone();
     let internal_tx = internal_tx.clone();
     tokio::spawn(async move {

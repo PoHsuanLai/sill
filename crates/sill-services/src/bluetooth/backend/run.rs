@@ -332,12 +332,10 @@ fn handle_removed(
             let _ = stop.send(());
         }
         if let Some(address) = tracked.address_of(&path) {
-            tx.feed(
-                BluetoothEvent::Battery {
-                    address,
-                    battery: BtBattery::Unknown,
-                },
-            );
+            tx.feed(BluetoothEvent::Battery {
+                address,
+                battery: BtBattery::Unknown,
+            });
         }
         return;
     }
@@ -348,7 +346,11 @@ fn handle_removed(
 }
 
 /// Stops `path`'s watchers, drops it from `tracked` and publishes its removal.
-fn remove_device(tx: &Published<Bluetooth, BluetoothEvent>, tracked: &mut Tracked, path: OwnedObjectPath) {
+fn remove_device(
+    tx: &Published<Bluetooth, BluetoothEvent>,
+    tracked: &mut Tracked,
+    path: OwnedObjectPath,
+) {
     tracked.stop_device(&path);
     if let Some(address) = tracked.address_of(&path) {
         tracked.device_path.remove(&address);

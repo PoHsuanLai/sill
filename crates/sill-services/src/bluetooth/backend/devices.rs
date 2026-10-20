@@ -21,11 +21,9 @@ pub(crate) async fn seed_adapter(
     if let Ok(adapter) = Adapter1Proxy::new(connection, path.clone()).await
         && let Ok(powered) = adapter.powered().await
     {
-        tx.feed(
-            BluetoothEvent::Adapter {
-                power: power_of(powered),
-            },
-        );
+        tx.feed(BluetoothEvent::Adapter {
+            power: power_of(powered),
+        });
     }
 }
 
@@ -57,12 +55,10 @@ pub(crate) async fn seed_battery(
     let Ok(percentage) = battery.percentage().await else {
         return false;
     };
-    tx.feed(
-        BluetoothEvent::Battery {
-            address: address.clone(),
-            battery: BtBattery::Level(Percent(u16::from(percentage))),
-        },
-    );
+    tx.feed(BluetoothEvent::Battery {
+        address: address.clone(),
+        battery: BtBattery::Level(Percent(u16::from(percentage))),
+    });
     true
 }
 
