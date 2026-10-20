@@ -73,9 +73,9 @@ async fn allow_writes_the_given_consent_and_the_next_hold_begins() {
             .is_some_and(|at| at > 0),
         "{table:?}"
     );
-    assert_eq!(
-        table["voice"]["hold_to_talk"].as_str(),
-        Some("hold_command")
+    assert!(
+        table["voice"].get("hold_to_talk").is_none(),
+        "only the consent is written; the rest stays as it was: {table:?}"
     );
     desk.send(start());
     desk.state(|v| matches!(v.phase, Phase::Live(_)).then_some(()))
