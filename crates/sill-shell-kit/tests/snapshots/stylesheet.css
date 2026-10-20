@@ -1729,7 +1729,19 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-search-card{ width:600px; max-width:100%; overflow:hidden; border-radius:inherit; }
 .ds-search-card[*|data-surface=own]{ background:var(--raise); color:var(--ink); border-radius:var(--r-panel); box-shadow:var(--shadow-pop); }
 .ds-search-card-rows{ max-height:440px; overflow-y:auto; scrollbar-width:none; border-top:var(--hair) solid var(--line-soft); }
-.ds-search-card-rows .ds-menu[*|data-flow=inline]{ padding:var(--shell-menu-inset); }
+/* The card is Spotlight's panel, so it keeps the command palette's launcher scale (the macOS
+   polish pass, design/13 section 13.3.9), not a text menu's: the query row at 12 by 16 with the
+   22/500 query beside the 20 px glyph, the rows 38 high (`--row-palette-h`) at the row title's
+   14, inset 12 from the card's edge (`--shell-palette-inset`). */
+/* Each selector outweighs the plain search field's own (`text_field.css`), which comes later. */
+.ds-search-card .ds-text-field[*|data-kind=search][*|data-variant=plain] .ds-text-field-frame{ padding:var(--s-12) var(--s-16); gap:var(--s-11); }
+.ds-search-card .ds-text-field[*|data-kind=search] .ds-text-field-icon .ds-ic{ width:var(--shell-field-glyph); height:var(--shell-field-glyph); }
+.ds-search-card .ds-text-field[*|data-kind=search] .ds-input[*|data-variant=plain],
+.ds-search-card .ds-text-field[*|data-kind=search] .ds-input-wrap[*|data-variant=plain] .ds-input-placeholder{ font-size:var(--fs-shell-field); font-weight:var(--fw-shell-field); }
+/* The syntax chips start where the glyph does. */
+.ds-search-card .ds-text-field[*|data-kind=search] .ds-text-field-tokens{ padding:var(--s-4) var(--s-16) var(--s-8); }
+.ds-search-card-rows .ds-menu[*|data-flow=inline]{ padding:var(--shell-palette-inset); }
+.ds-search-card-rows .ds-menu-item{ min-height:var(--row-palette-h); font-size:var(--fs-shell-row); }
 /* -- pane_stack -- */
 /* PaneStack and PageHeader (design/34-MODERN-LOOK.md sections 3.5 and 7). The pages slide as the
    control center's panes do, 26 px and a fade, from one spring in Rust (design/05 section 14, H1):
@@ -2123,7 +2135,7 @@ html,body{margin:0;padding:0;background:transparent}
 /* -- row -- */
 /* Row (design/30 section 2.6, `NSTableCellView`): a leading element, the words, an accessory. Rows
    are 24 tall (Compact; 28 in a table) or 44 (Settings); a row under a highlight fills with the accent and takes
-   the accent's ink (a source list's row fills neutral instead, below) (`FocusStyle::Highlight`, section 1.4), grey when its window is inactive or its
+   the accent's ink (a source list's row fills neutral instead, always, below) (`FocusStyle::Highlight`, section 1.4), grey when its window is inactive or its
    list has lost the keyboard. No hover: a pointer over a row changes nothing (section 1.4).
    Attribute selectors carry `*|` (spike S2). */
 
@@ -2153,19 +2165,16 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-list[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-detail,
 .ds-list[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing,
 .ds-list[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-leading{ color:var(--ink-soft); }
-/* A source list is a sidebar, selected the Mac way (design/27 section 5.12): while the list holds
-   the keyboard its selection is emphasized (the accent with white ink, the plain row rule above);
-   when focus is elsewhere, or the window is inactive, it is a neutral rounded wash that keeps the
-   row's ink, and the selected symbol takes the accent (grey with an inactive window). */
-.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true],
-.ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true]{ background:var(--sel-neutral); color:var(--ink); }
-.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-detail,
-.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing,
-.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-disclosure,
-.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing .ds-ic,
-.ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-detail,
-.ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing{ color:var(--ink-soft); }
-.ds-list[*|data-style=source-list][*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-leading{ color:var(--accent-text); }
+/* A source list is a sidebar, and its selection says where you are, not what to act on
+   (design/27 section 5.12): a neutral rounded wash that keeps the row's ink, focused or not,
+   active window or inactive, so the accent is left to the content beside it. The symbol is ink
+   too; an inactive window softens it with the words around it. */
+.ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true]{ background:var(--sel-neutral); color:var(--ink); }
+.ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-detail,
+.ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing,
+.ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-disclosure,
+.ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing .ds-ic{ color:var(--ink-soft); }
+.ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-leading{ color:var(--ink); }
 .ds[*|data-activity=inactive] .ds-list[*|data-style=source-list] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-leading{ color:var(--ink-soft); }
 
 /* The words: the title over its detail. Emphasis Strong is an unread row. */
@@ -2792,6 +2801,10 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-stop .ds-stop-remove{ border:0; background:none; padding:0; cursor:default; color:var(--ink-faint); line-height:0; }
 
 .ds-presets{ display:grid; grid-template-columns:repeat(8, 22px); gap:var(--s-6); }
+/* PresetSwatches: the presets as a settings row's control, the checked one ringed. */
+.ds-preset-swatches{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:var(--s-8); }
+.ds-preset-swatches .ds-preset{ width:24px; height:24px; }
+.ds-preset-swatches .ds-preset[*|aria-checked=true]{ box-shadow:0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
 .ds-preset{
   width:22px; height:22px; box-sizing:border-box; border-radius:var(--r-pill); border:var(--hair) solid var(--line); cursor:default; padding:0;
 }
@@ -2859,9 +2872,6 @@ html,body{margin:0;padding:0;background:transparent}
 
 .ds-space-part{ display:grid; gap:var(--s-10); padding:var(--s-12); }
 .ds-space-rename{ width:240px; }
-.ds-space-delete{ width:300px; }
-.ds-space-delete h3{ margin:0; }
-.ds-space-delete-body{ margin:0; }
 .ds-space-part-acts{ display:flex; justify-content:flex-end; gap:var(--s-6); }
 
 /* The Edit Space sheet (design/34 section 3.8): the title, the grouped form (the name row, then
@@ -3140,6 +3150,10 @@ html,body{margin:0;padding:0;background:transparent}
 /* Any focus, not only keyboard focus: the plan's accent ring. */
 .ds-text-field[*|data-variant=bezeled][*|data-focus=ring] .ds-text-field-frame{ box-shadow:inset 0 0 0 var(--hair) var(--accent-text), 0 0 0 var(--ring) var(--accent-soft); }
 .ds-text-field[*|data-validity=invalid][*|data-variant=bezeled] .ds-text-field-frame{ box-shadow:inset 0 0 0 calc(var(--hair) * 1.5) var(--danger); }
+/* A plain field's rejection is drawn as a browser draws an invalid input: its text and a line under
+   it in the danger ink, with no note to push the row it sits in. */
+.ds-text-field[*|data-validity=invalid][*|data-variant=plain] .ds-text-field-frame{ box-shadow:inset 0 calc(var(--hair) * -1.5) 0 var(--danger); }
+.ds-text-field[*|data-validity=invalid][*|data-variant=plain] .ds-input{ color:var(--danger); }
 .ds-text-field-icon,
 .ds-text-field-suffix{ display:inline-flex; align-items:center; flex:none; color:var(--ink-faint); line-height:0; }
 .ds-text-field-help{ font-size:var(--fs-help); color:var(--ink-faint); }
@@ -3195,11 +3209,19 @@ html,body{margin:0;padding:0;background:transparent}
    so Blitz's own selection, which it paints over the hidden text in a fixed colour no style
    reaches, stays under it and only the dots' highlight shows. A Plain field's ground is its
    container's, which the mask cannot repeat: there Blitz's highlight shows beside the dots' when
-   a range is selected. */
-.ds-input-wrap[*|data-variant=bezeled] .ds-input-mask{ line-height:var(--tf-h); background:var(--tf-ground); }
-/* Bezeled, the caret spans the field's line, hung from its top: the ascent plus the line's
+   a range is selected. The frame's rings are inset shadows, painted under its children, so the
+   mask stops short of the frame's top and bottom by the widest of them (the invalid ring, 1.5
+   hairlines) and its line is that much shorter, centred where the field's is: an opaque mask of
+   the field's full height hid the ring's long edges as soon as one dot was typed. */
+.ds-input-wrap[*|data-variant=bezeled]{ --tf-mask-inset:calc(var(--hair) * 1.5); }
+.ds-input-wrap[*|data-variant=bezeled] .ds-input-mask{
+  top:var(--tf-mask-inset); line-height:calc(var(--tf-h) - 2 * var(--tf-mask-inset)); background:var(--tf-ground);
+}
+/* Bezeled, the caret spans the mask's line, hung from its top: the ascent plus the line's
    half-leading over Inter's 1.21em. */
-.ds-input-wrap[*|data-variant=bezeled] .ds-input-caret::before{ top:calc(-.969em - (var(--tf-h) - 1.21em) / 2); height:var(--tf-h); }
+.ds-input-wrap[*|data-variant=bezeled] .ds-input-caret::before{
+  top:calc(-.969em - (var(--tf-h) - 2 * var(--tf-mask-inset) - 1.21em) / 2); height:calc(var(--tf-h) - 2 * var(--tf-mask-inset));
+}
 
 /* Plain: the field takes the face of the text it edits. No box, border, padding or ground; font,
    size, weight, tracking, line height and colour are inherited, so a title or a property row's
