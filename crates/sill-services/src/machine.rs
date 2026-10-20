@@ -78,6 +78,11 @@ impl<S: Default + Clone + PartialEq, E, F> Machine<S, E, F> {
         &self.state
     }
 
+    /// Resolves when every reader of the published state is gone.
+    pub(crate) async fn closed(&self) {
+        self.tx.closed().await;
+    }
+
     /// Step by `event`, publish the next state when it differs, and return the effects.
     pub(crate) fn feed(&mut self, event: E) -> Vec<F> {
         let (next, effects) = (self.step)(std::mem::take(&mut self.state), event);

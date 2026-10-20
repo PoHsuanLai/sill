@@ -21,10 +21,11 @@ use sill_model::screenshots::{
 use tokio::sync::{mpsc, watch};
 
 use crate::env::{Children, Dirs};
+use crate::machine::Machine;
 
 /// The task's own state beside the published [`Shots`].
 struct Live {
-    tx: watch::Sender<Shots>,
+    machine: Machine<Shots, ShotEvent, ShotEffect>,
     events: mpsc::UnboundedSender<ShotEvent>,
     policy: Option<ShotPolicy>,
     folders: Vec<PathBuf>,
@@ -44,7 +45,7 @@ pub(crate) async fn run(
 ) {
     let (events, mut heard) = mpsc::unbounded_channel();
     let mut live = Live {
-        tx,
+        machine: Machine::new(tx, step),
         events,
         policy: None,
         folders: Vec::new(),
@@ -59,7 +60,7 @@ pub(crate) async fn run(
                 None => return,
             },
             Some(event) = heard.recv() => Some(event),
-            () = live.tx.closed() => return,
+            () = live.machine.closed() => return,
         };
         if let Some(event) = event {
             live.apply(event);
@@ -92,13 +93,7 @@ impl Live {
     }
 
     fn apply(&mut self, event: ShotEvent) {
-        let (next, effects) = step(self.tx.borrow().clone(), event);
-        self.tx.send_if_modified(|now| {
-            let changed = *now != next;
-            *now = next;
-            changed
-        });
-        for effect in effects {
+        for effect in self.machine.feed(event) {
             self.perform(effect);
         }
     }

@@ -12,6 +12,7 @@ use super::serve;
 use crate::app_menu::{AppMenuDeps, AppMenuService, wire};
 use crate::callers::CallerSource;
 use crate::env::{Bus, ConnectError};
+use crate::machine::Published;
 use crate::service::ServiceIo;
 
 /// How many clicks and "about to show" calls are on the way at once: each waits on an app that may
@@ -43,6 +44,7 @@ pub(crate) async fn run(
         state,
         mut commands,
     } = io;
+    let state = Published::new(state, step);
     let (events_tx, mut events) = mpsc::unbounded_channel::<AppMenuEvent>();
     let mut followers = Followers::default();
     let mut followed: HashMap<MenuApp, Followed> = HashMap::new();
@@ -90,12 +92,7 @@ pub(crate) async fn run(
                 if matches!(&event, AppMenuEvent::Served { app, .. } if !followed.contains_key(app)) {
                     continue;
                 }
-                state.send_if_modified(|menus| {
-                    let next = step(menus.clone(), event);
-                    let changed = next != *menus;
-                    *menus = next;
-                    changed
-                });
+                state.feed(event);
             }
         }
     }

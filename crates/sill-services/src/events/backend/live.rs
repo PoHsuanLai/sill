@@ -19,6 +19,7 @@ use tokio::sync::{mpsc, watch};
 use super::provider::{IcsProvider, provider_for};
 use crate::debounced::{self, Debounced, EventFilter, Place};
 use crate::env::WallClock;
+use crate::machine::Published;
 
 /// The longest the task sleeps without looking at the date: a resume or a zone change shows
 /// within a minute.
@@ -39,6 +40,7 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<EventsCommand>,
     reach: Reach,
 ) {
+    let tx = Published::new(tx, step);
     let mut sources = loop {
         match commands.recv().await {
             Some(EventsCommand::Sources(sources)) => break sources,
@@ -69,7 +71,7 @@ enum Plan {
 
 /// Publish `sources`' events and keep them fresh until the sources change or everyone leaves.
 async fn follow(
-    tx: &watch::Sender<Agenda>,
+    tx: &Published<Agenda, AgendaEvent>,
     commands: &mut mpsc::UnboundedReceiver<EventsCommand>,
     sources: &EventSources,
     reach: &Reach,
@@ -99,9 +101,7 @@ async fn follow(
             () = tokio::time::sleep(until_day_check(&reach.clock.now())) => {
                 let today = reach.clock.now().date();
                 if today != tx.borrow().today {
-                    tx.send_modify(|agenda| {
-                        *agenda = step(agenda.clone(), AgendaEvent::Day(today));
-                    });
+                    tx.feed(AgendaEvent::Day(today));
                     publish(tx, &plan, reach.clock.as_ref()).await;
                 }
             }
@@ -130,7 +130,7 @@ async fn plan_for(sources: &EventSources, auto: &AutoEnv) -> Plan {
 }
 
 /// Read `plan` on the blocking pool and publish what it found.
-async fn publish(tx: &watch::Sender<Agenda>, plan: &Plan, clock: &dyn WallClock) {
+async fn publish(tx: &Published<Agenda, AgendaEvent>, plan: &Plan, clock: &dyn WallClock) {
     let event = match plan {
         Plan::Off => AgendaEvent::Off,
         Plan::NoCalendars => AgendaEvent::NoCalendars,
@@ -150,12 +150,7 @@ async fn publish(tx: &watch::Sender<Agenda>, plan: &Plan, clock: &dyn WallClock)
             }
         }
     };
-    tx.send_if_modified(|agenda| {
-        let next = step(agenda.clone(), event);
-        let changed = next != *agenda;
-        *agenda = next;
-        changed
-    });
+    tx.feed(event);
 }
 
 /// How long after `now` the date should be looked at again: the next local midnight, at most a

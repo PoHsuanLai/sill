@@ -12,6 +12,7 @@ use super::locales::session_locales;
 use crate::apps::{IconRoots, icon_theme, scan};
 use crate::debounced::{Debounced, EventFilter, Place};
 use crate::error::ServiceError;
+use crate::machine::Published;
 
 /// How long the applications directories (and the icon theme file) must be quiet before a
 /// rescan.
@@ -27,6 +28,7 @@ pub(crate) async fn run(
     dirs: Vec<PathBuf>,
     roots: Vec<PathBuf>,
 ) {
+    let tx = Published::new(tx, step);
     let locales = session_locales();
     publish(&tx, &config, &dirs, &roots, &locales).await;
 
@@ -60,9 +62,9 @@ pub(crate) async fn run(
 
 /// Rescan (off the async worker: filesystem and theme-file reads are blocking) and publish,
 /// skipping the send entirely when the fresh index equals the one already shown
-/// (`watch::Sender::send_if_modified`, so a receiver only wakes on a real change).
+/// (`Published`, so a receiver only wakes on a real change).
 async fn publish(
-    tx: &watch::Sender<AppIndex>,
+    tx: &Published<AppIndex, AppsEvent>,
     config: &Path,
     dirs: &[PathBuf],
     roots: &[PathBuf],
@@ -78,15 +80,7 @@ async fn publish(
     })
     .await
     .unwrap_or_default();
-    tx.send_if_modified(|index| {
-        let next = step(index.clone(), AppsEvent::Scanned(found));
-        if next == *index {
-            false
-        } else {
-            *index = next;
-            true
-        }
-    });
+    tx.feed(AppsEvent::Scanned(found));
 }
 
 /// Every applications directory that exists, plus the directory the GTK settings file lives in
