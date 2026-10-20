@@ -7,9 +7,17 @@ fn names(words: &[&str]) -> Vec<String> {
 #[test]
 fn the_next_input_method_wraps_round() {
     const CASES: &[(&str, &[&str], Option<&str>)] = &[
-        ("keyboard-us", &["keyboard-us", "pinyin", "mozc"], Some("pinyin")),
+        (
+            "keyboard-us",
+            &["keyboard-us", "pinyin", "mozc"],
+            Some("pinyin"),
+        ),
         ("pinyin", &["keyboard-us", "pinyin", "mozc"], Some("mozc")),
-        ("mozc", &["keyboard-us", "pinyin", "mozc"], Some("keyboard-us")),
+        (
+            "mozc",
+            &["keyboard-us", "pinyin", "mozc"],
+            Some("keyboard-us"),
+        ),
         ("keyboard-us", &["keyboard-us"], Some("keyboard-us")),
         ("gone", &["keyboard-us", "pinyin"], Some("keyboard-us")),
         ("", &["keyboard-us", "pinyin"], Some("keyboard-us")),

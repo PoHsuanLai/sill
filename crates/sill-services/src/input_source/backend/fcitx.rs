@@ -15,10 +15,8 @@ trait Controller {
     fn current_input_method_group(&self) -> zbus::Result<String>;
 
     /// The group's default layout and its input methods as (unique name, language).
-    fn input_method_group_info(
-        &self,
-        group: &str,
-    ) -> zbus::Result<(String, Vec<(String, String)>)>;
+    fn input_method_group_info(&self, group: &str)
+    -> zbus::Result<(String, Vec<(String, String)>)>;
 
     #[zbus(name = "SetCurrentIM")]
     fn set_current_im(&self, name: &str) -> zbus::Result<()>;

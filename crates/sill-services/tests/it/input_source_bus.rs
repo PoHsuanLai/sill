@@ -54,7 +54,10 @@ fn env_for(bus: &PrivateBus, scratch: &TempDir) -> Env {
 
 async fn until(rx: &mut watch::Receiver<InputSwitch>, ok: impl FnMut(&InputSwitch) -> bool) {
     let waited = tokio::time::timeout(Duration::from_secs(10), rx.wait_for(ok)).await;
-    assert!(matches!(waited, Ok(Ok(_))), "timed out waiting for the switch");
+    assert!(
+        matches!(waited, Ok(Ok(_))),
+        "timed out waiting for the switch"
+    );
 }
 
 #[test]

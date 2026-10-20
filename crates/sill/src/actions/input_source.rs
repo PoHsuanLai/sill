@@ -10,11 +10,7 @@ use crate::ipc::dispatch::{Reach, sent};
 /// Switch to the next input source.
 pub fn next(reach: &Reach) -> Response {
     sent(
-        reach
-            .services
-            .input_source
-            .control
-            .send(InputCommand::Next),
+        reach.services.input_source.control.send(InputCommand::Next),
         "input source",
     )
 }
