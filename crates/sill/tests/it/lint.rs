@@ -408,10 +408,7 @@ fn eyedropper_states() -> Vec<(&'static str, String)> {
 fn force_quit_states() -> Vec<(&'static str, String)> {
     use sill_model::desktop::{ForceQuitRow, Standing};
 
-    let mut panel = SurfaceHarness::<ForceQuit>::setup(ForceQuitLink::new(), ()).start();
-    panel.harness.advance(Duration::from_millis(40));
-    let hidden = panel.harness.html();
-    panel.link.set_rows(vec![
+    let rows = [
         ForceQuitRow {
             app: "mail".to_owned(),
             standing: Standing::Responding,
@@ -420,7 +417,12 @@ fn force_quit_states() -> Vec<(&'static str, String)> {
             app: "term".to_owned(),
             standing: Standing::NotResponding,
         },
-    ]);
+    ];
+    let desktop = tokio::sync::watch::channel(fake::desktop_listing(&rows)).1;
+    let mut panel =
+        SurfaceHarness::<ForceQuit>::setup(ForceQuitLink::following(desktop), ()).start();
+    panel.harness.advance(Duration::from_millis(40));
+    let hidden = panel.harness.html();
     panel.link.open(fake::output().id);
     panel.harness.advance(Duration::from_millis(600));
     let listed = panel.harness.html();

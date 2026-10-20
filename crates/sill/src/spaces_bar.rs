@@ -7,8 +7,8 @@
 
 use shell_host::HostHandle;
 use sill_model::desktop::{
-    BarPick, DesktopCommand, Outbox, OverviewNote, ShellNote, Shown, bar_show, commands_of,
-    outgoing,
+    BarPick, DesktopCommand, DesktopView, Outbox, OverviewNote, ShellNote, Shown, bar_show,
+    commands_of, outgoing,
 };
 use sill_ui_kit::links::{Links, SpacesBarLink, SpacesBarPicked};
 use tokio::runtime::Handle;
@@ -75,23 +75,39 @@ pub fn apply_note(link: &SpacesBarLink, note: &ShellNote) {
 /// the host is gone.
 pub fn spawn_outbox(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
     let mut feed = links.spaces_bar.subscribe();
+    let mut desktop = links.spaces_bar.subscribe_desktop();
     rt.spawn(async move {
         let mut outbox = Outbox::default();
         loop {
             let latest = feed.borrow_and_update().clone();
-            let (next, commands) =
-                outgoing(outbox, &latest.layouts, &latest.view, &latest.pictures);
+            let (next, commands) = {
+                let view = desktop.borrow_and_update();
+                outgoing(outbox, &latest.layouts, &view, &latest.pictures)
+            };
             outbox = next;
             for command in commands {
                 if host.send(ShellMsg::Command(command)).is_err() {
                     return;
                 }
             }
-            if feed.changed().await.is_err() {
-                return;
+            tokio::select! {
+                changed = feed.changed() => {
+                    if changed.is_err() {
+                        return;
+                    }
+                }
+                () = desktop_changed(&mut desktop) => {}
             }
         }
     });
+}
+
+/// Completes each time `desktop` changes; never once its sender is gone (the bars' feed ends the
+/// outbox, not the desktop).
+async fn desktop_changed(desktop: &mut watch::Receiver<DesktopView>) {
+    if desktop.changed().await.is_err() {
+        std::future::pending::<()>().await;
+    }
 }
 
 impl Outgoing for SpacesBarLink {

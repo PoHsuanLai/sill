@@ -8,6 +8,9 @@ use sill_model::bluetooth::{
     Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
 };
 use sill_model::clock::ClockMinute;
+use sill_model::desktop::{
+    AppLifeKind, AppView, AppVisibility, Attention, DesktopView, ForceQuitRow, ProofKind, Standing,
+};
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
 use sill_model::network::{Connectivity, Link, Network};
 use sill_model::now_playing::Media;
@@ -241,5 +244,29 @@ pub fn media() -> Media {
                 previous: Availability::Enabled,
             },
         }],
+    }
+}
+
+/// A desktop whose Force Quit panel lists `rows`, in the order given: one app each, running or not
+/// responding as its row says.
+pub fn desktop_listing(rows: &[ForceQuitRow]) -> DesktopView {
+    let apps = rows
+        .iter()
+        .zip(0u32..)
+        .map(|(row, mru)| AppView {
+            key: row.app.clone(),
+            proof: ProofKind::Claimed,
+            life: match row.standing {
+                Standing::Responding => AppLifeKind::Running,
+                Standing::NotResponding => AppLifeKind::NotResponding,
+            },
+            attention: Attention::None,
+            mru,
+            visibility: AppVisibility::Shown,
+        })
+        .collect();
+    DesktopView {
+        apps,
+        ..DesktopView::default()
     }
 }

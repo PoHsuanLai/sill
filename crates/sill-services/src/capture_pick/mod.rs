@@ -11,10 +11,10 @@
 //!   ([`crate::callers`]); any other caller is refused and draws nothing.
 //! - **One at a time.** A sharing or colour call while a sheet is open gets a plain error at
 //!   once. A permission question waits its turn instead (below).
-//! - **Candidates.** Screens come from the displays service; windows are pushed by the daemon
-//!   from the compositor arm's `DesktopView` ([`CaptureCommand::Windows`]), by the identifiers
-//!   casement publishes. A call waits on the person (Allow or Cancel on the sheet) and returns
-//!   an empty list on cancel. The caller leaving the bus takes the sheet down.
+//! - **Candidates.** Screens come from the displays service; windows from the desktop's view
+//!   ([`CaptureLinks::desktop`]), by the identifiers casement publishes. A call waits on the
+//!   person (Allow or Cancel on the sheet) and returns an empty list on cancel. The caller
+//!   leaving the bus takes the sheet down.
 //! - **Colours.** `PickColor` is checked and admitted the same way, one question of either
 //!   kind at a time, and answered with `a(ddd)`: one colour in 0..1, or an empty array when the
 //!   person cancelled. The daemon sends [`CaptureCommand::Eyedropper`] while an eyedropper
@@ -38,7 +38,7 @@ use std::sync::Arc;
 
 use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{CaptureCommand, CapturePicker};
-use sill_model::desktop::DesktopCommand;
+use sill_model::desktop::{DesktopCommand, DesktopView};
 use sill_model::displays::Displays;
 use tokio::sync::{mpsc, watch};
 
@@ -47,13 +47,16 @@ use crate::error::ServiceError;
 use crate::seat::SeatView;
 use crate::service::{Service, ServiceIo};
 
-/// What the service reads: the seat to export on, the displays to list as screens, the installed
-/// apps that give a program its name, and where the compositor's answers go.
+/// What the service reads: the seat to export on, the displays to list as screens, the desktop's
+/// windows to list as windows, the installed apps that give a program its name, and where the
+/// compositor's answers go.
 #[derive(Debug, Clone)]
 pub struct CaptureLinks {
     /// The shell's connection at intentd, which owns `org.quire.Shell`.
     pub seat: SeatView,
     pub displays: watch::Receiver<Displays>,
+    /// The desktop's view, whose windows are the ones the picker offers.
+    pub desktop: watch::Receiver<DesktopView>,
     /// The installed apps, which name the program that a compositor's question is about.
     pub apps: watch::Receiver<AppIndex>,
     /// Where an answer to the compositor's question goes

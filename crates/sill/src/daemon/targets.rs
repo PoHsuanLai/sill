@@ -9,6 +9,25 @@ use tokio::sync::watch;
 
 use super::msg::ShellMsg;
 
+/// Send `message` now and after each change of `watched`, until the host or the sender is gone.
+/// The value is not carried: whoever handles the message reads the receiver it holds.
+pub fn nudge<T>(
+    runtime: &Handle,
+    host: HostHandle<ShellMsg>,
+    mut watched: watch::Receiver<T>,
+    message: fn() -> ShellMsg,
+) where
+    T: Send + Sync + 'static,
+{
+    runtime.spawn(async move {
+        loop {
+            if host.send(message()).is_err() || watched.changed().await.is_err() {
+                return;
+            }
+        }
+    });
+}
+
 /// Send `watched`'s value now and after each change as `wrap` of it, until the host or the
 /// sender is gone.
 pub fn forward<T>(

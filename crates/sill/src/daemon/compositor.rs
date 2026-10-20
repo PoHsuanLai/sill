@@ -27,7 +27,7 @@ use tokio::sync::watch;
 
 use super::events::Shell;
 use super::msg::ShellMsg;
-use super::targets::forward;
+use super::targets::{forward, nudge};
 use crate::outputs::Outputs;
 
 /// The route the host connects by: the socket the compositor handed over, else the environment.
@@ -42,11 +42,12 @@ struct Link {
 }
 
 /// The daemon's hold on the desktop arm.
-#[derive(Default)]
 pub struct ShellSeat {
     link: Option<Link>,
     arm: Option<ShellArm>,
-    /// The docks' icons, the desktop's windows and the targets the compositor holds for them.
+    /// The desktop's windows: the one channel the windows service writes.
+    desktop: watch::Receiver<DesktopView>,
+    /// The docks' icons and the targets the compositor holds for them.
     targets: Targets,
 }
 
@@ -54,7 +55,6 @@ pub struct ShellSeat {
 #[derive(Default)]
 struct Targets {
     rects: OutputRects,
-    view: DesktopView,
     sent: MinimiseTargets,
 }
 
@@ -69,21 +69,30 @@ impl std::fmt::Debug for ShellSeat {
 
 impl ShellSeat {
     /// No compositor of ours: nothing starts.
-    pub fn absent() -> ShellSeat {
-        ShellSeat::default()
+    pub fn absent(desktop: watch::Receiver<DesktopView>) -> ShellSeat {
+        ShellSeat {
+            link: None,
+            arm: None,
+            desktop,
+            targets: Targets::default(),
+        }
     }
 
     /// The host is on the connection the compositor handed over: the arm starts at the first
-    /// mapped surface that has a role, and its notes reach `host`.
+    /// mapped surface that has a role, and its notes reach `host`, which is also told each time
+    /// `desktop` changes.
     pub fn linked(
         runtime: Handle,
         host: HostHandle<ShellMsg>,
         rects: watch::Receiver<OutputRects>,
+        desktop: watch::Receiver<DesktopView>,
     ) -> ShellSeat {
         forward(&runtime, host.clone(), rects, ShellMsg::DockRects);
+        nudge(&runtime, host.clone(), desktop.clone(), || ShellMsg::Desktop);
         ShellSeat {
             link: Some(Link { runtime, host }),
             arm: None,
+            desktop,
             targets: Targets::default(),
         }
     }
@@ -102,9 +111,10 @@ impl ShellSeat {
         sent
     }
 
-    /// The desktop's windows as the arm last reported them.
-    pub fn view(&self) -> &DesktopView {
-        &self.targets.view
+    /// The desktop's windows as the windows service last published them. Read and let go: the
+    /// publisher waits for the borrow.
+    pub fn view(&self) -> watch::Ref<'_, DesktopView> {
+        self.desktop.borrow()
     }
 
     /// The docks' icons rest somewhere new.
@@ -114,8 +124,7 @@ impl ShellSeat {
     }
 
     /// The desktop's windows changed.
-    pub fn set_view(&mut self, view: DesktopView) {
-        self.targets.view = view;
+    pub fn desktop_changed(&mut self) {
         self.retarget();
     }
 
@@ -125,7 +134,7 @@ impl ShellSeat {
         if self.arm.is_none() {
             return;
         }
-        let wanted = MinimiseTargets::of(&self.targets.rects, &self.targets.view);
+        let wanted = MinimiseTargets::of(&self.targets.rects, &self.desktop.borrow());
         let commands = wanted.since(&self.targets.sent);
         let all_sent = commands.into_iter().all(|command| self.command(command));
         if all_sent {
@@ -152,11 +161,7 @@ impl ShellSeat {
                             }
                         });
                     }
-                    let view = arm.view.clone();
                     self.arm = Some(arm);
-                    forward(&link.runtime, link.host.clone(), view, |view| {
-                        ShellMsg::Desktop(Box::new(view))
-                    });
                 }
                 Err(error) => {
                     eprintln!("sill: desktop: {error}; the shell protocol is not followed");
@@ -240,7 +245,7 @@ pub fn apply(shell: &Shell, note: ShellNote) {
         ShellNote::SplitChoose { .. }
         | ShellNote::SplitCandidate(_)
         | ShellNote::SplitChoiceEnd(_) => {
-            crate::split_picker::apply(&shell.links.split_picker, shell.seat.view(), note);
+            crate::split_picker::apply(&shell.links.split_picker, &shell.seat.view(), note);
         }
         ShellNote::PermissionAsk(consent) => {
             let _capture_may_be_gone = shell

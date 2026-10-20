@@ -40,6 +40,6 @@ pub enum ShellMsg {
     /// A command for the compositor's arm (`crate::outgoing` sends a pick of a
     /// window's menu).
     Command(sill_model::desktop::DesktopCommand),
-    /// The desktop as the compositor's arm sees it now (`targets::forward` sends it).
-    Desktop(Box<sill_model::desktop::DesktopView>),
+    /// The desktop's view changed (`targets::nudge` sends it); the seat reads the view it holds.
+    Desktop,
 }

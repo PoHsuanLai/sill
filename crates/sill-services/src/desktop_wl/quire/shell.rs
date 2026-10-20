@@ -1,7 +1,8 @@
 //! The Quire arm running on the shell host's connection: a thread that binds the desktop
 //! client (with the shell role) beside the host on the same socket, follows the compositor,
-//! publishes the desktop's view and the shell protocol's notes, and carries out commands and
-//! surface registrations sent to it.
+//! publishes the shell protocol's notes, and carries out commands and surface registrations sent
+//! to it. The desktop's view is not published here: the windows service projects it from its own
+//! state, and every reader holds that one channel.
 //!
 //! The host reads the socket on its own thread. Both threads read through the connection's
 //! cooperative read guards, so whichever reads first dispatches into both queues; events the
@@ -14,13 +15,13 @@ use std::task::{Context, Waker};
 use casement_protocols::vocab::ShellRole;
 use desktop_client::DesktopConfig;
 use desktop_client::client::DesktopClient;
-use sill_model::desktop::{DesktopCommand, DesktopView, ShellNote};
+use sill_model::desktop::{DesktopCommand, ShellNote};
 use smithay_client_toolkit::reexports::calloop::generic::Generic;
 use smithay_client_toolkit::reexports::calloop::ping::PingSource;
 use smithay_client_toolkit::reexports::calloop::{
     self, EventLoop, Interest, Mode, PostAction, channel,
 };
-use tokio::sync::{mpsc, watch};
+use tokio::sync::mpsc;
 use wayland_client::backend::WaylandError;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection, Proxy};
@@ -64,8 +65,6 @@ pub enum SpawnError {
 /// The handle to a running arm.
 #[derive(Debug)]
 pub struct ShellArm {
-    /// The desktop as the shell sees it, replaced after every change.
-    pub view: watch::Receiver<DesktopView>,
     notes: Option<mpsc::UnboundedReceiver<ShellNote>>,
     calls: channel::Sender<ShellCall>,
 }
@@ -108,14 +107,12 @@ pub fn spawn_shell_arm(surface: &WlSurface) -> Result<ShellArm, SpawnError> {
         .upgrade()
         .map(Connection::from_backend)
         .ok_or(SpawnError::Connection)?;
-    let (view_tx, view) = watch::channel(DesktopView::default());
     let (notes_tx, notes) = mpsc::unbounded_channel();
     let (calls, from_callers) = channel::channel();
     std::thread::Builder::new()
         .name("desktop_quire".to_owned())
-        .spawn(move || run(connection, view_tx, notes_tx, from_callers))?;
+        .spawn(move || run(connection, notes_tx, from_callers))?;
     Ok(ShellArm {
-        view,
         notes: Some(notes),
         calls,
     })
@@ -134,21 +131,19 @@ impl NoteSink for ChannelSink {
 /// What the loop dispatches into.
 struct Following {
     arm: QuireArm<DesktopClient, ChannelSink>,
-    view: watch::Sender<DesktopView>,
     /// Woken when another thread's read queues an event for the client.
     waker: Waker,
 }
 
 impl Following {
-    /// Publish the desktop and hand out the notes, with the pictures of Spaces that finished.
-    fn publish(&mut self) {
-        let view = self.arm.sync();
+    /// Hand out the notes, with the pictures of Spaces that finished.
+    fn hand_out(&mut self) {
+        self.arm.drain_notes();
         self.arm
             .pictures(desktop_client::client::DesktopClient::take_capture);
-        self.view.send_replace(view);
     }
 
-    /// Dispatch what this queue holds and leave the waker in it; publish when something arrived.
+    /// Dispatch what this queue holds and leave the waker in it; hand out when something arrived.
     fn pump(&mut self) -> io::Result<()> {
         let mut cx = Context::from_waker(&self.waker);
         let arrived = self
@@ -157,12 +152,12 @@ impl Following {
             .poll_dispatch_pending(&mut cx)
             .map_err(io::Error::other)?;
         if arrived > 0 {
-            self.publish();
+            self.hand_out();
         }
         Ok(())
     }
 
-    /// Read what the compositor sent, dispatch it and publish.
+    /// Read what the compositor sent, dispatch it and hand it out.
     fn read(&mut self) -> io::Result<()> {
         if let Some(guard) = self.arm.desktop_mut().connection().prepare_read() {
             match guard.read() {
@@ -192,38 +187,36 @@ impl Following {
                 }
             }
         }
-        self.publish();
+        self.hand_out();
     }
 }
 
 fn run(
     connection: Connection,
-    view: watch::Sender<DesktopView>,
     notes: mpsc::UnboundedSender<ShellNote>,
     calls: channel::Channel<ShellCall>,
 ) {
     let client = match DesktopClient::with_config(&connection, DesktopConfig::holding_shell()) {
         Ok(client) => client,
         Err(error) => {
-            eprintln!("sill: desktop_quire: {error}; the desktop view stays empty");
+            eprintln!("sill: desktop_quire: {error}; the shell protocol is not followed");
             return;
         }
     };
     let (waker, wake) = match waker_and_source() {
         Ok(pair) => pair,
         Err(error) => {
-            eprintln!("sill: desktop_quire: {error}; the desktop view stays empty");
+            eprintln!("sill: desktop_quire: {error}; the shell protocol is not followed");
             return;
         }
     };
     let mut following = Following {
         arm: QuireArm::new(client, ChannelSink(notes)),
-        view,
         waker,
     };
-    following.publish();
+    following.hand_out();
     if let Err(error) = drive(&mut following, wake, calls) {
-        eprintln!("sill: desktop_quire: {error}; the desktop view stops here");
+        eprintln!("sill: desktop_quire: {error}; the shell protocol stops here");
     }
 }
 

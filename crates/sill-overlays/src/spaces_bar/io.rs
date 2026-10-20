@@ -11,7 +11,9 @@ use porter_core::SpaceId;
 use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
 use sill_model::apps::AppIndex;
 use sill_model::desktop::target::Rect as WholeRect;
-use sill_model::desktop::{BarLayout, BarPick, BarShow, BarSpace, BarTile, bar_spaces, thumb_size};
+use sill_model::desktop::{
+    BarLayout, BarPick, BarShow, BarSpace, BarTile, DesktopView, bar_spaces, thumb_size,
+};
 use sill_model::ids::OutputName;
 use sill_services::WallpaperService;
 use sill_ui_kit::hooks::{use_appearance, use_service};
@@ -24,6 +26,8 @@ use crate::wallpaper::url_for;
 pub(super) struct Bar {
     link: SpacesBarLink,
     feed: ReadSignal<SpacesBarFeed>,
+    /// The desktop, for its Spaces and their windows.
+    desktop: ReadSignal<DesktopView>,
     name: Option<String>,
     /// Whether the bar is up on this output.
     pub up: Memo<BarShow>,
@@ -36,6 +40,7 @@ pub(super) struct Bar {
 /// The bar on `output`.
 pub(super) fn use_bar(link: &SpacesBarLink, output: &OutputInfo) -> Bar {
     let feed = use_watch(link.subscribe());
+    let desktop = use_watch(link.subscribe_desktop());
     let name = output.name.clone();
     let up = use_memo({
         let name = name.clone();
@@ -50,6 +55,7 @@ pub(super) fn use_bar(link: &SpacesBarLink, output: &OutputInfo) -> Bar {
     Bar {
         link: link.clone(),
         feed,
+        desktop,
         name,
         up,
         on_layout,
@@ -85,7 +91,7 @@ impl Bar {
     pub(super) fn tiles(&self, apps: &AppIndex) -> Vec<SpaceTile> {
         let feed = self.feed.read();
         let wallpaper = (self.wallpaper)();
-        bar_spaces(&feed.view, self.name.as_deref(), apps)
+        bar_spaces(&self.desktop.read(), self.name.as_deref(), apps)
             .into_iter()
             .map(|space| tile_of(&feed, self.name.as_deref(), wallpaper.as_deref(), space))
             .collect()

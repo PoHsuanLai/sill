@@ -1,13 +1,13 @@
-//! The Force Quit Applications panel's three channels. The daemon writes whether the panel is
-//! open and on which output (`sill force-quit`, the keyboard shortcut) and which apps the desktop
-//! lists, and every output's panel surface follows both; the surface that shows the panel writes
-//! the app the person confirmed, and the daemon carries it out.
+//! The Force Quit Applications panel's channels. The daemon writes whether the panel is open and
+//! on which output (`sill force-quit`, the keyboard shortcut); the link holds the desktop's view,
+//! from which the panel lists the apps; every output's panel surface follows both. The surface
+//! that shows the panel writes the app the person confirmed, and the daemon carries it out.
 
 use shell_host::OutputId;
-use sill_model::desktop::ForceQuitRow;
+use sill_model::desktop::DesktopView;
 use tokio::sync::watch;
 
-use super::{Opening, Outbox, PanelLink, Reveal, Sent, Shared};
+use super::{Opening, Outbox, PanelLink, Reveal, Sent};
 
 /// One opening of the panel: where, and which opening it is (a new one starts afresh). It
 /// carries nothing of its own.
@@ -28,17 +28,27 @@ pub type ForceQuitAsked = Sent<ForceQuitAsk>;
 
 /// The shared channels, a root context of every panel surface and kept by the daemon. Clone is
 /// cheap.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ForceQuitLink {
     panel: PanelLink<()>,
-    rows: Shared<Vec<ForceQuitRow>>,
+    /// The desktop's view: the one channel the windows service writes.
+    desktop: watch::Receiver<DesktopView>,
     asked: Outbox<ForceQuitAsk>,
 }
 
 impl ForceQuitLink {
-    /// Closed, no apps listed, nothing asked.
+    /// Closed, listing the apps of `desktop`, nothing asked.
+    pub fn following(desktop: watch::Receiver<DesktopView>) -> ForceQuitLink {
+        ForceQuitLink {
+            panel: PanelLink::default(),
+            desktop,
+            asked: Outbox::default(),
+        }
+    }
+
+    /// Closed, no apps listed (a desktop nobody writes), nothing asked.
     pub fn new() -> ForceQuitLink {
-        ForceQuitLink::default()
+        ForceQuitLink::following(watch::Sender::new(DesktopView::default()).subscribe())
     }
 
     /// The current value.
@@ -67,14 +77,9 @@ impl ForceQuitLink {
         self.panel.subscribe()
     }
 
-    /// The apps the desktop lists now.
-    pub fn set_rows(&self, rows: Vec<ForceQuitRow>) {
-        self.rows.set(rows);
-    }
-
-    /// A receiver for the apps the desktop lists.
-    pub fn subscribe_rows(&self) -> watch::Receiver<Vec<ForceQuitRow>> {
-        self.rows.subscribe()
+    /// A receiver for the desktop the panel lists the apps of.
+    pub fn subscribe_desktop(&self) -> watch::Receiver<DesktopView> {
+        self.desktop.clone()
     }
 
     /// The person confirmed force quitting `app`.

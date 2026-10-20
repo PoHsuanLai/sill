@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use ds_settings::Store;
 use shell_host::{Host, HostConfig, HostHandle};
+use sill_model::desktop::DesktopView;
 use sill_model::locker::LockPhase;
 use sill_services::env::Dirs;
 use sill_settings::ShellFile;
@@ -77,7 +78,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         user_style: user_style_rx,
         appearance: appearance_rx,
     };
-    let links = build_links(&runtime, &settings_feed, &store);
+    let links = build_links(&runtime, &settings_feed, &store, &services.desktop);
     services::follow_settings(runtime.handle(), &settings_feed, &links, &services, &env);
     crate::voice::spawn_consent_writer(runtime.handle(), consents, store.clone(), settings.clone());
 
@@ -119,8 +120,9 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
             runtime.handle().clone(),
             host_handle.clone(),
             services.dock_rects.subscribe(),
+            services.desktop.clone(),
         ),
-        false => super::compositor::ShellSeat::absent(),
+        false => super::compositor::ShellSeat::absent(services.desktop.clone()),
     };
     // It accepts connections until it is stopped after the host ends, or the process exits.
     let ipc = server::spawn(door.clone(), host_handle.clone());
@@ -233,8 +235,14 @@ fn host_config(first: &ShellFile, dirs: &Dirs, route: shell_host::WaylandRoute) 
     }
 }
 
-/// Build the shared links every surface root is given.
-fn build_links(runtime: &Runtime, settings_feed: &SettingsFeed, store: &Store) -> Links {
+/// Build the shared links every surface root is given; the ones that list the desktop follow
+/// `desktop`.
+fn build_links(
+    runtime: &Runtime,
+    settings_feed: &SettingsFeed,
+    store: &Store,
+    desktop: &watch::Receiver<DesktopView>,
+) -> Links {
     let banners = BannerLink::new();
     let sheets = SheetLink::new();
     Links {
@@ -257,8 +265,8 @@ fn build_links(runtime: &Runtime, settings_feed: &SettingsFeed, store: &Store) -
         lock: LockLink::new(),
         window_menu: WindowMenuLink::new(),
         split_picker: SplitPickerLink::new(),
-        force_quit: ForceQuitLink::new(),
-        spaces_bar: SpacesBarLink::new(),
+        force_quit: ForceQuitLink::following(desktop.clone()),
+        spaces_bar: SpacesBarLink::following(desktop.clone()),
         eyedropper: EyedropperLink::new(),
     }
 }

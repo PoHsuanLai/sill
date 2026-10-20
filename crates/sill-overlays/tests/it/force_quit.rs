@@ -12,6 +12,7 @@ use sill_model::desktop::{ForceQuitRow, Standing};
 use sill_overlays::ForceQuit;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::ForceQuitLink;
+use tokio::sync::watch;
 
 type Running = SurfaceHarness<ForceQuit>;
 
@@ -29,9 +30,10 @@ fn row(app: &str, standing: Standing) -> ForceQuitRow {
     }
 }
 
-/// The panel with nothing listed, closed.
-fn start() -> Running {
-    let mut running = SurfaceHarness::<ForceQuit>::setup(ForceQuitLink::new(), ())
+/// The panel closed, over a desktop that lists `rows`.
+fn start(rows: &[ForceQuitRow]) -> Running {
+    let desktop = watch::channel(fake::desktop_listing(rows)).1;
+    let mut running = SurfaceHarness::<ForceQuit>::setup(ForceQuitLink::following(desktop), ())
         .viewport(VIEWPORT)
         .start();
     running.harness.advance(Duration::from_millis(40));
@@ -40,8 +42,7 @@ fn start() -> Running {
 
 /// The panel open over `rows`, once its sheet has settled.
 fn opened(rows: Vec<ForceQuitRow>) -> Running {
-    let mut running = start();
-    running.link.set_rows(rows);
+    let mut running = start(&rows);
     running.link.open(fake::output().id);
     running.harness.advance(Duration::from_millis(600));
     running
@@ -68,7 +69,7 @@ fn asking(harness: &Harness) -> bool {
 
 #[test]
 fn hidden_it_draws_nothing() {
-    let running = start();
+    let running = start(&[]);
     assert_eq!(running.harness.count(".sill-fq"), 0);
     assert_eq!(running.harness.count(".ds-sheet"), 0);
 }

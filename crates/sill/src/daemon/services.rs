@@ -114,6 +114,7 @@ pub(crate) fn start(
         CaptureLinks {
             seat: seat_view,
             displays: displays.state.clone(),
+            desktop: desktop.clone(),
             apps: apps.state.clone(),
             answers: permission_answers,
         },

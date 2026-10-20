@@ -8,9 +8,9 @@ use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
     Admit, AskId, AskedBy, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut,
     CapturePicker, ColorAsking, ColorReply, OutputCandidate, PermissionAsking, PermissionOutcome,
-    Reply, admits, consent_ask, holds_consent, permission_admits, step,
+    Reply, admits, consent_ask, holds_consent, permission_admits, step, windows_of,
 };
-use sill_model::desktop::{Answer, Consent, ConsentId, DesktopCommand};
+use sill_model::desktop::{Answer, Consent, ConsentId, DesktopCommand, DesktopView};
 use sill_model::displays::Displays;
 use tokio::sync::{mpsc, oneshot, watch};
 use zbus::Connection;
@@ -35,6 +35,7 @@ pub(crate) async fn run(
     let CaptureLinks {
         seat,
         displays,
+        desktop,
         apps,
         answers,
     } = links;
@@ -42,6 +43,7 @@ pub(crate) async fn run(
     let (left_tx, mut left) = mpsc::unbounded_channel();
     let mut seat = Some(seat);
     let mut displays = Some(displays);
+    let mut desktop = Some(desktop);
     let mut live = Live {
         state: CapturePicker::default(),
         tx,
@@ -58,6 +60,9 @@ pub(crate) async fn run(
     };
     if let Some(displays) = &displays {
         live.screens(&displays.borrow());
+    }
+    if let Some(desktop) = &desktop {
+        live.windows(&desktop.borrow());
     }
     loop {
         tokio::select! {
@@ -89,6 +94,18 @@ pub(crate) async fn run(
                     displays = None;
                 } else if let Some(displays) = &mut displays {
                     live.screens(&displays.borrow_and_update());
+                }
+            }
+            changed = async {
+                match desktop.as_mut() {
+                    Some(desktop) => desktop.changed().await,
+                    None => std::future::pending().await,
+                }
+            } => {
+                if changed.is_err() {
+                    desktop = None;
+                } else if let Some(desktop) = &mut desktop {
+                    live.windows(&desktop.borrow_and_update());
                 }
             }
         }
@@ -159,11 +176,6 @@ impl Live {
                 let connection = seat.and_then(SeatView::current);
                 self.export_on(connection);
             }
-            CaptureCommand::Windows(windows) => {
-                let mut candidates = self.state.candidates.clone();
-                candidates.windows = windows;
-                self.feed(CaptureEvent::Candidates(candidates));
-            }
             CaptureCommand::Outputs(outputs) => {
                 let mut candidates = self.state.candidates.clone();
                 candidates.outputs = outputs;
@@ -228,6 +240,13 @@ impl Live {
             })
             .collect();
         self.command(CaptureCommand::Outputs(outputs), None);
+    }
+
+    /// The desktop's windows as the ones the picker offers, by the identifiers casement gave.
+    fn windows(&mut self, desktop: &DesktopView) {
+        let mut candidates = self.state.candidates.clone();
+        candidates.windows = windows_of(desktop);
+        self.feed(CaptureEvent::Candidates(candidates));
     }
 
     /// The seat changed: serve on its new connection when serving.

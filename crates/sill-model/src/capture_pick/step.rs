@@ -56,8 +56,6 @@ pub struct CapturePicker {
 pub enum CaptureCommand {
     /// Claim the interface (the daemon sends it once; passive until then).
     Serve,
-    /// The windows that exist now.
-    Windows(Vec<super::plan::WindowCandidate>),
     /// The screens that exist now.
     Outputs(Vec<super::plan::OutputCandidate>),
     /// The person pressed Allow (with their picks) or cancelled.

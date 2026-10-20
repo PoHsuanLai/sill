@@ -1,9 +1,10 @@
-//! Mission Control's Spaces bar, two channels. The feed: the daemon writes whether the bar is up
-//! (from the compositor's overview state, and per output), the desktop's view, the pictures of
-//! Spaces and the Space a dragged window is over, and the bar surfaces follow them; the surfaces
-//! write back where their cards lie on the same feed, which the daemon reads to place the drop
-//! targets and to ask for pictures. The picks: the surface writes what the person clicked, and
-//! the daemon carries it out.
+//! Mission Control's Spaces bar, two channels and the desktop. The feed: the daemon writes whether
+//! the bar is up (from the compositor's overview state, and per output), the pictures of Spaces
+//! and the Space a dragged window is over, and the bar surfaces follow them; the surfaces write
+//! back where their cards lie on the same feed, which the daemon reads to place the drop targets
+//! and to ask for pictures. The picks: the surface writes what the person clicked, and the daemon
+//! carries it out. The desktop's view, for the Spaces and their windows, is the one channel the
+//! windows service writes; the link holds its receiver.
 
 use porter_core::SpaceId;
 use sill_model::desktop::{
@@ -19,8 +20,6 @@ use super::{Outbox, Sent, Shared};
 pub struct SpacesBarFeed {
     /// Whether the bar is up.
     pub show: BarShow,
-    /// The desktop, for its Spaces and their windows.
-    pub view: DesktopView,
     /// On which outputs Mission Control is up.
     pub outputs: BarOutputs,
     /// The pictures of Spaces that have arrived.
@@ -36,16 +35,27 @@ pub type SpacesBarPicked = Sent<BarPick>;
 
 /// The shared channels, a root context of every bar surface and kept by the daemon. Clone is
 /// cheap.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct SpacesBarLink {
     feed: Shared<SpacesBarFeed>,
+    /// The desktop's view: the one channel the windows service writes.
+    desktop: watch::Receiver<DesktopView>,
     picked: Outbox<BarPick>,
 }
 
 impl SpacesBarLink {
-    /// Down, with no Spaces and no click.
+    /// Down, following the Spaces of `desktop`, no click.
+    pub fn following(desktop: watch::Receiver<DesktopView>) -> SpacesBarLink {
+        SpacesBarLink {
+            feed: Shared::default(),
+            desktop,
+            picked: Outbox::default(),
+        }
+    }
+
+    /// Down, with no Spaces (a desktop nobody writes) and no click.
     pub fn new() -> SpacesBarLink {
-        SpacesBarLink::default()
+        SpacesBarLink::following(watch::Sender::new(DesktopView::default()).subscribe())
     }
 
     /// The bar goes up or down.
@@ -57,15 +67,9 @@ impl SpacesBarLink {
         });
     }
 
-    /// The desktop changed.
-    pub fn set_view(&self, view: &DesktopView) {
-        self.feed.modify_if(|feed| {
-            let changed = feed.view != *view;
-            if changed {
-                feed.view = view.clone();
-            }
-            changed
-        });
+    /// A receiver for the desktop whose Spaces the bar shows.
+    pub fn subscribe_desktop(&self) -> watch::Receiver<DesktopView> {
+        self.desktop.clone()
     }
 
     /// Change one part of the feed; nothing is sent when the part comes out the same.
@@ -162,12 +166,12 @@ impl SpacesBarLink {
 mod tests {
     use ds_core::vocab::DropState;
     use porter_core::SpaceId;
-    use sill_model::desktop::{BarLayout, BarPick, BarShow, DesktopView, Shown, SpacePicture};
+    use sill_model::desktop::{BarLayout, BarPick, BarShow, Shown, SpacePicture};
 
     use super::SpacesBarLink;
 
     #[test]
-    fn the_bar_follows_the_show_and_the_view_and_a_repeat_wakes_no_one() {
+    fn the_bar_follows_the_show_and_a_repeat_wakes_no_one() {
         let link = SpacesBarLink::new();
         let mut follower = link.subscribe();
         assert_eq!(link.latest().show, BarShow::Hide);
@@ -175,7 +179,6 @@ mod tests {
         assert_eq!(follower.has_changed().ok(), Some(true));
         drop(follower.borrow_and_update());
         link.set_show(BarShow::Show);
-        link.set_view(&DesktopView::default());
         assert_eq!(follower.has_changed().ok(), Some(false));
         assert_eq!(link.latest().show, BarShow::Show);
     }

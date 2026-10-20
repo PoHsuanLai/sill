@@ -10,9 +10,13 @@ use std::time::Duration;
 use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
     CaptureCommand, CaptureLink, CapturePicker, ColorOutcome, Eyedropper, Outcome, Picks,
-    Plurality, Rgb8, Source, WindowCandidate, plan, toggle,
+    Plurality, Rgb8, Source, plan, toggle,
 };
-use sill_model::desktop::DesktopCommand;
+use casement_protocols::vocab::{
+    Emphasis, LeaseState, Modality, PlacementMark, Responsiveness, SensitivityLevel, WindowRole,
+    WindowStateKind,
+};
+use sill_model::desktop::{DesktopCommand, DesktopView, SpacePlaceView, WindowView};
 use sill_model::displays::Displays;
 use sill_services::capture_pick::{CaptureLinks, CaptureService};
 use sill_services::env::Env;
@@ -79,11 +83,27 @@ pub(crate) async fn connect(bus: &PrivateBus, name: Option<&str>) -> Connection 
         .unwrap_or_else(|e| panic!("connecting: {e}"))
 }
 
-fn notes() -> WindowCandidate {
-    WindowCandidate {
+/// The desktop with one ordinary window, which the picker offers by its identifier.
+fn desktop_with_notes() -> DesktopView {
+    let notes = WindowView {
         identifier: "w-1".to_owned(),
-        title: "Notes".to_owned(),
         app: "Notes".to_owned(),
+        title: "Notes".to_owned(),
+        state: WindowStateKind::Floating,
+        space: SpacePlaceView::Unknown,
+        output: String::new(),
+        emphasis: Emphasis::Inactive,
+        placement: PlacementMark::Free,
+        role: WindowRole::Document,
+        modality: Modality::None,
+        geometry: None,
+        responsiveness: Responsiveness::Responding,
+        lease: LeaseState::Free,
+        sensitivity: SensitivityLevel::Normal,
+    };
+    DesktopView {
+        windows: vec![notes],
+        ..DesktopView::default()
     }
 }
 
@@ -94,8 +114,20 @@ async fn transom_asks_the_person_picks_and_the_answer_comes_back() {
         return;
     };
     let scratch = TempDir::new("capture-pick-bus");
-    let (mut service, transom) = serving(&bus, &scratch).await;
-    let _ = service.control.send(CaptureCommand::Windows(vec![notes()]));
+    let Rig {
+        mut service,
+        transom,
+        desktop,
+        ..
+    } = rig(&bus, &scratch).await;
+    desktop.send_replace(desktop_with_notes());
+    assert!(
+        wait_for(&mut service.state, |s: &CapturePicker| {
+            !s.candidates.windows.is_empty()
+        })
+        .await,
+        "the desktop's window was not offered"
+    );
 
     let proxy = Shell1Proxy::new(&transom)
         .await
@@ -157,6 +189,8 @@ pub(crate) struct Rig {
     pub answers: tokio::sync::mpsc::UnboundedReceiver<DesktopCommand>,
     /// Who the stand-ins are, to the shell.
     pub callers: std::sync::Arc<Introduced>,
+    /// Where the desktop's view is written, as the windows service does.
+    pub desktop: watch::Sender<DesktopView>,
 }
 
 pub(crate) async fn rig(bus: &PrivateBus, scratch: &TempDir) -> Rig {
@@ -176,6 +210,7 @@ pub(crate) async fn rig_as(bus: &PrivateBus, scratch: &TempDir, who: Who) -> Rig
     let (publisher, view) = seat();
     publisher.publish(shell);
     let (_displays_tx, displays) = watch::channel(Displays::default());
+    let (desktop, desktop_view) = watch::channel(DesktopView::default());
     let (answers_tx, answers) = tokio::sync::mpsc::unbounded_channel();
     let mut service = spawn::<CaptureService>(
         &tokio::runtime::Handle::current(),
@@ -183,6 +218,7 @@ pub(crate) async fn rig_as(bus: &PrivateBus, scratch: &TempDir, who: Who) -> Rig
         CaptureLinks {
             seat: view,
             displays,
+            desktop: desktop_view,
             apps: watch::channel(AppIndex::default()).1,
             answers: answers_tx,
         },
@@ -200,6 +236,7 @@ pub(crate) async fn rig_as(bus: &PrivateBus, scratch: &TempDir, who: Who) -> Rig
         transom,
         answers,
         callers,
+        desktop,
     }
 }
 

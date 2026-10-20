@@ -1,5 +1,5 @@
-//! Mission Control's Spaces bar on the harness, following a `SpacesBarLink` the test writes as
-//! the daemon does. Down it draws nothing; up it draws quire's bar with a tile per Space of the
+//! Mission Control's Spaces bar on the harness, following a `SpacesBarLink` the test writes (and
+//! the desktop it follows) as the daemon does. Down it draws nothing; up it draws quire's bar with a tile per Space of the
 //! output, the one on show marked, a picture on every tile that has one (a hidden Space's too), the
 //! output's wallpaper under the pictures, the tile a drag is over lit, and a plus that lights when
 //! the drag is over it; a click on a tile or on the plus writes the pick; the bar publishes where
@@ -19,6 +19,7 @@ use sill_overlays::SpacesBar;
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::harness::fake::output_named;
 use sill_ui_kit::links::SpacesBarLink;
+use tokio::sync::watch;
 
 type Running = SurfaceHarness<SpacesBar>;
 
@@ -54,9 +55,9 @@ fn two_spaces() -> DesktopView {
     }
 }
 
-/// The bar with Mission Control closed.
-fn start() -> Running {
-    let mut running = SurfaceHarness::<SpacesBar>::setup(SpacesBarLink::new(), ())
+/// The bar with Mission Control closed, following `desktop`.
+fn start_on(desktop: watch::Receiver<DesktopView>) -> Running {
+    let mut running = SurfaceHarness::<SpacesBar>::setup(SpacesBarLink::following(desktop), ())
         .output(output_named(Some("DP-1")))
         .viewport(VIEWPORT)
         .start();
@@ -64,10 +65,14 @@ fn start() -> Running {
     running
 }
 
+/// The bar with Mission Control closed, over a desktop that is `view` and stays so.
+fn start(view: DesktopView) -> Running {
+    start_on(watch::channel(view).1)
+}
+
 /// The bar with Mission Control open on two Spaces.
 fn open() -> Running {
-    let mut running = start();
-    running.link.set_view(&two_spaces());
+    let mut running = start(two_spaces());
     running.link.set_show(BarShow::Show);
     running.harness.advance(Duration::from_millis(400));
     running
@@ -79,9 +84,23 @@ fn tiles(harness: &Harness) -> usize {
 
 #[test]
 fn closed_it_draws_nothing() {
-    let running = start();
+    let running = start(two_spaces());
     assert_eq!(running.harness.count(".ds-spaces-bar"), 0);
     assert_eq!(tiles(&running.harness), 0);
+}
+
+#[test]
+fn a_space_the_desktop_gains_is_a_tile_at_once() {
+    let (desktop, view) = watch::channel(two_spaces());
+    let mut running = start_on(view);
+    running.link.set_show(BarShow::Show);
+    running.harness.advance(Duration::from_millis(400));
+    assert_eq!(tiles(&running.harness), 2);
+    let mut three = two_spaces();
+    three.spaces.push(space("ws-3", 2, Shown::Hidden));
+    desktop.send_replace(three);
+    running.harness.advance(Duration::from_millis(400));
+    assert_eq!(tiles(&running.harness), 3);
 }
 
 #[test]
@@ -135,8 +154,7 @@ fn lowering_the_bar_lifts_it_away_and_withdraws_its_cards() {
 
 #[test]
 fn an_output_mission_control_is_not_up_on_gets_no_bar() {
-    let mut running = start();
-    running.link.set_view(&two_spaces());
+    let mut running = start(two_spaces());
     running.link.set_output("DP-1", Shown::Hidden);
     running.link.set_output("DP-2", Shown::Shown);
     running.link.set_show(BarShow::Show);

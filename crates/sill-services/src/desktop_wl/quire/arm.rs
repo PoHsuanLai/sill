@@ -84,9 +84,8 @@ impl<D: Desktop, S: NoteSink> QuireArm<D, S> {
         &self.sink
     }
 
-    /// Hand the notes the compositor sent since the last call to the sink, in order, and return
-    /// the desktop as the shell sees it.
-    pub fn sync(&mut self) -> DesktopView {
+    /// Hand the notes the compositor sent since the last call to the sink, in order.
+    pub fn drain_notes(&mut self) {
         for event in self.desktop.drain_events() {
             if let DesktopEvent::Quire(QuireEvent::Shell(shell)) = &event
                 && let Some(note) = note_of(shell)
@@ -94,6 +93,11 @@ impl<D: Desktop, S: NoteSink> QuireArm<D, S> {
                 self.sink.note(note);
             }
         }
+    }
+
+    /// [`Self::drain_notes`], and the desktop as the shell sees it.
+    pub fn sync(&mut self) -> DesktopView {
+        self.drain_notes();
         quire_view(self.desktop.state())
     }
 

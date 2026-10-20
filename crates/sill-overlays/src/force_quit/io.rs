@@ -1,9 +1,9 @@
 //! The effects end of the panel: follow the link onto the stage (and so the surface's mapping),
-//! and read the apps the desktop lists.
+//! and list the apps of the desktop's view.
 
 use dioxus::prelude::*;
 use shell_host::{OutputInfo, use_watch};
-use sill_model::desktop::ForceQuitRow;
+use sill_model::desktop::{ForceQuitRow, force_quit_rows};
 use sill_ui_kit::links::{ForceQuitLink, ForceQuitOpening};
 use sill_ui_kit::sheet_stage::{SheetStage, use_sheet_stage};
 
@@ -22,8 +22,9 @@ pub(super) fn use_stage(output: &OutputInfo) -> Signal<SheetStage<ForceQuitOpeni
     })
 }
 
-/// The apps the desktop lists now.
-pub(super) fn use_rows() -> ReadSignal<Vec<ForceQuitRow>> {
+/// The apps the desktop lists now: its view, followed, as the panel's rows.
+pub(super) fn use_rows() -> Memo<Vec<ForceQuitRow>> {
     let link = use_context::<ForceQuitLink>();
-    use_watch(link.subscribe_rows())
+    let desktop = use_watch(link.subscribe_desktop());
+    use_memo(move || force_quit_rows(&desktop.read()))
 }

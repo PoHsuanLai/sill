@@ -6,6 +6,7 @@ mod fixtures;
 
 pub use feeds::{Feeds, services};
 pub use fixtures::{
-    battery, bluetooth, clock, kbd_backlight, media, network, output, output_named, power_profiles,
-    toplevels, toplevels_on, volume, wifi, workspaces, workspaces_on,
+    battery, bluetooth, clock, desktop_listing, kbd_backlight, media, network, output,
+    output_named, power_profiles, toplevels, toplevels_on, volume, wifi, workspaces,
+    workspaces_on,
 };

@@ -119,21 +119,7 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
                 );
             }
         }
-        HostEvent::App(ShellMsg::Desktop(view)) => {
-            // The windows the screen-sharing picker may offer, by the identifiers casement gave.
-            let windows = sill_model::capture_pick::windows_of(&view);
-            let _ = shell
-                .services
-                .capture
-                .control
-                .send(sill_model::capture_pick::CaptureCommand::Windows(windows));
-            shell.links.spaces_bar.set_view(&view);
-            shell
-                .links
-                .force_quit
-                .set_rows(sill_model::desktop::force_quit_rows(&view));
-            shell.seat.set_view(*view)
-        }
+        HostEvent::App(ShellMsg::Desktop) => shell.seat.desktop_changed(),
         other => host_event(shell, ctx, other),
     }
 }
@@ -380,7 +366,7 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         // Answered by `handle`, which carries it out through `actions::perform`.
         HostEvent::App(ShellMsg::Action(_)) => {}
         // Answered by `handle`, which holds the seat.
-        HostEvent::App(ShellMsg::DockRects(_) | ShellMsg::Desktop(_)) => {}
+        HostEvent::App(ShellMsg::DockRects(_) | ShellMsg::Desktop) => {}
         // Answered by `handle`, which sends it to the compositor through the services.
         HostEvent::App(ShellMsg::Command(_)) => {}
         HostEvent::App(ShellMsg::Ipc { reply, .. }) => {

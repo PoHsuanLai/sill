@@ -5,8 +5,8 @@
 //! processes. A hung app starts selected. The shell itself is not an app of the desktop's list,
 //! so it is not offered; the Mac lists Finder with Relaunch, this desktop has no counterpart.
 //!
-//! The daemon writes the list (`ForceQuitLink`, from the compositor's `DesktopView`) and the
-//! opening; the confirmed app goes back on the link and the daemon sends
+//! The panel lists the apps of the compositor's `DesktopView`, which `ForceQuitLink` follows; the
+//! daemon writes the opening; the confirmed app goes back on the link and the daemon sends
 //! `DesktopCommand::ForceQuitApp`. Escape closes the panel, or answers the question when it is
 //! up; a press away from the sheet closes it. Like the other sheets this is a layer surface on a
 //! stock compositor.
