@@ -6,7 +6,7 @@ use zbus::Connection;
 use zbus::fdo::{RequestNameFlags, RequestNameReply};
 
 use super::object::WorkspacesObject;
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 use crate::workspace_looks::{BUS_NAME, PATH};
 
 /// Connect to `bus`, export the object and claim `org.quire.Workspaces1` (never queued: a name
@@ -15,10 +15,10 @@ pub(super) async fn take(
     bus: &Bus,
     state: watch::Receiver<WorkspaceLooks>,
 ) -> Result<Connection, WorkspaceLooksTrouble> {
-    let connection = match bus.connect().await {
-        Ok(Some(connection)) => connection,
-        Ok(None) => return Err(WorkspaceLooksTrouble::NoBus),
-        Err(error) => return Err(WorkspaceLooksTrouble::Refused(error.to_string())),
+    let connection = match bus.try_connect().await {
+        Ok(connection) => connection,
+        Err(ConnectError::NoBus(_)) => return Err(WorkspaceLooksTrouble::NoBus),
+        Err(ConnectError::Refused(why)) => return Err(WorkspaceLooksTrouble::Refused(why)),
     };
     connection
         .object_server()

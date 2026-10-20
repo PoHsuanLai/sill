@@ -19,7 +19,6 @@ use super::ending::{Ending, before};
 use crate::env::{ActionReach, Bus, SessionActions};
 use crate::login_session::session_path;
 use crate::stream::next_opt;
-use crate::supervise::connect_when_up;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` holds what `actions` offers
 /// without it (`Session::default()` for logind's own). Every action goes through `actions`
@@ -95,7 +94,7 @@ struct Logind {
 /// logind on `bus`: waits (growing delay) for a system bus that is not up yet; `None` when the bus
 /// is absent by choice or logind is not on it.
 async fn connect(bus: &Bus) -> Option<Logind> {
-    let connection = connect_when_up(bus).await.ok()?;
+    let connection = bus.connect_waiting().await.ok()?;
     let manager = ManagerProxy::new(&connection).await.ok()?;
     Some(Logind {
         connection,

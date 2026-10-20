@@ -37,7 +37,7 @@ pub(crate) async fn run(
     tx: watch::Sender<Media>,
     mut commands: mpsc::UnboundedReceiver<MediaCommand>,
 ) -> Result<(), ServiceError> {
-    let connection = crate::supervise::connect_when_up(&bus).await?;
+    let connection = bus.connect_waiting().await?;
     let dbus = DBusProxy::new(&connection).await?;
     let mut owner_changes = dbus.receive_name_owner_changed().await?;
     let mut prop_changes =

@@ -11,7 +11,7 @@ use zbus::Connection;
 use super::serve;
 use crate::app_menu::{AppMenuDeps, AppMenuService, wire};
 use crate::callers::CallerSource;
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 use crate::service::ServiceIo;
 
 /// How many clicks and "about to show" calls are on the way at once: each waits on an app that may
@@ -30,9 +30,9 @@ pub(crate) async fn run(
     deps: AppMenuDeps,
     io: ServiceIo<AppMenuService>,
 ) {
-    let connection = match bus.connect().await {
-        Ok(Some(connection)) => connection,
-        Ok(None) => return,
+    let connection = match bus.try_connect().await {
+        Ok(connection) => connection,
+        Err(ConnectError::NoBus(_)) => return,
         Err(error) => {
             eprintln!("sill-services: app_menu: no session bus: {error}");
             return;

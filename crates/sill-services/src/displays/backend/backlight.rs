@@ -38,10 +38,7 @@ pub fn read_all(root: &Path) -> Vec<Backlight> {
 
 /// Set backlight `name` to the raw `value` through logind, as the caller's own session.
 pub async fn set(system: &Bus, name: &BacklightName, value: u32) -> Result<(), ServiceError> {
-    let connection = system
-        .connect()
-        .await?
-        .ok_or(ServiceError::NoBus(system.kind()))?;
+    let connection = system.try_connect().await?;
     let session = SessionProxy::builder(&connection)
         .path("/org/freedesktop/login1/session/auto")?
         .build()

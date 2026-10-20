@@ -28,7 +28,7 @@ use super::Reach;
 use super::uri::file_uri;
 use super::viewer::{Handed, hand_over, viewer_request};
 use crate::deadline::{BUS_CALL, within};
-use crate::env::{Bus, Children, NameState, ProcessGroup, Start, name_state};
+use crate::env::{Bus, Children, ConnectError, NameState, ProcessGroup, Start, name_state};
 
 const FILE_MANAGER: &str = "org.freedesktop.FileManager1";
 
@@ -123,8 +123,10 @@ impl Wrapper {
 /// started for it.
 async fn show_items(session: &Bus, path: &Path, token: Option<&str>) -> Shown {
     let shown = async {
-        let Some(connection) = session.connect().await? else {
-            return Ok(Shown::No);
+        let connection = match session.try_connect().await {
+            Ok(connection) => connection,
+            Err(ConnectError::NoBus(_)) => return Ok(Shown::No),
+            Err(ConnectError::Refused(why)) => return Err(zbus::Error::Failure(why)),
         };
         if asks_file_manager(name_state(&connection, FILE_MANAGER).await?) == Shown::No {
             return Ok::<Shown, zbus::Error>(Shown::No);

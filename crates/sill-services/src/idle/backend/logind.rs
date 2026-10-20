@@ -10,7 +10,7 @@ use sill_model::idle::{IdleHint, LogindIdle, logind_idle};
 use zbus::Connection;
 use zbus::proxy::CacheProperties;
 
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 use crate::login_session::session_path;
 
 /// The connected half.
@@ -28,8 +28,9 @@ impl std::fmt::Debug for IdleLogind {
 
 /// A connection to `bus`; `None` when it is absent or cannot be reached.
 pub(crate) async fn bus(bus: &Bus) -> Option<Connection> {
-    match bus.connect().await {
-        Ok(connection) => connection,
+    match bus.try_connect().await {
+        Ok(connection) => Some(connection),
+        Err(ConnectError::NoBus(_)) => None,
         Err(error) => {
             eprintln!("sill: idle: no bus at {:?}: {error}", bus.route());
             None

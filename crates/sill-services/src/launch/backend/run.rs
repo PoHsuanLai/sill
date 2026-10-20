@@ -19,7 +19,7 @@ use super::open::{Manager, user_manager};
 use super::outcomes::{Outcomes, failed};
 use super::{Reach, dbus};
 use crate::deadline::{BUS_CALL, LAUNCH_COMMAND, call, within};
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 
 /// Run until `commands` closes (the `Control` was dropped).
 pub(crate) async fn run(
@@ -165,18 +165,14 @@ async fn activate_over_dbus(
     request: &LaunchRequest,
 ) -> Result<(), Refusal> {
     let refusal = |cause, detail: String| Refusal { cause, detail };
-    match session.connect().await {
-        Ok(Some(connection)) => call(
+    match session.try_connect().await {
+        Ok(connection) => call(
             BUS_CALL,
             "the app",
             dbus::activate(&connection, app, request),
         )
         .await
         .map_err(|error| refusal(FailureCause::NoAnswer, error.to_string())),
-        Ok(None) => Err(refusal(
-            FailureCause::NoStarter,
-            "no session bus".to_owned(),
-        )),
         Err(error) => Err(refusal(FailureCause::NoStarter, error.to_string())),
     }
 }
@@ -317,7 +313,7 @@ async fn show_in_files(session: &Bus, apps: &watch::Receiver<AppIndex>, app_id: 
     let Some(app) = apps.borrow().get(app_id).cloned() else {
         return;
     };
-    if let Ok(Some(connection)) = session.connect().await {
+    if let Ok(connection) = session.try_connect().await {
         let _ = call(
             BUS_CALL,
             "the file manager",
@@ -357,8 +353,9 @@ async fn open_settings(session: &Bus, open: &SettingsOpen) {
 
 /// The session bus, or none when there is not one (logged when it could not be reached).
 async fn session_connection(session: &Bus) -> Option<zbus::Connection> {
-    match session.connect().await {
-        Ok(connection) => connection,
+    match session.try_connect().await {
+        Ok(connection) => Some(connection),
+        Err(ConnectError::NoBus(_)) => None,
         Err(error) => {
             eprintln!("sill: launch: opening Settings: {error}");
             None

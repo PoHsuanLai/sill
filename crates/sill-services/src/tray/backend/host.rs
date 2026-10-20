@@ -63,7 +63,7 @@ pub(crate) async fn run(
     // `Client` keeps its connection private and has no scroll or context-menu call, so `Scroll`
     // and `ContextMenu` go over a second session connection of our own; without one, both are
     // dropped.
-    let bus = bus.connect().await.ok().flatten();
+    let bus = bus.try_connect().await.ok();
     let mut events = client.subscribe();
     let mut state = seed(&client);
     let _ = tray_tx.send(state.clone());

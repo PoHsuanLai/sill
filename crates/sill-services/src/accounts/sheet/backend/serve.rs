@@ -8,7 +8,7 @@ use zbus::fdo::{RequestNameFlags, RequestNameReply};
 
 use super::objects::{Call, SheetObject};
 use crate::callers::CallerSource;
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 
 /// Connect to `bus`, export the sheet and claim `org.quire.AccountsSheet1` (never queued: a name
 /// someone else owns is `NameTaken`, not a wait).
@@ -17,10 +17,10 @@ pub(super) async fn take(
     callers: &dyn CallerSource,
     calls: UnboundedSender<Call>,
 ) -> Result<Connection, SheetTrouble> {
-    let connection = match bus.connect().await {
-        Ok(Some(connection)) => connection,
-        Ok(None) => return Err(SheetTrouble::NoBus),
-        Err(error) => return Err(SheetTrouble::Refused(error.to_string())),
+    let connection = match bus.try_connect().await {
+        Ok(connection) => connection,
+        Err(ConnectError::NoBus(_)) => return Err(SheetTrouble::NoBus),
+        Err(ConnectError::Refused(why)) => return Err(SheetTrouble::Refused(why)),
     };
     let peers = callers.peers_on(connection.clone());
     connection

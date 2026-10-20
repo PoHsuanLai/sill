@@ -23,7 +23,7 @@ use super::bus::block_on;
 use super::choice::IndexState;
 use super::cursor::{hit_of_row, parse_cursor};
 use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault};
-use sill_services::env::Bus;
+use sill_services::env::{Bus, ConnectError};
 use sill_services::env::{NameState, name_state};
 use sill_services::launch::file_uri;
 
@@ -117,8 +117,10 @@ pub fn escape_literal(text: &str) -> String {
 }
 
 async fn miner_state(session: &Bus) -> zbus::Result<IndexState> {
-    let Some(connection) = session.connect().await? else {
-        return Ok(IndexState::Absent);
+    let connection = match session.try_connect().await {
+        Ok(connection) => connection,
+        Err(ConnectError::NoBus(_)) => return Ok(IndexState::Absent),
+        Err(ConnectError::Refused(why)) => return Err(zbus::Error::Failure(why)),
     };
     Ok(match name_state(&connection, TRACKER_BUS).await? {
         NameState::Owned => IndexState::Running,

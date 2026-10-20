@@ -1,7 +1,11 @@
 //! The two D-Bus buses the services talk to, each reached by a [`BusRoute`] chosen once when the
 //! process starts (or by a test), never by a service reading the environment itself.
 
+use std::time::Instant;
+
 use zbus::Connection;
+
+use crate::supervise::Backoff;
 
 /// Which of the usual buses a [`Bus`] stands for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -57,19 +61,75 @@ impl Bus {
         &self.route
     }
 
-    /// A new connection to this bus; `Ok(None)` when the route is [`BusRoute::Absent`].
-    pub async fn connect(&self) -> zbus::Result<Option<Connection>> {
+    /// A new connection to this bus, once: no waiting for a bus that is not up yet. For a caller
+    /// that has its own way to ask again; every service that runs for the session uses
+    /// [`Bus::connect_waiting`].
+    pub async fn try_connect(&self) -> Result<Connection, ConnectError> {
+        self.open().await.map_err(|error| match error {
+            OpenError::Absent => ConnectError::NoBus(self.kind),
+            OpenError::Refused(error) => ConnectError::Refused(error.to_string()),
+        })
+    }
+
+    /// A new connection to this bus, waiting for the bus to come up when it is not there yet (a
+    /// system bus restarting, a session bus a late desktop starts). A bus that is absent by
+    /// choice is [`ConnectError::NoBus`] at once; `Refused` never comes out of this one.
+    pub async fn connect_waiting(&self) -> Result<Connection, ConnectError> {
+        let mut backoff = Backoff::default();
+        loop {
+            let started = Instant::now();
+            match self.open().await {
+                Ok(connection) => return Ok(connection),
+                Err(OpenError::Absent) => return Err(ConnectError::NoBus(self.kind)),
+                Err(OpenError::Refused(error)) => {
+                    let wait = backoff.wait();
+                    eprintln!(
+                        "sill: the {:?} bus is not reachable ({error}); trying again in {wait:?}",
+                        self.kind
+                    );
+                    backoff.after_attempt(started.elapsed());
+                    tokio::time::sleep(wait).await;
+                }
+            }
+        }
+    }
+
+    /// One attempt at the route.
+    async fn open(&self) -> Result<Connection, OpenError> {
         let connection = match (&self.route, self.kind) {
-            (BusRoute::Absent, _) => return Ok(None),
-            (BusRoute::Usual, BusKind::System) => Connection::system().await?,
-            (BusRoute::Usual, BusKind::Session) => Connection::session().await?,
+            (BusRoute::Absent, _) => return Err(OpenError::Absent),
+            (BusRoute::Usual, BusKind::System) => Connection::system().await,
+            (BusRoute::Usual, BusKind::Session) => Connection::session().await,
             (BusRoute::Address(address), _) => {
                 zbus::connection::Builder::address(address.as_str())?
                     .build()
-                    .await?
+                    .await
             }
         };
-        Ok(Some(connection))
+        connection.map_err(OpenError::Refused)
+    }
+}
+
+/// Why a bus could not be reached.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum ConnectError {
+    /// The bus is absent by choice ([`BusRoute::Absent`]).
+    #[error("no {0:?} bus")]
+    NoBus(BusKind),
+    /// The bus is configured and did not answer; the reason in words.
+    #[error("{0}")]
+    Refused(String),
+}
+
+/// One attempt at a route that did not give a connection.
+enum OpenError {
+    Absent,
+    Refused(zbus::Error),
+}
+
+impl From<zbus::Error> for OpenError {
+    fn from(error: zbus::Error) -> Self {
+        OpenError::Refused(error)
     }
 }
 
@@ -102,13 +162,17 @@ impl Buses {
 
 #[cfg(test)]
 mod tests {
-    use super::{BusRoute, Buses};
+    use super::{BusRoute, Buses, ConnectError};
 
     #[tokio::test]
     async fn an_absent_route_connects_to_nothing() {
         let buses = Buses::absent();
         for bus in [&buses.system, &buses.session] {
-            assert!(matches!(bus.connect().await, Ok(None)), "{bus:?}");
+            assert_eq!(
+                bus.try_connect().await.err(),
+                Some(ConnectError::NoBus(bus.kind())),
+                "{bus:?}"
+            );
         }
     }
 
@@ -118,6 +182,9 @@ mod tests {
             BusRoute::Address("unix:path=/nonexistent/sill-env-test".to_owned()),
             BusRoute::Absent,
         );
-        assert!(buses.system.connect().await.is_err());
+        assert!(matches!(
+            buses.system.try_connect().await,
+            Err(ConnectError::Refused(_))
+        ));
     }
 }

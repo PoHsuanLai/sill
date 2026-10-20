@@ -6,7 +6,7 @@ use zbus::Connection;
 use zbus::fdo::{RequestNameFlags, RequestNameReply};
 
 use super::object::OutputsObject;
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 use crate::work_areas::{BUS_NAME, PATH};
 
 /// Connect to `bus`, export the object and claim `org.quire.Outputs1` (never queued: a name
@@ -15,10 +15,10 @@ pub(super) async fn take(
     bus: &Bus,
     state: watch::Receiver<WorkAreas>,
 ) -> Result<Connection, WorkTrouble> {
-    let connection = match bus.connect().await {
-        Ok(Some(connection)) => connection,
-        Ok(None) => return Err(WorkTrouble::NoBus),
-        Err(error) => return Err(WorkTrouble::Refused(error.to_string())),
+    let connection = match bus.try_connect().await {
+        Ok(connection) => connection,
+        Err(ConnectError::NoBus(_)) => return Err(WorkTrouble::NoBus),
+        Err(ConnectError::Refused(why)) => return Err(WorkTrouble::Refused(why)),
     };
     connection
         .object_server()

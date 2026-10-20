@@ -25,7 +25,7 @@ pub(crate) async fn run(
     tx: watch::Sender<PowerProfiles>,
     mut commands: mpsc::UnboundedReceiver<ProfileCommand>,
 ) -> Result<(), ServiceError> {
-    let connection = crate::supervise::connect_when_up(&bus).await?;
+    let connection = bus.connect_waiting().await?;
     owner::follow_owner(
         &connection,
         SERVICE,

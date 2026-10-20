@@ -35,9 +35,9 @@ impl Bus {
         bus: &crate::env::Bus,
         calls: mpsc::UnboundedSender<Call>,
     ) -> Option<(Bus, Option<NameOwnerChangedStream>)> {
-        let connection = match bus.connect().await {
-            Ok(Some(connection)) => connection,
-            Ok(None) => return None,
+        let connection = match bus.try_connect().await {
+            Ok(connection) => connection,
+            Err(crate::env::ConnectError::NoBus(_)) => return None,
             Err(error) => {
                 eprintln!("sill: notifications: no bus: {error}");
                 return None;

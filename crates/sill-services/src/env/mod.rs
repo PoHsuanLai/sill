@@ -28,7 +28,7 @@ use sill_model::keycap::{UNIT_GRACE, UNIT_RECHECK};
 
 pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
 pub use bus_name::{NameState, name_state};
-pub use buses::{Bus, BusKind, BusRoute, Buses};
+pub use buses::{Bus, BusKind, BusRoute, Buses, ConnectError};
 pub use children::{Children, ProcessGroup, RealChildren, RecordedChildren, Start};
 pub use dirs::Dirs;
 pub use passwd::{FakePasswd, Passwd, Person, SystemPasswd, UserId};

@@ -7,7 +7,7 @@
 
 use std::os::fd::OwnedFd;
 
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 
 /// The role name on the bus for the desktop shell's connection.
 const SHELL_ROLE: &str = "shell";
@@ -67,9 +67,9 @@ impl Handout for ZbusHandout {
 /// or no compositor of ours owns the name (the session is then another desktop's or a test, and the
 /// shell connects through the environment). Any other failure goes to stderr once.
 pub async fn shell_connection(bus: &Bus) -> Option<OwnedFd> {
-    let connection = match bus.connect().await {
-        Ok(Some(connection)) => connection,
-        Ok(None) => return None,
+    let connection = match bus.try_connect().await {
+        Ok(connection) => connection,
+        Err(ConnectError::NoBus(_)) => return None,
         Err(error) => {
             eprintln!("sill: desktop: the session bus: {error}");
             return None;

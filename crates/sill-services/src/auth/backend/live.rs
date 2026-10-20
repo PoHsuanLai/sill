@@ -260,7 +260,7 @@ async fn load_account(place: &AccountPlace, passwd: &Arc<dyn Passwd>, rt: &Handl
 /// AccountsService's `IconFile` for `uid`, when it has one.
 async fn accounts_icon(system: &Bus, uid: u32) -> Option<PathBuf> {
     const ACCOUNTS: &str = "org.freedesktop.Accounts";
-    let bus = system.connect().await.ok()??;
+    let bus = system.try_connect().await.ok()?;
     let reply = bus
         .call_method(
             Some(ACCOUNTS),

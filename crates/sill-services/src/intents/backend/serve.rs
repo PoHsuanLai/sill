@@ -17,7 +17,7 @@ use super::objects::{Call, ConfirmObject};
 use super::provider::{NoSummon, ShellContext, ShellProvider, manifest};
 use crate::app_menu::{MenuAgent, MenuLinks};
 use crate::callers::CallerSource;
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 use crate::intents::ShellCall;
 
 /// The connection that serves the provider and the sheet.
@@ -37,10 +37,10 @@ pub(super) async fn take(
     shots: watch::Receiver<Shots>,
     proc_root: PathBuf,
 ) -> Result<Seat, LinkTrouble> {
-    let connection = match bus.connect().await {
-        Ok(Some(connection)) => connection,
-        Ok(None) => return Err(LinkTrouble::NoBus),
-        Err(error) => return Err(LinkTrouble::Refused(error.to_string())),
+    let connection = match bus.try_connect().await {
+        Ok(connection) => connection,
+        Err(ConnectError::NoBus(_)) => return Err(LinkTrouble::NoBus),
+        Err(ConnectError::Refused(why)) => return Err(LinkTrouble::Refused(why)),
     };
     let manifest = manifest().map_err(|error| LinkTrouble::Refused(error.to_string()))?;
     let app = manifest.manifest().app.clone();

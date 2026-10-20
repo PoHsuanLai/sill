@@ -35,7 +35,7 @@ trait Unit {
 
 /// The unit's state; `None` when the bus or the manager could not say, so what is known stays.
 pub(crate) async fn read_state(bus: &Bus) -> Option<UnitState> {
-    let connection = bus.connect().await.ok()??;
+    let connection = bus.try_connect().await.ok()?;
     let manager = ManagerProxy::new(&connection).await.ok()?;
     match manager.get_unit(UNIT).await {
         Ok(path) => {
@@ -58,9 +58,9 @@ pub(crate) async fn read_state(bus: &Bus) -> Option<UnitState> {
 /// Clear the unit's failure and start it again.
 pub(crate) async fn restart(bus: &Bus) -> zbus::Result<()> {
     let connection = bus
-        .connect()
-        .await?
-        .ok_or_else(|| zbus::Error::Failure("there is no system bus".to_owned()))?;
+        .try_connect()
+        .await
+        .map_err(|error| zbus::Error::Failure(error.to_string()))?;
     let manager = ManagerProxy::new(&connection).await?;
     // A unit that is not failed has nothing to reset; the restart is what matters.
     let _ = manager.reset_failed_unit(UNIT).await;

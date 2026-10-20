@@ -60,9 +60,8 @@ fn handoff(open: &ViewerOpen) -> Option<Request> {
 
 /// Call the viewer with `request` on `session`.
 pub(crate) async fn hand_over(session: &Bus, request: &Request) -> Handed {
-    let connection = match session.connect().await {
-        Ok(Some(connection)) => connection,
-        Ok(None) | Err(_) => return Handed::No,
+    let Ok(connection) = session.try_connect().await else {
+        return Handed::No;
     };
     match within(BUS_CALL, "the viewer", forward_over(&connection, request)).await {
         Ok(Ok(())) => Handed::Yes,

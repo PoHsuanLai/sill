@@ -40,3 +40,12 @@ pub enum ServiceError {
     #[error("launch: {0}")]
     Launch(String),
 }
+
+impl From<crate::env::ConnectError> for ServiceError {
+    fn from(error: crate::env::ConnectError) -> Self {
+        match error {
+            crate::env::ConnectError::NoBus(kind) => ServiceError::NoBus(kind),
+            crate::env::ConnectError::Refused(why) => ServiceError::Bus(zbus::Error::Failure(why)),
+        }
+    }
+}

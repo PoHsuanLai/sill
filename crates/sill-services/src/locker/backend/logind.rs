@@ -5,7 +5,7 @@ use logind_zbus::manager::{InhibitType, ManagerProxy, PrepareForSleepStream};
 use logind_zbus::session::{LockStream, SessionProxy};
 use zbus::zvariant::OwnedFd;
 
-use crate::env::Bus;
+use crate::env::{Bus, ConnectError};
 use crate::login_session::session_path;
 
 /// Whether logind is, or will be, there.
@@ -51,10 +51,10 @@ impl Logind {
 /// Connects and subscribes; whatever fails is left out, and a bus or logind that is not there
 /// yet is [`Standing::Waiting`] so the loop asks again.
 pub(crate) async fn connect(bus: &Bus, session_id: Option<&str>) -> Logind {
-    let connection = match bus.connect().await {
-        Ok(Some(connection)) => connection,
-        Ok(None) => return Logind::default(),
-        Err(_) => return Logind::waiting(),
+    let connection = match bus.try_connect().await {
+        Ok(connection) => connection,
+        Err(ConnectError::NoBus(_)) => return Logind::default(),
+        Err(ConnectError::Refused(_)) => return Logind::waiting(),
     };
     let Ok(manager) = ManagerProxy::new(&connection).await else {
         return Logind::waiting();

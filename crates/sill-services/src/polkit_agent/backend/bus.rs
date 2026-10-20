@@ -52,7 +52,7 @@ pub(crate) async fn connect(
 }
 
 async fn open(bus: &Bus) -> Option<Connection> {
-    bus.connect().await.ok().flatten()
+    bus.try_connect().await.ok()
 }
 
 async fn session_id(choice: &SessionChoice, connection: &Connection) -> zbus::Result<String> {

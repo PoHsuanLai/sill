@@ -1,14 +1,9 @@
-//! Keeping a service alive: waiting between attempts with a growing delay, connecting to a bus
-//! that is not up yet, and naming a panic that stopped a service. A service that cannot do its
-//! work right now waits and tries again; it never ends for good because a peer was late.
+//! Keeping a service alive: waiting between attempts with a growing delay, and naming a panic
+//! that stopped a service. A service that cannot do its work right now waits and tries again; it
+//! never ends for good because a peer was late.
 
 use std::any::Any;
-use std::time::{Duration, Instant};
-
-use zbus::Connection;
-
-use crate::env::Bus;
-use crate::error::ServiceError;
+use std::time::Duration;
 
 /// The wait after the first failure: quick enough that a restart the person caused (a daemon
 /// restarted by hand) is followed at once.
@@ -51,29 +46,6 @@ impl Backoff {
     pub fn after_attempt(&mut self, lasted: Duration) {
         if lasted >= HEALTHY_FOR {
             *self = Backoff::default();
-        }
-    }
-}
-
-/// A connection to `bus`, waiting for the bus to come up when it is not there yet (a system bus
-/// restarting, a session bus a late desktop starts). A bus that is absent by choice is the
-/// [`ServiceError::NoBus`] it always was.
-pub async fn connect_when_up(bus: &Bus) -> Result<Connection, ServiceError> {
-    let mut backoff = Backoff::default();
-    loop {
-        let started = Instant::now();
-        match bus.connect().await {
-            Ok(Some(connection)) => return Ok(connection),
-            Ok(None) => return Err(ServiceError::NoBus(bus.kind())),
-            Err(error) => {
-                let wait = backoff.wait();
-                eprintln!(
-                    "sill: the {:?} bus is not reachable ({error}); trying again in {wait:?}",
-                    bus.kind()
-                );
-                backoff.after_attempt(started.elapsed());
-                tokio::time::sleep(wait).await;
-            }
         }
     }
 }
