@@ -171,6 +171,7 @@ pub(crate) fn user_manager(runtime: Option<&Path>) -> Manager {
 fn next_unit() -> ScopeUnit {
     let nonce = OPENS.fetch_add(1, Ordering::Relaxed) + 1;
     scope_unit(&AppId(format!("open.{}", std::process::id())), nonce)
+        .unwrap_or_else(|_| unreachable!("`open.<pid>` is a non-empty app id"))
 }
 
 /// `argv` as `wrapper` runs it.

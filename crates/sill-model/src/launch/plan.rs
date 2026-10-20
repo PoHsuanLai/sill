@@ -1,5 +1,6 @@
 //! Pure launch planning: the argument vector and the scope's unit name.
 
+use porter_core::{CoreError, ScopeName};
 use sill_launcher::{AppId, DesktopAction};
 
 use super::{LaunchRequest, ScopeUnit};
@@ -64,40 +65,22 @@ fn icon_arg(icon: &AppIcon) -> String {
     }
 }
 
-/// `app-sill-<id>-<nonce>.scope`, the id escaped the way `systemd-escape` escapes a unit name
-/// component (XDG "Desktop Entry / systemd integration" naming): `/` becomes `-`; a leading `.`
-/// and every byte outside `[A-Za-z0-9:_.]` (a literal `-` included, since `-` is reserved for an
-/// escaped `/`) becomes `\xHH`.
-pub fn scope_unit(app: &AppId, nonce: u32) -> ScopeUnit {
-    ScopeUnit(format!(
-        "app-sill-{}-{nonce}.scope",
-        escape_component(&app.0)
-    ))
-}
-
-fn escape_component(id: &str) -> String {
-    let mut out = String::with_capacity(id.len());
-    for (i, byte) in id.bytes().enumerate() {
-        let plain = byte.is_ascii_alphanumeric() || matches!(byte, b':' | b'_' | b'.');
-        if byte == b'/' {
-            out.push('-');
-        } else if plain && !(i == 0 && byte == b'.') {
-            out.push(byte as char);
-        } else {
-            out.push_str(&format!("\\x{byte:02x}"));
-        }
-    }
-    out
+/// `app-sill-<id>-<nonce>.scope`, the scope a launch runs in: porter's [`ScopeName`] writes it, so
+/// what porter reads back to learn which app a process is (`identity_of`) is the same name. The id
+/// is escaped as a unit name component (`systemd-escape`); an empty id has no scope.
+pub fn scope_unit(app: &AppId, nonce: u32) -> Result<ScopeUnit, CoreError> {
+    ScopeName::new(Some("sill"), &app.0, &nonce.to_string()).map(|name| ScopeUnit(name.to_string()))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{escape_component, launch_argv, scope_unit};
+    use super::{launch_argv, scope_unit};
     use crate::apps::{
         App, AppIcon, DbusActivation, DesktopActionEntry, ExecError, Listing, Terminal,
     };
     use crate::launch::LaunchRequest;
     use crate::launch::ScopeUnit;
+    use porter_core::ScopeName;
     use sill_launcher::{AppId, DesktopAction};
     use std::path::PathBuf;
 
@@ -145,29 +128,44 @@ mod tests {
     }
 
     #[test]
-    fn escaping_matches_systemd_unit_component_rules() {
+    fn the_id_is_escaped_as_a_unit_name_component() {
         let table: &[(&str, &str, &str)] = &[
-            ("plain", "foot", "foot"),
-            ("reverse dns", "org.mozilla.firefox", "org.mozilla.firefox"),
-            ("slash becomes dash", "kde/foo", "kde-foo"),
-            ("leading dot is escaped", ".hidden", "\\x2ehidden"),
-            ("space is escaped", "a b", "a\\x20b"),
-            ("a literal dash is escaped", "a-b", "a\\x2db"),
+            ("plain", "foot", "app-sill-foot-1.scope"),
+            (
+                "reverse dns",
+                "org.mozilla.firefox",
+                "app-sill-org.mozilla.firefox-1.scope",
+            ),
+            (
+                "leading dot is escaped",
+                ".hidden",
+                "app-sill-\\x2ehidden-1.scope",
+            ),
+            ("space is escaped", "a b", "app-sill-a\\x20b-1.scope"),
+            (
+                "a literal dash is escaped",
+                "a-b",
+                "app-sill-a\\x2db-1.scope",
+            ),
             (
                 "colon, underscore and mid dot are kept",
                 "a:b_c.d",
-                "a:b_c.d",
+                "app-sill-a:b_c.d-1.scope",
             ),
         ];
         for (name, given, want) in table {
-            assert_eq!(escape_component(given), *want, "{name}");
+            let unit = scope_unit(&id(given), 1).expect("a non-empty id");
+            assert_eq!(unit.0, *want, "{name}");
+            let read = ScopeName::parse(&unit.0).expect("porter reads it back");
+            assert_eq!(read.app(), *given, "{name}: read back");
         }
+        assert!(scope_unit(&id(""), 1).is_err(), "an empty id has no scope");
     }
 
     #[test]
     fn scope_units_are_unique_per_nonce_and_valid() {
-        let a = scope_unit(&id("foot"), 1);
-        let b = scope_unit(&id("foot"), 2);
+        let a = scope_unit(&id("foot"), 1).expect("a non-empty id");
+        let b = scope_unit(&id("foot"), 2).expect("a non-empty id");
         assert_ne!(a, b);
         for unit in [&a, &b] {
             assert!(unit.0.starts_with("app-sill-foot-"));

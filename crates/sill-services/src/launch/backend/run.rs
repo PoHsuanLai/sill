@@ -191,7 +191,14 @@ async fn spawn_scope(
         nonce,
         requested_at,
     } = attempt;
-    let unit = scope_unit(&app_id, nonce);
+    let unit = match scope_unit(&app_id, nonce) {
+        Ok(unit) => unit,
+        Err(error) => {
+            let detail = error.to_string();
+            outcomes.refused(app_id, requested_at, FailureCause::CannotRun, &detail);
+            return;
+        }
+    };
     let argv = match launch_argv(app, request, &unit, terminal) {
         Ok(argv) => argv,
         Err(error) => {
