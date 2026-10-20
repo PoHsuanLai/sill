@@ -1,5 +1,5 @@
 //! The widget parts as markup (design/04-COMPONENTS.md "Widgets"):
-//! the frame in each size on the desktop and as a tile, and the battery at three levels and charging. Each golden is
+//! the frame in each size, and the battery at three levels and charging. Each golden is
 //! `tests/snapshots/widgets/<name>.html`; each lints clean and every `ds-` class in it is
 //! styled by the stylesheet.
 //!
@@ -11,12 +11,10 @@ use dioxus::prelude::*;
 use ds::assembly::ds::Inject;
 use ds::components::content::status::battery_state::{BatteryPower, BatteryState, LowAt};
 use ds::prelude::*;
-use ds::root::common::Common;
 use ds::style::icon::render::Glyph;
 use sill_shell_kit::battery::ring::percent_text;
 use sill_shell_kit::prelude::*;
-use sill_shell_kit::tokens::widgets::WidgetMetrics;
-use sill_shell_kit::widget::kind::{CardTint, WidgetTitle};
+use sill_shell_kit::widget::kind::WidgetTitle;
 
 #[derive(Props, Clone)]
 struct HostProps {
@@ -39,22 +37,12 @@ fn render(make: fn() -> Element) -> String {
     dioxus_ssr::render(&dom)
 }
 
-/// `body` on the desktop layer: a transparent Widget root with the grid unit written, as sill's
-/// desktop surface draws it.
-fn desktop(theme: Theme, body: Element) -> Element {
-    rsx! {
-        Ds { appearance: Appearance { theme, ..Appearance::default() }, material: Material::Widget, chrome: Some(RootChrome::Transparent), stylesheet: Inject::Host,
-            div { style: WidgetMetrics::default().style_attr(), {body} }
-        }
-    }
-}
-
-/// `body` on the desktop under Reduced motion: a battery ring draws its level on its first
+/// `body` on a transparent Widget root under Reduced motion: a battery ring draws its level on its first
 /// frame instead of sweeping to it, so its golden is the ring at rest.
 fn settled(theme: Theme, body: Element) -> Element {
     rsx! {
         Ds { appearance: Appearance { theme, motion: Motion::Reduced, ..Appearance::default() }, material: Material::Widget, chrome: Some(RootChrome::Transparent), stylesheet: Inject::Host,
-            div { style: WidgetMetrics::default().style_attr(), {body} }
+            div { {body} }
         }
     }
 }
@@ -63,7 +51,7 @@ fn settled(theme: Theme, body: Element) -> Element {
 fn center(body: Element) -> Element {
     rsx! {
         Ds { appearance: Appearance::default(), material: Material::Popover, stylesheet: Inject::Host,
-            div { style: WidgetMetrics::default().style_attr(), {body} }
+            div { {body} }
         }
     }
 }
@@ -92,46 +80,14 @@ fn charging(level: u16) -> BatteryState {
 }
 
 const CASES: &[Case] = &[
-    ("frame-small-desktop", || {
-        desktop(
-            Theme::Light,
-            rsx! { WidgetFrame { size: WidgetSize::Small, "84%" } },
-        )
-    }),
-    ("frame-medium-desktop-titled", || {
-        desktop(
-            Theme::Light,
-            rsx! { WidgetFrame { size: WidgetSize::Medium, title: batteries(), common: Common { id: Some("widget-battery".to_string()), ..Common::default() }, "84%" } },
-        )
-    }),
-    ("frame-large-desktop-dark", || {
-        desktop(
-            Theme::Dark,
-            rsx! { WidgetFrame { size: WidgetSize::Large, "Up next" } },
-        )
-    }),
-    ("frame-medium-desktop-space", || {
-        desktop(
-            Theme::Light,
-            rsx! { WidgetFrame { size: WidgetSize::Medium, tint: CardTint::Space, "84%" } },
-        )
-    }),
-    ("frame-medium-desktop-material", || {
-        desktop(
-            Theme::Light,
-            rsx! { WidgetFrame { size: WidgetSize::Medium, tint: CardTint::Material, "84%" } },
-        )
-    }),
     ("frame-small-tile", || {
-        center(rsx! { WidgetFrame { size: WidgetSize::Small, host: WidgetHost::Tile, "84%" } })
+        center(rsx! { WidgetFrame { size: WidgetSize::Small, "84%" } })
     }),
     ("frame-medium-tile-titled", || {
-        center(
-            rsx! { WidgetFrame { size: WidgetSize::Medium, host: WidgetHost::Tile, title: batteries(), "84%" } },
-        )
+        center(rsx! { WidgetFrame { size: WidgetSize::Medium, title: batteries(), "84%" } })
     }),
     ("frame-large-tile", || {
-        center(rsx! { WidgetFrame { size: WidgetSize::Large, host: WidgetHost::Tile, "Up next" } })
+        center(rsx! { WidgetFrame { size: WidgetSize::Large, "Up next" } })
     }),
     ("battery-8", || {
         settled(
@@ -174,47 +130,19 @@ pub(crate) fn specimens() -> Vec<Specimen> {
         .collect()
 }
 
-/// The desktop card is in a Widget scope and the tile in none of its own; both say their size
-/// and host, and the title row is drawn only when asked for. Every desktop card is tinted by
-/// the Space unless a host asks for the bare material (design/23 section 6, settled
-/// 2026-09-27); a tile never is.
+/// A card is a tile on the center's Popover, with no material of its own: it says its size,
+/// and the title row is drawn only when asked for.
 #[test]
-fn a_frame_says_its_size_and_host_and_only_the_desktop_has_a_material() {
-    let desktop = html("frame-medium-desktop-titled");
-    assert!(desktop.contains("data-size=\"medium\""), "{desktop}");
-    assert!(desktop.contains("data-host=\"desktop\""), "{desktop}");
-    assert!(desktop.contains("id=\"widget-battery\""), "{desktop}");
-    assert!(desktop.contains("ds-widget-title"), "{desktop}");
-    assert_eq!(
-        desktop.matches("data-material=\"widget\"").count(),
-        2,
-        "root and card scope"
-    );
+fn a_frame_says_its_size_and_has_no_material_of_its_own() {
     let tile = html("frame-medium-tile-titled");
-    assert!(tile.contains("data-host=\"tile\""), "{tile}");
-    assert!(!tile.contains("data-material=\"widget\""), "{tile}");
+    assert!(tile.contains("data-size=\"medium\""), "{tile}");
+    assert!(tile.contains("ds-widget-title"), "{tile}");
     assert_eq!(
         tile.matches("data-material=").count(),
         1,
         "the popover root only"
     );
     assert!(!html("frame-small-tile").contains("ds-widget-title"));
-    assert!(
-        desktop.contains("data-tint=\"space\""),
-        "every desktop card takes the Space's tint by default: {desktop}"
-    );
-    let material = html("frame-medium-desktop-material");
-    assert!(
-        !material.contains("data-tint") && !material.contains("class=\"ds-frame\""),
-        "the bare material is unmarked: {material}"
-    );
-    assert!(
-        !tile.contains("data-tint") && !tile.contains("class=\"ds-frame\""),
-        "a tile lays no second gradient on the center's tinted popover: {tile}"
-    );
-    let space = html("frame-medium-desktop-space");
-    assert!(space.contains("data-tint=\"space\""), "{space}");
-    assert!(space.contains("class=\"ds-frame\""), "{space}");
 }
 
 /// The arc runs clockwise from twelve as far as the level (a full level is the whole circle),
@@ -276,14 +204,11 @@ fn the_battery_draws_its_level_and_tone() {
 #[test]
 fn a_battery_first_draws_at_its_level() {
     let first = render(|| {
-        desktop(
-            Theme::Light,
-            rsx! {
-                BatteryRing { state: at(80), label: "Mouse" }
-                BatteryRing { state: charging(150), label: "This computer" }
-                Label { text: percent_text(Fraction(930)) }
-            },
-        )
+        center(rsx! {
+            BatteryRing { state: at(80), label: "Mouse" }
+            BatteryRing { state: charging(150), label: "This computer" }
+            Label { text: percent_text(Fraction(930)) }
+        })
     });
     assert!(first.contains("ds-progress-fill"), "{first}");
     assert!(first.contains("ds-battery-bolt"), "{first}");

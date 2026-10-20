@@ -3,13 +3,12 @@
 
 use crate::battery::device_glyph::Device;
 use crate::emoji::id::EmojiId;
-use crate::widget::kind::{WidgetHost, WidgetSize};
+use crate::widget::kind::WidgetSize;
 use ds_core::testing::word_matches_serde;
 
 #[test]
 fn stored_vocabularies_serialise_as_their_slugs() {
     word_matches_serde::<Device>();
     word_matches_serde::<EmojiId>();
-    word_matches_serde::<WidgetHost>();
     word_matches_serde::<WidgetSize>();
 }

@@ -14,7 +14,6 @@ use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use month_sample::{AUGUST, First, SEPTEMBER, sample};
 use sill_shell_kit::month_grid::data::{MonthStep, WeekNumbers};
 use sill_shell_kit::prelude::*;
-use sill_shell_kit::tokens::widgets::WidgetMetrics;
 use std::time::Duration;
 
 const VIEW: Viewport = Viewport {
@@ -28,7 +27,7 @@ const VIEW: Viewport = Viewport {
 fn SmallCalendar() -> Element {
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Widget, chrome: Some(RootChrome::Transparent),
-            div { style: WidgetMetrics::default().style_attr(),
+            div {
                 WidgetFrame { size: WidgetSize::Small,
                     MonthGrid {
                         data: sample(AUGUST, First::Monday),
@@ -191,7 +190,7 @@ fn a_five_week_month_spreads_its_rows_over_the_height() {
 fn SmallSeptember() -> Element {
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Widget, chrome: Some(RootChrome::Transparent),
-            div { style: WidgetMetrics::default().style_attr(),
+            div {
                 WidgetFrame { size: WidgetSize::Small,
                     MonthGrid { data: sample(SEPTEMBER, First::Monday), onstep: move |_: MonthStep| {} }
                 }
@@ -237,7 +236,7 @@ fn todays_compact_disc_is_a_circle_twice_its_number() {
 fn WrappedSmallCalendar() -> Element {
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Widget, chrome: Some(RootChrome::Transparent),
-            div { style: WidgetMetrics::default().style_attr(),
+            div {
                 WidgetFrame { size: WidgetSize::Small,
                     div { style: "display:flex; justify-content:center;",
                         MonthGrid {

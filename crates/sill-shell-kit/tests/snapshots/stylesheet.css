@@ -3520,63 +3520,25 @@ html,body{margin:0;padding:0;background:transparent}
 }
 .ds-voice-orb[*|data-mask=off] .ds-voice-orb-dots { mask-image:none; }
 /* -- widget_frame -- */
-/* WidgetFrame (design/04 "Widgets"; design/20 section 1.14, design/22 section 3.20).
-   A small widget is one `--widget-cell` square (164), a medium two cells and a
-   gap wide (344 x 164), a large two by two (344 square); `WidgetMetrics` writes both tokens from
-   `widgets.desktop_cell_px` and `desktop_gap_px`. The desktop card is the Widget material's
-   plate (its tint, hairline and drop come from the transparent-root card rule in the materials
-   section) with the material's own corner (20, .12 of the small card, as measured), padded 12
-   (the reference's inset, design/23 section 1.1). With a Space tint the Space's gradient lies
-   over the plate at the material's frame alpha (`.ds-frame`), under the content; the card stacks
-   its own layers so the frame's `--z-scene` lands above the plate, not behind it. The tile sits
-   on the Popover it is in, a ModuleTile's plate: `--surface-2`, a hairline, `--r-tile` 12,
-   padded 12. The optional title row is quiet (design/23-WIDGETS.md section 4.3): the glyph at
-   12 and the name in the UI face at `--fs-caption` 600, both `--ink-soft`, so the widget's own
-   value leads. Attribute selectors carry `*|` (spike S2). */
+/* WidgetFrame (design/04 "Widgets"; design/20 section 1.14). A small widget is one
+   `--widget-cell` square, a medium two cells and a gap wide, a large two by two; the
+   notification center sets both tokens. The card is a tile on the Popover it is in, a
+   ModuleTile's plate: `--surface-2`, a hairline, `--r-tile` 12, its content 12 in from the
+   outer edge (the padding gives up the hairline, so a small card's content box stays 140). The optional title
+   row is quiet (design/23-WIDGETS.md section 4.3): the glyph at 12 and the name in the UI face
+   at `--fs-caption` 600, both `--ink-soft`, so the widget's own value leads. Attribute selectors
+   carry `*|` (spike S2). */
 
 .ds-widget{ position:relative; display:flex; flex-direction:column; gap:var(--s-8); box-sizing:border-box; overflow:hidden;
-  width:var(--widget-cell); height:var(--widget-cell); color:var(--ink); }
+  width:var(--widget-cell); height:var(--widget-cell); padding:calc(var(--s-12) - var(--hair)); border:var(--hair) solid var(--line);
+  border-radius:var(--r-tile); background:var(--surface-2); color:var(--ink); }
 .ds-widget[*|data-size=medium]{ width:calc(2 * var(--widget-cell) + var(--widget-gap)); }
 .ds-widget[*|data-size=large]{ width:calc(2 * var(--widget-cell) + var(--widget-gap)); height:calc(2 * var(--widget-cell) + var(--widget-gap)); }
-.ds-widget[*|data-host=desktop]{ padding:var(--s-12); border-radius:var(--m-radius); }
-.ds-widget[*|data-tint=space]{ z-index:var(--z-raise); }
-.ds-widget[*|data-host=tile]{ padding:var(--s-12); border:var(--hair) solid var(--line); border-radius:var(--r-tile); background:var(--surface-2); }
 
 .ds-widget-title{ position:relative; z-index:var(--z-raise); display:flex; align-items:center; gap:var(--s-5); flex:none; min-width:0;
   font-family:var(--font-ui); font-size:var(--fs-caption); font-weight:600; line-height:1.25; color:var(--ink-soft); }
 .ds-widget-title-text{ white-space:nowrap; overflow:hidden; }
 .ds-widget-body{ position:relative; z-index:var(--z-raise); display:flex; flex-direction:column; flex:1; min-width:0; min-height:0; }
-
-
-/* Picked up (`data-lift=lifted`, design/23 section 9.8): the card
-   trades its resting drop gives way to `--shadow-drag` (replaced, not stacked: the rule restates
-   the transparent root's card selector so it wins over `--m-box`), above the other widgets on
-   `--z-drag`. Put down, it settles back over the same `--t-quick` at `--e-out`; at rest nothing
-   runs. */
-.ds-widget{ transition:box-shadow var(--t-quick) var(--e-out); }
-.ds-widget[*|data-lift=lifted]{ z-index:var(--z-drag); box-shadow:var(--shadow-drag); }
-.ds[*|data-material][*|data-chrome=transparent] .ds-widget[*|data-host=desktop][*|data-lift=lifted]{ box-shadow:var(--shadow-drag); }
-
-/* Presence (design/30 section 1.3): a card fades in as it mounts (`fade` at `--t-quick`, restarted
-   under its other name on each showing) and out when its host removes it (`menu-out` at
-   `--t-quick --e-exit`, held), taking no pointer while it goes; the host drops it at the exit's
-   settle. Hidden, nothing is laid out. Present keeps the entrance declared and plays `hold`
-   after a taken-back hide (`data-pulse=held`), so no settle or take-back drops an animation
-   without starting another. */
-.ds-widget[*|data-shown=hidden]{ display:none; }
-.ds-widget[*|data-presence=entering],.ds-widget[*|data-presence=present]{ animation:fade var(--t-quick) var(--e-out); }
-.ds-widget[*|data-presence=entering][*|data-pulse=b],.ds-widget[*|data-presence=present][*|data-pulse=b]{ animation-name:fade--b; }
-.ds-widget[*|data-presence=present][*|data-pulse=held]{ animation:hold var(--t-quick) var(--e-linear); }
-.ds-widget[*|data-presence=leaving]{ animation:menu-out var(--t-quick) var(--e-exit) forwards; pointer-events:none; }
-
-/* WidgetSlotGuide (design/23 section 9.8): where a dragged widget will land, the
-   card's footprint at the snap cell, a quiet translucent plate in the card's corner with no
-   content, faded in (`a-fade`) as the drag reaches the cell. */
-.ds-widget-slot{ box-sizing:border-box; width:var(--widget-cell); height:var(--widget-cell); border-radius:var(--m-radius);
-  background:var(--line); border:var(--hair) solid var(--line); pointer-events:none; }
-.ds-widget-slot[*|data-size=medium]{ width:calc(2 * var(--widget-cell) + var(--widget-gap)); }
-.ds-widget-slot[*|data-size=large]{ width:calc(2 * var(--widget-cell) + var(--widget-gap)); height:calc(2 * var(--widget-cell) + var(--widget-gap)); }
-.ds-widget-slot[*|data-host=tile]{ border-radius:var(--r-tile); }
 /* -- window_frame -- */
 /* Window frame (design/04-COMPONENTS.md "Window frame"; design/13-BEHAVIOUR-menus-windows.md
    section 13.3.11). A framed root is a column: the titlebar, then `.ds-window-body` taking the
@@ -3792,8 +3754,7 @@ html,body{margin:0;padding:0;background:transparent}
    stretched over the card. Medium (`data-layout=split`): the today column on the left, the
    compact month in a 140 x 140 box on the right, the small card's own metrics (20 px columns,
    19-24 px rows). Large (`data-layout=stack`): the regular month at its own pitch (32 px columns,
-   30 px rows), centred, over the day's events. The weekday and the title take the card's title
-   colour on the desktop (below). An event is its calendar's 3 px bar, its title (UI face 600 at
+   30 px rows), centred, over the day's events. An event is its calendar's 3 px bar, its title (UI face 600 at
    `--fs-help`) and its time (`--fs-nano`, `--ink-soft`). */
 .ds-month-widget{ display:flex; flex:1; min-width:0; min-height:0; }
 .ds-month-widget[*|data-layout=split]{ gap:var(--s-16); }
@@ -3812,13 +3773,6 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-month-event-title{ white-space:nowrap; overflow:hidden; font-family:var(--font-ui); font-size:var(--fs-help); font-weight:600; line-height:1.25; color:var(--ink); }
 .ds-month-event-time{ font-family:var(--font-ui); font-size:var(--fs-nano); line-height:1.25; color:var(--ink-soft); }
 .ds-month-quiet{ font-family:var(--font-ui); font-size:var(--fs-small); color:var(--ink-faint); }
-
-/* The month's title on a desktop card (option (b), the default pending the
-   user's pick, design/23 section 4.3): `--ink-soft`, not the accent as text, which the
-   see-through card cannot hold at 4.5:1 over the wallpaper. Today's disc and the busy dots keep
-   the accent. */
-.ds-widget[*|data-host=desktop] .ds-month-title,
-.ds-widget[*|data-host=desktop] .ds-month-weekday{ color:var(--ink-soft); }
 /* -- symbol -- */
 /* Symbol (design/35-SYMBOL-EFFECTS.md): an icon in a wrapper the stylesheet can move. The
    effect's keyframes play on the wrapper (`a-bounce`, `a-turn`...; motion.css); what moves a

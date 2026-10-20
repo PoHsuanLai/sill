@@ -15,7 +15,6 @@ use month_sample::{AUGUST, First, sample};
 use sill_shell_kit::month_grid::data::{MonthStep, WeekNumbers};
 use sill_shell_kit::month_grid::density::MonthDensity;
 use sill_shell_kit::prelude::*;
-use sill_shell_kit::tokens::widgets::WidgetMetrics;
 
 /// One specimen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,7 +56,7 @@ fn grid(density: MonthDensity) -> Element {
 fn framed(size: WidgetSize) -> Element {
     rsx! {
         Ds { appearance: Appearance::default(), material: Material::Widget, chrome: Some(RootChrome::Transparent), stylesheet: Inject::Host,
-            div { style: WidgetMetrics::default().style_attr(),
+            div {
                 WidgetFrame { size, {grid(MonthDensity::Auto)} }
             }
         }

@@ -12,7 +12,7 @@ pub mod up_next;
 
 pub use card::{Card, Feed, OnProvider, Widget, WidgetProvider, card, with_provider};
 pub use sill_settings::WidgetKind;
-pub use sill_shell_kit::prelude::{WidgetHost, WidgetSize};
+pub use sill_shell_kit::prelude::WidgetSize;
 pub use wake::{provide_widget_wake, use_widget_wake};
 
 /// Where the widgets are drawn: the notification center's column, each card spanning it at

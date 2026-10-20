@@ -2,9 +2,7 @@
    accent over the day's number, then the next events, each with its calendar's colour (quire's
    label hues) beside its title and time. Quire's tokens only (coherence rule 1). */
 
-.sill-un{ display:flex; gap:var(--s-12); color:var(--ink); }
-.sill-un-center{ padding:var(--s-2) var(--s-4); }
-.sill-un-desktop{ gap:var(--s-8); }
+.sill-un{ display:flex; gap:var(--s-12); padding:var(--s-2) var(--s-4); color:var(--ink); }
 
 /* Today. */
 .sill-un-day{ display:flex; flex-direction:column; flex:0 0 auto; }

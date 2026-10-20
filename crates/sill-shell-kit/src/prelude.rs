@@ -40,5 +40,4 @@ pub use crate::widget::frame::WidgetFrame;
 pub use crate::widget::contract::Widget;
 pub use crate::widget::contract::WidgetContext;
 pub use crate::widget::contract::WidgetKind;
-pub use crate::widget::kind::WidgetHost;
 pub use crate::widget::kind::WidgetSize;

@@ -7,8 +7,7 @@
    stretched over the card. Medium (`data-layout=split`): the today column on the left, the
    compact month in a 140 x 140 box on the right, the small card's own metrics (20 px columns,
    19-24 px rows). Large (`data-layout=stack`): the regular month at its own pitch (32 px columns,
-   30 px rows), centred, over the day's events. The weekday and the title take the card's title
-   colour on the desktop (below). An event is its calendar's 3 px bar, its title (UI face 600 at
+   30 px rows), centred, over the day's events. An event is its calendar's 3 px bar, its title (UI face 600 at
    `--fs-help`) and its time (`--fs-nano`, `--ink-soft`). */
 .ds-month-widget{ display:flex; flex:1; min-width:0; min-height:0; }
 .ds-month-widget[*|data-layout=split]{ gap:var(--s-16); }
@@ -27,10 +26,3 @@
 .ds-month-event-title{ white-space:nowrap; overflow:hidden; font-family:var(--font-ui); font-size:var(--fs-help); font-weight:600; line-height:1.25; color:var(--ink); }
 .ds-month-event-time{ font-family:var(--font-ui); font-size:var(--fs-nano); line-height:1.25; color:var(--ink-soft); }
 .ds-month-quiet{ font-family:var(--font-ui); font-size:var(--fs-small); color:var(--ink-faint); }
-
-/* The month's title on a desktop card (option (b), the default pending the
-   user's pick, design/23 section 4.3): `--ink-soft`, not the accent as text, which the
-   see-through card cannot hold at 4.5:1 over the wallpaper. Today's disc and the busy dots keep
-   the accent. */
-.ds-widget[*|data-host=desktop] .ds-month-title,
-.ds-widget[*|data-host=desktop] .ds-month-weekday{ color:var(--ink-soft); }

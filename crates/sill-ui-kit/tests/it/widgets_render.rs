@@ -77,10 +77,6 @@ fn in_the_center_the_frame_is_quires_tile_with_no_header_row() {
     let h = &running.harness;
     assert_eq!(h.count(".ds-widget#widget-calendar"), 1);
     assert_eq!(
-        h.attr("#widget-calendar", "data-host").as_deref(),
-        Some("tile")
-    );
-    assert_eq!(
         h.attr("#widget-calendar", "data-size").as_deref(),
         Some("medium")
     );

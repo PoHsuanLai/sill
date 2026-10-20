@@ -18,7 +18,6 @@ use sill_shell_kit::month_grid::data::{
     WeekNumbers,
 };
 use sill_shell_kit::prelude::*;
-use sill_shell_kit::tokens::widgets::WidgetMetrics;
 use sill_shell_kit::widget::calendar::{EventLine, MonthFace, TodayLine};
 use sill_shell_kit::widget::calendar::{MonthEntry, MonthWidget};
 use sill_shell_kit::widget::timeline::Timeline;
@@ -49,11 +48,12 @@ fn render(make: fn() -> Element) -> String {
     dioxus_ssr::render(&dom)
 }
 
-/// `body` on the desktop layer under Reduced motion, so a ring's golden is its level at rest.
-fn desktop(theme: Theme, body: Element) -> Element {
+/// `body` in the notification center in `theme`, under Reduced motion, so a ring's golden is
+/// its level at rest.
+fn themed(theme: Theme, body: Element) -> Element {
     rsx! {
-        Ds { appearance: Appearance { theme, motion: Motion::Reduced, ..Appearance::default() }, material: Material::Widget, chrome: Some(RootChrome::Transparent), stylesheet: Inject::Host,
-            div { style: WidgetMetrics::default().style_attr(), {body} }
+        Ds { appearance: Appearance { theme, motion: Motion::Reduced, ..Appearance::default() }, material: Material::Popover, stylesheet: Inject::Host,
+            div { {body} }
         }
     }
 }
@@ -62,7 +62,7 @@ fn desktop(theme: Theme, body: Element) -> Element {
 fn center(body: Element) -> Element {
     rsx! {
         Ds { appearance: Appearance { motion: Motion::Reduced, ..Appearance::default() }, material: Material::Popover, stylesheet: Inject::Host,
-            div { style: WidgetMetrics::default().style_attr(), {body} }
+            div { {body} }
         }
     }
 }
@@ -136,36 +136,36 @@ type Case = (&'static str, fn() -> Element);
 
 const CASES: &[Case] = &[
     ("month-small", || {
-        desktop(
+        themed(
             Theme::Light,
             rsx! { WidgetCard { widget: MonthWidget, timeline: Timeline::now(september()), size: WidgetSize::Small, onintent: |_| {} } },
         )
     }),
     ("month-medium", || {
-        desktop(
+        themed(
             Theme::Light,
             rsx! { WidgetCard { widget: MonthWidget, timeline: Timeline::now(september_with(events())), size: WidgetSize::Medium } },
         )
     }),
     ("month-medium-free", || {
-        desktop(
+        themed(
             Theme::Light,
             rsx! { WidgetCard { widget: MonthWidget, timeline: Timeline::now(september()), size: WidgetSize::Medium } },
         )
     }),
     ("month-large", || {
-        desktop(
+        themed(
             Theme::Dark,
             rsx! { WidgetCard { widget: MonthWidget, timeline: Timeline::now(september_with(events())), size: WidgetSize::Large } },
         )
     }),
     ("month-large-tile", || {
         center(
-            rsx! { WidgetCard { widget: MonthWidget, timeline: Timeline::now(september()), size: WidgetSize::Large, host: WidgetHost::Tile } },
+            rsx! { WidgetCard { widget: MonthWidget, timeline: Timeline::now(september()), size: WidgetSize::Large } },
         )
     }),
     ("devices", || {
-        desktop(
+        themed(
             Theme::Light,
             rsx! {
                 for device in Device::ALL.iter().copied() {
@@ -191,27 +191,24 @@ pub(crate) fn specimens() -> Vec<Specimen> {
         .collect()
 }
 
-/// The card is quire's: it says the widget's kind, takes the Space's tint on the desktop and
-/// none in the tile, and the widget draws only its content inside.
+/// The card is quire's: it says the widget's kind, and the widget draws only its content
+/// inside.
 #[test]
 fn the_card_is_quires_and_names_its_widget() {
-    let desktop = html("month-small");
-    assert!(desktop.contains("data-widget=\"quire.month\""), "{desktop}");
-    assert!(desktop.contains("data-tint=\"space\""), "{desktop}");
-    assert!(desktop.contains("class=\"ds-frame\""), "{desktop}");
+    let small = html("month-small");
+    assert!(small.contains("data-widget=\"quire.month\""), "{small}");
     assert!(
-        !desktop.contains("ds-widget-title"),
-        "no header row (M25): {desktop}"
+        !small.contains("ds-widget-title"),
+        "no header row (M25): {small}"
     );
     let tile = html("month-large-tile");
     assert!(tile.contains("data-widget=\"quire.month\""), "{tile}");
-    assert!(!tile.contains("data-tint"), "{tile}");
 }
 
 /// The month follows the reference's layouts (design/23 section 5.2): Small the compact month
 /// alone; Medium the today column (weekday, date, the next event or the quiet line) beside the
 /// compact month; Large the regular month over at most three of the day's events, or the quiet
-/// line; on a desktop card the title is `--ink-soft` (option (b)).
+/// line.
 #[test]
 fn the_month_takes_the_reference_layout_at_each_size() {
     let medium = html("month-medium");
@@ -240,11 +237,6 @@ fn the_month_takes_the_reference_layout_at_each_size() {
     assert!(large.contains("data-hue=\"green\""), "{large}");
     assert!(html("month-large-tile").contains(">No events today<"));
     assert!(!html("month-small").contains("ds-month-today"));
-    let sheet = sill_shell_kit::stylesheet();
-    assert!(
-        sheet.contains(".ds-widget[*|data-host=desktop] .ds-month-title,"),
-        "option (b)"
-    );
 }
 
 /// The month's step buttons exist only when the host listens for the widget's intents.

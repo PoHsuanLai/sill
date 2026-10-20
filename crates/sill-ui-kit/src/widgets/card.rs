@@ -44,7 +44,6 @@ pub fn Card<P: WidgetProvider>(provider: P) -> Element {
             widget: <P::W as Default>::default(),
             timeline: Timeline::now(entry),
             size: SIZE,
-            host: WidgetHost::Tile,
             wake: use_widget_wake(),
             common: Common { id: Some(format!("widget-{}", P::KIND.slug())), ..Common::default() },
             onintent,

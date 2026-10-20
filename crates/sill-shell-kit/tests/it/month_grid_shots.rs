@@ -13,7 +13,6 @@ use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use month_sample::{AUGUST, First, SEPTEMBER, month};
 use sill_shell_kit::month_grid::data::{DayKey, MonthKey, MonthStep};
 use sill_shell_kit::prelude::*;
-use sill_shell_kit::tokens::widgets::WidgetMetrics;
 use std::time::Duration;
 
 /// A shot's component.
@@ -60,7 +59,7 @@ fn Shot<const DARK: bool, const SIX: bool>() -> Element {
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance { theme, ..Appearance::default() }, material: Material::Widget, chrome: Some(RootChrome::Transparent),
             div { style: "box-sizing:border-box;padding:12px;width:188px;height:188px;background:{wash}",
-                div { style: WidgetMetrics::default().style_attr(),
+                div {
                     WidgetFrame { size: WidgetSize::Small,
                         MonthGrid { data, onstep: move |_: MonthStep| {} }
                     }

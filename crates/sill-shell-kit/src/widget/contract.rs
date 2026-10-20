@@ -1,10 +1,10 @@
 //! The widget contract (design/23-WIDGETS.md section 9): what a widget is, as one trait. A
 //! widget is data in, content out: it names its kind and the sizes it draws, gives a placeholder
 //! entry for a size, and draws an entry at a size. It never draws its card: the corner, the
-//! inset, the material, the Space's tint and the title row are quire's ([`crate::widget::card::WidgetCard`]),
+//! inset and the title row are quire's ([`crate::widget::card::WidgetCard`]),
 //! so every widget, ours and other apps', sits on the same card.
 
-use crate::widget::kind::{WidgetHost, WidgetSize, WidgetTitle};
+use crate::widget::kind::{WidgetSize, WidgetTitle};
 use dioxus::prelude::*;
 use ds::motion::wake::WakeStamp;
 use serde::de::DeserializeOwned;
@@ -40,14 +40,12 @@ impl WidgetKind {
 pub enum NoIntent {}
 
 /// What an entry is drawn with: the size it was given (always one of the widget's own
-/// [`Widget::sizes`]), the host, the host's wake stamp (a widget replays its appear motion on a
-/// new one: the battery's fill), and the handler for the widget's own controls.
+/// [`Widget::sizes`]), the host's wake stamp (a widget replays its appear motion on a new one),
+/// and the handler for the widget's own controls.
 #[derive(Debug, Clone, PartialEq)]
 pub struct WidgetContext<I: 'static> {
     /// The card's size.
     pub size: WidgetSize,
-    /// The desktop or the notification center.
-    pub host: WidgetHost,
     /// The host's wake stamp: new when its widgets come into view.
     pub wake: WakeStamp,
     /// Where the widget's controls send their intents; `None` draws the controls inert.
@@ -72,8 +70,7 @@ pub trait Widget: Clone + PartialEq + Default + 'static {
     /// The sizes it draws, the first the one it is added at.
     fn sizes() -> &'static [WidgetSize];
 
-    /// What it shows before its provider's first entry: honest about having no data (bare
-    /// tracks, not a made-up level).
+    /// What it shows before its provider's first entry: honest about having no data.
     fn placeholder(size: WidgetSize) -> Self::Entry;
 
     /// The content of `entry` in `cx`, without the card.

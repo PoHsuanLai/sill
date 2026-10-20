@@ -76,13 +76,9 @@ impl Widget for UpNext {
         UpNextEntry::Waiting
     }
 
-    fn view(entry: &UpNextEntry, cx: WidgetContext<NoIntent>) -> Element {
+    fn view(entry: &UpNextEntry, _cx: WidgetContext<NoIntent>) -> Element {
         let UpNextEntry::Agenda(face) = entry else {
             return rsx! {};
-        };
-        let class = match cx.host {
-            WidgetHost::Tile => "sill-un sill-un-center",
-            WidgetHost::Desktop => "sill-un sill-un-desktop",
         };
         let rows: Vec<UpNextRow> = face.rows.iter().take(EVENT_ROWS).cloned().collect();
         let empty = match (rows.is_empty(), &face.quiet) {
@@ -90,7 +86,7 @@ impl Widget for UpNext {
             (true, Some(_)) | (false, _) => None,
         };
         rsx! {
-            div { class,
+            div { class: "sill-un",
                 div { class: "sill-un-day",
                     span { class: "sill-un-weekday", "{face.day.weekday}" }
                     span { class: "sill-un-date", "{face.day.date}" }
