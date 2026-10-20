@@ -7,5 +7,5 @@ mod sequence;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use live::LiveApps;
+pub(crate) use live::{LiveApps, Scopes};
 pub(crate) use sequence::{AppsHost, OpenWindow, QuitOutcome, quit_apps};

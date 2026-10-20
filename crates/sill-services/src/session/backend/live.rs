@@ -3,7 +3,6 @@
 //! and
 //! carries out [`SessionCommand`]s.
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
@@ -15,6 +14,7 @@ use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 
 use super::super::SessionLinks;
+use super::super::quit_apps::Scopes;
 use super::ending::{Ending, before};
 use crate::env::{ActionReach, Bus, SessionActions};
 use crate::login_session::session_path;
@@ -29,7 +29,7 @@ pub(crate) async fn run(
     bus: Bus,
     actions: Arc<dyn SessionActions>,
     hint: Option<String>,
-    runtime: Option<PathBuf>,
+    scopes: Scopes,
     tx: watch::Sender<Session>,
     mut commands: mpsc::UnboundedReceiver<SessionCommand>,
     links: SessionLinks,
@@ -75,7 +75,7 @@ pub(crate) async fn run(
                     if offer != Offer::Unavailable
                         && actions.act(action) == ActionReach::Logind
                         && let Some(logind) = logind
-                        && before(&links, runtime.as_deref(), action).await == Ending::Proceed
+                        && before(&links, &scopes, action).await == Ending::Proceed
                     {
                         run_action(&logind.manager, session_id.as_deref(), action).await;
                     }

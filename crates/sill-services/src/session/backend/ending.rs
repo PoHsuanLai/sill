@@ -1,7 +1,5 @@
 //! Whether a session action may go on: the ones that end the apps quit them first.
 
-use std::path::Path;
-
 use sill_launcher::Confirm;
 use sill_model::apps::match_app;
 use sill_model::notifications::{
@@ -10,7 +8,7 @@ use sill_model::notifications::{
 use sill_model::session::{SessionAction, words};
 
 use super::super::SessionLinks;
-use super::super::quit_apps::{LiveApps, OpenWindow, QuitOutcome, quit_apps};
+use super::super::quit_apps::{LiveApps, OpenWindow, QuitOutcome, Scopes, quit_apps};
 
 /// The desktop entry the notice carries.
 const ENTRY: &str = "sill-session";
@@ -25,18 +23,14 @@ pub(super) enum Ending {
 /// Quit the apps when `action` ends them (Log Out, Restart, Shut Down); `Cancelled`, with a
 /// notice naming the app, when one keeps a window open. Lock and Sleep keep every app, so they
 /// go on at once.
-pub(super) async fn before(
-    links: &SessionLinks,
-    runtime: Option<&Path>,
-    action: SessionAction,
-) -> Ending {
+pub(super) async fn before(links: &SessionLinks, scopes: &Scopes, action: SessionAction) -> Ending {
     match action.confirm() {
         Confirm::Now => Ending::Proceed,
         Confirm::Ask => {
             let host = LiveApps {
                 windows: links.windows.clone(),
                 wl: links.wl.clone(),
-                runtime: runtime.map(Path::to_path_buf),
+                scopes: scopes.clone(),
             };
             match quit_apps(&host).await {
                 QuitOutcome::Quit => Ending::Proceed,

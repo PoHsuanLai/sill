@@ -15,6 +15,7 @@ use sill_model::session::{Session, SessionCommand};
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
+use quit_apps::Scopes;
 
 /// logind's power actions as a [`Service`]. Without logind the state stays at
 /// `Session::default()` (absent: nothing offered), and the power menu shows every button
@@ -38,9 +39,12 @@ impl Service for SessionService {
         let bus = env.buses.system.clone();
         let actions = Arc::clone(&env.session_actions);
         let hint = env.session_id.clone();
-        let runtime = env.dirs.runtime.clone();
+        let scopes = Scopes {
+            runtime: env.dirs.runtime.clone(),
+            children: Arc::clone(&env.children),
+        };
         async move {
-            backend::run(bus, actions, hint, runtime, io.state, io.commands, deps).await;
+            backend::run(bus, actions, hint, scopes, io.state, io.commands, deps).await;
             Ok(())
         }
     }
