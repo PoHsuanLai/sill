@@ -18,8 +18,8 @@ mod preset;
 mod start;
 
 pub use activation::{
-    ACTIVATION_DEADLINE, SETTINGS_APP, activation_token, launch_with_token,
-    open_settings_with_token, token_from,
+    ACTIVATION_DEADLINE, activation_token, launch_with_token, open_settings_with_token, token_from,
+    token_within,
 };
 pub use lifecycle::{ClosesOnFocusLoss, FocusLoss, Presence};
 pub use lock::{LockSurface, MountLockProps, mount_lock};

@@ -9,12 +9,13 @@ use std::time::Duration;
 
 use dioxus::core::Task;
 use dioxus::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, Visibility, use_watch};
+use shell_host::{OutputId, SurfaceHandle, use_watch};
 use sill_settings::OsdSettings;
 
 use super::layer::{anchor, margin};
 use super::step::{OsdHold, OsdInput, OsdTimes, step};
 use ds::base::time::stamp::FrameClock;
+use sill_ui_kit::hooks::{use_map_when_shown, use_unmap_on_hidden};
 use sill_ui_kit::links::{OsdChange, OsdLatest, OsdLink};
 
 /// The machine's times from `osd`'s hold.
@@ -61,11 +62,11 @@ pub(crate) fn use_osd(link: &OsdLink, output: OutputId, now_times: OsdTimes) -> 
         }
         waking.set(Some(spawn(wake_loop(phase, clock, times))));
     });
-    use_map_when_shown(phase.into());
+    use_map_when_shown(move || phase.read().visible());
     Drawn {
         phase: phase(),
         change: shown(),
-        on_hidden: use_unmap(),
+        on_hidden: use_unmap_on_hidden(),
     }
 }
 
@@ -78,39 +79,6 @@ async fn wake_loop(mut phase: Signal<OsdHold>, clock: FrameClock, times: CopyVal
         let next = step(*phase.peek(), OsdInput::Tick(clock.now()), *times.peek());
         phase.set(next);
     }
-}
-
-/// Map the surface once the machine shows something. Never unmaps here: quire's `Osd` card owns
-/// the exit fade, and [`use_unmap`] is the surface's only way down, once it has settled. Nothing
-/// to do without a host (a test, an SSR render).
-fn use_map_when_shown(phase: ReadSignal<OsdHold>) {
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Visibility::Hidden));
-    use_effect(move || {
-        let visible = phase.read().visible();
-        if *applied.peek() == visible {
-            return;
-        }
-        applied.set(visible);
-        if visible == Visibility::Shown
-            && let Some(surface) = &surface
-        {
-            surface.set_visibility(Visibility::Shown);
-        }
-    });
-}
-
-/// The handler for quire's `Osd::on_hidden`: its exit has settled, so unmap the surface. Nothing
-/// to do without a host (a test, an SSR render).
-fn use_unmap() -> EventHandler<()> {
-    let surface = try_use_context::<SurfaceHandle>();
-    use_hook(|| {
-        EventHandler::new(move |()| {
-            if let Some(surface) = &surface {
-                surface.set_visibility(Visibility::Hidden);
-            }
-        })
-    })
 }
 
 /// Move the surface when `osd.position` or `osd.margin_px` changes (the size is fixed).

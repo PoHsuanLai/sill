@@ -15,7 +15,7 @@ use sill_model::launch::{
 use sill_services::Control;
 use sill_services::launch::monotonic_now;
 use sill_ui_kit::services::Services;
-use sill_ui_kit::surface::ACTIVATION_DEADLINE;
+use sill_ui_kit::surface::token_within;
 use tokio::runtime::Handle;
 use tokio::sync::{oneshot, watch};
 
@@ -91,11 +91,7 @@ pub async fn serve(
         token,
         reply,
     } = ask;
-    let token = tokio::time::timeout(ACTIVATION_DEADLINE, token)
-        .await
-        .ok()
-        .and_then(Result::ok)
-        .flatten();
+    let token = token_within(token).await;
     let asked_at = monotonic_now();
     let sent = control.send(LaunchCommand::Launch(
         LaunchRequest::app(app.clone()).token(token),

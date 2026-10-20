@@ -6,7 +6,7 @@ use shell_host::HostCtx;
 use sill_ipc::response::Response;
 use sill_services::ServiceError;
 use sill_ui_kit::links::Origin;
-use sill_ui_kit::surface::ACTIVATION_DEADLINE;
+use sill_ui_kit::surface::token_within;
 
 use crate::daemon::msg::ShellMsg;
 use crate::ipc::dispatch::Reach;
@@ -25,11 +25,7 @@ pub fn with_token(
         .map(|surface| ctx.activation_token(surface, Some(app.to_owned())));
     reach.runtime.spawn(async move {
         let token = match answer {
-            Some(answer) => tokio::time::timeout(ACTIVATION_DEADLINE, answer)
-                .await
-                .ok()
-                .and_then(Result::ok)
-                .flatten(),
+            Some(answer) => token_within(answer).await,
             None => None,
         };
         if let Err(error) = send(token) {

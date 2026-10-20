@@ -4,9 +4,11 @@
 
 use std::time::Duration;
 
+use tokio::sync::oneshot;
+
 use shell_host::SurfaceHandle;
 use sill_launcher::{AppId, DesktopAction, SettingsLink};
-use sill_model::launch::{LaunchCommand, LaunchRequest, SettingsOpen};
+use sill_model::launch::{LaunchCommand, LaunchRequest, SETTINGS_BUS_NAME, SettingsOpen};
 use sill_services::ServiceError;
 use sill_services::control::Control;
 
@@ -21,6 +23,16 @@ pub async fn activation_token(surface: &SurfaceHandle, app: Option<String>) -> O
     tokio::time::timeout(ACTIVATION_DEADLINE, surface.activation_token(app))
         .await
         .ok()
+        .flatten()
+}
+
+/// A token already asked of the compositor on the host thread, waited for at most
+/// [`ACTIVATION_DEADLINE`]: `None` when it gave none, refused, or was too slow.
+pub async fn token_within(asked: oneshot::Receiver<Option<String>>) -> Option<String> {
+    tokio::time::timeout(ACTIVATION_DEADLINE, asked)
+        .await
+        .ok()
+        .and_then(Result::ok)
         .flatten()
 }
 
@@ -53,9 +65,6 @@ pub async fn launch_with_token(
     ))
 }
 
-/// The app Settings runs as: the one an activation token for Settings is asked for.
-pub const SETTINGS_APP: &str = "org.quire.Settings";
-
 /// Open Settings at `link` through `launch` with a token asked of `surface` (none when the
 /// surface is gone or the compositor gives none): the one path every entrance to Settings takes.
 pub async fn open_settings_with_token(
@@ -63,7 +72,7 @@ pub async fn open_settings_with_token(
     launch: &Control<LaunchCommand>,
     link: SettingsLink,
 ) -> Result<(), ServiceError> {
-    let token = token_from(surface, Some(SETTINGS_APP.to_owned())).await;
+    let token = token_from(surface, Some(SETTINGS_BUS_NAME.to_owned())).await;
     launch.send(LaunchCommand::OpenSettings(
         SettingsOpen::at(link).with_token(token),
     ))

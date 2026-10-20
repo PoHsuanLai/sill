@@ -8,7 +8,7 @@ use ds::prelude::{
     SpaceLook, SpaceTile, resolve,
 };
 use porter_core::SpaceId;
-use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
+use shell_host::{OutputInfo, Visibility, use_watch};
 use sill_model::apps::AppIndex;
 use sill_model::desktop::target::Rect as WholeRect;
 use sill_model::desktop::{
@@ -16,7 +16,7 @@ use sill_model::desktop::{
 };
 use sill_model::ids::OutputName;
 use sill_services::WallpaperService;
-use sill_ui_kit::hooks::{use_appearance, use_service};
+use sill_ui_kit::hooks::{use_appearance, use_map_when_shown, use_service};
 use sill_ui_kit::links::{SpacesBarFeed, SpacesBarLink};
 
 use crate::wallpaper::url_for;
@@ -49,7 +49,10 @@ pub(super) fn use_bar(link: &SpacesBarLink, output: &OutputInfo) -> Bar {
             feed.outputs.bar_on(feed.show, name.as_deref())
         }
     });
-    use_map_when_up(up);
+    use_map_when_shown(move || match up() {
+        BarShow::Show => Visibility::Shown,
+        BarShow::Hide => Visibility::Hidden,
+    });
     let on_layout = use_publish_layout(link, up, output);
     let wallpaper = use_wallpaper_url(output.name.clone());
     Bar {
@@ -201,39 +204,6 @@ fn use_publish_layout(
         EventHandler::new(move |layout: DrawnBar| {
             if drawn.peek().as_ref() != Some(&layout) {
                 drawn.set(Some(layout));
-            }
-        })
-    })
-}
-
-/// Map the surface once Mission Control opens on this output. Never unmaps here: the lift plays
-/// first, and [`use_unmap`] is the surface's only way down. Nothing to do without a host (a
-/// test, an SSR render).
-fn use_map_when_up(up: Memo<BarShow>) {
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(BarShow::Hide));
-    use_effect(move || {
-        let show = up();
-        if *applied.peek() == show {
-            return;
-        }
-        applied.set(show);
-        if show == BarShow::Show
-            && let Some(surface) = &surface
-        {
-            surface.set_visibility(Visibility::Shown);
-        }
-    });
-}
-
-/// The handler for the end of the lift: unmap the surface. Nothing to do without a host (a
-/// test, an SSR render).
-pub(super) fn use_unmap() -> EventHandler<()> {
-    let surface = try_use_context::<SurfaceHandle>();
-    use_hook(|| {
-        EventHandler::new(move |()| {
-            if let Some(surface) = &surface {
-                surface.set_visibility(Visibility::Hidden);
             }
         })
     })

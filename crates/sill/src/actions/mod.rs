@@ -24,12 +24,11 @@ use sill_ipc::response::{FailureKind, Response};
 use sill_ipc::show::Reveal;
 use sill_launcher::{AppId, Route, Scope, SessionAction};
 use sill_model::actions::{Ask, DesktopStep, Effect, Subject, Way, def};
-use sill_model::launch::{LaunchCommand, LaunchRequest, SettingsOpen};
+use sill_model::launch::{LaunchCommand, LaunchRequest, SETTINGS_BUS_NAME, SettingsOpen};
 use sill_model::locker::LockerCommand;
 use sill_model::screenshots::{ShotCommand, ShotKind};
 use sill_model::session::SessionCommand;
 use sill_ui_kit::links::{ActionLink, Asked, Origin};
-use sill_ui_kit::surface::SETTINGS_APP;
 use tokio::runtime::Handle;
 
 use crate::daemon::msg::ShellMsg;
@@ -112,14 +111,14 @@ fn settings(
         ctx,
         reach,
         origin,
-        SETTINGS_APP,
+        SETTINGS_BUS_NAME,
         move |token| match subject {
             Subject::Settings(link) => launch.send(LaunchCommand::OpenSettings(
                 SettingsOpen::at(link).with_token(token),
             )),
             Subject::None | Subject::App(_) | Subject::Start(_) | Subject::Windows(_) => launch
                 .send(LaunchCommand::Launch(
-                    LaunchRequest::app(AppId(SETTINGS_APP.to_owned())).token(token),
+                    LaunchRequest::app(AppId(SETTINGS_BUS_NAME.to_owned())).token(token),
                 )),
         },
     )

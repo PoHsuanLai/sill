@@ -21,7 +21,7 @@ pub use use_appearance::{PinnedAppearance, SwitchableAppearance, use_appearance}
 pub use use_banner_output::use_banner_output;
 pub use use_entrance::{Entrance, use_entrance};
 pub use use_focus_mode::use_focus_mode;
-pub use use_follow_visibility::use_follow_visibility;
+pub use use_follow_visibility::{use_follow_visibility, use_map_when_shown, use_unmap_on_hidden};
 pub use use_hours::{PinnedLocale, use_hours};
 pub use use_link::use_link;
 pub use use_service::{use_control, use_service, use_service_part};
