@@ -69,6 +69,7 @@ pub mod tray;
 pub mod voice;
 pub mod volume;
 pub mod wallpaper;
+mod wayland_thread;
 pub mod wifi;
 pub mod work_areas;
 pub mod workspace_looks;

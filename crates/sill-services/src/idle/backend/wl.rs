@@ -8,19 +8,21 @@
 use std::io;
 
 use sill_model::idle::{DisplayPower, Threshold, Watch};
-use smithay_client_toolkit::reexports::calloop;
-use smithay_client_toolkit::reexports::calloop::channel::Event;
-use smithay_client_toolkit::reexports::calloop::{EventLoop, channel};
-use smithay_client_toolkit::reexports::calloop_wayland_source::WaylandSource;
-use tokio::sync::mpsc::UnboundedSender;
-use wayland_client::globals::{GlobalError, registry_queue_init};
 
 use super::wl_state::WlState;
-use crate::env::{WaylandRoute, WaylandUnreached};
+use crate::env::WaylandRoute;
+use crate::wayland_thread::{self as thread, Follow, Setup};
 
-/// Which connection an event came from: the service drops what an older one says.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Epoch(pub(crate) u64);
+pub(crate) use crate::wayland_thread::Epoch;
+
+/// An event, tagged with its connection.
+pub(crate) type Heard = thread::Heard<WlEvent>;
+
+/// How the thread reports to the service's task.
+pub(crate) type Tell = thread::Tell<WlEvent>;
+
+/// A running connection; dropping it ends the thread.
+pub(crate) type Wire = thread::Wire<Order>;
 
 /// What the thread saw.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,34 +51,6 @@ pub(crate) enum Offered {
     No,
 }
 
-/// An event, tagged with its connection.
-#[derive(Debug)]
-pub(crate) struct Heard {
-    pub(crate) epoch: Epoch,
-    pub(crate) event: WlEvent,
-}
-
-/// How the thread reports to the service's task.
-#[derive(Debug, Clone)]
-pub(crate) struct Tell {
-    epoch: Epoch,
-    to: UnboundedSender<Heard>,
-}
-
-impl Tell {
-    pub(crate) fn new(epoch: Epoch, to: UnboundedSender<Heard>) -> Tell {
-        Tell { epoch, to }
-    }
-
-    pub(crate) fn say(&self, event: WlEvent) {
-        // The service outlives every thread it starts; a closed channel means it is ending.
-        let _ = self.to.send(Heard {
-            epoch: self.epoch,
-            event,
-        });
-    }
-}
-
 /// What the service tells the thread.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Order {
@@ -89,71 +63,34 @@ pub(crate) enum Order {
     Displays(DisplayPower),
 }
 
-/// A running connection; dropping it ends the thread.
-#[derive(Debug)]
-pub(crate) struct Wire {
-    orders: channel::Sender<Order>,
-}
-
-impl Wire {
-    pub(crate) fn order(&self, order: Order) {
-        // The thread has ended (the compositor went away); it said so, and orders are moot.
-        let _ = self.orders.send(order);
-    }
-}
-
 /// Start a thread connected to `display`.
 pub(crate) fn start(display: WaylandRoute, tell: Tell) -> io::Result<Wire> {
-    let (orders, from_service) = channel::channel();
-    std::thread::Builder::new()
-        .name("sill-idle".to_owned())
-        .spawn(move || run(&display, from_service, tell))?;
-    Ok(Wire { orders })
+    thread::start::<WlState>(display, (), tell)
 }
 
-/// Why the thread is not following a compositor.
-#[derive(Debug, thiserror::Error)]
-enum Refusal {
-    #[error("{0}")]
-    Unreached(#[from] WaylandUnreached),
-    #[error("the registry: {0}")]
-    Registry(#[from] GlobalError),
-    #[error("the event loop: {0}")]
-    Loop(#[from] calloop::Error),
-}
+impl Follow for WlState {
+    type Start = ();
+    type Order = Order;
+    type Event = WlEvent;
 
-fn run(display: &WaylandRoute, orders: channel::Channel<Order>, tell: Tell) {
-    if let Err(refusal) = follow(display, orders, tell.clone()) {
-        eprintln!("sill: idle: {refusal}; idle is not followed");
+    const NAME: &'static str = "idle";
+    const UNFOLLOWED: &'static str = "idle is not followed";
+
+    fn bind((): (), setup: Setup<WlState>) -> WlState {
+        let state = WlState::bind(&setup.globals, setup.qh, setup.tell.clone());
+        setup.tell.say(WlEvent::Bound(state.protocols()));
+        state
     }
-    tell.say(WlEvent::Gone);
-}
 
-/// Bind, report, and run the loop until the service drops its [`Wire`] or the compositor goes.
-fn follow(
-    display: &WaylandRoute,
-    orders: channel::Channel<Order>,
-    tell: Tell,
-) -> Result<(), Refusal> {
-    let conn = display.connect()?;
-    let (globals, queue) = registry_queue_init::<WlState>(&conn)?;
-    let qh = queue.handle();
-    let mut state = WlState::bind(&globals, qh, tell.clone());
-    tell.say(WlEvent::Bound(state.protocols()));
-    let mut event_loop = EventLoop::<WlState>::try_new()?;
-    let handle = event_loop.handle();
-    let signal = event_loop.get_signal();
-    WaylandSource::new(conn, queue)
-        .insert(handle.clone())
-        .map_err(|error| error.error)?;
-    handle
-        .insert_source(orders, move |event, _, state: &mut WlState| match event {
-            Event::Msg(Order::Watch(watches)) => state.watch(watches),
-            Event::Msg(Order::Renew(watches)) => state.renew(watches),
-            Event::Msg(Order::Displays(power)) => state.displays(power),
-            Event::Closed => signal.stop(),
-        })
-        .map_err(|error| error.error)?;
-    event_loop.run(None, &mut state, |_| {})?;
-    Ok(())
+    fn order(&mut self, order: Order) {
+        match order {
+            Order::Watch(watches) => self.watch(watches),
+            Order::Renew(watches) => self.renew(watches),
+            Order::Displays(power) => self.displays(power),
+        }
+    }
+
+    fn gone() -> WlEvent {
+        WlEvent::Gone
+    }
 }
