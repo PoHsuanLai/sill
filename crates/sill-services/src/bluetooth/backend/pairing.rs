@@ -1,11 +1,12 @@
 //! What the service asks of BlueZ: the radio, connecting and disconnecting a device.
 
 use sill_model::bluetooth::{Bluetooth, BluetoothEvent, BtAddress, BtConnection, BtPower};
-use tokio::sync::{mpsc, watch};
+use tokio::sync::mpsc;
 use zbus::Connection;
 
 use super::bluez::{Adapter1Proxy, Device1Proxy};
-use super::run::{Tracked, apply};
+use super::run::Tracked;
+use crate::machine::Published;
 
 pub(crate) fn run_power(connection: &Connection, tracked: &Tracked, power: BtPower) {
     let Some(path) = tracked.adapter_path.clone() else {
@@ -24,7 +25,7 @@ pub(crate) fn run_power(connection: &Connection, tracked: &Tracked, power: BtPow
 /// failure here reverts the optimistic state instead of leaving it stuck.
 pub(crate) fn run_connect(
     connection: &Connection,
-    tx: &watch::Sender<Bluetooth>,
+    tx: &Published<Bluetooth, BluetoothEvent>,
     internal_tx: &mpsc::UnboundedSender<BluetoothEvent>,
     tracked: &Tracked,
     address: BtAddress,
@@ -32,8 +33,7 @@ pub(crate) fn run_connect(
     let Some(path) = tracked.device_path.get(&address).cloned() else {
         return;
     };
-    apply(
-        tx,
+    tx.feed(
         BluetoothEvent::Connection {
             address: address.clone(),
             connection: BtConnection::Connecting,

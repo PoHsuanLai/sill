@@ -12,11 +12,11 @@
 use std::collections::HashMap;
 
 use sill_model::bluetooth::{
-    Bluetooth, BluetoothCommand, BluetoothEvent, BtAddress, BtBattery, BtDevice, step,
+    Bluetooth, BluetoothCommand, BluetoothEvent, BtAddress, BtBattery, step,
 };
 use tokio::sync::{mpsc, oneshot, watch};
 use zbus::Connection;
-use zbus::fdo::{DBusProxy, InterfacesAddedStream, InterfacesRemovedStream, ObjectManagerProxy};
+use zbus::fdo::{InterfacesAddedStream, InterfacesRemovedStream, ObjectManagerProxy};
 use zbus::zvariant::OwnedObjectPath;
 
 use super::devices::{
@@ -25,7 +25,9 @@ use super::devices::{
 use super::pairing::{run_connect, run_disconnect, run_power};
 use crate::env::Bus;
 use crate::error::ServiceError;
-use crate::stream::{next, next_opt};
+use crate::machine::Published;
+use crate::owner::{Ended, Next, Owner};
+use crate::stream::next_opt;
 
 const SERVICE: &str = "org.bluez";
 
@@ -65,69 +67,82 @@ impl Tracked {
 }
 
 /// Runs until `commands` closes. Without a bus, BlueZ or an adapter, `tx` stays at its default.
-/// BlueZ may start after sill or restart under it: a `NameOwnerChanged` for `org.bluez` rebuilds
-/// the object manager's streams and re-seeds when the name gains an owner, and publishes
-/// `Gone` (stopping every watcher) when it loses it.
+/// BlueZ may start after sill or restart under it: each owner of `org.bluez` gets a session that
+/// opens the object manager's streams and seeds, and an owner leaving publishes `Gone` (stopping
+/// every watcher).
 pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Bluetooth>,
     mut commands: mpsc::UnboundedReceiver<BluetoothCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
-    let dbus = DBusProxy::new(&connection).await?;
-    let mut owner_changes = dbus
-        .receive_name_owner_changed_with_args(&[(0, SERVICE)])
-        .await?;
-
+    let tx = Published::new(tx, keeping_battery);
     let (internal_tx, mut internal_rx) = mpsc::unbounded_channel::<BluetoothEvent>();
     let mut tracked = Tracked::default();
-    let mut live = attach(&connection, &tx, &internal_tx, &mut tracked).await;
+    let owner = Owner::of(&connection, SERVICE);
+    while owner
+        .session(session(
+            &connection,
+            &tx,
+            &internal_tx,
+            &mut internal_rx,
+            &mut tracked,
+            &mut commands,
+        ))
+        .await
+        == Next::Again
+    {
+        tx.feed(BluetoothEvent::Gone);
+        tracked = Tracked::default();
+    }
+    Ok(())
+}
 
+/// One BlueZ lifetime: attach and seed, then follow the object manager, the watchers' events and
+/// the commands until `commands` closes.
+async fn session(
+    connection: &Connection,
+    tx: &Published<Bluetooth, BluetoothEvent>,
+    internal_tx: &mpsc::UnboundedSender<BluetoothEvent>,
+    internal_rx: &mut mpsc::UnboundedReceiver<BluetoothEvent>,
+    tracked: &mut Tracked,
+    commands: &mut mpsc::UnboundedReceiver<BluetoothCommand>,
+) -> Ended {
+    let mut live = attach(connection, tx, internal_tx, tracked).await;
     loop {
         tokio::select! {
-            Some(signal) = next(&mut owner_changes) => {
-                let Ok(args) = signal.args() else { continue };
-                if args.new_owner().is_some() {
-                    live = attach(&connection, &tx, &internal_tx, &mut tracked).await;
-                } else {
-                    live = Live::default();
-                    apply(&tx, BluetoothEvent::Gone);
-                    tracked = Tracked::default();
-                }
-            }
             Some(signal) = next_opt(&mut live.added) => {
                 if let Ok(args) = signal.args() {
                     let path = args.object_path().to_owned().into();
-                    handle_added(&connection, &tx, &internal_tx, &mut tracked, path, args.interfaces_and_properties()).await;
+                    handle_added(connection, tx, internal_tx, tracked, path, args.interfaces_and_properties()).await;
                 }
             }
             Some(signal) = next_opt(&mut live.removed) => {
                 if let Ok(args) = signal.args() {
                     let path = args.object_path().to_owned().into();
-                    handle_removed(&tx, &mut tracked, path, args.interfaces());
+                    handle_removed(tx, tracked, path, args.interfaces());
                 }
             }
             Some(event) = internal_rx.recv() => {
-                apply(&tx, event);
+                tx.feed(event);
             }
             command = commands.recv() => match command {
-                Some(BluetoothCommand::Power(power)) => run_power(&connection, &tracked, power),
+                Some(BluetoothCommand::Power(power)) => run_power(connection, tracked, power),
                 Some(BluetoothCommand::Connect(address)) => {
-                    run_connect(&connection, &tx, &internal_tx, &tracked, address);
+                    run_connect(connection, tx, internal_tx, tracked, address);
                 }
                 Some(BluetoothCommand::Disconnect(address)) => {
-                    run_disconnect(&connection, &tracked, address);
+                    run_disconnect(connection, tracked, address);
                 }
                 Some(BluetoothCommand::Refresh) => {
                     if let Some(object_manager) = &live.object_manager {
-                        seed(&connection, &tx, &internal_tx, &mut tracked, object_manager).await;
+                        seed(connection, tx, internal_tx, tracked, object_manager).await;
                     }
                 }
-                None => break,
+                None => return Ended::Commands,
             }
         }
     }
-    Ok(())
 }
 
 /// The object manager and its two signal streams, built fresh each time `org.bluez` gains an
@@ -143,7 +158,7 @@ struct Live {
 /// proxy or its streams cannot be built (the next owner change tries again).
 async fn attach(
     connection: &Connection,
-    tx: &watch::Sender<Bluetooth>,
+    tx: &Published<Bluetooth, BluetoothEvent>,
     internal_tx: &mpsc::UnboundedSender<BluetoothEvent>,
     tracked: &mut Tracked,
 ) -> Live {
@@ -181,13 +196,13 @@ async fn open(connection: &Connection) -> Option<Live> {
 /// how [`BluetoothCommand::Refresh`] behaves after a resume.
 async fn seed(
     connection: &Connection,
-    tx: &watch::Sender<Bluetooth>,
+    tx: &Published<Bluetooth, BluetoothEvent>,
     internal_tx: &mpsc::UnboundedSender<BluetoothEvent>,
     tracked: &mut Tracked,
     object_manager: &ObjectManagerProxy<'_>,
 ) {
     let Ok(objects) = object_manager.get_managed_objects().await else {
-        apply(tx, BluetoothEvent::Gone);
+        tx.feed(BluetoothEvent::Gone);
         *tracked = Tracked::default();
         return;
     };
@@ -197,7 +212,7 @@ async fn seed(
         .find(|(_, interfaces)| interfaces.keys().any(|i| i.as_str() == ADAPTER_IFACE))
         .map(|(path, _)| path.clone());
     let Some(adapter_path) = adapter_path else {
-        apply(tx, BluetoothEvent::Gone);
+        tx.feed(BluetoothEvent::Gone);
         *tracked = Tracked::default();
         return;
     };
@@ -256,7 +271,7 @@ async fn seed(
 /// device under it, or `Battery1` appearing on an already-known device.
 async fn handle_added(
     connection: &Connection,
-    tx: &watch::Sender<Bluetooth>,
+    tx: &Published<Bluetooth, BluetoothEvent>,
     internal_tx: &mpsc::UnboundedSender<BluetoothEvent>,
     tracked: &mut Tracked,
     path: OwnedObjectPath,
@@ -301,7 +316,7 @@ async fn handle_added(
 /// One object the object manager reported as removed: a device, `Battery1` leaving an
 /// otherwise-still-present device, or the adapter itself.
 fn handle_removed(
-    tx: &watch::Sender<Bluetooth>,
+    tx: &Published<Bluetooth, BluetoothEvent>,
     tracked: &mut Tracked,
     path: OwnedObjectPath,
     interfaces: &[zbus::names::InterfaceName<'_>],
@@ -317,8 +332,7 @@ fn handle_removed(
             let _ = stop.send(());
         }
         if let Some(address) = tracked.address_of(&path) {
-            apply(
-                tx,
+            tx.feed(
                 BluetoothEvent::Battery {
                     address,
                     battery: BtBattery::Unknown,
@@ -328,42 +342,34 @@ fn handle_removed(
         return;
     }
     if Some(&path) == tracked.adapter_path.as_ref() {
-        apply(tx, BluetoothEvent::Gone);
+        tx.feed(BluetoothEvent::Gone);
         *tracked = Tracked::default();
     }
 }
 
 /// Stops `path`'s watchers, drops it from `tracked` and publishes its removal.
-fn remove_device(tx: &watch::Sender<Bluetooth>, tracked: &mut Tracked, path: OwnedObjectPath) {
+fn remove_device(tx: &Published<Bluetooth, BluetoothEvent>, tracked: &mut Tracked, path: OwnedObjectPath) {
     tracked.stop_device(&path);
     if let Some(address) = tracked.address_of(&path) {
         tracked.device_path.remove(&address);
-        apply(tx, BluetoothEvent::DeviceRemoved(address));
+        tx.feed(BluetoothEvent::DeviceRemoved(address));
     }
 }
 
-/// Reduces `event` onto the receiver's current value and publishes the result. A `Device` event
-/// keeps whatever battery `tx` already has for that address, since `step` replaces
-/// the whole device and [`read_device`] never knows the battery (a separate D-Bus interface).
-pub(crate) fn apply(tx: &watch::Sender<Bluetooth>, event: BluetoothEvent) {
+/// [`step`], except that a `Device` event keeps whatever battery the device already has, since
+/// `step` replaces the whole device and `read_device` never knows the battery (a separate D-Bus
+/// interface).
+fn keeping_battery(held: Bluetooth, event: BluetoothEvent) -> Bluetooth {
     let event = match event {
-        BluetoothEvent::Device(device) => BluetoothEvent::Device(preserve_battery(tx, device)),
+        BluetoothEvent::Device(mut device) => {
+            if let Some(existing) = held.devices.iter().find(|d| d.address == device.address) {
+                device.battery = existing.battery;
+            }
+            BluetoothEvent::Device(device)
+        }
         other => other,
     };
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
-}
-
-pub(crate) fn preserve_battery(tx: &watch::Sender<Bluetooth>, mut device: BtDevice) -> BtDevice {
-    if let Some(existing) = tx
-        .borrow()
-        .devices
-        .iter()
-        .find(|d| d.address == device.address)
-    {
-        device.battery = existing.battery;
-    }
-    device
+    step(held, event)
 }
 
 /// Whether `path` sits under `adapter_path` (`/org/bluez/hci0/dev_...` under `/org/bluez/hci0`).

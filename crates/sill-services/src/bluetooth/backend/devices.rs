@@ -5,24 +5,23 @@ use sill_model::bluetooth::{
     device_kind,
 };
 use sill_model::units::Percent;
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, oneshot};
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
 use super::bluez::{Adapter1Proxy, Battery1Proxy, Device1Proxy};
-use super::run::apply;
+use crate::machine::Published;
 use crate::stream::next;
 
 pub(crate) async fn seed_adapter(
     connection: &Connection,
-    tx: &watch::Sender<Bluetooth>,
+    tx: &Published<Bluetooth, BluetoothEvent>,
     path: &OwnedObjectPath,
 ) {
     if let Ok(adapter) = Adapter1Proxy::new(connection, path.clone()).await
         && let Ok(powered) = adapter.powered().await
     {
-        apply(
-            tx,
+        tx.feed(
             BluetoothEvent::Adapter {
                 power: power_of(powered),
             },
@@ -35,12 +34,12 @@ pub(crate) async fn seed_adapter(
 /// the object is unreadable (BlueZ dropped it between the manager listing and now).
 pub(crate) async fn seed_device(
     connection: &Connection,
-    tx: &watch::Sender<Bluetooth>,
+    tx: &Published<Bluetooth, BluetoothEvent>,
     path: &OwnedObjectPath,
 ) -> Option<BtDevice> {
     let device = Device1Proxy::new(connection, path.clone()).await.ok()?;
     let read = read_device(&device).await?;
-    apply(tx, BluetoothEvent::Device(read.clone()));
+    tx.feed(BluetoothEvent::Device(read.clone()));
     Some(read)
 }
 
@@ -48,7 +47,7 @@ pub(crate) async fn seed_device(
 /// reading): the caller only starts a watcher when this is `true`.
 pub(crate) async fn seed_battery(
     connection: &Connection,
-    tx: &watch::Sender<Bluetooth>,
+    tx: &Published<Bluetooth, BluetoothEvent>,
     path: &OwnedObjectPath,
     address: &BtAddress,
 ) -> bool {
@@ -58,8 +57,7 @@ pub(crate) async fn seed_battery(
     let Ok(percentage) = battery.percentage().await else {
         return false;
     };
-    apply(
-        tx,
+    tx.feed(
         BluetoothEvent::Battery {
             address: address.clone(),
             battery: BtBattery::Level(Percent(u16::from(percentage))),
@@ -176,7 +174,7 @@ pub(crate) fn watch_battery(
 
 /// Every field [`sill_model::bluetooth::device_kind`] and `step`'s `Device` event need, read fresh
 /// from `device`; its battery is left `Unknown` (a separate interface [`watch_battery`] and
-/// [`seed_battery`] own) and [`apply`] fills it back in from what `tx` already knows.
+/// [`seed_battery`] own) and [`keeping_battery`] fills it back in from what is published.
 pub(crate) async fn read_device(device: &Device1Proxy<'_>) -> Option<BtDevice> {
     let address = device.address().await.ok()?;
     let alias = device.alias().await.unwrap_or_default();

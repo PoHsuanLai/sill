@@ -61,26 +61,15 @@ pub(crate) async fn run(
         board: Board::new(links.notifications, links.notes, shown_for),
         watches: HashMap::new(),
     };
-    let mut retry = Retry::default();
-    loop {
-        owner::appeared(&connection, wire::ACCOUNTS).await;
-        tokio::select! {
-            met = live.session(&mut commands, &mut actions, &mut events) => match met {
-                Met::Ended(Ended::Commands) => return Ok(()),
-                Met::Ended(Ended::Unreadable) => {
-                    owner::changed(&connection, wire::ACCOUNTS).await;
-                    retry = Retry::default();
-                }
-                Met::Refused => {
-                    // Not met yet: nothing is shown as found while the tries wait.
-                    live.lost();
-                    retry = after_refusal(&connection, retry).await;
-                }
-            },
-            () = owner::changed(&connection, wire::ACCOUNTS) => retry = Retry::default(),
-        }
+    let owner = owner::Owner::of(&connection, wire::ACCOUNTS);
+    while owner
+        .session(live.lifetime(&mut commands, &mut actions, &mut events))
+        .await
+        == owner::Next::Again
+    {
         live.lost();
     }
+    Ok(())
 }
 
 /// How a session ended: as every service's does, or with accountd refusing the first call.
@@ -89,24 +78,34 @@ enum Met {
     Refused,
 }
 
-/// Wait out a refusal: a short backoff, then the name changing hands. A name change at any point
-/// starts the tries over.
-async fn after_refusal(connection: &Connection, retry: Retry) -> Retry {
-    let (wait, spent) = retry.refused();
-    let changed = owner::changed(connection, wire::ACCOUNTS);
-    match wait {
-        Wait::Then(after) => tokio::select! {
-            () = tokio::time::sleep(after) => spent,
-            () = changed => Retry::default(),
-        },
-        Wait::OnNameChange => {
-            changed.await;
-            Retry::default()
+impl Live {
+    /// One accountd owner's lifetime, with the meeting tried again while accountd refuses it: a
+    /// short, growing wait, and then only the name changing hands (which ends this future and
+    /// starts the tries over). Nothing is shown as found while the tries wait.
+    async fn lifetime(
+        &mut self,
+        commands: &mut UnboundedReceiver<AccountsCommand>,
+        answers: &mut MessageStream,
+        events: &mut UnboundedReceiver<AccountsEvent>,
+    ) -> Ended {
+        let mut retry = Retry::default();
+        loop {
+            match self.session(commands, answers, events).await {
+                Met::Ended(ended) => return ended,
+                Met::Refused => {
+                    self.lost();
+                    match retry.refused() {
+                        (Wait::Then(after), spent) => {
+                            tokio::time::sleep(after).await;
+                            retry = spent;
+                        }
+                        (Wait::OnNameChange, _) => return Ended::Unreadable,
+                    }
+                }
+            }
         }
     }
-}
 
-impl Live {
     /// One accountd lifetime: meet it, then follow its signals, the watches, the server's
     /// answers and the commands.
     async fn session(
