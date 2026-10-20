@@ -196,3 +196,16 @@ fn no_two_actions_share_a_slug() {
         }
     }
 }
+
+#[test]
+fn empty_trash_asks_first_and_the_dock_toggles_take_nothing_to_act_on() {
+    assert_eq!(def(ActionId::EmptyTrash).confirm, Confirm::Ask);
+    assert_eq!(def(ActionId::ToggleDockMagnification).confirm, Confirm::Now);
+    for id in [
+        ActionId::EmptyTrash,
+        ActionId::ToggleDockMagnification,
+        ActionId::ToggleDockHide,
+    ] {
+        assert_eq!(Ask::of(id).refusal(), None, "{id:?}");
+    }
+}

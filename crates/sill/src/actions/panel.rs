@@ -10,7 +10,7 @@ use sill_launcher::{Scope, SessionAction};
 use sill_launcher_ui::Launcher;
 use sill_model::actions::Panel;
 use sill_notify_ui::NotificationCenter;
-use sill_overlays::{ForceQuit, PowerMenu};
+use sill_overlays::{EmptyTrashSheet, ForceQuit, PowerMenu};
 use sill_ui_kit::links::Preselect;
 use sill_ui_kit::surface::Surface;
 
@@ -87,6 +87,17 @@ fn force_quit(reach: &Reach, reveal: Reveal, at: Option<OutputId>) -> Response {
         }
     }
     Response::Done
+}
+
+/// The Empty Trash question, asked on `at`, else on the focused window's output.
+pub fn empty_trash(reach: &Reach, at: Option<OutputId>) -> Response {
+    match output::<EmptyTrashSheet>(reach, at) {
+        Some(output) => {
+            reach.links.empty_trash.open(output);
+            Response::Done
+        }
+        None => unsupported("no output has an Empty Trash surface"),
+    }
 }
 
 fn notification_center(reach: &Reach, reveal: Reveal, at: Option<OutputId>) -> Response {

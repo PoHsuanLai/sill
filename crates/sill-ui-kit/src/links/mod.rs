@@ -7,6 +7,7 @@ mod actions;
 mod banners;
 mod control_center;
 mod display_trial;
+mod empty_trash;
 mod eyedropper;
 mod focus;
 mod force_quit;
@@ -29,6 +30,9 @@ pub use actions::{ActionLink, ActionSent, Asked, Origin};
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use display_trial::{DisplayTrialLink, TrialAnswered, TrialReply, TrialRun, TrialSerial};
+pub use empty_trash::{
+    EmptyTrashAnswered, EmptyTrashLink, EmptyTrashOpening, EmptyTrashShown, EmptyTrashYes,
+};
 pub use eyedropper::{EyedropFeed, EyedropperLink};
 pub use focus::{Delivery, FocusLink};
 pub use force_quit::{
@@ -96,4 +100,7 @@ pub struct Links {
     /// them): the daemon opens it, the surface on the sheets' output shows it, and the answer
     /// goes back to the daemon.
     pub display_trial: DisplayTrialLink,
+    /// The Empty Trash question: the daemon opens it, the surface on the focused window's output
+    /// shows it, and a yes goes back to the daemon, which empties the Trash.
+    pub empty_trash: EmptyTrashLink,
 }

@@ -16,7 +16,7 @@ use sill_services::env::Dirs;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     ActionLink, BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink,
-    EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PowerMenuLink,
+    EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PowerMenuLink,
     SheetLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::{Services, Wiring};
@@ -265,6 +265,7 @@ fn build_links(
         force_quit: ForceQuitLink::following(desktop.clone()),
         spaces_bar: SpacesBarLink::following(desktop.clone()),
         eyedropper: EyedropperLink::new(),
+        empty_trash: EmptyTrashLink::new(),
     }
 }
 
@@ -285,6 +286,7 @@ fn spawn_followers(
     settings::spawn_watch(runtime, store, host.clone());
     settings::spawn_user_style_watch(runtime, store, host.clone());
     crate::outgoing::spawn_all(runtime.handle(), links, host);
+    crate::empty_trash::spawn_follower(runtime.handle(), &links.empty_trash);
     crate::spaces_bar::spawn_outbox(runtime.handle(), links, host.clone());
     crate::eyedropper::spawn_follower(runtime.handle(), links, services, host.clone());
     crate::actions::spawn_asks(runtime.handle(), &links.actions, host.clone());

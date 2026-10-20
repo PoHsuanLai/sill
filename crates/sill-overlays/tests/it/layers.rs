@@ -1,4 +1,4 @@
-//! The layer configuration of the twelve full-output sheets, from their presets: one table in
+//! The layer configuration of the thirteen full-output sheets, from their presets: one table in
 //! place of a test per surface.
 
 use shell_host::{
@@ -6,8 +6,8 @@ use shell_host::{
     RegionSpec,
 };
 use sill_overlays::{
-    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, DisplayTrialSheet, ForceQuit,
-    PermissionSheet, PolkitPrompt, PowerMenu, SplitPicker, Switcher, VoiceConsentSheet,
+    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, DisplayTrialSheet, EmptyTrashSheet,
+    ForceQuit, PermissionSheet, PolkitPrompt, PowerMenu, SplitPicker, Switcher, VoiceConsentSheet,
 };
 use sill_settings::ShellFile;
 use sill_ui_kit::harness::fake::output_named;
@@ -32,11 +32,17 @@ type Case = (LayerConfig, &'static str, Region, Region);
 #[test]
 fn the_sheets_are_keyboard_exclusive_full_output_overlays() {
     let sheet = Region::Panel(PANEL_RADIUS);
-    let cases: [Case; 12] = [
+    let cases: [Case; 13] = [
         (layer_of::<ForceQuit>(), "force-quit", sheet, Region::Whole),
         (
             layer_of::<DisplayTrialSheet>(),
             "display-trial",
+            sheet,
+            Region::Whole,
+        ),
+        (
+            layer_of::<EmptyTrashSheet>(),
+            "empty-trash",
             sheet,
             Region::Whole,
         ),

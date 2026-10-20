@@ -27,15 +27,15 @@ use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_model::windows::{Activity, Sizing, Toplevel, WindowState};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, DisplayTrialSheet, ForceQuit,
-    HotCorners, IdleDim, LOCK, Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar,
+    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, DisplayTrialSheet, EmptyTrashSheet,
+    ForceQuit, HotCorners, IdleDim, LOCK, Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar,
     SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
 };
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
-    DisplayTrialLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind,
+    DisplayTrialLink, EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind,
     OsdLink, PowerMenuLink, Preselect, PromptOutput, SheetLink, SheetOutput, SpacesBarLink,
     SplitPickerLink, SwitcherAsk, SwitcherLink,
 };
@@ -196,6 +196,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <DisplayTrialSheet as Surface>::NAME,
         css: "",
         states: display_trial_states,
+    },
+    SurfaceCase {
+        name: "empty_trash",
+        surface: <EmptyTrashSheet as Surface>::NAME,
+        css: "",
+        states: empty_trash_states,
     },
     SurfaceCase {
         name: "eyedropper",
@@ -590,6 +596,18 @@ fn display_trial_states() -> Vec<(&'static str, String)> {
         trial: TrialId::new(1),
         seconds: 15,
     });
+    sheet.harness.advance(Duration::from_millis(700));
+    let shown = sheet.harness.html();
+    assert!(shown.contains("ds-alert"), "{shown}");
+    vec![("hidden", hidden), ("shown", shown)]
+}
+
+/// The Empty Trash question: hidden, then asking.
+fn empty_trash_states() -> Vec<(&'static str, String)> {
+    let mut sheet = SurfaceHarness::<EmptyTrashSheet>::setup(EmptyTrashLink::new(), ()).start();
+    sheet.harness.advance(Duration::from_millis(40));
+    let hidden = sheet.harness.html();
+    sheet.link.open(fake::output().id);
     sheet.harness.advance(Duration::from_millis(700));
     let shown = sheet.harness.html();
     assert!(shown.contains("ds-alert"), "{shown}");

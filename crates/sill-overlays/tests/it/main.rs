@@ -5,6 +5,7 @@ mod accounts_sheet;
 mod confirm_limits;
 mod confirm_sheet;
 mod display_trial;
+mod empty_trash;
 mod eyedropper;
 mod force_quit;
 mod hot_corners;

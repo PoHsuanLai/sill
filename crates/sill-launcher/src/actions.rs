@@ -65,6 +65,10 @@ pub enum ActionId {
     PinApp,
     UnpinApp,
     ToggleDockHide,
+    /// Turn dock magnification on or off.
+    ToggleDockMagnification,
+    /// Empty the Trash, after asking.
+    EmptyTrash,
     /// Turn Do Not Disturb on or off.
     ToggleFocus,
     /// Re-read settings, apps and pins.

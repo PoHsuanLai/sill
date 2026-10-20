@@ -12,8 +12,8 @@ use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{
-    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, DisplayTrialSheet, ForceQuit,
-    HotCorners, IdleDim, LOCK, Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar,
+    AccountsSheet, CaptureSheet, ColorSampler, ConfirmSheet, DisplayTrialSheet, EmptyTrashSheet,
+    ForceQuit, HotCorners, IdleDim, LOCK, Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar,
     SplitPicker, Switcher, VoiceConsentSheet, Wallpaper, WindowMenu,
 };
 use sill_settings::ShellFile;
@@ -71,6 +71,7 @@ fn kinds() -> Vec<Kind> {
         kind::<CaptureSheet>(),
         kind::<PermissionSheet>(),
         kind::<DisplayTrialSheet>(),
+        kind::<EmptyTrashSheet>(),
         kind::<ColorSampler>(),
         kind::<ForceQuit>(),
         kind::<Switcher>(),

@@ -54,6 +54,8 @@ pub enum Effect {
     App(AppVerb),
     /// Flip a preference the shell keeps.
     Pref(Pref),
+    /// Ask whether to erase the Trash for good, and empty it when the answer is yes.
+    EmptyTrash,
     /// Switch to the next input source of the running input-method framework.
     InputSource,
     /// Re-read settings.
@@ -131,6 +133,7 @@ pub enum AppVerb {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pref {
     DockAutoHide,
+    DockMagnification,
     Focus,
 }
 
@@ -154,15 +157,17 @@ impl Effect {
             | Effect::Shot(_)
             | Effect::Desktop(_)
             | Effect::Pref(_)
+            | Effect::EmptyTrash
             | Effect::InputSource
             | Effect::Reload => Needs::Nothing,
         }
     }
 
-    /// Whether choosing it asks first: only a power action that ends the apps does.
+    /// Whether choosing it asks first: a power action that ends the apps, and erasing the Trash.
     pub fn confirm(self) -> Confirm {
         match self {
             Effect::Session(action) => action.confirm(),
+            Effect::EmptyTrash => Confirm::Ask,
             Effect::Panel(_)
             | Effect::Find(_)
             | Effect::Switcher(_)
@@ -323,6 +328,12 @@ pub fn def(id: ActionId) -> ActionDef {
             Some(StandardAction::ToggleDock),
             Effect::Pref(Pref::DockAutoHide),
         ),
+        A::ToggleDockMagnification => (
+            "Turn Dock Magnification On or Off",
+            None,
+            Effect::Pref(Pref::DockMagnification),
+        ),
+        A::EmptyTrash => ("Empty Trash", None, Effect::EmptyTrash),
         A::ToggleFocus => ("Do Not Disturb", None, Effect::Pref(Pref::Focus)),
         A::Reload => ("Reload Settings", None, Effect::Reload),
     };

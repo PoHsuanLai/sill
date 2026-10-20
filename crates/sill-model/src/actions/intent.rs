@@ -40,6 +40,8 @@ pub fn intent_of(id: ActionId) -> Option<&'static str> {
         | A::QuitApp
         | A::ForceQuitApp
         | A::ToggleDockHide
+        | A::ToggleDockMagnification
+        | A::EmptyTrash
         | A::ToggleFocus
         | A::Reload => None,
     }

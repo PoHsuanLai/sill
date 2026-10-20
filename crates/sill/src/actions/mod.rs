@@ -51,6 +51,7 @@ pub fn perform(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, ask: Ask, origin: Ori
         Effect::Settings => settings(ctx, reach, subject, origin),
         Effect::App(verb) => app::perform(ctx, reach, verb, subject, origin),
         Effect::Pref(pref) => pref::flip(reach, pref),
+        Effect::EmptyTrash => panel::empty_trash(reach, origin.output),
         Effect::InputSource => input_source::next(reach),
         Effect::Reload => reload(ctx, reach),
     }
