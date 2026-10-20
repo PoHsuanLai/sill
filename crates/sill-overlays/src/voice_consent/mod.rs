@@ -5,7 +5,6 @@
 //! and answers through `VoiceCommand::Answer`; Escape is Not Now. Whatever the answer, the
 //! daemon writes it into `voice.consent` of the settings file, which `voiced` reads on every hold.
 
-mod layer;
 mod surface;
 mod view;
 

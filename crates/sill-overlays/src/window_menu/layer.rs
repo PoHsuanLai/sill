@@ -3,30 +3,17 @@
 //! under it. It exists to be the parent of the menu's popup, which the compositor places in the
 //! layer's coordinates.
 
-use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
-    Margin, OutputInfo, OutputTarget, RegionSpec,
-};
+use shell_host::{LayerConfig, LayerLevel, OutputInfo};
 
-use sill_ui_kit::surface::namespace;
+use sill_ui_kit::surface::{LayerPreset, Pointer};
 
 /// The window menu surface's layer configuration on `output`.
 pub fn layer(output: &OutputInfo) -> LayerConfig {
-    LayerConfig {
-        namespace: namespace("window-menu", output),
-        layer: LayerLevel::Overlay,
-        anchor: Anchor::TOP | Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT,
-        size: LayerSize {
-            width: LayerExtent::Fill,
-            height: LayerExtent::Fill,
-        },
-        exclusive: ExclusiveZone::Ignore,
-        margin: Margin::ZERO,
-        keyboard: KeyboardMode::None,
-        output: OutputTarget::Output(output.id),
-        blur: BlurSpec::None,
-        input: RegionSpec::Empty,
+    LayerPreset::Whole {
+        level: LayerLevel::Overlay,
+        pointer: Pointer::PassesThrough,
     }
+    .config("window-menu", output)
 }
 
 #[cfg(test)]

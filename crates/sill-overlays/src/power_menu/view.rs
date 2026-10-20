@@ -16,7 +16,7 @@ use sill_model::session::Session;
 use super::choice::answers;
 use super::io::{MenuCtx, use_menu};
 use super::labels::{NONE_OFFERED_MESSAGE, NONE_OFFERED_TITLE, action_label, consequence, prompt};
-use super::layer::PANEL_ID;
+use super::surface::PANEL_ID;
 use super::sheet::{MenuSession, SheetInput};
 use ds::base::time::clock::sleep;
 use sill_model::session::words::{COUNTDOWN_SECONDS, countdown};

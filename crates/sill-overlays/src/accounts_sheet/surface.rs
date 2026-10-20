@@ -5,10 +5,9 @@ use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
-use super::layer::layer;
 use super::view::accounts_sheet;
 use sill_ui_kit::links::BannerLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, Place, Start, Surface};
 
 /// The sheet accountd draws its consent question and add-account steps on.
 #[derive(Debug)]
@@ -24,8 +23,8 @@ impl Surface for AccountsSheet {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        LayerPreset::FullOutputSheet { blur: None }.config(Self::NAME, output)
     }
 
     fn start() -> Start {

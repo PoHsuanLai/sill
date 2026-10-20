@@ -11,7 +11,6 @@
 //! the surface hides at the answer without waiting for that round trip.
 
 mod io;
-mod layer;
 mod model;
 mod surface;
 mod view;

@@ -16,7 +16,6 @@ mod choice;
 mod follow;
 mod io;
 mod labels;
-mod layer;
 mod sheet;
 mod surface;
 mod view;

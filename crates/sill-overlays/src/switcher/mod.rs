@@ -9,7 +9,7 @@
 //! Escape cancels, the release activates. The machine's outputs become `WlCommand`s through
 //! `apps::{activate, quit, hide}`.
 //!
-//! One warm, hidden Overlay per output (`layer.rs`), mapped from the chord until
+//! One warm, hidden Overlay per output (`surface.rs`), mapped from the chord until
 //! it closes, drawing nothing until the panel shows: quire's `AppSwitcher` in `Ds { material:
 //! Osd, chrome: Transparent }`, fed by `tiles.rs`.
 
@@ -17,7 +17,6 @@ mod apps;
 mod hold;
 mod io;
 mod keys;
-mod layer;
 mod model;
 mod opening;
 mod pointer;

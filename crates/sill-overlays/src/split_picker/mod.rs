@@ -11,7 +11,6 @@
 //! it does not wait for that round trip.
 
 mod io;
-mod layer;
 mod model;
 mod surface;
 mod view;

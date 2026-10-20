@@ -5,10 +5,15 @@ use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
-use super::layer::layer;
 use super::view::switcher;
 use sill_ui_kit::links::SwitcherLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, PanelBlur, Place, Start, Surface};
+
+/// The panel's element id: the surface's input and blur region.
+pub(super) const PANEL_ID: &str = "switcher-panel";
+
+/// The panel's corner: `Material::Osd`'s radius (design/13 §13.3.5), not a sheet's.
+const PANEL_RADIUS: i32 = 18;
 
 /// Cmd+Tab over applications, not windows.
 #[derive(Debug)]
@@ -23,8 +28,14 @@ impl Surface for Switcher {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        LayerPreset::PanelOnly {
+            panel: PanelBlur {
+                id: PANEL_ID,
+                radius: PANEL_RADIUS,
+            },
+        }
+        .config(Self::NAME, output)
     }
 
     fn start() -> Start {

@@ -14,7 +14,6 @@
 //! sheets this is a layer surface on a stock compositor.
 
 mod io;
-mod layer;
 mod rows;
 mod surface;
 mod view;

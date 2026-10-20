@@ -7,14 +7,11 @@
 //! than this surface: the lower part of the expanded bar lies over the top of the windows, as on
 //! the Mac (FINDINGS `mc2`).
 
-use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
-    LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
-};
+use shell_host::{LayerConfig, OutputInfo};
 use sill_model::desktop::BAR_EXPANDED_PX;
 use sill_settings::ShellFile;
 
-use sill_ui_kit::surface::namespace;
+use sill_ui_kit::surface::{LayerPreset, PanelBlur};
 
 /// The strip casement reserves at the top of an output for this bar while Mission Control is
 /// open (casement FINDINGS, `wave-2026-10-15/overview`): the windows spread below it.
@@ -30,25 +27,14 @@ pub(super) fn surface_px(menu_bar_px: u32) -> u32 {
 
 /// The bar on `output`.
 pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
-    LayerConfig {
-        namespace: namespace("spaces-bar", output),
-        layer: LayerLevel::Top,
-        anchor: Anchor::TOP | Anchor::LEFT | Anchor::RIGHT,
-        size: LayerSize {
-            width: LayerExtent::Fill,
-            height: LayerExtent::Px(surface_px(u32::from(settings.bar.height_px.0))),
-        },
-        exclusive: ExclusiveZone::Ignore,
-        margin: Margin::ZERO,
-        keyboard: KeyboardMode::None,
-        output: OutputTarget::Output(output.id),
-        blur: BlurSpec::None,
-        input: RegionSpec::Element {
-            id: ElementId::new(BAR_ID),
+    LayerPreset::Strip {
+        height: surface_px(u32::from(settings.bar.height_px.0)),
+        bar: PanelBlur {
+            id: BAR_ID,
             radius: 0,
-            inflate: 0,
         },
     }
+    .config("spaces-bar", output)
 }
 
 #[cfg(test)]

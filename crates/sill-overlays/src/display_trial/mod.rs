@@ -16,7 +16,6 @@
 //! clicks do nothing until then (quire's `Alert` `arm_after`).
 
 mod io;
-mod layer;
 mod surface;
 mod view;
 

@@ -24,7 +24,7 @@ use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
 use super::io::use_end;
-use super::layer::PANEL_ID;
+use super::surface::PANEL_ID;
 use super::words::{app_named, escape_answer, words};
 
 /// The app icon's side in points: quire's alert draws its hero icon at 64.
@@ -113,7 +113,7 @@ fn QuestionCard(
             arm_after: Some(confirm_arm(&companion())),
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
-            // The sheet carries the blur region's id, so `layer.rs`'s element region resolves.
+            // The sheet carries the blur region's id, so the layer's element region resolves.
             common: Common { id: Some(PANEL_ID.to_owned()), ..Common::default() },
         }
     }

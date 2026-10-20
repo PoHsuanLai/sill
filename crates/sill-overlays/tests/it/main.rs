@@ -9,6 +9,7 @@ mod eyedropper;
 mod force_quit;
 mod hot_corners;
 mod idle_dim;
+mod layers;
 mod lock;
 mod osd;
 mod permission_sheet;

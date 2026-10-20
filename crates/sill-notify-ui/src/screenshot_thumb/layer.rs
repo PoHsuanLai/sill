@@ -3,14 +3,11 @@
 //! keyboard, input and blur the thumbnail's own card (`Element("thumb")`), with room around
 //! the card for the Toast material's shadow and the swipe's travel.
 
-use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
-    LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
-};
+use shell_host::{Anchor, ExclusiveZone, LayerConfig, OutputInfo, RegionSpec};
 
 use sill_settings::ShellFile;
 
-use sill_ui_kit::surface::namespace;
+use sill_ui_kit::surface::{LayerPreset, PanelBlur};
 
 /// The card's element id: its input and blur region.
 pub const THUMB_ID: &str = "thumb";
@@ -32,33 +29,28 @@ pub const THUMB_HEIGHT: u32 = (THUMB_WIDTH - 2 * THUMB_MAT) * 10 / 16 + 2 * THUM
 /// Transparent room around the card: the shadow (the banners' 40) and, to the right, the swipe.
 pub const ROOM: u32 = 40;
 
+/// The card, as the compositor blurs behind it and clips input to it.
+const THUMB_CARD: PanelBlur = PanelBlur {
+    id: THUMB_ID,
+    radius: THUMB_RADIUS,
+};
+
 /// The card's region.
 pub fn thumb_region() -> RegionSpec {
-    RegionSpec::Element {
-        id: ElementId::new(THUMB_ID),
-        radius: THUMB_RADIUS,
-        inflate: 0,
-    }
+    THUMB_CARD.region()
 }
 
 /// The thumbnail on `output`: a column `THUMB_WIDTH` plus room wide, as tall as a 16:10 picture
 /// plus room (a taller picture is letterboxed in the card).
 pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
-    LayerConfig {
-        namespace: namespace("screenshot-thumb", output),
-        layer: LayerLevel::Overlay,
+    LayerPreset::Corner {
         anchor: Anchor::BOTTOM | Anchor::RIGHT,
-        size: LayerSize {
-            width: LayerExtent::Px(THUMB_WIDTH + 2 * ROOM),
-            height: LayerExtent::Px(THUMB_HEIGHT + 2 * ROOM),
-        },
+        width: THUMB_WIDTH + 2 * ROOM,
+        height: THUMB_HEIGHT + 2 * ROOM,
         exclusive: ExclusiveZone::Auto,
-        margin: Margin::ZERO,
-        keyboard: KeyboardMode::None,
-        output: OutputTarget::Output(output.id),
-        blur: BlurSpec::Region(thumb_region()),
-        input: thumb_region(),
+        card: THUMB_CARD,
     }
+    .config("screenshot-thumb", output)
 }
 
 #[cfg(test)]

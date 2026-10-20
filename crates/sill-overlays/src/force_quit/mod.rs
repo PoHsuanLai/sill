@@ -12,7 +12,6 @@
 //! stock compositor.
 
 mod io;
-mod layer;
 mod model;
 mod step;
 mod surface;

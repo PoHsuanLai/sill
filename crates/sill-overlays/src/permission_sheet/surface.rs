@@ -5,10 +5,12 @@ use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
-use super::layer::layer;
 use super::view::permission_sheet;
 use sill_ui_kit::links::BannerLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, PanelBlur, Place, Start, Surface};
+
+/// The panel's element id: the surface's blur region.
+pub(super) const PANEL_ID: &str = "permission-panel";
 
 /// The sheet that asks whether an app may do something.
 #[derive(Debug)]
@@ -24,8 +26,11 @@ impl Surface for PermissionSheet {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        LayerPreset::FullOutputSheet {
+            blur: Some(PanelBlur::sheet(PANEL_ID)),
+        }
+        .config(Self::NAME, output)
     }
 
     fn start() -> Start {

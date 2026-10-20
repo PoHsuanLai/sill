@@ -29,7 +29,7 @@ use super::brief_view::{brief_body, use_brief};
 use super::gate::{AnswerGate, GateIn};
 use super::held::held_line;
 use super::io::{use_brief_answer, use_gate, use_undo};
-use super::layer::PANEL_ID;
+use super::surface::PANEL_ID;
 use sill_ui_kit::hooks::{use_banner_output, use_service_part};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};

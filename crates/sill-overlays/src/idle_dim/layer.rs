@@ -4,30 +4,17 @@
 //! idle tracking sees the input as it would without the scrim. The session-lock surfaces are
 //! above every layer surface, so a lock taken while dimmed covers it.
 
-use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
-    Margin, OutputInfo, OutputTarget, RegionSpec,
-};
+use shell_host::{LayerConfig, LayerLevel, OutputInfo};
 
-use sill_ui_kit::surface::namespace;
+use sill_ui_kit::surface::{LayerPreset, Pointer};
 
 /// The dim's layer configuration on `output`.
 pub fn layer(output: &OutputInfo) -> LayerConfig {
-    LayerConfig {
-        namespace: namespace("idle-dim", output),
-        layer: LayerLevel::Overlay,
-        anchor: Anchor::TOP | Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT,
-        size: LayerSize {
-            width: LayerExtent::Fill,
-            height: LayerExtent::Fill,
-        },
-        exclusive: ExclusiveZone::Ignore,
-        margin: Margin::ZERO,
-        keyboard: KeyboardMode::None,
-        output: OutputTarget::Output(output.id),
-        blur: BlurSpec::None,
-        input: RegionSpec::Empty,
+    LayerPreset::Whole {
+        level: LayerLevel::Overlay,
+        pointer: Pointer::PassesThrough,
     }
+    .config("idle-dim", output)
 }
 
 #[cfg(test)]

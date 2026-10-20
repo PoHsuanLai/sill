@@ -29,7 +29,6 @@ mod brief_view;
 mod gate;
 mod held;
 mod io;
-mod layer;
 mod surface;
 #[cfg(test)]
 mod tests;

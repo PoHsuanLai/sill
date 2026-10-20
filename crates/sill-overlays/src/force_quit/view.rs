@@ -33,7 +33,7 @@ use sill_ui_kit::sheet_stage::{SheetStage, settle};
 
 use super::FORCE_QUIT_CSS;
 use super::io::{use_rows, use_stage};
-use super::layer::PANEL_ID;
+use super::surface::PANEL_ID;
 use super::model::{Chosen, Confirming};
 use super::step::{In, Out, advance};
 

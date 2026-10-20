@@ -16,7 +16,7 @@ use sill_model::voice::{ConsentAnswer, ConsentSheet, VoiceCommand};
 use sill_services::VoiceService;
 
 use super::VOICE_CONSENT_CSS;
-use super::layer::PANEL_ID;
+use super::surface::PANEL_ID;
 use sill_ui_kit::hooks::{use_banner_output, use_control, use_service_part};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};

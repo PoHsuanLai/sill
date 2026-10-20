@@ -5,10 +5,12 @@ use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
-use super::layer::layer;
 use super::view::display_trial;
 use sill_ui_kit::links::DisplayTrialLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, PanelBlur, Place, Start, Surface};
+
+/// The panel's element id: the surface's blur region.
+pub(super) const PANEL_ID: &str = "display-trial-panel";
 
 /// The question whether to keep a changed display setup.
 #[derive(Debug)]
@@ -24,8 +26,11 @@ impl Surface for DisplayTrialSheet {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        LayerPreset::FullOutputSheet {
+            blur: Some(PanelBlur::sheet(PANEL_ID)),
+        }
+        .config(Self::NAME, output)
     }
 
     fn start() -> Start {

@@ -21,7 +21,6 @@
 
 mod arming;
 mod io;
-mod layer;
 mod surface;
 mod view;
 mod words;

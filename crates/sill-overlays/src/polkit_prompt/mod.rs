@@ -16,7 +16,6 @@
 //! (`Registration::Refused`), and that is the right outcome there. Acceptance runs the agent on
 //! a private bus with a stand-in Authority, never on the system bus.
 
-mod layer;
 mod model;
 mod surface;
 mod view;

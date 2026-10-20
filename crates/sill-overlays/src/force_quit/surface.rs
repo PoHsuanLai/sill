@@ -5,10 +5,12 @@ use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
-use super::layer::layer;
 use super::view::force_quit;
 use sill_ui_kit::links::ForceQuitLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, PanelBlur, Place, Start, Surface};
+
+/// The panel's element id: the surface's blur region.
+pub(super) const PANEL_ID: &str = "force-quit-panel";
 
 /// The Force Quit Applications panel.
 #[derive(Debug)]
@@ -23,8 +25,11 @@ impl Surface for ForceQuit {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        LayerPreset::FullOutputSheet {
+            blur: Some(PanelBlur::sheet(PANEL_ID)),
+        }
+        .config(Self::NAME, output)
     }
 
     fn start() -> Start {

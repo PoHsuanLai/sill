@@ -12,6 +12,7 @@ mod lock;
 mod mount;
 mod naming;
 mod place;
+mod preset;
 mod start;
 
 pub use activation::{
@@ -22,6 +23,7 @@ pub use lock::{LockSurface, MountLockProps, mount_lock};
 pub use mount::{MountProps, mount};
 pub use naming::namespace;
 pub use place::{OutputRank, Place};
+pub use preset::{LayerPreset, PanelBlur, Pointer};
 pub use start::Start;
 
 use std::fmt::Debug;

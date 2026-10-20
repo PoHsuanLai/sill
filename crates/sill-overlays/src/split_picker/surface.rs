@@ -5,10 +5,9 @@ use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
-use super::layer::layer;
 use super::view::split_picker;
 use sill_ui_kit::links::SplitPickerLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, Place, Start, Surface};
 
 /// The choice of the second window of a Split View.
 #[derive(Debug)]
@@ -23,8 +22,8 @@ impl Surface for SplitPicker {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        LayerPreset::FullOutputSheet { blur: None }.config(Self::NAME, output)
     }
 
     fn start() -> Start {

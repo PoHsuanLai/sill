@@ -1,30 +1,17 @@
 //! The wallpaper's layer surface: Background, every edge, ignoring exclusive zones, no keyboard,
 //! input over the whole output (a press of the secondary button opens the desktop's menu).
 
-use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
-    Margin, OutputInfo, OutputTarget, RegionSpec,
-};
+use shell_host::{LayerConfig, LayerLevel, OutputInfo};
 
-use sill_ui_kit::surface::namespace;
+use sill_ui_kit::surface::{LayerPreset, Pointer};
 
 /// The wallpaper's layer configuration on `output`.
 pub fn layer(output: &OutputInfo) -> LayerConfig {
-    LayerConfig {
-        namespace: namespace("wallpaper", output),
-        layer: LayerLevel::Background,
-        anchor: Anchor::ALL,
-        size: LayerSize {
-            width: LayerExtent::Fill,
-            height: LayerExtent::Fill,
-        },
-        exclusive: ExclusiveZone::Ignore,
-        margin: Margin::ZERO,
-        keyboard: KeyboardMode::None,
-        output: OutputTarget::Output(output.id),
-        blur: BlurSpec::None,
-        input: RegionSpec::Whole,
+    LayerPreset::Whole {
+        level: LayerLevel::Background,
+        pointer: Pointer::Takes,
     }
+    .config("wallpaper", output)
 }
 
 #[cfg(test)]

@@ -21,7 +21,7 @@ use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle};
 
 use super::io::{use_answer, use_left, use_stage};
-use super::layer::PANEL_ID;
+use super::surface::PANEL_ID;
 
 /// The buttons' element ids (the tests', and a person's stylesheet's, handles).
 pub(super) const REVERT_ID: &str = "display-trial-revert";
@@ -78,7 +78,7 @@ fn TrialCard(run: TrialRun, shown: Shown, stage: Signal<SheetStage<TrialRun>>) -
             arm_after: Some(confirm_arm(&companion())),
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
-            // The sheet carries the blur region's id, so `layer.rs`'s element region resolves.
+            // The sheet carries the blur region's id, so the layer's element region resolves.
             common: Common { id: Some(PANEL_ID.to_owned()), ..Common::default() },
         }
     }
