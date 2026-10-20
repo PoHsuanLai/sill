@@ -39,7 +39,6 @@ use sill_ui_kit::hooks::{
 use sill_ui_kit::look::{active_workspace, use_active_look};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::root::use_root_style;
-use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::shell_style::shell_metrics;
 
 /// The dock's own stylesheet (lint-clean under `Profile::Strict`, `tests/dock_lint.rs`).
@@ -50,7 +49,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let root = use_root_style();
-    let feed = use_context::<SettingsFeed>();
     let on = output.name.clone().map(OutputName);
     let look = use_active_look(&output);
     let workspace = active_workspace(
@@ -122,7 +120,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         params,
         world: world.clone(),
         order: file.dock.context_menu_order,
-        feed,
         look: PopupLook {
             appearance,
             system: environment.system,

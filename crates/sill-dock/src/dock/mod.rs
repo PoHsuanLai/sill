@@ -15,7 +15,6 @@ mod layer;
 pub mod machine;
 mod menu;
 mod menu_geometry;
-mod menu_popup;
 mod pick;
 mod pointer;
 mod rest_rects;

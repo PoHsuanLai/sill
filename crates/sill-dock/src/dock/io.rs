@@ -1,5 +1,5 @@
 //! The dock's runtime: the machine in a signal, the frame drive, the one-shot timers, the
-//! context menu popup and the services. The only effectful part of the dock; every decision is
+//! context menu and the services. The only effectful part of the dock; every decision is
 //! `machine::step`, `effects`, `changes`, `context_menu` or `menu_geometry`.
 //!
 //! Frames follow shell-host's frame hook: the machine's `RequestFrames` takes a
@@ -9,26 +9,24 @@
 use dioxus::prelude::*;
 use ds::base::time::clock::sleep;
 use ds::base::time::stamp::Stamp;
-use shell_host::{FrameDrive, HostRoot, SurfaceHandle};
+use shell_host::{FrameDrive, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;
 use sill_settings::DockMenuOrder;
 use sill_ui_kit::services::Services;
-use tokio::sync::mpsc;
 
 use crate::dock::context_menu::{OptionHeld, context_menu, menu_entries, menu_windows};
 use crate::dock::effects::{EffectCtx, effect_commands};
 use crate::dock::frame::Frame;
 use crate::dock::items::DockItem;
 use crate::dock::machine::{DockEffect, DockEvent, DockParams, DockState, TileId, step};
-use crate::dock::menu_geometry::{menu_config, menu_placement};
-use crate::dock::menu_popup::{DockMenuPopup, MenuLink, PopupReport};
+use crate::dock::menu::DockMenu;
+use crate::dock::menu_geometry::{GEOM, tile_anchor};
 use crate::dock::pick::{DockCommand, pick_commands};
 use crate::dock::pointer::{DockInput, resolve};
 use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::hooks::use_services;
-use sill_ui_kit::menu::PopupLook;
-use sill_ui_kit::settings::SettingsFeed;
+use sill_ui_kit::menu::{ContextMenu, PopupLook, use_context_menu_closing};
 
 /// What the session decides against, from the dock's latest render.
 #[derive(Clone)]
@@ -40,8 +38,6 @@ pub(crate) struct SessionDeps {
     pub world: World,
     pub order: DockMenuOrder,
     pub look: PopupLook,
-    /// Handed to the menu popup, so it draws the person's stylesheet.
-    pub feed: SettingsFeed,
     /// `dock.remove_threshold_px`.
     pub remove: sill_model::units::Cpx,
 }
@@ -80,18 +76,10 @@ struct Slots {
     machine: Signal<DockState>,
     drawn: Signal<Stamp>,
     drive: CopyValue<Option<FrameDrive>>,
-    menu: CopyValue<MenuOpen>,
-    reports: CopyValue<mpsc::UnboundedSender<PopupReport>>,
+    menu: CopyValue<ContextMenu<DockMenu>>,
     deps: CopyValue<Option<SessionDeps>>,
     /// The session's own feed, for its timers (set once the callback exists).
     feed: CopyValue<Option<Callback<DockInput>>>,
-}
-
-/// Whether the session has a context menu popup up.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum MenuOpen {
-    Up,
-    Down,
 }
 
 /// Where commands go: the services, and the surface that asks for activation tokens and
@@ -110,18 +98,23 @@ pub(crate) fn use_dock(initial: DockState) -> DockSession {
         services: use_services(),
         surface: try_use_context::<SurfaceHandle>(),
     };
-    let (reports_tx, reports_rx) = use_hook(|| {
-        let (tx, rx) = mpsc::unbounded_channel::<PopupReport>();
-        (tx, CopyValue::new(Some(rx)))
-    });
+    // The session's own feed, for its timers and the menu's close (set once the callback exists).
+    let own_feed = use_hook(|| CopyValue::new(None::<Callback<DockInput>>));
+    let menu = use_context_menu_closing::<DockMenu>(
+        "dock-menu",
+        {
+            let outward = outward.clone();
+            move |pick| send_all(&outward, pick_commands(&pick))
+        },
+        move || close_menu(own_feed),
+    );
     let slots = Slots {
         machine: use_signal(|| initial),
         drawn: use_signal(|| Stamp(0)),
         drive: use_hook(|| CopyValue::new(None)),
-        menu: use_hook(|| CopyValue::new(MenuOpen::Down)),
-        reports: use_hook(|| CopyValue::new(reports_tx)),
+        menu: use_hook(|| CopyValue::new(menu)),
         deps: use_hook(|| CopyValue::new(None)),
-        feed: use_hook(|| CopyValue::new(None)),
+        feed: own_feed,
     };
     let feed = use_hook(|| {
         let outward = outward.clone();
@@ -136,7 +129,7 @@ pub(crate) fn use_dock(initial: DockState) -> DockSession {
     if own.peek().is_none() {
         own.set(Some(feed));
     }
-    use_hook(move || start_tasks(slots, feed, outward, reports_rx));
+    use_hook(move || start_frame_task(feed, outward));
     DockSession {
         feed,
         machine: slots.machine,
@@ -145,14 +138,9 @@ pub(crate) fn use_dock(initial: DockState) -> DockSession {
     }
 }
 
-/// The session's two tasks: frame ticks and popup reports.
-fn start_tasks(
-    slots: Slots,
-    feed: Callback<DockInput>,
-    outward: Outward,
-    reports: CopyValue<Option<mpsc::UnboundedReceiver<PopupReport>>>,
-) {
-    if let Some(surface) = outward.surface.clone() {
+/// The session's frame task: each frame tick of the surface feeds `Frame`.
+fn start_frame_task(feed: Callback<DockInput>, outward: Outward) {
+    if let Some(surface) = outward.surface {
         spawn(async move {
             loop {
                 let _tick = surface.next_frame().await;
@@ -160,26 +148,16 @@ fn start_tasks(
             }
         });
     }
-    let mut reports = reports;
-    if let Some(mut rx) = reports.write().take() {
-        spawn(async move {
-            while let Some(report) = rx.recv().await {
-                on_report(slots, feed, &outward, report);
-            }
-        });
-    }
 }
 
-/// A popup report: run a pick, and tell the machine the menu closed (once).
-fn on_report(slots: Slots, feed: Callback<DockInput>, outward: &Outward, report: PopupReport) {
-    let mut menu = slots.menu;
-    if let PopupReport::Picked(pick) = &report {
-        send_all(outward, pick_commands(pick));
-    }
-    if *menu.peek() == MenuOpen::Up {
-        menu.set(MenuOpen::Down);
-        feed.call(DockInput::Event(DockEvent::MenuClosed));
-    }
+/// Tell the machine its menu closed. Always from a task, never from inside a step.
+fn close_menu(feed: CopyValue<Option<Callback<DockInput>>>) {
+    spawn(async move {
+        let feed = *feed.peek();
+        if let Some(feed) = feed {
+            feed.call(DockInput::Event(DockEvent::MenuClosed));
+        }
+    });
 }
 
 /// Step the machine with `event` at the clock's now and carry out the effects.
@@ -295,31 +273,18 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
     let rows = context_menu(item, app, &deps.world.toplevels, deps.order, OptionHeld::Up);
     let windows = menu_windows(item, app, &deps.world.toplevels);
     let entries = menu_entries(&rows, item, &windows, deps.order);
-    let mut menu = slots.menu;
-    menu.set(MenuOpen::Up);
-    let reports = slots.reports.peek().clone();
-    let (Some(surface), Some(area), false) = (
-        &outward.surface,
+    let menu = slots.menu.peek().clone();
+    let (Some(area), Some(_), true, false) = (
         deps.frame.tiles.get(at),
+        &outward.surface,
+        menu.is_free(),
         entries.is_empty(),
     ) else {
         // Nothing to show (the Trash tile): the menu closes as it opens.
-        let _ = reports.send(PopupReport::Dismissed);
+        close_menu(slots.feed);
         return;
     };
-    let placement = menu_placement(*area);
-    let link = MenuLink {
-        entries,
-        look: deps.look,
-        reports,
-    };
-    surface.open_popup(
-        menu_config(),
-        placement,
-        HostRoot::new(DockMenuPopup)
-            .context(link)
-            .context(deps.feed.clone()),
-    );
+    menu.open(DockMenu { entries }, deps.look, GEOM, tile_anchor(*area));
 }
 
 /// Send `commands`; a launch first asks shell-host for an activation token. A service that

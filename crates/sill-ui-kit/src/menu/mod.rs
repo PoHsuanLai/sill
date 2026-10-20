@@ -3,6 +3,7 @@
 
 mod context;
 mod frame;
+mod geom;
 mod look;
 mod model;
 mod popup;
@@ -12,7 +13,8 @@ mod use_context_menu;
 
 pub use context::{ContextMenuLink, MenuReport, context_menu_popup};
 pub use frame::{POPUP_FRAME_CSS, PopupFrame};
+pub use geom::{PopupGeom, point_anchor};
 pub use look::{CONTEXT_MENU_WIDTH, PopupLook, PopupRoom, use_popup_look};
 pub use model::MenuModel;
 pub use popup::MenuPopup;
-pub use use_context_menu::{ContextMenu, use_context_menu};
+pub use use_context_menu::{ContextMenu, use_context_menu, use_context_menu_closing};

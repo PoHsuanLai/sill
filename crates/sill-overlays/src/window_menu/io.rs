@@ -7,13 +7,16 @@ use dioxus::prelude::*;
 use shell_host::{OutputInfo, use_watch};
 use sill_model::desktop::WindowEntry;
 use sill_ui_kit::links::{MenuSerial, WindowMenuLink};
-use sill_ui_kit::menu::{PopupLook, use_context_menu};
+use sill_ui_kit::menu::{PopupGeom, PopupLook, point_anchor, use_context_menu};
 
-use super::geometry::{local_point, menu_config, menu_placement};
+use super::geometry::local_point;
 use super::model::WindowMenuModel;
 
 /// The document's `data-surface`: what a user stylesheet names the menu by.
 const WINDOW_MENU: &str = "window-menu";
+
+/// The card's corner is on the point the compositor named.
+const GEOM: PopupGeom = PopupGeom::AtPoint { clear: 0 };
 
 /// Run the menu of the surface on `output`: `look` is how its popup is drawn (read again at
 /// each opening).
@@ -54,8 +57,8 @@ pub(super) fn use_window_menu(link: &WindowMenuLink, output: &OutputInfo, look: 
                 enabled: opening.enabled,
             },
             *looks.peek(),
-            menu_config(),
-            menu_placement(local),
+            GEOM,
+            point_anchor(local.0, local.1),
         );
     });
 }

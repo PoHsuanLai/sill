@@ -6,15 +6,19 @@ use shell_host::SurfaceHandle;
 use sill_launcher::SettingsLink;
 use sill_model::launch::{LaunchCommand, SETTINGS_BUS_NAME, SettingsOpen};
 use sill_ui_kit::hooks::use_services;
-use sill_ui_kit::menu::{PopupLook, use_context_menu};
+use sill_ui_kit::menu::{PopupGeom, PopupLook, point_anchor, use_context_menu};
 use sill_ui_kit::surface::activation_token;
 
 use super::DesktopPoint;
-use super::geometry::{menu_config, menu_placement};
 use super::model::{DesktopMenu, DesktopPick};
 
 /// The document's `data-surface`: what a user stylesheet names the menu by.
 const DESKTOP_MENU: &str = "desktop-menu";
+
+/// How far the card's corner is from the pointer, on each axis: a pixel, so the button's release
+/// at the same place is not over the first entry (a release over an entry after a press outside
+/// the menu picks it).
+const GEOM: PopupGeom = PopupGeom::AtPoint { clear: 1 };
 
 /// Settings' page for the wallpaper, by the id the schema declares it under.
 const WALLPAPER_PAGE: &str = "page:wallpaper";
@@ -30,12 +34,7 @@ pub(in crate::wallpaper) fn use_desktop_menu(look: PopupLook) -> Callback<Deskto
         DesktopPick::ChangeWallpaper => open_wallpaper_page(surface.clone(), launch.clone()),
     });
     Callback::new(move |at: DesktopPoint| {
-        menu.open(
-            DesktopMenu,
-            *looks.peek(),
-            menu_config(),
-            menu_placement(at),
-        );
+        menu.open(DesktopMenu, *looks.peek(), GEOM, point_anchor(at.x, at.y));
     })
 }
 

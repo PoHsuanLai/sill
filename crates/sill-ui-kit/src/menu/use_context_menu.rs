@@ -3,10 +3,10 @@
 //! to the owner. The owner supplies the menu, where it goes and what a pick does.
 
 use dioxus::prelude::*;
-use shell_host::{HostRoot, PopupConfig, PopupPlacement, SurfaceHandle};
+use shell_host::{HostRoot, Rect, SurfaceHandle};
 use tokio::sync::mpsc;
 
-use super::{ContextMenuLink, MenuModel, MenuReport, PopupLook, context_menu_popup};
+use super::{ContextMenuLink, MenuModel, MenuReport, PopupGeom, PopupLook, context_menu_popup};
 use crate::settings::SettingsFeed;
 
 /// Whether the surface has its menu's popup up. A second popup may not be created while one holds
@@ -55,15 +55,9 @@ impl<Model: MenuModel> ContextMenu<Model> {
         *self.popup.peek() == Popup::Down
     }
 
-    /// Open `model` drawn in `look` at `placement`. Nothing opens without a surface (a test
-    /// render) or while the menu's last popup is still up.
-    pub fn open(
-        &self,
-        model: Model,
-        look: PopupLook,
-        config: PopupConfig,
-        placement: PopupPlacement,
-    ) {
+    /// Open `model` drawn in `look`, hung off `anchor` as `geom` says. Nothing opens without a
+    /// surface (a test render) or while the menu's last popup is still up.
+    pub fn open(&self, model: Model, look: PopupLook, geom: PopupGeom, anchor: Rect) {
         let Some(surface) = self.surface.as_ref() else {
             return;
         };
@@ -81,7 +75,7 @@ impl<Model: MenuModel> ContextMenu<Model> {
         if let Some(feed) = self.feed.clone() {
             root = root.context(feed);
         }
-        surface.open_popup(config, placement, root);
+        surface.open_popup(geom.config(), geom.placement(anchor), root);
     }
 }
 
@@ -92,6 +86,17 @@ pub fn use_context_menu<Model: MenuModel>(
     name: &'static str,
     picked: impl FnMut(Model::Pick) + 'static,
 ) -> ContextMenu<Model> {
+    use_context_menu_closing(name, picked, || {})
+}
+
+/// [`use_context_menu`] for an owner that also needs to know when the popup has gone: `closed`
+/// is called once per popup, after its last pick, when the menu is dismissed or the popup's
+/// document is gone.
+pub fn use_context_menu_closing<Model: MenuModel>(
+    name: &'static str,
+    picked: impl FnMut(Model::Pick) + 'static,
+    closed: impl FnMut() + 'static,
+) -> ContextMenu<Model> {
     let surface = try_use_context::<SurfaceHandle>();
     let feed = try_use_context::<SettingsFeed>();
     let popup = use_hook(|| CopyValue::new(Popup::Down));
@@ -99,7 +104,7 @@ pub fn use_context_menu<Model: MenuModel>(
         let (tx, rx) = mpsc::unbounded_channel::<MenuReport<Model::Pick>>();
         (tx, CopyValue::new(Some(rx)))
     });
-    use_hook(move || listen(popup, inbox, picked));
+    use_hook(move || listen(popup, inbox, picked, closed));
     ContextMenu {
         surface,
         feed,
@@ -114,6 +119,7 @@ fn listen<Pick: 'static>(
     popup: CopyValue<Popup>,
     inbox: CopyValue<Option<mpsc::UnboundedReceiver<MenuReport<Pick>>>>,
     mut picked: impl FnMut(Pick) + 'static,
+    mut closed: impl FnMut() + 'static,
 ) {
     let mut inbox = inbox;
     let Some(mut rx) = inbox.write().take() else {
@@ -124,7 +130,12 @@ fn listen<Pick: 'static>(
         while let Some(report) = rx.recv().await {
             match report {
                 MenuReport::Picked(pick) => picked(pick),
-                MenuReport::Dismissed | MenuReport::Gone => popup.set(Popup::Down),
+                MenuReport::Dismissed | MenuReport::Gone => {
+                    if *popup.peek() == Popup::Up {
+                        popup.set(Popup::Down);
+                        closed();
+                    }
+                }
             }
         }
     });
