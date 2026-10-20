@@ -5,7 +5,7 @@ use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, DbusActivation};
 use sill_model::launch::{
     FailureCause, LaunchCommand, LaunchOutcome, LaunchRequest, LaunchTiming, LaunchedScope,
-    Launches, Pid, SETTINGS_BUS_NAME, ScopeUnit, SettingsOpen, Stamp, launch_argv, scope_unit,
+    Launches, Pid, ScopeUnit, SettingsOpen, Stamp, launch_argv, scope_unit,
 };
 use std::time::{Duration, Instant};
 
@@ -132,7 +132,7 @@ async fn launch_one(
         );
         return;
     };
-    if app.activation == DbusActivation::DBus || app.id.0 == SETTINGS_BUS_NAME {
+    if app.activation == DbusActivation::DBus {
         let activated = activate_over_dbus(&setup.session, &app, &request).await;
         match activated {
             Ok(()) => {
