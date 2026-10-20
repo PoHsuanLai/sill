@@ -44,6 +44,29 @@ impl Pointer {
     }
 }
 
+/// How long the person's choice is kept for the app (the call's `remembered` number).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Remembered {
+    /// Asked every time.
+    #[default]
+    EveryTime,
+    /// Kept while the app runs.
+    WhileRunning,
+    /// Kept until the person takes it back in Settings.
+    UntilTakenBack,
+}
+
+impl Remembered {
+    /// The mode for a call's number; anything unknown is asked every time.
+    pub fn from_wire(value: u32) -> Remembered {
+        match value {
+            1 => Remembered::WhileRunning,
+            2 => Remembered::UntilTakenBack,
+            _ => Remembered::EveryTime,
+        }
+    }
+}
+
 /// Why a call cannot be asked of the person.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum AskError {
@@ -61,6 +84,8 @@ pub struct Ask {
     pub plurality: Plurality,
     /// The pointer modes the app accepts, ascending and without repeats; never empty.
     pub pointers: Vec<Pointer>,
+    /// How long the person's choice is kept.
+    pub remembered: Remembered,
 }
 
 impl Ask {
@@ -97,6 +122,12 @@ impl Ask {
                 Plurality::Many
             },
             pointers,
+            remembered: Remembered::EveryTime,
         })
+    }
+
+    /// The same ask, with how long the choice is kept.
+    pub fn remembering(self, remembered: Remembered) -> Ask {
+        Ask { remembered, ..self }
     }
 }

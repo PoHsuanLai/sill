@@ -10,3 +10,4 @@
 .sill-capture-pointer{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8); }
 .sill-capture-pointer-label{ font-size:var(--fs-small); color:var(--ink-soft); }
 .sill-capture-footer{ display:flex; justify-content:flex-end; gap:var(--s-8); }
+.sill-capture-kept{ font-size:var(--fs-small); color:var(--ink-soft); }

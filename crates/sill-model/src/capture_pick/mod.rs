@@ -25,7 +25,7 @@ mod step;
 #[cfg(test)]
 mod tests;
 
-pub use ask::{Ask, AskError, Kinds, Plurality, Pointer};
+pub use ask::{Ask, AskError, Kinds, Plurality, Pointer, Remembered};
 pub use color::{ColorAsk, ColorAsking, ColorOutcome, ColorReply, Eyedropper, Rgb8};
 pub use consent::consent_ask;
 pub use eyedrop::{

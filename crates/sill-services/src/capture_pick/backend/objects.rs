@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use peephole_bus::peephole_core::roles;
 use sill_model::capture_pick::{
-    Ask, ColorAsk, ColorReply, PermissionAsk, PermissionOutcome, Reply,
+    Ask, ColorAsk, ColorReply, PermissionAsk, PermissionOutcome, Remembered, Reply,
 };
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use zbus::fdo;
@@ -85,13 +85,15 @@ impl PickerObject {
         kinds: u32,
         multiple: u32,
         cursor_modes: Vec<u32>,
+        remembered: u32,
         #[zbus(header)] header: Header<'_>,
     ) -> fdo::Result<(Vec<(String, String)>, u32)> {
         self.admit_transom(&header).await?;
         let label: String = app_label.chars().take(MAX_LABEL).collect();
         let modes: Vec<u32> = cursor_modes.into_iter().take(MAX_MODES).collect();
         let ask = Ask::from_wire(&label, kinds, multiple, &modes)
-            .map_err(|e| fdo::Error::InvalidArgs(e.to_string()))?;
+            .map_err(|e| fdo::Error::InvalidArgs(e.to_string()))?
+            .remembering(Remembered::from_wire(remembered));
         let (answer, answered) = oneshot::channel();
         let stopped = || fdo::Error::Failed("the picker has stopped".to_owned());
         self.calls

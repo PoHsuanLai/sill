@@ -129,7 +129,7 @@ async fn only_the_portal_backend_that_owns_its_name_asks_the_picker() {
                 assert!(colour.is_ok(), "{name}: {colour:?}");
             }
             Refused => {
-                let picked = proxy.pick_capture_source("Evil", 3, 0, vec![1]).await;
+                let picked = proxy.pick_capture_source("Evil", 3, 0, vec![1], 0).await;
                 assert_eq!(verdict(&picked), Refused, "{name}: pick_capture_source");
                 let asked = proxy
                     .ask_permission("Evil", "Allow?", "", "", "Yes", "No")

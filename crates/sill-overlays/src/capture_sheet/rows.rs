@@ -2,7 +2,7 @@
 //! the words.
 
 use ds::prelude::*;
-use sill_model::capture_pick::{Picks, Plan, Plurality, Pointer, Source, Tab};
+use sill_model::capture_pick::{Picks, Plan, Plurality, Pointer, Remembered, Source, Tab};
 
 /// One row, as data.
 pub(super) struct RowData {
@@ -83,5 +83,34 @@ pub(super) fn byline_of(plan: &Plan, plurality: Plurality) -> &'static str {
         (_, Plurality::Many) => "Pick one or more to share.",
         (1, Plurality::One) => "Pick one to share.",
         (_, Plurality::One) => "Pick a screen or a window to share.",
+    }
+}
+
+/// The quiet sentence about how long the choice is kept; none when it is asked every time.
+pub(super) fn remembered_words(remembered: Remembered, app: &str) -> Option<String> {
+    match remembered {
+        Remembered::EveryTime => None,
+        Remembered::WhileRunning => Some(format!("Your choice is kept while {app} is open.")),
+        Remembered::UntilTakenBack => {
+            Some("Your choice is kept until you change it in Settings.".to_owned())
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn each_remembered_mode_has_its_sentence() {
+        assert_eq!(remembered_words(Remembered::EveryTime, "Meet"), None);
+        assert_eq!(
+            remembered_words(Remembered::WhileRunning, "Meet").as_deref(),
+            Some("Your choice is kept while Meet is open.")
+        );
+        assert_eq!(
+            remembered_words(Remembered::UntilTakenBack, "Meet").as_deref(),
+            Some("Your choice is kept until you change it in Settings.")
+        );
     }
 }

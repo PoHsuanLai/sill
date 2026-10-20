@@ -45,6 +45,7 @@ pub(crate) trait Shell1 {
         kinds: u32,
         multiple: u32,
         cursor_modes: Vec<u32>,
+        remembered: u32,
     ) -> zbus::Result<(Vec<(String, String)>, u32)>;
 
     fn pick_color(&self, app_label: &str) -> zbus::Result<Vec<(f64, f64, f64)>>;
@@ -134,7 +135,7 @@ async fn transom_asks_the_person_picks_and_the_answer_comes_back() {
         .unwrap_or_else(|e| panic!("{e}"));
     let first = {
         let proxy = proxy.clone();
-        tokio::spawn(async move { proxy.pick_capture_source("Meet", 2, 0, vec![1, 2]).await })
+        tokio::spawn(async move { proxy.pick_capture_source("Meet", 2, 0, vec![1, 2], 0).await })
     };
     assert!(
         wait_for(&mut service.state, |s: &CapturePicker| s.asking.is_some()).await,
@@ -143,7 +144,7 @@ async fn transom_asks_the_person_picks_and_the_answer_comes_back() {
     // One at a time: the second call is refused at once.
     assert!(
         proxy
-            .pick_capture_source("Other", 1, 0, vec![1])
+            .pick_capture_source("Other", 1, 0, vec![1], 0)
             .await
             .is_err()
     );
@@ -298,7 +299,7 @@ async fn a_colour_is_asked_one_at_a_time_and_the_click_comes_back_as_floats() {
     assert!(proxy.pick_color("Other").await.is_err());
     assert!(
         proxy
-            .pick_capture_source("Other", 1, 0, vec![1])
+            .pick_capture_source("Other", 1, 0, vec![1], 0)
             .await
             .is_err()
     );

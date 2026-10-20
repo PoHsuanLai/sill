@@ -550,3 +550,4 @@ the real daemons or a real keyboard.
 - [ ] **Use this brief sends what is in the field**: edit a line, press Use this brief. The assistant's next step line says "You checked the brief (you changed it)", and a job posted from it uses the edited words. Nothing outside the edited text is accepted.
 - [ ] **Cancel and Escape**: Cancel, Escape and letting it time out each end it as "Not confirmed"; Escape while the caret is in the field cancels too. Return in the field adds a line and does not confirm.
 - [ ] **Old docket**: with a docket that does not send a brief, the sheet is the plain one it always was.
+- [ ] **Capture picker remembered sentence**: for an app whose choice is kept, the share sheet shows one quiet line under the choices ("Your choice is kept while {app} is open." or "...until you change it in Settings."); for an app asked every time it shows nothing.

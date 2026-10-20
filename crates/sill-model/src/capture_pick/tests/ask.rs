@@ -70,3 +70,17 @@ fn the_pointer_wire_values_round_trip() {
     assert_eq!(Pointer::from_wire(0), None);
     assert_eq!(Pointer::from_wire(3), None);
 }
+
+#[test]
+fn remembered_parses_from_the_wire() {
+    let rows = [
+        (0, Remembered::EveryTime),
+        (1, Remembered::WhileRunning),
+        (2, Remembered::UntilTakenBack),
+        (3, Remembered::EveryTime),
+        (u32::MAX, Remembered::EveryTime),
+    ];
+    for (value, want) in rows {
+        assert_eq!(Remembered::from_wire(value), want, "{value}");
+    }
+}
