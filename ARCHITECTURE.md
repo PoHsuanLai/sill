@@ -679,6 +679,34 @@ Each ends with its tests. Name the concept once and use it in every file name be
 5. Tests: a row in `crates/sill/tests/ipc.rs` on a fake dispatcher; the surface's acceptance
    script uses the verb.
 
+### Find the front window, the main group or a window's app
+
+Never write `find(|w| w.activity == Activity::Active)` or call `match_app` for a window; ask
+`sill_model::windows`:
+
+- `Toplevels::active()` is the window with focus, `None` when nothing has it. Anything that
+  acts on focus (keys, profiles, the companion, next-window, the dock's Hide) uses it.
+- `Toplevels::front(output)` is the window a person calls frontmost on `output` (any for
+  `None`): the active window if it is there, else the most recently activated one there. It
+  is for showing "the front app" (the bar).
+- `Workspaces::main_group()` is the group an index or a step counts in (the first with an active
+  workspace, else the first); `WorkspaceGroup::active()` and `active_index()` are its active
+  workspace.
+- `app_of(&Toplevel, &AppIndex)` (or `app_for(raw, &AppIndex)` for a bare app id such as a
+  notification's) is the one fallback rule: an `AppMatch::Entry(AppId)` when `match_app` found a
+  desktop entry, else `AppMatch::Unmatched(raw)`. `.id()`, `.entry(&index)` and `.name(&index)`
+  read it. Tests: add a row to the table beside the function, not a new copy of the rule.
+
+### Get the appearance
+
+A surface calls `use_appearance()` and nothing else. It reads the root's pinned or switchable
+appearance (tests) or the `SettingsFeed::appearance` watch, which the daemon fills from its one
+watch of `quire/appearance.toml` and the settings portal (`daemon/settings/appearance.rs`). A
+root with neither gets `Environment::default()`; no hook ever starts a watcher. A view that
+changes the appearance calls `sill_ui_kit::appearance_write::write_appearance(next)`, the one
+writer of the file; the daemon's watch publishes the change back. A new daemon-side reader of
+the appearance clones `settings_feed.appearance`.
+
 ### Add a dev script
 
 1. Per surface or feature exactly one file, `dev/accept/<name>.sh`; variants are flags
@@ -739,7 +767,9 @@ feature adds `sill debug ...` and the fake DDC flags; a build without it refuses
 
 Settings have one path: the file settles in `daemon/settings/watch.rs`, is published on the
 feed (surfaces read it) and followed by each `Policy` (services are told). Focus mode writes
-the file and the file changes the mode; the file stays the one truth.
+the file and the file changes the mode; the file stays the one truth. The appearance has the same path with its own task
+(`daemon/settings/appearance.rs`: `appearance.toml` and the settings portal, one watch for the
+whole shell, published as `SettingsFeed::appearance`).
 
 The person's stylesheet (`~/.config/sill/style.css`, quire's `UserStyle`, ARCHITECTURE.md
 section 10 in quire) takes the same path: `daemon/settings/user_style.rs` watches it through
@@ -774,6 +804,36 @@ messages (`ShellMsg::DockRects`, `ShellMsg::Desktop`); the seat keeps the compos
 targets equal to the icons by sending only the diff (`MinimiseTargets::since`), and sends them
 all again when a shell surface registers. On the Wlr arm the seat is absent and
 nothing is sent.
+
+### Window models
+
+There are two models of "the windows", from two wire clients on two Wayland connections:
+
+| | `WindowModel` | `DesktopView` |
+|---|---|---|
+| Built by | the windows thread (`desktop_wl::run`) on its own connection, from the standard protocols (ext toplevel list, wlr management, ext workspace) | the Quire arm (`desktop_wl::quire::shell`) on shell-host's connection, from `quire_desktop_v1` |
+| Window id | `WindowKey(u64)`, the wire client's per-connection `ToplevelKey` | `identifier: String`, the compositor's stable name |
+| Space id | `WorkspaceKey(u64)` per connection, optional `stable_id` | `porter_core::SpaceId` |
+| Only here | workspace capabilities, pinning, urgency, coordinates, groups, `Sizing`, `WlCommand`s | apps with proof, life, attention; role, modality, geometry, lease, sensitivity, responsiveness; Space kind and position |
+| Readers | dock, bar, companion, keyboard, search, corners, workspace verbs, switcher | Spaces bar, split picker, force quit, capture window list, minimise targets |
+
+They cannot become one store in this lane. The `WindowKey` of one connection means nothing on
+the other (keys are counters per client), and `Toplevel` carries no `identifier`, the only
+value both sides share; `Workspace` has no `SpaceId`, and `DesktopView` has nothing for
+capabilities or pinning. `desktop_wl::view::desktop_view` (a `DesktopView` projected from the
+standard client's state plus `Toplevels` recency) exists but only a test calls it. The
+`DesktopView` is cloned into `ShellSeat.targets.view`, `SpacesBarFeed.view`,
+`ForceQuitLink.rows` and the capture service's window list.
+
+Proposal, in order: (1) add `identifier` to `Toplevel` (the standard client already reads
+it: `desktop_wl::view::identifier`), so a window can be named in either model; (2) have the
+windows thread own the Quire state too when the offer is Quire (one connection, one
+`DesktopState`), and publish `DesktopView` as a projection of that state beside `WindowModel`,
+so the two can no longer disagree on which window is active; (3) have readers of the clones
+hold the one `watch::Receiver<DesktopView>` instead of a copy. Step 2 needs the windows thread
+to use the shell-host connection or the arm to use a private one, which is the open design
+question; until then a reader that needs a field only `DesktopView` has reads it, and every
+other reader uses `WindowModel`.
 
 ## 9. Test harness
 
