@@ -6,7 +6,7 @@ use sill_settings::ShellFile;
 
 use super::view::power_menu;
 use sill_ui_kit::links::PowerMenuLink;
-use sill_ui_kit::surface::{LayerPreset, PanelBlur, Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Start, Surface};
 
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "power-menu-panel";
@@ -19,6 +19,7 @@ impl Surface for PowerMenu {
     const NAME: &'static str = "power-menu";
     type Link = PowerMenuLink;
     type Slot = ();
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]

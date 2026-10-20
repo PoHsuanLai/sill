@@ -2,7 +2,9 @@
 //! list to spawn and close actions.
 
 use shell_host::{LayerSize, OutputId, OutputInfo, SurfaceId};
-use sill_ui_kit::surface::Surface;
+use sill_model::ids::OutputName;
+use sill_ui_kit::services::Services;
+use sill_ui_kit::surface::{OutputPolicy, Surface};
 
 /// A layer surface spawned through `Surface`, as `daemon::surfaces` records it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,6 +83,31 @@ impl Outputs {
         Some(self.outputs.remove(index).1)
     }
 
+    /// The output `policy` names. This is the one place that decides it, for the daemon's
+    /// spawns and for every opener of a panel (verbs, chords, the companion, the notifications).
+    ///
+    /// A panel opens on the focused window's output (`focus`). The rule wants the pointer's
+    /// output next, but the daemon does not know the pointer's output, so the fallback, and the
+    /// main display, is the first output the compositor announced.
+    pub fn pick(&self, policy: OutputPolicy, focus: Option<&OutputName>) -> Option<OutputId> {
+        let focused = focus.and_then(|focus| {
+            self.outputs
+                .iter()
+                .find(|(info, _)| info.name.as_deref() == Some(focus.0.as_str()))
+        });
+        match policy {
+            OutputPolicy::FocusedWindow => focused.or_else(|| self.outputs.first()),
+            OutputPolicy::Main | OutputPolicy::Every => self.outputs.first(),
+        }
+        .map(|(info, _)| info.id)
+    }
+
+    /// The output a panel of kind `S` opens on.
+    pub fn open_on<S: Surface>(&self, services: &Services) -> Option<OutputId> {
+        let focus = services.windows.state.borrow().toplevels.focused_output();
+        self.pick(S::OUTPUTS, focus.as_ref())
+    }
+
     /// The row whose surfaces contain `id`, if any.
     pub fn row_with(&mut self, id: SurfaceId) -> Option<&mut (OutputInfo, OutputSurfaces)> {
         self.outputs
@@ -124,7 +151,9 @@ pub fn reconcile(current: &Outputs, now: &[OutputInfo]) -> Vec<OutputAction> {
 mod tests {
     use super::{OutputSurfaces, Outputs, Spawned, reconcile};
     use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale120, SurfaceId};
+    use sill_model::ids::OutputName;
     use sill_overlays::HotCorners;
+    use sill_ui_kit::surface::OutputPolicy;
     use sill_ui_kit::surface::Surface;
 
     fn output(id: u32, name: &str, width: i32) -> OutputInfo {
@@ -174,6 +203,58 @@ mod tests {
         assert!(!row.contains(SurfaceId(3)));
         assert_eq!(row.surface_of::<HotCorners>(), None);
         assert_eq!(row.ids().count(), 1);
+    }
+
+    #[test]
+    fn a_panel_opens_where_the_focused_window_is_else_on_the_first_output() {
+        let mut outputs = Outputs::default();
+        outputs.set(output(1, "DP-1", 1920), OutputSurfaces::default());
+        outputs.set(output(2, "HDMI-A-1", 1920), OutputSurfaces::default());
+        let on = |name: &str| Some(OutputName(name.to_owned()));
+        let cases = [
+            (
+                "the focused window's output",
+                OutputPolicy::FocusedWindow,
+                on("HDMI-A-1"),
+                2,
+            ),
+            (
+                "the first when it is there",
+                OutputPolicy::FocusedWindow,
+                on("DP-1"),
+                1,
+            ),
+            (
+                "the first with no focused window",
+                OutputPolicy::FocusedWindow,
+                None,
+                1,
+            ),
+            (
+                "the first for an output it does not know",
+                OutputPolicy::FocusedWindow,
+                on("eDP-1"),
+                1,
+            ),
+            (
+                "the main display ignores the focus",
+                OutputPolicy::Main,
+                on("HDMI-A-1"),
+                1,
+            ),
+        ];
+        for (name, policy, focus, want) in cases {
+            assert_eq!(
+                outputs.pick(policy, focus.as_ref()),
+                Some(OutputId(want)),
+                "{name}"
+            );
+        }
+        assert_eq!(
+            Outputs::default().pick(OutputPolicy::Main, None),
+            None,
+            "no outputs"
+        );
     }
 
     #[test]

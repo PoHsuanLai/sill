@@ -7,7 +7,7 @@ use sill_settings::ShellFile;
 
 use super::view::display_trial;
 use sill_ui_kit::links::DisplayTrialLink;
-use sill_ui_kit::surface::{LayerPreset, PanelBlur, Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Start, Surface};
 
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "display-trial-panel";
@@ -21,6 +21,7 @@ impl Surface for DisplayTrialSheet {
     /// The link also names the output that shows the sheet.
     type Link = DisplayTrialLink;
     type Slot = ();
+    const OUTPUTS: OutputPolicy = OutputPolicy::Main;
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]

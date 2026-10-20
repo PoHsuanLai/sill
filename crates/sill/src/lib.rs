@@ -15,7 +15,6 @@ pub mod ipc;
 pub mod launch;
 pub mod lock;
 pub mod name_guard;
-pub mod notifications;
 pub mod osd;
 pub mod outgoing;
 pub mod outputs;

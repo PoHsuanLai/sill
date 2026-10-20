@@ -22,11 +22,10 @@ use sill_model::keycap::KeycapCommand;
 use sill_notify_ui::{Banners, ScreenshotThumb};
 use sill_overlays::PowerMenu;
 use sill_settings::ShellFile;
-use sill_ui_kit::links::Links;
-use sill_ui_kit::links::Transient;
+use sill_ui_kit::links::{BannerOutput, Links, Transient};
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
-use sill_ui_kit::surface::Surface;
+use sill_ui_kit::surface::{OutputPolicy, Surface};
 use tokio::sync::watch;
 
 use super::msg::ShellMsg;
@@ -301,10 +300,12 @@ fn spawn_missing(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>) {
         links: &shell.links,
     };
     surfaces::spawn_missing(ctx, &mut shell.outputs, &spawn);
-    shell
-        .links
-        .banners
-        .set(crate::notifications::banner_output(&shell.outputs));
+    shell.links.banners.set(
+        shell
+            .outputs
+            .pick(OutputPolicy::Main, None)
+            .map_or(BannerOutput::Nowhere, BannerOutput::On),
+    );
     shell.links.lock.set(crate::lock::prompt_among(
         shell.links.lock.now(),
         &shell.outputs,

@@ -3,13 +3,13 @@
 //! whose slot the settings dropped is closed, and one whose layer size changed is resized.
 
 use shell_host::{HostCtx, HostRoot, LayerConfig, LayerOp, OutputInfo};
-use sill_ui_kit::surface::{MountProps, OutputRank, Place, Start, Surface, mount};
+use sill_ui_kit::surface::{MountProps, OutputPolicy, OutputRank, Place, Start, Surface, mount};
 
 use crate::daemon::msg::ShellMsg;
 use crate::daemon::surfaces::{Spawn, spawn_hidden, surface_root};
 use crate::outputs::{OutputSurfaces, Outputs, Spawned};
 
-/// Spawn, resize and close `S`'s surfaces on every output in `outputs`. `link` is the value of
+/// Spawn, resize and close `S`'s surfaces on every output in `outputs` that `S::OUTPUTS` wants. `link` is the value of
 /// `S::Link` the surfaces are given as a root context.
 pub fn spawn_surface<S: Surface>(
     ctx: &mut HostCtx<ShellMsg>,
@@ -18,13 +18,19 @@ pub fn spawn_surface<S: Surface>(
     link: &S::Link,
 ) {
     let file = spawn.settings.borrow().clone();
+    let main = outputs.pick(OutputPolicy::Main, None);
     for (index, (info, row)) in outputs.outputs.iter_mut().enumerate() {
         let place = Place {
             output: info,
             rank: OutputRank::of_index(index),
             settings: &file,
         };
-        let wanted = S::slots(&place);
+        // A surface that lives on the main display only is closed where it is not wanted any more
+        // (the main display moved), like a slot the settings dropped.
+        let wanted = match S::OUTPUTS.spawns_on(info.id, main) {
+            true => S::slots(&place),
+            false => Vec::new(),
+        };
         close_dropped::<S>(ctx, row, &wanted);
         for slot in wanted {
             let config = S::layer(info, &file, slot);

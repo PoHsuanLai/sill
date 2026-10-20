@@ -1,14 +1,13 @@
 //! The app switcher's asks: the chord verbs from `sill switcher` and the made-up open from
 //! `sill debug switcher`, written to the switcher's link for the output it opens on.
 //!
-//! Which output: [`super::panel_output`]'s rule.
+//! Which output: [`Outputs::open_on`](crate::outputs::Outputs::open_on)'s rule.
 
 use sill_ipc::act::SwitcherRequest;
 use sill_ipc::response::Response;
 use sill_overlays::Switcher;
 use sill_ui_kit::links::{Dir, SwitcherAsk};
 
-use super::panel_output::panel_output;
 use super::reach::Reach;
 use super::reply::unsupported;
 
@@ -19,7 +18,7 @@ pub fn chord(reach: &Reach, request: SwitcherRequest) -> Response {
 
 /// Write `ask` for the switcher's output.
 pub fn ask(reach: &Reach, ask: SwitcherAsk) -> Response {
-    match panel_output::<Switcher>(reach.outputs, reach.services) {
+    match reach.outputs.open_on::<Switcher>(reach.services) {
         Some(output) => {
             reach.links.switcher.ask(output, ask);
             Response::Done

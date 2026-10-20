@@ -11,6 +11,7 @@ mod activation;
 mod lock;
 mod mount;
 mod naming;
+mod outputs;
 mod place;
 mod preset;
 mod start;
@@ -22,6 +23,7 @@ pub use activation::{
 pub use lock::{LockSurface, MountLockProps, mount_lock};
 pub use mount::{MountProps, mount};
 pub use naming::namespace;
+pub use outputs::OutputPolicy;
 pub use place::{OutputRank, Place};
 pub use preset::{LayerPreset, PanelBlur, Pointer};
 pub use start::Start;
@@ -45,6 +47,8 @@ pub trait Surface: 'static {
     type Link: Clone + Send + Sync + 'static;
     /// Which of its surfaces on one output: `()` for one, a `Corner` for a hot corner.
     type Slot: Copy + Eq + Hash + Debug + 'static;
+    /// Which outputs it lives on, and which one a panel of it opens on.
+    const OUTPUTS: OutputPolicy = OutputPolicy::Every;
     /// The slots this output gets, from the settings and the output's place; empty is none.
     fn slots(place: &Place) -> Vec<Self::Slot>;
     /// The layer configuration of `slot` on `output`.

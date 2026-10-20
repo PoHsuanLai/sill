@@ -7,7 +7,7 @@ use sill_settings::ShellFile;
 use super::layer::layer;
 use super::view::bar;
 use sill_ui_kit::links::ControlCenterLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{OutputPolicy, Place, Start, Surface};
 
 /// The menu bar along the top of an output, with its menus and status items.
 #[derive(Debug)]
@@ -17,6 +17,7 @@ impl Surface for Bar {
     const NAME: &'static str = "bar";
     type Link = ControlCenterLink;
     type Slot = ();
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]

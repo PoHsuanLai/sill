@@ -7,7 +7,7 @@ use sill_settings::ShellFile;
 
 use super::view::switcher;
 use sill_ui_kit::links::SwitcherLink;
-use sill_ui_kit::surface::{LayerPreset, PanelBlur, Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Start, Surface};
 
 /// The panel's element id: the surface's input and blur region.
 pub(super) const PANEL_ID: &str = "switcher-panel";
@@ -23,6 +23,7 @@ impl Surface for Switcher {
     const NAME: &'static str = "switcher";
     type Link = SwitcherLink;
     type Slot = ();
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]

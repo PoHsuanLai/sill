@@ -7,7 +7,7 @@ use sill_settings::ShellFile;
 
 use super::view::accounts_sheet;
 use sill_ui_kit::links::BannerLink;
-use sill_ui_kit::surface::{LayerPreset, Place, Start, Surface};
+use sill_ui_kit::surface::{LayerPreset, OutputPolicy, Place, Start, Surface};
 
 /// The sheet accountd draws its consent question and add-account steps on.
 #[derive(Debug)]
@@ -18,6 +18,7 @@ impl Surface for AccountsSheet {
     /// Only the output the link names shows the sheet.
     type Link = BannerLink;
     type Slot = ();
+    const OUTPUTS: OutputPolicy = OutputPolicy::Main;
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]

@@ -9,7 +9,7 @@
 //! close it. The launcher closing, by whatever means, is told back to the service so the summon
 //! returns to rest.
 
-use shell_host::{HostHandle, OutputId};
+use shell_host::HostHandle;
 use sill_ipc::response::Response;
 use sill_ipc::show::CompanionRequest;
 use sill_launcher_ui::Launcher;
@@ -55,7 +55,7 @@ pub fn dispatch(reach: &Reach, request: CompanionRequest) -> Response {
 pub fn apply(outputs: &Outputs, services: &Services, launcher: &LauncherLink, out: SummonOut) {
     match out {
         SummonOut::OpenLauncher { mode, .. } => {
-            if let Some(output) = launcher_output(outputs, services) {
+            if let Some(output) = outputs.open_on::<Launcher>(services) {
                 launcher.open_in(output, String::new(), mode);
             }
         }
@@ -64,11 +64,6 @@ pub fn apply(outputs: &Outputs, services: &Services, launcher: &LauncherLink, ou
         // The service asks the app itself.
         SummonOut::AskApp { .. } => {}
     }
-}
-
-/// The output the panel opens on: [`crate::ipc::dispatch::panel_output`]'s rule.
-pub fn launcher_output(outputs: &Outputs, services: &Services) -> Option<OutputId> {
-    crate::ipc::dispatch::panel_output::<Launcher>(outputs, services)
 }
 
 /// Hand each launcher effect the service asks for to the host thread, and tell the service when

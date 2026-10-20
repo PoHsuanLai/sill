@@ -7,7 +7,7 @@ use sill_settings::ShellFile;
 use super::layer::layer;
 use super::view::notification_center;
 use sill_ui_kit::links::CenterLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{OutputPolicy, Place, Start, Surface};
 
 /// The history grouped by app, in a column at the output's right edge.
 #[derive(Debug)]
@@ -17,6 +17,7 @@ impl Surface for NotificationCenter {
     const NAME: &'static str = "notification-center";
     type Link = CenterLink;
     type Slot = ();
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]

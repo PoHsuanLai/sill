@@ -21,6 +21,7 @@ use sill_model::desktop::{
 };
 use sill_services::desktop_wl::quire::{ShellArm, WlSurface, role_of_surface, spawn_shell_arm};
 use sill_ui_kit::links::Corner;
+use sill_ui_kit::surface::OutputPolicy;
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -265,8 +266,8 @@ pub fn apply(shell: &Shell, note: ShellNote) {
 }
 
 /// The pointer pushed into a corner: the corner link's firing, which `corners::spawn_hits`
-/// carries out as the corner's configured action. The compositor names no output, so the first
-/// is used.
+/// carries out as the corner's configured action. The compositor names no output, so the main
+/// display's is used.
 fn hot_corner(shell: &Shell, corner: ProtocolCorner) {
     let corner = match corner {
         ProtocolCorner::TopLeft => Corner::TopLeft,
@@ -274,8 +275,8 @@ fn hot_corner(shell: &Shell, corner: ProtocolCorner) {
         ProtocolCorner::BottomLeft => Corner::BottomLeft,
         ProtocolCorner::BottomRight => Corner::BottomRight,
     };
-    if let Some((info, _)) = shell.outputs.outputs.first() {
-        shell.links.corners.hit(corner, info.id);
+    if let Some(output) = shell.outputs.pick(OutputPolicy::Main, None) {
+        shell.links.corners.hit(corner, output);
     }
 }
 

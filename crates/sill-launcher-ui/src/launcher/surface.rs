@@ -8,7 +8,7 @@ use sill_settings::ShellFile;
 use super::layer::layer;
 use super::panel::launcher;
 use sill_ui_kit::links::LauncherLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::surface::{OutputPolicy, Place, Start, Surface};
 
 /// The centred search panel: quire's `CommandPalette` over the runner's results.
 #[derive(Debug)]
@@ -18,6 +18,7 @@ impl Surface for Launcher {
     const NAME: &'static str = "launcher";
     type Link = LauncherLink;
     type Slot = ();
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]

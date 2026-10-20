@@ -28,9 +28,9 @@ use std::time::Duration;
 use shell_host::{HostEvent, HostHandle, KeyboardFocus, LockId, LockState, SurfaceId};
 use sill_model::auth::{Auth, AuthCommand, AuthPhase};
 use sill_model::locker::{Lock, LockPhase, LockerCommand, ShellLockEvent};
-use sill_ui_kit::links::BannerOutput;
 use sill_ui_kit::links::{LockLink, PromptOutput};
 use sill_ui_kit::services::Services;
+use sill_ui_kit::surface::OutputPolicy;
 use tokio::runtime::Handle;
 
 use crate::daemon::msg::ShellMsg;
@@ -156,17 +156,13 @@ pub fn apply(
     }
 }
 
-/// Where the prompt starts: the main display (the banners' output), else the first output. The
+/// Where the prompt starts: the main display. The
 /// compositor then gives one lock surface the keyboard (some compositors: the active output's, where
 /// the pointer is) and [`on_host_event`] moves the prompt there.
 fn main_display(outputs: &Outputs) -> PromptOutput {
-    match crate::notifications::banner_output(outputs) {
-        BannerOutput::On(id) => PromptOutput::On(id),
-        BannerOutput::Nowhere => outputs
-            .outputs
-            .first()
-            .map_or(PromptOutput::Nowhere, |(info, _)| PromptOutput::On(info.id)),
-    }
+    outputs
+        .pick(OutputPolicy::Main, None)
+        .map_or(PromptOutput::Nowhere, PromptOutput::On)
 }
 
 /// Where the prompt is once the outputs are `outputs`: where it was while that output is still
