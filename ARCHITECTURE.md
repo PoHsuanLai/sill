@@ -81,7 +81,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `debounced` (a watch that reports a burst of events as one settled touch), then one dir per service (29, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview` (a clipboard image), `providers/<kind>/` (`files/`: `actions` (the shared file actions as a row's), `viewed` (the viewer's history as rows and uses)), `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
 | `sill-shell-kit` | `tokens`, then leaf parts `battery`, `clock`, `emoji`, `month_grid`, `now_playing`, `notifications`, `osd`, `idle_dim`, `dock`, `bar`, `control_center`, `switcher`, `date_picker` < `user_picture`, `thumbs` < `lock` < `widget` (`contract`, `card`, `frame`, `timeline`, `calendar`) < `sheets`, `kit` < `prelude` |
-| `sill-ui-kit` | `look`, `links/`, `settings`, `shell_style`, `sheet_stage/`, `services`, `hooks/`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
+| `sill-ui-kit` | `look`, `links/`, `settings`, `shell_style`, `sheet_stage/`, `services`, `hooks/`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`, `outputs`, `lifecycle`, `preset`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
 | each surface crate | one dir per surface, named after it (`osd/`, `dock/`, `banners/`); `lib.rs` re-exports each surface marker type and nothing else |
 | `sill` | `policy/`, `ipc/`, `cli/`, `daemon/` (`daemon` is the top: it names every crate) |
 
@@ -90,8 +90,8 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | File | Holds |
 | --- | --- |
 | `mod.rs` | declarations only |
-| `surface.rs` | the marker type named after the surface and its thin `impl Surface` |
-| `layer.rs` | `fn layer(&OutputInfo, &ShellFile, slot) -> LayerConfig` and its constants |
+| `surface.rs` | the marker type named after the surface and its `impl Surface`: the declarations (outputs, keyboard, role, drawing order, presence, link) and the thin `layer` and `root` |
+| `layer.rs` | only when the surface's layer is its own: `fn layer(&OutputInfo, &ShellFile, slot) -> LayerConfig` and its constants. A sheet, a strip, a corner column or a whole-output surface names a `LayerPreset` in `surface.rs` instead |
 | `model.rs` | state types (data only) |
 | `step.rs` | the pure transitions; `impl Machine` (quire's, `ds::base::machine`) for a timed one |
 | `keys.rs` | the keymap table, when the surface takes keys |
@@ -140,7 +140,7 @@ code into `tests.rs`. Exceptions and renames:
 | `windows/{ids,caps,command,toplevels,workspaces}.rs` | `sill-model/src/windows/` |
 | `desktop/{backend,command,model,note}.rs` | `sill-model/src/desktop/` (the arm names and the globals offer, the desktop's views and commands, `supports`, and `ShellNote`, the compositor's shell protocol in the shell's words) |
 | `desktop_wl/{choose,ids,toplevels,workspaces,view,command,outputs,offer,run}.rs` | `sill-services/src/desktop_wl/` (the standard-protocol arm over `desktop-client`; its thread is `thread.rs`, which picks the arm with `desktop_client::backend_for` on the offered globals: Quire, else Wlr). On a Quire offer the same thread serves the toplevels and workspaces on the environment connection |
-| `desktop_wl/quire/{handout,surfaces,view,command,notes,arm,queue_wake,shell}.rs` | the Quire arm (P2-SQ): `handout` is the seam for `org.quire.Compositor1.Connect("shell")` (`Handout`, `ZbusHandout`, `shell_connection`); `surfaces` records which registered surface has which `ShellRole` (and `role_of_surface`, the `Surface::NAME` table); `view` and `command` are the pure mappings (`quire_view`, `quire_wire_of`) between `DesktopState::quire` and the shell's `DesktopView` and `DesktopCommand`; `notes` is `note_of` (the shell protocol's events as `ShellNote`s); `arm` is `QuireArm<D: Desktop, S: NoteSink>` (sync: drain events, hand notes to the sink, return the view; execute: a command as requests; assign: `SetShellRole`), tested over `FakeDesktop::with_config`; `shell` runs the arm on the shell host's connection (`spawn_shell_arm(&wl_surface)` takes the connection from the surface, binds a second queue with `DesktopConfig::holding_shell()`, publishes a `watch` of `DesktopView` and an mpsc of notes); `queue_wake` is the `Waker` over a calloop ping that `DesktopClient::poll_dispatch_pending` leaves in the client's queue, so an event another thread's read queued wakes the arm's loop (no timer polls it). The daemon side is `sill/src/daemon/compositor.rs`: the host's route (`Handed(fd)` when the compositor handed one), the `ShellSeat` that starts the arm at the first mapped surface with a role and registers each mapped surface, and `apply`, which carries each `ShellNote` out (hot corner, the companion's tap, the kill chord) or names the P3 lane that will (`P3-SW`, `P3-MC`, `P3-MN`, `P3-SILL`) |
+| `desktop_wl/quire/{handout,surfaces,view,command,notes,arm,queue_wake,shell}.rs` | the Quire arm (P2-SQ): `handout` is the seam for `org.quire.Compositor1.Connect("shell")` (`Handout`, `ZbusHandout`, `shell_connection`); `surfaces` records which registered surface has which `ShellRole` (a role is the surface's own `Surface::ROLE`); `view` and `command` are the pure mappings (`quire_view`, `quire_wire_of`) between `DesktopState::quire` and the shell's `DesktopView` and `DesktopCommand`; `notes` is `note_of` (the shell protocol's events as `ShellNote`s); `arm` is `QuireArm<D: Desktop, S: NoteSink>` (sync: drain events, hand notes to the sink, return the view; execute: a command as requests; assign: `SetShellRole`), tested over `FakeDesktop::with_config`; `shell` runs the arm on the shell host's connection (`spawn_shell_arm(&wl_surface)` takes the connection from the surface, binds a second queue with `DesktopConfig::holding_shell()`, publishes a `watch` of `DesktopView` and an mpsc of notes); `queue_wake` is the `Waker` over a calloop ping that `DesktopClient::poll_dispatch_pending` leaves in the client's queue, so an event another thread's read queued wakes the arm's loop (no timer polls it). The daemon side is `sill/src/daemon/compositor.rs`: the host's route (`Handed(fd)` when the compositor handed one), the `ShellSeat` that starts the arm at the first mapped surface with a role and registers each mapped surface, and `apply`, which carries each `ShellNote` out (hot corner, the companion's tap, the kill chord) or names the P3 lane that will (`P3-SW`, `P3-MC`, `P3-MN`, `P3-SILL`) |
 | `displays/{model,policy,identity,scale,ppi,plan,brightness,hw_volume,gamut,warmth}*`, `displays/edid/`, `displays/ddc/{vcp,matching,retry,debounce}.rs` | `sill-model/src/displays/` (`edid/`, `ddc/`) |
 | `displays/{backlight,drm,randr,output,outputs_route,font,fontconfig_file,run}.rs`, `displays/ddc/{bus,i2c,worker}.rs` | `displays/backend/` |
 | `displays/ddc/file_bus.rs`, `displays/ddc/fake.rs` | `env/ddc.rs` (`DdcBus`, `I2cBuses`, `FileBus`, `FakeBus`); `displays/kscreen*` is already gone |
@@ -286,7 +286,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | The screen-sharing picker (transom asks what an app may share; the person picks) | `sill_model::capture_pick::{Ask, Candidates, plan, Picks, toggle, reply, step, windows_of}` (pure: kinds, several-or-one and pointer modes decide the choices; a pick becomes the `(sources, cursor)` reply); `sill_services::capture_pick` exports `org.quire.Shell1` on the seat's connection (no name of its own; only the portal backend, as the owner of `org.freedesktop.impl.portal.desktop.quire`, may ask, by `sill_services::callers`; a second sharing or colour call while a sheet is open is refused; `PickColor` is served beside it, answered with an empty array while no eyedropper surface exists; `AskPermission(app_label, title, subtitle, body, grant_label, deny_label) -> u32` is the same service's third question, checked like the others and queued with the compositor's questions (below), its words cleaned and cut by `PermissionAsk::from_wire` and its answer 0 yes, 1 no, 2 closed); the daemon feeds windows from the compositor arm's `DesktopView` (`ShellMsg::Desktop`) and screens come from the displays service; `sill_overlays::capture_sheet` draws it on quire's `Sheet`, `SegmentedControl`, `List` and `Button`, and `sill_overlays::permission_sheet` draws the permission question on quire's `Alert` (the app's icon found by name in the app index, the yes button first so it is the default, the no button the one Escape presses) |
 | The colour picker's eyedropper (an app asks for one colour from the screen; the person points at it) | `sill_model::capture_pick::{eyedrop_step, Frozen, pixel_under, colour_at, pick_at, loupe_at}` (pure: which screens to take a picture of, the pictures held per question, the pixel under the pointer at any scale, the magnifier's place); `sill_model::desktop::{DesktopCommand::CaptureOutput, ShellNote::OutputPicture, OutputShot}` carry a whole-output picture (`QuireArm::pending` holds it beside a Space picture; `desktop_wl::quire::pictures::shot_of` makes the pixels and the PNG); `sill_ui_kit::links::EyedropperLink` holds the pictures for the surfaces and counts them; `sill::eyedropper` is the daemon's half (asks for the pictures, takes them in, tells the capture service an eyedropper exists); `sill_overlays::eyedropper::ColorSampler` draws it |
 | Who may call the shell's bus objects (`org.quire.Shell1`, `org.quire.AccountsSheet1`, `org.quire.Confirm1`) and whose menu the bar believes | `sill_services::callers`: `Claim` and `admit` (the caller holds the role of the service whose well-known name it owns, over peephole's `BusPeers`; roles `portal`, `accounts`/`inference`/`sync`, `router`, proved `Full`), `CallerSource` (`Env::callers`: `DesktopCallers` over `/etc/quire/desktop-callers.toml` in the daemon, an empty table in `Env::isolated`, a stand-in in a test that keeps the peers and introduces connections by unique name), `menu_shown`; the pure comparison of a menu's owner with the focused window's program is `sill_model::app_menu::{menu_trust, MenuOwner, MenuClient}` (QUIRE-12; `MenuClient::reported` is the compositor's subject for the window's program, from `WindowModel::subjects`, projected by `desktop_wl::project_subjects` from `quire_desktop_app_v1.subject`) |
-| The display trial (a program other than the shell changed the displays and the compositor asks whether to keep them; `quire_shell_v1` version 6): the wire's words as the shell's types, the question's words and the countdown arithmetic, the link, the sheet, the answer | `sill_model::desktop::{ShellNote::DisplaysTrial, ShellNote::DisplaysTrialEnd, DesktopCommand::AnswerTrial, DisplayTrial, TrialId, TrialAnswer}`; every word and the countdown are `sill_model::desktop::{TRIAL_TITLE, REVERT_LABEL, KEEP_LABEL, countdown_line, seconds_left, until_next_second}`; `sill_ui_kit::links::DisplayTrialLink` (the open trial with a serial that counts every send, so a restart with the same number is told from the first; the person's answer; the banners' link, which names the output that shows it) is written by `sill::display_trial::apply` (from `daemon::compositor::apply`) and followed by `sill::display_trial::spawn_answers`, which sends `AnswerTrial`; the sheet is `sill_overlays::display_trial` (quire's `Alert`; Revert first, so it is the default and Escape; Keep Changes second; the line under the headline is "Reverting in N seconds", changed on each second by quire's timer; the card is keyed by the serial, so a restart starts the sheet and its arming over; an answer or the compositor's end takes it down; nothing in sill reverts, the compositor does when the time runs out). The wait before a question takes an answer is `sill_overlays::arming::QUESTION_ARM_AFTER` (600 ms), the permission sheet's too |
+| The display trial (a program other than the shell changed the displays and the compositor asks whether to keep them; `quire_shell_v1` version 6): the wire's words as the shell's types, the question's words and the countdown arithmetic, the link, the sheet, the answer | `sill_model::desktop::{ShellNote::DisplaysTrial, ShellNote::DisplaysTrialEnd, DesktopCommand::AnswerTrial, DisplayTrial, TrialId, TrialAnswer}`; every word and the countdown are `sill_model::desktop::{TRIAL_TITLE, REVERT_LABEL, KEEP_LABEL, countdown_line, seconds_left, until_next_second}`; `sill_ui_kit::links::DisplayTrialLink` (the open trial with a serial that counts every send, so a restart with the same number is told from the first; the person's answer; the banners' link, which names the output that shows it) is written by `sill::display_trial::apply` (from `daemon::compositor::apply`) and followed by `sill::outgoing`, which sends `AnswerTrial`; the sheet is `sill_overlays::display_trial` (quire's `Alert`; Revert first, so it is the default and Escape; Keep Changes second; the line under the headline is "Reverting in N seconds", changed on each second by quire's timer; the card is keyed by the serial, so a restart starts the sheet and its arming over; an answer or the compositor's end takes it down; nothing in sill reverts, the compositor does when the time runs out). The wait before a question takes an answer is `sill_overlays::arming::QUESTION_ARM_AFTER` (600 ms), the permission sheet's too |
 | The compositor's permission question (a program wants the screen, the keys, the clipboard, ...): what it says, the line it waits in, the answer | `sill_model::desktop::{Consent, ShellNote::PermissionAsk, ShellNote::PermissionWithdraw, DesktopCommand::AnswerPermission}` (the wire's words as the shell's types); every word of the sheet is `sill_model::capture_pick::consent_words` (headline per power, the Allow Once line, the Settings line, the buttons; a power's own sentence is `Power::blurb`); `consent_ask` makes the sheet's `PermissionAsk` (a program is named by its desktop entry only when the compositor vouches for it); the one line with `AskPermission` is `CapturePicker::{permission, waiting}` and `step` (one sheet at a time, `WAITING_MAX` waiting, a repeat is the same question, a withdrawal takes it down unanswered, the portal leaving takes down only the portal's); `sill_services::capture_pick` is told with `CaptureCommand::{Consent, ConsentWithdrawn}` by `sill::daemon::compositor::apply` and answers through `CaptureLinks::answers`, which `sill::permission_answers` carries to the arm; the sheet is `sill_overlays::permission_sheet` (Escape answers `escape_answer`: no button for the portal, a dismissal for the compositor). Every question of the sheet, the portal's and the compositor's, takes no answer for `permission_sheet::PERMISSION_ARM_AFTER` (600 ms) after it is drawn: quire's `Alert` `arm_after` disables the buttons and ignores Return, Escape and clicks, so a key or click already in flight cannot allow a power. casement may refuse an answer that comes sooner than 500 ms after its question; it does not yet. The confirmation sheet keeps its own gate (`ARM_MS`, above) |
 | The shell's names on the session bus taken without queueing, and what happens when one is taken | `org.quire.Shell` and `org.quire.Confirm1` by `sill_services::intents` (`ClaimError::NameTaken`, from `serve::claim`), `org.quire.AccountsSheet1` by `sill_services::accounts::sheet` (all three claim at start unless `Env::claims` is `Passive`); `sill::name_guard` ends the host and makes the daemon exit with a failure and one line when the seat's names are taken (the unit restarts it a second later) |
 | The single-instance lock file watched, and what a daemon does when it is displaced | `sill::door_guard` asks `Door::standing()` (latchkey's `Listening::standing`) every `STANDING_EVERY` (a minute, latchkey's advice) on the daemon's async runtime, no thread of its own; a lock file that is gone or another file ends the host with a failure and one line, as `name_guard` does (the unit restarts the shell, which takes the lock file that is there now). `sill::ipc::door::Door` is the shared handle: a door dropped while displaced is never dropped for real, so its socket unlink cannot remove a rival daemon's socket. The accept loop ends on `ipc::server::Serving::stop` (a flag read after each accept, and a knock while the lock file is still ours) |
@@ -342,7 +342,11 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Spawning and closing surfaces per output | `sill::daemon::surfaces` (generic over `Surface`) |
 | Which surfaces exist on which output | `sill::daemon::outputs` |
 | A timed pure state machine and its timer; a machine's `Stamp` and the `FrameClock` that makes it | quire: `ds::base::machine` (`Machine`, `Elapsed`), `ds::machine` (`use_machine`, `MachineRef`), `ds::base::time::stamp` (`Stamp`, `FrameClock`); sill has none of its own |
-| Popup menus (bar, tray, dock, launcher actions) | `sill_ui_kit::menu` (`MenuModel`, `MenuPopup<M>`) over `ds`'s `menu_track`; a context menu a layer opens at its pointer is `use_context_menu::<M>` (one popup at a time, the report channel and the task that hands each pick to the owner; the desktop menu and the window menu both use it) over `context_menu_popup::<M>` (the popup root, reporting over a channel) |
+| Popup menus (bar, tray, dock, launcher actions) | `sill_ui_kit::menu` (`MenuModel`, `MenuPopup<M>`) over `ds`'s `menu_track`; a context menu a layer opens (at its pointer, or over a dock tile) is `use_context_menu::<M>` (one popup at a time, the report channel and the task that hands each pick to the owner; `use_context_menu_closing` also tells the owner when the popup is gone; the desktop menu, the window menu and the dock menu use it) over `context_menu_popup::<M>` (the popup root, reporting over a channel); where the popup goes is a `PopupGeom` (`AtPoint { clear }`, `OverTile { gap }`), whose size is one number. The bar's menus stay on their own tracking |
+| Where a panel opens: the focused window's output, else the pointer's (the first output until the daemon knows the pointer); which outputs a surface lives on | `sill_ui_kit::surface::OutputPolicy` (`Surface::OUTPUTS`); `sill::outputs::Outputs::{pick, open_on}` |
+| A surface's `LayerConfig` | `sill_ui_kit::surface::LayerPreset`; the blur radius is `sill_ui_kit::panel::PANEL_RADIUS` |
+| A panel's open, toggle, close and focus on its link | `sill_ui_kit::links::{PanelLink, Opening}` |
+| What a surface sends back for the desktop to carry out | `sill_ui_kit::links::{Outbox, Sent}` on the link; `sill::outgoing::{Outgoing, forward}` |
 | Popup sizing | shell-host `FitContent`; no estimation code |
 | App icons, look, cache | `sill_ui_kit::app_icons` |
 | Status glyph props from service state | `sill_ui_kit::status` over `sill-shell-kit` glyphs |
@@ -435,9 +439,16 @@ pub trait Surface: 'static {
     const NAME: &'static str;                       // `osd`; namespace `sill-osd-<output>`
     type Link: Clone + Send + Sync + 'static;       // a type in sill_ui_kit::links; `()` if none
     type Slot: Copy + Eq + Hash + Debug + 'static;  // `()`; hot corners: `Corner`
+    const OUTPUTS: OutputPolicy = Every;            // Every | FocusedWindow | Main
+    const KEYBOARD: FocusLoss<Self::Link> = Ignore; // Ignore | CloseLink(Link::keyboard)
+    const ROLE: Option<ShellRole> = None;           // what the compositor knows it by
+    const LAYER_ORDER: u8;                          // spawn order = drawing order within a layer
+    const PRESENCE: Presence;                       // Always | FollowsPanel | SheetStage | Daemon | SelfMapped
+    fn link(links: &Links) -> Self::Link;           // its field of `Links`
+    fn needs(root: HostRoot, links: &Links) -> HostRoot;  // other links its document reads by type; default none
     fn slots(place: &Place) -> Vec<Self::Slot>;     // which surfaces on this output; empty = none
     fn layer(output: &OutputInfo, settings: &ShellFile, slot: Self::Slot) -> LayerConfig;
-    fn start() -> Start;                            // Start::{Shown, Hidden}
+    fn start() -> Start;                            // provided: `Always` is shown, the rest hidden
     fn root(output: OutputInfo, slot: Self::Slot) -> Element;
 }
 pub struct Place<'a> { pub output: &'a OutputInfo, pub rank: OutputRank, pub settings: &'a ShellFile }
@@ -449,15 +460,19 @@ pub struct LockSurface {
 }
 ```
 
-Implementors of `Surface`: the 16 layer surfaces; the lock is the `LOCK` value. A new visible thing on its own layer surface
+Implementors of `Surface`: the 25 layer surfaces (25 `impl Surface for` sites, one per `surface.rs` in `sill-bar`, `sill-dock`, `sill-launcher-ui`, `sill-notify-ui` and `sill-overlays`); the lock is the `LOCK` value and is not on this path. A new visible thing on its own layer surface
 is a new `Surface`. A popup of an existing surface is a `MenuPopup` or a component, not a
 `Surface`. `root` runs inside `surface::mount::<S>`, the one root component every spawned surface
 has, so a `root` may call hooks. `SurfaceRoot` stays a plain component that each view wraps its
 content in: the material, chrome and extent it takes are the surface's own, which a wrapper
-generic over `S` could not know. The daemon gives every root its `S::Link` as a root context; a
+generic over `S` could not know. The daemon gives every root its `S::link` as a root context, and the other links `S::needs` names (a bar reads the focus mode, the power menu and the notification center by type); a
 slot is erased to its `Debug` text in the output's row (`OutputSurfaces::spawned`), which also
 keeps the layer namespace `debug stats` reports. A slot the settings drop is closed, and a layer
 size that changed is re-applied, by `daemon/spawn.rs`.
+
+The declarations are read by one place each. `OUTPUTS`: `daemon/spawn.rs` spawns a `Main` surface on the main display only (the sheets that ask the person; the main display is the first output the compositor announced), and every opener of a panel (a verb, a chord, the companion, a hot corner) asks `Outputs::pick` / `Outputs::open_on::<S>` for the output: the focused window's, and the pointer's where that is known (the daemon does not know it yet, so the first output stands in, in that one function). `KEYBOARD`: a `CloseLink` surface's link hears each keyboard focus change of the surface through `ClosesOnFocusLoss`, and the daemon routes every `HostEvent::KeyboardFocus` to it (`Spawned::focus`), so a new surface needs no line in `daemon/events.rs`. Mac behaviour, per surface: the launcher, power menu, notification center, switcher and split picker close when they lose the keyboard after holding it; force quit, the display trial, the other sheets and the eyedropper stay. `ROLE`: recorded at spawn (`Spawned::role`) for the compositor's registration. `LAYER_ORDER` and `PRESENCE`: `daemon/surfaces.rs` sorts its list of kinds by `LAYER_ORDER`, and `start` follows `PRESENCE`. A sheet, a strip, a corner column or a whole-output surface builds its `LayerConfig` from a `LayerPreset` (`FullOutputSheet`, `PanelOnly`, `Strip`, `Corner`, `Whole`), whose blur radius is `sill_ui_kit::panel::PANEL_RADIUS`, the mirror of quire's `--r-panel` token.
+
+A panel's link is a `PanelLink<P>` over `Reveal<Opening<P>>` (`links/reveal.rs`): `open`, `reopen`, `toggle`, `close`, `focus`, `subscribe`, with the panel's own payload `P` (`()` for force quit and the notification center, `LauncherAsk`, `PowerMenuPayload`); what a panel adds is an `update` on it. What a surface says back for the desktop to carry out (a window menu pick, a Split View answer, the display trial's answer, a confirmed force quit, a Spaces bar click) is an `Outbox<T>` on its link, and `sill::outgoing` forwards every outbox to the host with one task per link type (`Outgoing`, listed in `outgoing::spawn_all`).
 
 ### `Machine` (quire: `ds::base::machine`, hook `ds::machine`)
 
@@ -529,10 +544,10 @@ pub trait MenuModel: 'static {
     fn entries(&self) -> Vec<ds::prelude::MenuItem<Self::Pick>>;
     fn pick(&self, path: &ItemPath) -> Option<Self::Pick>;
 }
-#[component] pub fn MenuPopup<M: MenuModel>(model: M, anchor: Anchor, on_pick: EventHandler<M::Pick>) -> Element;
+#[component] pub fn MenuPopup<M: MenuModel>(model: M, on_pick: EventHandler<M::Pick>, on_close: EventHandler<()>, surface: &'static str) -> Element;
 ```
 
-Implementors: bar app menu, tray (dbusmenu), dock context menu, launcher actions.
+Implementors: `DockMenu` (the dock's tile menu), `DesktopMenu` (the wallpaper's), `WindowMenuModel` (the window menu). The bar's app menu, the tray and the control center are a different machine (menu tracking with hover and release semantics, `sill-bar/src/bar/menu_popup.rs`), and the launcher's actions menu is not a `MenuModel`. A context menu a layer surface opens is `use_context_menu::<M>` (below).
 
 ### Enums that stay enums
 
@@ -600,34 +615,45 @@ Each ends with its tests. Name the concept once and use it in every file name be
 
 1. Choose the crate from the surfaces table below (a new crate is a new row of section 1 and of
    `EDGES` in `scripts/check-boundary.sh`). The surface lives in that crate, in `src/<name>/` with
-   the roles in "The one shape of a surface": `mod.rs`, `surface.rs`, `layer.rs`, `model.rs`,
-   `step.rs`, `io.rs`, `view.rs`, `style.css`, `tests.rs`. `lib.rs` declares `pub mod <name>` and
-   re-exports the marker type; `mod.rs` re-exports the stylesheet const (`NAME_CSS`) the lint
-   row needs.
-2. `surface.rs`: `pub enum Name {}` and `impl Surface` (`NAME`, `Link`, `Slot`, `slots`,
-   `layer`, `start`, `root`). `root` is `view::name(output)`; no `Ds` boilerplate: `SurfaceRoot`
-   supplies services, feed, appearance, scale and the frame clock, and `mount` has already
-   installed the host seam (`ds_blitz::provide_host()`) and the seat's `HostSignals`; a `Ds` root passes no `scale`.
+   the roles in "The one shape of a surface": `mod.rs`, `surface.rs`, `model.rs`, `step.rs`,
+   `io.rs`, `view.rs`, `style.css`, `tests.rs` (and `layer.rs` only when no `LayerPreset` fits).
+   `lib.rs` declares `pub mod <name>` and re-exports the marker type; `mod.rs` re-exports the
+   stylesheet const (`NAME_CSS`) the lint row needs.
+2. `surface.rs`: `pub enum Name {}` and `impl Surface`. Declare, and the daemon does the rest:
+   `NAME`, `Link` and `fn link(links)` (its field of `Links`), `Slot`, `OUTPUTS` (the default,
+   `Every`, is one per output; `FocusedWindow` for a panel that opens where the focused window
+   is; `Main` for a question for the person), `KEYBOARD` (`Ignore`, or `CloseLink(Link::keyboard)`
+   for a panel that closes when it loses the keyboard; the link implements
+   `ClosesOnFocusLoss`), `ROLE` (only if the compositor knows the surface), `LAYER_ORDER` (a
+   number between its neighbours' in the table of `kinds()`; later draws over earlier on one
+   layer), `PRESENCE` (how it is mapped: `Always`, `FollowsPanel`, `SheetStage`, `Daemon`,
+   `SelfMapped`), `needs` (only if its document reads another link by type), `slots`, `layer`
+   (`LayerPreset::..config(Self::NAME, output)`) and `root`. `root` is `view::name(output)`; no
+   `Ds` boilerplate: `SurfaceRoot` supplies services, feed, appearance, scale and the frame
+   clock, and `mount` has already installed the host seam (`ds_blitz::provide_host()`) and the
+   seat's `HostSignals`; a `Ds` root passes no `scale`.
 3. A link the daemon or another surface drives is one file in `sill-ui-kit/src/links/<name>.rs`
-   (a newtype over `Reveal<O>` or a small watch channel) and a field of `Links` in
-   `links/mod.rs`. A surface never imports another surface.
+   and a field of `Links` in `links/mod.rs`, built in `build_links` in `daemon/run.rs`. A panel
+   is a `PanelLink<P>` (the payload is what an opening carries); an answer for the desktop is an
+   `Outbox<T>`. A surface never imports another surface.
 4. Settings keys: recipe below. Services it reads: `use_service` in `io.rs` only.
 5. Timed state: `impl Machine` (`ds::base::machine`) in `step.rs`, run by `ds::machine::use_machine` in `io.rs`.
-6. `sill/src/daemon/surfaces.rs`: in `spawn_missing`, at the surface's place in the drawing order
-   (later spawns draw over earlier ones on one layer), add
-   `spawn_surface::<Name>(ctx, outputs, spawn, &links.name)` (`&()` when `Link = ()`) and import
-   the marker from the surface's crate; the generic `daemon/spawn.rs` spawns, resizes and closes.
-   There is no per-surface spawn code, `outputs.rs` field or namespace helper (`debug stats`
-   reads `OutputSurfaces::spawned`). The link is a field of `Links`, handed to the root by
-   `surface_root`.
-7. IPC verb if it opens from the command line (recipe below).
+6. `sill/src/daemon/surfaces.rs`: add `kind::<Name>()` to `kinds()` and import the marker from the
+   surface's crate; the order is the surface's `LAYER_ORDER`, and the generic `daemon/spawn.rs`
+   spawns, resizes and closes. There is no per-surface spawn code, `outputs.rs` field or
+   namespace helper (`debug stats` reads `OutputSurfaces::spawned`), and no line in
+   `daemon/events.rs` for the keyboard. If the surface sends answers, implement
+   `sill::outgoing::Outgoing` for its link and list it in `outgoing::spawn_all`.
+7. IPC verb if it opens from the command line (recipe below); the output it opens on is
+   `reach.outputs.open_on::<Name>(reach.services)`.
 8. Tests, in the surface's crate: `crates/<crate>/tests/<name>.rs` on
    `SurfaceHarness::<Name>::setup(link, slot).settings(..).viewport(..).appearance(..).start()`
-   (render, keys, motion on the virtual clock), and unit tests in `src/<name>/tests.rs`. The lint
+   (render, keys, motion on the virtual clock), and unit tests in `src/<name>/tests.rs`. A
+   full-output sheet is also a row of `crates/sill-overlays/tests/it/layers.rs`. The lint
    is the one place outside the crate: a `SurfaceCase` row in `SURFACES` in
    `crates/sill/tests/lint.rs` (the stylesheet const and a function drawing each state to lint).
    Then `dev/accept/<name>.sh`.
-9. Add the row to the surfaces table in this file.
+9. Add the row to the surfaces table in this file, and the surface name to `docs/selectors.md`.
 
 ### Add a control-center module
 
@@ -660,12 +686,21 @@ Each ends with its tests. Name the concept once and use it in every file name be
 5. Tests: `query` and `activate` tables beside the provider with `VecSink`; a rank test row in
    `sill-launcher`.
 
-### Add a menu
+### Add a popup menu
 
-1. In the owning surface, `menu.rs`: `struct XMenu`, `impl MenuModel` (`entries`, `pick`); the
-   `Pick` enum is the surface's own.
-2. `view.rs` renders `MenuPopup { model, anchor, on_pick }`. No menu markup, no tracker.
-3. Tests: `entries` and `pick` tables in `tests.rs`; keyboard and hover switching are `ds`'s.
+1. In the owning surface, `menu.rs`: `struct XMenu`, `impl MenuModel` (`entries`); the `Pick`
+   enum is the surface's own.
+2. In `io.rs`: `use_context_menu::<XMenu>("x-menu", |pick| ..)` (the name is the popup
+   document's `data-surface`; add it to `docs/selectors.md`) and call
+   `menu.open(model, look, geom, anchor)` where `geom` is a `PopupGeom` (`AtPoint { clear }` for a
+   menu at the pointer, `OverTile { gap }` for one over a tile) and `anchor` the pointer's
+   one-pixel `point_anchor(x, y)` or the tile's rectangle. The hook owns the one-popup-at-a-time
+   rule, the report channel, the task that hands each pick over and the popup's size; use
+   `use_context_menu_closing` when the owner must also hear that the popup is gone. No menu
+   markup, no tracker, no `geometry.rs`. (The bar's menus are the one exception: their menu
+   tracking is its own machine.)
+3. Tests: the `entries` table in `tests.rs`; keyboard and hover switching are `ds`'s, and where
+   the popup goes is `PopupGeom`'s own test.
 
 ### Add a settings key
 
@@ -764,10 +799,12 @@ the appearance clones `settings_feed.appearance`.
 | `dock` | `sill-dock` | Bottom | Magnify, machines, context menu, badges, running dots |
 | `launcher`, `launcher_catcher` | `sill-launcher-ui` | Overlay | Panel plus click catcher, one `Reveal` link |
 | `banners`, `notification_center`, `screenshot_thumb` | `sill-notify-ui` | Overlay | Cards from `sill-ui-kit::notification_card` |
-| `osd`, `power_menu`, `polkit_prompt`, `confirm`, `accounts_sheet`, `switcher`, `idle_dim`, `hot_corners`, `wallpaper`, `window_menu`, `spaces_bar`, `split_picker` | `sill-overlays` | Overlay (wallpaper Background; `spaces_bar` Top) | `spaces_bar` is Mission Control's Spaces bar: while the compositor's overview is Mission Control and entering, open or tracking (`ShellNote::Overview` -> `sill::spaces_bar::apply_note` -> `SpacesBarLink`, which `daemon/events.rs` also feeds the desktop's view) and `ShellNote::OverviewOutput` says it is up on that output, the surface on that output hangs quire's `SpacesBar` under the menu bar (one tile per Space of that output, `sill_model::desktop::bar_spaces`, over its picture from `ShellNote::SpacePicture` (every Space of the output, hidden ones too) and over that output's wallpaper (`wallpaper::url_for`, passed to each tile as `SpaceTile::backdrop`), lit by `ShellNote::DropTarget`, and the plus, lit by `ShellNote::DropTargetNew`). The surface is the menu bar's height plus `BAR_EXPANDED_PX` tall, taller than the 112 px strip (`STRIP_PX`) the compositor keeps free, and takes input on the bar's own element (`RegionSpec::Element`, id `spaces-bar`). It publishes where its cards and its plus lie (quire's `on_layout`, moved by the output's origin into `BarLayout` on the link's feed; no geometry is computed in sill) and `spaces_bar::spawn_outbox` turns the layouts into `DesktopCommand::SetSpaceTargets`, then `SetNewSpaceTarget` (the plus; `None` once the bar goes), and, per `thumbs_wanted`, one `CaptureSpace` request per Space (kept across switches, asked again only after an answer and a change in the Space's windows). The surface unmaps when quire's lift settles. A tile or the plus writes `BarPick` to the link and `spaces_bar::spawn_picks` sends `SwitchSpace` then `Overview(MissionControl, Off)`, or `CreateSpace`. `split_picker` is the Split View choice: when a window takes one half of the screen the compositor offers the windows that can fill the other (`ShellNote::SplitChoose`, `SplitCandidate`, `SplitChoiceEnd` -> `SplitPickerLink`, which `sill::split_picker::apply` writes with the desktop's titles and output), and the surface on that output dims the screen and shows quire's `AppSwitcher` (one tile per window: its app icon through `sill_ui_kit::app_icons::TileIcons`, its title) in the free half; a tile, Return, Escape or a press elsewhere writes the answer to the link and `split_picker::spawn_answers` sends `DesktopCommand::PickSplit` or `CancelSplit`. `window_menu` draws nothing and takes no input: it is the parent of the popup quire's `Menu` shows when the compositor asks for a window's menu (the pointer rested on its green light; `ShellNote::WindowMenu` -> `WindowMenuLink`), and a pick goes back through the link to `DesktopCommand::PickWindowMenu`. Hot corners: one slot per corner. `confirm` is `confirm_sheet/`; `accounts_sheet` (`accounts-sheet`) is accountd's consent question and add-account steps, each a centred titled window on the banners' output (`sill_services::accounts::sheet` serves `org.quire.AccountsSheet1`); `confirm` is `confirm_sheet/`: intentd's question on quire's `Sheet`, mapped on the banners' output; `voice-consent` is `voice_consent/`, the first-use microphone question the same way |
-| `force_quit` | `sill-overlays` | Overlay | Force Quit Applications (`sill force-quit {open,close,toggle}`; Option+Command+Escape once casement runs that command for the chord): a quire `Sheet` centred on the output of the active window, a `List` of the apps the desktop lists (`sill_model::desktop::force_quit_rows` from the compositor's `DesktopView`, fed to `ForceQuitLink` by `daemon/events.rs`) with "(not responding)" after a hung one's name and a hung app preselected, a Force Quit button that asks quire's `Alert` ("Do you want to force quit ...?", Cancel the default) before `force_quit::spawn_asks` sends `DesktopCommand::ForceQuitApp`. The selection and the question are `force_quit/step.rs`; Escape answers the question, then closes the panel; a press away closes it |
+| `osd`, `power_menu`, `polkit_prompt`, `confirm`, `accounts_sheet`, `switcher`, `idle_dim`, `hot_corners`, `wallpaper`, `window_menu`, `spaces_bar`, `split_picker` | `sill-overlays` | Overlay (wallpaper Background; `spaces_bar` Top) | `spaces_bar` is Mission Control's Spaces bar: while the compositor's overview is Mission Control and entering, open or tracking (`ShellNote::Overview` -> `sill::spaces_bar::apply_note` -> `SpacesBarLink`, which `daemon/events.rs` also feeds the desktop's view) and `ShellNote::OverviewOutput` says it is up on that output, the surface on that output hangs quire's `SpacesBar` under the menu bar (one tile per Space of that output, `sill_model::desktop::bar_spaces`, over its picture from `ShellNote::SpacePicture` (every Space of the output, hidden ones too) and over that output's wallpaper (`wallpaper::url_for`, passed to each tile as `SpaceTile::backdrop`), lit by `ShellNote::DropTarget`, and the plus, lit by `ShellNote::DropTargetNew`). The surface is the menu bar's height plus `BAR_EXPANDED_PX` tall, taller than the 112 px strip (`STRIP_PX`) the compositor keeps free, and takes input on the bar's own element (`RegionSpec::Element`, id `spaces-bar`). It publishes where its cards and its plus lie (quire's `on_layout`, moved by the output's origin into `BarLayout` on the link's feed; no geometry is computed in sill) and `spaces_bar::spawn_outbox` turns the layouts into `DesktopCommand::SetSpaceTargets`, then `SetNewSpaceTarget` (the plus; `None` once the bar goes), and, per `thumbs_wanted`, one `CaptureSpace` request per Space (kept across switches, asked again only after an answer and a change in the Space's windows). The surface unmaps when quire's lift settles. A tile or the plus writes `BarPick` to the link and `sill::outgoing` sends `SwitchSpace` then `Overview(MissionControl, Off)`, or `CreateSpace`. `split_picker` is the Split View choice: when a window takes one half of the screen the compositor offers the windows that can fill the other (`ShellNote::SplitChoose`, `SplitCandidate`, `SplitChoiceEnd` -> `SplitPickerLink`, which `sill::split_picker::apply` writes with the desktop's titles and output), and the surface on that output dims the screen and shows quire's `AppSwitcher` (one tile per window: its app icon through `sill_ui_kit::app_icons::TileIcons`, its title) in the free half; a tile, Return, Escape or a press elsewhere writes the answer to the link and `sill::outgoing` sends `DesktopCommand::PickSplit` or `CancelSplit`. `window_menu` draws nothing and takes no input: it is the parent of the popup quire's `Menu` shows when the compositor asks for a window's menu (the pointer rested on its green light; `ShellNote::WindowMenu` -> `WindowMenuLink`), and a pick goes back through the link to `DesktopCommand::PickWindowMenu`. Hot corners: one slot per corner. `confirm` is `confirm_sheet/`; `accounts_sheet` (`accounts-sheet`) is accountd's consent question and add-account steps, each a centred titled window on the banners' output (`sill_services::accounts::sheet` serves `org.quire.AccountsSheet1`); `confirm` is `confirm_sheet/`: intentd's question on quire's `Sheet`, mapped on the banners' output; `voice-consent` is `voice_consent/`, the first-use microphone question the same way |
+| `force_quit` | `sill-overlays` | Overlay | Force Quit Applications (`sill force-quit {open,close,toggle}`; Option+Command+Escape once casement runs that command for the chord): a quire `Sheet` centred on the output of the active window, a `List` of the apps the desktop lists (`sill_model::desktop::force_quit_rows` from the compositor's `DesktopView`, fed to `ForceQuitLink` by `daemon/events.rs`) with "(not responding)" after a hung one's name and a hung app preselected, a Force Quit button that asks quire's `Alert` ("Do you want to force quit ...?", Cancel the default) before `sill::outgoing` sends `DesktopCommand::ForceQuitApp`. The selection and the question are `force_quit/step.rs`; Escape answers the question, then closes the panel; a press away closes it |
 | `display-trial` | `sill-overlays` | Overlay | `display_trial/`: "Keep these display settings?" after a program other than the shell changed the displays (`ShellNote::DisplaysTrial` -> `DisplayTrialLink`), on quire's `Alert`, centred on the banners' output; the line under the headline counts the seconds down, Revert is the default and Escape, Keep Changes keeps; answers nothing for `QUESTION_ARM_AFTER` after it is drawn; answers through the link and `DesktopCommand::AnswerTrial` |
 | `permission` | `sill-overlays` | Overlay | `permission_sheet/`: an app's yes-or-no question (`org.quire.Shell1.AskPermission` from the portal backend) on quire's `Alert`, centred on the banners' output; the app's icon, the headline, the app's name and explanation, the yes button (default) and the no button (Escape); answers nothing for `PERMISSION_ARM_AFTER` after it is drawn; answers through `CaptureCommand::PermissionAnswer` |
+| `capture` | `sill-overlays` | Overlay | `capture_sheet/`: the screen-sharing picker, on quire's `Sheet`, on the main display (`OutputPolicy::Main`, like every sheet that asks the person); answers through `CaptureCommand` |
+| `eyedropper` | `sill-overlays` | Overlay | `eyedropper/`: a still picture of each output while the colour picker asks for a colour (`EyedropperLink`); a click picks, Escape cancels |
 | `lock` | `sill-overlays` | session lock | `LOCK`, a `LockSurface`; one per output through shell-host |
 
 The wallpaper surface takes the pointer over the whole output (`RegionSpec::Whole`) and, on a

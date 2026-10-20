@@ -18,6 +18,7 @@ Renaming a surface below is a breaking change for your file, so it is named in t
 | `dock` | the dock |
 | `desktop-menu` | the desktop's context menu (Change Wallpaper…) |
 | `dock-menu` | a dock tile's context menu |
+| `window-menu` | the menu of a window's green light (the popup of the transparent `window-menu` surface) |
 | `launcher` | the launcher panel |
 | `launcher-catcher` | the transparent surface behind the launcher that a press closes it from |
 | `notification-center` | the notification center |
