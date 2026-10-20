@@ -41,17 +41,15 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<WifiCommand>,
 ) -> Result<(), ServiceError> {
     let connection = crate::supervise::connect_when_up(&bus).await?;
-    loop {
-        owner::appeared(&connection, SERVICE).await;
-        tokio::select! {
-            ended = session(&connection, &tx, &mut commands) => match ended {
-                Ended::Commands => return Ok(()),
-                Ended::Unreadable => owner::changed(&connection, SERVICE).await,
-            },
-            () = owner::changed(&connection, SERVICE) => {}
-        }
-        apply(&tx, WifiEvent::Gone);
-    }
+    owner::follow_owner(
+        &connection,
+        SERVICE,
+        &mut commands,
+        async |commands| session(&connection, &tx, commands).await,
+        |_| apply(&tx, WifiEvent::Gone),
+    )
+    .await;
+    Ok(())
 }
 
 /// How following one wireless device ended.

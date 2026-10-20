@@ -24,18 +24,17 @@ use crate::stream::next;
 
 /// Follow cuad while it is on the bus: every run it has, as it adds and removes them.
 pub(super) async fn follow(connection: Connection, events: UnboundedSender<CompanionEvent>) {
-    loop {
-        owner::appeared(&connection, CUA_BUS).await;
-        tokio::select! {
-            () = manage(&connection, &events) => return,
-            () = owner::changed(&connection, CUA_BUS) => {
-                // With cuad gone nothing is known about the screen model, so nothing is said.
-                if events.send(CompanionEvent::Sight(SightState::Sees)).is_err() {
-                    return;
-                }
-            }
-        }
-    }
+    owner::while_owned(
+        &connection,
+        CUA_BUS,
+        async || manage(&connection, &events).await,
+        // With cuad gone nothing is known about the screen model, so nothing is said. A send
+        // that fails means the events have no receiver, which ends `manage` on its own.
+        || {
+            let _ = events.send(CompanionEvent::Sight(SightState::Sees));
+        },
+    )
+    .await;
 }
 
 /// The manager's runs now and as they change; ends when the events have no receiver.

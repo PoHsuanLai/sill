@@ -1,16 +1,7 @@
-//! A daemon that starts after sill, or restarts under it: the two halves services share to follow
-//! a well-known bus name. A service runs its session (seed, then follow) only while the name has
-//! an owner, and starts it over when the owner changes:
-//!
-//! ```text
-//! loop {
-//!     owner::appeared(&connection, NAME).await;
-//!     tokio::select! {
-//!         done = session(..) => break,                    // the commands closed
-//!         () = owner::changed(&connection, NAME) => gone(&tx),   // left, or replaced
-//!     }
-//! }
-//! ```
+//! A daemon that starts after sill, or restarts under it: [`follow_owner`] runs a service's
+//! session (seed, then follow) only while a well-known bus name has an owner, and starts it over
+//! when the owner changes. [`appeared`] and [`changed`] are its two halves, for the few services
+//! whose loop is not that shape.
 //!
 //! Waiting on `NameOwnerChanged` instead of retrying on a timer costs nothing while the daemon is
 //! absent, and a daemon that never comes leaves the service at its default value.
@@ -73,6 +64,54 @@ pub(crate) async fn changed(connection: &Connection, name: &str) {
     if next(&mut changes).await.is_none() {
         std::future::pending::<()>().await;
     }
+}
+
+/// Runs `session` while `name` has an owner and `gone` each time the owner left or was replaced,
+/// until a session says [`Ended::Commands`]. `state` is what both closures work on (the commands
+/// receiver, or the service's own struct), handed to each in turn so they never borrow it at
+/// once. A daemon that never comes leaves the service waiting, at no cost.
+pub(crate) async fn follow_owner<S>(
+    connection: &Connection,
+    name: &str,
+    state: &mut S,
+    mut session: impl AsyncFnMut(&mut S) -> Ended,
+    mut gone: impl FnMut(&mut S),
+) {
+    loop {
+        appeared(connection, name).await;
+        let ended = tokio::select! {
+            ended = session(&mut *state) => Some(ended),
+            () = changed(connection, name) => None,
+        };
+        match ended {
+            Some(Ended::Commands) => return,
+            Some(Ended::Unreadable) => changed(connection, name).await,
+            None => {}
+        }
+        gone(&mut *state);
+    }
+}
+
+/// Runs `task` while `name` has an owner, once per owner, and `gone` each time the owner left or
+/// was replaced; returns when a task finishes (its receiver is gone, so there is nothing left to
+/// tell). For a follower that holds no state of its own between owners.
+pub(crate) async fn while_owned(
+    connection: &Connection,
+    name: &str,
+    mut task: impl AsyncFnMut(),
+    mut gone: impl FnMut(),
+) {
+    follow_owner(
+        connection,
+        name,
+        &mut (),
+        async |_| {
+            task().await;
+            Ended::Commands
+        },
+        |_| gone(),
+    )
+    .await;
 }
 
 /// How a session ended without the owner changing.

@@ -149,13 +149,13 @@ pub(super) fn unreached(why: &dyn std::fmt::Display) -> HelpersMsg {
 /// time it says something changed. The signal is subscribed before the first read, so no change
 /// falls between the two.
 pub(super) async fn follow(connection: Connection, events: UnboundedSender<CompanionEvent>) {
-    loop {
-        owner::appeared(&connection, COMPANION_BUS).await;
-        tokio::select! {
-            () = changes(&connection, &events) => return,
-            () = owner::changed(&connection, COMPANION_BUS) => {}
-        }
-    }
+    owner::while_owned(
+        &connection,
+        COMPANION_BUS,
+        async || changes(&connection, &events).await,
+        || {},
+    )
+    .await;
 }
 
 /// `Changed` as the model's message; ends when the events have no receiver.

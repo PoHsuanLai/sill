@@ -62,17 +62,15 @@ pub(crate) async fn run(
         notifications: links.notifications,
         posted: Posted::default(),
     };
-    loop {
-        owner::appeared(&connection, wire::INFERD).await;
-        tokio::select! {
-            met = live.session(&mut commands, &mut answers) => match met {
-                Ended::Commands => return Ok(()),
-                Ended::Unreadable => owner::changed(&connection, wire::INFERD).await,
-            },
-            () = owner::changed(&connection, wire::INFERD) => {}
-        }
-        live.lost();
-    }
+    owner::follow_owner(
+        &connection,
+        wire::INFERD,
+        &mut live,
+        async |live| live.session(&mut commands, &mut answers).await,
+        Live::lost,
+    )
+    .await;
+    Ok(())
 }
 
 impl Live {

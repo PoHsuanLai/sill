@@ -44,6 +44,7 @@ mod shell_manifest;
 mod spawn_sites;
 mod sync_hold_bus;
 mod tray_bus;
+mod upower_bus;
 mod voice_bus;
 mod voice_support;
 mod wallpaper_source;

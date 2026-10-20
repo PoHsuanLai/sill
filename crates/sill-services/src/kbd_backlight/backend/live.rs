@@ -6,28 +6,52 @@
 use sill_model::kbd_backlight::{KbdBacklight, KbdCommand, KbdEvent, KbdLevel, step, step_for};
 use sill_model::units::Presence;
 use tokio::sync::{mpsc, watch};
+use zbus::Connection;
 
 use super::upower::KbdBacklightProxy;
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::owner::{self, Ended};
 use crate::stream::next_opt;
 
-/// Runs until `commands` closes. Without a bus or UPower, `tx` stays at its default.
+const SERVICE: &str = "org.freedesktop.UPower";
+
+/// Runs until `commands` closes. Without a bus or UPower, `tx` stays at its default; UPower
+/// starting late or restarting is followed through `NameOwnerChanged` ([`crate::owner`]).
 pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<KbdBacklight>,
     mut commands: mpsc::UnboundedReceiver<KbdCommand>,
 ) -> Result<(), ServiceError> {
     let connection = crate::supervise::connect_when_up(&bus).await?;
-    let proxy = KbdBacklightProxy::new(&connection).await?;
-    seed(&tx, &proxy).await;
+    owner::follow_owner(
+        &connection,
+        SERVICE,
+        &mut commands,
+        async |commands| session(&connection, &tx, commands).await,
+        |_| apply(&tx, KbdEvent::Gone),
+    )
+    .await;
+    Ok(())
+}
+
+/// One UPower lifetime: seed, then follow every brightness change and carry out commands.
+async fn session(
+    connection: &Connection,
+    tx: &watch::Sender<KbdBacklight>,
+    commands: &mut mpsc::UnboundedReceiver<KbdCommand>,
+) -> Ended {
+    let Ok(proxy) = KbdBacklightProxy::new(connection).await else {
+        return Ended::Unreadable;
+    };
+    seed(tx, &proxy).await;
     let mut changes = proxy.receive_brightness_changed().await.ok();
 
     loop {
         tokio::select! {
             Some(signal) = next_opt(&mut changes) => {
                 if let Ok(args) = signal.args() {
-                    apply(&tx, KbdEvent::Brightness(u32::try_from(args.value).unwrap_or(0)));
+                    apply(tx, KbdEvent::Brightness(u32::try_from(args.value).unwrap_or(0)));
                 }
             }
             command = commands.recv() => match command {
@@ -38,12 +62,11 @@ pub(crate) async fn run(
                         let _ = proxy.set_brightness(i32::try_from(step).unwrap_or(i32::MAX)).await;
                     }
                 }
-                Some(KbdCommand::Refresh) => seed(&tx, &proxy).await,
-                None => break,
+                Some(KbdCommand::Refresh) => seed(tx, &proxy).await,
+                None => return Ended::Commands,
             }
         }
     }
-    Ok(())
 }
 
 /// Reads the range and the step once and publishes them; a range of 0 or an error is no

@@ -632,13 +632,13 @@ impl Live {
 
 /// Follow the companion's answer objects while it is on the bus.
 async fn follow_answers(connection: Connection, inner: mpsc::UnboundedSender<Inner>) {
-    loop {
-        owner::appeared(&connection, COMPANION_BUS).await;
-        tokio::select! {
-            () = announce(&connection, &inner) => return,
-            () = owner::changed(&connection, COMPANION_BUS) => {}
-        }
-    }
+    owner::while_owned(
+        &connection,
+        COMPANION_BUS,
+        async || announce(&connection, &inner).await,
+        || {},
+    )
+    .await;
 }
 
 /// `AnswerAdded` and `AnswerRemoved` as they come; ends when the inner channel has no receiver.
@@ -670,11 +670,11 @@ async fn announce(connection: &Connection, inner: &mpsc::UnboundedSender<Inner>)
 
 /// intentd's journal and late hits, while intentd is on the bus.
 async fn follow_intentd(connection: Connection, events: mpsc::UnboundedSender<CompanionEvent>) {
-    loop {
-        owner::appeared(&connection, INTENTS_BUS).await;
-        tokio::select! {
-            () = intents::follow(connection.clone(), events.clone()) => return,
-            () = owner::changed(&connection, INTENTS_BUS) => {}
-        }
-    }
+    owner::while_owned(
+        &connection,
+        INTENTS_BUS,
+        async || intents::follow(connection.clone(), events.clone()).await,
+        || {},
+    )
+    .await;
 }

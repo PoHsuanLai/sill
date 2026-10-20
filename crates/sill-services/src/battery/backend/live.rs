@@ -23,17 +23,15 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<BatteryCommand>,
 ) -> Result<(), ServiceError> {
     let connection = crate::supervise::connect_when_up(&bus).await?;
-    loop {
-        owner::appeared(&connection, SERVICE).await;
-        tokio::select! {
-            ended = session(&connection, &tx, &mut commands) => match ended {
-                Ended::Commands => return Ok(()),
-                Ended::Unreadable => owner::changed(&connection, SERVICE).await,
-            },
-            () = owner::changed(&connection, SERVICE) => {}
-        }
-        apply(&tx, BatteryEvent::Presence(Presence::Absent));
-    }
+    owner::follow_owner(
+        &connection,
+        SERVICE,
+        &mut commands,
+        async |commands| session(&connection, &tx, commands).await,
+        |_| apply(&tx, BatteryEvent::Presence(Presence::Absent)),
+    )
+    .await;
+    Ok(())
 }
 
 /// One UPower lifetime: seed, then follow every property change. [`Ended::Commands`] when `commands`
