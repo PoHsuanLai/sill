@@ -10,7 +10,6 @@ use sill_model::keycap::{
     Attention, KeycapCommand, KeycapEvent, KeycapState, NoticeChange, attention, focus_to_send,
     notice_for, step, user_config, watching_unit,
 };
-use sill_model::notifications::{NotesState, NotificationsCommand};
 use sill_model::windows::WindowModel;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
@@ -20,10 +19,10 @@ use tokio::time::{Duration, Instant, sleep_until};
 use super::links::{KeycapLinks, Reach};
 use super::socket::{self, Link};
 use super::{config, notice, systemd};
-use crate::control::Control;
 use crate::error::ServiceError;
 use crate::file_touch::FileTouch;
 use crate::keycap::KeycapService;
+use crate::notices::Board;
 use crate::service::ServiceIo;
 
 /// How soon the unit is read after a retry asked systemd to restart it.
@@ -38,8 +37,8 @@ struct Live {
     tx: watch::Sender<KeycapState>,
     windows: watch::Receiver<WindowModel>,
     apps: watch::Receiver<AppIndex>,
-    notes: watch::Receiver<NotesState>,
-    notifications: Control<NotificationsCommand>,
+    /// The one notice about keycap.
+    board: Board<()>,
     state: KeycapState,
     /// What the notification now says.
     shown: Option<Attention>,
@@ -82,8 +81,9 @@ pub(crate) async fn run(
         tx,
         windows: links.windows,
         apps: links.apps,
-        notes: links.notes,
-        notifications: links.notifications,
+        board: Board::new(links.notifications, links.notes, |notes, ()| {
+            notice::shown(notes)
+        }),
         state: KeycapState::default(),
         shown: None,
         chosen: None,
@@ -205,21 +205,12 @@ impl Live {
     /// Post, replace or withdraw the notification as `attention` now says.
     fn notify(&mut self) {
         let next = attention(&self.state);
-        let command = match notice_for(self.shown.as_ref(), next.as_ref()) {
-            NoticeChange::Keep => None,
-            NoticeChange::Show(attention) => {
-                let replaces = notice::shown(&self.notes.borrow());
-                Some(NotificationsCommand::Post(Box::new(notice::posting(
-                    &attention, replaces,
-                ))))
-            }
-            NoticeChange::Withdraw => {
-                notice::shown(&self.notes.borrow()).map(NotificationsCommand::Dismiss)
-            }
-        };
-        if let Some(command) = command {
-            // A stopped notifications service has nobody to tell.
-            let _ = self.notifications.send(command);
+        match notice_for(self.shown.as_ref(), next.as_ref()) {
+            NoticeChange::Keep => {}
+            NoticeChange::Show(attention) => self
+                .board
+                .post(&(), |replaces| notice::posting(&attention, replaces)),
+            NoticeChange::Withdraw => self.board.withdraw(&()),
         }
         self.shown = next;
     }

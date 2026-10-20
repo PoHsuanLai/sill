@@ -1,5 +1,6 @@
-//! The notifications server's `ActionInvoked` and `NotificationClosed`, as the answer to the
-//! notice's button and the end of the notice.
+//! The notifications server's `ActionInvoked` and `NotificationClosed`, as the answer to a
+//! notice's button and the end of the notice. Heard on the bus, so a press made from any
+//! notifications client is heard, but only when the server itself sent it.
 
 use sill_model::notifications::{ActionKey, NotificationId};
 use zbus::message::Type as MessageType;

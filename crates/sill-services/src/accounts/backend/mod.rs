@@ -1,6 +1,5 @@
-//! The service's effects: accountd's bus, the notice and the notifications server's answers.
+//! The service's effects: accountd's bus and the notice.
 
-pub(crate) mod actions;
 mod links;
 mod notice;
 mod retry;

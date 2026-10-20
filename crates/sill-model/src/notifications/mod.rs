@@ -12,6 +12,7 @@ mod limits_tests;
 mod markup;
 mod markup_parse;
 mod model;
+mod notices;
 mod origin;
 mod policy;
 mod rate;
@@ -43,6 +44,7 @@ pub use model::{
     AppGroup, BannerLife, History, LiveBanner, NameHolder, NameOwner, NotesState, Notifications,
     ServerMode, ServerStatus,
 };
+pub use notices::{Notices, shown_with_action};
 pub use origin::app_entry;
 pub use policy::{
     Chime, HistoryCap, NotificationsPolicy, Presentation, Presented, Quiet, Swipe, chime, presented,

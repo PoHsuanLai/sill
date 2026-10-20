@@ -1,8 +1,8 @@
-use crate::notifications::{ActionKey, NotificationId};
+use crate::notifications::ActionKey;
 use sill_launcher::SettingsLink;
 
 use super::{
-    Dataset, Hold, Posted, SyncHoldEffect as Fx, SyncHoldEvent as Ev, SyncHoldState, dataset_of,
+    Dataset, Hold, SyncHoldEffect as Fx, SyncHoldEvent as Ev, SyncHoldState, dataset_of,
     notice_text, open_key, step,
 };
 
@@ -62,11 +62,9 @@ fn the_words_name_the_account_and_the_counts_and_offer_no_removal() {
 }
 
 #[test]
-fn only_the_notification_posted_for_a_dataset_answers_its_button() {
+fn an_action_key_carries_its_dataset_and_no_other_key_is_one() {
     let dataset = Dataset::new("work/files");
     let key = open_key(&dataset);
     assert_eq!(dataset_of(&key), Some(dataset.clone()));
     assert_eq!(dataset_of(&ActionKey("sign-in-again:x".to_owned())), None);
-    let posted = Posted::default();
-    assert_eq!(posted.answers(NotificationId(5), &key), None);
 }

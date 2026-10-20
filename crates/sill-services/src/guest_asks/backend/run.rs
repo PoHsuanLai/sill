@@ -6,10 +6,9 @@ use porter_client::{
     Accounts, ClientError, ComputerReason, DbusTransport, GuestChange, NodeId, TransportError,
 };
 use sill_model::guest_asks::{
-    Ask, Computer, GuestAsksCommand, GuestAsksEffect, GuestAsksEvent, GuestAsksState, Posted,
-    Verdict, shown_for, step,
+    Ask, Computer, GuestAsksCommand, GuestAsksEffect, GuestAsksEvent, GuestAsksState, Verdict,
+    choice_of, shown_for, step,
 };
-use sill_model::notifications::{NotesState, NotificationsCommand};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::watch;
 use zbus::{Connection, MessageStream};
@@ -17,11 +16,10 @@ use zbus::{Connection, MessageStream};
 use super::links::GuestAsksLinks;
 use super::notice;
 use super::wire;
-use crate::accounts::actions;
-use crate::control::Control;
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::guest_asks::GuestAsksService;
+use crate::notices::{self, Board, Said};
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
 use crate::stream::next;
@@ -34,10 +32,8 @@ struct Live {
     connection: Connection,
     tx: watch::Sender<GuestAsksState>,
     state: GuestAsksState,
-    notes: watch::Receiver<NotesState>,
-    notifications: Control<NotificationsCommand>,
-    /// The ids of the notices sill posted, the only ones whose buttons answer.
-    posted: Posted,
+    /// The questions, one notice per asking computer.
+    board: Board<Computer>,
 }
 
 /// Runs until the commands close. Without inferd the state stays empty; inferd starting late,
@@ -53,14 +49,12 @@ pub(crate) async fn run(
         mut commands,
     } = io;
     let connection = bus.connect_waiting().await?;
-    let mut answers = actions::stream(&connection).await?;
+    let mut answers = notices::stream(&connection).await?;
     let mut live = Live {
         connection: connection.clone(),
         tx,
         state: GuestAsksState::default(),
-        notes: links.notes,
-        notifications: links.notifications,
-        posted: Posted::default(),
+        board: Board::new(links.notifications, links.notes, shown_for),
     };
     owner::follow_owner(
         &connection,
@@ -102,11 +96,11 @@ impl Live {
                     }
                 },
                 Some(Ok(message)) = next(answers) => {
-                    if let Some(said) = actions::said(&self.connection, &message).await {
+                    if let Some(said) = notices::said(&self.connection, &message).await {
                         self.heard_server(said, &proxy).await;
                     }
                 }
-                Ok(()) = self.notes.changed() => self.learn(),
+                Ok(()) = self.board.changed() => self.learn(),
                 command = commands.recv() => match command {
                     Some(GuestAsksCommand::Reread) => {
                         self.reread(&proxy).await;
@@ -135,22 +129,24 @@ impl Live {
     /// Keep the id of each notice the notes now hold for a computer that is asking.
     fn learn(&mut self) {
         let computers: Vec<Computer> = self.state.asks.iter().map(|a| a.node.clone()).collect();
-        self.posted.learn(&self.notes.borrow(), &computers);
+        self.board.learn(&computers);
     }
 
     /// The server's word: a press of a notice sill posted answers the question; a close ends the
     /// notice's claim.
-    async fn heard_server(&mut self, said: actions::Said, proxy: &Guests) {
+    async fn heard_server(&mut self, said: Said, proxy: &Guests) {
         // The notes may already have let go of a notice just pressed.
         self.learn();
         match said {
-            actions::Said::Pressed { id, key } => {
-                if let Some((node, verdict)) = self.posted.answers(id, &key) {
+            Said::Pressed { id, key } => {
+                if let Some((node, verdict)) =
+                    self.board.answers(id, choice_of(&key), |(node, _)| node)
+                {
                     self.apply(GuestAsksEvent::Chosen(node, verdict), proxy)
                         .await;
                 }
             }
-            actions::Said::Closed(id) => self.posted.closed(id),
+            Said::Closed(id) => self.board.closed(id),
         }
     }
 
@@ -194,21 +190,12 @@ impl Live {
     }
 
     fn tell(&mut self, ask: &Ask) {
-        self.posted.forget(&ask.node);
-        let replaces = shown_for(&self.notes.borrow(), &ask.node);
-        // A stopped notifications service has nobody to tell.
-        let _ = self
-            .notifications
-            .send(NotificationsCommand::Post(Box::new(notice::posting(
-                ask, replaces,
-            ))));
+        self.board
+            .post(&ask.node, |replaces| notice::posting(ask, replaces));
     }
 
     fn withdraw(&mut self, node: &Computer) {
-        self.posted.forget(node);
-        if let Some(id) = shown_for(&self.notes.borrow(), node) {
-            let _ = self.notifications.send(NotificationsCommand::Dismiss(id));
-        }
+        self.board.withdraw(node);
     }
 }
 

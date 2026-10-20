@@ -3,9 +3,9 @@
 
 use porter_dbus::SyncProxy;
 use sill_model::launch::{LaunchCommand, SettingsOpen};
-use sill_model::notifications::{NotesState, NotificationsCommand};
 use sill_model::sync_hold::{
-    Dataset, Posted, SyncHoldCommand, SyncHoldEffect, SyncHoldEvent, SyncHoldState, shown_for, step,
+    Dataset, SyncHoldCommand, SyncHoldEffect, SyncHoldEvent, SyncHoldState, dataset_of, shown_for,
+    step,
 };
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::watch;
@@ -14,10 +14,11 @@ use zbus::{Connection, MessageStream};
 use super::links::SyncHoldLinks;
 use super::notice;
 use super::wire::{self, Heard};
-use crate::accounts::{actions, wire as accounts_wire};
+use crate::accounts::label_of;
 use crate::control::Control;
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::notices::{self, Board, Said};
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
 use crate::stream::next;
@@ -28,11 +29,9 @@ struct Live {
     connection: Connection,
     tx: watch::Sender<SyncHoldState>,
     state: SyncHoldState,
-    notes: watch::Receiver<NotesState>,
-    notifications: Control<NotificationsCommand>,
     launch: Control<LaunchCommand>,
-    /// The ids of the notices sill posted, the only ones whose buttons answer.
-    posted: Posted,
+    /// The notices, one per held dataset.
+    board: Board<Dataset>,
 }
 
 /// Runs until the commands close. Without syncd the state stays empty; syncd starting late,
@@ -48,15 +47,13 @@ pub(crate) async fn run(
         mut commands,
     } = io;
     let connection = bus.connect_waiting().await?;
-    let mut answers = actions::stream(&connection).await?;
+    let mut answers = notices::stream(&connection).await?;
     let mut live = Live {
         connection: connection.clone(),
         tx,
         state: SyncHoldState::default(),
-        notes: links.notes,
-        notifications: links.notifications,
         launch: links.launch,
-        posted: Posted::default(),
+        board: Board::new(links.notifications, links.notes, shown_for),
     };
     owner::follow_owner(
         &connection,
@@ -96,11 +93,11 @@ impl Live {
                     }
                 }
                 Some(Ok(message)) = next(answers) => {
-                    if let Some(said) = actions::said(&self.connection, &message).await {
+                    if let Some(said) = notices::said(&self.connection, &message).await {
                         self.heard_server(said);
                     }
                 }
-                Ok(()) = self.notes.changed() => self.learn(),
+                Ok(()) = self.board.changed() => self.learn(),
                 command = commands.recv() => match command {
                     Some(SyncHoldCommand::Rewatch) => {
                         if let Err(error) = proxy.watch().await {
@@ -121,7 +118,7 @@ impl Live {
                 let Heard::Held { account, .. } = &held else {
                     return;
                 };
-                let name = accounts_wire::label_of(&self.connection, account).await;
+                let name = label_of(&self.connection, account).await;
                 if let Some(hold) = held.hold(name) {
                     self.apply(SyncHoldEvent::Held(hold));
                 }
@@ -138,17 +135,18 @@ impl Live {
             .iter()
             .map(|hold| hold.dataset.clone())
             .collect();
-        self.posted.learn(&self.notes.borrow(), &datasets);
+        self.board.learn(&datasets);
     }
 
     /// The server's word: a press of a notice sill posted opens Settings at the account; a close
     /// ends the notice's claim.
-    fn heard_server(&mut self, said: actions::Said) {
+    fn heard_server(&mut self, said: Said) {
         // The notes may already have let go of a notice just pressed.
         self.learn();
         match said {
-            actions::Said::Pressed { id, key } => {
-                let Some(dataset) = self.posted.answers(id, &key) else {
+            Said::Pressed { id, key } => {
+                let Some(dataset) = self.board.answers(id, dataset_of(&key), |dataset| dataset)
+                else {
                     return;
                 };
                 if let Some(hold) = self.state.holds.iter().find(|h| h.dataset == dataset) {
@@ -159,7 +157,7 @@ impl Live {
                         )));
                 }
             }
-            actions::Said::Closed(id) => self.posted.closed(id),
+            Said::Closed(id) => self.board.closed(id),
         }
     }
 
@@ -194,22 +192,11 @@ impl Live {
     }
 
     fn carry_out(&mut self, effect: SyncHoldEffect) {
-        let command = match effect {
-            SyncHoldEffect::Tell(hold) => {
-                self.posted.forget(&hold.dataset);
-                let replaces = shown_for(&self.notes.borrow(), &hold.dataset);
-                Some(NotificationsCommand::Post(Box::new(notice::posting(
-                    &hold, replaces,
-                ))))
-            }
-            SyncHoldEffect::Withdraw(dataset) => {
-                self.posted.forget(&dataset);
-                shown_for(&self.notes.borrow(), &dataset).map(NotificationsCommand::Dismiss)
-            }
-        };
-        if let Some(command) = command {
-            // A stopped notifications service has nobody to tell.
-            let _ = self.notifications.send(command);
+        match effect {
+            SyncHoldEffect::Tell(hold) => self
+                .board
+                .post(&hold.dataset, |replaces| notice::posting(&hold, replaces)),
+            SyncHoldEffect::Withdraw(dataset) => self.board.withdraw(&dataset),
         }
     }
 }

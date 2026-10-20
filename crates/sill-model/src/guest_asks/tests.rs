@@ -1,7 +1,7 @@
-use crate::notifications::{ActionKey, NotificationId};
+use crate::notifications::ActionKey;
 
 use super::{
-    Ask, Computer, GuestAsksEffect as Fx, GuestAsksEvent as Ev, GuestAsksState, Posted, Verdict,
+    Ask, Computer, GuestAsksEffect as Fx, GuestAsksEvent as Ev, GuestAsksState, Verdict,
     choice_key, choice_of, notice_text, step,
 };
 
@@ -62,10 +62,4 @@ fn the_words_name_the_computer_and_each_button_carries_its_verdict() {
         );
     }
     assert_eq!(choice_of(&ActionKey("open-settings:x".to_owned())), None);
-    let posted = Posted::default();
-    assert_eq!(
-        posted.answers(NotificationId(5), &choice_key(&node, Verdict::Allow)),
-        None,
-        "a notification sill did not post answers nothing"
-    );
 }

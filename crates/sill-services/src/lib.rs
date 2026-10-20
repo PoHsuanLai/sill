@@ -48,6 +48,7 @@ pub mod model_offer;
 pub mod network;
 pub mod night_shift;
 mod nm;
+mod notices;
 pub mod notifications;
 pub mod now_playing;
 mod owner;

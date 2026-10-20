@@ -23,7 +23,7 @@ use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
 pub use backend::AccountsLinks;
-pub(crate) use backend::{actions, wire};
+pub(crate) use backend::wire::label_of;
 
 /// The accounts that need signing in again, on `env`'s session bus, told through the
 /// notifications service in its [`AccountsLinks`].

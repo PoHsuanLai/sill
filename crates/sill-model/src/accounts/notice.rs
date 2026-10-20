@@ -1,6 +1,6 @@
 //! Telling the person: the words, the one action, and finding the notice already shown.
 
-use crate::notifications::{ActionKey, NotesState, NotificationId};
+use crate::notifications::{ActionKey, NotesState, NotificationId, shown_with_action};
 
 use super::model::{AccountKey, NeedsSignIn, SignInAsk};
 
@@ -61,12 +61,5 @@ pub fn account_of(key: &ActionKey) -> Option<AccountKey> {
 
 /// The sign-in notice for `account` already held, banner or history.
 pub fn shown_for(notes: &NotesState, account: &AccountKey) -> Option<NotificationId> {
-    let key = sign_in_key(account);
-    let banners = notes.live.banners.iter().map(|banner| &banner.note);
-    let kept = notes.history.groups.iter().flat_map(|group| &group.notes);
-    banners
-        .chain(kept)
-        .filter(|note| note.app.desktop_entry.as_deref() == Some(NOTICE_ENTRY))
-        .find(|note| note.actions.iter().any(|action| action.key == key))
-        .map(|note| note.id)
+    shown_with_action(notes, NOTICE_ENTRY, &sign_in_key(account))
 }

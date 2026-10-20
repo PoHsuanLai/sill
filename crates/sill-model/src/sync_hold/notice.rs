@@ -1,6 +1,6 @@
 //! Telling the person: the words, the one action, and finding the notification already shown.
 
-use crate::notifications::{ActionKey, NotesState, NotificationId};
+use crate::notifications::{ActionKey, NotesState, NotificationId, shown_with_action};
 
 use super::model::{Dataset, Hold};
 
@@ -49,12 +49,5 @@ pub fn dataset_of(key: &ActionKey) -> Option<Dataset> {
 
 /// The notification for `dataset` already held, banner or history.
 pub fn shown_for(notes: &NotesState, dataset: &Dataset) -> Option<NotificationId> {
-    let key = open_key(dataset);
-    let banners = notes.live.banners.iter().map(|banner| &banner.note);
-    let kept = notes.history.groups.iter().flat_map(|group| &group.notes);
-    banners
-        .chain(kept)
-        .filter(|note| note.app.desktop_entry.as_deref() == Some(NOTICE_ENTRY))
-        .find(|note| note.actions.iter().any(|action| action.key == key))
-        .map(|note| note.id)
+    shown_with_action(notes, NOTICE_ENTRY, &open_key(dataset))
 }

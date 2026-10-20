@@ -7,23 +7,22 @@ use porter_core::wire::Refusal;
 use porter_dbus::{ManagerProxy, refusal_of};
 use sill_model::accounts::{
     AccountKey, AccountsCommand, AccountsEffect, AccountsEvent, AccountsLink, AccountsState,
-    NeedsSignIn, Posted, shown_for, step,
+    NeedsSignIn, account_of, shown_for, step,
 };
-use sill_model::notifications::{NotesState, NotificationsCommand};
+use sill_model::notifications::NotificationsCommand;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::watch;
 use tokio::task::AbortHandle;
 use zbus::{Connection, MessageStream};
 
-use super::actions::Said;
 use super::links::AccountsLinks;
 use super::retry::{self, Retry, Wait};
-use super::{actions, notice, wire};
+use super::{notice, wire};
 use crate::accounts::AccountsService;
-use crate::control::Control;
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::notices::{self, Board, Said};
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
 use crate::stream::next;
@@ -35,10 +34,8 @@ struct Live {
     told: UnboundedSender<AccountsEvent>,
     tx: watch::Sender<AccountsState>,
     state: AccountsState,
-    notes: watch::Receiver<NotesState>,
-    notifications: Control<NotificationsCommand>,
-    /// The ids of the notices sill posted, the only ones whose buttons answer.
-    posted: Posted,
+    /// The sign-in notices, one per account.
+    board: Board<AccountKey>,
     /// One watch per account that needs signing in again, ended when it is well.
     watches: HashMap<AccountKey, AbortHandle>,
 }
@@ -55,7 +52,7 @@ pub(crate) async fn run(
         mut commands,
     } = io;
     let connection = bus.connect_waiting().await?;
-    let mut actions = actions::stream(&connection).await?;
+    let mut actions = notices::stream(&connection).await?;
     let (told, mut events) = unbounded_channel();
     let mut live = Live {
         connection: connection.clone(),
@@ -63,9 +60,7 @@ pub(crate) async fn run(
         told,
         tx,
         state: AccountsState::default(),
-        notes: links.notes,
-        notifications: links.notifications,
-        posted: Posted::default(),
+        board: Board::new(links.notifications, links.notes, shown_for),
         watches: HashMap::new(),
     };
     let mut retry = Retry::default();
@@ -119,7 +114,7 @@ impl Live {
     async fn session(
         &mut self,
         commands: &mut UnboundedReceiver<AccountsCommand>,
-        actions: &mut MessageStream,
+        answers: &mut MessageStream,
         events: &mut UnboundedReceiver<AccountsEvent>,
     ) -> Met {
         let Ok(manager) = ManagerProxy::new(&self.connection).await else {
@@ -146,12 +141,12 @@ impl Live {
                     }
                 }
                 Some(event) = events.recv() => self.apply(event),
-                Some(Ok(message)) = next(actions) => {
-                    if let Some(said) = actions::said(&self.connection, &message).await {
+                Some(Ok(message)) = next(answers) => {
+                    if let Some(said) = notices::said(&self.connection, &message).await {
                         self.heard_server(said);
                     }
                 }
-                Ok(()) = self.notes.changed() => self.learn(),
+                Ok(()) = self.board.changed() => self.learn(),
                 command = commands.recv() => match command {
                     Some(AccountsCommand::SignInAgain(account)) => self.sign_in(&account),
                     None => return Met::Ended(Ended::Commands),
@@ -168,7 +163,7 @@ impl Live {
             .iter()
             .map(|n| n.account.clone())
             .collect();
-        self.posted.learn(&self.notes.borrow(), &accounts);
+        self.board.learn(&accounts);
     }
 
     /// The notifications server's word: a press of a notice sill posted signs the account in
@@ -179,11 +174,11 @@ impl Live {
         self.learn();
         match said {
             Said::Pressed { id, key } => {
-                if let Some(account) = self.posted.answers(id, &key) {
+                if let Some(account) = self.board.answers(id, account_of(&key), |account| account) {
                     self.sign_in(&account);
                 }
             }
-            Said::Closed(id) => self.posted.closed(id),
+            Said::Closed(id) => self.board.closed(id),
         }
     }
 
@@ -207,7 +202,7 @@ impl Live {
             return;
         }
         let (connection, account) = (self.connection.clone(), account.clone());
-        let notifications = self.notifications.clone();
+        let notifications = self.board.notifications();
         self.rt.spawn(async move {
             match wire::sign_in_again(&connection, &account).await {
                 Ok(()) => {}
@@ -247,22 +242,11 @@ impl Live {
     }
 
     fn carry_out(&mut self, effect: AccountsEffect) {
-        let command = match effect {
-            AccountsEffect::Tell(needing) => {
-                self.posted.forget(&needing.account);
-                let replaces = shown_for(&self.notes.borrow(), &needing.account);
-                Some(NotificationsCommand::Post(Box::new(notice::posting(
-                    &needing, replaces,
-                ))))
-            }
-            AccountsEffect::Withdraw(account) => {
-                self.posted.forget(&account);
-                shown_for(&self.notes.borrow(), &account).map(NotificationsCommand::Dismiss)
-            }
-        };
-        if let Some(command) = command {
-            // A stopped notifications service has nobody to tell.
-            let _ = self.notifications.send(command);
+        match effect {
+            AccountsEffect::Tell(needing) => self.board.post(&needing.account, |replaces| {
+                notice::posting(&needing, replaces)
+            }),
+            AccountsEffect::Withdraw(account) => self.board.withdraw(&account),
         }
     }
 

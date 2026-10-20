@@ -5,7 +5,6 @@
 mod command;
 mod model;
 mod notice;
-mod posted;
 mod step;
 #[cfg(test)]
 mod tests;
@@ -13,5 +12,4 @@ mod tests;
 pub use command::{SyncHoldCommand, SyncHoldEffect, SyncHoldEvent};
 pub use model::{Dataset, Hold, SyncHoldState};
 pub use notice::{NOTICE_ENTRY, Notice, dataset_of, notice_text, open_key, shown_for};
-pub use posted::Posted;
 pub use step::step;

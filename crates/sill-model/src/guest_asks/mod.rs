@@ -6,7 +6,6 @@
 mod command;
 mod model;
 mod notice;
-mod posted;
 mod step;
 #[cfg(test)]
 mod tests;
@@ -14,5 +13,4 @@ mod tests;
 pub use command::{GuestAsksCommand, GuestAsksEffect, GuestAsksEvent};
 pub use model::{Ask, Computer, GuestAsksState, Verdict};
 pub use notice::{NOTICE_ENTRY, Notice, choice_key, choice_of, notice_text, shown_for};
-pub use posted::Posted;
 pub use step::step;
