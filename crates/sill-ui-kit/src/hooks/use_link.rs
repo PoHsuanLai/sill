@@ -1,6 +1,6 @@
 //! `use_link`: a surface reads a link the daemon provides, and says once when it is missing.
 
-use dioxus::prelude::{CopyValue, try_use_context, use_hook};
+use dioxus::prelude::{CopyValue, ReadableExt, WritableExt, try_use_context, use_hook};
 
 /// Whether the missing-link line was already printed by this hook instance.
 #[derive(Clone, Copy, PartialEq, Eq)]
