@@ -15,6 +15,7 @@ clap = { workspace = true }
 ds-lint = { workspace = true }
 ds-blitz = { workspace = true }
 ds-core = { workspace = true }
+ds-helpers = { workspace = true }
 ds-settings = { workspace = true }
 sill-shell-kit = { workspace = true }
 latchkey = { workspace = true }
@@ -33,10 +34,12 @@ sill-overlays = { workspace = true }
 thiserror = { workspace = true }
 rustix = { workspace = true }
 tokio = { workspace = true }
+serde = { workspace = true }
+toml = { workspace = true }
+toml_edit = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
-toml = { workspace = true }
 zbus = { workspace = true }
 voice-wire = { workspace = true }
 ds-harness = { workspace = true }

@@ -2,6 +2,8 @@
 //! how long a focused app has to take a summon are `Ms`, plain integers in the file; the service
 //! reads them through [`params`], once per load, as the typed values its machines run on.
 
+use std::time::Duration;
+
 use ds_core::word::Word;
 use ds_settings::Ms;
 use ds_settings::schema::Page;
@@ -10,6 +12,16 @@ use sill_model::companion::{CompanionParams, SummonParams, TapParams};
 use sill_model::units;
 
 pub use sill_model::companion::InField;
+
+/// The least `companion.confirm_arm_ms` takes effect at: the compositor refuses an answer that
+/// comes sooner than 500 ms after its question, so a smaller value is held up to this.
+pub const CONFIRM_ARM_FLOOR_MS: u16 = 500;
+
+/// The most `companion.confirm_arm_ms` takes effect at (the top of its range).
+pub const CONFIRM_ARM_CEILING_MS: u16 = 1500;
+
+/// `companion.confirm_arm_ms` unset.
+pub const CONFIRM_ARM_DEFAULT_MS: u16 = 600;
 
 /// `companion.summon`: what summons the companion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
@@ -78,9 +90,9 @@ pub struct CompanionSettings {
     pub notify: NotifyWhen,
     #[settings(
         label = "Confirmation buttons wait",
-        help = "How long the buttons of a confirmation wait before they take a press.",
+        help = "How long the buttons of a question wait before they take a press. Never less than half a second: the compositor refuses an answer that comes sooner.",
         section = "Confirmations",
-        range = "300..=1500",
+        range = "500..=1500",
         unit = "ms",
         advanced
     )]
@@ -95,7 +107,7 @@ impl Default for CompanionSettings {
             double_tap_ms: Ms(350),
             app_wait_ms: Ms(80),
             notify: NotifyWhen::default(),
-            confirm_arm_ms: Ms(500),
+            confirm_arm_ms: Ms(CONFIRM_ARM_DEFAULT_MS),
         }
     }
 }
@@ -116,6 +128,16 @@ pub fn params(settings: &CompanionSettings) -> CompanionParams {
     }
 }
 
+/// How long a question's buttons answer nothing after it is drawn: `companion.confirm_arm_ms`,
+/// held between [`CONFIRM_ARM_FLOOR_MS`] and [`CONFIRM_ARM_CEILING_MS`].
+pub fn confirm_arm(settings: &CompanionSettings) -> Duration {
+    let ms = settings
+        .confirm_arm_ms
+        .0
+        .clamp(CONFIRM_ARM_FLOOR_MS, CONFIRM_ARM_CEILING_MS);
+    Duration::from_millis(u64::from(ms))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,6 +154,24 @@ mod tests {
             CompanionParams::default(),
             "the machines' own defaults are the keys' defaults"
         );
+    }
+
+    #[test]
+    fn the_arm_time_is_the_key_held_above_the_compositors_floor() {
+        let arm = |ms: u16| {
+            confirm_arm(&CompanionSettings {
+                confirm_arm_ms: Ms(ms),
+                ..CompanionSettings::default()
+            })
+        };
+        assert_eq!(
+            confirm_arm(&CompanionSettings::default()),
+            Duration::from_millis(600)
+        );
+        assert_eq!(arm(0), Duration::from_millis(500));
+        assert_eq!(arm(300), Duration::from_millis(500));
+        assert_eq!(arm(900), Duration::from_millis(900));
+        assert_eq!(arm(60_000), Duration::from_millis(1500));
     }
 
     #[test]

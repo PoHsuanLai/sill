@@ -6991,6 +6991,7 @@ dependencies = [
  "ds-blitz",
  "ds-core",
  "ds-harness",
+ "ds-helpers",
  "ds-lint",
  "ds-settings",
  "keyboard-types 0.7.0",
@@ -7017,6 +7018,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "toml",
+ "toml_edit",
  "voice-wire",
  "zbus",
 ]

@@ -3,12 +3,15 @@
 //!
 //! What a file held that did not become a setting (a key nobody reads, a value a key refused, a
 //! file that is not TOML) goes to the daemon's log on stderr, one line each, prefixed `sill:`. It
-//! is reported on every read, the watch's re-reads included, and the next save drops the unknown
-//! keys. There is no `sill` verb that reads the file for its diagnostics.
+//! is reported on every read, the watch's re-reads included. Writes go through `patch`, which
+//! sets only the keys it changes and keeps the rest of the file. There is no `sill` verb that
+//! reads the file for its diagnostics.
 
 use std::path::Path;
 
-use ds_settings::{ConfigRoot, Loaded, SettingsDoc, SettingsError, Store};
+#[cfg(test)]
+use ds_settings::SettingsError;
+use ds_settings::{ConfigRoot, Loaded, SettingsDoc, Store};
 use sill_settings::{APP, ShellFile};
 
 /// The store of `sill/settings.toml` under `config`, `$XDG_CONFIG_HOME` as `Env` resolved it (a
@@ -40,8 +43,9 @@ pub fn load(store: &Store) -> ShellFile {
     loaded.value
 }
 
-/// Write `file`, creating its directory if needed; a damaged file it replaced is logged with
-/// where it was kept.
+/// Write all of `file`: a fixture for a test that wants a file to patch. The daemon never saves
+/// the whole file; it patches (`patch`).
+#[cfg(test)]
 pub fn save(store: &Store, file: &ShellFile) -> Result<(), SettingsError> {
     let saved = store.save(file)?;
     if let Some(kept) = saved.kept_at {

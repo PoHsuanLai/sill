@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use ds::prelude::*;
 use ds_harness::{Harness, Input, Viewport};
+use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
@@ -18,6 +19,7 @@ use sill_model::capture_pick::{
 use sill_model::desktop::{Consent, ConsentId, Memory, Power, SubjectKind};
 use sill_overlays::PermissionSheet;
 use sill_overlays::permission_sheet::PERMISSION_ARM_AFTER;
+use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{BannerLink, BannerOutput};
 
@@ -37,6 +39,18 @@ fn start(on: OutputId) -> Running {
     link.set(BannerOutput::On(on));
     SurfaceHarness::<PermissionSheet>::setup(link, ())
         .viewport(VIEWPORT)
+        .start()
+}
+
+/// The sheet on an output where `companion.confirm_arm_ms` is `arm_ms`.
+fn start_arming_after(on: OutputId, arm_ms: u16) -> Running {
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(on));
+    let mut settings = ShellFile::default();
+    settings.companion.confirm_arm_ms = Ms(arm_ms);
+    SurfaceHarness::<PermissionSheet>::setup(link, ())
+        .viewport(VIEWPORT)
+        .settings(settings)
         .start()
 }
 
@@ -267,6 +281,32 @@ fn nothing_answers_until_the_sheet_has_been_up_for_the_arming_time() {
                 PermissionOutcome::Grant
             )],
             "{name}: the same click after the arming time answers"
+        );
+    }
+}
+
+/// The wait before a question takes an answer is the key `companion.confirm_arm_ms`, and never
+/// less than the compositor's 500 ms.
+#[test]
+fn the_arming_time_follows_the_key_and_never_drops_below_the_floor() {
+    for (arm_ms, early, late) in [(1200_u16, 1000_u64, 1400_u64), (100, 300, 700)] {
+        let mut running = start_arming_after(fake::output().id, arm_ms);
+        running.harness.advance(Duration::from_millis(40));
+        running.feeds.capture.send_replace(question());
+        settle(&mut running.harness, |h| h.count(".ds-alert") == 1);
+        running.harness.advance(Duration::from_millis(early));
+        click(&mut running, GRANT);
+        assert_eq!(
+            sent(&mut running),
+            Vec::new(),
+            "{arm_ms} ms: not armed at {early} ms"
+        );
+        running.harness.advance(Duration::from_millis(late - early));
+        click(&mut running, GRANT);
+        assert_eq!(
+            sent(&mut running).len(),
+            1,
+            "{arm_ms} ms: armed at {late} ms"
         );
     }
 }

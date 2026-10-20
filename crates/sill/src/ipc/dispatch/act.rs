@@ -15,6 +15,7 @@ use tokio::sync::watch;
 use super::reach::Reach;
 use super::reply::{failed, sent};
 use super::{keys, next_window, switcher, workspace};
+use crate::daemon::settings::{KeyEdit, patch};
 
 /// The change `request` asks for.
 pub fn dispatch(reach: &Reach, request: ActRequest) -> Response {
@@ -79,17 +80,17 @@ fn screenshot(reach: &Reach, kind: ShotKind) -> Response {
 /// Flip `dock.autohide` in `settings.toml`, and publish the file at once so the dock follows
 /// before the watch has fired. The file stays the one truth.
 fn toggle_dock_hide(store: &Store, settings: &watch::Sender<ShellFile>) -> Response {
-    let mut file = crate::daemon::settings::load(store);
-    file.dock.autohide = match file.dock.autohide {
+    let now = match crate::daemon::settings::load(store).dock.autohide {
         AutoHide::Off => AutoHide::On,
         AutoHide::On => AutoHide::Off,
     };
-    if let Err(error) = crate::daemon::settings::save(store, &file) {
+    let saved = KeyEdit::of("dock.autohide", &now).and_then(|edit| patch(store, &[edit]));
+    if let Err(error) = saved {
         return failed(
             FailureKind::Internal,
             format!("saving the settings: {error}"),
         );
     }
-    settings.send_replace(file);
+    settings.send_replace(crate::daemon::settings::load(store));
     Response::Done
 }

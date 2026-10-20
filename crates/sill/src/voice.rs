@@ -13,6 +13,7 @@ use tokio::runtime::Handle;
 use tokio::sync::{mpsc::UnboundedReceiver, watch};
 
 use crate::companion::focus_of;
+use crate::daemon::settings::{KeyEdit, load, patch};
 use crate::ipc::dispatch::{Reach, sent};
 
 /// Answer `sill voice ...`. A hold begins by putting the launcher in companion mode (a summon no
@@ -75,11 +76,9 @@ pub fn write_consent(
     settings: &watch::Sender<ShellFile>,
     consent: VoiceConsent,
 ) -> Result<(), String> {
-    let mut file = crate::daemon::settings::load(store);
-    file.voice.consent = consent;
-    crate::daemon::settings::save(store, &file)
-        .map_err(|error| format!("saving the settings: {error}"))?;
-    settings.send_replace(file);
+    let edit = KeyEdit::of("voice.consent", &consent).map_err(|error| error.to_string())?;
+    patch(store, &[edit]).map_err(|error| format!("saving the settings: {error}"))?;
+    settings.send_replace(load(store));
     Ok(())
 }
 

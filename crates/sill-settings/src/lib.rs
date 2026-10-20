@@ -39,7 +39,8 @@ pub mod window;
 pub use bar::{BarGlyphSize, BarSettings};
 pub use calendar::{CalendarSettings, FirstWeekday, WeekNumbers};
 pub use companion::{
-    CompanionSettings, InField, NotifyWhen, SummonKey, params as companion_params,
+    CONFIRM_ARM_FLOOR_MS, CompanionSettings, InField, NotifyWhen, SummonKey, confirm_arm,
+    params as companion_params,
 };
 pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
 pub use display::{DisplaySettings, NightWarmthMode};
