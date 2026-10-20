@@ -150,3 +150,26 @@ fn every_action_is_written_as_its_slug_on_the_wire() {
         assert_eq!(wire, format!("\"{}\"", id.slug()), "{id:?}");
     }
 }
+
+#[test]
+fn only_the_power_menu_opens_where_the_rest_flip() {
+    use super::Way;
+    for panel in [
+        Panel::Launcher,
+        Panel::ForceQuit,
+        Panel::NotificationCenter,
+        Panel::ControlCenter,
+    ] {
+        assert_eq!(panel.way(), Way::Toggle, "{panel:?}");
+    }
+    assert_eq!(Panel::PowerMenu.way(), Way::Open);
+}
+
+#[test]
+fn no_two_actions_share_a_slug() {
+    for (at, id) in ActionId::ALL.iter().enumerate() {
+        for other in &ActionId::ALL[..at] {
+            assert_ne!(id.slug(), other.slug(), "{id:?} {other:?}");
+        }
+    }
+}
