@@ -37,7 +37,7 @@ listed except where noted.
 | 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, the shared actions a row's keys are (`keys.rs`), preview facts. Pure; a future repo | `almanac-core`, `docket-core`, `ds-core` (`MemoryVerb`), `prov`; nucleo-matcher, serde |
 | 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
 | 0 | `sill-shell-kit` | The shell-only parts over `ds`, moved here from quire's `ds-shell` (2026-10-07): bar, dock, control center, lock, switcher, OSD, idle dim, notifications, thumbnails, battery, clock, now playing, user picture, emoji, month grid, date picker, the widget contract and its two widgets (calendar, up next), with the shell's tokens (`tokens/`), sheets (`sheets.rs`), `KIT`, `kits()` and `stylesheet()` (the whole shell stylesheet: quire's plus these) and their SSR goldens and behaviour tests | none of ours; quire's `ds`, `ds-core`, `ds-shell` (its `KIT` and sheets). Dev: `ds-blitz`, `ds-harness`, `ds-lint`, `ds-settings` |
-| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`, `Machine`), `docket-core`, `almanac-core`, `companion-wire`, `cua-bus`, `prov`, `porter-core` (the accounts sheet's `SheetView`/`SheetInput`, serde data), `porter-infer` (`ModelRef`, `ServedBy`: serde data a helper's model is named by), `casement-protocols` (`vocab` only: the desktop views' enums); serde, jiff, thiserror |
+| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service, and the shell's actions (`actions/`: `ActionDef`, `Effect`, `Ask`) | `sill-launcher`, `chordkit` (`StandardAction`), `keycap-protocol`, `ds-core` (`Stamp`, `Machine`), `docket-core`, `almanac-core`, `companion-wire`, `cua-bus`, `prov`, `porter-core` (the accounts sheet's `SheetView`/`SheetInput`, serde data), `porter-infer` (`ModelRef`, `ServedBy`: serde data a helper's model is named by), `casement-protocols` (`vocab` only: the desktop views' enums); serde, jiff, thiserror |
 | 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
 | 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`), `docket-core`, `docket-dbus`, `docket-client`, `companion-wire`, `cua-bus`, `cua-dbus`, `almanac-core`, `almanac-dbus`, `prov`, `porter-core`, `porter-infer` (`Slot` and `ModelRef`, to keep a helper's pool), `porter-dbus` (who owns a bus name: caller identity; accountd's `Manager` and `Account` proxies), `porter-client` (`dbus` and `infer` features only: the typed guest calls and change stream for the guest-asks service; the places and engines a helper's model is picked from), `voice-dbus`, `anyview-core`, `anyview-platform` (the viewer's D-Bus request, for the launch service), `casement-protocols` (`vocab`), `desktop-client` (`client` feature: the wire behind `desktop_wl` and the native displays route); tokio, zbus, rustix, libpulse, notify, nonstick, ddc, image, toml |
@@ -48,7 +48,7 @@ listed except where noted.
 | 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*, `anyview-core`, `anyview-image`, `anyview-peek` (what a file's pane looks like), `anyview-platform` (the thumbnail cache behind a video's frame, `preview::frames`), `almanac-core`, `companion-wire`, `docket-core`, `prov` (a companion row's pane and keys); `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint`, `ds-shell` |
 | 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*; `sill-shell-kit`, `ds`, `ds-settings`, `ds-blitz`, `shell-host` |
 | 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-behaviour` (the switcher and hot-corner machines), `ds-shell` (the accounts sheet), `sill-shell-kit`, `ds-settings`, `shell-host`, `porter-core` (the accounts sheet's props) |
-| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-blitz`, `ds-settings`, `shell-host`; clap, latchkey, `ds-lint` and `sill-shell-kit` (`sill style check` lints against its `kits()`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
+| 7 | `sill` | Binary and library: `actions/`, `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-blitz`, `ds-settings`, `shell-host`, `shell-verbs` (the verbs casement's keymap sends and the command line each spells); clap, latchkey, `ds-lint` and `sill-shell-kit` (`sill style check` lints against its `kits()`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
 
 `*` A surface crate names `sill-services` (and `sill-search` for the launcher) only for service
 marker types (`BatteryService`), `Control` and `Handle`, the type arguments of `use_service`.
@@ -322,9 +322,13 @@ Look a concept up here before writing it. If it has a home, extend it.
 | The settings a surface reads | `sill_ui_kit::settings` (`SettingsFeed`), `use_section(|file| &file.<domain>)` |
 | Settings turned into a service command | `sill::policy::<service>` (`Policy`) |
 | Focus mode value, link, writer | `sill_model::focus`, `sill_ui_kit::links::focus`, `sill::daemon::settings::focus` |
+| The name of an action of the shell | `sill_launcher::actions::ActionId` (a `Word`; not `sill_launcher::ActionId`, a launcher row's own action) |
+| What an action is called, asks, is bound to and does | `sill_model::actions::def` (`ActionDef`: label in the Mac's words, `confirm`, `chord: Option<StandardAction>`, closed `Effect`) |
+| Carrying an action out | `sill::actions::perform` (the one interpreter: output, activation token, ask first; the pieces are `actions/{panel,launch,app,pref,show_desktop,workspace,next_window,switcher}.rs`) |
+| A surface asking for an action | `sill_ui_kit::links::ActionLink` (`do_it`, `do_to`, `Origin`); the daemon forwards it with `actions::spawn_asks` |
 | IPC words | `sill_ipc::{request, response, show, status, act, debug}` |
-| Answering an IPC request | `sill::ipc::dispatch::<group>` (one fn per domain) |
-| A command-line verb | `sill::cli::<group>`, mapped in `cli/request.rs` |
+| Answering an IPC request | `sill::ipc::dispatch::<group>` (one fn per domain); `Request::Do` goes to `sill::actions::perform` |
+| A command-line verb | `sill::cli::<group>`, mapped in `cli/request.rs`; the verbs casement sends are `shell_verbs::ShellVerb`, mapped to actions in `cli/verbs.rs::action_of` |
 | Launcher matching, ranking, frecency, sections | `sill_launcher` |
 | A launcher result source | `sill_search::providers::<kind>` (`Provider`) |
 | The search runner and its history | `sill_search::results` |
@@ -553,7 +557,8 @@ Implementors: `DockMenu` (the dock's tile menu), `DesktopMenu` (the wallpaper's)
 
 | Enum | Home | Why |
 | --- | --- | --- |
-| IPC `Request` `{Ping, Quit, Reload, Show, Status, Act, Debug}`, `Response` | `sill-ipc` | closed wire set; one dispatch fn per domain |
+| IPC `Request` `{Ping, Quit, Reload, Do, Show, Status, Act, Debug}`, `Response` | `sill-ipc` | closed wire set; one dispatch fn per domain, and `Do` is every action of the shell |
+| `ActionId`, `Effect`, `Subject` | `sill-launcher`, `sill-model` | closed; a new action is a compile error in `def` and in `perform` until it is described and done |
 | `Activation`, `ProviderKind`, `Item` rows | `sill-launcher` | closed; a variant must break the exhaustive `row` match |
 | `BusRoute` `{Usual, Address, Absent}`, `WaylandRoute` `{Environment, Socket}` | `sill_services::env` | route choices, not behaviours |
 | `Reveal<O>` `{Hidden{last}, Revealed(O)}` | `sill-ui-kit::links` | a link's value |
@@ -644,8 +649,9 @@ Each ends with its tests. Name the concept once and use it in every file name be
    namespace helper (`debug stats` reads `OutputSurfaces::spawned`), and no line in
    `daemon/events.rs` for the keyboard. If the surface sends answers, implement
    `sill::outgoing::Outgoing` for its link and list it in `outgoing::spawn_all`.
-7. IPC verb if it opens from the command line (recipe below); the output it opens on is
-   `reach.outputs.open_on::<Name>(reach.services)`.
+7. If it is a panel the person opens: an action (recipe below), and its arm in
+   `sill/src/actions/panel.rs`, which picks the output (`origin.output`, else
+   `reach.outputs.open_on::<Name>(reach.services)`).
 8. Tests, in the surface's crate: `crates/<crate>/tests/<name>.rs` on
    `SurfaceHarness::<Name>::setup(link, slot).settings(..).viewport(..).appearance(..).start()`
    (render, keys, motion on the virtual clock), and unit tests in `src/<name>/tests.rs`. A
@@ -686,22 +692,6 @@ Each ends with its tests. Name the concept once and use it in every file name be
 5. Tests: `query` and `activate` tables beside the provider with `VecSink`; a rank test row in
    `sill-launcher`.
 
-### Add a popup menu
-
-1. In the owning surface, `menu.rs`: `struct XMenu`, `impl MenuModel` (`entries`); the `Pick`
-   enum is the surface's own.
-2. In `io.rs`: `use_context_menu::<XMenu>("x-menu", |pick| ..)` (the name is the popup
-   document's `data-surface`; add it to `docs/selectors.md`) and call
-   `menu.open(model, look, geom, anchor)` where `geom` is a `PopupGeom` (`AtPoint { clear }` for a
-   menu at the pointer, `OverTile { gap }` for one over a tile) and `anchor` the pointer's
-   one-pixel `point_anchor(x, y)` or the tile's rectangle. The hook owns the one-popup-at-a-time
-   rule, the report channel, the task that hands each pick over and the popup's size; use
-   `use_context_menu_closing` when the owner must also hear that the popup is gone. No menu
-   markup, no tracker, no `geometry.rs`. (The bar's menus are the one exception: their menu
-   tracking is its own machine.)
-3. Tests: the `entries` table in `tests.rs`; keyboard and hover switching are `ds`'s, and where
-   the popup goes is `PopupGeom`'s own test.
-
 ### Add a settings key
 
 1. The design/22 row in quire first (with `RETIRING` when removing one).
@@ -718,20 +708,61 @@ Each ends with its tests. Name the concept once and use it in every file name be
 5. Tests: `sill-settings/tests/keys.rs` cross-checks the key against quire's rows both ways;
    a parse table for a new enum.
 
-### Add an IPC verb
+### Add an action
 
-1. Pick the group: `Show` (open, close, toggle a panel: `Reveal`), `Status` (read a state),
-   `Act` (change something), `Debug` (probes, behind `debug`). Add the variant to that group's
-   file in `sill-ipc/src/` (`show.rs`, `status.rs`, `act.rs`, `debug.rs`); an answer is a
-   `sill-model` type in `Response::Status`, never a mirror.
-2. A round-trip row in `sill-ipc/tests/serde.rs` with the exact bytes.
-3. `sill/src/cli/<group>.rs`: the clap argument; the arm in `cli/request.rs::request`, covered
-   by its table test. A verb whose words are a closed wire enum takes the enum itself
-   (`#[derive(Word)]` on it, `#[arg(value_parser = word::<T>())]`), never a mirror enum.
-4. `sill/src/ipc/dispatch/<group>.rs`: one arm that calls a link, a service control or a
-   follower and returns a `Response`; no logic in the arm.
-5. Tests: a row in `crates/sill/tests/ipc.rs` on a fake dispatcher; the surface's acceptance
-   script uses the verb.
+An action is a thing a person can name, reachable from more than one entrance (a menu, a corner,
+a launcher row, a chord, the command line, an agent). Service protocol (`*Command`), tray and
+app-served menus, window-menu entries, sliders and a search row's own data are not actions.
+
+1. The name: a variant of `sill_launcher::actions::ActionId` (a `Word`; kebab-case on the wire).
+2. What it is: its row in `sill_model::actions::def`: the label in the Mac's words (the one place
+   a label is written), the `StandardAction` whose chord does it when there is one, and the
+   `Effect`. A new kind of effect is a variant of `Effect` (and of `Effect::needs` and
+   `Effect::confirm`, which have no wildcard); a power action that ends the apps asks first
+   through `SessionAction::route`, nothing else does.
+3. Doing it: the arm in `sill/src/actions/mod.rs::perform` for its `Effect`, in the file of its
+   kind (`panel.rs`, `app.rs`, `pref.rs`, `workspace.rs`, ...). The arm owns the output
+   (`origin.output`, else `Outputs::open_on`), the activation token of a launch
+   (`launch::with_token`, always asked of `origin.surface`) and the refusal text; the entrance
+   decides none of them.
+4. Asking for it, by entrance, never by a command of its own:
+   - a surface: `ActionLink::do_it(action, Origin::of(surface, output))` or `do_to(action,
+     subject, origin)` (the link is a root context its `Surface::needs` names; the daemon forwards
+     it to `perform`); a menu item is `Ask::of(action)` or `Ask::on(action, Subject::App(..))`;
+   - a launcher System row: `Activation::Do(action)` from its provider;
+   - a hot corner: its row in `corners::corner_effect`;
+   - the command line: the request is `Request::Do(Ask)`, built in `cli/request.rs` (or the verb
+     group's file) and covered by its table test. A verb casement sends is a variant of
+     `shell_verbs::ShellVerb` (that crate, in casement-protocols, first), with its row in
+     `cli/verbs.rs::action_of`; clap's grammar for the same words must agree, which
+     `every_verb_the_compositor_sends_parses_and_reaches_its_action` checks. Never rename a
+     spelling that casement already binds;
+   - intents: its row in `sill::intents::request_of`.
+   - a panel's open and close (as against its toggle) and the launcher's seeded open stay `Request::Show`
+     (`ShowRequest`, a `Reveal`), answered by the same `actions::panel` fns the action uses.
+5. Tests: the table tests of `sill_model::actions` cover the row (label, effect, chord, wire form
+   of an `Ask`); add the entrance's row to its table (`cli/tests.rs`, `corners.rs`, the surface's
+   `pick.rs`). A pure helper of the arm (a plan) is tested beside it.
+
+### Add a popup menu
+
+1. In the owning surface, `menu.rs`: `struct XMenu`, `impl MenuModel` (`entries`); the `Pick`
+   enum is the surface's own.
+2. In `io.rs`: `use_context_menu::<XMenu>("x-menu", |pick| ..)` (the name is the popup
+   document's `data-surface`; add it to `docs/selectors.md`) and call
+   `menu.open(model, look, geom, anchor)` where `geom` is a `PopupGeom` (`AtPoint { clear }` for a
+   menu at the pointer, `OverTile { gap }` for one over a tile) and `anchor` the pointer's
+   one-pixel `point_anchor(x, y)` or the tile's rectangle. The hook owns the one-popup-at-a-time
+   rule, the report channel, the task that hands each pick over and the popup's size; use
+   `use_context_menu_closing` when the owner must also hear that the popup is gone. No menu
+   markup, no tracker, no `geometry.rs`. (The bar's menus are the one exception: their menu
+   tracking is its own machine.)
+3. What a pick does: a row that is an action of the shell names it (`ActionId`, with `Subject`
+   when it acts on an app) and asks for it on the `ActionLink` (recipe above); only a row whose
+   items come from another process or the surface itself (a tray row, a window's own entries)
+   has a `Pick` of its own.
+4. Tests: the `entries` table in `tests.rs`; keyboard and hover switching are `ds`'s, and where
+   the popup goes is `PopupGeom`'s own test.
 
 ### Find the front window, the main group or a window's app
 
