@@ -3,11 +3,11 @@
 
 use porter_dbus::SyncProxy;
 use sill_model::launch::{LaunchCommand, SettingsOpen};
+use sill_model::notifications::Said;
 use sill_model::sync_hold::{
     Dataset, SyncHoldCommand, SyncHoldEffect, SyncHoldEvent, SyncHoldState, dataset_of, shown_for,
     step,
 };
-use sill_model::notifications::Said;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::UnboundedReceiver;
 use zbus::Connection;

@@ -188,12 +188,13 @@ async fn choose(provider: &FilesProvider, row: &Item, args: &Args) {
             let (_apps_tx, apps) = watch::channel(AppIndex::default());
             let rt = tokio::runtime::Handle::current();
             let env = Env::from_process();
-            let notifications = sill_services::service::spawn::<sill_services::NotificationsService>(
-                &rt,
-                &env,
-                Default::default(),
-            )
-            .control;
+            let notifications =
+                sill_services::service::spawn::<sill_services::NotificationsService>(
+                    &rt,
+                    &env,
+                    Default::default(),
+                )
+                .control;
             let links = launch::LaunchLinks {
                 apps,
                 notifications,
