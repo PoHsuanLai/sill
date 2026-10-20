@@ -347,21 +347,24 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
     let first = view.placement;
     let (tx, rx) = watch::channel(Some(view));
     let reports = link.peek().reports.clone();
-    surface.open_popup(
-        config,
-        first,
-        HostRoot::new(BarPopup)
-            .context(PopupLink {
-                view: rx,
-                reports,
-                timing: deps.timing,
-                output: deps.output_name.clone(),
-            })
-            .context(deps.services.clone())
-            .context(deps.settings.clone())
-            .context(deps.focus.clone())
-            .context(PanelCap(deps.cap)),
-    );
+    let root = HostRoot::new(BarPopup)
+        .context(PopupLink {
+            view: rx,
+            reports,
+            timing: deps.timing,
+            output: deps.output_name.clone(),
+        })
+        .context(deps.services.clone())
+        .context(deps.settings.clone())
+        .context(deps.focus.clone())
+        .context(PanelCap(deps.cap))
+        // Asks from the popup come from the bar, which stays mapped as the popup closes.
+        .context(Origin::of(deps.surface.as_ref(), deps.output));
+    let root = match &deps.actions {
+        Some(actions) => root.context(actions.clone()),
+        None => root,
+    };
+    surface.open_popup(config, first, root);
     link.write().view = Some(tx);
     open.set(Some(menu));
     announce(deps, menu);

@@ -10,7 +10,6 @@ use dioxus::prelude::*;
 use ds::base::time::clock::sleep;
 use ds::base::time::stamp::Stamp;
 use shell_host::{FrameDrive, SurfaceHandle};
-use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;
 use sill_settings::DockMenuOrder;
 use sill_ui_kit::services::Services;
@@ -291,8 +290,9 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
     menu.open(DockMenu { entries }, deps.look, GEOM, tile_anchor(*area));
 }
 
-/// Send `commands`; a launch first asks shell-host for an activation token. A service that
-/// has stopped drops its commands: there is nobody left to tell.
+/// Send `commands`: the shell's own actions to the daemon, which asks this surface for the
+/// activation token of a launch. A service that has stopped drops its commands: there is
+/// nobody left to tell.
 fn send_all(outward: &Outward, commands: Vec<DockCommand>) {
     let services = &outward.services;
     for command in commands {
@@ -312,23 +312,6 @@ fn send_all(outward: &Outward, commands: Vec<DockCommand>) {
                 }
                 Ok(())
             }
-            DockCommand::Launch { app, action, uris } => {
-                launch(outward.clone(), app, action, uris);
-                Ok(())
-            }
         };
     }
-}
-
-fn launch(outward: Outward, app: AppId, action: DesktopAction, uris: Vec<String>) {
-    spawn(async move {
-        let _gone_is_dropped = sill_ui_kit::surface::launch_with_token(
-            outward.surface.as_ref(),
-            &outward.services.launch.control,
-            app,
-            action,
-            uris,
-        )
-        .await;
-    });
 }

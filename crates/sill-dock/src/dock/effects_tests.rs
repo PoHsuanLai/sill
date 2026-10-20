@@ -3,7 +3,7 @@
 use super::{EffectCtx, effect_commands};
 use crate::dock::items::{DockItem, ItemKind};
 use crate::dock::machine::{ActivateMode, DockEffect, Instance, TileApp, TileId};
-use crate::dock::pick::DockCommand;
+use crate::dock::pick::{DockCommand, open};
 use sill_launcher::actions::ActionId;
 use sill_launcher::{AppId, DesktopAction, WindowKey};
 use sill_model::actions::{Ask, Subject};
@@ -116,11 +116,7 @@ fn every_outward_effect_becomes_its_commands() {
         pins: &w.pins,
         workspace: None,
     };
-    let launch = |app: &str, action: DesktopAction, uris: Vec<String>| DockCommand::Launch {
-        app: id(app),
-        action,
-        uris,
-    };
+    let launch = |app: &str, action: DesktopAction, uris: Vec<String>| open(id(app), action, uris);
     let t = TileId;
     let cases: Vec<(&str, DockEffect, Vec<DockCommand>)> = vec![
         (

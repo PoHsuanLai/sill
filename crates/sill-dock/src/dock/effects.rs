@@ -10,7 +10,7 @@ use sill_model::windows::Toplevels;
 use crate::dock::activate::activation;
 use crate::dock::items::{DockItem, ItemKind, item_windows};
 use crate::dock::machine::{ActivateMode, DockEffect, Instance, TileId};
-use crate::dock::pick::{DockCommand, DockPick, pick_commands};
+use crate::dock::pick::{DockCommand, DockPick, open, pick_commands};
 
 /// The file manager the Trash tile opens `trash:///` in (design/10 §10.3.9).
 const FILES_APP: &str = "org.gnome.Nautilus";
@@ -74,21 +74,17 @@ fn launch(item: &DockItem, instance: Instance, ctx: &EffectCtx<'_>) -> Vec<DockC
         (Instance::New, true) => DesktopAction::Named(NEW_WINDOW.to_owned()),
         _ => DesktopAction::Default,
     };
-    vec![DockCommand::Launch {
-        app: app.clone(),
-        action,
-        uris: Vec::new(),
-    }]
+    vec![open(app.clone(), action, Vec::new())]
 }
 
 /// The Trash tile's launch: the file manager on `trash:///`.
 fn trash(item: &DockItem) -> Vec<DockCommand> {
     match item.kind {
-        ItemKind::Trash => vec![DockCommand::Launch {
-            app: AppId(FILES_APP.to_owned()),
-            action: DesktopAction::Default,
-            uris: vec!["trash:///".to_owned()],
-        }],
+        ItemKind::Trash => vec![open(
+            AppId(FILES_APP.to_owned()),
+            DesktopAction::Default,
+            vec!["trash:///".to_owned()],
+        )],
         _ => Vec::new(),
     }
 }

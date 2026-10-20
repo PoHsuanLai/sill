@@ -7,50 +7,41 @@ use ds::components::controls::button_model::Bezel;
 use ds::prelude::*;
 use ds_settings::schema::PageId;
 use ds_settings::target::SettingsTarget;
-use shell_host::SurfaceHandle;
 use sill_launcher::SettingsLink;
-use sill_model::launch::LaunchCommand;
-use sill_services::LaunchService;
-use sill_services::control::Control;
+use sill_launcher::actions::ActionId;
+use sill_model::actions::Subject;
 use sill_shell_kit::prelude::*;
 
-use sill_ui_kit::hooks::use_control;
-use sill_ui_kit::surface::open_settings_with_token;
+use sill_ui_kit::hooks::{Entrance, use_entrance};
 
 /// How a pane closes the popup it is in: provided by the control center and by a module's bar
 /// dropdown.
 #[derive(Clone, Copy)]
 pub(crate) struct ClosePanel(pub Callback<()>);
 
-/// What opens Settings from a pane: the launch service, the popup's surface (for the activation
-/// token) and how to close the popup.
+/// What opens Settings from a pane: the shell's Open Settings action, asked from the bar the
+/// popup hangs from (for the activation token), and how to close the popup.
 #[derive(Clone)]
 pub(crate) struct SettingsOpener {
-    launch: Control<LaunchCommand>,
-    surface: Option<SurfaceHandle>,
+    entrance: Entrance,
     close: Option<ClosePanel>,
 }
 
 impl SettingsOpener {
-    /// Open Settings at `link` with a token from the still-mapped popup, then close the popup.
+    /// Open Settings at `link`, then close the popup.
     pub(crate) fn open(&self, link: SettingsLink) {
-        let opener = self.clone();
-        spawn(async move {
-            // A stopped launcher drops it; the panel closes either way.
-            let _gone =
-                open_settings_with_token(opener.surface.as_ref(), &opener.launch, link).await;
-            if let Some(ClosePanel(close)) = opener.close {
-                close.call(());
-            }
-        });
+        self.entrance
+            .do_to(ActionId::OpenSettings, Subject::Settings(link));
+        if let Some(ClosePanel(close)) = self.close {
+            close.call(());
+        }
     }
 }
 
 /// The opener for the pane being built.
 pub(crate) fn use_settings_opener() -> SettingsOpener {
     SettingsOpener {
-        launch: use_control::<LaunchService>(),
-        surface: try_use_context::<SurfaceHandle>(),
+        entrance: use_entrance(),
         close: try_use_context::<ClosePanel>(),
     }
 }

@@ -1,10 +1,10 @@
 //! What the dock asks the services to do, as values: a context menu pick and every machine
-//! effect that leaves the dock become [`DockCommand`]s, which the session sends. A launch
-//! carries no activation token yet: the session asks shell-host for one first (plan "Launch").
+//! effect that leaves the dock become [`DockCommand`]s, which the session sends. A launch is the
+//! shell's Open action: the daemon asks the dock's surface for the activation token.
 
 use sill_launcher::actions::ActionId;
 use sill_launcher::{AppId, DesktopAction, WindowKey};
-use sill_model::actions::{Ask, Subject};
+use sill_model::actions::{Ask, Start, Subject};
 use sill_model::pins::PinEvent;
 use sill_model::windows::WlCommand;
 
@@ -36,14 +36,14 @@ pub enum DockPick {
 pub enum DockCommand {
     Wl(WlCommand),
     Pins(PinEvent),
-    /// A launch, sent once an activation token is in hand (`uris` for `%u`/`%U`).
-    Launch {
-        app: AppId,
-        action: DesktopAction,
-        uris: Vec<String>,
-    },
     /// An action of the shell, asked of the daemon.
     Do(Ask),
+}
+
+/// The command that starts `app` as its desktop `action` (with `uris` for `%u`/`%U`) says.
+pub fn open(app: AppId, action: DesktopAction, uris: Vec<String>) -> DockCommand {
+    let start = Start { app, action, uris };
+    DockCommand::Do(Ask::on(ActionId::OpenApp, Subject::Start(start)))
 }
 
 /// The commands `pick` sends, in order.
@@ -54,11 +54,11 @@ pub fn pick_commands(pick: &DockPick) -> Vec<DockCommand> {
     };
     match pick {
         DockPick::Activate(key) => vec![DockCommand::Wl(WlCommand::Activate(*key))],
-        DockPick::Action { app, action } => vec![DockCommand::Launch {
-            app: app.clone(),
-            action: DesktopAction::Named(action.clone()),
-            uris: Vec::new(),
-        }],
+        DockPick::Action { app, action } => vec![open(
+            app.clone(),
+            DesktopAction::Named(action.clone()),
+            Vec::new(),
+        )],
         DockPick::Pin(app) => vec![on_app(ActionId::PinApp, app)],
         DockPick::Unpin(app) => vec![on_app(ActionId::UnpinApp, app)],
         DockPick::ShowInFiles(app) => vec![on_app(ActionId::ShowInFiles, app)],
@@ -70,7 +70,7 @@ pub fn pick_commands(pick: &DockPick) -> Vec<DockCommand> {
 
 #[cfg(test)]
 mod tests {
-    use super::{DockCommand, DockPick, pick_commands};
+    use super::{DockCommand, DockPick, open, pick_commands};
     use sill_launcher::actions::ActionId;
     use sill_launcher::{AppId, DesktopAction, WindowKey};
     use sill_model::actions::{Ask, Subject};
@@ -90,11 +90,11 @@ mod tests {
                     app: term(),
                     action: "new-window".to_owned(),
                 },
-                vec![DockCommand::Launch {
-                    app: term(),
-                    action: DesktopAction::Named("new-window".to_owned()),
-                    uris: vec![],
-                }],
+                vec![open(
+                    term(),
+                    DesktopAction::Named("new-window".to_owned()),
+                    vec![],
+                )],
             ),
             (
                 DockPick::Pin(term()),

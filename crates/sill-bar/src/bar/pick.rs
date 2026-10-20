@@ -1,11 +1,11 @@
 //! What picking a bar menu item does, as a value: the component turns it into service commands
 //! after the menu has closed (design A6 "closes then picks"). The shell's own actions (Settings,
-//! a power action) are not commands of a service here: the bar names the action and the daemon
-//! carries it out.
+//! a power action, hiding or quitting the front app) are not commands of a service here: the
+//! bar names the action and the daemon carries it out.
 
-use sill_launcher::SessionAction;
 use sill_launcher::actions::ActionId;
-use sill_model::actions::Ask;
+use sill_launcher::{SessionAction, WindowKey};
+use sill_model::actions::{Ask, Subject};
 use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem, own_commands};
 use sill_model::tray::{TrayCommand, TrayItemId};
 use sill_model::windows::{Toplevels, WlCommand};
@@ -14,7 +14,8 @@ use sill_model::windows::{Toplevels, WlCommand};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum BarPick {
     /// A row the shell makes of the frontmost app's windows (`own_commands`): raise one, Hide,
-    /// Quit.
+    /// Quit. Hiding and quitting are the shell's actions; raising and showing again are the
+    /// compositor's.
     Own { app_id: String, item: OwnItem },
     /// Open Settings.
     Settings,
@@ -42,10 +43,9 @@ pub(crate) enum Command {
 /// The commands `pick` sends, in order.
 pub(crate) fn commands(pick: &BarPick, toplevels: &Toplevels) -> Vec<Command> {
     match pick {
-        BarPick::Own { app_id, item } => own_commands(*item, app_id, toplevels)
-            .into_iter()
-            .map(Command::Wl)
-            .collect(),
+        BarPick::Own { app_id, item } => {
+            own_entrances(*item, own_commands(*item, app_id, toplevels))
+        }
         BarPick::Settings => vec![Command::Do(Ask::of(ActionId::OpenSettings))],
         BarPick::Session(action) => vec![Command::Do(Ask::of(ActionId::of_session(*action)))],
         BarPick::Tray { item, entry } => vec![Command::Tray(TrayCommand::MenuPick {
@@ -59,12 +59,35 @@ pub(crate) fn commands(pick: &BarPick, toplevels: &Toplevels) -> Vec<Command> {
     }
 }
 
+/// `item`'s compositor commands as entrances: the windows it minimises are Hide's, the ones it
+/// closes Quit's; raising and showing again have no action and stay the compositor's.
+fn own_entrances(item: OwnItem, wl: Vec<WlCommand>) -> Vec<Command> {
+    let on_windows = |action| {
+        let keys: Vec<WindowKey> = wl
+            .iter()
+            .filter_map(|command| match command {
+                WlCommand::Minimize(key) | WlCommand::Close(key) => Some(*key),
+                _ => None,
+            })
+            .collect();
+        if keys.is_empty() {
+            return Vec::new();
+        }
+        vec![Command::Do(Ask::on(action, Subject::Windows(keys)))]
+    };
+    match item {
+        OwnItem::Minimise(_) | OwnItem::Hide | OwnItem::HideOthers => on_windows(ActionId::HideApp),
+        OwnItem::Quit => on_windows(ActionId::QuitApp),
+        OwnItem::Raise(_) | OwnItem::ShowAll => wl.into_iter().map(Command::Wl).collect(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{BarPick, Command, commands};
     use sill_launcher::actions::ActionId;
     use sill_launcher::{SessionAction, WindowKey};
-    use sill_model::actions::Ask;
+    use sill_model::actions::{Ask, Subject};
     use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem};
     use sill_model::ids::OutputName;
     use sill_model::tray::{TrayCommand, TrayItemId};
@@ -99,14 +122,31 @@ mod tests {
             ),
             (
                 own(OwnItem::Quit),
-                vec![
-                    Command::Wl(WlCommand::Close(WindowKey(1))),
-                    Command::Wl(WlCommand::Close(WindowKey(2))),
-                ],
+                vec![Command::Do(Ask::on(
+                    ActionId::QuitApp,
+                    Subject::Windows(vec![WindowKey(1), WindowKey(2)]),
+                ))],
             ),
             (
                 own(OwnItem::HideOthers),
-                vec![Command::Wl(WlCommand::Minimize(WindowKey(3)))],
+                vec![Command::Do(Ask::on(
+                    ActionId::HideApp,
+                    Subject::Windows(vec![WindowKey(3)]),
+                ))],
+            ),
+            (
+                own(OwnItem::Minimise(WindowKey(2))),
+                vec![Command::Do(Ask::on(
+                    ActionId::HideApp,
+                    Subject::Windows(vec![WindowKey(2)]),
+                ))],
+            ),
+            (
+                BarPick::Own {
+                    app_id: "gone".to_owned(),
+                    item: OwnItem::Quit,
+                },
+                vec![],
             ),
             (
                 BarPick::Session(SessionAction::PowerOff),

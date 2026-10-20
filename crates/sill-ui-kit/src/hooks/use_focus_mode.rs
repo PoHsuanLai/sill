@@ -7,7 +7,7 @@ use sill_settings::FocusMode;
 
 use crate::links::FocusLink;
 
-/// The focus mode in effect. Setting it is `use_context::<FocusLink>().set(mode)`.
+/// The focus mode in effect. Flipping it is the `ToggleFocus` action (`use_entrance`).
 ///
 /// # Panics
 /// When the surface's `Root` was built without `.context(FocusLink)`: a daemon wiring bug.

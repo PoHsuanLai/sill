@@ -6,6 +6,7 @@
 
 mod use_appearance;
 mod use_banner_output;
+mod use_entrance;
 mod use_focus_mode;
 mod use_follow_visibility;
 mod use_hours;
@@ -16,6 +17,7 @@ mod use_user_style;
 
 pub use use_appearance::{PinnedAppearance, SwitchableAppearance, use_appearance};
 pub use use_banner_output::use_banner_output;
+pub use use_entrance::{Entrance, use_entrance};
 pub use use_focus_mode::use_focus_mode;
 pub use use_follow_visibility::use_follow_visibility;
 pub use use_hours::{PinnedLocale, use_hours};

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::actions::ActionId;
-use sill_launcher::{AppId, SettingsLink, WindowKey};
+use sill_launcher::{AppId, DesktopAction, SettingsLink, WindowKey};
 
 use super::def;
 
@@ -19,12 +19,35 @@ pub enum Needs {
     Place,
 }
 
+/// How an app is started when that is more than its own `Exec`: one of its desktop actions
+/// (New Window), or with addresses to hand it (the Trash's `trash:///`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Start {
+    pub app: AppId,
+    pub action: DesktopAction,
+    /// Dropped URIs (`%u`/`%U`).
+    pub uris: Vec<String>,
+}
+
+impl Start {
+    /// A plain start of `app`: its own `Exec`, nothing handed to it.
+    pub fn plain(app: AppId) -> Start {
+        Start {
+            app,
+            action: DesktopAction::Default,
+            uris: Vec::new(),
+        }
+    }
+}
+
 /// What an action is done to.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum Subject {
     None,
     App(AppId),
+    /// An app, started some particular way.
+    Start(Start),
     Windows(Vec<WindowKey>),
     Settings(SettingsLink),
 }
@@ -35,7 +58,7 @@ impl Subject {
         matches!(
             (self, needs),
             (Subject::None, Needs::Nothing | Needs::Place)
-                | (Subject::App(_), Needs::App)
+                | (Subject::App(_) | Subject::Start(_), Needs::App)
                 | (Subject::Windows(_), Needs::Windows)
                 | (Subject::Settings(_), Needs::Place)
         )

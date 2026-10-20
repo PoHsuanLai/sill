@@ -4,7 +4,7 @@
 use shell_host::HostCtx;
 use sill_ipc::response::{FailureKind, Response};
 use sill_launcher::WindowKey;
-use sill_model::actions::{AppVerb, Subject};
+use sill_model::actions::{AppVerb, Start, Subject};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_model::pins::{PinAt, PinEvent};
 use sill_model::windows::WlCommand;
@@ -24,13 +24,8 @@ pub fn perform(
 ) -> Response {
     let services = reach.services;
     match (verb, subject) {
-        (AppVerb::Open, Subject::App(app)) => {
-            let launch = services.launch.control.clone();
-            let id = app.0.clone();
-            with_token(ctx, reach, origin, &id, move |token| {
-                launch.send(LaunchCommand::Launch(LaunchRequest::app(app).token(token)))
-            })
-        }
+        (AppVerb::Open, Subject::App(app)) => open(ctx, reach, Start::plain(app), origin),
+        (AppVerb::Open, Subject::Start(start)) => open(ctx, reach, start, origin),
         (AppVerb::ShowInFiles, Subject::App(app)) => sent(
             services
                 .launch
@@ -57,6 +52,20 @@ pub fn perform(
             format!("an action was given {subject:?} that it cannot use"),
         ),
     }
+}
+
+/// Start an app the way `start` says, with the origin's activation token.
+fn open(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, start: Start, origin: Origin) -> Response {
+    let launch = reach.services.launch.control.clone();
+    let id = start.app.0.clone();
+    with_token(ctx, reach, origin, &id, move |token| {
+        launch.send(LaunchCommand::Launch(
+            LaunchRequest::app(start.app)
+                .action(start.action)
+                .uris(start.uris)
+                .token(token),
+        ))
+    })
 }
 
 fn pin(reach: &Reach, event: PinEvent) -> Response {

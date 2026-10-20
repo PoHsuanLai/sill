@@ -9,7 +9,7 @@ mod ask;
 #[cfg(test)]
 mod tests;
 
-pub use ask::{Ask, Needs, Subject};
+pub use ask::{Ask, Needs, Start, Subject};
 use chordkit::StandardAction;
 use sill_launcher::actions::ActionId;
 use sill_launcher::{Confirm, ProviderKind, SessionAction};

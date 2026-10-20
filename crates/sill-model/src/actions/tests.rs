@@ -1,8 +1,8 @@
 use ds_core::word::Word;
 use sill_launcher::actions::ActionId;
-use sill_launcher::{AppId, Confirm, SessionAction, SettingsLink, WindowKey};
+use sill_launcher::{AppId, Confirm, DesktopAction, SessionAction, SettingsLink, WindowKey};
 
-use super::{Ask, Effect, Needs, Panel, Subject, def, panel_action, screenshot_action};
+use super::{Ask, Effect, Needs, Panel, Start, Subject, def, panel_action, screenshot_action};
 use crate::screenshots::ShotKind;
 
 #[test]
@@ -82,6 +82,13 @@ fn a_screenshot_kind_and_a_panel_find_their_action() {
 #[test]
 fn an_action_is_refused_what_it_cannot_act_on() {
     let app = || Subject::App(AppId("term".to_owned()));
+    let started = || {
+        Subject::Start(Start {
+            app: AppId("term".to_owned()),
+            action: DesktopAction::Named("new-window".to_owned()),
+            uris: Vec::new(),
+        })
+    };
     let windows = || Subject::Windows(vec![WindowKey(1)]);
     let place = || Subject::Settings(SettingsLink("page:wallpaper".to_owned()));
     let cases = [
@@ -90,6 +97,9 @@ fn an_action_is_refused_what_it_cannot_act_on() {
         (ActionId::OpenSettings, Subject::None, true),
         (ActionId::OpenSettings, place(), true),
         (ActionId::OpenSettings, app(), false),
+        (ActionId::OpenApp, app(), true),
+        (ActionId::OpenApp, started(), true),
+        (ActionId::OpenApp, Subject::None, false),
         (ActionId::PinApp, app(), true),
         (ActionId::PinApp, Subject::None, false),
         (ActionId::HideApp, windows(), true),
@@ -121,6 +131,17 @@ fn an_ask_has_a_pinned_wire_form() {
         (
             Ask::on(ActionId::PinApp, Subject::App(AppId("term".to_owned()))),
             r#"{"action":"pin-app","subject":{"kind":"app","v":"term"}}"#,
+        ),
+        (
+            Ask::on(
+                ActionId::OpenApp,
+                Subject::Start(Start {
+                    app: AppId("term".to_owned()),
+                    action: DesktopAction::Named("new-window".to_owned()),
+                    uris: vec!["trash:///".to_owned()],
+                }),
+            ),
+            r#"{"action":"open-app","subject":{"kind":"start","v":{"app":"term","action":{"kind":"named","v":"new-window"},"uris":["trash:///"]}}}"#,
         ),
         (
             Ask::on(
