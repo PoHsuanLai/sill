@@ -10,11 +10,34 @@ use sill_launcher::AppId;
 /// Every installed application, sorted by id, one entry per id (the first found in XDG
 /// precedence order wins).
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(from = "AppIndexWire")]
 pub struct AppIndex {
     pub apps: Vec<App>,
+    /// What window matching reads from each entry, in the order of `apps`: built with the index
+    /// (`AppIndex::new`), so a match builds nothing.
+    #[serde(skip)]
+    keys: Vec<AppKeys>,
+}
+
+/// The index as it is sent: its entries; the keys are made again on arrival.
+#[derive(Deserialize)]
+struct AppIndexWire {
+    apps: Vec<App>,
+}
+
+impl From<AppIndexWire> for AppIndex {
+    fn from(wire: AppIndexWire) -> AppIndex {
+        AppIndex::new(wire.apps)
+    }
 }
 
 impl AppIndex {
+    /// An index over `apps`, which are sorted by id with no duplicate id.
+    pub fn new(apps: Vec<App>) -> AppIndex {
+        let keys = apps.iter().map(App::keys).collect();
+        AppIndex { apps, keys }
+    }
+
     /// The entry with `id`.
     pub fn get(&self, id: &AppId) -> Option<&App> {
         self.apps
@@ -26,8 +49,7 @@ impl AppIndex {
     /// The entry a toplevel with Wayland `app_id` (and, through XWayland, `wm_class`) belongs to,
     /// by the five rules of [`ds_helpers::match_app`], the one matcher every shell part shares.
     pub fn matching(&self, app_id: &str, wm_class: Option<&str>) -> Option<&App> {
-        let keys: Vec<AppKeys> = self.apps.iter().map(App::keys).collect();
-        self.apps.get(match_app(app_id, wm_class, &keys)?)
+        self.apps.get(match_app(app_id, wm_class, &self.keys)?)
     }
 }
 
@@ -153,7 +175,7 @@ pub enum AppsEvent {
 
 /// `index` after `event`; the result is always sorted by id with no duplicate ids.
 pub fn step(index: AppIndex, event: AppsEvent) -> AppIndex {
-    let AppIndex { mut apps } = index;
+    let AppIndex { mut apps, .. } = index;
     match event {
         AppsEvent::Scanned(found) => {
             apps = Vec::with_capacity(found.len());
@@ -169,7 +191,7 @@ pub fn step(index: AppIndex, event: AppsEvent) -> AppIndex {
         },
         AppsEvent::Removed(id) => apps.retain(|a| a.id != id),
     }
-    AppIndex { apps }
+    AppIndex::new(apps)
 }
 
 #[cfg(test)]
@@ -300,5 +322,16 @@ pub(crate) mod tests {
         let bus = |id: &str| index.matching(id, None).map(App::bus_name);
         assert_eq!(bus("steam"), Some("com.valvesoftware.Steam.Main"));
         assert_eq!(bus("firefox"), Some("org.mozilla.firefox"));
+    }
+
+    #[test]
+    fn an_index_that_crossed_the_wire_has_its_keys_again() {
+        let index = step(
+            AppIndex::default(),
+            AppsEvent::Scanned(vec![app("org.mozilla.firefox", "Firefox")]),
+        );
+        let wire = serde_json::to_string(&index).unwrap_or_default();
+        let back: Result<AppIndex, _> = serde_json::from_str(&wire);
+        assert_eq!(back.ok(), Some(index), "equal keys included");
     }
 }

@@ -92,9 +92,7 @@ fn a_program_is_named_by_its_entry_only_when_the_desktop_vouches_for_it() {
     let mut viewer = test_app("viewer", "Viewer");
     viewer.exec = "/usr/bin/viewer %U".to_owned();
     let cat = test_app("cat", "Cat");
-    let index = AppIndex {
-        apps: vec![cat, loupe, viewer],
-    };
+    let index = AppIndex::new(vec![cat, loupe, viewer]);
     let subject = |kind, text: &str| ConsentSubject {
         kind,
         text: text.to_owned(),

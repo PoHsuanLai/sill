@@ -138,9 +138,7 @@ pub fn menu_windows<'a>(
     app: Option<&App>,
     toplevels: &'a Toplevels,
 ) -> Vec<&'a Toplevel> {
-    let one = AppIndex {
-        apps: app.cloned().into_iter().collect(),
-    };
+    let one = AppIndex::new(app.cloned().into_iter().collect());
     let belongs = |w: &Toplevel| match &item.kind {
         ItemKind::Pinned(id) | ItemKind::Running(id) => app_of(w, &one).id() == *id,
         ItemKind::Unmatched(raw) => w.app_id == *raw,

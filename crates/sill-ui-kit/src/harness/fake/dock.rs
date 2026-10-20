@@ -68,7 +68,7 @@ pub fn index() -> AppIndex {
         app(FIREFOX, "Firefox", &[]),
     ];
     apps.sort_by(|a, b| a.id.cmp(&b.id));
-    AppIndex { apps }
+    AppIndex::new(apps)
 }
 
 /// Files and Terminal pinned.

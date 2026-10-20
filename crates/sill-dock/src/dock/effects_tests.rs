@@ -93,13 +93,11 @@ fn world() -> World {
                 window(6, "term", Activity::Inactive),
             ],
         },
-        index: AppIndex {
-            apps: vec![
-                app("files", &[]),
-                app("firefox", &[]),
-                app("term", &["new-window"]),
-            ],
-        },
+        index: AppIndex::new(vec![
+            app("files", &[]),
+            app("firefox", &[]),
+            app("term", &["new-window"]),
+        ]),
         pins: DockPins {
             pinned: vec![id("term"), id("files")],
         },

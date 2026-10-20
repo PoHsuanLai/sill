@@ -73,9 +73,7 @@ mod tests {
 
     #[test]
     fn an_app_is_its_entry_or_its_raw_id() {
-        let index = AppIndex {
-            apps: vec![test_app("org.example.Term", "Term")],
-        };
+        let index = AppIndex::new(vec![test_app("org.example.Term", "Term")]);
         let cases = [
             (
                 "an exact id",
