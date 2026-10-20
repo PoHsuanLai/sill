@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use sill_model::desktop::{DisplayTrial, TrialAnswer, TrialId};
 use tokio::sync::watch;
 
-use super::{BannerLink, Shared};
+use super::{BannerLink, Outbox, Sent, Shared};
 
 /// Counts the compositor's sends of a trial; each is one more than the last, across trials, so
 /// a restart is told from the trial before it even when both carry one id.
@@ -29,21 +29,22 @@ pub struct TrialRun {
 
 /// What the person said about the trial `trial`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TrialAnswered {
-    /// Counts up from 1 per link.
-    pub seq: u64,
+pub struct TrialReply {
     /// The trial answered.
     pub trial: TrialId,
     /// The answer.
     pub answer: TrialAnswer,
 }
 
+/// An answer, numbered.
+pub type TrialAnswered = Sent<TrialReply>;
+
 /// The shared channels, a root context of the trial surfaces and kept by the daemon. Clone is
 /// cheap.
 #[derive(Debug, Clone)]
 pub struct DisplayTrialLink {
     open: Shared<Option<TrialRun>>,
-    answered: Shared<Option<TrialAnswered>>,
+    answered: Outbox<TrialReply>,
     sent: Arc<AtomicU64>,
     banners: BannerLink,
 }
@@ -53,7 +54,7 @@ impl DisplayTrialLink {
     pub fn new(banners: BannerLink) -> DisplayTrialLink {
         DisplayTrialLink {
             open: Shared::default(),
-            answered: Shared::default(),
+            answered: Outbox::default(),
             sent: Arc::new(AtomicU64::new(0)),
             banners,
         }
@@ -96,16 +97,13 @@ impl DisplayTrialLink {
     /// The person answered `trial`. The question comes down at once; the compositor's end of the
     /// trial arrives after and finds nothing open.
     pub fn answer(&self, trial: TrialId, answer: TrialAnswer) {
-        self.answered.modify(|last| {
-            let seq = last.as_ref().map_or(1, |last| last.seq + 1);
-            *last = Some(TrialAnswered { seq, trial, answer });
-        });
+        self.answered.send(TrialReply { trial, answer });
         self.end(trial);
     }
 
     /// The latest answer.
     pub fn last_answer(&self) -> Option<TrialAnswered> {
-        self.answered.now()
+        self.answered.latest()
     }
 
     /// A receiver for the daemon to follow.

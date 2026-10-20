@@ -1,48 +1,24 @@
-//! One opening of the launcher: where, with what already typed, and since when.
+//! What a launcher opening carries beside the shared parts: with what already typed, for what,
+//! and since when.
 
 use std::time::Instant;
 
-use shell_host::OutputId;
 use sill_launcher::LauncherMode;
 
-use crate::links::{OpenSerial, Opened, PanelFocus};
+use crate::links::Opening;
 
-/// One opening of the launcher.
+/// What the launcher is opened with.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Opening {
-    /// The output whose panel shows.
-    pub output: OutputId,
+pub struct LauncherAsk {
     /// The query the field starts with (`sill launcher open --query`).
     pub query: String,
-    /// Which opening this is: a new one remounts the panel's contents (the entrance plays,
-    /// the field is focused and the selection starts at the top).
-    pub serial: OpenSerial,
     /// What the panel is for: finding things, or talking to the companion. A change of it in
     /// place (the same serial) keeps the rows, the selection and the query.
     pub mode: LauncherMode,
     /// When the request arrived, for `open_latency_ms`.
     pub requested: Instant,
-    /// Whether the panel has had keyboard focus since it opened.
-    pub focus: PanelFocus,
 }
 
-impl Opened for Opening {
-    fn output(&self) -> OutputId {
-        self.output
-    }
-
-    fn serial(&self) -> OpenSerial {
-        self.serial
-    }
-
-    fn focus(&self) -> PanelFocus {
-        self.focus
-    }
-
-    fn focused(self) -> Self {
-        Opening {
-            focus: PanelFocus::Held,
-            ..self
-        }
-    }
-}
+/// One opening of the launcher. A new one remounts the panel's contents (the entrance plays, the
+/// field is focused and the selection starts at the top).
+pub type LauncherOpening = Opening<LauncherAsk>;

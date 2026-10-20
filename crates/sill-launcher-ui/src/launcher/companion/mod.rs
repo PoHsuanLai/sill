@@ -2,7 +2,7 @@
 //! companion's (the Ask row, its answers, recent activity; Tab visits Runs and Memory), and the
 //! selected answer's card is the palette's `aside`.
 //!
-//! The mode is the opening's (`Opening::mode`): the summon opens it, the double tap switches it
+//! The mode is the opening's (`LauncherOpening::mode`): the summon opens it, the double tap switches it
 //! in place. What the pane is showing is not stored: it follows the selected row
 //! ([`pane_of`]). Everything here is pure; `events.rs` and `pane_keys.rs` call it.
 

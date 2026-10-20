@@ -17,6 +17,7 @@ pub mod lock;
 pub mod name_guard;
 pub mod notifications;
 pub mod osd;
+pub mod outgoing;
 pub mod outputs;
 pub mod permission_answers;
 pub mod policy;

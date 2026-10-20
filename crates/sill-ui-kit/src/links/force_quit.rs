@@ -7,80 +7,32 @@ use shell_host::OutputId;
 use sill_model::desktop::ForceQuitRow;
 use tokio::sync::watch;
 
-use super::Shared;
+use super::{Opening, Outbox, PanelLink, Reveal, Sent, Shared};
 
-use crate::links::{OpenSerial, Opened, PanelFocus, Reveal};
-
-/// One opening of the panel: where, and which opening it is (a new one starts afresh).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ForceQuitOpening {
-    pub serial: OpenSerial,
-    pub output: OutputId,
-    /// Whether the surface has held keyboard focus since it opened.
-    pub focus: PanelFocus,
-}
-
-impl Opened for ForceQuitOpening {
-    fn output(&self) -> OutputId {
-        self.output
-    }
-
-    fn serial(&self) -> OpenSerial {
-        self.serial
-    }
-
-    fn focus(&self) -> PanelFocus {
-        self.focus
-    }
-
-    fn focused(self) -> Self {
-        ForceQuitOpening {
-            focus: PanelFocus::Held,
-            ..self
-        }
-    }
-}
+/// One opening of the panel: where, and which opening it is (a new one starts afresh). It
+/// carries nothing of its own.
+pub type ForceQuitOpening = Opening<()>;
 
 /// Whether the panel is open, remembering the last opening's serial so the next one counts on.
 pub type ForceQuitShown = Reveal<ForceQuitOpening>;
 
-/// `shown` open on `output`: opening an open panel where it is stays the same opening, anywhere
-/// else is a new one.
-pub fn open(shown: &ForceQuitShown, output: OutputId) -> ForceQuitShown {
-    match shown.opening() {
-        Some(opening) if opening.output == output => shown.clone(),
-        Some(_) | None => Reveal::Revealed(ForceQuitOpening {
-            serial: OpenSerial(shown.serial().0 + 1),
-            output,
-            focus: PanelFocus::Awaited,
-        }),
-    }
-}
-
-/// Open on `output` when closed, close when open: the shortcut.
-pub fn toggle(shown: &ForceQuitShown, output: OutputId) -> ForceQuitShown {
-    match shown {
-        Reveal::Revealed(_) => shown.hidden(),
-        Reveal::Hidden { .. } => open(shown, output),
-    }
-}
-
 /// An app the person confirmed force quitting.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ForceQuitAsked {
-    /// Counts up from 1 per link.
-    pub seq: u64,
+pub struct ForceQuitAsk {
     /// The app's key, as `DesktopCommand::ForceQuitApp` quotes it.
     pub app: String,
 }
+
+/// A confirmation, numbered.
+pub type ForceQuitAsked = Sent<ForceQuitAsk>;
 
 /// The shared channels, a root context of every panel surface and kept by the daemon. Clone is
 /// cheap.
 #[derive(Debug, Clone, Default)]
 pub struct ForceQuitLink {
-    panel: Shared<ForceQuitShown>,
+    panel: PanelLink<()>,
     rows: Shared<Vec<ForceQuitRow>>,
-    asked: Shared<Option<ForceQuitAsked>>,
+    asked: Outbox<ForceQuitAsk>,
 }
 
 impl ForceQuitLink {
@@ -94,19 +46,20 @@ impl ForceQuitLink {
         self.panel.now()
     }
 
-    /// Open on `output`.
+    /// Open on `output`: opening an open panel where it is stays the same opening, anywhere
+    /// else is a new one.
     pub fn open(&self, output: OutputId) {
-        self.panel.update(|panel| open(panel, output));
+        self.panel.open(output, ());
     }
 
-    /// Open on `output` when closed, close when open.
+    /// Open on `output` when closed, close when open: the shortcut.
     pub fn toggle(&self, output: OutputId) {
-        self.panel.update(|panel| toggle(panel, output));
+        self.panel.toggle(output, ());
     }
 
     /// Close: Escape, Done, a press away from the panel, or `sill force-quit close`.
     pub fn close(&self) {
-        self.panel.update(Reveal::hidden);
+        self.panel.close();
     }
 
     /// A receiver for a surface to follow.
@@ -126,16 +79,12 @@ impl ForceQuitLink {
 
     /// The person confirmed force quitting `app`.
     pub fn ask(&self, app: impl Into<String>) {
-        let app = app.into();
-        self.asked.modify(|last| {
-            let seq = last.as_ref().map_or(1, |last| last.seq + 1);
-            *last = Some(ForceQuitAsked { seq, app });
-        });
+        self.asked.send(ForceQuitAsk { app: app.into() });
     }
 
     /// The latest confirmation.
     pub fn last_asked(&self) -> Option<ForceQuitAsked> {
-        self.asked.now()
+        self.asked.latest()
     }
 
     /// A receiver for the daemon to follow.
@@ -148,7 +97,7 @@ impl ForceQuitLink {
 mod tests {
     use shell_host::OutputId;
 
-    use super::{ForceQuitLink, ForceQuitShown, open, toggle};
+    use super::{ForceQuitLink, ForceQuitShown};
     use crate::links::{OpenSerial, Reveal};
 
     const ONE: OutputId = OutputId(1);
@@ -157,25 +106,25 @@ mod tests {
     #[test]
     fn the_shortcut_opens_and_closes_and_each_opening_counts_on() {
         let closed = ForceQuitShown::default();
-        let opened = toggle(&closed, ONE);
+        let opened = closed.toggle(ONE, ());
         assert_eq!(opened.serial(), OpenSerial(1));
         assert_eq!(opened.opening().map(|o| o.output), Some(ONE));
-        let shut = toggle(&opened, ONE);
+        let shut = opened.toggle(ONE, ());
         assert_eq!(
             shut,
             Reveal::Hidden {
                 last: OpenSerial(1)
             }
         );
-        assert_eq!(toggle(&shut, TWO).serial(), OpenSerial(2));
+        assert_eq!(shut.toggle(TWO, ()).serial(), OpenSerial(2));
     }
 
     #[test]
     fn opening_where_it_is_open_is_no_new_opening_but_elsewhere_is() {
-        let opened = open(&ForceQuitShown::default(), ONE);
-        assert_eq!(open(&opened, ONE), opened);
-        assert_eq!(open(&opened, TWO).serial(), OpenSerial(2));
-        assert_eq!(open(&opened, TWO).opening().map(|o| o.output), Some(TWO));
+        let opened = ForceQuitShown::default().open(ONE, ());
+        assert_eq!(opened.open(ONE, ()), opened);
+        assert_eq!(opened.open(TWO, ()).serial(), OpenSerial(2));
+        assert_eq!(opened.open(TWO, ()).opening().map(|o| o.output), Some(TWO));
     }
 
     #[test]

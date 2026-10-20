@@ -273,11 +273,7 @@ fn spawn_followers(
     crate::idle_dim::spawn_follower(runtime.handle(), services, host.clone());
     settings::spawn_watch(runtime, store, host.clone());
     settings::spawn_user_style_watch(runtime, store, host.clone());
-    crate::window_menu::spawn_picks(runtime.handle(), links, host.clone());
-    crate::split_picker::spawn_answers(runtime.handle(), links, host.clone());
-    crate::display_trial::spawn_answers(runtime.handle(), links, host.clone());
-    crate::force_quit::spawn_asks(runtime.handle(), links, host.clone());
-    crate::spaces_bar::spawn_picks(runtime.handle(), links, host.clone());
+    crate::outgoing::spawn_all(runtime.handle(), links, host);
     crate::spaces_bar::spawn_outbox(runtime.handle(), links, host.clone());
     crate::eyedropper::spawn_follower(runtime.handle(), links, services, host.clone());
     crate::corners::spawn_hits(

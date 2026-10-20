@@ -1,14 +1,13 @@
 //! The daemon's half of a window's menu: the compositor's note opens it on the link
 //! ([`crate::daemon::compositor::apply`]), the window menu surfaces show it, and an entry the
-//! person picked comes back on the link. [`spawn_picks`] follows the picks and sends each to the
-//! host as a command for the desktop arm; a dismissal wrote nothing, so nothing is sent.
+//! person picked comes back on the link. [`Outgoing`] sends each pick to the host as a
+//! command for the desktop arm; a dismissal wrote nothing, so nothing is sent.
 
-use shell_host::HostHandle;
 use sill_model::desktop::DesktopCommand;
-use sill_ui_kit::links::{Links, WindowMenuPicked};
-use tokio::runtime::Handle;
+use sill_ui_kit::links::{WindowMenuLink, WindowMenuPick, WindowMenuPicked};
+use tokio::sync::watch;
 
-use crate::daemon::msg::ShellMsg;
+use crate::outgoing::Outgoing;
 
 /// The command a pick is: the window's menu entry, quoted by the window's identifier.
 ///
@@ -29,20 +28,14 @@ pub fn command_of(picked: &WindowMenuPicked) -> DesktopCommand {
     DesktopCommand::PickWindowMenu(picked.window.clone(), picked.entry)
 }
 
-/// Follow the picks on `links` on `rt` and send each to the host, until the host is gone.
-pub fn spawn_picks(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
-    let mut picks = links.window_menu.subscribe_picks();
-    rt.spawn(async move {
-        loop {
-            if picks.changed().await.is_err() {
-                return;
-            }
-            let Some(picked) = picks.borrow_and_update().clone() else {
-                continue;
-            };
-            if host.send(ShellMsg::Command(command_of(&picked))).is_err() {
-                return;
-            }
-        }
-    });
+impl Outgoing for WindowMenuLink {
+    type Item = WindowMenuPick;
+
+    fn follow(&self) -> watch::Receiver<Option<WindowMenuPicked>> {
+        self.subscribe_picks()
+    }
+
+    fn commands(picked: &WindowMenuPicked) -> Vec<DesktopCommand> {
+        vec![command_of(picked)]
+    }
 }

@@ -1,14 +1,13 @@
 //! The daemon's half of the Split View picker: the compositor's notes open, fill and close the
 //! offer on the link ([`apply`], called from [`crate::daemon::compositor::apply`]), the picker
-//! surfaces show it, and the answer comes back on the link. [`spawn_answers`] follows the answers
-//! and sends each to the host as a command for the desktop arm.
+//! surfaces show it, and the answer comes back on the link. [`Outgoing`] sends each answer to the host as a
+//! command for the desktop arm.
 
-use shell_host::HostHandle;
 use sill_model::desktop::{DesktopCommand, DesktopView, ShellNote, cards_of, output_of};
-use sill_ui_kit::links::{Links, SplitAnswer, SplitAnswered, SplitPickerLink};
-use tokio::runtime::Handle;
+use sill_ui_kit::links::{SplitAnswer, SplitAnswered, SplitPickerLink, SplitReply};
+use tokio::sync::watch;
 
-use crate::daemon::msg::ShellMsg;
+use crate::outgoing::Outgoing;
 
 /// What a note of the Split View choice does to the offer on `link`. `view` is the desktop as it
 /// is now: it names the first window's output and the words of each window on offer. Any other
@@ -57,22 +56,16 @@ pub fn command_of(answered: &SplitAnswered) -> DesktopCommand {
     }
 }
 
-/// Follow the answers on `links` on `rt` and send each to the host, until the host is gone.
-pub fn spawn_answers(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
-    let mut answers = links.split_picker.subscribe_answers();
-    rt.spawn(async move {
-        loop {
-            if answers.changed().await.is_err() {
-                return;
-            }
-            let Some(answered) = answers.borrow_and_update().clone() else {
-                continue;
-            };
-            if host.send(ShellMsg::Command(command_of(&answered))).is_err() {
-                return;
-            }
-        }
-    });
+impl Outgoing for SplitPickerLink {
+    type Item = SplitReply;
+
+    fn follow(&self) -> watch::Receiver<Option<SplitAnswered>> {
+        self.subscribe_answers()
+    }
+
+    fn commands(answered: &SplitAnswered) -> Vec<DesktopCommand> {
+        vec![command_of(answered)]
+    }
 }
 
 #[cfg(test)]

@@ -16,7 +16,6 @@ use sill_model::notifications::{
 };
 use sill_notify_ui::notification_center::PANEL_ID;
 use sill_settings::ShellFile;
-use sill_ui_kit::links::CenterShown;
 use sill_ui_kit::panel::PANEL_PADDING;
 
 /// A group's toggle ("N more", "Show less") and Clear, in its header.
@@ -292,7 +291,7 @@ fn a_press_outside_the_panel_closes_it_after_quires_exit() {
     until(&mut running, |h| {
         h.attr(".ds-side-panel", "data-presence").as_deref() != Some("present")
     });
-    assert_eq!(running.link.now(), CenterShown::Closed);
+    assert!(running.link.now().opening().is_none());
     assert_eq!(
         running
             .harness
@@ -338,6 +337,6 @@ fn a_press_inside_the_panel_keeps_it_open() {
     running.harness.send(Input::click(title));
     // Nothing should change, so nothing to wait on: a margin past the panel's exit time.
     advance(&mut running, 400);
-    assert_eq!(running.link.now(), CenterShown::Open(fake::output().id));
+    assert!(running.link.now().open_on(fake::output().id));
     assert_eq!(running.harness.count(".ds-side-panel"), 1);
 }

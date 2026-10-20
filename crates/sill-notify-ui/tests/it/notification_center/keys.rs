@@ -10,7 +10,6 @@ use ds_harness::{FocusState, Input};
 use sill_model::notifications::{
     ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand,
 };
-use sill_ui_kit::links::CenterShown;
 
 #[test]
 fn the_column_holds_the_keyboard_and_the_arrows_move_the_ring() {
@@ -55,7 +54,7 @@ fn return_opens_a_group_then_invokes_a_lone_card_and_closes() {
             token: Activation::NoToken,
         }]
     );
-    assert_eq!(running.link.now(), CenterShown::Closed);
+    assert!(running.link.now().opening().is_none());
 }
 
 #[test]
@@ -103,6 +102,6 @@ fn escape_closes() {
     let mut running = opened(two_apps());
     running.harness.send(Input::key(ShortcutKey::Escape));
     advance(&mut running, 20);
-    assert_eq!(running.link.now(), CenterShown::Closed);
+    assert!(running.link.now().opening().is_none());
     assert!(commands(&mut running).is_empty());
 }

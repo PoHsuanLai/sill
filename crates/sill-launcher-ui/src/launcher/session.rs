@@ -4,7 +4,7 @@
 use sill_launcher::{Generation, LauncherMode, ProviderKind};
 
 use crate::launcher::keys::{Filter, LauncherState};
-use sill_ui_kit::links::{OpenSerial, Opening};
+use sill_ui_kit::links::{LauncherOpening, OpenSerial};
 
 /// The filter a panel starts in: every provider to search, the companion's own rows to talk.
 pub fn filter_for(mode: LauncherMode) -> Filter {
@@ -29,7 +29,7 @@ pub struct Session {
 
 impl Session {
     /// A fresh session for `opening`, over results of generation `since`.
-    pub fn opened(opening: &Opening, since: Generation) -> Session {
+    pub fn opened(opening: &LauncherOpening, since: Generation) -> Session {
         Session {
             serial: opening.serial,
             query: opening.query.clone(),
@@ -44,7 +44,7 @@ impl Session {
 
     /// This session when it is `opening`'s, else a fresh one. A render can run before the
     /// opening's effect stores its session; until then every generation counts as fresh.
-    pub fn for_opening(&self, opening: &Opening) -> Session {
+    pub fn for_opening(&self, opening: &LauncherOpening) -> Session {
         if self.serial == opening.serial {
             self.clone()
         } else {
@@ -71,25 +71,31 @@ mod tests {
     use crate::launcher::keys::{Filter, LauncherState};
     use shell_host::OutputId;
     use sill_launcher::{Generation, LauncherMode, ProviderKind};
-    use sill_ui_kit::links::{OpenSerial, Opening, PanelFocus};
+    use sill_ui_kit::links::{LauncherAsk, LauncherOpening, OpenSerial, PanelFocus};
     use std::time::Instant;
 
-    fn opening(serial: u64, query: &str) -> Opening {
-        Opening {
+    fn opening(serial: u64, query: &str) -> LauncherOpening {
+        LauncherOpening {
             output: OutputId(1),
-            query: query.to_owned(),
             serial: OpenSerial(serial),
-            mode: LauncherMode::Search,
-            requested: Instant::now(),
             focus: PanelFocus::Awaited,
+            payload: LauncherAsk {
+                query: query.to_owned(),
+                mode: LauncherMode::Search,
+                requested: Instant::now(),
+            },
         }
     }
 
     #[test]
     fn a_companion_opening_starts_on_the_companions_rows() {
-        let companion = Opening {
-            mode: LauncherMode::Companion,
-            ..opening(1, "")
+        let base = opening(1, "");
+        let companion = LauncherOpening {
+            payload: LauncherAsk {
+                mode: LauncherMode::Companion,
+                ..base.payload.clone()
+            },
+            ..base
         };
         let session = Session::opened(&companion, Generation(0));
         assert_eq!(session.keys.filter, Filter::Only(ProviderKind::Companion));

@@ -12,7 +12,7 @@ use sill_model::desktop::{
 };
 use tokio::sync::watch;
 
-use super::Shared;
+use super::{Outbox, Sent, Shared};
 
 /// What the bar surfaces draw from.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -31,21 +31,15 @@ pub struct SpacesBarFeed {
     pub layouts: BarLayouts,
 }
 
-/// A click in the bar.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SpacesBarPicked {
-    /// Counts up from 1 per link.
-    pub seq: u64,
-    /// What was clicked.
-    pub pick: BarPick,
-}
+/// A click in the bar, numbered; the click is its `item`.
+pub type SpacesBarPicked = Sent<BarPick>;
 
 /// The shared channels, a root context of every bar surface and kept by the daemon. Clone is
 /// cheap.
 #[derive(Debug, Clone, Default)]
 pub struct SpacesBarLink {
     feed: Shared<SpacesBarFeed>,
-    picked: Shared<Option<SpacesBarPicked>>,
+    picked: Outbox<BarPick>,
 }
 
 impl SpacesBarLink {
@@ -150,15 +144,12 @@ impl SpacesBarLink {
 
     /// The person clicked in the bar.
     pub fn pick(&self, pick: BarPick) {
-        self.picked.modify(|last| {
-            let seq = last.as_ref().map_or(1, |last| last.seq + 1);
-            *last = Some(SpacesBarPicked { seq, pick });
-        });
+        self.picked.send(pick);
     }
 
     /// The latest click.
     pub fn last_pick(&self) -> Option<SpacesBarPicked> {
-        self.picked.now()
+        self.picked.latest()
     }
 
     /// A receiver for the daemon to follow.
@@ -229,6 +220,6 @@ mod tests {
         link.pick(BarPick::Add("DP-1".to_owned()));
         link.pick(BarPick::Add("DP-2".to_owned()));
         let last = link.last_pick().expect("picked");
-        assert_eq!((last.seq, last.pick), (2, BarPick::Add("DP-2".to_owned())));
+        assert_eq!((last.seq, last.item), (2, BarPick::Add("DP-2".to_owned())));
     }
 }

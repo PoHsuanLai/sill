@@ -1,15 +1,14 @@
 //! The daemon's half of the display trial: the compositor's notes open, restart and close the
 //! question on the link ([`apply`], called from [`crate::daemon::compositor::apply`]), the trial
 //! surface on the banners' output shows it, and the answer comes back on the link.
-//! [`spawn_answers`] follows the answers and sends each to the host as a command for the desktop
+//! [`Outgoing`] sends each answer to the host as a command for the desktop
 //! arm. The compositor reverts by itself when the time runs out, so nothing here keeps time.
 
-use shell_host::HostHandle;
 use sill_model::desktop::{DesktopCommand, ShellNote};
-use sill_ui_kit::links::{DisplayTrialLink, Links, TrialAnswered};
-use tokio::runtime::Handle;
+use sill_ui_kit::links::{DisplayTrialLink, TrialAnswered, TrialReply};
+use tokio::sync::watch;
 
-use crate::daemon::msg::ShellMsg;
+use crate::outgoing::Outgoing;
 
 /// What a note of the display trial does to the question on `link`. Any other note changes
 /// nothing.
@@ -42,22 +41,16 @@ pub fn command_of(answered: &TrialAnswered) -> DesktopCommand {
     }
 }
 
-/// Follow the answers on `links` on `rt` and send each to the host, until the host is gone.
-pub fn spawn_answers(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
-    let mut answers = links.display_trial.subscribe_answers();
-    rt.spawn(async move {
-        loop {
-            if answers.changed().await.is_err() {
-                return;
-            }
-            let Some(answered) = *answers.borrow_and_update() else {
-                continue;
-            };
-            if host.send(ShellMsg::Command(command_of(&answered))).is_err() {
-                return;
-            }
-        }
-    });
+impl Outgoing for DisplayTrialLink {
+    type Item = TrialReply;
+
+    fn follow(&self) -> watch::Receiver<Option<TrialAnswered>> {
+        self.subscribe_answers()
+    }
+
+    fn commands(answered: &TrialAnswered) -> Vec<DesktopCommand> {
+        vec![command_of(answered)]
+    }
 }
 
 #[cfg(test)]

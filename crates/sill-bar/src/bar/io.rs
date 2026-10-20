@@ -35,7 +35,7 @@ use sill_services::{AppMenuService, AppsService, SessionService, TrayService, Wi
 use sill_ui_kit::hooks::{
     use_appearance, use_control, use_service, use_service_part, use_services, use_settings,
 };
-use sill_ui_kit::links::{CenterLink, CenterShown, ControlCenterLink, PowerMenuLink, Preselect};
+use sill_ui_kit::links::{CenterLink, ControlCenterLink, PowerMenuLink, Preselect};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::surface::launch_with_token;
 
@@ -327,7 +327,7 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
 fn center_open(deps: &SessionDeps) -> Option<&CenterLink> {
     deps.center
         .as_ref()
-        .filter(|center| center.now() != CenterShown::Closed)
+        .filter(|center| center.now().opening().is_some())
 }
 
 /// Open the popup with `menu`'s view.

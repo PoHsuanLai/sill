@@ -1,14 +1,13 @@
 //! The daemon's half of the Force Quit Applications panel: the compositor's view of the desktop
 //! fills the list on the link (`daemon::events`), the panel surfaces show it, and the app the
-//! person confirmed comes back on the link. [`spawn_asks`] follows the confirmations and sends
-//! each to the host as a command for the desktop arm.
+//! person confirmed comes back on the link. [`Outgoing`] sends each to the host as a command
+//! for the desktop arm.
 
-use shell_host::HostHandle;
 use sill_model::desktop::DesktopCommand;
-use sill_ui_kit::links::{ForceQuitAsked, Links};
-use tokio::runtime::Handle;
+use sill_ui_kit::links::{ForceQuitAsk, ForceQuitAsked, ForceQuitLink};
+use tokio::sync::watch;
 
-use crate::daemon::msg::ShellMsg;
+use crate::outgoing::Outgoing;
 
 /// The command that ends the app `asked` names.
 ///
@@ -24,20 +23,14 @@ pub fn command_of(asked: &ForceQuitAsked) -> DesktopCommand {
     DesktopCommand::ForceQuitApp(asked.app.clone())
 }
 
-/// Follow the confirmations on `links` on `rt` and send each to the host, until the host is gone.
-pub fn spawn_asks(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
-    let mut asks = links.force_quit.subscribe_asked();
-    rt.spawn(async move {
-        loop {
-            if asks.changed().await.is_err() {
-                return;
-            }
-            let Some(asked) = asks.borrow_and_update().clone() else {
-                continue;
-            };
-            if host.send(ShellMsg::Command(command_of(&asked))).is_err() {
-                return;
-            }
-        }
-    });
+impl Outgoing for ForceQuitLink {
+    type Item = ForceQuitAsk;
+
+    fn follow(&self) -> watch::Receiver<Option<ForceQuitAsked>> {
+        self.subscribe_asked()
+    }
+
+    fn commands(asked: &ForceQuitAsked) -> Vec<DesktopCommand> {
+        vec![command_of(asked)]
+    }
 }

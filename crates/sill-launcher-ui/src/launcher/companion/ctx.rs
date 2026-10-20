@@ -9,7 +9,7 @@ use ds::components::menus::palette::palette_claim::Claim;
 use prov::TaskId;
 use sill_launcher::{LauncherMode, ProviderKind, Subject};
 use sill_model::companion::{CompanionCommand, Summon};
-use sill_ui_kit::links::Opening;
+use sill_ui_kit::links::LauncherOpening;
 
 use super::{CompanionOut, companion_step, follows_state, pane_of, selected_of};
 use crate::launcher::events::PanelCtx;
@@ -37,7 +37,7 @@ impl PanelCtx {
 
     /// The panel's mode changed in place (the same opening): becoming a prompt keeps the search
     /// text as a chip and empties the field; going back puts it back. The rows follow the mode.
-    pub(crate) fn mode_changed(&self, opening: &Opening) {
+    pub(crate) fn mode_changed(&self, opening: &LauncherOpening) {
         let Some(session) = self.current() else {
             return;
         };

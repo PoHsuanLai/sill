@@ -40,7 +40,7 @@ mod tests {
     use shell_host::OutputId;
     use sill_model::session::SessionAction;
     use sill_ui_kit::links::{OpenSerial, PanelFocus};
-    use sill_ui_kit::links::{PowerMenuOpening, Preselect, Showing};
+    use sill_ui_kit::links::{PowerMenuOpening, PowerMenuPayload, Preselect, Showing};
     use sill_ui_kit::sheet_stage::SheetExit;
 
     fn menu(default: SessionAction, phase: SheetExit<Then>) -> MenuSession {
@@ -57,10 +57,12 @@ mod tests {
         use SheetExit::{Leaving, Open};
         let opening = |serial: u64, showing: Showing| PowerMenuOpening {
             output: OutputId(1),
-            preselect: Preselect::Default,
             serial: OpenSerial(serial),
             focus: PanelFocus::Awaited,
-            showing,
+            payload: PowerMenuPayload {
+                preselect: Preselect::Default,
+                showing,
+            },
         };
         let at = |serial: u64, phase: SheetExit<Then>| MenuSession {
             serial: OpenSerial(serial),

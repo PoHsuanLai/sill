@@ -1,18 +1,21 @@
 //! The daemon's half of Mission Control's Spaces bar: the compositor's notes raise and lower the
 //! bar on the link per output, bring the pictures of Spaces and say which Space a dragged window
 //! is over ([`apply_note`], called from [`crate::daemon::compositor::apply`]), the bar surfaces
-//! draw it, and a click comes back on the link. [`spawn_picks`] follows the clicks and sends each
-//! one's commands to the host for the desktop arm; [`spawn_outbox`] follows the bars' layouts
+//! draw it, and a click comes back on the link. [`Outgoing`] sends each click's commands to the
+//! host for the desktop arm; [`spawn_outbox`] follows the bars' layouts
 //! and sends the drop targets and the requests for pictures.
 
 use shell_host::HostHandle;
 use sill_model::desktop::{
-    Outbox, OverviewNote, ShellNote, Shown, bar_show, commands_of, outgoing,
+    BarPick, DesktopCommand, Outbox, OverviewNote, ShellNote, Shown, bar_show, commands_of,
+    outgoing,
 };
-use sill_ui_kit::links::{Links, SpacesBarLink};
+use sill_ui_kit::links::{Links, SpacesBarLink, SpacesBarPicked};
 use tokio::runtime::Handle;
+use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
+use crate::outgoing::Outgoing;
 
 /// What an overview note does to the bar on `link`: Mission Control opening raises it, closing
 /// lowers it. The layout (`Laid`) is the compositor's, and changes nothing here.
@@ -91,25 +94,16 @@ pub fn spawn_outbox(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
     });
 }
 
-/// Follow the clicks on `links` on `rt` and send each one's commands to the host, until the host
-/// is gone.
-pub fn spawn_picks(rt: &Handle, links: &Links, host: HostHandle<ShellMsg>) {
-    let mut picks = links.spaces_bar.subscribe_picks();
-    rt.spawn(async move {
-        loop {
-            if picks.changed().await.is_err() {
-                return;
-            }
-            let Some(picked) = picks.borrow_and_update().clone() else {
-                continue;
-            };
-            for command in commands_of(&picked.pick) {
-                if host.send(ShellMsg::Command(command)).is_err() {
-                    return;
-                }
-            }
-        }
-    });
+impl Outgoing for SpacesBarLink {
+    type Item = BarPick;
+
+    fn follow(&self) -> watch::Receiver<Option<SpacesBarPicked>> {
+        self.subscribe_picks()
+    }
+
+    fn commands(picked: &SpacesBarPicked) -> Vec<DesktopCommand> {
+        commands_of(&picked.item)
+    }
 }
 
 #[cfg(test)]

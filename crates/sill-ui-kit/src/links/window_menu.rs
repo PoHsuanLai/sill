@@ -7,7 +7,7 @@
 use sill_model::desktop::{WindowEntries, WindowEntry};
 use tokio::sync::watch;
 
-use super::Shared;
+use super::{Outbox, Sent, Shared};
 
 /// Counts openings; each is one more than the last.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
@@ -28,21 +28,22 @@ pub struct WindowMenuOpening {
 
 /// An entry the person picked.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WindowMenuPicked {
-    /// Counts up from 1 per link.
-    pub seq: u64,
+pub struct WindowMenuPick {
     /// The window the menu was for.
     pub window: String,
     /// The entry.
     pub entry: WindowEntry,
 }
 
+/// A pick, numbered.
+pub type WindowMenuPicked = Sent<WindowMenuPick>;
+
 /// The shared channels, a root context of every window menu surface and kept by the daemon.
 /// Clone is cheap.
 #[derive(Debug, Clone, Default)]
 pub struct WindowMenuLink {
     opening: Shared<Option<WindowMenuOpening>>,
-    picked: Shared<Option<WindowMenuPicked>>,
+    picked: Outbox<WindowMenuPick>,
 }
 
 impl WindowMenuLink {
@@ -77,16 +78,15 @@ impl WindowMenuLink {
 
     /// The person picked `entry` in the menu of `window`.
     pub fn pick(&self, window: impl Into<String>, entry: WindowEntry) {
-        let window = window.into();
-        self.picked.modify(|last| {
-            let seq = last.as_ref().map_or(1, |last| last.seq + 1);
-            *last = Some(WindowMenuPicked { seq, window, entry });
+        self.picked.send(WindowMenuPick {
+            window: window.into(),
+            entry,
         });
     }
 
     /// The latest pick.
     pub fn last_pick(&self) -> Option<WindowMenuPicked> {
-        self.picked.now()
+        self.picked.latest()
     }
 
     /// A receiver for the daemon to follow.

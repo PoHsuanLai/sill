@@ -33,7 +33,7 @@ use crate::launcher::session::Session;
 use crate::launcher::view::{Expanded, View, toggled, view};
 use sill_ui_kit::hooks::{use_service, use_service_part, use_services};
 use sill_ui_kit::links::PowerMenuLink;
-use sill_ui_kit::links::{LauncherLink, OpenSerial, Opening, Reveal};
+use sill_ui_kit::links::{LauncherLink, LauncherOpening, OpenSerial, Reveal};
 
 /// The stderr line for one opening: from the request's arrival (`sill launcher toggle|open`)
 /// to the first frame the compositor showed of the panel. The daemon's
@@ -50,7 +50,7 @@ pub fn first_frame_line(elapsed: std::time::Duration) -> String {
 pub(crate) struct PanelCtx {
     pub(crate) output: OutputId,
     pub(crate) link: LauncherLink,
-    pub(crate) shown: ReadSignal<Reveal<Opening>>,
+    pub(crate) shown: ReadSignal<Reveal<LauncherOpening>>,
     pub session: Signal<Session>,
     /// The pane state: the preview pane, "Show More", Tab's ring.
     pub pane: Signal<PaneSession>,
@@ -182,7 +182,7 @@ fn use_openings(ctx: PanelCtx) {
 
 impl PanelCtx {
     /// The opening on this output, if the launcher shows here.
-    pub fn opening(&self) -> Option<Opening> {
+    pub fn opening(&self) -> Option<LauncherOpening> {
         self.shown
             .peek()
             .opening()
@@ -191,7 +191,7 @@ impl PanelCtx {
     }
 
     /// [`PanelCtx::opening`], subscribing the caller to changes.
-    pub fn opening_tracked(&self) -> Option<Opening> {
+    pub fn opening_tracked(&self) -> Option<LauncherOpening> {
         self.shown
             .read()
             .opening()
@@ -201,7 +201,7 @@ impl PanelCtx {
 
     /// A new opening: a fresh session over the results so far, its first query, and the
     /// latency from the request to the first frame the compositor showed.
-    fn opened(&self, opening: &Opening) {
+    fn opened(&self, opening: &LauncherOpening) {
         let since = self.results.peek().generation;
         let mut session = self.session;
         session.set(Session::opened(opening, since));

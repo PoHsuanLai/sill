@@ -7,7 +7,7 @@
 use sill_model::desktop::{SplitCard, SplitSide};
 use tokio::sync::watch;
 
-use super::Shared;
+use super::{Outbox, Sent, Shared};
 
 /// Counts offers; each is one more than the last.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
@@ -39,21 +39,22 @@ pub enum SplitAnswer {
 
 /// An answer to the offer of `first`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SplitAnswered {
-    /// Counts up from 1 per link.
-    pub seq: u64,
+pub struct SplitReply {
     /// The first window of the offer answered.
     pub first: String,
     /// The answer.
     pub answer: SplitAnswer,
 }
 
+/// An answer, numbered.
+pub type SplitAnswered = Sent<SplitReply>;
+
 /// The shared channels, a root context of every picker surface and kept by the daemon. Clone is
 /// cheap.
 #[derive(Debug, Clone, Default)]
 pub struct SplitPickerLink {
     offer: Shared<Option<SplitOffer>>,
-    answered: Shared<Option<SplitAnswered>>,
+    answered: Outbox<SplitReply>,
 }
 
 impl SplitPickerLink {
@@ -111,16 +112,15 @@ impl SplitPickerLink {
 
     /// The person answered the offer of `first`.
     pub fn answer(&self, first: impl Into<String>, answer: SplitAnswer) {
-        let first = first.into();
-        self.answered.modify(|last| {
-            let seq = last.as_ref().map_or(1, |last| last.seq + 1);
-            *last = Some(SplitAnswered { seq, first, answer });
+        self.answered.send(SplitReply {
+            first: first.into(),
+            answer,
         });
     }
 
     /// The latest answer.
     pub fn last_answer(&self) -> Option<SplitAnswered> {
-        self.answered.now()
+        self.answered.latest()
     }
 
     /// A receiver for the daemon to follow.
@@ -182,7 +182,7 @@ mod tests {
         link.answer("w1", SplitAnswer::Picked("w2".to_owned()));
         let last = link.last_answer().expect("answered");
         assert_eq!(
-            (last.seq, last.first.as_str(), last.answer),
+            (last.seq, last.first.as_str(), last.answer.clone()),
             (2, "w1", SplitAnswer::Picked("w2".to_owned()))
         );
     }

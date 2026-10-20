@@ -6,23 +6,21 @@ use shell_host::{KeyboardFocus, OutputId};
 use sill_model::session::SessionAction;
 use tokio::sync::watch;
 
-use super::Shared;
+use super::{Opening, PanelLink, Reveal};
 
-use crate::links::{OpenSerial, Opened, PanelFocus, Reveal};
-
-/// One opening: where, which button starts focused, and which opening it is.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PowerMenuOpening {
-    pub output: OutputId,
+/// What a power menu opening carries beside the shared parts: which button starts focused, and
+/// whether the sheet is up or playing its exit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PowerMenuPayload {
     /// The button focused on open.
     pub preselect: Preselect,
-    /// A new opening remounts the sheet (its entrance plays, focus starts over).
-    pub serial: OpenSerial,
-    /// Whether the surface has held keyboard focus since it opened.
-    pub focus: PanelFocus,
     /// Whether the sheet is up or playing its exit.
     pub showing: Showing,
 }
+
+/// One opening: where, which button starts focused, and which opening it is (a new one remounts
+/// the sheet: its entrance plays, focus starts over).
+pub type PowerMenuOpening = Opening<PowerMenuPayload>;
 
 /// Whether an opening's sheet is up or on its way out (quire's `Sheet` plays the exit; the
 /// menu is hidden only once it has settled).
@@ -41,54 +39,44 @@ pub enum Preselect {
     Action(SessionAction),
 }
 
-impl Opened for PowerMenuOpening {
-    fn output(&self) -> OutputId {
-        self.output
-    }
-
-    fn serial(&self) -> OpenSerial {
-        self.serial
-    }
-
-    fn focus(&self) -> PanelFocus {
-        self.focus
-    }
-
-    fn focused(self) -> Self {
-        PowerMenuOpening {
-            focus: PanelFocus::Held,
-            ..self
-        }
+/// `shown` with `showing` as the opening's sheet state, a hidden menu unchanged.
+fn showing_as(shown: &Reveal<PowerMenuOpening>, showing: Showing) -> Reveal<PowerMenuOpening> {
+    match shown {
+        Reveal::Revealed(opening) => Reveal::Revealed(Opening {
+            payload: PowerMenuPayload {
+                showing,
+                ..opening.payload
+            },
+            ..opening.clone()
+        }),
+        Reveal::Hidden { .. } => shown.clone(),
     }
 }
 
 /// `shown` opened on `output` focusing `preselect`. Opening an open menu on the same output
 /// with the same preselect keeps it as it is (no second entrance), and shows it again if it
 /// was leaving (the sheet enters again); anything else is a new opening.
-pub fn open(
+fn open(
     shown: &Reveal<PowerMenuOpening>,
     output: OutputId,
     preselect: Preselect,
 ) -> Reveal<PowerMenuOpening> {
     match shown.opening() {
         Some(opening) if opening.output == output && opening.preselect == preselect => {
-            Reveal::Revealed(PowerMenuOpening {
-                showing: Showing::Up,
-                ..opening.clone()
-            })
+            showing_as(shown, Showing::Up)
         }
-        _ => Reveal::Revealed(PowerMenuOpening {
+        _ => shown.reopen(
             output,
-            preselect,
-            serial: OpenSerial(shown.serial().0 + 1),
-            focus: PanelFocus::Awaited,
-            showing: Showing::Up,
-        }),
+            PowerMenuPayload {
+                preselect,
+                showing: Showing::Up,
+            },
+        ),
     }
 }
 
 /// `power-menu toggle`: open (at the default button) when hidden or leaving, hide when up.
-pub fn toggle(shown: &Reveal<PowerMenuOpening>, output: OutputId) -> Reveal<PowerMenuOpening> {
+fn toggle(shown: &Reveal<PowerMenuOpening>, output: OutputId) -> Reveal<PowerMenuOpening> {
     match shown.opening().map(|opening| opening.showing) {
         Some(Showing::Up) => shown.hidden(),
         Some(Showing::Leaving) | None => open(shown, output, Preselect::Default),
@@ -96,21 +84,15 @@ pub fn toggle(shown: &Reveal<PowerMenuOpening>, output: OutputId) -> Reveal<Powe
 }
 
 /// The sheet started its exit: still shown (the surface stays mapped) until it settles.
-pub fn leaving(shown: &Reveal<PowerMenuOpening>) -> Reveal<PowerMenuOpening> {
-    match shown {
-        Reveal::Revealed(opening) => Reveal::Revealed(PowerMenuOpening {
-            showing: Showing::Leaving,
-            ..opening.clone()
-        }),
-        Reveal::Hidden { .. } => shown.clone(),
-    }
+fn leaving(shown: &Reveal<PowerMenuOpening>) -> Reveal<PowerMenuOpening> {
+    showing_as(shown, Showing::Leaving)
 }
 
 /// The shared channel, given to every surface as a root context and kept by the daemon. Clone
 /// is cheap.
 #[derive(Debug, Clone, Default)]
 pub struct PowerMenuLink {
-    shown: Shared<Reveal<PowerMenuOpening>>,
+    panel: PanelLink<PowerMenuPayload>,
 }
 
 impl PowerMenuLink {
@@ -121,37 +103,37 @@ impl PowerMenuLink {
 
     /// The current value.
     pub fn now(&self) -> Reveal<PowerMenuOpening> {
-        self.shown.now()
+        self.panel.now()
     }
 
     /// Open on `output`, focusing `preselect`.
     pub fn open(&self, output: OutputId, preselect: Preselect) {
-        self.shown.update(|shown| open(shown, output, preselect));
+        self.panel.update(|shown| open(shown, output, preselect));
     }
 
     /// `power-menu toggle` on `output`.
     pub fn toggle(&self, output: OutputId) {
-        self.shown.update(|shown| toggle(shown, output));
+        self.panel.update(|shown| toggle(shown, output));
     }
 
     /// `power-menu close`, Escape, a scrim click or a chosen action.
     pub fn close(&self) {
-        self.shown.update(Reveal::hidden);
+        self.panel.close();
     }
 
     /// The sheet started its exit (Escape, a scrim click or a chosen action).
     pub fn leaving(&self) {
-        self.shown.update(leaving);
+        self.panel.update(leaving);
     }
 
     /// The surface's keyboard focus changed.
     pub fn focus(&self, focus: KeyboardFocus) {
-        self.shown.update(|shown| shown.after_focus(focus));
+        self.panel.focus(focus);
     }
 
     /// A receiver for a surface to follow.
     pub fn subscribe(&self) -> watch::Receiver<Reveal<PowerMenuOpening>> {
-        self.shown.subscribe()
+        self.panel.subscribe()
     }
 }
 
@@ -160,7 +142,7 @@ mod tests {
     use super::{leaving, open, toggle};
     use crate::links::{OpenSerial, PanelFocus, Reveal};
     use crate::links::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
-    use shell_host::{KeyboardFocus, OutputId, Visibility};
+    use shell_host::{OutputId, Visibility};
     use sill_model::session::SessionAction;
 
     const ONE: OutputId = OutputId(1);
@@ -238,14 +220,6 @@ mod tests {
             OpenSerial(2),
             "elsewhere is a new opening"
         );
-    }
-
-    #[test]
-    fn a_focus_loss_closes_only_a_menu_that_held_focus() {
-        let shown = open(&Reveal::default(), ONE, Preselect::Default);
-        assert_eq!(shown.after_focus(KeyboardFocus::Lost), shown);
-        let held = shown.after_focus(KeyboardFocus::Gained);
-        assert_eq!(held.after_focus(KeyboardFocus::Lost), shown.hidden());
     }
 
     #[test]
