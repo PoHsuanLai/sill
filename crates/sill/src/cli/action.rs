@@ -6,7 +6,7 @@
 use clap::Args;
 use sill_ipc::request::Request;
 use sill_launcher::actions::ActionId;
-use sill_launcher::{AppId, SettingsLink, WindowKey};
+use sill_launcher::{AppId, SettingsTarget, WindowKey};
 use sill_model::actions::{Ask, Subject};
 
 use super::word::word;
@@ -33,7 +33,7 @@ pub struct DoSubject {
     pub windows: Option<Vec<u64>>,
     /// A place in Settings, for example `page:wallpaper`: open-settings.
     #[arg(long, value_name = "PLACE")]
-    pub settings: Option<String>,
+    pub settings: Option<SettingsTarget>,
 }
 
 impl DoSubject {
@@ -44,7 +44,7 @@ impl DoSubject {
             (None, Some(keys), _) => {
                 Subject::Windows(keys.iter().copied().map(WindowKey).collect())
             }
-            (None, None, Some(place)) => Subject::Settings(SettingsLink(place.clone())),
+            (None, None, Some(place)) => Subject::Settings(place.clone()),
             (None, None, None) => Subject::None,
         }
     }

@@ -9,16 +9,17 @@ use std::sync::{Mutex, PoisonError};
 use nucleo_matcher::Matcher;
 use sill_launcher::{
     Activation, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink, Score,
-    SettingsLink,
 };
 
-use ds_settings::schema::Schema;
+use ds_settings::schema::{PageId, Schema};
 use ds_settings::target::SettingsTarget;
-use index::{IndexedKey, SettingsIndex};
+use index::{IndexedKey, IndexedPage, SettingsIndex};
 use schema_files::{fingerprint, schema_paths};
 
 /// A key's `Item.id`: `activate` strips this back off, rather than re-parsing the row's title.
 const KEY_ID_PREFIX: &str = "key:";
+/// A page's `Item.id`, likewise.
+const PAGE_ID_PREFIX: &str = "page:";
 /// A deep-linked key always outranks an ordinary fuzzy match within this provider's own rows.
 const DEEP_LINK_SCORE: Score = Score(1000);
 
@@ -134,6 +135,9 @@ impl Provider for SettingsProvider {
             }
             items.push(key_item(key, score));
         }
+        for (page, score) in index.search_pages(&needle, &mut matcher) {
+            items.push(page_item(page, score));
+        }
 
         if query.is_cancelled() || items.is_empty() {
             return;
@@ -142,6 +146,11 @@ impl Provider for SettingsProvider {
     }
 
     fn activate(&self, item: &Item, _choice: &Choice) -> Activation {
+        if let Some(id) = item.id.0.strip_prefix(PAGE_ID_PREFIX) {
+            return Activation::OpenSettings {
+                target: SettingsTarget::Page(PageId::new(id)),
+            };
+        }
         let Some(path) = item.id.0.strip_prefix(KEY_ID_PREFIX) else {
             return Activation::Nothing;
         };
@@ -150,8 +159,21 @@ impl Provider for SettingsProvider {
             .iter()
             .find(|key| key.path == path)
             .map_or(Activation::Nothing, |key| Activation::OpenSettings {
-                target: SettingsLink(SettingsTarget::Page(key.page.clone()).to_string()),
+                target: SettingsTarget::Page(key.page.clone()),
             })
+    }
+}
+
+fn page_item(page: &IndexedPage, score: Score) -> Item {
+    Item {
+        id: ItemId(format!("{PAGE_ID_PREFIX}{}", page.id)),
+        provider: ProviderKind::Settings,
+        title: page.title.clone(),
+        subtitle: "Settings".to_owned(),
+        icon: IconRef::Glyph("settings".to_owned()),
+        score,
+        actions: Vec::new(),
+        subject: sill_launcher::Subject::None,
     }
 }
 

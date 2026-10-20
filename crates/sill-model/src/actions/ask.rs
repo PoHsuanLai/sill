@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::actions::ActionId;
-use sill_launcher::{AppId, DesktopAction, SettingsLink, WindowKey};
+use sill_launcher::{AppId, DesktopAction, SettingsTarget, WindowKey};
 
 use super::def;
 
@@ -49,7 +49,7 @@ pub enum Subject {
     /// An app, started some particular way.
     Start(Start),
     Windows(Vec<WindowKey>),
-    Settings(SettingsLink),
+    Settings(#[serde(with = "sill_launcher::settings_target::text")] SettingsTarget),
 }
 
 impl Subject {

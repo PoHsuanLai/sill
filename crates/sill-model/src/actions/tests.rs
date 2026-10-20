@@ -1,6 +1,6 @@
 use ds_core::word::Word;
 use sill_launcher::actions::ActionId;
-use sill_launcher::{AppId, Confirm, DesktopAction, SessionAction, SettingsLink, WindowKey};
+use sill_launcher::{AppId, Confirm, DesktopAction, SessionAction, WindowKey, settings_target::page};
 
 use super::{Ask, Effect, Needs, Panel, Start, Subject, def, panel_action, screenshot_action};
 use crate::screenshots::ShotKind;
@@ -91,7 +91,7 @@ fn an_action_is_refused_what_it_cannot_act_on() {
         })
     };
     let windows = || Subject::Windows(vec![WindowKey(1)]);
-    let place = || Subject::Settings(SettingsLink("page:wallpaper".to_owned()));
+    let place = || Subject::Settings(page("wallpaper"));
     let cases = [
         (ActionId::Lock, Subject::None, true),
         (ActionId::Lock, app(), false),
@@ -154,7 +154,7 @@ fn an_ask_has_a_pinned_wire_form() {
         (
             Ask::on(
                 ActionId::OpenSettings,
-                Subject::Settings(SettingsLink("page:wallpaper".to_owned())),
+                Subject::Settings(page("wallpaper")),
             ),
             r#"{"action":"open-settings","subject":{"kind":"settings","v":"page:wallpaper"}}"#,
         ),

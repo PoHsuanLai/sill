@@ -66,7 +66,7 @@ impl Outlets {
 mod tests {
     use super::{Effect, effect};
     use sill_launcher::actions::ActionId;
-    use sill_launcher::{Activation, AppId, DesktopAction, SettingsLink, WindowKey};
+    use sill_launcher::{Activation, AppId, DesktopAction, WindowKey, settings_target::page};
     use sill_model::windows::WlCommand;
 
     #[test]
@@ -112,7 +112,7 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsLink("page:appearance".to_owned()),
+                    target: page("appearance"),
                 },
                 Effect::Elsewhere,
             ),

@@ -7,7 +7,7 @@ use std::time::Duration;
 use tokio::sync::oneshot;
 
 use shell_host::SurfaceHandle;
-use sill_launcher::{AppId, DesktopAction, SettingsLink};
+use sill_launcher::{AppId, DesktopAction, SettingsTarget};
 use sill_model::launch::{LaunchCommand, LaunchRequest, SETTINGS_BUS_NAME, SettingsOpen};
 use sill_services::ServiceError;
 use sill_services::control::Control;
@@ -70,7 +70,7 @@ pub async fn launch_with_token(
 pub async fn open_settings_with_token(
     surface: Option<&SurfaceHandle>,
     launch: &Control<LaunchCommand>,
-    link: SettingsLink,
+    link: SettingsTarget,
 ) -> Result<(), ServiceError> {
     let token = token_from(surface, Some(SETTINGS_BUS_NAME.to_owned())).await;
     launch.send(LaunchCommand::OpenSettings(

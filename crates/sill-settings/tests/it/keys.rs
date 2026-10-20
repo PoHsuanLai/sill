@@ -28,7 +28,7 @@ const FROM_APPEARANCE: &[&str] = &["notifications.banner_material", "launcher.ma
 
 /// Keys sill ships that design/22 has no row for yet; the row is quire's to add (FINDINGS: open
 /// items), and this list ends when it does.
-const UNCATALOGUED: &[&str] = &["voice.hold_to_talk", "wallpaper.picture"];
+const UNCATALOGUED: &[&str] = &["voice.hold_to_talk"];
 
 /// Rows design/22 still has for keys sill dropped (the widget settings, 2026-10-20: the center's
 /// widgets are fixed and there is no desktop layer); the rows are quire's to remove, and this

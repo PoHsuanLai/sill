@@ -18,7 +18,7 @@ pub mod provider;
 pub mod query;
 pub mod rank;
 pub mod session;
-pub mod settings_link;
+pub mod settings_target;
 pub mod sink;
 pub mod subject;
 pub mod time;
@@ -39,7 +39,7 @@ pub use rank::sections::{
 };
 pub use rank::{Prefix, RankWeights, Score, rank, rank_text};
 pub use session::{Confirm, Route, SessionAction};
-pub use settings_link::SettingsLink;
+pub use settings_target::SettingsTarget;
 pub use sink::{Batch, ResultSink, VecSink};
 pub use subject::{
     CharCount, ClipFacts, ClipKind, EmojiFacts, Excerpt, FileFacts, HelperAttention, HelperFacts,

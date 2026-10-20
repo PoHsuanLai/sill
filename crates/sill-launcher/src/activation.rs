@@ -9,7 +9,7 @@ use crate::actions::ActionId;
 use crate::companion::CompanionAct;
 use crate::ids::{AppId, ClipKey};
 use crate::query::Generation;
-use crate::settings_link::SettingsLink;
+use crate::settings_target::SettingsTarget;
 
 /// The effect of choosing a result.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,7 +27,10 @@ pub enum Activation {
     /// action: carry on calculating from the result).
     Insert { text: String },
     /// Open Settings at a place.
-    OpenSettings { target: SettingsLink },
+    OpenSettings {
+        #[serde(with = "crate::settings_target::text")]
+        target: SettingsTarget,
+    },
     /// An action of the shell, done by the daemon: a power action, Reload.
     Do(ActionId),
     /// Open a file, its folder, or an address with the default handler (`xdg-open`, with the
@@ -98,7 +101,7 @@ mod tests {
     use crate::actions::ActionId;
     use crate::ids::{AppId, ClipKey};
     use crate::query::Generation;
-    use crate::settings_link::SettingsLink;
+    use crate::settings_target::page;
     use std::path::PathBuf;
 
     /// Every variant's wire form, pinned: the daemon and the launcher UI agree on these.
@@ -138,7 +141,7 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsLink("page:appearance".to_owned()),
+                    target: page("appearance"),
                 },
                 r#"{"kind":"open_settings","v":{"target":"page:appearance"}}"#,
             ),

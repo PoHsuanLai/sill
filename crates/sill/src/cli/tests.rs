@@ -10,7 +10,8 @@ use sill_ipc::request::Request;
 use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest};
 use sill_ipc::status::StatusRequest;
 use sill_launcher::actions::ActionId as ShellAction;
-use sill_launcher::{AppId, SettingsLink, WindowKey};
+use sill_launcher::settings_target::page;
+use sill_launcher::{AppId, WindowKey};
 use sill_model::actions::{Ask, Subject};
 use sill_model::auth::FakeVerdict;
 use sill_model::hot_corners::Corner;
@@ -313,7 +314,7 @@ fn every_command_line_sends_its_request() {
             &["do", "open-settings", "--settings", "page:wallpaper"],
             Some(Request::Do(Ask::on(
                 ShellAction::OpenSettings,
-                Subject::Settings(SettingsLink("page:wallpaper".to_owned())),
+                Subject::Settings(page("wallpaper")),
             ))),
         ),
         (

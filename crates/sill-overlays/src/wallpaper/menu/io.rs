@@ -4,7 +4,7 @@
 
 use dioxus::prelude::*;
 use shell_host::SurfaceHandle;
-use sill_launcher::SettingsLink;
+use sill_launcher::settings_target::page;
 use sill_launcher::actions::ActionId;
 use sill_model::actions::Subject;
 use sill_ui_kit::hooks::use_link;
@@ -23,7 +23,7 @@ const DESKTOP_MENU: &str = "desktop-menu";
 const GEOM: PopupGeom = PopupGeom::AtPoint { clear: 1 };
 
 /// Settings' page for the wallpaper, by the id the schema declares it under.
-const WALLPAPER_PAGE: &str = "page:wallpaper";
+const WALLPAPER_PAGE: &str = "wallpaper";
 
 /// The desktop menu of the wallpaper: the callback opens it with its corner at the point, drawn in
 /// `look`. Nothing opens without a host (a test render).
@@ -46,7 +46,7 @@ fn open_wallpaper_page(surface: Option<&SurfaceHandle>, actions: Option<&ActionL
     if let Some(actions) = actions {
         actions.do_to(
             ActionId::OpenSettings,
-            Subject::Settings(SettingsLink(WALLPAPER_PAGE.to_owned())),
+            Subject::Settings(page(WALLPAPER_PAGE)),
             Origin {
                 surface: surface.map(SurfaceHandle::id),
                 output: None,

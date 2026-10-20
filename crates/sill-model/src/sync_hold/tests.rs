@@ -1,5 +1,5 @@
 use crate::notifications::ActionKey;
-use sill_launcher::SettingsLink;
+use sill_launcher::settings_target::{AccountRef, SettingsTarget};
 
 use super::{
     Dataset, Hold, SyncHoldEffect as Fx, SyncHoldEvent as Ev, SyncHoldState, dataset_of,
@@ -12,7 +12,9 @@ fn hold(dataset: &str, discard: u64, held: u64) -> Hold {
         account_name: "Work files".to_owned(),
         discard,
         held,
-        account: SettingsLink("account:/org/quire/Accounts1/account/work".to_owned()),
+        account: SettingsTarget::Account(AccountRef(
+            "/org/quire/Accounts1/account/work".to_owned(),
+        )),
     }
 }
 

@@ -1,7 +1,7 @@
 //! syncd's `NeedsConfirmation` signal, as a hold or the end of one.
 
 use porter_dbus::Details;
-use sill_launcher::SettingsLink;
+use sill_launcher::settings_target::{AccountRef, SettingsTarget};
 use sill_model::accounts::AccountKey;
 use sill_model::sync_hold::{Dataset, Hold};
 use zbus::zvariant::OwnedValue;
@@ -57,7 +57,7 @@ impl Heard {
                 account_name,
                 discard,
                 held,
-                account: SettingsLink(format!("account:{}", account.as_str())),
+                account: SettingsTarget::Account(AccountRef(account.as_str().to_owned())),
             }),
             Heard::Ended(_) => None,
         }

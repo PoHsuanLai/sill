@@ -29,7 +29,7 @@ fn query_target(provider: &SettingsProvider, text: &str) -> Vec<SettingsTarget> 
         .into_iter()
         .flatten()
         .filter_map(|item| match provider.activate(&item, &Choice::Primary) {
-            Activation::OpenSettings { target } => target.0.parse().ok(),
+            Activation::OpenSettings { target } => Some(target),
             _ => None,
         })
         .collect()
@@ -75,11 +75,17 @@ fn natural_scrolling_resolves_to_scroll_natural() {
 #[test]
 fn bluetooth_does_not_deep_link_to_any_file_backed_key() {
     let provider = SettingsProvider::with_dirs(vec![fixture_dir()]);
-    let targets = query_target(&provider, "bluetooth");
-    assert!(
-        !targets.iter().any(|t| matches!(t, SettingsTarget::Page(_))),
-        "{targets:?}"
-    );
+    let cancel = Cancel::new();
+    let query = Query::begin("bluetooth", &cancel);
+    let mut sink = VecSink::default();
+    provider.query(&query, &mut sink);
+    let keys: Vec<_> = sink
+        .0
+        .into_iter()
+        .flatten()
+        .filter(|item| item.id.0.starts_with("key:"))
+        .collect();
+    assert!(keys.is_empty(), "{keys:?}");
 }
 
 #[test]

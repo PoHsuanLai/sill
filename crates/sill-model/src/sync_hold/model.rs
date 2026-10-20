@@ -1,6 +1,6 @@
 //! The state types (data only).
 
-use sill_launcher::SettingsLink;
+use sill_launcher::SettingsTarget;
 
 /// syncd's name for a dataset, `<account>/<dataset>`: opaque here, and the only thing a signal
 /// and the notification's action both say it by.
@@ -30,7 +30,7 @@ pub struct Hold {
     /// How many files the dataset holds.
     pub held: u64,
     /// Where Settings opens: the account's detail (`account:<object path>`).
-    pub account: SettingsLink,
+    pub account: SettingsTarget,
 }
 
 /// The holds now on, in the order they were told.

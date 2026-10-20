@@ -5,9 +5,8 @@
 use dioxus::prelude::*;
 use ds::components::controls::button_model::Bezel;
 use ds::prelude::*;
-use ds_settings::schema::PageId;
-use ds_settings::target::SettingsTarget;
-use sill_launcher::SettingsLink;
+use sill_launcher::SettingsTarget;
+use sill_launcher::settings_target::page;
 use sill_launcher::actions::ActionId;
 use sill_model::actions::Subject;
 use sill_shell_kit::prelude::*;
@@ -29,7 +28,7 @@ pub(crate) struct SettingsOpener {
 
 impl SettingsOpener {
     /// Open Settings at `link`, then close the popup.
-    pub(crate) fn open(&self, link: SettingsLink) {
+    pub(crate) fn open(&self, link: SettingsTarget) {
         self.entrance
             .do_to(ActionId::OpenSettings, Subject::Settings(link));
         if let Some(ClosePanel(close)) = self.close {
@@ -47,8 +46,8 @@ pub(crate) fn use_settings_opener() -> SettingsOpener {
 }
 
 /// The link to the Settings page `id` (`wifi`, `bluetooth`).
-pub(crate) fn page_link(id: &str) -> SettingsLink {
-    SettingsLink(SettingsTarget::Page(PageId::new(id)).to_string())
+pub(crate) fn page_link(id: &str) -> SettingsTarget {
+    page(id)
 }
 
 /// The foot: `label` opening Settings at the page `page`.

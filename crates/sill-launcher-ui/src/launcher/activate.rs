@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
     Activation, AppId, Choice, ClipKey, CompanionAct, DesktopAction, Generation, Item, Mime,
-    OpenTarget, Provider, ProviderKind, SettingsLink, Subject, ViewerOpen,
+    OpenTarget, Provider, ProviderKind, SettingsTarget, Subject, ViewerOpen,
 };
 use std::path::PathBuf;
 
@@ -118,7 +118,7 @@ pub enum LauncherEffect {
     /// Ask for an activation token, then open the file, folder or address.
     Open(OpenTarget),
     /// Ask for an activation token, then open Settings at this place.
-    OpenSettings(SettingsLink),
+    OpenSettings(SettingsTarget),
     /// Make a clipboard history entry the clipboard again.
     SetClipboard(ClipKey),
     /// Drop a clipboard history entry and stay open.
@@ -234,7 +234,7 @@ mod tests {
     use super::{AfterEffect, LauncherEffect, LauncherProviders, ShellAction, effect_of};
     use sill_launcher::{
         Activation, AppId, Choice, DesktopAction, IconRef, Item, ItemId, Provider, ProviderKind,
-        Query, ResultSink, Score, SettingsLink, WindowKey,
+        Query, ResultSink, Score, WindowKey, settings_target::page,
     };
     use std::sync::Arc;
 
@@ -322,9 +322,9 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsLink("page:dock".to_owned()),
+                    target: page("dock"),
                 },
-                LauncherEffect::OpenSettings(SettingsLink("page:dock".to_owned())),
+                LauncherEffect::OpenSettings(page("dock")),
             ),
             (Activation::Nothing, LauncherEffect::Nothing),
         ];

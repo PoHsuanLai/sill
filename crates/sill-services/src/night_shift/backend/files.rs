@@ -1,18 +1,19 @@
 //! The two files: casement's `settings.toml`, of which only `[night_light]` is touched, and the
 //! manual turn-on's `night-shift.json`. Both are parsed once here into the model's types. The
-//! person's `settings.toml` is edited in place (every comment, blank line and key order stays,
-//! and a link to a dotfiles copy is written through) and written durably with the permissions it
-//! had; the manual file is sill's own and private.
+//! person's `settings.toml` is edited through `ds_settings::SettingsWriter` (every comment, blank
+//! line and key order stays, a link to a dotfiles copy is written through, and a change is one
+//! lock and one write); the manual file is sill's own and private.
 
 use std::io::ErrorKind;
 use std::path::Path;
 
+use ds_core::settings::KeyPath;
 use ds_core::word::Word;
+use ds_settings::{Edit, SettingsError, SettingsWriter};
 use serde::{Deserialize, Serialize};
 use sill_model::ids::OutputName;
 use sill_model::night_shift::{Manual, MinuteOfDay, NightLight, Schedule, UnixSeconds, Warmth};
 use toml::{Table, Value};
-use toml_edit::{DocumentMut, Item, Table as EditTable, TableLike, Value as EditValue};
 
 use crate::durable::{self, Access};
 
@@ -28,8 +29,8 @@ pub(super) enum FileError {
     Io(#[from] std::io::Error),
     #[error("not a settings table: {0}")]
     Toml(#[from] toml::de::Error),
-    #[error("not a settings file: {0}")]
-    Edit(#[from] toml_edit::TomlError),
+    #[error("{0}")]
+    Settings(#[from] SettingsError),
 }
 
 /// casement's night light as `dir/settings.toml` says it; the defaults for a file that is not
@@ -75,36 +76,41 @@ fn light_of(section: Option<&Value>) -> NightLight {
     }
 }
 
+/// The `[night_light]` table the settings file holds, and the key it keeps there.
+const SECTION: &str = "night_light";
+
+/// `night_light.<key>`.
+fn night_key(key: &str) -> KeyPath {
+    KeyPath(format!("{SECTION}.{key}"))
+}
+
+/// The keys of `light`, as casement reads them.
+fn light_values(light: &NightLight) -> [(&'static str, Value); 5] {
+    [
+        ("mode", Value::String(light.schedule.slug().to_owned())),
+        ("from", Value::Integer(i64::from(light.from.minutes()))),
+        ("to", Value::Integer(i64::from(light.to.minutes()))),
+        ("kelvin", Value::Integer(i64::from(light.warmth.kelvin()))),
+        (
+            "fade_minutes",
+            Value::Integer(i64::from(light.fade_minutes)),
+        ),
+    ]
+}
+
 /// Write `light` into `[night_light]` of `dir/settings.toml`, key by key, leaving every other
 /// key of the file and of the table, and the file's comments and layout, as they were. Nothing is
 /// written when the file already says it. A file that is not valid TOML is not overwritten.
 pub(super) fn write_light(dir: &Path, light: &NightLight) -> Result<(), FileError> {
     let path = dir.join(SETTINGS);
-    let (before, mut doc) = load_doc(&path)?;
-    if let Some(section) = night_light(&mut doc) {
-        set(section, "mode", EditValue::from(light.schedule.slug()));
-        set(
-            section,
-            "from",
-            EditValue::from(i64::from(light.from.minutes())),
-        );
-        set(
-            section,
-            "to",
-            EditValue::from(i64::from(light.to.minutes())),
-        );
-        set(
-            section,
-            "kelvin",
-            EditValue::from(i64::from(light.warmth.kelvin())),
-        );
-        set(
-            section,
-            "fade_minutes",
-            EditValue::from(i64::from(light.fade_minutes)),
-        );
-    }
-    write_settings(&path, &before, &doc)
+    let table = read_table(&path)?;
+    let section = table.get(SECTION);
+    let edits: Vec<Edit> = light_values(light)
+        .into_iter()
+        .filter(|(key, value)| section.and_then(|s| s.get(*key)) != Some(value))
+        .map(|(key, value)| Edit::Set(night_key(key), value))
+        .collect();
+    apply(&path, &edits)
 }
 
 /// The key casement reads the outputs it leaves alone from.
@@ -136,95 +142,48 @@ pub(super) fn skip_list(existing: &[String], skip: &[OutputName]) -> Vec<String>
 /// list removes the key. A file that is not valid TOML is not overwritten.
 pub(super) fn write_skip(dir: &Path, skip: &[OutputName]) -> Result<Skipping, FileError> {
     let path = dir.join(SETTINGS);
-    let (before, mut doc) = load_doc(&path)?;
-    let Some(section) = night_light(&mut doc) else {
-        return Ok(Skipping::AsWas);
-    };
-    match set_skip(section, skip) {
-        Skipping::AsWas => Ok(Skipping::AsWas),
-        Skipping::Changed => {
-            write_settings(&path, &before, &doc)?;
-            Ok(Skipping::Changed)
-        }
-    }
-}
-
-fn set_skip(section: &mut dyn TableLike, skip: &[OutputName]) -> Skipping {
-    let existing: Vec<String> = section
-        .get(SKIP_KEY)
-        .and_then(Item::as_array)
+    let table = read_table(&path)?;
+    let existing: Vec<String> = table
+        .get(SECTION)
+        .and_then(|section| section.get(SKIP_KEY))
+        .and_then(Value::as_array)
         .map(|entries| {
             entries
                 .iter()
-                .filter_map(|entry| entry.as_str())
+                .filter_map(Value::as_str)
                 .map(str::to_owned)
                 .collect()
         })
         .unwrap_or_default();
     let wanted = skip_list(&existing, skip);
     if wanted == existing {
-        return Skipping::AsWas;
+        return Ok(Skipping::AsWas);
     }
-    if wanted.is_empty() {
-        section.remove(SKIP_KEY);
+    let key = night_key(SKIP_KEY);
+    let edit = if wanted.is_empty() {
+        Edit::Unset(key)
     } else {
-        set(
-            section,
-            SKIP_KEY,
-            EditValue::from(wanted.into_iter().collect::<toml_edit::Array>()),
-        );
-    }
-    Skipping::Changed
+        Edit::Set(key, Value::Array(wanted.into_iter().map(Value::String).collect()))
+    };
+    apply(&path, &[edit])?;
+    Ok(Skipping::Changed)
 }
 
-/// `path` as an editable document, with the text it was read from; an empty one for a file that
-/// is not there.
-fn load_doc(path: &Path) -> Result<(String, DocumentMut), FileError> {
+/// `path` as a table; an empty one for a file that is not there.
+fn read_table(path: &Path) -> Result<Table, FileError> {
     match std::fs::read_to_string(path) {
-        Ok(text) => {
-            let doc = text.parse::<DocumentMut>()?;
-            Ok((text, doc))
-        }
-        Err(error) if error.kind() == ErrorKind::NotFound => {
-            Ok((String::new(), DocumentMut::new()))
-        }
+        Ok(text) => Ok(toml::from_str(&text)?),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(Table::new()),
         Err(error) => Err(error.into()),
     }
 }
 
-/// The `[night_light]` table of `doc`, made (or made a table) first.
-fn night_light(doc: &mut DocumentMut) -> Option<&mut dyn TableLike> {
-    let item = doc
-        .as_table_mut()
-        .entry("night_light")
-        .or_insert(Item::Table(EditTable::new()));
-    if item.as_table_like().is_none() {
-        *item = Item::Table(EditTable::new());
-    }
-    item.as_table_like_mut()
-}
-
-/// `section[key] = value`, keeping the comment that sat beside the old value.
-fn set(section: &mut dyn TableLike, key: &str, value: EditValue) {
-    match section.get_mut(key).and_then(Item::as_value_mut) {
-        Some(old) => {
-            let decor = old.decor().clone();
-            *old = value;
-            *old.decor_mut() = decor;
-        }
-        None => {
-            section.insert(key, Item::Value(value));
-        }
-    }
-}
-
-/// Write `doc` over `path` when it differs from `before`, durably, with the file's permissions.
-fn write_settings(path: &Path, before: &str, doc: &DocumentMut) -> Result<(), FileError> {
-    let after = doc.to_string();
-    if after == before {
+/// `edits` to the settings file at `path`, in one lock and one write; none is no write.
+fn apply(path: &Path, edits: &[Edit]) -> Result<(), FileError> {
+    if edits.is_empty() {
         return Ok(());
     }
-    durable::write(path, after.as_bytes(), Access::AsFound)?;
+    SettingsWriter::new(path.to_path_buf()).apply(edits)?;
     Ok(())
 }
 

@@ -4,7 +4,7 @@
 use nucleo_matcher::Matcher;
 use sill_launcher::{FrecencyScore, Needle, RankWeights, Score, rank_text};
 
-use ds_settings::schema::{KeySpec, PageId, PageTable, Schema};
+use ds_settings::schema::{KeySpec, PageDecl, PageId, PageTable, Schema};
 
 /// One settings key, flattened out of whichever schema named it (design/22 §9.3: "the query...
 /// resolves... no hand-kept table" — every field here comes straight off the schema).
@@ -35,10 +35,27 @@ impl IndexedKey {
     }
 }
 
-/// Every indexed key from every schema found, in discovery order.
+/// One page the sidebar lists, as `PageTable::sidebar()` gives it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IndexedPage {
+    pub id: PageId,
+    pub title: String,
+}
+
+impl IndexedPage {
+    fn of(decl: &PageDecl) -> IndexedPage {
+        IndexedPage {
+            id: decl.id.clone(),
+            title: decl.title.0.clone(),
+        }
+    }
+}
+
+/// Every indexed key from every schema found, in discovery order, and the sidebar's pages.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SettingsIndex {
     keys: Vec<IndexedKey>,
+    pages: Vec<IndexedPage>,
 }
 
 impl SettingsIndex {
@@ -51,6 +68,7 @@ impl SettingsIndex {
                 .flat_map(|schema| &schema.key)
                 .map(|spec| IndexedKey::of(spec, &table))
                 .collect(),
+            pages: table.sidebar().map(IndexedPage::of).collect(),
         }
     }
 
@@ -64,6 +82,23 @@ impl SettingsIndex {
 
     pub fn iter(&self) -> impl Iterator<Item = &IndexedKey> {
         self.keys.iter()
+    }
+
+    /// Every sidebar page whose title fuzzy-matches `needle`, with its rank. A hidden page is not
+    /// here: it opens by its target but is not offered.
+    pub fn search_pages(
+        &self,
+        needle: &Needle,
+        matcher: &mut Matcher,
+    ) -> Vec<(&IndexedPage, Score)> {
+        let weights = RankWeights::DEFAULT;
+        self.pages
+            .iter()
+            .filter_map(|page| {
+                let rank = rank_text(needle, &page.title, FrecencyScore(0), &weights, matcher)?;
+                Some((page, rank))
+            })
+            .collect()
     }
 
     /// Every key whose path, label or help fuzzy-matches `needle`, with its rank (0.7 match,
@@ -125,6 +160,7 @@ mod tests {
 
     fn index() -> SettingsIndex {
         SettingsIndex {
+            pages: Vec::new(),
             keys: vec![
                 key(
                     "appearance.theme",
@@ -173,6 +209,7 @@ mod tests {
     #[test]
     fn an_ambiguous_query_resolves_to_nothing() {
         let idx = SettingsIndex {
+            pages: Vec::new(),
             keys: vec![
                 key("appearance.theme", "Theme", "light or dark", "Appearance"),
                 key(
