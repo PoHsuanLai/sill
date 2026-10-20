@@ -21,6 +21,7 @@ pub fn intent_of(id: ActionId) -> Option<&'static str> {
         | A::ShutDown
         | A::Sleep
         | A::EmojiAndSymbols
+        | A::NextInputSource
         | A::PowerMenu
         | A::ForceQuitPanel
         | A::NotificationCenter

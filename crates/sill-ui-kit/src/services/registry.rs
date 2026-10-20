@@ -23,6 +23,7 @@ use sill_services::env::{Dirs, SessionActions};
 use sill_services::events::EventsService;
 use sill_services::guest_asks::{GuestAsksLinks, GuestAsksService};
 use sill_services::idle::{IdleLinks, IdleService};
+use sill_services::input_source::InputSourceService;
 use sill_services::intents::{IntentsLinks, IntentsService};
 use sill_services::kbd_backlight::KbdBacklightService;
 use sill_services::keycap::{KeycapLinks, KeycapService};
@@ -171,6 +172,9 @@ services! {
         bluetooth: BluetoothService = () => crate::harness::fake::bluetooth();
         /// The keyboard backlight (design/26 5.2.7): absent on a machine without one.
         kbd_backlight: KbdBacklightService = ();
+        /// Next Input Source: switches the running input-method framework (fcitx5) to its next
+        /// input method; it reaches the session bus only when asked.
+        input_source: InputSourceService = ();
         power_profile: PowerProfileService = () => crate::harness::fake::power_profiles();
         now_playing: NowPlayingService = ();
         badges: BadgesService = ();

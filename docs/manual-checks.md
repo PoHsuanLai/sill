@@ -397,6 +397,7 @@ the real daemons or a real keyboard.
   must work. While a sill surface holds the keyboard sill tells keycap `keymap-aware` (and the
   window's profile again when it lets go): check in keycap's log that the
   profile flips on open and back on close, and that Cmd+Tab still switches apps while the launcher is up.
+- [ ] **Next Input Source**: with fcitx5 running and two or more input methods in its group, `sill do next-input-source` (Control-Space once casement binds it) switches fcitx5 to the next input method, wrapping from the last to the first; with no input-method framework running it does nothing and the sill log says there is none.
 - [ ] **Dock Cmd/Alt+click**: Cmd+click on a running tile raises it with the other windows hidden as
   before; Alt+click hides the current one. The dock reads Command as the keymap's primary modifier,
   which is Super on our desktop; if keycap rewrites Cmd to Ctrl for the focused window the click

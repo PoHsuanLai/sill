@@ -292,6 +292,10 @@ fn every_command_line_sends_its_request() {
             doing(ShellAction::EmojiAndSymbols),
         ),
         (
+            &["do", "next-input-source"],
+            doing(ShellAction::NextInputSource),
+        ),
+        (
             &["do", "open-app", "--app", "foot"],
             Some(Request::Do(Ask::on(
                 ShellAction::OpenApp,

@@ -11,6 +11,7 @@
 //! `Request::Do`. Nothing here goes over D-Bus.
 
 mod app;
+mod input_source;
 mod launch;
 pub mod next_window;
 pub(crate) mod panel;
@@ -50,6 +51,7 @@ pub fn perform(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, ask: Ask, origin: Ori
         Effect::Settings => settings(ctx, reach, subject, origin),
         Effect::App(verb) => app::perform(ctx, reach, verb, subject, origin),
         Effect::Pref(pref) => pref::flip(reach, pref),
+        Effect::InputSource => input_source::next(reach),
         Effect::Reload => reload(ctx, reach),
     }
 }

@@ -24,6 +24,7 @@ mod events_live;
 mod guest_asks_bus;
 mod icons;
 mod idle_bus;
+mod input_source_bus;
 mod intents_bus;
 mod keycap_layer;
 mod keycap_socket;

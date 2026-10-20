@@ -26,6 +26,8 @@ pub enum ActionId {
     Launcher,
     /// The launcher panel, on emoji and symbols alone.
     EmojiAndSymbols,
+    /// Switch to the next input source (input method).
+    NextInputSource,
     PowerMenu,
     /// The Force Quit Applications panel.
     ForceQuitPanel,

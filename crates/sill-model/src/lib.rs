@@ -24,6 +24,7 @@ pub mod guest_asks;
 pub mod hot_corners;
 pub mod idle;
 pub mod ids;
+pub mod input_source;
 pub mod intents;
 pub mod kbd_backlight;
 pub mod keyboard;

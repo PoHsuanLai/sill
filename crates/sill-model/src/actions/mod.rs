@@ -54,6 +54,8 @@ pub enum Effect {
     App(AppVerb),
     /// Flip a preference the shell keeps.
     Pref(Pref),
+    /// Switch to the next input source of the running input-method framework.
+    InputSource,
     /// Re-read settings.
     Reload,
 }
@@ -152,6 +154,7 @@ impl Effect {
             | Effect::Shot(_)
             | Effect::Desktop(_)
             | Effect::Pref(_)
+            | Effect::InputSource
             | Effect::Reload => Needs::Nothing,
         }
     }
@@ -168,6 +171,7 @@ impl Effect {
             | Effect::Settings
             | Effect::App(_)
             | Effect::Pref(_)
+            | Effect::InputSource
             | Effect::Reload => Confirm::Now,
         }
     }
@@ -220,6 +224,11 @@ pub fn def(id: ActionId) -> ActionDef {
             "Emoji & Symbols",
             Some(StandardAction::EmojiAndSymbols),
             Effect::Find(ProviderKind::Emoji),
+        ),
+        A::NextInputSource => (
+            "Next Input Source",
+            Some(StandardAction::NextInputSource),
+            Effect::InputSource,
         ),
         A::PowerMenu => ("Power Menu", None, Effect::Panel(Panel::PowerMenu)),
         A::ForceQuitPanel => (
