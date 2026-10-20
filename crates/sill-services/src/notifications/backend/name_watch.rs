@@ -10,14 +10,16 @@
 use sill_model::notifications::{
     ActionKey, Activation, CloseReason, NameHolder, NameOwner, NotificationId, ServerMode,
 };
+use sill_model::serve::ClaimError;
 use tokio::sync::mpsc;
-use zbus::fdo::{DBusProxy, NameOwnerChangedStream, RequestNameFlags};
+use zbus::fdo::{DBusProxy, NameOwnerChangedStream};
 use zbus::names::BusName;
 use zbus::object_server::SignalEmitter;
 use zbus::{Connection, fdo};
 
 use super::dbus::{BUS_NAME, Call, OBJECT_PATH, Sender, Server};
 use super::guard::Guarded;
+use crate::serve;
 
 /// A connection to the bus the service speaks on.
 #[derive(Debug)]
@@ -112,13 +114,10 @@ impl Bus {
             eprintln!("sill: notifications: serving {OBJECT_PATH}: {error}");
             return;
         }
-        match self
-            .connection
-            .request_name_with_flags(BUS_NAME, RequestNameFlags::DoNotQueue.into())
-            .await
-        {
-            Ok(_) | Err(zbus::Error::NameTaken) => {}
-            Err(error) => eprintln!("sill: notifications: requesting {BUS_NAME}: {error}"),
+        match serve::take_name(&self.connection, BUS_NAME).await {
+            // Taken is not an error: the holder is read back and shown.
+            Ok(()) | Err(ClaimError::NameTaken(_)) => {}
+            Err(error) => eprintln!("sill: notifications: requesting {BUS_NAME}: {error:?}"),
         }
     }
 

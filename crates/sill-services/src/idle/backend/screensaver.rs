@@ -7,13 +7,14 @@
 //! another holds it, its inhibits never reach sill, and that is logged.
 
 use sill_model::idle::{BusPeer, Idle, IdlePhase, InhibitCookie, InhibitMsg, InhibitReply};
+use sill_model::serve::ClaimError;
 use tokio::sync::{mpsc, oneshot, watch};
-use zbus::fdo::{DBusProxy, NameOwnerChangedStream, RequestNameFlags, RequestNameReply};
+use zbus::fdo::{DBusProxy, NameOwnerChangedStream};
 use zbus::message::Header;
 use zbus::{Connection, fdo, interface};
 
-use super::logind::bus;
 use crate::env::Bus;
+use crate::serve::{claim, refused};
 
 /// The well-known name.
 pub(crate) const BUS_NAME: &str = "org.freedesktop.ScreenSaver";
@@ -109,30 +110,36 @@ impl std::fmt::Debug for Served {
     }
 }
 
-/// Serve the object on `session` and ask for the name.
+/// Serve the object on `session` and ask for the name; `None` when it cannot be had.
 pub(crate) async fn serve(
     session: &Bus,
     calls: mpsc::UnboundedSender<Call>,
     idle: watch::Receiver<Idle>,
 ) -> Option<Served> {
-    let connection = bus(session).await?;
     let saver = Saver { calls, idle };
-    for path in PATHS {
-        if let Err(error) = connection.object_server().at(path, saver.clone()).await {
-            eprintln!("sill: idle: serving {path}: {error}");
+    let claimed = claim(session, BUS_NAME, async |connection| {
+        for path in PATHS {
+            connection
+                .object_server()
+                .at(path, saver.clone())
+                .await
+                .map_err(refused)?;
+        }
+        Ok(())
+    })
+    .await;
+    let connection = match claimed {
+        Ok(connection) => connection,
+        Err(ClaimError::NoBus) => return None,
+        Err(ClaimError::NameTaken(_)) => {
+            eprintln!("sill: idle: {BUS_NAME} is held by another; its inhibits never reach sill");
             return None;
         }
-    }
-    match connection
-        .request_name_with_flags(BUS_NAME, RequestNameFlags::DoNotQueue.into())
-        .await
-    {
-        Ok(RequestNameReply::PrimaryOwner | RequestNameReply::AlreadyOwner) => {}
-        Ok(RequestNameReply::Exists | RequestNameReply::InQueue) | Err(zbus::Error::NameTaken) => {
-            eprintln!("sill: idle: {BUS_NAME} is held by another; its inhibits never reach sill")
+        Err(ClaimError::Refused(why)) => {
+            eprintln!("sill: idle: serving {BUS_NAME}: {why}");
+            return None;
         }
-        Err(error) => eprintln!("sill: idle: requesting {BUS_NAME}: {error}"),
-    }
+    };
     let departures = match DBusProxy::new(&connection).await {
         Ok(dbus) => dbus.receive_name_owner_changed().await.ok(),
         Err(_) => None,
