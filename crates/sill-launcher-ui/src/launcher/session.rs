@@ -1,16 +1,18 @@
 //! One opening's panel state: the typed query, the generation the launcher opened over (older
 //! results are stale) and the keyboard machine's state. Pure.
 
-use sill_launcher::{Generation, LauncherMode, ProviderKind};
+use sill_launcher::{Generation, LauncherMode, ProviderKind, Scope};
 
 use crate::launcher::keys::{Filter, LauncherState};
 use sill_ui_kit::links::{LauncherOpening, OpenSerial};
 
-/// The filter a panel starts in: every provider to search, the companion's own rows to talk.
-pub fn filter_for(mode: LauncherMode) -> Filter {
-    match mode {
-        LauncherMode::Search => Filter::All,
-        LauncherMode::Companion => Filter::Only(ProviderKind::Companion),
+/// The filter a panel starts in: the scope asked for when searching (every provider, or one
+/// alone), the companion's own rows to talk.
+pub fn filter_for(mode: LauncherMode, scope: Scope) -> Filter {
+    match (mode, scope) {
+        (LauncherMode::Companion, _) => Filter::Only(ProviderKind::Companion),
+        (LauncherMode::Search, Scope::Only(kind)) => Filter::Only(kind),
+        (LauncherMode::Search, Scope::All) => Filter::All,
     }
 }
 
@@ -35,7 +37,7 @@ impl Session {
             query: opening.query.clone(),
             since,
             keys: LauncherState {
-                filter: filter_for(opening.mode),
+                filter: filter_for(opening.mode, opening.scope),
                 ..LauncherState::default()
             },
             kept: None,
@@ -70,7 +72,7 @@ mod tests {
     use super::Session;
     use crate::launcher::keys::{Filter, LauncherState};
     use shell_host::OutputId;
-    use sill_launcher::{Generation, LauncherMode, ProviderKind};
+    use sill_launcher::{Generation, LauncherMode, ProviderKind, Scope};
     use sill_ui_kit::links::{LauncherAsk, LauncherOpening, OpenSerial, PanelFocus};
     use std::time::Instant;
 
@@ -82,6 +84,7 @@ mod tests {
             payload: LauncherAsk {
                 query: query.to_owned(),
                 mode: LauncherMode::Search,
+                scope: Scope::All,
                 requested: Instant::now(),
             },
         }
@@ -102,6 +105,22 @@ mod tests {
         assert_eq!(
             Session::opened(&opening(1, ""), Generation(0)).keys.filter,
             Filter::All
+        );
+    }
+
+    #[test]
+    fn a_scoped_opening_starts_on_its_provider() {
+        let base = opening(1, "");
+        let emoji = LauncherOpening {
+            payload: LauncherAsk {
+                scope: Scope::Only(ProviderKind::Emoji),
+                ..base.payload.clone()
+            },
+            ..base
+        };
+        assert_eq!(
+            Session::opened(&emoji, Generation(0)).keys.filter,
+            Filter::Only(ProviderKind::Emoji)
         );
     }
 

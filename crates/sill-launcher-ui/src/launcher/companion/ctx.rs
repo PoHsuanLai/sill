@@ -41,7 +41,7 @@ impl PanelCtx {
         let Some(session) = self.current() else {
             return;
         };
-        let filter = filter_for(opening.mode);
+        let filter = filter_for(opening.mode, opening.scope);
         let next = match opening.mode {
             LauncherMode::Companion => Session {
                 kept: Some(session.query.clone()),

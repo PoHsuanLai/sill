@@ -22,6 +22,7 @@ fn every_action_has_a_label_an_effect_and_a_chord_where_one_stands_for_it() {
         ActionId::Lock,
         ActionId::LogOut,
         ActionId::Launcher,
+        ActionId::EmojiAndSymbols,
         ActionId::ForceQuitPanel,
         ActionId::ScreenshotArea,
         ActionId::ScreenshotScreen,

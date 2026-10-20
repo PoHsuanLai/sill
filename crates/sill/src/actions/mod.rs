@@ -22,7 +22,7 @@ pub mod workspace;
 use shell_host::{HostCtx, HostHandle};
 use sill_ipc::response::{FailureKind, Response};
 use sill_ipc::show::Reveal;
-use sill_launcher::{AppId, Route, SessionAction};
+use sill_launcher::{AppId, Route, Scope, SessionAction};
 use sill_model::actions::{Ask, DesktopStep, Effect, Subject, Way, def};
 use sill_model::launch::{LaunchCommand, LaunchRequest, SettingsOpen};
 use sill_model::locker::LockerCommand;
@@ -44,6 +44,7 @@ pub fn perform(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, ask: Ask, origin: Ori
     match def(action).effect {
         Effect::Session(action) => session(reach, action, origin),
         Effect::Panel(panel) => panel::show(reach, panel, reveal_of(panel.way()), origin.output),
+        Effect::Find(kind) => panel::launcher_in(reach, Scope::Only(kind), origin.output),
         Effect::Switcher(step) => switcher::chord(reach, step),
         Effect::Shot(kind) => screenshot(reach, kind),
         Effect::Desktop(step) => desktop(reach, step),

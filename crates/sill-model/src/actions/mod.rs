@@ -12,7 +12,7 @@ mod tests;
 pub use ask::{Ask, Needs, Subject};
 use chordkit::StandardAction;
 use sill_launcher::actions::ActionId;
-use sill_launcher::{Confirm, SessionAction};
+use sill_launcher::{Confirm, ProviderKind, SessionAction};
 
 use crate::screenshots::ShotKind;
 use crate::windows::Step;
@@ -38,6 +38,8 @@ pub enum Effect {
     Session(SessionAction),
     /// Show, hide or flip a panel: the way its action opens it is [`Panel::way`].
     Panel(Panel),
+    /// The launcher, opened on one kind of result alone.
+    Find(ProviderKind),
     /// A step of the app switcher.
     Switcher(SwitcherStep),
     /// A screenshot with the person's tool.
@@ -143,6 +145,7 @@ impl Effect {
             ) => Needs::App,
             Effect::Session(_)
             | Effect::Panel(_)
+            | Effect::Find(_)
             | Effect::Switcher(_)
             | Effect::Shot(_)
             | Effect::Desktop(_)
@@ -156,6 +159,7 @@ impl Effect {
         match self {
             Effect::Session(action) => action.confirm(),
             Effect::Panel(_)
+            | Effect::Find(_)
             | Effect::Switcher(_)
             | Effect::Shot(_)
             | Effect::Desktop(_)
@@ -209,6 +213,11 @@ pub fn def(id: ActionId) -> ActionDef {
             "Launcher",
             Some(StandardAction::Launcher),
             Effect::Panel(Panel::Launcher),
+        ),
+        A::EmojiAndSymbols => (
+            "Emoji & Symbols",
+            Some(StandardAction::EmojiAndSymbols),
+            Effect::Find(ProviderKind::Emoji),
         ),
         A::PowerMenu => ("Power Menu", None, Effect::Panel(Panel::PowerMenu)),
         A::ForceQuitPanel => (

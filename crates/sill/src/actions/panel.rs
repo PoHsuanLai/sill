@@ -6,7 +6,7 @@ use shell_host::OutputId;
 use sill_bar::Bar;
 use sill_ipc::response::Response;
 use sill_ipc::show::Reveal;
-use sill_launcher::SessionAction;
+use sill_launcher::{Scope, SessionAction};
 use sill_launcher_ui::Launcher;
 use sill_model::actions::Panel;
 use sill_notify_ui::NotificationCenter;
@@ -40,6 +40,17 @@ pub fn launcher(reach: &Reach, reveal: Reveal, query: String, at: Option<OutputI
         }
     }
     Response::Done
+}
+
+/// The launcher, opened with nothing typed on `scope` alone.
+pub fn launcher_in(reach: &Reach, scope: Scope, at: Option<OutputId>) -> Response {
+    match output::<Launcher>(reach, at) {
+        Some(output) => {
+            reach.links.launcher.open_scoped(output, scope);
+            Response::Done
+        }
+        None => unsupported("no output has a launcher surface"),
+    }
 }
 
 /// The power menu, asking about `action` when it is a session action that asks first.

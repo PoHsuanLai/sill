@@ -3,7 +3,7 @@
 
 use std::time::Instant;
 
-use sill_launcher::LauncherMode;
+use sill_launcher::{LauncherMode, Scope};
 
 use crate::links::Opening;
 
@@ -15,6 +15,8 @@ pub struct LauncherAsk {
     /// What the panel is for: finding things, or talking to the companion. A change of it in
     /// place (the same serial) keeps the rows, the selection and the query.
     pub mode: LauncherMode,
+    /// Which providers the panel starts on: every one, or one alone (the emoji grid).
+    pub scope: Scope,
     /// When the request arrived, for `open_latency_ms`.
     pub requested: Instant,
 }

@@ -24,6 +24,8 @@ pub enum ActionId {
     Sleep,
     /// The launcher panel.
     Launcher,
+    /// The launcher panel, on emoji and symbols alone.
+    EmojiAndSymbols,
     PowerMenu,
     /// The Force Quit Applications panel.
     ForceQuitPanel,

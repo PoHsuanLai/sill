@@ -11,7 +11,7 @@ mod opening;
 mod panel_hit;
 
 use shell_host::{KeyboardFocus, OutputId};
-use sill_launcher::LauncherMode;
+use sill_launcher::{LauncherMode, Scope};
 use tokio::sync::watch;
 
 use crate::links::{PanelLink, Reveal, Shared};
@@ -40,6 +40,7 @@ fn ask(query: String, mode: LauncherMode) -> LauncherAsk {
     LauncherAsk {
         query,
         mode,
+        scope: Scope::All,
         requested: ds::base::time::clock::now(),
     }
 }
@@ -81,6 +82,15 @@ impl LauncherLink {
     /// opening is a new one, even over an open panel.
     pub fn open_in(&self, output: OutputId, query: String, mode: LauncherMode) {
         self.panel.reopen(output, ask(query, mode));
+    }
+
+    /// Open on `output` with nothing typed, on `scope` alone.
+    pub fn open_scoped(&self, output: OutputId, scope: Scope) {
+        let opening = LauncherAsk {
+            scope,
+            ..ask(String::new(), LauncherMode::Search)
+        };
+        self.panel.reopen(output, opening);
     }
 
     /// Change the open panel's mode in place; nothing when it is hidden.

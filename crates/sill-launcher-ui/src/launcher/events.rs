@@ -215,7 +215,7 @@ impl PanelCtx {
         // Whatever a pick of the last opening was still waiting for is not this opening's.
         let mut picking = self.picking;
         picking.set(Picking::No);
-        let filter = crate::launcher::session::filter_for(opening.mode);
+        let filter = crate::launcher::session::filter_for(opening.mode, opening.scope);
         self.search(&opening.query, filter);
         if let Some(surface) = self.surface.clone() {
             let requested = opening.requested;
