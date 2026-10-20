@@ -1,5 +1,5 @@
 //! The pins task: load once, apply every command, save atomically, and pick up an external
-//! edit through [`crate::file_touch`].
+//! edit through [`crate::debounced`].
 
 use std::path::{Path, PathBuf};
 
@@ -9,6 +9,7 @@ use sill_model::seed::{Store, first_dock};
 use tokio::sync::{mpsc, watch};
 
 use super::file::{FILE_NAME, load, save};
+use crate::debounced::{self, Debounced};
 use crate::first_run::store_of;
 
 /// Run until `commands` closes (the `Control` was dropped). While the file has never been
@@ -20,7 +21,7 @@ pub(crate) async fn run(
     apps: watch::Receiver<AppIndex>,
 ) {
     let mut fresh = (store_of(&dir.join(FILE_NAME)) == Store::Missing).then_some(apps);
-    let mut touched = match crate::file_touch::watch(&dir, FILE_NAME) {
+    let mut touched = match Debounced::file(&dir, FILE_NAME) {
         Ok(touched) => Some(touched),
         Err(error) => {
             eprintln!("sill: watching {}: {error}", dir.display());
@@ -28,12 +29,6 @@ pub(crate) async fn run(
         }
     };
     loop {
-        let settled = async {
-            match &mut touched {
-                Some(touched) => touched.settled().await,
-                None => std::future::pending().await,
-            }
-        };
         let installed = async {
             match &mut fresh {
                 Some(apps) => apps
@@ -49,7 +44,7 @@ pub(crate) async fn run(
                 let Some(event) = event else { return };
                 apply_and_save(&dir, &tx, event);
             }
-            settled = settled => {
+            settled = debounced::settled(&mut touched) => {
                 if settled.is_none() {
                     touched = None;
                     continue;

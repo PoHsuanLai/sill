@@ -4,20 +4,21 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use ds_helpers::EntryLocale;
-use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use sill_model::apps::{AppIndex, AppsCommand, AppsEvent, step};
 use tokio::sync::{mpsc, watch};
 
 use super::icons;
 use super::locales::session_locales;
 use crate::apps::{IconRoots, icon_theme, scan};
+use crate::debounced::{Debounced, EventFilter, Place};
+use crate::error::ServiceError;
 
 /// How long the applications directories (and the icon theme file) must be quiet before a
 /// rescan.
-pub const RESCAN_DEBOUNCE: Duration = Duration::from_millis(500);
+const RESCAN_QUIET: Duration = Duration::from_millis(500);
 
 /// Scan once, publish, then watch every applications directory and the settings file the icon
-/// theme lives in (all coalesced onto one signal), rescanning [`RESCAN_DEBOUNCE`] after the
+/// theme lives in (all coalesced onto one signal), rescanning [`RESCAN_QUIET`] after the
 /// last one settles or on [`AppsCommand::Rescan`], until every receiver and control is gone.
 pub(crate) async fn run(
     tx: watch::Sender<AppIndex>,
@@ -29,15 +30,17 @@ pub(crate) async fn run(
     let locales = session_locales();
     publish(&tx, &config, &dirs, &roots, &locales).await;
 
-    let (signal, mut signals) = mpsc::unbounded_channel::<()>();
-    let _watchers = watch_dirs(&config, &dirs, signal);
+    // Nothing to watch: nothing will ever say to rescan, so the task is done.
+    let Ok(mut rescans) = watch_dirs(&config, &dirs) else {
+        return;
+    };
 
     let mut listening = true;
     while !tx.is_closed() {
         if listening {
             tokio::select! {
-                changed = settle(&mut signals) => {
-                    if !changed {
+                settled = rescans.settled() => {
+                    if settled.is_none() {
                         return;
                     }
                     publish(&tx, &config, &dirs, &roots, &locales).await;
@@ -47,7 +50,7 @@ pub(crate) async fn run(
                     None => listening = false,
                 },
             }
-        } else if settle(&mut signals).await {
+        } else if rescans.settled().await.is_some() {
             publish(&tx, &config, &dirs, &roots, &locales).await;
         } else {
             return;
@@ -86,100 +89,33 @@ async fn publish(
     });
 }
 
-/// Wait for the first signal, then coalesce the rest of the burst for [`RESCAN_DEBOUNCE`] (the
-/// same shape as `ds_settings::Store::watch`'s debounce); `false` once every watcher has dropped, so
-/// nothing is left to ever signal again.
-async fn settle(signals: &mut mpsc::UnboundedReceiver<()>) -> bool {
-    if signals.recv().await.is_none() {
-        return false;
-    }
-    loop {
-        match tokio::time::timeout(RESCAN_DEBOUNCE, signals.recv()).await {
-            Ok(Some(())) => continue,
-            Ok(None) => return true,
-            Err(_timed_out) => return true,
-        }
-    }
-}
-
-/// A `notify` watch on every applications directory that exists, plus the directory the
-/// GTK settings file lives in (a theme change rescans exactly like a new `.desktop`
-/// file, since [`publish`] re-reads [`icon_theme`] every time), coalesced onto one `signal`. A
-/// directory whose watch fails to start (most often: it does not exist) is silently skipped —
-/// `sill reload` and the next daemon start both still find what it would have caught.
-fn watch_dirs(
-    config: &Path,
-    dirs: &[PathBuf],
-    signal: mpsc::UnboundedSender<()>,
-) -> Option<RecommendedWatcher> {
-    let mut targets: Vec<PathBuf> = dirs.iter().filter(|dir| dir.is_dir()).cloned().collect();
+/// Every applications directory that exists, plus the directory the GTK settings file lives in
+/// (a theme change rescans exactly like a new `.desktop` file, since [`publish`] re-reads
+/// [`icon_theme`] every time), as one watch. A directory that does not exist is skipped:
+/// `sill reload` and the next daemon start both still find what it would have caught. A close
+/// after a write counts, because the scan itself opens and closes every `.desktop` file for
+/// reading and counting those made each rescan signal the next one, forever (a busy loop of
+/// scans and blocking-pool threads at idle).
+fn watch_dirs(config: &Path, dirs: &[PathBuf]) -> Result<Debounced, ServiceError> {
+    let mut places: Vec<Place> = dirs
+        .iter()
+        .filter(|dir| dir.is_dir())
+        .cloned()
+        .map(Place::Tree)
+        .collect();
     let theme_file = icons::icon_theme_path(config);
     if let Some(parent) = theme_file.parent()
         && parent.is_dir()
-        && !targets.contains(&parent.to_path_buf())
+        && !places.contains(&Place::Tree(parent.to_path_buf()))
     {
-        targets.push(parent.to_owned());
+        places.push(Place::Tree(parent.to_owned()));
     }
-    // One watcher for every directory: `notify`'s inotify backend runs one thread per watcher.
-    let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
-        if res.is_ok_and(|event| changes(&event)) {
-            // A dropped signal means the task ended: nobody is left to rescan for.
-            let _ = signal.send(());
-        }
-    })
-    .ok()?;
-    let watched = targets
-        .into_iter()
-        .filter(|dir| watcher.watch(dir, RecursiveMode::Recursive).is_ok())
-        .count();
-    (watched > 0).then_some(watcher)
-}
-
-/// Whether `event` is a change to what a scan reads. Opening, reading and closing a file for
-/// reading are not: the scan itself does all three to every `.desktop` file, and counting them
-/// made each rescan signal the next one, forever (a busy loop of scans and blocking-pool threads
-/// at idle). A file closed after a write is.
-fn changes(event: &notify::Event) -> bool {
-    use notify::EventKind;
-    use notify::event::{AccessKind, AccessMode};
-    match event.kind {
-        EventKind::Access(AccessKind::Close(AccessMode::Write)) => true,
-        EventKind::Access(_) => false,
-        _ => true,
-    }
+    Debounced::start(places, EventFilter::ClosedAfterWrite, RESCAN_QUIET)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::changes;
     use crate::apps::AppsService;
-    use notify::event::{
-        AccessKind, AccessMode, CreateKind, DataChange, Event, EventKind, ModifyKind, RemoveKind,
-    };
-
-    /// A scan's own reads (open, read, close without writing) must not count as a change, or the
-    /// watcher feeds the scan that feeds it.
-    #[test]
-    fn a_scans_own_reads_are_not_changes() {
-        let kinds = [
-            (EventKind::Access(AccessKind::Open(AccessMode::Any)), false),
-            (EventKind::Access(AccessKind::Read), false),
-            (
-                EventKind::Access(AccessKind::Close(AccessMode::Read)),
-                false,
-            ),
-            (
-                EventKind::Access(AccessKind::Close(AccessMode::Write)),
-                true,
-            ),
-            (EventKind::Create(CreateKind::File), true),
-            (EventKind::Modify(ModifyKind::Data(DataChange::Any)), true),
-            (EventKind::Remove(RemoveKind::File), true),
-        ];
-        for (kind, counts) in kinds {
-            assert_eq!(changes(&Event::new(kind)), counts, "{kind:?}");
-        }
-    }
 
     use sill_model::apps::AppIndex;
 

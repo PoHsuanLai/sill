@@ -19,8 +19,8 @@ use tokio::time::{Duration, Instant, sleep_until};
 use super::links::{KeycapLinks, Reach};
 use super::socket::{self, Link};
 use super::{config, notice, systemd};
+use crate::debounced::{self, Debounced};
 use crate::error::ServiceError;
-use crate::file_touch::FileTouch;
 use crate::keycap::KeycapService;
 use crate::notices::Board;
 use crate::service::ServiceIo;
@@ -103,19 +103,11 @@ pub(crate) async fn run(
             Some(event) = events.recv() => live.feed(event),
             Ok(()) = windows.changed() => live.refocus(),
             Ok(()) = apps.changed() => live.refocus(),
-            Some(()) = touched(&mut touch) => live.send_config(),
+            Some(()) = debounced::settled(&mut touch) => live.send_config(),
             () = due(live.check_at) => live.check_unit(),
         }
     }
     Ok(())
-}
-
-/// The next settled edit of the config file; never, without a watch.
-async fn touched(touch: &mut Option<FileTouch>) -> Option<()> {
-    match touch {
-        Some(touch) => touch.settled().await,
-        None => std::future::pending().await,
-    }
 }
 
 /// Resolves at `at`; never, for `None`.

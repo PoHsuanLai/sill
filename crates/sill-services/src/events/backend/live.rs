@@ -16,13 +16,17 @@ use sill_model::events::{
 };
 use tokio::sync::{mpsc, watch};
 
-use super::live_watch::Touches;
 use super::provider::{IcsProvider, provider_for};
+use crate::debounced::{self, Debounced, EventFilter, Place};
 use crate::env::WallClock;
 
 /// The longest the task sleeps without looking at the date: a resume or a zone change shows
 /// within a minute.
 const DAY_CHECK: Duration = Duration::from_secs(60);
+
+/// How long the calendars must be quiet before a change is reported settled: a vdirsyncer sync
+/// touches many files.
+const CALENDAR_QUIET: Duration = Duration::from_millis(150);
 
 /// What the task reads besides its commands: the places `auto` looks, and the wall clock.
 pub(crate) struct Reach {
@@ -75,7 +79,12 @@ async fn follow(
         Plan::Read(provider) => provider.watched(),
         Plan::Off | Plan::NoCalendars => Vec::new(),
     };
-    let mut touches = Touches::watch(&watched);
+    let mut touches = Debounced::start(
+        watched.iter().map(|path| Place::at(path)).collect(),
+        EventFilter::AnyChange,
+        CALENDAR_QUIET,
+    )
+    .ok();
     publish(tx, &plan, reach.clock.as_ref()).await;
     loop {
         tokio::select! {
@@ -86,7 +95,7 @@ async fn follow(
                 }
                 Some(EventsCommand::Sources(_) | EventsCommand::Refresh) => publish(tx, &plan, reach.clock.as_ref()).await,
             },
-            () = touches.settled() => publish(tx, &plan, reach.clock.as_ref()).await,
+            Some(()) = debounced::settled(&mut touches) => publish(tx, &plan, reach.clock.as_ref()).await,
             () = tokio::time::sleep(until_day_check(&reach.clock.now())) => {
                 let today = reach.clock.now().date();
                 if today != tx.borrow().today {

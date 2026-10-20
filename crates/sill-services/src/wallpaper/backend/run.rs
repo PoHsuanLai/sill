@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::{
@@ -13,7 +14,8 @@ use tokio::sync::{mpsc, watch as channel};
 
 use super::backdrop::ensure_backdrop;
 use super::config::{config_path, resolve_source};
-use super::{resize, watch};
+use super::resize;
+use crate::debounced::{self, Debounced, EventFilter, Place};
 use crate::env::Dirs;
 
 /// `wallpaper` in sill's folder of `dirs`' cache directory.
@@ -34,14 +36,9 @@ async fn next_command(
     }
 }
 
-/// Waits on the debounced reload signal, or parks forever once there is none (no ancestor of
-/// the config path existed at spawn time).
-async fn next_reload(reload: &mut Option<mpsc::UnboundedReceiver<()>>) -> Option<()> {
-    match reload {
-        Some(receiver) => receiver.recv().await,
-        None => std::future::pending().await,
-    }
-}
+/// How long the source file must be quiet before it is read again: it is edited far less often
+/// than the shell's own files, and an editor can touch it more than once per save.
+const SOURCE_QUIET: Duration = Duration::from_millis(500);
 
 /// Where the service reads the old source file and keeps its resized copies.
 pub(crate) struct Places {
@@ -56,12 +53,14 @@ pub(crate) async fn run(
     places: Places,
 ) {
     let rt = Handle::current();
-    let reload = watch::watch(&config_path(&places.config), &rt);
-    // Held for `run`'s whole life: dropping the watcher stops the watch.
-    let (_watcher, mut reload) = match reload {
-        Some((watcher, reload)) => (Some(watcher), Some(reload)),
-        None => (None, None),
-    };
+    // Held for `run`'s whole life: dropping the watch stops it. The file may not exist until a
+    // person writes it, so the watch starts on whichever folder above it is there.
+    let mut reload = Debounced::start(
+        vec![Place::Appearing(config_path(&places.config))],
+        EventFilter::AnyChange,
+        SOURCE_QUIET,
+    )
+    .ok();
     let mut picture = WallpaperPicture::Unset;
     let mut source = resolve_source(&picture, &places.config);
     let mut sizes: HashMap<OutputName, (u32, u32)> = HashMap::new();
@@ -92,7 +91,7 @@ pub(crate) async fn run(
                 }
                 None => listening = false,
             },
-            signal = next_reload(&mut reload) => match signal {
+            signal = debounced::settled(&mut reload) => match signal {
                 Some(()) => {
                     source = resolve_source(&picture, &places.config);
                     republish_all(&tx, &source, &sizes, &cache_dir, &rt).await;

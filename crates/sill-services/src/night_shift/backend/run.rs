@@ -17,6 +17,7 @@ use sill_model::night_shift::{
 use tokio::sync::watch;
 
 use super::files::{SETTINGS, read_light, read_manual, write_light, write_manual, write_skip};
+use crate::debounced::{self, Debounced};
 use crate::env::WallClock;
 use crate::night_shift::NightShiftService;
 use crate::service::ServiceIo;
@@ -36,7 +37,7 @@ pub(crate) async fn run(
         state: tx,
         mut commands,
     } = io;
-    let mut touched = match crate::file_touch::watch(&casement, SETTINGS) {
+    let mut touched = match Debounced::file(&casement, SETTINGS) {
         Ok(touched) => Some(touched),
         Err(error) => {
             eprintln!(
@@ -60,12 +61,6 @@ pub(crate) async fn run(
     live.reload();
     live.feed(NightShiftEvent::Tick(live.now()));
     loop {
-        let settled = async {
-            match &mut touched {
-                Some(touched) => touched.settled().await,
-                None => std::future::pending().await,
-            }
-        };
         let due = async {
             match live.current.manual {
                 Some(manual) => {
@@ -94,7 +89,7 @@ pub(crate) async fn run(
                 }
                 live.sync_skip();
             }
-            settled = settled => {
+            settled = debounced::settled(&mut touched) => {
                 if settled.is_none() {
                     touched = None;
                     continue;
