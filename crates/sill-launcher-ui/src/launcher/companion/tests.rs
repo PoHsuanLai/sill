@@ -191,6 +191,7 @@ fn a_helper_act_is_the_message_the_helpers_screen_takes_and_removing_asks_first(
 fn toplevels() -> Toplevels {
     Toplevels {
         windows: vec![Toplevel {
+            identifier: String::new(),
             key: WindowKey(4),
             app_id: "org.quire.Mail".to_owned(),
             title: "Inbox".to_owned(),

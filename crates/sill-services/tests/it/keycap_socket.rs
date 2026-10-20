@@ -83,6 +83,7 @@ fn focused(app_id: Option<&str>) -> WindowModel {
     let windows = app_id
         .into_iter()
         .map(|app_id| Toplevel {
+            identifier: String::new(),
             key: WindowKey(1),
             app_id: app_id.to_owned(),
             title: String::new(),

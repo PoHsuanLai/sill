@@ -81,6 +81,7 @@ pub fn pins() -> DockPins {
 /// Terminal (pinned) active with two windows, Firefox (not pinned) with one, on `output`.
 pub fn toplevels_on(output: &str) -> Toplevels {
     let window = |key: u64, app: &str, activity| Toplevel {
+        identifier: String::new(),
         key: WindowKey(key),
         app_id: app.to_owned(),
         title: format!("{app} {key}"),

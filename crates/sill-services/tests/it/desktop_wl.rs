@@ -179,6 +179,12 @@ fn windows_follow_recency_as_they_activate_and_close() {
         [1, 2, 3],
         "inactive windows keep opening order"
     );
+    let named: Vec<&str> = opened.windows.iter().map(|w| w.identifier.as_str()).collect();
+    assert_eq!(
+        named,
+        ["id-1", "id-2", "id-3"],
+        "each window carries the compositor's identifier"
+    );
 
     session.say([flags(3, &[Activated])]);
     let third = project_toplevels(opened, session.state());

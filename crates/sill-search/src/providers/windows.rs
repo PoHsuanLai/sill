@@ -170,6 +170,7 @@ mod tests {
 
     fn window(key: u64, title: &str, app_id: &str, workspaces: Vec<WorkspaceKey>) -> Toplevel {
         Toplevel {
+            identifier: String::new(),
             key: WindowKey(key),
             app_id: app_id.to_owned(),
             title: title.to_owned(),

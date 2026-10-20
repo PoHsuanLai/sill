@@ -95,6 +95,7 @@ mod tests {
 
     fn window(key: u64, app: &str) -> Toplevel {
         Toplevel {
+            identifier: String::new(),
             key: WindowKey(key),
             app_id: app.to_owned(),
             title: String::new(),

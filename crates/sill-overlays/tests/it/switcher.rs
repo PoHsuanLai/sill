@@ -33,6 +33,7 @@ fn sent(running: &mut Running) -> Vec<WlCommand> {
 /// Windows of `apps` (app id, window key), most recently activated first.
 fn windows(apps: &[(&str, u64)]) -> Toplevels {
     let window = |(app_id, key): &(&str, u64)| Toplevel {
+        identifier: String::new(),
         key: WindowKey(*key),
         app_id: (*app_id).to_owned(),
         title: format!("{app_id} {key}"),

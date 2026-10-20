@@ -179,6 +179,7 @@ fn only_closing_a_window_is_destructive() {
 
 fn window(key: u64, app: &str, title: &str, workspace: u64) -> Toplevel {
     Toplevel {
+        identifier: String::new(),
         key: WindowKey(key),
         app_id: app.to_owned(),
         title: title.to_owned(),

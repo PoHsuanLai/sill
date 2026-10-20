@@ -10,6 +10,7 @@ use sill_model::windows::toplevels::{
 };
 
 use super::ids::{output_name, window_key, workspace_key};
+use super::view::identifier;
 
 /// `previous` brought up to `state`: windows that are gone close, every other window is
 /// stepped in, so a window that has just become active moves to the front and one that has
@@ -35,6 +36,7 @@ pub fn project(previous: Toplevels, state: &DesktopState) -> Toplevels {
 
 fn window(toplevel: &WireToplevel, state: &DesktopState) -> Toplevel {
     Toplevel {
+        identifier: identifier(toplevel),
         key: window_key(toplevel.key),
         app_id: toplevel.app_id.clone(),
         title: toplevel.title.clone(),

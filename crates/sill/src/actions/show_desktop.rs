@@ -77,6 +77,7 @@ mod tests {
 
     fn window(key: u64, workspace: u64, state: WindowState) -> Toplevel {
         Toplevel {
+            identifier: String::new(),
             key: WindowKey(key),
             app_id: format!("app{key}"),
             title: String::new(),

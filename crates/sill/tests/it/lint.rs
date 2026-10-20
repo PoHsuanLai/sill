@@ -440,6 +440,7 @@ fn force_quit_states() -> Vec<(&'static str, String)> {
 fn switcher_states() -> Vec<(&'static str, String)> {
     let mut switcher = SurfaceHarness::<Switcher>::setup(SwitcherLink::new(), ()).start();
     let window = |key: u64, app: &str| Toplevel {
+        identifier: String::new(),
         key: WindowKey(key),
         app_id: app.to_owned(),
         title: format!("{app} {key}"),

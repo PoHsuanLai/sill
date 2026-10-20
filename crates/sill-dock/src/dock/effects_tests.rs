@@ -66,6 +66,7 @@ struct World {
 
 fn world() -> World {
     let window = |key: u64, app: &str, activity| Toplevel {
+        identifier: String::new(),
         key: WindowKey(key),
         app_id: app.to_owned(),
         title: String::new(),

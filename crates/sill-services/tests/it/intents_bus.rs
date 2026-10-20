@@ -783,6 +783,7 @@ fn compositor() -> (
     mpsc::UnboundedReceiver<WlCommand>,
 ) {
     let window = |key: u64, app: &str, title: &str| Toplevel {
+        identifier: String::new(),
         key: WindowKey(key),
         app_id: app.to_owned(),
         title: title.to_owned(),

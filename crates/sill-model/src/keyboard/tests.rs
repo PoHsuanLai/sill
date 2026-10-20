@@ -42,6 +42,7 @@ fn app(id: &str, categories: &[&str], declared: Option<&str>) -> App {
 
 fn toplevel(key: u64, app_id: &str, activity: Activity) -> Toplevel {
     Toplevel {
+        identifier: String::new(),
         key: WindowKey(key),
         app_id: app_id.to_owned(),
         title: String::new(),

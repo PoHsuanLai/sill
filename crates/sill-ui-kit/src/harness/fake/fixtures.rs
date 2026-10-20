@@ -93,6 +93,7 @@ pub fn toplevels() -> Toplevels {
 /// Two terminal windows on `output`.
 pub fn toplevels_on(output: &str) -> Toplevels {
     let window = |key: u64, title: &str, activity| Toplevel {
+        identifier: String::new(),
         key: WindowKey(key),
         app_id: "foot".to_owned(),
         title: title.to_owned(),

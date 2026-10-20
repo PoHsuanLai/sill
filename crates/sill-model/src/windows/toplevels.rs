@@ -43,6 +43,9 @@ impl Toplevels {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Toplevel {
     pub key: WindowKey,
+    /// The compositor's stable name for the window: the one `DesktopView` quotes it by, so a
+    /// window can be named in either model. Made up from the key where the compositor gives none.
+    pub identifier: String,
     /// The Wayland app id (or X11 `WM_CLASS` through XWayland); `match_app` maps it to an entry.
     pub app_id: String,
     pub title: String,
@@ -113,6 +116,7 @@ mod tests {
 
     fn window(key: u64, activity: Activity) -> Toplevel {
         Toplevel {
+            identifier: String::new(),
             key: WindowKey(key),
             app_id: format!("app{key}"),
             title: format!("window {key}"),
@@ -217,6 +221,7 @@ mod tests {
 
     fn named_window(key: u64, activity: Activity, outputs: &[&str]) -> Toplevel {
         Toplevel {
+            identifier: String::new(),
             key: sill_launcher::WindowKey(key),
             app_id: "foot".to_owned(),
             title: String::new(),
