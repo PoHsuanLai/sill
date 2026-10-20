@@ -1,5 +1,5 @@
 //! What a client changes: the dock's pins, the brightness and volume keys, the lock, a
-//! screenshot, the desktop widgets, the switcher's chord, the clipboard history, the banners and
+//! screenshot, the switcher's chord, the clipboard history, the banners and
 //! the keyboard on the newest transient and keycap.
 
 use ds_core::word::Word;
@@ -23,9 +23,6 @@ pub enum ActRequest {
     /// Take a screenshot with `screenshot.tool` (`sill screenshot [area|window|screen]`): the
     /// file it saves shows as the thumbnail through the folder watch.
     Screenshot(ShotKind),
-    /// Flip `widgets.desktop` in `settings.toml` (the file stays the one truth; the daemon's
-    /// watch picks the change up).
-    ToggleDesktopWidgets,
     /// The app switcher's chord verbs (`sill switcher ...`).
     Switcher(SwitcherRequest),
     /// Forget every clipboard entry now (`sill clipboard clear`).

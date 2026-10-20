@@ -9,7 +9,7 @@ use shell_host::OutputInfo;
 
 use super::column::Column;
 use sill_ui_kit::root::SurfaceRoot;
-use sill_ui_kit::widgets::{provide_registry, widgets_css};
+use sill_ui_kit::widgets::widgets_css;
 
 /// The center's stylesheet (lint-clean under `Profile::Strict`,
 /// `crates/sill/tests/lint.rs`).
@@ -17,7 +17,6 @@ pub const NOTIFICATION_CENTER_CSS: &str = include_str!("style.css");
 
 /// The center on `output`.
 pub(super) fn notification_center(output: OutputInfo) -> Element {
-    provide_registry();
     rsx! {
         SurfaceRoot {
             output: output.clone(),

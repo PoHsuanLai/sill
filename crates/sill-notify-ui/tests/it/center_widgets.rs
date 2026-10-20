@@ -1,12 +1,13 @@
-//! The notification center's widget slot: it draws `widgets.center` in order under the history,
-//! each at its one size (Medium), and "Edit Widgets" under it: the real `NotificationCenter` on the fake services.
+//! The notification center's widget slot: it draws Calendar then Up Next under the history, each
+//! at its one size (Medium), and nothing to edit them with: the real `NotificationCenter` on the
+//! fake services.
 
 #[test]
-fn the_center_draws_widgets_center_in_order_under_the_history() {
+fn the_center_draws_calendar_then_up_next_under_the_history() {
     let running = center_support::opened(center_support::two_apps());
     let h = &running.harness;
-    assert_eq!(h.count(".sill-nc-widgets > .ds-widget"), 3);
-    let ids: Vec<_> = (1..=3)
+    assert_eq!(h.count(".sill-nc-widgets > .ds-widget"), 2);
+    let ids: Vec<_> = (1..=2)
         .map(|n| {
             h.attr(
                 &format!(".sill-nc-widgets > .ds-widget:nth-child({n})"),
@@ -19,7 +20,6 @@ fn the_center_draws_widgets_center_in_order_under_the_history() {
         vec![
             Some("widget-calendar".to_owned()),
             Some("widget-up-next".to_owned()),
-            Some("widget-battery".to_owned()),
         ]
     );
     let list = h.rect(".sill-nc-list").expect("the history");
@@ -30,7 +30,7 @@ fn the_center_draws_widgets_center_in_order_under_the_history() {
     );
     // A medium tile (336: two 160 cells and a gap) fills the center's 360 px column after the panel's padding.
     let column = h.rect(".sill-nc-column").expect("the column");
-    let tile = h.rect("#widget-battery").expect("a medium tile");
+    let tile = h.rect("#widget-up-next").expect("a medium tile");
     assert_eq!(tile.size.width.0.round(), 336.0);
     assert!(
         tile.origin.x.0 >= column.origin.x.0 - 0.5

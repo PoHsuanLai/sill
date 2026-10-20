@@ -11,12 +11,12 @@ use std::time::{Duration, Instant};
 use ds_settings::Store;
 use shell_host::{Host, HostConfig, HostHandle};
 use sill_model::locker::LockPhase;
-use sill_services::env::{Dirs, Env};
+use sill_services::env::Dirs;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
-    BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink, EditWidgetsLink,
-    EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PlacementFile,
-    PowerMenuLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
+    BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink, EyedropperLink,
+    ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PowerMenuLink, SpacesBarLink,
+    SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
@@ -73,7 +73,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         settings: settings_rx,
         user_style: user_style_rx,
     };
-    let links = build_links(&runtime, &env, &settings_feed, &settings, &store);
+    let links = build_links(&runtime, &settings_feed, &store);
     services::follow_settings(runtime.handle(), &settings_feed, &links, &services, &env);
     crate::voice::spawn_consent_writer(runtime.handle(), consents, store.clone(), settings.clone());
 
@@ -221,14 +221,7 @@ fn host_config(first: &ShellFile, dirs: &Dirs, route: shell_host::WaylandRoute) 
 }
 
 /// Build the shared links every surface root is given.
-fn build_links(
-    runtime: &Runtime,
-    env: &Env,
-    settings_feed: &SettingsFeed,
-    settings: &watch::Sender<ShellFile>,
-    store: &Store,
-) -> Links {
-    let places = PlacementFile::in_dirs(&env.dirs);
+fn build_links(runtime: &Runtime, settings_feed: &SettingsFeed, store: &Store) -> Links {
     let banners = BannerLink::new();
     Links {
         focus: settings::spawn_focus(
@@ -251,13 +244,6 @@ fn build_links(
         force_quit: ForceQuitLink::new(),
         spaces_bar: SpacesBarLink::new(),
         eyedropper: EyedropperLink::new(),
-        edit_widgets: EditWidgetsLink::new()
-            .with_places(places.clone())
-            .with_writer(crate::edit_widgets::writer(
-                store.clone(),
-                places,
-                settings.clone(),
-            )),
     }
 }
 

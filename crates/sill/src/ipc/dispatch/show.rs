@@ -1,6 +1,5 @@
 //! `Show`: open, close or toggle a panel by writing the link its surfaces follow. Each panel
-//! opens on the first output that has its surface, except Edit Widgets, which opens on the output
-//! of the active window when it has the surface: the output under the pointer is not known to
+//! opens on the first output that has its surface: the output under the pointer is not known to
 //! the daemon.
 
 use sill_bar::Bar;
@@ -9,8 +8,7 @@ use sill_ipc::show::{LauncherRequest, Reveal, ShowRequest};
 use sill_launcher_ui::Launcher;
 use sill_notify_ui::NotificationCenter;
 use sill_overlays::{ForceQuit, PowerMenu};
-use sill_ui_kit::links::{EditShown, Preselect};
-use sill_widgets_ui::EditWidgets;
+use sill_ui_kit::links::Preselect;
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -26,7 +24,6 @@ pub fn dispatch(reach: &Reach, request: ShowRequest) -> Response {
         ShowRequest::ForceQuit(reveal) => force_quit(reach, reveal),
         ShowRequest::NotificationCenter(reveal) => notification_center(reach, reveal),
         ShowRequest::ControlCenter => control_center(reach),
-        ShowRequest::EditWidgets(reveal) => edit_widgets(reach, reveal),
         ShowRequest::Companion(request) => crate::companion::dispatch(reach, request),
         ShowRequest::Voice(request) => crate::voice::dispatch(reach, request),
     }
@@ -130,37 +127,6 @@ fn control_center(reach: &Reach) -> Response {
     }
 }
 
-fn edit_widgets(reach: &Reach, reveal: Reveal) -> Response {
-    let link = &reach.links.edit_widgets;
-    let focus = reach
-        .services
-        .windows
-        .state
-        .borrow()
-        .toplevels
-        .focused_output();
-    let with_surface: Vec<(OutputId, Option<String>)> = reach
-        .outputs
-        .outputs
-        .iter()
-        .filter(|(_, surfaces)| surfaces.surface_of::<EditWidgets>().is_some())
-        .map(|(info, _)| (info.id, info.name.clone()))
-        .collect();
-    let target = focused_or_first(&with_surface, focus.as_ref());
-    match (reveal, target) {
-        (Reveal::Close, _) => link.close(),
-        (Reveal::Open, Some(output)) => link.open(output),
-        (Reveal::Toggle, Some(output)) => match link.now() {
-            EditShown::Open(_) => link.close(),
-            EditShown::Closed => link.open(output),
-        },
-        (Reveal::Open | Reveal::Toggle, None) => {
-            return unsupported("no output has an Edit Widgets surface");
-        }
-    }
-    Response::Done
-}
-
 /// The output named `focus` among `candidates` (an output's id and name), else the first.
 pub(crate) fn focused_or_first(
     candidates: &[(OutputId, Option<String>)],
@@ -181,7 +147,7 @@ mod tests {
     use super::focused_or_first;
 
     #[test]
-    fn edit_widgets_opens_where_the_active_window_is_else_on_the_first_output() {
+    fn the_output_of_the_active_window_is_picked_else_the_first() {
         let outputs = [
             (OutputId(1), Some("DP-1".to_owned())),
             (OutputId(2), Some("HDMI-A-1".to_owned())),

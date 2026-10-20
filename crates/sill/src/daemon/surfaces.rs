@@ -18,11 +18,9 @@ use sill_overlays::{
 };
 use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
-use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{MountLockProps, mount_lock};
-use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -79,11 +77,9 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
     spawn_surface::<Banners>(ctx, outputs, spawn, &links.banners);
     spawn_surface::<NotificationCenter>(ctx, outputs, spawn, &links.notification_center);
-    // The screenshot thumbnail after the banners and before the OSD (all Overlay); the
-    // desktop widgets (Bottom) and the hot corners (Overlay, never painted).
+    // The screenshot thumbnail after the banners and before the OSD (all Overlay); the hot
+    // corners (Overlay, never painted).
     spawn_surface::<ScreenshotThumb>(ctx, outputs, spawn, &links.banners);
-    spawn_surface::<DesktopWidgets>(ctx, outputs, spawn, &PlacementFile::in_dirs(&services.dirs));
-    spawn_surface::<EditWidgets>(ctx, outputs, spawn, &links.edit_widgets);
     spawn_surface::<HotCorners>(ctx, outputs, spawn, &links.corners);
     // The window menu's transparent parent (Overlay, takes no input): the popup the green light
     // opens hangs from it.
@@ -167,7 +163,6 @@ pub(crate) fn surface_root(
         .context(links.banners.clone())
         .context(links.switcher.clone())
         .context(links.lock.clone())
-        .context(links.edit_widgets.clone())
 }
 
 /// Each output's lock surface for shell-host's session lock: `LOCK`'s root with the

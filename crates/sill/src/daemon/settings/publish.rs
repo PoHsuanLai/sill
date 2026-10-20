@@ -17,7 +17,7 @@ pub fn reload(store: &Store, settings: &watch::Sender<ShellFile>) {
 /// `event`'s file, published to `settings_tx`, if it is a watched settings change
 /// (`ShellMsg::Settings`, from the file watch task in `daemon::run`); anything else is a no-op. The same
 /// act [`reload`] performs for `sill reload`, so a plain `settings.toml` edit (or one of
-/// sill's own writes: `crate::edit_widgets`, `super::focus`) takes effect without one.
+/// sill's own writes: `super::focus`) takes effect without one.
 /// `ds_settings::Store::watch` already debounces a burst of writes to one settled file and keeps the
 /// last good file on a parse failure, so there is nothing further to coalesce or guard here.
 pub fn publish_watched(settings_tx: &watch::Sender<ShellFile>, event: &HostEvent<ShellMsg>) {

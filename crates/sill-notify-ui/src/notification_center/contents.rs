@@ -107,7 +107,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
                     Label { text: line, role: LabelRole::Tertiary, style: LabelStyle::Footnote }
                 }
             }
-            div { class: "sill-nc-widgets", CenterWidgets { output } }
+            div { class: "sill-nc-widgets", CenterWidgets {} }
         }
     }
 }

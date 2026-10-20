@@ -24,7 +24,6 @@ use crate::session::SessionSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
 use crate::voice::VoiceSettings;
-use crate::widgets::WidgetsSettings;
 use crate::window::WindowSettings;
 
 /// The keys whose struct sits on another page but which design/22 §5 puts on Power: the lock
@@ -65,7 +64,6 @@ pub fn schemas() -> Vec<Schema> {
             POWER_KEYS_ELSEWHERE,
             &Page::Power,
         ),
-        WidgetsSettings::schema(),
         CalendarSettings::schema(),
         ScreenshotSettings::schema(),
         HotCornerSettings::schema(),

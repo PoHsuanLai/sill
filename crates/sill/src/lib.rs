@@ -7,7 +7,6 @@ pub mod corners;
 pub mod daemon;
 pub mod display_trial;
 pub mod door_guard;
-pub mod edit_widgets;
 pub mod eyedropper;
 pub mod force_quit;
 pub mod idle_dim;

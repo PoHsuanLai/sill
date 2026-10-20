@@ -35,8 +35,6 @@ pub use crate::thumbs::shot_thumbnail::ShotThumbnail;
 pub use crate::user_picture::picker::UserPicturePicker;
 pub use crate::widget::card::WidgetCard;
 pub use crate::widget::frame::WidgetFrame;
-pub use crate::widget::gallery::WidgetGallery;
-pub use crate::widget::slot::WidgetSlotGuide;
 
 // The widget contract
 pub use crate::widget::contract::Widget;
@@ -44,4 +42,3 @@ pub use crate::widget::contract::WidgetContext;
 pub use crate::widget::contract::WidgetKind;
 pub use crate::widget::kind::WidgetHost;
 pub use crate::widget::kind::WidgetSize;
-pub use crate::widget::registry::WidgetRegistry;

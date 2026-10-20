@@ -191,18 +191,6 @@ fn every_command_line_sends_its_request() {
             act(ActRequest::Screenshot(ShotKind::Screen)),
         ),
         (
-            &["widgets", "toggle-desktop"],
-            act(ActRequest::ToggleDesktopWidgets),
-        ),
-        (
-            &["widgets", "edit"],
-            show(ShowRequest::EditWidgets(Reveal::Open)),
-        ),
-        (
-            &["widgets", "edit-close"],
-            show(ShowRequest::EditWidgets(Reveal::Close)),
-        ),
-        (
             &["companion", "tap"],
             show(ShowRequest::Companion(CompanionRequest::Tap)),
         ),
@@ -495,14 +483,8 @@ fn every_command_line_sends_its_request() {
             click("s", 0, 0, PointerButton::Middle),
         ),
         (
-            &[
-                "debug",
-                "pointer-press",
-                "sill-desktop-widgets-DP-1",
-                "900",
-                "96",
-            ],
-            press("sill-desktop-widgets-DP-1", 900, 96, PointerButton::Primary),
+            &["debug", "pointer-press", "sill-wallpaper-DP-1", "900", "96"],
+            press("sill-wallpaper-DP-1", 900, 96, PointerButton::Primary),
         ),
         (
             &[
@@ -520,11 +502,11 @@ fn every_command_line_sends_its_request() {
             &[
                 "debug",
                 "pointer-release",
-                "sill-desktop-widgets-DP-1",
+                "sill-wallpaper-DP-1",
                 "0",
                 "456",
             ],
-            release("sill-desktop-widgets-DP-1", 0, 456, PointerButton::Primary),
+            release("sill-wallpaper-DP-1", 0, 456, PointerButton::Primary),
         ),
         (
             &[
@@ -606,8 +588,6 @@ fn a_malformed_command_line_is_refused() {
         &["debug", "notify"],
         &["debug", "notify", "x", "--urgency", "urgent"],
         &["screenshot", "region"],
-        &["widgets"],
-        &["widgets", "toggle"],
         &["debug", "screenshot"],
         &["debug", "corner", "middle"],
         &["switcher"],

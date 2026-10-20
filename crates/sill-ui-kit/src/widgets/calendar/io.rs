@@ -17,7 +17,7 @@ use super::grid::{Step, busy_days, month_grid};
 use super::shown::{Shown, grid_data, weekday_name};
 use crate::hooks::{use_section, use_service};
 use crate::widgets::up_next::today_events;
-use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
+use crate::widgets::{Feed, WidgetKind, WidgetProvider};
 use sill_services::{ClockService, EventsService};
 
 /// The month, today marked; the card's step buttons shift the month.
@@ -27,7 +27,6 @@ pub struct CalendarProvider;
 impl WidgetProvider for CalendarProvider {
     type W = MonthWidget;
     const KIND: WidgetKind = WidgetKind::Calendar;
-    const DESKTOP_SIZE: WidgetSize = WidgetSize::Small;
 
     fn use_feed() -> Feed<MonthWidget> {
         let _minute = use_service::<ClockService>()();

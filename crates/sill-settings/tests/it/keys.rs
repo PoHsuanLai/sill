@@ -30,6 +30,18 @@ const FROM_APPEARANCE: &[&str] = &["notifications.banner_material", "launcher.ma
 /// items), and this list ends when it does.
 const UNCATALOGUED: &[&str] = &["voice.hold_to_talk"];
 
+/// Rows design/22 still has for keys sill dropped (the widget settings, 2026-10-20: the center's
+/// widgets are fixed and there is no desktop layer); the rows are quire's to remove, and this
+/// list ends when they go.
+const RETIRED: &[&str] = &[
+    "widgets.center",
+    "widgets.desktop",
+    "widgets.desktop_widgets",
+    "widgets.desktop_cell_px",
+    "widgets.desktop_gap_px",
+    "widgets.world_clocks",
+];
+
 fn doc_keys() -> Vec<String> {
     let doc = doc();
     let mut keys: Vec<String> = SECTIONS
@@ -59,7 +71,7 @@ fn every_key_in_catalogue_has_a_spec() {
     let specs = spec_paths();
     let keys = doc_keys();
     assert!(keys.len() > 100, "only {} keys parsed", keys.len());
-    for key in &keys {
+    for key in keys.iter().filter(|key| !RETIRED.contains(&key.as_str())) {
         assert!(specs.contains(key), "{key}: no KeySpec with that path");
     }
 }

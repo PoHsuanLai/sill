@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use ds_lint::{LintConfig, Profile, markup};
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
@@ -25,7 +25,7 @@ use sill_settings::ShellFile;
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
-use sill_ui_kit::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};
+use sill_ui_kit::widgets::{Widget, WidgetKind, widgets_css};
 
 /// Today's number, on the accent disc.
 const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
@@ -34,7 +34,6 @@ const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Kind {
     Calendar,
-    CalendarOnDesktop,
     UpNext,
 }
 
@@ -61,17 +60,16 @@ fn app() -> Element {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
             AppStyle { css: css }
             match world.kind {
-                Kind::Calendar => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Tile)} },
-                Kind::CalendarOnDesktop => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Desktop)} },
-                Kind::UpNext => rsx! { {widget(WidgetKind::UpNext, WidgetHost::Tile)} },
+                Kind::Calendar => rsx! { {widget(WidgetKind::Calendar)} },
+                Kind::UpNext => rsx! { {widget(WidgetKind::UpNext)} },
             }
         }
     }
 }
 
-/// `kind` in `host` at its one size.
-fn widget(kind: WidgetKind, host: WidgetHost) -> Element {
-    rsx! { Widget { kind, host } }
+/// `kind` at its one size.
+fn widget(kind: WidgetKind) -> Element {
+    rsx! { Widget { kind } }
 }
 
 /// A widget drawn and what feeds it.
@@ -300,66 +298,4 @@ fn up_next_says_when_there_is_nothing_and_why() {
         broken.harness.text_of(".sill-un-quiet").as_deref(),
         Some("1 calendar file could not be read")
     );
-}
-
-#[test]
-fn on_the_desktop_the_calendar_is_the_compact_month_inside_its_small_frame() {
-    let mut running = start(
-        Kind::CalendarOnDesktop,
-        ShellFile::default(),
-        read(Vec::new()),
-    );
-    let h = &running.harness;
-    assert_eq!(
-        h.attr(".ds-month", "data-density").as_deref(),
-        Some("compact"),
-        "the small frame asks quire's month to be compact (Q190)"
-    );
-    assert_eq!(
-        h.count(".ds-month [*|aria-current=date]"),
-        1,
-        "today marked"
-    );
-    clean(&h.html());
-    // At the default 164 px cell every month stays inside the frame's content box (quire's
-    // `.ds-widget-body`, measured rather than assumed, since quire sets the padding), a six-week
-    // one included (twelve months hold at least one).
-    let mut weeks = Vec::new();
-    for _ in 0..12 {
-        let h = &running.harness;
-        let frame = h.rect("#widget-calendar").expect("the frame is laid out");
-        let body = h
-            .rect("#widget-calendar .ds-widget-body")
-            .expect("the frame's content box is laid out");
-        let month = h.rect(".ds-month").expect("the month is laid out");
-        assert_eq!(frame.size.width.0.round(), 164.0);
-        let x = within(
-            month.origin.x.0,
-            month.size.width.0,
-            body.origin.x.0,
-            body.size.width.0,
-        );
-        let y = within(
-            month.origin.y.0,
-            month.size.height.0,
-            body.origin.y.0,
-            body.size.height.0,
-        );
-        assert!(
-            x && y,
-            "the month {month:?} inside the frame's content box {body:?}"
-        );
-        weeks.push(h.count(".ds-month-weeks .ds-month-row"));
-        let next = h
-            .centre(".ds-month-step:last-child")
-            .expect("the next button");
-        running.harness.send(Input::click(next));
-        running.harness.advance(Duration::from_millis(600));
-    }
-    assert!(weeks.contains(&6), "a six-week month was drawn: {weeks:?}");
-}
-
-/// Whether a span starting at `from`, `size` long, lies inside a frame's 16 px padding.
-fn within(from: f32, size: f32, box_from: f32, box_size: f32) -> bool {
-    from >= box_from - 0.5 && from + size <= box_from + box_size + 0.5
 }

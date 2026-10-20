@@ -128,11 +128,6 @@ write_scene() {
 
 [launcher]
 files_backend = "fd"
-
-[widgets]
-center = ["calendar", "world_clock", "now_playing"]
-desktop_widgets = ["calendar", "world_clock"]
-world_clocks = "America/Los_Angeles;Europe/London;Asia/Taipei"
 EOF
   cat >"$CONFIG/sill/dock.json" <<'EOF'
 {
@@ -673,19 +668,13 @@ await_control_center() {
   return 1
 }
 
-# Closes whatever a previous look left open, and takes the desktop widgets back to off (beat 9
-# toggles them on).
+# Closes whatever a previous look left open.
 settle() {
   sill launcher close >/dev/null 2>&1
   sill notifications close >/dev/null 2>&1
   sill notifications dismiss-all >/dev/null 2>&1
   sill power-menu close >/dev/null 2>&1
   sill switcher cancel >/dev/null 2>&1
-  sill widgets edit-close >/dev/null 2>&1
-  if grep -q '^desktop = "on"' "$CONFIG/sill/settings.toml" 2>/dev/null; then
-    sill widgets toggle-desktop >/dev/null
-    sleep 0.2
-  fi
   # A click in the bar's empty middle dismisses a menu; it does not open one. The control center
   # does not dismiss on it, so toggle that one only while it is still up.
   if sill debug capture "$BAR/popup" "$WORK/probe.png" >/dev/null 2>&1; then
@@ -973,21 +962,6 @@ beat_osd_switcher_power() {
   sleep 0.12
 }
 
-beat_widgets() {
-  echo "demo.sh tour: 9 widgets"
-  sill widgets toggle-desktop >/dev/null
-  await_up "sill-desktop-widgets-$NAME" 0.8
-  cmd_shot "$SHOTS/demo-9-widgets.png"
-  show 2.0
-  echo "demo.sh tour: 9 edit widgets"
-  sill widgets edit >/dev/null
-  await_up "sill-edit-widgets-$NAME" 0.8
-  cmd_shot "$SHOTS/demo-9-edit.png"
-  show 2.4
-  sill widgets edit-close >/dev/null
-  sleep 0.15
-}
-
 beat_screenshot_polkit() {
   echo "demo.sh tour: 10 screenshot"
   python3 - "$WORK/picture.png" <<'PY'
@@ -1075,7 +1049,6 @@ cmd_tour() {
   beat_launcher
   beat_control_center
   beat_osd_switcher_power
-  beat_widgets
   beat_screenshot_polkit
   beat_notifications
 

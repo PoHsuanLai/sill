@@ -28,7 +28,6 @@ sill-ui-kit = { workspace = true }
 sill-bar = { workspace = true }
 sill-launcher-ui = { workspace = true }
 sill-dock = { workspace = true }
-sill-widgets-ui = { workspace = true }
 sill-notify-ui = { workspace = true }
 sill-overlays = { workspace = true }
 thiserror = { workspace = true }

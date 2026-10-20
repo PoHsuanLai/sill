@@ -1,15 +1,18 @@
-//! The wallpaper's render: an `Ds` root over two cross-fading image layers.
+//! The wallpaper's render: an `Ds` root over two cross-fading image layers, and the desktop's
+//! menu at a press of the secondary button.
 
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::style::appearance::blur::BlurState;
-use shell_host::OutputInfo;
+use shell_host::{OutputInfo, use_watch};
 use sill_model::ids::OutputName;
 
 use super::io::use_crossfade;
+use super::menu::{MenuWorld, secondary_press, use_desktop_menu};
 use super::model::url_for;
 use sill_services::WallpaperService;
-use sill_ui_kit::hooks::{use_appearance, use_service};
+use sill_ui_kit::hooks::{use_appearance, use_service, use_services};
+use sill_ui_kit::menu::use_popup_look;
 use sill_ui_kit::root::use_root_style;
 
 /// The wallpaper's own stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
@@ -27,6 +30,8 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
     let url = url_for(&wallpapers, on.as_ref(), resolved.scheme);
     let layers = use_crossfade(url);
     let root = use_root_style();
+    let apps = use_watch(use_services().apps.state);
+    let menu = use_desktop_menu(MenuWorld::of(&apps.read()), use_popup_look());
     rsx! {
         Ds {
             sheet: Some(sill_shell_kit::stylesheet()),
@@ -38,7 +43,9 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
             surface: root.surface,
             user_style: root.user_style,
             AppStyle { css: WALLPAPER_CSS }
-            div { class: "sill-wallpaper",
+            div {
+                class: "sill-wallpaper",
+                onmousedown: move |event| secondary_press(&event, menu),
                 for (slot , back , image) in layers {
                     div {
                         key: "{slot}",

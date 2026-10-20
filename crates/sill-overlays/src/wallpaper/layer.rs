@@ -1,4 +1,5 @@
-//! The wallpaper's layer surface: Background, every edge, ignoring exclusive zones, no input.
+//! The wallpaper's layer surface: Background, every edge, ignoring exclusive zones, no keyboard,
+//! input over the whole output (a press of the secondary button opens the desktop's menu).
 
 use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
@@ -22,7 +23,7 @@ pub fn layer(output: &OutputInfo) -> LayerConfig {
         keyboard: KeyboardMode::None,
         output: OutputTarget::Output(output.id),
         blur: BlurSpec::None,
-        input: RegionSpec::Empty,
+        input: RegionSpec::Whole,
     }
 }
 
@@ -33,13 +34,13 @@ mod tests {
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
-    fn the_wallpaper_fills_the_background_and_takes_no_input() {
+    fn the_wallpaper_fills_the_background_and_takes_the_pointer_for_its_menu() {
         let config = layer(&output(Some("DP-1")));
         assert_eq!(config.namespace, "sill-wallpaper-DP-1");
         assert_eq!(config.layer, LayerLevel::Background);
         assert_eq!(config.anchor, Anchor::ALL);
         assert_eq!(config.exclusive, ExclusiveZone::Ignore);
-        assert_eq!(config.input, RegionSpec::Empty);
+        assert_eq!(config.input, RegionSpec::Whole);
         assert_eq!(config.blur, BlurSpec::None);
     }
 }

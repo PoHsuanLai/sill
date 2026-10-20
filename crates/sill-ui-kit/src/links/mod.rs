@@ -6,7 +6,6 @@
 mod banners;
 mod control_center;
 mod display_trial;
-mod edit_widgets;
 mod eyedropper;
 mod focus;
 mod force_quit;
@@ -15,7 +14,6 @@ mod launcher;
 mod lock;
 mod notification_center;
 mod osd;
-mod places;
 mod power_menu;
 mod reveal;
 mod shared;
@@ -27,9 +25,6 @@ mod window_menu;
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use display_trial::{DisplayTrialLink, TrialAnswered, TrialRun, TrialSerial};
-pub use edit_widgets::{
-    DesktopView, EditShown, EditWidgetsLink, WidgetsChange, WidgetsWrite, WidgetsWriter, Written,
-};
 pub use eyedropper::{EyedropFeed, EyedropperLink};
 pub use focus::{Delivery, FocusLink};
 pub use force_quit::{ForceQuitAsked, ForceQuitLink, ForceQuitOpening, ForceQuitShown};
@@ -38,7 +33,6 @@ pub use launcher::{CLIPBOARD_TITLE, LauncherLink, Opening, PanelHit, ShownRows, 
 pub use lock::{LockLink, PromptOutput};
 pub use notification_center::{CenterLink, CenterShown};
 pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, OsdLink};
-pub use places::PlacementFile;
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal};
 pub(crate) use shared::Shared;
@@ -64,9 +58,6 @@ pub struct Links {
     /// `lock` for which one shows the password prompt.
     pub switcher: SwitcherLink,
     pub lock: LockLink,
-    /// Edit Widgets: which output shows it (the notification center's "Edit Widgets", `sill
-    /// widgets edit`), and where its changes are written and its places read.
-    pub edit_widgets: EditWidgetsLink,
     /// A window's menu (the pointer rested on its green light): the daemon opens it, the window
     /// menu surfaces show it, and a pick goes back to the daemon.
     pub window_menu: WindowMenuLink,

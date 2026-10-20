@@ -1,6 +1,5 @@
 //! The widget parts as markup (design/04-COMPONENTS.md "Widgets"):
-//! the frame in each size on the desktop and as a tile, the clock face in both looks and
-//! phases, and the battery at three levels and charging. Each golden is
+//! the frame in each size on the desktop and as a tile, and the battery at three levels and charging. Each golden is
 //! `tests/snapshots/widgets/<name>.html`; each lints clean and every `ds-` class in it is
 //! styled by the stylesheet.
 //!
@@ -15,8 +14,6 @@ use ds::prelude::*;
 use ds::root::common::Common;
 use ds::style::icon::render::Glyph;
 use sill_shell_kit::battery::ring::percent_text;
-use sill_shell_kit::clock::face::ClockFace;
-use sill_shell_kit::clock::kind::{ClockLook, ClockTime, DayPhase, Seconds};
 use sill_shell_kit::prelude::*;
 use sill_shell_kit::tokens::widgets::WidgetMetrics;
 use sill_shell_kit::widget::kind::{CardTint, WidgetTitle};
@@ -74,18 +71,6 @@ fn center(body: Element) -> Element {
 fn batteries() -> Option<WidgetTitle> {
     Some(WidgetTitle::new(Icon::BatteryFull, "Batteries"))
 }
-
-const TEN_TO_TEN: ClockTime = ClockTime {
-    hour: 9,
-    minute: 50,
-    second: Seconds::Hidden,
-};
-
-const LATE: ClockTime = ClockTime {
-    hour: 23,
-    minute: 5,
-    second: Seconds::Shown(42),
-};
 
 type Case = (&'static str, fn() -> Element);
 
@@ -147,36 +132,6 @@ const CASES: &[Case] = &[
     }),
     ("frame-large-tile", || {
         center(rsx! { WidgetFrame { size: WidgetSize::Large, host: WidgetHost::Tile, "Up next" } })
-    }),
-    ("clock-analog-day", || {
-        desktop(
-            Theme::Light,
-            rsx! { ClockFace { time: TEN_TO_TEN, label: "Taipei" } },
-        )
-    }),
-    ("clock-analog-small-frame", || {
-        desktop(
-            Theme::Light,
-            rsx! { WidgetFrame { size: WidgetSize::Small, ClockFace { time: LATE, label: "Taipei" } } },
-        )
-    }),
-    ("clock-analog-night-seconds", || {
-        desktop(
-            Theme::Light,
-            rsx! { ClockFace { time: LATE, phase: DayPhase::Night, label: "London" } },
-        )
-    }),
-    ("clock-digital-day", || {
-        desktop(
-            Theme::Dark,
-            rsx! { ClockFace { time: TEN_TO_TEN, look: ClockLook::Digital, label: "Taipei" } },
-        )
-    }),
-    ("clock-digital-night-seconds", || {
-        desktop(
-            Theme::Light,
-            rsx! { ClockFace { time: LATE, phase: DayPhase::Night, look: ClockLook::Digital, label: "London" } },
-        )
     }),
     ("battery-8", || {
         settled(
@@ -260,46 +215,6 @@ fn a_frame_says_its_size_and_host_and_only_the_desktop_has_a_material() {
     let space = html("frame-medium-desktop-space");
     assert!(space.contains("data-tint=\"space\""), "{space}");
     assert!(space.contains("class=\"ds-frame\""), "{space}");
-}
-
-/// The dial says its phase (its face and ink follow it); twelve numerals stand round it; the
-/// second hand and its pin are drawn only when the seconds are shown; a digital face wears the
-/// sun by day and the moon by night.
-#[test]
-fn the_dial_keeps_its_pairs_and_its_second_hand_only_when_shown() {
-    let day = html("clock-analog-day");
-    assert!(day.contains("data-theme=\"light\""), "{day}");
-    assert!(day.contains("data-phase=\"day\""), "{day}");
-    assert!(!day.contains("ds-clock-second"), "{day}");
-    assert!(!day.contains("ds-clock-pin"), "{day}");
-    assert_eq!(
-        day.matches("class=\"ds-clock-numeral\"").count(),
-        12,
-        "{day}"
-    );
-    assert!(
-        day.contains("rotate(295 50 50)"),
-        "the hour hand at ten to ten: {day}"
-    );
-    let night = html("clock-analog-night-seconds");
-    assert!(night.contains("data-theme=\"light\""), "{night}");
-    assert!(night.contains("data-phase=\"night\""), "{night}");
-    assert!(night.contains("ds-clock-second"), "{night}");
-    assert!(night.contains("ds-clock-pin"), "{night}");
-    assert!(
-        night.contains("rotate(252 50 50)"),
-        "the second hand at 42 s: {night}"
-    );
-    let digital_night = html("clock-digital-night-seconds");
-    assert!(digital_night.contains(">23:05:42<"), "{digital_night}");
-    assert!(digital_night.contains("ds-clock-moon"), "{digital_night}");
-    let digital_day = html("clock-digital-day");
-    assert!(digital_day.contains(">09:50<"), "{digital_day}");
-    assert!(digital_day.contains("ds-clock-sun"), "{digital_day}");
-    assert!(
-        !day.contains("ds-clock-sun"),
-        "an analog face wears no mark"
-    );
 }
 
 /// The arc runs clockwise from twelve as far as the level (a full level is the whole circle),

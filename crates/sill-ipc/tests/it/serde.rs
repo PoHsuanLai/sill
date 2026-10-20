@@ -161,14 +161,6 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"show","v":{"kind":"control_center"}}"#,
         ),
         (
-            Request::Show(ShowRequest::EditWidgets(Reveal::Open)),
-            r#"{"kind":"show","v":{"kind":"edit_widgets","v":"open"}}"#,
-        ),
-        (
-            Request::Show(ShowRequest::EditWidgets(Reveal::Close)),
-            r#"{"kind":"show","v":{"kind":"edit_widgets","v":"close"}}"#,
-        ),
-        (
             Request::Status(StatusRequest::Notifications),
             r#"{"kind":"status","v":"notifications"}"#,
         ),
@@ -255,10 +247,6 @@ fn requests() -> Vec<(Request, &'static str)> {
         (
             Request::Act(ActRequest::Screenshot(ShotKind::Screen)),
             r#"{"kind":"act","v":{"kind":"screenshot","v":"screen"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::ToggleDesktopWidgets),
-            r#"{"kind":"act","v":{"kind":"toggle_desktop_widgets"}}"#,
         ),
         (
             Request::Act(ActRequest::Switcher(SwitcherRequest::Next)),
@@ -386,11 +374,11 @@ fn requests() -> Vec<(Request, &'static str)> {
         ),
         (
             Request::Debug(DebugRequest::PointerPress {
-                surface: surface("sill-desktop-widgets-DP-1"),
+                surface: surface("sill-wallpaper-DP-1"),
                 at: Point { x: 900, y: 96 },
                 button: PointerButton::Primary,
             }),
-            r#"{"kind":"debug","v":{"kind":"pointer_press","v":{"surface":"sill-desktop-widgets-DP-1","at":{"x":900,"y":96},"button":"primary"}}}"#,
+            r#"{"kind":"debug","v":{"kind":"pointer_press","v":{"surface":"sill-wallpaper-DP-1","at":{"x":900,"y":96},"button":"primary"}}}"#,
         ),
         (
             Request::Debug(DebugRequest::PointerPress {
@@ -402,11 +390,11 @@ fn requests() -> Vec<(Request, &'static str)> {
         ),
         (
             Request::Debug(DebugRequest::PointerRelease {
-                surface: surface("sill-desktop-widgets-DP-1"),
+                surface: surface("sill-wallpaper-DP-1"),
                 at: Point { x: 0, y: 456 },
                 button: PointerButton::Primary,
             }),
-            r#"{"kind":"debug","v":{"kind":"pointer_release","v":{"surface":"sill-desktop-widgets-DP-1","at":{"x":0,"y":456},"button":"primary"}}}"#,
+            r#"{"kind":"debug","v":{"kind":"pointer_release","v":{"surface":"sill-wallpaper-DP-1","at":{"x":0,"y":456},"button":"primary"}}}"#,
         ),
         (
             Request::Debug(DebugRequest::PointerRelease {

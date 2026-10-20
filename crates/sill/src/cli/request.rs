@@ -7,7 +7,7 @@ use sill_ipc::show::ShowRequest;
 
 use super::Command;
 use super::debug::debug_request;
-use super::desktop::{control_center_request, dock_request, widgets_request};
+use super::desktop::{control_center_request, dock_request};
 use super::display::display_request;
 use super::intents::intents_request;
 use super::keycap::keycap_request;
@@ -31,7 +31,6 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::ForceQuit { action } => Request::Show(ShowRequest::ForceQuit(*action)),
         Command::ControlCenter { action } => control_center_request(*action),
         Command::Screenshot { kind } => Request::Act(ActRequest::Screenshot(*kind)),
-        Command::Widgets { action } => widgets_request(*action),
         Command::Companion { action } => Request::Show(ShowRequest::Companion(*action)),
         Command::Voice { action } => Request::Show(ShowRequest::Voice(*action)),
         Command::Display { action } => display_request(action),

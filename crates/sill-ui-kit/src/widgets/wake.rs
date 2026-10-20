@@ -1,14 +1,14 @@
 //! The stamp a widget host provides to wake every widget's fill on open or show
 //! (design/23-WIDGETS.md section 4.1; quire's `BatteryRing`, `WakeStamp`): the
 //! notification center provides one from its own opening
-//! (`crate::panel::Opening`), the desktop layer at its own mount.
+//! (`crate::panel::Opening`).
 //! A widget reads it with [`use_widget_wake`] instead of a `wake` prop threaded through
 //! [`crate::widgets::Widget`] and its host, so every host wakes its widgets in one place.
 
 use dioxus::prelude::*;
 use ds::motion::wake::WakeStamp;
 
-/// One host's wake, provided once for the widgets under it to read.
+/// The center's wake, provided once for the widgets under it to read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct WidgetWake(pub WakeStamp);
 

@@ -49,7 +49,6 @@ pub fn role_of_surface(name: &str) -> Option<ShellRole> {
         "banners" | "notification-center" => Some(ShellRole::Notifications),
         "osd" => Some(ShellRole::Osd),
         "wallpaper" => Some(ShellRole::Wallpaper),
-        "desktop-widgets" => Some(ShellRole::Widget),
         _ => None,
     }
 }

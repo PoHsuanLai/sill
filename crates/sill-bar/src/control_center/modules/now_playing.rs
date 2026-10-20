@@ -1,5 +1,5 @@
-//! The Now Playing module: `Media::current`'s track on the module's panel, drawn by the view it
-//! shares with the Now Playing widget ([`sill_ui_kit::widgets::now_playing::MediaView`]); a press sends
+//! The Now Playing module: `Media::current`'s track on the module's panel, drawn by
+//! [`sill_ui_kit::now_playing::MediaView`]; a press sends
 //! `MediaCommand::Press`. Reads `use_service::<NowPlayingService>`; asks the service to re-read the
 //! position when it opens, so the bar starts from where the track is now.
 
@@ -12,7 +12,7 @@ use sill_services::NowPlayingService;
 use sill_settings::{ControlCenterSettings, InMenuBar};
 use sill_shell_kit::prelude::*;
 use sill_ui_kit::hooks::use_service;
-use sill_ui_kit::widgets::now_playing::{MediaView, use_media};
+use sill_ui_kit::now_playing::{MediaView, use_media};
 
 /// The Now Playing module.
 #[component]

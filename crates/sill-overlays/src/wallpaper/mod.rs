@@ -1,5 +1,6 @@
-//! The wallpaper (design/20 §1.4): one per output, Background layer, no input, no blur, the
-//! prepared image with a light/dark cross-fade over `--t-big`, rendered only on change.
+//! The wallpaper (design/20 §1.4): one per output, Background layer, no blur, the prepared image
+//! with a light/dark cross-fade over `--t-big`, rendered only on change. It takes the pointer only
+//! for the desktop's menu, opened by a press of the secondary button (`menu`).
 //!
 //! No `Material::Window`: design/20 §1.4 gives the wallpaper no material at all ("opaque
 //! image"), and quire's eight materials (`ds::prelude::Material`) have no such variant. `Window` is the
@@ -14,6 +15,7 @@
 mod crossfade;
 mod io;
 mod layer;
+mod menu;
 mod model;
 mod surface;
 mod view;

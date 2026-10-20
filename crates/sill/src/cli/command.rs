@@ -8,7 +8,7 @@ use sill_ipc::show::{CompanionRequest, Reveal, VoiceRequest};
 use sill_model::screenshots::ShotKind;
 
 use super::debug::DebugAction;
-use super::desktop::{ControlCenterAction, DockAction, WidgetsAction};
+use super::desktop::{ControlCenterAction, DockAction};
 use super::display::DisplayAction;
 use super::intents::IntentsAction;
 use super::keycap::KeycapAction;
@@ -135,11 +135,6 @@ pub enum Command {
     /// banner, whichever appeared last: Enter opens it, Delete trashes the shot or closes the
     /// banner, Escape dismisses it, Up and Down move between banners. Bind it in the compositor's shortcuts.
     FocusLatest,
-    /// The widgets.
-    Widgets {
-        #[command(subcommand)]
-        action: WidgetsAction,
-    },
     /// The assistant: summon it, put it away, or pause what it is doing.
     Companion {
         /// `tap` is one tap of the double-tap key (the second within `companion.double_tap_ms`

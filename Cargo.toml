@@ -15,7 +15,6 @@ members = [
   "crates/sill-settings",
   "crates/sill-testkit",
   "crates/sill-ui-kit",
-  "crates/sill-widgets-ui",
   "crates/sill",
 ]
 
@@ -41,7 +40,6 @@ sill-ui-kit   = { path = "crates/sill-ui-kit" }
 sill-bar = { path = "crates/sill-bar" }
 sill-launcher-ui = { path = "crates/sill-launcher-ui", default-features = false }
 sill-dock = { path = "crates/sill-dock" }
-sill-widgets-ui = { path = "crates/sill-widgets-ui" }
 sill-notify-ui = { path = "crates/sill-notify-ui" }
 sill-overlays = { path = "crates/sill-overlays" }
 # Sibling repos, checked out next to this one.

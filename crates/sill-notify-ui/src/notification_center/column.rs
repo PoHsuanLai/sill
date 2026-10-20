@@ -38,8 +38,8 @@ pub(super) fn Column(output: OutputId) -> Element {
 }
 
 /// One opening's catcher and panel: its own handlers' state, so each opening starts closed, and
-/// its own widget wake (`sill_ui_kit::widgets::WidgetWake`), so a reopened battery ring counts up
-/// again (the widgets' own remount already would; the stamp also covers a host that keeps them
+/// its own widget wake (`sill_ui_kit::widgets::WidgetWake`), so a reopened widget replays its appear
+/// motion (the widgets' own remount already would; the stamp also covers a host that keeps them
 /// mounted across an opening).
 #[component]
 fn Opened(

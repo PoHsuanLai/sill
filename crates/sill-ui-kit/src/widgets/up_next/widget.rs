@@ -68,40 +68,12 @@ impl Widget for UpNext {
         WidgetKind::fixed("sill.up-next")
     }
 
-    fn name() -> TextLine {
-        TextLine::from("Up Next")
-    }
-
-    fn description() -> TextLine {
-        TextLine::from("See your next events from your calendars.")
-    }
-
     fn sizes() -> &'static [WidgetSize] {
         &[WidgetSize::Medium]
     }
 
     fn placeholder(_size: WidgetSize) -> UpNextEntry {
         UpNextEntry::Waiting
-    }
-
-    fn preview(_size: WidgetSize) -> UpNextEntry {
-        let row = |hue, title: &str, when: &str| UpNextRow {
-            hue,
-            title: title.to_owned(),
-            when: when.to_owned(),
-        };
-        UpNextEntry::Agenda(UpNextFace {
-            day: DayLine {
-                weekday: "Monday".to_owned(),
-                date: 14,
-            },
-            rows: vec![
-                row(LabelHue::Blue, "Design review", "10:00 – 11:00"),
-                row(LabelHue::Green, "Lunch with Mei", "13:30 – 14:30"),
-                row(LabelHue::Amber, "Climbing", "17:00 – 19:00"),
-            ],
-            quiet: None,
-        })
     }
 
     fn view(entry: &UpNextEntry, cx: WidgetContext<NoIntent>) -> Element {

@@ -35,12 +35,11 @@ use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
-    DisplayTrialLink, EditWidgetsLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource,
-    LockLink, OsdKind, OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput,
-    SpacesBarLink, SplitPickerLink, SwitcherAsk, SwitcherLink,
+    DisplayTrialLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind,
+    OsdLink, PowerMenuLink, Preselect, PromptOutput, SpacesBarLink, SplitPickerLink, SwitcherAsk,
+    SwitcherLink,
 };
 use sill_ui_kit::surface::Surface;
-use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -77,18 +76,6 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <LauncherCatcher as Surface>::NAME,
         css: sill_launcher_ui::launcher::LAUNCHER_CSS,
         states: launcher_catcher_states,
-    },
-    SurfaceCase {
-        name: "desktop_widgets",
-        surface: <DesktopWidgets as Surface>::NAME,
-        css: sill_widgets_ui::desktop::DESKTOP_WIDGETS_CSS,
-        states: desktop_widgets_states,
-    },
-    SurfaceCase {
-        name: "edit_widgets",
-        surface: <EditWidgets as Surface>::NAME,
-        css: sill_widgets_ui::edit::EDIT_WIDGETS_CSS,
-        states: edit_widgets_states,
     },
     SurfaceCase {
         name: "osd",
@@ -287,35 +274,6 @@ fn launcher_catcher_states() -> Vec<(&'static str, String)> {
     let shown = catcher.harness.html();
     assert!(shown.contains("sill-launcher-catcher"), "{shown}");
     vec![("shut", shut), ("shown", shown)]
-}
-
-/// The desktop layer with its default widgets placed, its places kept in a scratch file.
-fn desktop_widgets_states() -> Vec<(&'static str, String)> {
-    let dir =
-        std::env::temp_dir().join(format!("sill-lint-desktop-widgets-{}", std::process::id()));
-    let places = PlacementFile(dir.join("desktop-widgets.json"));
-    let mut layer = SurfaceHarness::<DesktopWidgets>::setup(places, ()).start();
-    for _ in 0..10 {
-        layer.harness.advance(Duration::from_millis(40));
-    }
-    let placed = layer.harness.html();
-    let _ = std::fs::remove_dir_all(dir);
-    assert!(placed.contains("widget-battery"), "{placed}");
-    vec![("placed", placed)]
-}
-
-/// The gallery hidden, then open.
-fn edit_widgets_states() -> Vec<(&'static str, String)> {
-    let mut edit = SurfaceHarness::<EditWidgets>::setup(EditWidgetsLink::new(), ()).start();
-    edit.harness.advance(Duration::from_millis(60));
-    let hidden = edit.harness.html();
-    edit.link.open(fake::output().id);
-    for _ in 0..10 {
-        edit.harness.advance(Duration::from_millis(40));
-    }
-    let open = edit.harness.html();
-    assert!(open.contains("ds-widget-gallery"), "{open}");
-    vec![("hidden", hidden), ("open", open)]
 }
 
 /// The indicator hidden, then shown for a volume change.
@@ -930,7 +888,7 @@ fn lock_states() -> Vec<(&'static str, String)> {
 /// What a surface injects beside its own sheet: the widgets' sheets under the center's history.
 fn injected_css(name: &str) -> String {
     match name {
-        "notification_center" => sill_ui_kit::widgets::widgets_css(),
+        "notification_center" => sill_ui_kit::widgets::widgets_css().to_owned(),
         _ => String::new(),
     }
 }

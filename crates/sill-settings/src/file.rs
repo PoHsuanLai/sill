@@ -27,7 +27,6 @@ use crate::session::SessionSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
 use crate::voice::VoiceSettings;
-use crate::widgets::WidgetsSettings;
 use crate::window::WindowSettings;
 
 /// The directory name under `$XDG_CONFIG_HOME`.
@@ -53,7 +52,6 @@ pub struct ShellFile {
     pub power_menu: PowerMenuSettings,
     /// sill's own lock screen.
     pub session: SessionSettings,
-    pub widgets: WidgetsSettings,
     pub calendar: CalendarSettings,
     pub screenshot: ScreenshotSettings,
     pub hot_corners: HotCornerSettings,

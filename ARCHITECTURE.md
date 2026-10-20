@@ -36,7 +36,7 @@ listed except where noted.
 | --- | --- | --- | --- |
 | 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, the shared actions a row's keys are (`keys.rs`), preview facts. Pure; a future repo | `almanac-core`, `docket-core`, `ds-core` (`MemoryVerb`), `prov`; nucleo-matcher, serde |
 | 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
-| 0 | `sill-shell-kit` | The shell-only parts over `ds`, moved here from quire's `ds-shell` (2026-10-07): bar, dock, control center, lock, switcher, OSD, idle dim, notifications, thumbnails, battery, clock, now playing, user picture, emoji, month grid, date picker, widget contract, registry, catalog and the widgets, with the shell's tokens (`tokens/`), sheets (`sheets.rs`), `KIT`, `kits()` and `stylesheet()` (the whole shell stylesheet: quire's plus these) and their SSR goldens and behaviour tests | none of ours; quire's `ds`, `ds-core`, `ds-shell` (its `KIT` and sheets). Dev: `ds-blitz`, `ds-harness`, `ds-lint`, `ds-settings` |
+| 0 | `sill-shell-kit` | The shell-only parts over `ds`, moved here from quire's `ds-shell` (2026-10-07): bar, dock, control center, lock, switcher, OSD, idle dim, notifications, thumbnails, battery, clock, now playing, user picture, emoji, month grid, date picker, the widget contract and its two widgets (calendar, up next), with the shell's tokens (`tokens/`), sheets (`sheets.rs`), `KIT`, `kits()` and `stylesheet()` (the whole shell stylesheet: quire's plus these) and their SSR goldens and behaviour tests | none of ours; quire's `ds`, `ds-core`, `ds-shell` (its `KIT` and sheets). Dev: `ds-blitz`, `ds-harness`, `ds-lint`, `ds-settings` |
 | 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`, `Machine`), `docket-core`, `almanac-core`, `companion-wire`, `cua-bus`, `prov`, `porter-core` (the accounts sheet's `SheetView`/`SheetInput`, serde data), `porter-infer` (`ModelRef`, `ServedBy`: serde data a helper's model is named by), `casement-protocols` (`vocab` only: the desktop views' enums); serde, jiff, thiserror |
 | 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
@@ -47,7 +47,6 @@ listed except where noted.
 | 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `sill-shell-kit`, `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*, `anyview-core`, `anyview-image`, `anyview-peek` (what a file's pane looks like), `anyview-platform` (the thumbnail cache behind a video's frame, `preview::frames`), `almanac-core`, `companion-wire`, `docket-core`, `prov` (a companion row's pane and keys); `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint`, `ds-shell` |
 | 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*; `sill-shell-kit`, `ds`, `ds-settings`, `ds-blitz`, `shell-host` |
-| 6 | `sill-widgets-ui` | Desktop widget layer and its context menu, Edit Widgets | `sill-ui-kit`, `sill-model`, `sill-launcher`, `sill-settings`; `sill-shell-kit`, `ds`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-behaviour` (the switcher and hot-corner machines), `ds-shell` (the accounts sheet), `sill-shell-kit`, `ds-settings`, `shell-host`, `porter-core` (the accounts sheet's props) |
 | 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-blitz`, `ds-settings`, `shell-host`; clap, latchkey, `ds-lint` and `sill-shell-kit` (`sill style check` lints against its `kits()`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
 
@@ -81,7 +80,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | `sill-ipc` | `line` (encode, decode, cap), `error`, `request`, `response`, `show`, `status`, `act`, `debug` (one word file per request group) |
 | `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `file_touch` (a debounced watch on one file), then one dir per service (29, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview` (a clipboard image), `providers/<kind>/` (`files/`: `actions` (the shared file actions as a row's), `viewed` (the viewer's history as rows and uses)), `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
-| `sill-shell-kit` | `tokens`, then leaf parts `battery`, `clock`, `emoji`, `month_grid`, `now_playing`, `notifications`, `osd`, `idle_dim`, `dock`, `bar`, `control_center`, `switcher`, `date_picker` < `user_picture`, `thumbs` < `lock` < `widget` (`contract`, `registry`, `wire`, `card`, `frame`, `gallery`, one dir per kind) and `catalog` < `sheets`, `kit` < `prelude` |
+| `sill-shell-kit` | `tokens`, then leaf parts `battery`, `clock`, `emoji`, `month_grid`, `now_playing`, `notifications`, `osd`, `idle_dim`, `dock`, `bar`, `control_center`, `switcher`, `date_picker` < `user_picture`, `thumbs` < `lock` < `widget` (`contract`, `card`, `frame`, `timeline`, `calendar`) < `sheets`, `kit` < `prelude` |
 | `sill-ui-kit` | `look`, `links/`, `settings`, `shell_style`, `sheet_stage/`, `services`, `hooks/`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
 | each surface crate | one dir per surface, named after it (`osd/`, `dock/`, `banners/`); `lib.rs` re-exports each surface marker type and nothing else |
 | `sill` | `policy/`, `ipc/`, `cli/`, `daemon/` (`daemon` is the top: it names every crate) |
@@ -341,9 +340,8 @@ Look a concept up here before writing it. If it has a home, extend it.
 | App icons, look, cache | `sill_ui_kit::app_icons` |
 | Status glyph props from service state | `sill_ui_kit::status` over `sill-shell-kit` glyphs |
 | Notification card | `sill_ui_kit::notification_card` |
-| Widget provider, `Card<P>`, registry, layout mapping | `sill_ui_kit::widgets` |
-| Desktop widget grid; the desktop's context menu; Edit Widgets sheet | `sill_widgets_ui::{desktop, desktop::menu, edit}` |
-| Where each output's desktop widgets and their cells are kept | `sill_ui_kit::links::PlacementFile` (`desktop-widgets.json`: per output a widget list, once Edit Widgets has edited it, and the cells) |
+| Widget provider, `Card<P>`, the center's two cards | `sill_ui_kit::widgets` |
+| The desktop's context menu (Change Wallpaper…) | `sill_overlays::wallpaper::menu`, on the wallpaper surface |
 | Control-center module | `sill_bar::control_center::modules::<name>`, picked by `module(kind)` |
 | Dock magnification | `sill_dock::magnify` |
 | Switcher app derivation | `sill_overlays::switcher::apps` |
@@ -492,31 +490,29 @@ Bluetooth, Focus, Display, Keyboard, Sound, Now Playing, Appearance, Battery.
 ### `WidgetProvider` (`sill_ui_kit::widgets`)
 
 ```rust
-pub trait WidgetProvider: Clone + PartialEq + 'static {
+pub trait WidgetProvider: Clone + PartialEq + Default + 'static {
     type W: sill_shell_kit::prelude::Widget;        // a value: `Widget: Default`
     const KIND: WidgetKind;
-    const DESKTOP_SIZE: WidgetSize;           // its one size on the desktop (tiles are all Medium)
     fn use_feed() -> Feed<Self::W>;           // reads the services; one hook, one shape
-    fn registry_id() -> sill_shell_kit::prelude::WidgetKind;  // provided: `W::kind()`, the name in quire's registry
 }
 pub struct Feed<W: sill_shell_kit::prelude::Widget> {
     pub entry: W::Entry,                                   // the entry now
     pub onintent: Option<EventHandler<W::Intent>>,         // the card's controls; none without any
 }
-#[component] pub fn Card<P: WidgetProvider>(provider: P, place: Place) -> Element;  // quire's WidgetCard
+#[component] pub fn Card<P: WidgetProvider>(provider: P) -> Element;  // a WidgetCard tile, `SIZE` (Medium)
 pub fn with_provider<A: OnProvider>(kind: WidgetKind, action: A) -> A::Out;  // the only match on the kind
-pub fn card(kind: WidgetKind, place: Place) -> Element;             // `with_provider(kind, CardAt(place))`
+pub fn card(kind: WidgetKind) -> Element;             // `with_provider(kind, ..)`
 ```
 
-`size_of(kind, host)` reads `DESKTOP_SIZE` (desktop) or Medium (tile); `kind_id`, `kind_of`
-and `size_of` all go through `with_provider`. `WidgetKind` derives quire's `Word`: `ALL` and the
-slug (the element id `widget-<slug>`) come from the derive, the settings key stays serde
-snake_case. A provider is a `Default` unit struct
-(`CalendarProvider`), passed to `Card` only to name the type. Calendar's `use_feed` keeps the
-shown month in a signal and returns the `MonthIntent` handler; Now Playing's returns the
-`Transport` handler (`use_media`, shared with the control center).
+Widgets live only in the notification center: `CenterWidgets` draws the fixed list
+`[Calendar, UpNext]`, each a Medium tile; nothing is placed, picked or edited. `WidgetKind`
+derives quire's `Word`: `ALL` and the slug (the element id `widget-<slug>`) come from the
+derive. A provider is a `Default` unit struct (`CalendarProvider`), passed to `Card` only to
+name the type. Calendar's `use_feed` keeps the shown month in a signal and returns the
+`MonthIntent` handler. Now Playing and the batteries are control-center modules, not widgets
+(`sill_ui_kit::now_playing::use_media`, `sill_ui_kit::status::device::device_of`).
 
-Implementors: calendar, up next, batteries, now playing, world clock.
+Implementors: calendar, up next.
 
 ### `MenuModel` (`sill_ui_kit::menu`)
 
@@ -624,15 +620,14 @@ Each ends with its tests. Name the concept once and use it in every file name be
 
 ### Add a widget
 
-1. The `sill_shell_kit::prelude::Widget` (its recipe is `sill-shell-kit`'s: `widget/<kind>/{mod, model, view, style.css}` and a row in `widget/registry.rs::builtin()`), then a `WidgetKind` variant in
-   `sill-settings/src/widgets.rs`.
-2. `sill-ui-kit/src/widgets/<kind>/{mod,provider,io,tests}.rs` (+ `style.css` if it has one):
+1. The `sill_shell_kit::prelude::Widget` (`sill-shell-kit`'s `widget/<kind>/{mod, model, view, style.css}`),
+   then a `WidgetKind` variant in `sill-settings/src/widgets.rs`.
+2. `sill-ui-kit/src/widgets/<kind>/{mod,io,tests}.rs` (+ `style.css` if it has one):
    `impl WidgetProvider` (`use_feed` over services) on a unit struct in `io.rs`.
-3. `const DESKTOP_SIZE` on the provider, and the one arm in `widgets/card.rs::with_provider`;
-   `WidgetKind::ALL`, the slug, `kind_id`, `size_of` and the element id follow. Add the
-   variant's row to the table test in `widgets/tests.rs` (slug, element id, size).
-4. Tests: entry table in `tests.rs`; a row in `sill-widgets-ui/tests/desktop_widgets.rs` and in
-   `sill-notify-ui/tests/center_widgets.rs` render loops (both hosts).
+3. The one arm in `widgets/card.rs::with_provider`, and the kind in `CENTER`
+   (`sill-notify-ui/src/notification_center/widgets.rs`); the slug and element id follow.
+4. Tests: the entry table in the kind's `tests.rs`; `sill-notify-ui/tests/center_widgets.rs`
+   counts the center's tiles.
 
 ### Add a launcher provider
 
@@ -720,15 +715,17 @@ Each ends with its tests. Name the concept once and use it in every file name be
 | `dock` | `sill-dock` | Bottom | Magnify, machines, context menu, badges, running dots |
 | `launcher`, `launcher_catcher` | `sill-launcher-ui` | Overlay | Panel plus click catcher, one `Reveal` link |
 | `banners`, `notification_center`, `screenshot_thumb` | `sill-notify-ui` | Overlay | Cards from `sill-ui-kit::notification_card` |
-| `desktop_widgets`, `edit_widgets` | `sill-widgets-ui` | Bottom, Overlay | Providers from `sill-ui-kit::widgets`; the desktop layer takes the pointer over the whole output and opens its context menu (a `MenuPopup` of `desktop::menu`) on a secondary press; each output's layer and sheet follow that output's own widget list |
 | `osd`, `power_menu`, `polkit_prompt`, `confirm`, `accounts_sheet`, `switcher`, `idle_dim`, `hot_corners`, `wallpaper`, `window_menu`, `spaces_bar`, `split_picker` | `sill-overlays` | Overlay (wallpaper Background; `spaces_bar` Top) | `spaces_bar` is Mission Control's Spaces bar: while the compositor's overview is Mission Control and entering, open or tracking (`ShellNote::Overview` -> `sill::spaces_bar::apply_note` -> `SpacesBarLink`, which `daemon/events.rs` also feeds the desktop's view) and `ShellNote::OverviewOutput` says it is up on that output, the surface on that output hangs quire's `SpacesBar` under the menu bar (one tile per Space of that output, `sill_model::desktop::bar_spaces`, over its picture from `ShellNote::SpacePicture` (every Space of the output, hidden ones too) and over that output's wallpaper (`wallpaper::url_for`, passed to each tile as `SpaceTile::backdrop`), lit by `ShellNote::DropTarget`, and the plus, lit by `ShellNote::DropTargetNew`). The surface is the menu bar's height plus `BAR_EXPANDED_PX` tall, taller than the 112 px strip (`STRIP_PX`) the compositor keeps free, and takes input on the bar's own element (`RegionSpec::Element`, id `spaces-bar`). It publishes where its cards and its plus lie (quire's `on_layout`, moved by the output's origin into `BarLayout` on the link's feed; no geometry is computed in sill) and `spaces_bar::spawn_outbox` turns the layouts into `DesktopCommand::SetSpaceTargets`, then `SetNewSpaceTarget` (the plus; `None` once the bar goes), and, per `thumbs_wanted`, one `CaptureSpace` request per Space (kept across switches, asked again only after an answer and a change in the Space's windows). The surface unmaps when quire's lift settles. A tile or the plus writes `BarPick` to the link and `spaces_bar::spawn_picks` sends `SwitchSpace` then `Overview(MissionControl, Off)`, or `CreateSpace`. `split_picker` is the Split View choice: when a window takes one half of the screen the compositor offers the windows that can fill the other (`ShellNote::SplitChoose`, `SplitCandidate`, `SplitChoiceEnd` -> `SplitPickerLink`, which `sill::split_picker::apply` writes with the desktop's titles and output), and the surface on that output dims the screen and shows quire's `AppSwitcher` (one tile per window: its app icon through `sill_ui_kit::app_icons::TileIcons`, its title) in the free half; a tile, Return, Escape or a press elsewhere writes the answer to the link and `split_picker::spawn_answers` sends `DesktopCommand::PickSplit` or `CancelSplit`. `window_menu` draws nothing and takes no input: it is the parent of the popup quire's `Menu` shows when the compositor asks for a window's menu (the pointer rested on its green light; `ShellNote::WindowMenu` -> `WindowMenuLink`), and a pick goes back through the link to `DesktopCommand::PickWindowMenu`. Hot corners: one slot per corner. `confirm` is `confirm_sheet/`; `accounts_sheet` (`accounts-sheet`) is accountd's consent question and add-account steps, each a centred titled window on the banners' output (`sill_services::accounts::sheet` serves `org.quire.AccountsSheet1`); `confirm` is `confirm_sheet/`: intentd's question on quire's `Sheet`, mapped on the banners' output; `voice-consent` is `voice_consent/`, the first-use microphone question the same way |
 | `force_quit` | `sill-overlays` | Overlay | Force Quit Applications (`sill force-quit {open,close,toggle}`; Option+Command+Escape once casement runs that command for the chord): a quire `Sheet` centred on the output of the active window, a `List` of the apps the desktop lists (`sill_model::desktop::force_quit_rows` from the compositor's `DesktopView`, fed to `ForceQuitLink` by `daemon/events.rs`) with "(not responding)" after a hung one's name and a hung app preselected, a Force Quit button that asks quire's `Alert` ("Do you want to force quit ...?", Cancel the default) before `force_quit::spawn_asks` sends `DesktopCommand::ForceQuitApp`. The selection and the question are `force_quit/step.rs`; Escape answers the question, then closes the panel; a press away closes it |
 | `display-trial` | `sill-overlays` | Overlay | `display_trial/`: "Keep these display settings?" after a program other than the shell changed the displays (`ShellNote::DisplaysTrial` -> `DisplayTrialLink`), on quire's `Alert`, centred on the banners' output; the line under the headline counts the seconds down, Revert is the default and Escape, Keep Changes keeps; answers nothing for `QUESTION_ARM_AFTER` after it is drawn; answers through the link and `DesktopCommand::AnswerTrial` |
 | `permission` | `sill-overlays` | Overlay | `permission_sheet/`: an app's yes-or-no question (`org.quire.Shell1.AskPermission` from the portal backend) on quire's `Alert`, centred on the banners' output; the app's icon, the headline, the app's name and explanation, the yes button (default) and the no button (Escape); answers nothing for `PERMISSION_ARM_AFTER` after it is drawn; answers through `CaptureCommand::PermissionAnswer` |
 | `lock` | `sill-overlays` | session lock | `LOCK`, a `LockSurface`; one per output through shell-host |
 
-The notification center draws widgets and the desktop layer draws them too, so providers live
-in `sill-ui-kit`, and the center's "Edit Widgets" and the desktop menu's ask through `links::edit_widgets`, which also carries the desktop's writes (`WidgetsChange`).
+The wallpaper surface takes the pointer over the whole output (`RegionSpec::Whole`) and, on a
+secondary press, opens the desktop's context menu (`wallpaper/menu/`: a `MenuPopup` with
+Change Wallpaper…, which launches the wallpaper picker; no menu when no picker is installed).
+The notification center is the only place widgets are drawn; their providers live in
+`sill-ui-kit::widgets`.
 
 ## 8. The daemon
 

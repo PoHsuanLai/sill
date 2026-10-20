@@ -1,47 +1,20 @@
 //! The widgets slot below the history (macOS's Notification Center widgets; design/20 §1.14):
-//! one [`Widget`] in the center host for each of `widgets.center`, in order, each at its one
-//! size in the center ([`size_of`], Medium) on quire's card (a tile on the Popover), then "Edit
-//! Widgets" at the bottom, as macOS's Notification Center has it: it closes the center and opens the Edit
-//! Widgets sheet on this output (`sill_ui_kit::links::edit_widgets`). The panel injects sill's widgets'
-//! stylesheets (`widgets_css`).
+//! Calendar, then Up Next, each a [`Widget`] on quire's card (a tile on the Popover, Medium).
+//! Nothing adds, removes or orders them. The panel injects sill's widgets' stylesheets
+//! (`widgets_css`).
 
 use dioxus::prelude::*;
-use ds::components::controls::button_model::Bezel;
-use ds::prelude::*;
-use shell_host::OutputId;
+use sill_ui_kit::widgets::{Widget, WidgetKind};
 
-use super::io::CenterCtx;
-use sill_ui_kit::hooks::use_settings;
-use sill_ui_kit::links::EditWidgetsLink;
-use sill_ui_kit::widgets::{Widget, WidgetHost};
+/// The widgets under the history, in this order.
+const CENTER: [WidgetKind; 2] = [WidgetKind::Calendar, WidgetKind::UpNext];
 
-/// The widgets under the history, as `widgets.center` lists them, and the way to edit them.
+/// The widgets under the history.
 #[component]
-pub fn CenterWidgets(output: OutputId) -> Element {
-    let widgets = use_settings()().widgets;
-    let ctx = try_use_context::<CenterCtx>();
-    let edit = try_use_context::<EditWidgetsLink>();
+pub fn CenterWidgets() -> Element {
     rsx! {
-        for (at, kind) in widgets.center.into_iter().enumerate() {
-            Widget {
-                key: "{at}-{kind:?}",
-                kind,
-                host: WidgetHost::Tile,
-            }
-        }
-        if let Some(edit) = edit {
-            div { class: "sill-nc-edit",
-                Button {
-                    bezel: Bezel::Inline,
-                    label: "Edit Widgets",
-                    onclick: move |_| {
-                        if let Some(ctx) = &ctx {
-                            ctx.close();
-                        }
-                        edit.open(output);
-                    },
-                }
-            }
+        for kind in CENTER {
+            Widget { key: "{kind:?}", kind }
         }
     }
 }

@@ -4,7 +4,6 @@
 mod banners;
 mod center_widgets;
 mod notification_center;
-mod notification_center_edit_widgets;
 mod screenshot_thumb;
 
 /// A file in `tests/it` that `main.rs` does not list would compile to nothing.

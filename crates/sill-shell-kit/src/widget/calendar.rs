@@ -7,15 +7,11 @@
 //! [`MonthIntent::Step`], and the provider answers with the next month's timeline.
 
 use crate::month_grid::MonthGrid;
-use crate::month_grid::data::{
-    DayKey, DayMark, DayPlace, Eventful, IsoWeek, MonthDay, MonthGridData, MonthKey, MonthStep,
-    MonthWeek, WeekNumbers,
-};
+use crate::month_grid::data::{MonthGridData, MonthStep, WeekNumbers};
 use crate::widget::contract::{Widget, WidgetContext, WidgetKind};
-use crate::widget::kind::{WidgetHost, WidgetSize};
+use crate::widget::kind::WidgetSize;
 use dioxus::prelude::*;
 use ds::base::word::Word;
-use ds::components::content::text_runs::TextLine;
 use ds::style::tokens::label_hue::LabelHue;
 use serde::{Deserialize, Serialize};
 
@@ -102,51 +98,12 @@ impl Widget for MonthWidget {
         WidgetKind::fixed("quire.month")
     }
 
-    fn name() -> TextLine {
-        TextLine::from("Calendar")
-    }
-
     fn sizes() -> &'static [WidgetSize] {
         &[WidgetSize::Small, WidgetSize::Medium, WidgetSize::Large]
     }
 
-    /// Small on the desktop (the compact month); Large in the notification center (the month
-    /// over the day's events, the column's width and two cells tall).
-    fn size_in(host: WidgetHost) -> WidgetSize {
-        match host {
-            WidgetHost::Desktop => WidgetSize::Small,
-            WidgetHost::Tile => WidgetSize::Large,
-        }
-    }
-
-    fn description() -> TextLine {
-        TextLine::from("See the month at a glance, today marked.")
-    }
-
     fn placeholder(_size: WidgetSize) -> MonthEntry {
         MonthEntry::Waiting
-    }
-
-    fn preview(_size: WidgetSize) -> MonthEntry {
-        let event = |time: &str, title: &str, hue| EventLine {
-            time: time.to_owned(),
-            title: title.to_owned(),
-            hue,
-        };
-        MonthEntry::Month(Box::new(MonthFace {
-            grid: sample_month(),
-            weeks: WeekNumbers::Hide,
-            today: Some(TodayLine {
-                weekday: "Monday".to_owned(),
-                day: 14,
-            }),
-            events: vec![
-                event("10:00", "Design review", LabelHue::Blue),
-                event("13:30", "Lunch with Mei", LabelHue::Green),
-                event("17:00", "Climbing", LabelHue::Amber),
-            ],
-            no_events: "No events today".to_owned(),
-        }))
     }
 
     fn view(entry: &MonthEntry, cx: WidgetContext<MonthIntent>) -> Element {
@@ -228,50 +185,5 @@ fn quiet(words: &str) -> Element {
     }
     rsx! {
         span { class: "ds-month-quiet", "{words}" }
-    }
-}
-
-/// The gallery's sample month: thirty days from a Tuesday, the 14th today, three busy days.
-fn sample_month() -> MonthGridData {
-    const MONTH: MonthKey = MonthKey {
-        year: 2026,
-        month: 9,
-    };
-    let day = |n: i8| {
-        let (place, number, month) = match n {
-            ..=0 => (DayPlace::Before, n + 31, 8),
-            1..=30 => (DayPlace::InMonth, n, 9),
-            _ => (DayPlace::After, n - 30, 10),
-        };
-        MonthDay {
-            key: DayKey {
-                year: 2026,
-                month,
-                day: number,
-            },
-            place,
-            mark: if n == 14 {
-                DayMark::Today
-            } else {
-                DayMark::Plain
-            },
-            events: if matches!(n, 3 | 14 | 22) {
-                Eventful::Busy
-            } else {
-                Eventful::Free
-            },
-        }
-    };
-    let weeks = (0..5_i8)
-        .map(|week| MonthWeek {
-            number: IsoWeek(36 + week),
-            days: std::array::from_fn(|at| day(week * 7 + at as i8)),
-        })
-        .collect();
-    MonthGridData {
-        month: MONTH,
-        title: TextLine::from("September"),
-        heads: ["M", "T", "W", "T", "F", "S", "S"].map(TextLine::from),
-        weeks,
     }
 }

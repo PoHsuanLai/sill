@@ -1,6 +1,6 @@
 [package]
 name = "sill-shell-kit"
-description = "The shell-only parts: lock, switcher, bar, dock, control center, notifications, OSD, clocks, batteries, emoji and the desktop widgets, with the shell's tokens and sheets."
+description = "The shell-only parts: lock, switcher, bar, dock, control center, notifications, OSD, batteries, emoji and the notification center's widgets, with the shell's tokens and sheets."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

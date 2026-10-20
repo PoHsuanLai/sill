@@ -1,14 +1,11 @@
 //! Shell surfaces' parts: the lock and polkit prompts, the app switcher, the bar and dock pieces,
 //! the OSD, control-center modules, notifications, thumbnails, now playing, the idle dim, the
-//! user's picture, animated emoji, the month grid, clocks, batteries, and the desktop widgets with
-//! their catalog, over `ds` (the generic components and the document seam), and the shell's own
+//! user's picture, animated emoji, the month grid, batteries, and the notification center's widgets, over `ds` (the generic components and the document seam), and the shell's own
 //! tokens and sheets, which `kits()` and `stylesheet()` add to the design system's and to
 //! `ds_shell`'s (the app-facing parts).
 
 pub mod bar;
 pub mod battery;
-pub mod catalog;
-pub mod clock;
 pub mod control_center;
 pub mod date_picker;
 pub mod dock;

@@ -6,15 +6,13 @@
 
 use crate::widget::kind::{WidgetHost, WidgetSize, WidgetTitle};
 use dioxus::prelude::*;
-use ds::components::content::text_runs::TextLine;
 use ds::motion::wake::WakeStamp;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
 /// A widget's kind: a reverse-DNS name, unique across every app that provides widgets
-/// (`quire.battery`, `org.example.weather.today`). What a registry, a settings file and a
-/// D-Bus message name the widget by.
+/// (`quire.month`). What a card's markup names the widget by.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct WidgetKind(Cow<'static, str>);
@@ -56,12 +54,10 @@ pub struct WidgetContext<I: 'static> {
     pub act: Option<EventHandler<I>>,
 }
 
-/// A widget: one implementation per kind, a unit type (`Default`, so a registry can name it). quire's own are
-/// [`crate::widget::battery::BatteryWidget`], [`crate::widget::clock::WorldClockWidget`] and [`crate::widget::calendar::MonthWidget`]; an app adds
-/// its own the same way.
+/// A widget: one implementation per kind, a unit type (`Default`). The shell's are
+/// [`crate::widget::calendar::MonthWidget`] and sill's Up Next.
 ///
-/// `Entry` is everything one moment of the widget shows, as plain data (serde, so an app in
-/// another process can send it: design/23 section 9.5). `view` is a pure function of the entry
+/// `Entry` is everything one moment of the widget shows, as plain data. `view` is a pure function of the entry
 /// and the context: it returns markup (it may mount components, which may keep their own motion
 /// state) and calls no hook itself.
 pub trait Widget: Clone + PartialEq + Default + 'static {
@@ -73,34 +69,12 @@ pub trait Widget: Clone + PartialEq + Default + 'static {
     /// The kind.
     fn kind() -> WidgetKind;
 
-    /// The widget's name in a picker ("Batteries").
-    fn name() -> TextLine;
-
-    /// One line under the name in a picker ("See the charge of this computer and your
-    /// devices").
-    fn description() -> TextLine;
-
     /// The sizes it draws, the first the one it is added at.
     fn sizes() -> &'static [WidgetSize];
-
-    /// The one size it takes in `host`: what Edit Widgets previews and adds (the user's decision,
-    /// 2026-09-28: one size per widget, no size picker; design/23 section 9.7). The first of
-    /// [`Widget::sizes`] unless the widget says otherwise; a host narrows it further with
-    /// [`crate::widget::registry::WidgetRegistry::sized`]. A size the widget does not draw is held to its first
-    /// ([`fit`]).
-    fn size_in(host: WidgetHost) -> WidgetSize {
-        let _ = host;
-        Self::sizes().first().copied().unwrap_or_default()
-    }
 
     /// What it shows before its provider's first entry: honest about having no data (bare
     /// tracks, not a made-up level).
     fn placeholder(size: WidgetSize) -> Self::Entry;
-
-    /// A representative entry for the widget gallery's preview at `size`: sample data that
-    /// shows what the widget is for (the reference gallery's own previews do the same). Never
-    /// drawn on a placed widget.
-    fn preview(size: WidgetSize) -> Self::Entry;
 
     /// The content of `entry` in `cx`, without the card.
     fn view(entry: &Self::Entry, cx: WidgetContext<Self::Intent>) -> Element;
