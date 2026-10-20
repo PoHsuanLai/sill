@@ -117,6 +117,8 @@ fn every_command_line_sends_its_request() {
         (&["ping"], Some(Request::Ping)),
         (&["reload"], Some(Request::Reload)),
         (&["focus-latest"], act(ActRequest::FocusLatest)),
+        (&["next-window"], act(ActRequest::NextWindow)),
+        (&["dock", "toggle-hide"], act(ActRequest::ToggleDockHide)),
         (
             &["launch", "org.mozilla.firefox"],
             act(ActRequest::Launch(AppId("org.mozilla.firefox".to_owned()))),

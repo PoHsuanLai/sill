@@ -15,6 +15,9 @@ pub enum DockAction {
     Pin { app: String },
     /// Stop keeping APP; a running app keeps its tile.
     Unpin { app: String },
+    /// Hide the dock until the pointer reaches its edge when it is shown, keep it shown when it is
+    /// hidden (flips `dock.autohide`).
+    ToggleHide,
 }
 
 /// `sill control-center ...`.
@@ -25,14 +28,15 @@ pub enum ControlCenterAction {
 
 /// The request `sill dock ACTION` sends.
 pub fn dock_request(action: &DockAction) -> Request {
-    Request::Act(ActRequest::Dock(match action {
-        DockAction::Pin { app } => DockRequest::Pin {
+    match action {
+        DockAction::Pin { app } => Request::Act(ActRequest::Dock(DockRequest::Pin {
             app: AppId(app.clone()),
-        },
-        DockAction::Unpin { app } => DockRequest::Unpin {
+        })),
+        DockAction::Unpin { app } => Request::Act(ActRequest::Dock(DockRequest::Unpin {
             app: AppId(app.clone()),
-        },
-    }))
+        })),
+        DockAction::ToggleHide => Request::Act(ActRequest::ToggleDockHide),
+    }
 }
 
 /// The request `sill control-center ACTION` sends.

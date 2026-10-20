@@ -24,6 +24,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Quit => Request::Quit,
         Command::Reload => Request::Reload,
         Command::FocusLatest => Request::Act(ActRequest::FocusLatest),
+        Command::NextWindow => Request::Act(ActRequest::NextWindow),
         Command::Launch(args) => launch_request(args),
         Command::Launcher { action } => launcher_request(action),
         Command::Dock { action } => dock_request(action),

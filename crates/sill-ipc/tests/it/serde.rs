@@ -285,6 +285,14 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"act","v":{"kind":"dismiss_notifications"}}"#,
         ),
         (
+            Request::Act(ActRequest::ToggleDockHide),
+            r#"{"kind":"act","v":{"kind":"toggle_dock_hide"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::NextWindow),
+            r#"{"kind":"act","v":{"kind":"next_window"}}"#,
+        ),
+        (
             Request::Act(ActRequest::FocusLatest),
             r#"{"kind":"act","v":{"kind":"focus_latest"}}"#,
         ),

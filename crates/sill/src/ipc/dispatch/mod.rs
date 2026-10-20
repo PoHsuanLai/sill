@@ -4,6 +4,7 @@
 mod act;
 mod debug;
 mod keys;
+mod next_window;
 pub(crate) mod quit;
 mod reach;
 mod reply;

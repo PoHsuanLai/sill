@@ -58,7 +58,14 @@ pub fn corner_effect(action: CornerAction, command: &str) -> CornerEffect {
             program: "/bin/sh".to_owned(),
             args: vec!["-c".to_owned(), command.to_owned()],
         },
-        _ => CornerEffect::Nothing,
+        // `CornerAction` is a foreign `#[non_exhaustive]` enum: a variant added upstream lands here
+        // until it is handled above, and it must be seen rather than silently do nothing.
+        other => {
+            eprintln!(
+                "sill: a hot corner action this build does not know ({other:?}) does nothing"
+            );
+            CornerEffect::Nothing
+        }
     }
 }
 

@@ -23,6 +23,11 @@ pub enum ActRequest {
     /// Take a screenshot with `screenshot.tool` (`sill screenshot [area|window|screen]`): the
     /// file it saves shows as the thumbnail through the folder watch.
     Screenshot(ShotKind),
+    /// Flip `dock.autohide` in `settings.toml` (`sill dock toggle-hide`; the Mac's Option+Command+D).
+    ToggleDockHide,
+    /// Bring forward the next window of the front app, the least recently used one on the active
+    /// workspace (`sill next-window`; the Mac's Command+`).
+    NextWindow,
     /// The app switcher's chord verbs (`sill switcher ...`).
     Switcher(SwitcherRequest),
     /// Forget every clipboard entry now (`sill clipboard clear`).

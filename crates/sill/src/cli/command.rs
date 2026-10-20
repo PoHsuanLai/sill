@@ -135,6 +135,8 @@ pub enum Command {
     /// banner, whichever appeared last: Enter opens it, Delete trashes the shot or closes the
     /// banner, Escape dismisses it, Up and Down move between banners. Bind it in the compositor's shortcuts.
     FocusLatest,
+    /// Bring forward the next window of the front app (Command+` on a Mac).
+    NextWindow,
     /// The assistant: summon it, put it away, or pause what it is doing.
     Companion {
         /// `tap` is one tap of the double-tap key (the second within `companion.double_tap_ms`
