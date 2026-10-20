@@ -52,7 +52,7 @@ fn addresses(route: &IbusRoute) -> Vec<String> {
                     Some((modified, entry.path()))
                 })
                 .collect();
-            files.sort_by(|a, b| b.0.cmp(&a.0));
+            files.sort_by_key(|a| std::cmp::Reverse(a.0));
             files
                 .into_iter()
                 .filter_map(|(_, path)| std::fs::read_to_string(path).ok())
@@ -67,7 +67,10 @@ pub(super) async fn switch(connection: &zbus::Connection) -> Result<String, Inpu
     let failed = |error: zbus::Error| InputRefusal::Failed(error.to_string());
     let proxy = IbusProxy::new(connection).await.map_err(failed)?;
     let active = proxy.list_active_engines().await.map_err(failed)?;
-    let names: Vec<String> = active.iter().filter_map(|engine| engine_name(engine)).collect();
+    let names: Vec<String> = active
+        .iter()
+        .filter_map(|engine| engine_name(engine))
+        .collect();
     let current = proxy
         .get_global_engine()
         .await
