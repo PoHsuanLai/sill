@@ -4,6 +4,7 @@
 //! the daemon carries it out. The compositor ends an offer by itself (a pick, a cancel, the
 //! first window leaving full screen), and the daemon closes it on the link then.
 
+use shell_host::KeyboardFocus;
 use sill_model::desktop::{SplitCard, SplitSide};
 use tokio::sync::watch;
 
@@ -55,6 +56,8 @@ pub type SplitAnswered = Sent<SplitReply>;
 pub struct SplitPickerLink {
     offer: Shared<Option<SplitOffer>>,
     answered: Outbox<SplitReply>,
+    /// The offer whose surface has held the keyboard.
+    held: Shared<Option<OfferSerial>>,
 }
 
 impl SplitPickerLink {
@@ -100,6 +103,28 @@ impl SplitPickerLink {
         });
     }
 
+    /// The keyboard focus of the picker's surface changed. Losing it after holding it for the
+    /// open offer turns the choice down, unless it was answered already (a pick unmaps the
+    /// surface, and the keyboard goes with it).
+    pub fn focus(&self, focus: KeyboardFocus) {
+        match focus {
+            KeyboardFocus::Gained => self.held.set(self.latest().map(|offer| offer.serial)),
+            KeyboardFocus::Lost => {
+                let held = self.held.now();
+                self.held.set(None);
+                let Some(offer) = self.latest().filter(|offer| held == Some(offer.serial)) else {
+                    return;
+                };
+                let answered = self
+                    .last_answer()
+                    .is_some_and(|reply| reply.first == offer.first);
+                if !answered {
+                    self.answer(offer.first, SplitAnswer::Cancelled);
+                }
+            }
+        }
+    }
+
     /// The open offer, if any.
     pub fn latest(&self) -> Option<SplitOffer> {
         self.offer.now()
@@ -132,6 +157,7 @@ impl SplitPickerLink {
 #[cfg(test)]
 mod tests {
     use super::{OfferSerial, SplitAnswer, SplitPickerLink};
+    use shell_host::KeyboardFocus;
     use sill_model::desktop::{SplitCard, SplitSide};
 
     fn card(window: &str) -> SplitCard {
@@ -172,6 +198,30 @@ mod tests {
         let offer = link.latest().expect("offered");
         assert_eq!((offer.serial, offer.first.as_str()), (OfferSerial(2), "w3"));
         assert!(offer.cards.is_empty(), "the old windows are gone");
+    }
+
+    #[test]
+    fn a_focus_loss_turns_down_only_an_offer_that_held_the_keyboard_and_was_not_answered() {
+        let link = SplitPickerLink::new();
+        let cancelled = |link: &SplitPickerLink| {
+            link.last_answer()
+                .is_some_and(|reply| reply.answer == SplitAnswer::Cancelled)
+        };
+        link.begin("w1", SplitSide::Left, "DP-1");
+        link.focus(KeyboardFocus::Lost);
+        assert!(!cancelled(&link), "a loss before any gain");
+        link.focus(KeyboardFocus::Gained);
+        link.begin("w2", SplitSide::Left, "DP-1");
+        link.focus(KeyboardFocus::Lost);
+        assert!(!cancelled(&link), "the late leave of the offer before");
+        link.focus(KeyboardFocus::Gained);
+        link.answer("w2", SplitAnswer::Picked("w3".to_owned()));
+        link.focus(KeyboardFocus::Lost);
+        assert!(!cancelled(&link), "a pick unmaps the surface");
+        link.begin("w4", SplitSide::Right, "DP-1");
+        link.focus(KeyboardFocus::Gained);
+        link.focus(KeyboardFocus::Lost);
+        assert!(cancelled(&link), "a loss after holding");
     }
 
     #[test]

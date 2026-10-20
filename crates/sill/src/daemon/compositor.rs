@@ -19,7 +19,7 @@ use sill_model::desktop::target::{MinimiseTargets, OutputRects};
 use sill_model::desktop::{
     Corner as ProtocolCorner, DesktopCommand, DesktopView, KeyGesture, ShellNote, ShellRole,
 };
-use sill_services::desktop_wl::quire::{ShellArm, WlSurface, role_of_surface, spawn_shell_arm};
+use sill_services::desktop_wl::quire::{ShellArm, WlSurface, spawn_shell_arm};
 use sill_ui_kit::links::Corner;
 use sill_ui_kit::surface::OutputPolicy;
 use tokio::runtime::Handle;
@@ -189,23 +189,20 @@ pub fn follow_mapped(
     let HostEvent::SurfaceMapped { id } = event else {
         return;
     };
-    let Some((output, name)) = surface_named(outputs, *id) else {
+    let Some((output, role)) = surface_role(outputs, *id) else {
         return;
     };
-    let (Some(role), Some(surface)) = (role_of_surface(name), ctx.wl_surface(*id)) else {
+    let Some(surface) = ctx.wl_surface(*id) else {
         return;
     };
     seat.mapped(role, &output, surface);
 }
 
-/// The output's name and the `Surface::NAME` of the surface `id`.
-fn surface_named(outputs: &Outputs, id: SurfaceId) -> Option<(String, &'static str)> {
+/// The output's name and the `Surface::ROLE` of the surface `id`, when it has one.
+fn surface_role(outputs: &Outputs, id: SurfaceId) -> Option<(String, ShellRole)> {
     outputs.outputs.iter().find_map(|(info, surfaces)| {
-        surfaces
-            .spawned
-            .iter()
-            .find(|surface| surface.id == id)
-            .map(|surface| (info.name.clone().unwrap_or_default(), surface.name))
+        let role = surfaces.spawned_by(id)?.role?;
+        Some((info.name.clone().unwrap_or_default(), role))
     })
 }
 

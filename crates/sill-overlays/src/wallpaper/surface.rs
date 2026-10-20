@@ -2,11 +2,13 @@
 
 use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
+use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::view::wallpaper;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::links::Links;
+use sill_ui_kit::surface::{Place, Presence, Surface};
 
 /// The desktop background: the prepared image with a light/dark cross-fade.
 #[derive(Debug)]
@@ -16,6 +18,11 @@ impl Surface for Wallpaper {
     const NAME: &'static str = "wallpaper";
     type Link = ();
     type Slot = ();
+    const ROLE: Option<ShellRole> = Some(ShellRole::Wallpaper);
+    const LAYER_ORDER: u8 = 30;
+    const PRESENCE: Presence = Presence::Always;
+
+    fn link(_links: &Links) {}
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -23,10 +30,6 @@ impl Surface for Wallpaper {
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
         layer(output)
-    }
-
-    fn start() -> Start {
-        Start::Shown
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

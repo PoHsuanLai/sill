@@ -7,7 +7,8 @@ use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::view::idle_dim;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::links::Links;
+use sill_ui_kit::surface::{Place, Presence, Surface};
 
 /// The black scrim over every output while the idle service dims.
 #[derive(Debug)]
@@ -17,6 +18,10 @@ impl Surface for IdleDim {
     const NAME: &'static str = "idle-dim";
     type Link = ();
     type Slot = ();
+    const LAYER_ORDER: u8 = 250;
+    const PRESENCE: Presence = Presence::Daemon;
+
+    fn link(_links: &Links) {}
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -24,10 +29,6 @@ impl Surface for IdleDim {
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
         layer(output)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

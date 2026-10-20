@@ -1,10 +1,59 @@
 //! Which surfaces exist on which output, and the pure reconciliation from the host's output
 //! list to spawn and close actions.
 
-use shell_host::{LayerSize, OutputId, OutputInfo, SurfaceId};
+use std::sync::Arc;
+
+use shell_host::{KeyboardFocus, LayerSize, OutputId, OutputInfo, SurfaceId};
+use sill_model::desktop::ShellRole;
 use sill_model::ids::OutputName;
 use sill_ui_kit::services::Services;
-use sill_ui_kit::surface::{OutputPolicy, Surface};
+use sill_ui_kit::surface::{FocusLoss, OutputPolicy, Surface};
+
+/// What a surface does when its keyboard focus changes, made from its `Surface::KEYBOARD` and its
+/// link at spawn time, so the daemon tells every surface the same way without knowing its kind.
+#[derive(Clone, Default)]
+pub struct FocusRoute(Option<Arc<dyn Fn(KeyboardFocus) + Send + Sync>>);
+
+impl FocusRoute {
+    /// The route of `S`'s surface on `output`, holding `link`.
+    pub fn of<S: Surface>(link: &S::Link, output: OutputId) -> FocusRoute {
+        match S::KEYBOARD {
+            FocusLoss::Ignore => FocusRoute(None),
+            FocusLoss::CloseLink(close) => {
+                let link = link.clone();
+                FocusRoute(Some(Arc::new(move |focus| close(&link, output, focus))))
+            }
+        }
+    }
+
+    /// The surface's keyboard focus changed.
+    pub fn tell(&self, focus: KeyboardFocus) {
+        if let Some(route) = &self.0 {
+            route(focus);
+        }
+    }
+}
+
+impl std::fmt::Debug for FocusRoute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self.0 {
+            Some(_) => "FocusRoute(closes)",
+            None => "FocusRoute(ignores)",
+        })
+    }
+}
+
+impl PartialEq for FocusRoute {
+    fn eq(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (None, None) => true,
+            (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for FocusRoute {}
 
 /// A layer surface spawned through `Surface`, as `daemon::surfaces` records it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,6 +67,10 @@ pub struct Spawned {
     pub namespace: String,
     /// The size last asked of the compositor.
     pub size: LayerSize,
+    /// The role the compositor knows it by (`Surface::ROLE`).
+    pub role: Option<ShellRole>,
+    /// What its keyboard focus changes do (`Surface::KEYBOARD`).
+    pub focus: FocusRoute,
 }
 
 /// One output's surfaces: every one is spawned through `Surface`.
@@ -40,6 +93,11 @@ impl OutputSurfaces {
             .iter()
             .find(|surface| surface.name == S::NAME)
             .map(|surface| surface.id)
+    }
+
+    /// The surface `id`, if this row holds it.
+    pub fn spawned_by(&self, id: SurfaceId) -> Option<&Spawned> {
+        self.spawned.iter().find(|surface| surface.id == id)
     }
 
     /// Every surface actually spawned, for closing them all.
@@ -149,7 +207,7 @@ pub fn reconcile(current: &Outputs, now: &[OutputInfo]) -> Vec<OutputAction> {
 
 #[cfg(test)]
 mod tests {
-    use super::{OutputSurfaces, Outputs, Spawned, reconcile};
+    use super::{FocusRoute, OutputSurfaces, Outputs, Spawned, reconcile};
     use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale120, SurfaceId};
     use sill_model::ids::OutputName;
     use sill_overlays::HotCorners;
@@ -182,6 +240,8 @@ mod tests {
                 width: LayerExtent::Px(2),
                 height: LayerExtent::Px(2),
             },
+            role: None,
+            focus: FocusRoute::default(),
         }
     }
 

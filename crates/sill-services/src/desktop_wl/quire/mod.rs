@@ -28,5 +28,5 @@ pub use handout::{Handout, HandoutError, ZbusHandout, shell_connection};
 pub use notes::note_of;
 pub use pictures::picture_of;
 pub use shell::{ShellArm, ShellCall, ShellGone, SpawnError, spawn_shell_arm};
-pub use surfaces::{ShellSurfaces, role_of_surface};
+pub use surfaces::ShellSurfaces;
 pub use view::quire_view;

@@ -7,17 +7,17 @@ use sill_ui_kit::surface::{MountProps, OutputPolicy, OutputRank, Place, Start, S
 
 use crate::daemon::msg::ShellMsg;
 use crate::daemon::surfaces::{Spawn, spawn_hidden, surface_root};
-use crate::outputs::{OutputSurfaces, Outputs, Spawned};
+use crate::outputs::{FocusRoute, OutputSurfaces, Outputs, Spawned};
 
-/// Spawn, resize and close `S`'s surfaces on every output in `outputs` that `S::OUTPUTS` wants. `link` is the value of
-/// `S::Link` the surfaces are given as a root context.
+/// Spawn, resize and close `S`'s surfaces on every output in `outputs` that `S::OUTPUTS` wants.
+/// The surfaces are given `S::link` as a root context, and the other links `S::needs` names.
 pub fn spawn_surface<S: Surface>(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     spawn: &Spawn,
-    link: &S::Link,
 ) {
     let file = spawn.settings.borrow().clone();
+    let link = S::link(spawn.links);
     let main = outputs.pick(OutputPolicy::Main, None);
     for (index, (info, row)) in outputs.outputs.iter_mut().enumerate() {
         let place = Place {
@@ -36,7 +36,7 @@ pub fn spawn_surface<S: Surface>(
             let config = S::layer(info, &file, slot);
             match held::<S>(row, slot) {
                 Some(surface) => resize(ctx, surface, &config),
-                None => spawn_slot::<S>(ctx, row, info, spawn, link, slot, config),
+                None => spawn_slot::<S>(ctx, row, info, spawn, &link, slot, config),
             }
         }
     }
@@ -90,10 +90,12 @@ fn spawn_slot<S: Surface>(
     config: LayerConfig,
 ) {
     let props = MountProps::<S>::new(info.clone(), slot);
-    let root = surface_root(
-        HostRoot::with_props(mount::<S>, props),
-        spawn.services,
-        spawn.settings_feed,
+    let root = S::needs(
+        surface_root(
+            HostRoot::with_props(mount::<S>, props),
+            spawn.services,
+            spawn.settings_feed,
+        ),
         spawn.links,
     )
     .context(link.clone());
@@ -108,6 +110,8 @@ fn spawn_slot<S: Surface>(
         id,
         namespace,
         size,
+        role: S::ROLE,
+        focus: FocusRoute::of::<S>(link, info.id),
     });
 }
 

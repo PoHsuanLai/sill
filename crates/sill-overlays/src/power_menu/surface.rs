@@ -5,8 +5,10 @@ use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use super::view::power_menu;
-use sill_ui_kit::links::PowerMenuLink;
-use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Start, Surface};
+use sill_ui_kit::links::{Links, PowerMenuLink};
+use sill_ui_kit::surface::{
+    ClosesOnFocusLoss, FocusLoss, LayerPreset, OutputPolicy, PanelBlur, Place, Presence, Surface,
+};
 
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "power-menu-panel";
@@ -20,6 +22,13 @@ impl Surface for PowerMenu {
     type Link = PowerMenuLink;
     type Slot = ();
     const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
+    const KEYBOARD: FocusLoss<PowerMenuLink> = FocusLoss::CloseLink(PowerMenuLink::keyboard);
+    const LAYER_ORDER: u8 = 70;
+    const PRESENCE: Presence = Presence::FollowsPanel;
+
+    fn link(links: &Links) -> PowerMenuLink {
+        links.power_menu.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -30,10 +39,6 @@ impl Surface for PowerMenu {
             blur: Some(PanelBlur::sheet(PANEL_ID)),
         }
         .config(Self::NAME, output)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

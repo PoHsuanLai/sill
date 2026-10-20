@@ -6,8 +6,8 @@ use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use super::view::force_quit;
-use sill_ui_kit::links::ForceQuitLink;
-use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Start, Surface};
+use sill_ui_kit::links::{ForceQuitLink, Links};
+use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Presence, Surface};
 
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "force-quit-panel";
@@ -21,6 +21,12 @@ impl Surface for ForceQuit {
     type Link = ForceQuitLink;
     type Slot = ();
     const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
+    const LAYER_ORDER: u8 = 160;
+    const PRESENCE: Presence = Presence::SheetStage;
+
+    fn link(links: &Links) -> ForceQuitLink {
+        links.force_quit.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -31,10 +37,6 @@ impl Surface for ForceQuit {
             blur: Some(PanelBlur::sheet(PANEL_ID)),
         }
         .config(Self::NAME, output)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

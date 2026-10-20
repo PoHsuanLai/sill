@@ -2,12 +2,13 @@
 
 use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
+use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::view::osd;
-use sill_ui_kit::links::OsdLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::links::{Links, OsdLink};
+use sill_ui_kit::surface::{Place, Presence, Surface};
 
 /// The indicator that shows a new volume or brightness level.
 #[derive(Debug)]
@@ -17,6 +18,13 @@ impl Surface for Osd {
     const NAME: &'static str = "osd";
     type Link = OsdLink;
     type Slot = ();
+    const ROLE: Option<ShellRole> = Some(ShellRole::Osd);
+    const LAYER_ORDER: u8 = 240;
+    const PRESENCE: Presence = Presence::SelfMapped;
+
+    fn link(links: &Links) -> OsdLink {
+        links.osd.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -24,10 +32,6 @@ impl Surface for Osd {
 
     fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
         layer(output, settings)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

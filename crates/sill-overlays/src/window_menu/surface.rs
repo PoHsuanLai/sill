@@ -7,8 +7,8 @@ use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::view::window_menu;
-use sill_ui_kit::links::WindowMenuLink;
-use sill_ui_kit::surface::{Place, Start, Surface};
+use sill_ui_kit::links::{Links, WindowMenuLink};
+use sill_ui_kit::surface::{Place, Presence, Surface};
 
 /// The transparent parent of a window's menu popup.
 #[derive(Debug)]
@@ -18,6 +18,12 @@ impl Surface for WindowMenu {
     const NAME: &'static str = "window-menu";
     type Link = WindowMenuLink;
     type Slot = ();
+    const LAYER_ORDER: u8 = 220;
+    const PRESENCE: Presence = Presence::Always;
+
+    fn link(links: &Links) -> WindowMenuLink {
+        links.window_menu.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -25,10 +31,6 @@ impl Surface for WindowMenu {
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
         layer(output)
-    }
-
-    fn start() -> Start {
-        Start::Shown
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

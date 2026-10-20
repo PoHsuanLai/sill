@@ -3,7 +3,7 @@
 //! asks, and kept so that a second Tab arriving before the surface has read the first is still
 //! a second step. Every output's switcher surface follows it and acts on asks for its own output.
 
-use shell_host::OutputId;
+use shell_host::{KeyboardFocus, OutputId};
 use sill_launcher::AppId;
 use tokio::sync::watch;
 
@@ -60,6 +60,42 @@ impl Asks {
             .collect()
     }
 
+    /// An opening began on `output`: its surface awaits the keyboard. A focus loss that was
+    /// already on its way from the opening before is then not this one's.
+    pub fn opened(&self, output: OutputId) {
+        self.held.modify_if(|held| {
+            let before = held.len();
+            held.retain(|kept| *kept != output);
+            held.len() != before
+        });
+    }
+
+    /// The keyboard focus of `output`'s switcher surface changed: losing it after holding it
+    /// cancels the switcher on `output`.
+    pub fn focus(&self, output: OutputId, focus: KeyboardFocus) {
+        match focus {
+            KeyboardFocus::Gained => self.held.modify_if(|held| {
+                let new = !held.contains(&output);
+                if new {
+                    held.push(output);
+                }
+                new
+            }),
+            KeyboardFocus::Lost => {
+                let mut was_held = false;
+                self.held.modify_if(|held| {
+                    let before = held.len();
+                    held.retain(|kept| *kept != output);
+                    was_held = held.len() != before;
+                    was_held
+                });
+                if was_held {
+                    self.ask(output, SwitcherAsk::Cancel);
+                }
+            }
+        }
+    }
+
     /// The latest ask.
     pub fn latest(&self) -> Option<&SwitcherAsked> {
         self.recent.last()
@@ -76,6 +112,8 @@ impl Asks {
 #[derive(Debug, Clone, Default)]
 pub struct SwitcherLink {
     asked: Shared<Asks>,
+    /// The outputs whose switcher surface has held the keyboard since its opening began.
+    held: Shared<Vec<OutputId>>,
 }
 
 impl SwitcherLink {
@@ -109,7 +147,7 @@ impl SwitcherLink {
 
 #[cfg(test)]
 mod tests {
-    use shell_host::OutputId;
+    use shell_host::{KeyboardFocus, OutputId};
 
     use crate::links::{AskSerial, Dir, SwitcherAsk, SwitcherLink};
 
@@ -128,6 +166,28 @@ mod tests {
                 .map(|asked| (asked.serial, asked.output, asked.ask)),
             Some((AskSerial(2), OutputId(1), SwitcherAsk::Chord(Dir::Next)))
         );
+    }
+
+    #[test]
+    fn a_focus_loss_cancels_only_a_switcher_that_held_the_keyboard_this_opening() {
+        let (one, two) = (OutputId(1), OutputId(2));
+        let link = SwitcherLink::new();
+        let cancels = |link: &SwitcherLink| {
+            link.latest()
+                .filter(|asked| asked.ask == SwitcherAsk::Cancel)
+                .is_some()
+        };
+        link.focus(one, KeyboardFocus::Lost);
+        assert!(!cancels(&link), "a loss before any gain");
+        link.focus(one, KeyboardFocus::Gained);
+        link.focus(two, KeyboardFocus::Lost);
+        assert!(!cancels(&link), "another output's loss");
+        link.opened(one);
+        link.focus(one, KeyboardFocus::Lost);
+        assert!(!cancels(&link), "the late leave of the opening before");
+        link.focus(one, KeyboardFocus::Gained);
+        link.focus(one, KeyboardFocus::Lost);
+        assert!(cancels(&link), "a loss after holding");
     }
 
     #[test]

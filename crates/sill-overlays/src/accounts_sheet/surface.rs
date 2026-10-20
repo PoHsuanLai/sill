@@ -6,8 +6,8 @@ use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use super::view::accounts_sheet;
-use sill_ui_kit::links::BannerLink;
-use sill_ui_kit::surface::{LayerPreset, OutputPolicy, Place, Start, Surface};
+use sill_ui_kit::links::{BannerLink, Links};
+use sill_ui_kit::surface::{LayerPreset, OutputPolicy, Place, Presence, Surface};
 
 /// The sheet accountd draws its consent question and add-account steps on.
 #[derive(Debug)]
@@ -19,6 +19,12 @@ impl Surface for AccountsSheet {
     type Link = BannerLink;
     type Slot = ();
     const OUTPUTS: OutputPolicy = OutputPolicy::Main;
+    const LAYER_ORDER: u8 = 110;
+    const PRESENCE: Presence = Presence::SelfMapped;
+
+    fn link(links: &Links) -> BannerLink {
+        links.banners.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -26,10 +32,6 @@ impl Surface for AccountsSheet {
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
         LayerPreset::FullOutputSheet { blur: None }.config(Self::NAME, output)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

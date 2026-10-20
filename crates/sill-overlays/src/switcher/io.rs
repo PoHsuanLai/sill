@@ -97,11 +97,18 @@ pub(super) fn use_switcher(
         pointer: use_hook(|| CopyValue::new(Pointer::default())),
     };
     // Every ask since the last read, in order: two Tabs before a read are two steps.
+    let link = link.clone();
     use_effect(move || {
         let fresh = asks.read().since(*seen.peek());
         for asked in fresh {
             seen.set(Some(asked.serial));
             if asked.output == output {
+                let opens = matches!(asked.ask, SwitcherAsk::Chord(_) | SwitcherAsk::Fake(_));
+                if opens && ctx.state.peek().phase() == Phase::Hidden {
+                    // The opening begun now awaits the keyboard (a focus loss that was on its
+                    // way from the opening before is not its own).
+                    link.opened(output);
+                }
                 ctx.ask(asked.serial, asked.ask);
             }
         }

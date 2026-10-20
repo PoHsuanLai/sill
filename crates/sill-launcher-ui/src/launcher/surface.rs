@@ -2,13 +2,14 @@
 //! shared [`LauncherLink`].
 
 use dioxus::prelude::Element;
-use shell_host::{LayerConfig, OutputInfo};
+use shell_host::{HostRoot, LayerConfig, OutputInfo};
+use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::panel::launcher;
-use sill_ui_kit::links::LauncherLink;
-use sill_ui_kit::surface::{OutputPolicy, Place, Start, Surface};
+use sill_ui_kit::links::{LauncherLink, Links};
+use sill_ui_kit::surface::{ClosesOnFocusLoss, FocusLoss, OutputPolicy, Place, Presence, Surface};
 
 /// The centred search panel: quire's `CommandPalette` over the runner's results.
 #[derive(Debug)]
@@ -19,6 +20,18 @@ impl Surface for Launcher {
     type Link = LauncherLink;
     type Slot = ();
     const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
+    const KEYBOARD: FocusLoss<LauncherLink> = FocusLoss::CloseLink(LauncherLink::keyboard);
+    const ROLE: Option<ShellRole> = Some(ShellRole::Launcher);
+    const LAYER_ORDER: u8 = 60;
+    const PRESENCE: Presence = Presence::FollowsPanel;
+
+    fn link(links: &Links) -> LauncherLink {
+        links.launcher.clone()
+    }
+
+    fn needs(root: HostRoot, links: &Links) -> HostRoot {
+        root.context(links.power_menu.clone())
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -26,10 +39,6 @@ impl Surface for Launcher {
 
     fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
         layer(output, settings)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

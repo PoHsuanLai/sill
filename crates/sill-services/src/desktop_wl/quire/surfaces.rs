@@ -37,18 +37,3 @@ impl ShellSurfaces {
             .map(|row| row.key)
     }
 }
-
-/// The role the compositor knows the shell surface named `name` (`Surface::NAME`) by; `None`
-/// for a surface it has no role for (a sheet, a prompt, a catcher).
-pub fn role_of_surface(name: &str) -> Option<ShellRole> {
-    match name {
-        "bar" => Some(ShellRole::Bar),
-        "dock" => Some(ShellRole::Dock),
-        "launcher" => Some(ShellRole::Launcher),
-        "switcher" => Some(ShellRole::Switcher),
-        "banners" | "notification-center" => Some(ShellRole::Notifications),
-        "osd" => Some(ShellRole::Osd),
-        "wallpaper" => Some(ShellRole::Wallpaper),
-        _ => None,
-    }
-}

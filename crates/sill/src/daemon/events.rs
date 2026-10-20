@@ -14,15 +14,12 @@ use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
-use sill_launcher_ui::Launcher;
 use sill_model::desktop::DesktopCommand;
 use sill_model::displays::DisplaysCommand;
 use sill_model::keyboard::{Grip, ShellKeys};
 use sill_model::keycap::KeycapCommand;
-use sill_notify_ui::{Banners, ScreenshotThumb};
-use sill_overlays::PowerMenu;
 use sill_settings::ShellFile;
-use sill_ui_kit::links::{BannerOutput, Links, Transient};
+use sill_ui_kit::links::{BannerOutput, Links};
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{OutputPolicy, Surface};
@@ -233,33 +230,20 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     crate::workspace_looks::publish(&shell.services, &shell.settings.borrow());
 }
 
-/// A keyboard focus change of the launcher's or the power menu's surface goes to its link: a
-/// focus loss closes the launcher (design/06 §20.2). The thumbnail's surface loses the keyboard
-/// only when the compositor takes it, as the banner column's does, and the banners' link says which.
+/// A keyboard focus change goes to the surface's own route, which its `Surface::KEYBOARD`
+/// declared: a launcher, a power menu, a notification center, a switcher or a split picker closes
+/// when it loses the keyboard (design/06 §20.2), a question that waits for an answer stays.
 fn follow_keyboard_focus(shell: &Shell, event: &HostEvent<ShellMsg>) {
     let HostEvent::KeyboardFocus { id, focus } = event else {
         return;
     };
-    let on = |has: fn(&OutputSurfaces) -> Option<SurfaceId>| {
-        shell
-            .outputs
-            .outputs
-            .iter()
-            .any(|(_, surfaces)| has(surfaces) == Some(*id))
-    };
-    if on(|surfaces| surfaces.surface_of::<Launcher>()) {
-        shell.links.launcher.focus(*focus);
-    }
-    if on(|surfaces| surfaces.surface_of::<PowerMenu>()) {
-        shell.links.power_menu.focus(*focus);
-    }
-    if *focus == KeyboardFocus::Lost {
-        if on(|surfaces| surfaces.surface_of::<ScreenshotThumb>()) {
-            shell.links.banners.keyboard_lost(Transient::Thumbnail);
-        }
-        if on(|surfaces| surfaces.surface_of::<Banners>()) {
-            shell.links.banners.keyboard_lost(Transient::Banner);
-        }
+    let surface = shell
+        .outputs
+        .outputs
+        .iter()
+        .find_map(|(_, surfaces)| surfaces.spawned_by(*id));
+    if let Some(surface) = surface {
+        surface.focus.tell(*focus);
     }
 }
 
@@ -405,13 +389,16 @@ fn on_surface_closed(outputs: &mut Outputs, id: SurfaceId, reason: CloseReason) 
     let Some((info, surfaces)) = outputs.row_with(id) else {
         return;
     };
-    surfaces.clear(id);
+    let name = surfaces
+        .spawned_by(id)
+        .map_or("surface", |surface| surface.name);
     if reason != CloseReason::Requested {
         eprintln!(
-            "sill: the bar on {:?} closed unexpectedly ({reason:?}); respawning",
+            "sill: the {name} on {:?} closed unexpectedly ({reason:?}); respawning",
             info.name
         );
     }
+    surfaces.clear(id);
 }
 
 /// A settled `settings.toml`: re-apply every bar's reserved height (only `bar.height_px` can

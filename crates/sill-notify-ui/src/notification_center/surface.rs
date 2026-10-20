@@ -2,12 +2,13 @@
 
 use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
+use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::view::notification_center;
-use sill_ui_kit::links::CenterLink;
-use sill_ui_kit::surface::{OutputPolicy, Place, Start, Surface};
+use sill_ui_kit::links::{CenterLink, Links};
+use sill_ui_kit::surface::{ClosesOnFocusLoss, FocusLoss, OutputPolicy, Place, Presence, Surface};
 
 /// The history grouped by app, in a column at the output's right edge.
 #[derive(Debug)]
@@ -18,6 +19,14 @@ impl Surface for NotificationCenter {
     type Link = CenterLink;
     type Slot = ();
     const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
+    const KEYBOARD: FocusLoss<CenterLink> = FocusLoss::CloseLink(CenterLink::keyboard);
+    const ROLE: Option<ShellRole> = Some(ShellRole::Notifications);
+    const LAYER_ORDER: u8 = 190;
+    const PRESENCE: Presence = Presence::SelfMapped;
+
+    fn link(links: &Links) -> CenterLink {
+        links.notification_center.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -25,10 +34,6 @@ impl Surface for NotificationCenter {
 
     fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
         layer(output, settings)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

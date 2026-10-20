@@ -6,8 +6,8 @@ use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use super::view::color_sampler;
-use sill_ui_kit::links::EyedropperLink;
-use sill_ui_kit::surface::{LayerPreset, Place, Start, Surface};
+use sill_ui_kit::links::{EyedropperLink, Links};
+use sill_ui_kit::surface::{LayerPreset, Place, Presence, Surface};
 
 /// The surface that lets the person point at a colour on the screen.
 #[derive(Debug)]
@@ -17,6 +17,12 @@ impl Surface for ColorSampler {
     const NAME: &'static str = "eyedropper";
     type Link = EyedropperLink;
     type Slot = ();
+    const LAYER_ORDER: u8 = 150;
+    const PRESENCE: Presence = Presence::FollowsPanel;
+
+    fn link(links: &Links) -> EyedropperLink {
+        links.eyedropper.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -24,10 +30,6 @@ impl Surface for ColorSampler {
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
         LayerPreset::FullOutputSheet { blur: None }.config(Self::NAME, output)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

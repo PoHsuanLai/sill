@@ -8,6 +8,7 @@
 //! view, which puts its material, chrome and extent on a [`crate::root::SurfaceRoot`].
 
 mod activation;
+mod lifecycle;
 mod lock;
 mod mount;
 mod naming;
@@ -20,6 +21,7 @@ pub use activation::{
     ACTIVATION_DEADLINE, SETTINGS_APP, activation_token, launch_with_token,
     open_settings_with_token,
 };
+pub use lifecycle::{ClosesOnFocusLoss, FocusLoss, Presence};
 pub use lock::{LockSurface, MountLockProps, mount_lock};
 pub use mount::{MountProps, mount};
 pub use naming::namespace;
@@ -32,8 +34,11 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use dioxus::prelude::Element;
-use shell_host::{LayerConfig, OutputInfo};
+use shell_host::{HostRoot, LayerConfig, OutputInfo};
+use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
+
+use crate::links::Links;
 
 /// One kind of layer surface: the OSD, the dock, a hot corner. The daemon spawns, resizes and
 /// closes any `S: Surface` per output and per slot from these five answers, and
@@ -49,12 +54,35 @@ pub trait Surface: 'static {
     type Slot: Copy + Eq + Hash + Debug + 'static;
     /// Which outputs it lives on, and which one a panel of it opens on.
     const OUTPUTS: OutputPolicy = OutputPolicy::Every;
+    /// What losing the keyboard does to it.
+    const KEYBOARD: FocusLoss<Self::Link> = FocusLoss::Ignore;
+    /// The role the compositor knows it by, when it has one.
+    const ROLE: Option<ShellRole> = None;
+    /// Where it draws among the surfaces of its layer: a higher number is spawned later, so it
+    /// draws over the ones before it.
+    const LAYER_ORDER: u8;
+    /// How it goes on screen and off it.
+    const PRESENCE: Presence;
+    /// The value of `Self::Link` in the daemon's links.
+    fn link(links: &Links) -> Self::Link;
+    /// The other links its document reads by type, given to its root beside `Self::Link`.
+    fn needs(root: HostRoot, _links: &Links) -> HostRoot {
+        root
+    }
     /// The slots this output gets, from the settings and the output's place; empty is none.
     fn slots(place: &Place) -> Vec<Self::Slot>;
     /// The layer configuration of `slot` on `output`.
     fn layer(output: &OutputInfo, settings: &ShellFile, slot: Self::Slot) -> LayerConfig;
     /// Whether a new surface is mapped at once or waits to be shown.
-    fn start() -> Start;
+    fn start() -> Start {
+        match Self::PRESENCE {
+            Presence::Always => Start::Shown,
+            Presence::FollowsPanel
+            | Presence::SheetStage
+            | Presence::Daemon
+            | Presence::SelfMapped => Start::Hidden,
+        }
+    }
     /// The surface's document. Runs inside [`mount`], so it may call hooks.
     fn root(output: OutputInfo, slot: Self::Slot) -> Element;
 }

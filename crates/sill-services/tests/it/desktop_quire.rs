@@ -36,7 +36,7 @@ use sill_model::desktop::{
     ShellNote, SpacePlaceView, SubjectKind, SwitcherNote,
 };
 use sill_services::desktop_wl::quire::{
-    ArmError, Handout, HandoutError, QuireArm, role_of_surface, shell_connection,
+    ArmError, Handout, HandoutError, QuireArm, shell_connection,
 };
 use sill_services::desktop_wl::{Refusal, project_subjects};
 use sill_services::env::{Bus, BusRoute};
@@ -764,24 +764,6 @@ fn the_displays_trial_and_its_end_become_notes() {
         ],
         "a restart is the same note again; the shell tells it by the id and the order"
     );
-}
-
-#[test]
-fn the_shells_surfaces_have_the_roles_the_compositor_knows() {
-    let cases = [
-        ("bar", Some(ShellRole::Bar)),
-        ("dock", Some(ShellRole::Dock)),
-        ("launcher", Some(ShellRole::Launcher)),
-        ("switcher", Some(ShellRole::Switcher)),
-        ("banners", Some(ShellRole::Notifications)),
-        ("osd", Some(ShellRole::Osd)),
-        ("wallpaper", Some(ShellRole::Wallpaper)),
-        ("polkit", None),
-        ("launcher-catcher", None),
-    ];
-    for (name, want) in cases {
-        assert_eq!(role_of_surface(name), want, "{name}");
-    }
 }
 
 /// A handout of one socket made by the test, or of none once it is taken.

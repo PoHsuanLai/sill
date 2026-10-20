@@ -3,11 +3,14 @@
 
 use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
+use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
 
 use super::view::switcher;
-use sill_ui_kit::links::SwitcherLink;
-use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Start, Surface};
+use sill_ui_kit::links::{Links, SwitcherLink};
+use sill_ui_kit::surface::{
+    ClosesOnFocusLoss, FocusLoss, LayerPreset, OutputPolicy, PanelBlur, Place, Presence, Surface,
+};
 
 /// The panel's element id: the surface's input and blur region.
 pub(super) const PANEL_ID: &str = "switcher-panel";
@@ -24,6 +27,14 @@ impl Surface for Switcher {
     type Link = SwitcherLink;
     type Slot = ();
     const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
+    const KEYBOARD: FocusLoss<SwitcherLink> = FocusLoss::CloseLink(SwitcherLink::keyboard);
+    const ROLE: Option<ShellRole> = Some(ShellRole::Switcher);
+    const LAYER_ORDER: u8 = 170;
+    const PRESENCE: Presence = Presence::SelfMapped;
+
+    fn link(links: &Links) -> SwitcherLink {
+        links.switcher.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -37,10 +48,6 @@ impl Surface for Switcher {
             },
         }
         .config(Self::NAME, output)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

@@ -7,8 +7,8 @@ use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::view::catcher;
-use sill_ui_kit::links::LauncherLink;
-use sill_ui_kit::surface::{OutputPolicy, Place, Start, Surface};
+use sill_ui_kit::links::{LauncherLink, Links};
+use sill_ui_kit::surface::{OutputPolicy, Place, Presence, Surface};
 
 /// The empty, transparent, full-output surface whose click closes the launcher.
 #[derive(Debug)]
@@ -19,6 +19,12 @@ impl Surface for LauncherCatcher {
     type Link = LauncherLink;
     type Slot = ();
     const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
+    const LAYER_ORDER: u8 = 50;
+    const PRESENCE: Presence = Presence::FollowsPanel;
+
+    fn link(links: &Links) -> LauncherLink {
+        links.launcher.clone()
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]
@@ -26,10 +32,6 @@ impl Surface for LauncherCatcher {
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
         layer(output)
-    }
-
-    fn start() -> Start {
-        Start::Hidden
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

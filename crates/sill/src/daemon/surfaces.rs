@@ -20,7 +20,7 @@ use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
-use sill_ui_kit::surface::{MountLockProps, mount_lock};
+use sill_ui_kit::surface::{MountLockProps, Surface, mount_lock};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -37,59 +37,64 @@ pub struct Spawn<'a> {
     pub links: &'a Links,
 }
 
-/// Spawn whatever `outputs` lacks, in drawing order: the bar, wallpaper, dock and launcher, then
-/// the overlays. The OSD comes after the banners and the screenshot thumbnail so it draws over
-/// them, and the idle dim last, over every other Overlay surface (the session-lock surfaces are
-/// above every layer surface anyway).
+/// One kind of surface, ready to spawn: where it draws and the call that spawns it.
+#[derive(Clone, Copy)]
+struct Kind {
+    order: u8,
+    spawn: fn(&mut HostCtx<ShellMsg>, &mut Outputs, &Spawn),
+}
+
+/// `S`, as a kind.
+fn kind<S: Surface>() -> Kind {
+    Kind {
+        order: S::LAYER_ORDER,
+        spawn: spawn_surface::<S>,
+    }
+}
+
+/// Every kind of surface the shell spawns, in drawing order (`Surface::LAYER_ORDER`): the bar and
+/// the wallpaper first, the overlays over them, the idle dim last, over every other Overlay
+/// surface (the session-lock surfaces are above every layer surface anyway).
+fn kinds() -> Vec<Kind> {
+    let mut kinds = vec![
+        kind::<SpacesBar>(),
+        kind::<Bar>(),
+        kind::<Wallpaper>(),
+        kind::<Dock>(),
+        kind::<LauncherCatcher>(),
+        kind::<Launcher>(),
+        kind::<PowerMenu>(),
+        kind::<PolkitPrompt>(),
+        kind::<ConfirmSheet>(),
+        kind::<VoiceConsentSheet>(),
+        kind::<AccountsSheet>(),
+        kind::<CaptureSheet>(),
+        kind::<PermissionSheet>(),
+        kind::<DisplayTrialSheet>(),
+        kind::<ColorSampler>(),
+        kind::<ForceQuit>(),
+        kind::<Switcher>(),
+        kind::<Banners>(),
+        kind::<NotificationCenter>(),
+        kind::<ScreenshotThumb>(),
+        kind::<HotCorners>(),
+        kind::<WindowMenu>(),
+        kind::<SplitPicker>(),
+        kind::<Osd>(),
+        kind::<IdleDim>(),
+    ];
+    kinds.sort_by_key(|kind| kind.order);
+    kinds
+}
+
+/// Spawn whatever `outputs` lacks, in drawing order.
 pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: &Spawn) {
-    let Spawn {
-        services, links, ..
-    } = *spawn;
-    // Mission Control's Spaces bar first: it shares the Top layer with the menu bar and the
-    // menu bar draws over its top.
-    spawn_surface::<SpacesBar>(ctx, outputs, spawn, &links.spaces_bar);
-    spawn_surface::<Bar>(ctx, outputs, spawn, &links.control_center);
-    prepare_wallpapers(outputs, services);
-    spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());
-    spawn_surface::<Dock>(ctx, outputs, spawn, &());
-    spawn_surface::<LauncherCatcher>(ctx, outputs, spawn, &links.launcher);
-    spawn_surface::<Launcher>(ctx, outputs, spawn, &links.launcher);
-    spawn_surface::<PowerMenu>(ctx, outputs, spawn, &links.power_menu);
-    // The polkit prompt over the power menu, and the switcher (both Overlay).
-    spawn_surface::<PolkitPrompt>(ctx, outputs, spawn, &links.banners);
-    // The confirmation sheet beside it: both ask the person, on the banners' output.
-    spawn_surface::<ConfirmSheet>(ctx, outputs, spawn, &links.banners);
-    // The voice consent sheet asks the same way, once, before the microphone first opens.
-    spawn_surface::<VoiceConsentSheet>(ctx, outputs, spawn, &links.banners);
-    // accountd's consent question and add-account steps, a window of their own on the same output.
-    spawn_surface::<AccountsSheet>(ctx, outputs, spawn, &links.banners);
-    // The screen-sharing picker, on the same output, when an app asks what to share.
-    spawn_surface::<CaptureSheet>(ctx, outputs, spawn, &links.banners);
-    // The question an app's permission needs answered, on the same output.
-    spawn_surface::<PermissionSheet>(ctx, outputs, spawn, &links.banners);
-    // Whether to keep a changed display setup, on the same output.
-    spawn_surface::<DisplayTrialSheet>(ctx, outputs, spawn, &links.display_trial);
-    // The colour picker's eyedropper, over a still picture of each output.
-    spawn_surface::<ColorSampler>(ctx, outputs, spawn, &links.eyedropper);
-    // Force Quit Applications, on the output it was opened on (hidden until `sill force-quit`).
-    spawn_surface::<ForceQuit>(ctx, outputs, spawn, &links.force_quit);
-    spawn_surface::<Switcher>(ctx, outputs, spawn, &links.switcher);
-    // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
-    spawn_surface::<Banners>(ctx, outputs, spawn, &links.banners);
-    spawn_surface::<NotificationCenter>(ctx, outputs, spawn, &links.notification_center);
-    // The screenshot thumbnail after the banners and before the OSD (all Overlay); the hot
-    // corners (Overlay, never painted).
-    spawn_surface::<ScreenshotThumb>(ctx, outputs, spawn, &links.banners);
-    spawn_surface::<HotCorners>(ctx, outputs, spawn, &links.corners);
-    // The window menu's transparent parent (Overlay, takes no input): the popup the green light
-    // opens hangs from it.
-    spawn_surface::<WindowMenu>(ctx, outputs, spawn, &links.window_menu);
-    // The Split View picker (hidden until the compositor offers the other half).
-    spawn_surface::<SplitPicker>(ctx, outputs, spawn, &links.split_picker);
-    spawn_surface::<Osd>(ctx, outputs, spawn, &links.osd);
-    spawn_surface::<IdleDim>(ctx, outputs, spawn, &());
+    prepare_wallpapers(outputs, spawn.services);
+    for kind in kinds() {
+        (kind.spawn)(ctx, outputs, spawn);
+    }
     // A surface spawned while the service dims is mapped at once.
-    crate::idle_dim::apply(ctx, outputs, services.idle.state.borrow().dim);
+    crate::idle_dim::apply(ctx, outputs, spawn.services.idle.state.borrow().dim);
 }
 
 /// Give the wallpaper service the buffer size of every output that is about to get a wallpaper
@@ -141,28 +146,18 @@ pub(crate) fn spawn_hidden(
     }
 }
 
-/// `root` with the contexts every surface the daemon spawns is given: the services, the settings
-/// feed and the links. quire's document host is not one of them: the root component installs it
-/// (`mount`, `mount_lock`), the same call a popup's root makes. Every spawn goes through here, so
-/// a new surface cannot forget the rest.
+/// `root` with the contexts every surface the daemon spawns is given: the services and the
+/// settings feed. The links come with each surface (`Surface::link`, `Surface::needs`). quire's
+/// document host is not one of them: the root component installs it (`mount`, `mount_lock`),
+/// the same call a popup's root makes. Every spawn goes through here, so a new surface cannot
+/// forget the rest.
 pub(crate) fn surface_root(
     root: HostRoot,
     services: &Services,
     settings_feed: &SettingsFeed,
-    links: &Links,
 ) -> HostRoot {
-    let root = root
-        .context(services.clone())
-        .context(settings_feed.clone());
-    // The focus mode, the power menu and the control center's asks; the notification center and
-    // the banners' output; the switcher's asks and the lock prompt's
-    // output (`sill_ui_kit::links`).
-    root.context(links.focus.clone())
-        .context(links.power_menu.clone())
-        .context(links.notification_center.clone())
-        .context(links.banners.clone())
-        .context(links.switcher.clone())
-        .context(links.lock.clone())
+    root.context(services.clone())
+        .context(settings_feed.clone())
 }
 
 /// Each output's lock surface for shell-host's session lock: `LOCK`'s root with the
@@ -179,12 +174,34 @@ pub(crate) fn lock_factory(
     crate::lock::host::LockFactory {
         config: (LOCK.config)(settings),
         build: Box::new(move |info: OutputInfo| {
+            // The lock surfaces are not on the `Surface` path yet (the lock pipeline holds them),
+            // so they are given the shared links by hand.
             surface_root(
                 HostRoot::with_props(mount_lock, MountLockProps::new(LOCK, info)),
                 &services,
                 &settings_feed,
-                &links,
             )
+            .context(links.focus.clone())
+            .context(links.power_menu.clone())
+            .context(links.notification_center.clone())
+            .context(links.banners.clone())
+            .context(links.switcher.clone())
+            .context(links.lock.clone())
         }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::kinds;
+
+    #[test]
+    fn every_kind_draws_at_a_place_of_its_own() {
+        let orders: Vec<u8> = kinds().iter().map(|kind| kind.order).collect();
+        assert_eq!(orders.len(), 25);
+        assert!(
+            orders.windows(2).all(|pair| pair[0] < pair[1]),
+            "two kinds share a place: {orders:?}"
+        );
     }
 }
