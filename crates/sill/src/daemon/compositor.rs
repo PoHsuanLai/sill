@@ -88,7 +88,9 @@ impl ShellSeat {
         desktop: watch::Receiver<DesktopView>,
     ) -> ShellSeat {
         forward(&runtime, host.clone(), rects, ShellMsg::DockRects);
-        nudge(&runtime, host.clone(), desktop.clone(), || ShellMsg::Desktop);
+        nudge(&runtime, host.clone(), desktop.clone(), || {
+            ShellMsg::Desktop
+        });
         ShellSeat {
             link: Some(Link { runtime, host }),
             arm: None,

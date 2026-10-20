@@ -7,14 +7,14 @@
 
 use std::time::Duration;
 
+use casement_protocols::vocab::{
+    Emphasis, LeaseState, Modality, PlacementMark, Responsiveness, SensitivityLevel, WindowRole,
+    WindowStateKind,
+};
 use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
     CaptureCommand, CaptureLink, CapturePicker, ColorOutcome, Eyedropper, Outcome, Picks,
     Plurality, Rgb8, Source, plan, toggle,
-};
-use casement_protocols::vocab::{
-    Emphasis, LeaseState, Modality, PlacementMark, Responsiveness, SensitivityLevel, WindowRole,
-    WindowStateKind,
 };
 use sill_model::desktop::{DesktopCommand, DesktopView, SpacePlaceView, WindowView};
 use sill_model::displays::Displays;

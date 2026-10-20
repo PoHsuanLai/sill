@@ -36,6 +36,12 @@ pub struct ForceQuitLink {
     asked: Outbox<ForceQuitAsk>,
 }
 
+impl Default for ForceQuitLink {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ForceQuitLink {
     /// Closed, listing the apps of `desktop`, nothing asked.
     pub fn following(desktop: watch::Receiver<DesktopView>) -> ForceQuitLink {

@@ -179,7 +179,11 @@ fn windows_follow_recency_as_they_activate_and_close() {
         [1, 2, 3],
         "inactive windows keep opening order"
     );
-    let named: Vec<&str> = opened.windows.iter().map(|w| w.identifier.as_str()).collect();
+    let named: Vec<&str> = opened
+        .windows
+        .iter()
+        .map(|w| w.identifier.as_str())
+        .collect();
     assert_eq!(
         named,
         ["id-1", "id-2", "id-3"],

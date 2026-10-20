@@ -43,6 +43,12 @@ pub struct SpacesBarLink {
     picked: Outbox<BarPick>,
 }
 
+impl Default for SpacesBarLink {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SpacesBarLink {
     /// Down, following the Spaces of `desktop`, no click.
     pub fn following(desktop: watch::Receiver<DesktopView>) -> SpacesBarLink {

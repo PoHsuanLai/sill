@@ -69,7 +69,11 @@ mod tests {
         publish.replace(WindowModel::default(), view.clone());
         assert_eq!(desktop.has_changed().ok(), Some(true));
         assert_eq!(*desktop.borrow_and_update(), view);
-        assert_eq!(model.has_changed().ok(), Some(false), "the state was the same");
+        assert_eq!(
+            model.has_changed().ok(),
+            Some(false),
+            "the state was the same"
+        );
         drop(model.borrow_and_update());
 
         publish.replace(WindowModel::default(), view);
