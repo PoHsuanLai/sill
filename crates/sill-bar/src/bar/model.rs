@@ -15,7 +15,7 @@ use super::plan::PopupReport;
 use super::track::Event;
 use ds::stack::menu_track::types::MenuTiming;
 use ds::style::icon::classify::ChromaLimit;
-use sill_ui_kit::links::{CenterLink, PowerMenuLink};
+use sill_ui_kit::links::{ActionLink, CenterLink};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::services::Services;
 
@@ -60,11 +60,11 @@ pub(crate) struct SessionDeps {
     pub look: PopupLook,
     /// The bar's layer namespace, which names the popup's anchor in `menu_popup`.
     pub namespace: String,
-    /// The bar's output, where the app menu's "Shut Down…" opens the power menu.
+    /// The bar's output, which a menu's actions are asked from (a power action that asks first
+    /// opens the power menu there).
     pub output: OutputId,
-    /// The power menu's shared state, when the daemon gave the bar one (a demo or a test may
-    /// not).
-    pub power_menu: Option<PowerMenuLink>,
+    /// Where the bar asks for an action, when the daemon gave it one (a demo or a test may not).
+    pub actions: Option<ActionLink>,
     /// The popup root's contexts for the control center and the module dropdowns: the
     /// settings, the focus mode, the bar's output by name.
     pub settings: SettingsFeed,

@@ -4,16 +4,13 @@
 mod act;
 mod debug;
 mod keys;
-mod next_window;
 pub(crate) mod quit;
 mod reach;
 mod reply;
 mod route;
 mod show;
 mod status;
-mod switcher;
-mod workspace;
 
 pub use reach::{Carried, DesktopLine, Reach};
-pub(crate) use reply::sent;
+pub(crate) use reply::{failed, sent, unsupported};
 pub use route::route;

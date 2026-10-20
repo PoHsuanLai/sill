@@ -10,10 +10,11 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use shell_host::HostHandle;
-use sill_ipc::act::{ActRequest, DockRequest, WorkspaceRequest};
 use sill_ipc::request::Request;
 use sill_ipc::response::{FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
+use sill_launcher::actions::ActionId;
+use sill_model::actions::{Ask, Subject};
 use sill_model::intents::shell::{ShellAction, ShellFault, WorkspaceStep};
 use sill_services::ShellCall;
 use tokio::runtime::Handle;
@@ -24,22 +25,21 @@ use crate::ipc::server::REPLY_TIMEOUT;
 
 /// The request that does `action`: the same one its command-line verb sends.
 pub fn request_of(action: ShellAction) -> Request {
+    let on_app = |id, app| Request::Do(Ask::on(id, Subject::App(app)));
     match action {
         ShellAction::LauncherOpen { query } => {
             Request::Show(ShowRequest::Launcher(LauncherRequest::Open { query }))
         }
-        ShellAction::DockPin { app } => Request::Act(ActRequest::Dock(DockRequest::Pin { app })),
-        ShellAction::DockUnpin { app } => {
-            Request::Act(ActRequest::Dock(DockRequest::Unpin { app }))
-        }
+        ShellAction::DockPin { app } => on_app(ActionId::PinApp, app),
+        ShellAction::DockUnpin { app } => on_app(ActionId::UnpinApp, app),
         ShellAction::WorkspaceSwitch(WorkspaceStep::Next) => {
-            Request::Act(ActRequest::Workspace(WorkspaceRequest::Next))
+            Request::Do(Ask::of(ActionId::NextSpace))
         }
         ShellAction::WorkspaceSwitch(WorkspaceStep::Prev) => {
-            Request::Act(ActRequest::Workspace(WorkspaceRequest::Prev))
+            Request::Do(Ask::of(ActionId::PreviousSpace))
         }
-        ShellAction::Lock => Request::Act(ActRequest::Lock),
-        ShellAction::Screenshot(kind) => Request::Act(ActRequest::Screenshot(kind)),
+        ShellAction::Lock => Request::Do(Ask::of(ActionId::Lock)),
+        ShellAction::Screenshot(kind) => Request::Do(Ask::of(ActionId::screenshot(kind))),
     }
 }
 
@@ -97,11 +97,12 @@ fn perform(host: &HostHandle<ShellMsg>, action: ShellAction) -> Result<(), Shell
 
 #[cfg(test)]
 mod tests {
-    use sill_ipc::act::{ActRequest, DockRequest, WorkspaceRequest};
     use sill_ipc::request::Request;
     use sill_ipc::response::{Failure, FailureKind, Response};
     use sill_ipc::show::{LauncherRequest, ShowRequest};
     use sill_launcher::AppId;
+    use sill_launcher::actions::ActionId;
+    use sill_model::actions::{Ask, Subject};
     use sill_model::intents::shell::{ShellAction, ShellFault, WorkspaceStep};
     use sill_model::screenshots::ShotKind;
 
@@ -121,24 +122,24 @@ mod tests {
             ),
             (
                 ShellAction::DockPin { app: app() },
-                Request::Act(ActRequest::Dock(DockRequest::Pin { app: app() })),
+                Request::Do(Ask::on(ActionId::PinApp, Subject::App(app()))),
             ),
             (
                 ShellAction::DockUnpin { app: app() },
-                Request::Act(ActRequest::Dock(DockRequest::Unpin { app: app() })),
+                Request::Do(Ask::on(ActionId::UnpinApp, Subject::App(app()))),
             ),
             (
                 ShellAction::WorkspaceSwitch(WorkspaceStep::Next),
-                Request::Act(ActRequest::Workspace(WorkspaceRequest::Next)),
+                Request::Do(Ask::of(ActionId::NextSpace)),
             ),
             (
                 ShellAction::WorkspaceSwitch(WorkspaceStep::Prev),
-                Request::Act(ActRequest::Workspace(WorkspaceRequest::Prev)),
+                Request::Do(Ask::of(ActionId::PreviousSpace)),
             ),
-            (ShellAction::Lock, Request::Act(ActRequest::Lock)),
+            (ShellAction::Lock, Request::Do(Ask::of(ActionId::Lock))),
             (
                 ShellAction::Screenshot(ShotKind::Area),
-                Request::Act(ActRequest::Screenshot(ShotKind::Area)),
+                Request::Do(Ask::of(ActionId::ScreenshotArea)),
             ),
         ];
         for (action, want) in cases {

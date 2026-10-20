@@ -5,10 +5,7 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 use keycap_protocol::{Grab, Keyboard, KeyboardInfo, Mode, Status};
-use sill_ipc::act::{
-    ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
-    WorkspaceRequest,
-};
+use sill_ipc::act::{ActRequest, DisplayRequest, LevelRequest, VolumeRequest};
 use sill_ipc::debug::{
     DebugRequest, KeyAction, KeySpec, LauncherRows, Micros, Point, PointerButton, RowsSection,
     SurfaceName, SurfaceStats,
@@ -22,7 +19,9 @@ use sill_ipc::status::{
     ClipboardStatus, IntentsStatus, LinkStatus, NotificationsStatus, PolkitStatus, StatusReport,
     StatusRequest,
 };
+use sill_launcher::actions::ActionId as ShellAction;
 use sill_launcher::{AppId, PreviewKind};
+use sill_model::actions::{Ask, Subject};
 use sill_model::auth::FakeVerdict;
 use sill_model::clipboard::{ClipProtocol, ClipStatus, HistoryMode};
 use sill_model::hot_corners::Corner;
@@ -40,7 +39,6 @@ use sill_model::notifications::{
 };
 use sill_model::osd::OsdKind;
 use sill_model::polkit_agent::{ActionId, FakeRequest, Registration};
-use sill_model::screenshots::ShotKind;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
 
@@ -81,8 +79,23 @@ fn requests() -> Vec<(Request, &'static str)> {
         (Request::Quit, r#"{"kind":"quit"}"#),
         (Request::Reload, r#"{"kind":"reload"}"#),
         (
-            Request::Show(ShowRequest::Launcher(LauncherRequest::Toggle)),
-            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"toggle"}}}"#,
+            Request::Do(Ask::of(ShellAction::Lock)),
+            r#"{"kind":"do","v":{"action":"lock","subject":{"kind":"none"}}}"#,
+        ),
+        (
+            Request::Do(Ask::of(ShellAction::Launcher)),
+            r#"{"kind":"do","v":{"action":"launcher","subject":{"kind":"none"}}}"#,
+        ),
+        (
+            Request::Do(Ask::of(ShellAction::ScreenshotArea)),
+            r#"{"kind":"do","v":{"action":"screenshot-area","subject":{"kind":"none"}}}"#,
+        ),
+        (
+            Request::Do(Ask::on(
+                ShellAction::PinApp,
+                Subject::App(app("org.mozilla.firefox")),
+            )),
+            r#"{"kind":"do","v":{"action":"pin-app","subject":{"kind":"app","v":"org.mozilla.firefox"}}}"#,
         ),
         (
             Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
@@ -157,10 +170,6 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"show","v":{"kind":"notification_center","v":"close"}}"#,
         ),
         (
-            Request::Show(ShowRequest::ControlCenter),
-            r#"{"kind":"show","v":{"kind":"control_center"}}"#,
-        ),
-        (
             Request::Status(StatusRequest::Notifications),
             r#"{"kind":"status","v":"notifications"}"#,
         ),
@@ -199,16 +208,6 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"act","v":{"kind":"intents","v":{"kind":"resume"}}}"#,
         ),
         (
-            Request::Act(ActRequest::Dock(DockRequest::Pin {
-                app: app("org.mozilla.firefox"),
-            })),
-            r#"{"kind":"act","v":{"kind":"dock","v":{"kind":"pin","v":{"app":"org.mozilla.firefox"}}}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Dock(DockRequest::Unpin { app: app("foot") })),
-            r#"{"kind":"act","v":{"kind":"dock","v":{"kind":"unpin","v":{"app":"foot"}}}}"#,
-        ),
-        (
             Request::Act(ActRequest::Display(DisplayRequest::Brightness(
                 LevelRequest::Up,
             ))),
@@ -233,64 +232,12 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"act","v":{"kind":"display","v":{"kind":"volume","v":{"kind":"toggle_mute"}}}}"#,
         ),
         (
-            Request::Act(ActRequest::Lock),
-            r#"{"kind":"act","v":{"kind":"lock"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Screenshot(ShotKind::Area)),
-            r#"{"kind":"act","v":{"kind":"screenshot","v":"area"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Screenshot(ShotKind::Window)),
-            r#"{"kind":"act","v":{"kind":"screenshot","v":"window"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Screenshot(ShotKind::Screen)),
-            r#"{"kind":"act","v":{"kind":"screenshot","v":"screen"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Switcher(SwitcherRequest::Next)),
-            r#"{"kind":"act","v":{"kind":"switcher","v":"next"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Switcher(SwitcherRequest::Prev)),
-            r#"{"kind":"act","v":{"kind":"switcher","v":"prev"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Switcher(SwitcherRequest::Cancel)),
-            r#"{"kind":"act","v":{"kind":"switcher","v":"cancel"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Workspace(WorkspaceRequest::Next)),
-            r#"{"kind":"act","v":{"kind":"workspace","v":"next"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Workspace(WorkspaceRequest::Prev)),
-            r#"{"kind":"act","v":{"kind":"workspace","v":"prev"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Workspace(WorkspaceRequest::Overview)),
-            r#"{"kind":"act","v":{"kind":"workspace","v":"overview"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Switcher(SwitcherRequest::Commit)),
-            r#"{"kind":"act","v":{"kind":"switcher","v":"commit"}}"#,
-        ),
-        (
             Request::Act(ActRequest::ClearClipboard),
             r#"{"kind":"act","v":{"kind":"clear_clipboard"}}"#,
         ),
         (
             Request::Act(ActRequest::DismissNotifications),
             r#"{"kind":"act","v":{"kind":"dismiss_notifications"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::ToggleDockHide),
-            r#"{"kind":"act","v":{"kind":"toggle_dock_hide"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::NextWindow),
-            r#"{"kind":"act","v":{"kind":"next_window"}}"#,
         ),
         (
             Request::Act(ActRequest::FocusLatest),

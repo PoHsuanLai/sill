@@ -23,7 +23,7 @@ pub mod sink;
 pub mod subject;
 pub mod time;
 
-pub use activation::{Activation, DesktopAction, OpenTarget, SystemCommand, ViewerOpen, WindowKey};
+pub use activation::{Activation, DesktopAction, OpenTarget, ViewerOpen, WindowKey};
 pub use companion::{CompanionAct, HelperControl, LauncherMode, RunControl};
 pub use frecency::{Counting, Frecency, FrecencyScore, ItemKey, Use, age_bucket, counting};
 pub use ids::{ActionId, AppId, ClipKey, ItemId, ProviderKind};

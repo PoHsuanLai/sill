@@ -17,7 +17,7 @@ use sill_ui_kit::links::SwitcherAsk;
 
 use super::super::reach::Reach;
 use super::super::reply::{sent, unsupported};
-use super::super::switcher;
+use crate::actions::switcher;
 
 /// `sill debug osd`: the OSD for a change that moves no real level (the session's default sink
 /// may be somebody's headphones).

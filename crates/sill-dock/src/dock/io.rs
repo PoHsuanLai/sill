@@ -26,6 +26,7 @@ use crate::dock::pick::{DockCommand, pick_commands};
 use crate::dock::pointer::{DockInput, resolve};
 use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::hooks::use_services;
+use sill_ui_kit::links::{ActionLink, Origin};
 use sill_ui_kit::menu::{ContextMenu, PopupLook, use_context_menu_closing};
 
 /// What the session decides against, from the dock's latest render.
@@ -88,6 +89,8 @@ struct Slots {
 struct Outward {
     services: Services,
     surface: Option<SurfaceHandle>,
+    /// Where the dock asks for an action of the shell, when the daemon gave it one.
+    actions: Option<ActionLink>,
 }
 
 /// Start the dock's session (once per dock) with the machine at `initial`.
@@ -97,6 +100,7 @@ pub(crate) fn use_dock(initial: DockState) -> DockSession {
     let outward = Outward {
         services: use_services(),
         surface: try_use_context::<SurfaceHandle>(),
+        actions: try_use_context::<ActionLink>(),
     };
     // The session's own feed, for its timers and the menu's close (set once the callback exists).
     let own_feed = use_hook(|| CopyValue::new(None::<Callback<DockInput>>));
@@ -295,7 +299,19 @@ fn send_all(outward: &Outward, commands: Vec<DockCommand>) {
         let _gone_is_dropped = match command {
             DockCommand::Wl(c) => services.windows.control.send(c),
             DockCommand::Pins(c) => services.pins.control.send(c),
-            DockCommand::Service(c) => services.launch.control.send(c),
+            DockCommand::Do(ask) => {
+                // The daemon carries it out; the dock's surface is where the person clicked.
+                if let Some(actions) = &outward.actions {
+                    actions.ask(
+                        ask,
+                        Origin {
+                            surface: outward.surface.as_ref().map(SurfaceHandle::id),
+                            output: None,
+                        },
+                    );
+                }
+                Ok(())
+            }
             DockCommand::Launch { app, action, uris } => {
                 launch(outward.clone(), app, action, uris);
                 Ok(())

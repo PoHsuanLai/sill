@@ -4,15 +4,14 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use sill_ipc::act::{
-    ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
-    WorkspaceRequest,
-};
+use sill_ipc::act::{ActRequest, DisplayRequest, LevelRequest, VolumeRequest};
 use sill_ipc::debug::{DebugRequest, KeyAction, KeySpec, Point, PointerButton, SurfaceName};
 use sill_ipc::request::Request;
 use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest};
 use sill_ipc::status::StatusRequest;
 use sill_launcher::AppId;
+use sill_launcher::actions::ActionId as ShellAction;
+use sill_model::actions::{Ask, Subject};
 use sill_model::auth::FakeVerdict;
 use sill_model::hot_corners::Corner;
 use sill_model::intents::IntentsAsk;
@@ -24,7 +23,6 @@ use sill_model::notifications::{
 };
 use sill_model::osd::OsdKind;
 use sill_model::polkit_agent::{ActionId, FakeRequest};
-use sill_model::screenshots::ShotKind;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
 
@@ -44,6 +42,10 @@ fn show(request: ShowRequest) -> Option<Request> {
 
 fn act(request: ActRequest) -> Option<Request> {
     Some(Request::Act(request))
+}
+
+fn doing(action: ShellAction) -> Option<Request> {
+    Some(Request::Do(Ask::of(action)))
 }
 
 fn status(request: StatusRequest) -> Option<Request> {
@@ -117,8 +119,8 @@ fn every_command_line_sends_its_request() {
         (&["ping"], Some(Request::Ping)),
         (&["reload"], Some(Request::Reload)),
         (&["focus-latest"], act(ActRequest::FocusLatest)),
-        (&["next-window"], act(ActRequest::NextWindow)),
-        (&["dock", "toggle-hide"], act(ActRequest::ToggleDockHide)),
+        (&["next-window"], doing(ShellAction::NextWindow)),
+        (&["dock", "toggle-hide"], doing(ShellAction::ToggleDockHide)),
         (
             &["launch", "org.mozilla.firefox"],
             act(ActRequest::Launch(AppId("org.mozilla.firefox".to_owned()))),
@@ -128,36 +130,18 @@ fn every_command_line_sends_its_request() {
             act(ActRequest::Launch(AppId("foot".to_owned()))),
         ),
         (&["quit"], Some(Request::Quit)),
-        (&["lock"], act(ActRequest::Lock)),
-        (&["lock", "now"], act(ActRequest::Lock)),
+        (&["lock"], doing(ShellAction::Lock)),
+        (&["lock", "now"], doing(ShellAction::Lock)),
         (&["lock", "status"], status(StatusRequest::Lock)),
-        (
-            &["switcher", "next"],
-            act(ActRequest::Switcher(SwitcherRequest::Next)),
-        ),
-        (
-            &["switcher", "prev"],
-            act(ActRequest::Switcher(SwitcherRequest::Prev)),
-        ),
-        (
-            &["switcher", "cancel"],
-            act(ActRequest::Switcher(SwitcherRequest::Cancel)),
-        ),
-        (
-            &["switcher", "commit"],
-            act(ActRequest::Switcher(SwitcherRequest::Commit)),
-        ),
-        (
-            &["workspace", "next"],
-            act(ActRequest::Workspace(WorkspaceRequest::Next)),
-        ),
-        (
-            &["workspace", "prev"],
-            act(ActRequest::Workspace(WorkspaceRequest::Prev)),
-        ),
+        (&["switcher", "next"], doing(ShellAction::SwitcherNext)),
+        (&["switcher", "prev"], doing(ShellAction::SwitcherPrev)),
+        (&["switcher", "cancel"], doing(ShellAction::SwitcherCancel)),
+        (&["switcher", "commit"], doing(ShellAction::SwitcherCommit)),
+        (&["workspace", "next"], doing(ShellAction::NextSpace)),
+        (&["workspace", "prev"], doing(ShellAction::PreviousSpace)),
         (
             &["workspace", "overview"],
-            act(ActRequest::Workspace(WorkspaceRequest::Overview)),
+            doing(ShellAction::MissionControl),
         ),
         (&["polkit", "status"], status(StatusRequest::Polkit)),
         (&["idle", "status"], status(StatusRequest::Idle)),
@@ -183,14 +167,14 @@ fn every_command_line_sends_its_request() {
         ),
         (&["clipboard", "status"], status(StatusRequest::Clipboard)),
         (&["clipboard", "clear"], act(ActRequest::ClearClipboard)),
-        (&["screenshot"], act(ActRequest::Screenshot(ShotKind::Area))),
+        (&["screenshot"], doing(ShellAction::ScreenshotArea)),
         (
             &["screenshot", "window"],
-            act(ActRequest::Screenshot(ShotKind::Window)),
+            doing(ShellAction::ScreenshotWindow),
         ),
         (
             &["screenshot", "screen"],
-            act(ActRequest::Screenshot(ShotKind::Screen)),
+            doing(ShellAction::ScreenshotScreen),
         ),
         (
             &["companion", "tap"],
@@ -220,10 +204,7 @@ fn every_command_line_sends_its_request() {
             &["voice", "hold-cancel"],
             show(ShowRequest::Voice(VoiceRequest::HoldCancel)),
         ),
-        (
-            &["power-menu", "open"],
-            show(ShowRequest::PowerMenu(Reveal::Open)),
-        ),
+        (&["power-menu", "open"], doing(ShellAction::PowerMenu)),
         (
             &["power-menu", "close"],
             show(ShowRequest::PowerMenu(Reveal::Close)),
@@ -242,15 +223,15 @@ fn every_command_line_sends_its_request() {
         ),
         (
             &["force-quit", "toggle"],
-            show(ShowRequest::ForceQuit(Reveal::Toggle)),
+            doing(ShellAction::ForceQuitPanel),
         ),
         (
             &["control-center", "toggle"],
-            show(ShowRequest::ControlCenter),
+            doing(ShellAction::ControlCenter),
         ),
         (
             &["notifications", "toggle"],
-            show(ShowRequest::NotificationCenter(Reveal::Toggle)),
+            doing(ShellAction::NotificationCenter),
         ),
         (
             &["notifications", "open"],
@@ -268,10 +249,7 @@ fn every_command_line_sends_its_request() {
             &["notifications", "status"],
             status(StatusRequest::Notifications),
         ),
-        (
-            &["launcher", "toggle"],
-            show(ShowRequest::Launcher(LauncherRequest::Toggle)),
-        ),
+        (&["launcher", "toggle"], doing(ShellAction::Launcher)),
         (
             &["launcher", "close"],
             show(ShowRequest::Launcher(LauncherRequest::Close)),
@@ -296,15 +274,17 @@ fn every_command_line_sends_its_request() {
         ),
         (
             &["dock", "pin", "foot"],
-            act(ActRequest::Dock(DockRequest::Pin {
-                app: AppId("foot".to_owned()),
-            })),
+            Some(Request::Do(Ask::on(
+                ShellAction::PinApp,
+                Subject::App(AppId("foot".to_owned())),
+            ))),
         ),
         (
             &["dock", "unpin", "foot"],
-            act(ActRequest::Dock(DockRequest::Unpin {
-                app: AppId("foot".to_owned()),
-            })),
+            Some(Request::Do(Ask::on(
+                ShellAction::UnpinApp,
+                Subject::App(AppId("foot".to_owned())),
+            ))),
         ),
         (
             &["display", "brightness", "up"],
@@ -614,4 +594,42 @@ fn write_schema_needs_no_subcommand() {
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(cli.write_schema, Some(PathBuf::from("/tmp/schemas")));
     assert!(cli.command.is_none());
+}
+
+/// The verbs the compositor sends are read by their own parser and by clap's grammar, and both
+/// come to the one request: the action `action_of` names. No string is copied here: the words are
+/// the verb's own `argv()`.
+#[test]
+fn every_verb_the_compositor_sends_parses_and_reaches_its_action() {
+    for verb in shell_verbs::ALL {
+        let words = verb.argv();
+        let want = Some(Request::Do(Ask::of(super::action_of(*verb))));
+        assert_eq!(
+            super::request_of_words(words),
+            want,
+            "{verb:?} by its words"
+        );
+        let line = std::iter::once("sill").chain(words.iter().copied());
+        let by_clap = Cli::try_parse_from(line).ok().and_then(|cli| cli.command);
+        assert_eq!(
+            by_clap.as_ref().and_then(request),
+            want,
+            "{verb:?} by clap's grammar"
+        );
+    }
+}
+
+/// Every verb of the compositor reaches a different action.
+#[test]
+fn no_two_verbs_reach_one_action() {
+    let actions: Vec<ShellAction> = shell_verbs::ALL
+        .iter()
+        .map(|verb| super::action_of(*verb))
+        .collect();
+    for (at, action) in actions.iter().enumerate() {
+        assert!(
+            !actions[..at].contains(action),
+            "{action:?} is reached twice"
+        );
+    }
 }

@@ -3,7 +3,8 @@
 
 use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
-use sill_ipc::show::ShowRequest;
+use sill_ipc::show::{Reveal, ShowRequest};
+use sill_launcher::actions::ActionId;
 
 use super::Command;
 use super::debug::debug_request;
@@ -15,6 +16,7 @@ use super::launch::launch_request;
 use super::launcher::{clipboard_request, launcher_request};
 use super::notifications::notifications_request;
 use super::session::{idle_request, lock_request, polkit_request};
+use super::verbs::{action_of, do_request, screenshot_action, switcher_action, workspace_action};
 
 /// The request `command` sends; `None` for `run`, `style` and `auth-check`, which are not requests.
 pub fn request(command: &Command) -> Option<Request> {
@@ -24,21 +26,28 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Quit => Request::Quit,
         Command::Reload => Request::Reload,
         Command::FocusLatest => Request::Act(ActRequest::FocusLatest),
-        Command::NextWindow => Request::Act(ActRequest::NextWindow),
+        Command::NextWindow => do_request(ActionId::NextWindow),
+        Command::Verb(verb) => do_request(action_of(*verb)),
         Command::Launch(args) => launch_request(args),
         Command::Launcher { action } => launcher_request(action),
         Command::Dock { action } => dock_request(action),
-        Command::PowerMenu { action } => Request::Show(ShowRequest::PowerMenu(*action)),
-        Command::ForceQuit { action } => Request::Show(ShowRequest::ForceQuit(*action)),
+        Command::PowerMenu { action } => match action {
+            Reveal::Open => do_request(ActionId::PowerMenu),
+            Reveal::Toggle | Reveal::Close => Request::Show(ShowRequest::PowerMenu(*action)),
+        },
+        Command::ForceQuit { action } => match action {
+            Reveal::Toggle => do_request(ActionId::ForceQuitPanel),
+            Reveal::Open | Reveal::Close => Request::Show(ShowRequest::ForceQuit(*action)),
+        },
         Command::ControlCenter { action } => control_center_request(*action),
-        Command::Screenshot { kind } => Request::Act(ActRequest::Screenshot(*kind)),
+        Command::Screenshot { kind } => do_request(screenshot_action(*kind)),
         Command::Companion { action } => Request::Show(ShowRequest::Companion(*action)),
         Command::Voice { action } => Request::Show(ShowRequest::Voice(*action)),
         Command::Display { action } => display_request(action),
         Command::Notifications { action } => notifications_request(*action),
         Command::Lock { verb } => lock_request(*verb),
-        Command::Switcher { action } => Request::Act(ActRequest::Switcher(*action)),
-        Command::Workspace { action } => Request::Act(ActRequest::Workspace(*action)),
+        Command::Switcher { action } => do_request(switcher_action(*action)),
+        Command::Workspace { action } => do_request(workspace_action(*action)),
         Command::Polkit { action } => polkit_request(*action),
         Command::Idle { action } => idle_request(*action),
         Command::Keycap { action } => keycap_request(*action),

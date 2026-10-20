@@ -5,14 +5,12 @@
 //! and the like are, and a program is started as a child of the shell. The decision is pure
 //! ([`plan`]); only [`run`] has an effect.
 
-use std::iter::once;
 use std::process::Stdio;
 
-use clap::Parser;
 use shell_host::{PalmrestAction, PalmrestWorkspace};
 use sill_ipc::request::Request;
 
-use crate::cli::{Cli, request};
+use crate::cli::request_of_words;
 
 /// What an ask comes to.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,12 +43,7 @@ pub fn plan(ask: &PalmrestAction) -> Plan {
 /// The request a line of the shell's command language sends. Stopping the shell and the
 /// development probes are not something a gesture does.
 fn line<S: AsRef<str>>(words: &[S]) -> Plan {
-    let argv = once("sill").chain(words.iter().map(AsRef::as_ref));
-    let request = Cli::try_parse_from(argv)
-        .ok()
-        .and_then(|cli| cli.command)
-        .and_then(|command| request(&command));
-    match request {
+    match request_of_words(words) {
         Some(Request::Quit | Request::Debug(_)) => Plan::Refused("a gesture does not do that"),
         Some(request) => Plan::Request(request),
         None => Plan::Refused("not a command of the shell"),
@@ -82,7 +75,8 @@ pub fn run(program: &str, args: &[String]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sill_ipc::act::{ActRequest, WorkspaceRequest};
+    use sill_launcher::actions::ActionId;
+    use sill_model::actions::Ask;
 
     fn words(line: &str) -> Vec<String> {
         line.split_whitespace().map(str::to_owned).collect()
@@ -90,29 +84,29 @@ mod tests {
 
     #[test]
     fn each_ask_comes_to_what_the_command_line_would_send() {
-        let step = |w| Plan::Request(Request::Act(ActRequest::Workspace(w)));
+        let step = |action| Plan::Request(Request::Do(Ask::of(action)));
         let cases = [
             (
                 "previous workspace",
                 PalmrestAction::Workspace(PalmrestWorkspace::Prev),
-                step(WorkspaceRequest::Prev),
+                step(ActionId::PreviousSpace),
             ),
             (
                 "next workspace",
                 PalmrestAction::Workspace(PalmrestWorkspace::Next),
-                step(WorkspaceRequest::Next),
+                step(ActionId::NextSpace),
             ),
             (
                 "the overview",
                 PalmrestAction::Workspace(PalmrestWorkspace::Overview),
-                step(WorkspaceRequest::Overview),
+                step(ActionId::MissionControl),
             ),
             (
                 "a line of the shell's commands",
                 PalmrestAction::Shell {
                     words: words("workspace next"),
                 },
-                step(WorkspaceRequest::Next),
+                step(ActionId::NextSpace),
             ),
             (
                 "a program",

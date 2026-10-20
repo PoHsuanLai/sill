@@ -1,21 +1,28 @@
-//! `sill workspace prev|next|overview`: palmrest's swipes. A step activates the neighbour of the
+//! The Space actions (`sill workspace prev|next|overview`, palmrest's swipes). A step activates the neighbour of the
 //! active workspace through the compositor service; at either end nothing happens. The overview
 //! opens Mission Control on the desktop's own compositor, and is refused on any other.
 
-use sill_ipc::act::WorkspaceRequest;
 use sill_ipc::response::Response;
 use sill_model::desktop::{DesktopCommand, open_mission_control};
 use sill_model::windows::{Step, WlCommand, Workspaces};
 
-use super::reach::{Carried, Reach};
-use super::reply::{sent, unsupported};
+use crate::ipc::dispatch::{Carried, Reach, sent, unsupported};
 
-/// Carry out `request` against the compositor service's current workspaces.
-pub fn step(reach: &Reach, request: WorkspaceRequest) -> Response {
+/// Go to the Space one `step` over from the active one, through the compositor service.
+pub fn step(reach: &Reach, step: Step) -> Response {
     let handle = &reach.services.windows;
-    let plan = plan(&handle.state.borrow().workspaces, request);
+    let plan = plan(&handle.state.borrow().workspaces, Ask::Step(step));
+    carry(reach, plan)
+}
+
+/// Open Mission Control on the desktop's own compositor.
+pub fn overview(reach: &Reach) -> Response {
+    carry(reach, plan(&Workspaces::default(), Ask::Overview))
+}
+
+fn carry(reach: &Reach, plan: Plan) -> Response {
     match plan {
-        Plan::Send(command) => sent(handle.control.send(command), "windows"),
+        Plan::Send(command) => sent(reach.services.windows.control.send(command), "windows"),
         Plan::Stay => Response::Done,
         Plan::Ask(command) => asked(reach.desktop.send(command)),
     }
@@ -29,7 +36,14 @@ fn asked(carried: Carried) -> Response {
     }
 }
 
-/// What a request comes to.
+/// What is asked of the workspaces.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Ask {
+    Step(Step),
+    Overview,
+}
+
+/// What an ask comes to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Plan {
     Send(WlCommand),
@@ -39,11 +53,10 @@ enum Plan {
     Ask(DesktopCommand),
 }
 
-fn plan(workspaces: &Workspaces, request: WorkspaceRequest) -> Plan {
-    let step = match request {
-        WorkspaceRequest::Prev => Step::Prev,
-        WorkspaceRequest::Next => Step::Next,
-        WorkspaceRequest::Overview => return Plan::Ask(open_mission_control()),
+fn plan(workspaces: &Workspaces, ask: Ask) -> Plan {
+    let step = match ask {
+        Ask::Step(step) => step,
+        Ask::Overview => return Plan::Ask(open_mission_control()),
     };
     workspaces.neighbour(step).map_or(Plan::Stay, |key| {
         Plan::Send(WlCommand::ActivateWorkspace(key))
@@ -52,16 +65,15 @@ fn plan(workspaces: &Workspaces, request: WorkspaceRequest) -> Plan {
 
 #[cfg(test)]
 mod tests {
-    use sill_ipc::act::WorkspaceRequest;
     use sill_ipc::response::{FailureKind, Response};
     use sill_model::desktop::open_mission_control;
     use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
     use sill_model::units::{Urgency, Visibility};
     use sill_model::windows::{
-        Activity, Pinning, WlCommand, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
+        Activity, Pinning, Step, WlCommand, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
     };
 
-    use super::{Carried, Plan, asked, plan};
+    use super::{Ask, Carried, Plan, asked, plan};
 
     fn row(active: u64) -> Workspaces {
         let ws = |k: u64| Workspace {
@@ -89,22 +101,18 @@ mod tests {
     }
 
     #[test]
-    fn requests_become_plans() {
+    fn asks_become_plans() {
         let go = |k| Plan::Send(WlCommand::ActivateWorkspace(WorkspaceKey(k)));
         let cases = [
-            (row(2), WorkspaceRequest::Next, go(3)),
-            (row(2), WorkspaceRequest::Prev, go(1)),
-            (row(3), WorkspaceRequest::Next, Plan::Stay),
-            (row(1), WorkspaceRequest::Prev, Plan::Stay),
-            (Workspaces::default(), WorkspaceRequest::Next, Plan::Stay),
-            (
-                row(2),
-                WorkspaceRequest::Overview,
-                Plan::Ask(open_mission_control()),
-            ),
+            (row(2), Ask::Step(Step::Next), go(3)),
+            (row(2), Ask::Step(Step::Prev), go(1)),
+            (row(3), Ask::Step(Step::Next), Plan::Stay),
+            (row(1), Ask::Step(Step::Prev), Plan::Stay),
+            (Workspaces::default(), Ask::Step(Step::Next), Plan::Stay),
+            (row(2), Ask::Overview, Plan::Ask(open_mission_control())),
         ];
-        for (all, request, want) in cases {
-            assert_eq!(plan(&all, request), want, "{request:?}");
+        for (all, ask, want) in cases {
+            assert_eq!(plan(&all, ask), want, "{ask:?}");
         }
     }
 

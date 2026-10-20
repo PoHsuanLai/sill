@@ -8,13 +8,12 @@ use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
     Activation, AppId, Choice, ClipKey, CompanionAct, DesktopAction, Generation, Item, Mime,
-    OpenTarget, Provider, ProviderKind, SettingsLink, Subject, SystemCommand, ViewerOpen,
+    OpenTarget, Provider, ProviderKind, SettingsLink, Subject, ViewerOpen,
 };
 use std::path::PathBuf;
 
-use sill_launcher::Route;
+use sill_launcher::actions::ActionId as ShellAction;
 use sill_model::results::LauncherPolicy;
-use sill_model::session::SessionAction;
 use sill_search::providers::files::IndexSource;
 use sill_search::providers::{
     AppsProvider, CalculatorProvider, ClipboardProvider, CompanionProvider, EmojiProvider,
@@ -130,21 +129,9 @@ pub enum LauncherEffect {
     Companion(CompanionAct),
     /// A prompt, with what this opening kept, ready to send.
     Ask(sill_model::companion::AskInput),
-    /// Nothing sill can do from a surface yet; logged with the reason.
-    Unreachable(Unreachable),
-    /// Carry out a session action at once (Lock, Suspend): `SessionCommand::Run`.
-    Session(SessionAction),
-    /// Open the power menu on the launcher's output, focused on this action, for the person to
-    /// confirm there (Log Out, Restart, Shut Down).
-    PowerMenu(SessionAction),
+    /// An action of the shell, which the daemon carries out for the launcher's output.
+    Do(ShellAction),
     Nothing,
-}
-
-/// Why an activation cannot be carried out from the launcher.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Unreachable {
-    /// A system command no surface can carry out: Reload is the daemon's.
-    System(SystemCommand),
 }
 
 /// Whether an effect ends the launcher.
@@ -189,7 +176,7 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
         Activation::Copy { text } => LauncherEffect::Copy(text),
         Activation::Insert { text } => LauncherEffect::Insert(text),
         Activation::OpenSettings { target } => LauncherEffect::OpenSettings(target),
-        Activation::System(command) => system_effect(command),
+        Activation::Do(action) => LauncherEffect::Do(action),
         Activation::Open { target } => LauncherEffect::Open(target),
         Activation::SetClipboard { entry } => LauncherEffect::SetClipboard(entry),
         Activation::ForgetClipboard { entry } => LauncherEffect::ForgetClipboard(entry),
@@ -242,24 +229,12 @@ pub fn with_results(
     }
 }
 
-/// A session row: by its `confirm`, at once (Lock, Sleep) or through the power menu's question
-/// (Log Out, Restart, Shut Down); Reload is the daemon's, which no surface reaches.
-fn system_effect(command: SystemCommand) -> LauncherEffect {
-    match command {
-        SystemCommand::Session(action) => match action.route() {
-            Route::Now(action) => LauncherEffect::Session(action),
-            Route::Ask(action) => LauncherEffect::PowerMenu(action),
-        },
-        SystemCommand::Reload => LauncherEffect::Unreachable(Unreachable::System(command)),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{AfterEffect, LauncherEffect, LauncherProviders, Unreachable, effect_of};
+    use super::{AfterEffect, LauncherEffect, LauncherProviders, ShellAction, effect_of};
     use sill_launcher::{
         Activation, AppId, Choice, DesktopAction, IconRef, Item, ItemId, Provider, ProviderKind,
-        Query, ResultSink, Score, SettingsLink, SystemCommand, WindowKey,
+        Query, ResultSink, Score, SettingsLink, WindowKey,
     };
     use std::sync::Arc;
 
@@ -422,38 +397,17 @@ mod tests {
         }
     }
 
-    /// The session rows run through the session service or open the power menu.
+    /// A system row is the shell's action: the launcher only names it, the daemon asks first or
+    /// does it.
     #[test]
-    fn session_rows_run_or_open_the_power_menu() {
-        use sill_model::session::SessionAction;
-        let cases = [
-            (
-                SystemCommand::Session(SessionAction::Lock),
-                LauncherEffect::Session(SessionAction::Lock),
-            ),
-            (
-                SystemCommand::Session(SessionAction::Suspend),
-                LauncherEffect::Session(SessionAction::Suspend),
-            ),
-            (
-                SystemCommand::Session(SessionAction::LogOut),
-                LauncherEffect::PowerMenu(SessionAction::LogOut),
-            ),
-            (
-                SystemCommand::Session(SessionAction::Restart),
-                LauncherEffect::PowerMenu(SessionAction::Restart),
-            ),
-            (
-                SystemCommand::Session(SessionAction::PowerOff),
-                LauncherEffect::PowerMenu(SessionAction::PowerOff),
-            ),
-            (
-                SystemCommand::Reload,
-                LauncherEffect::Unreachable(Unreachable::System(SystemCommand::Reload)),
-            ),
-        ];
-        for (command, want) in cases {
-            assert_eq!(effect_of(Activation::System(command)), want, "{command:?}");
+    fn system_rows_are_shell_actions() {
+        for action in [ShellAction::Lock, ShellAction::LogOut, ShellAction::Reload] {
+            assert_eq!(
+                effect_of(Activation::Do(action)),
+                LauncherEffect::Do(action),
+                "{action:?}"
+            );
+            assert_eq!(LauncherEffect::Do(action).after(), AfterEffect::Close);
         }
     }
 }

@@ -1,7 +1,7 @@
 //! The dock as a [`Surface`]: one per output, shown at once.
 
 use dioxus::prelude::Element;
-use shell_host::{LayerConfig, OutputInfo};
+use shell_host::{HostRoot, LayerConfig, OutputInfo};
 use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
 
@@ -23,6 +23,10 @@ impl Surface for Dock {
     const PRESENCE: Presence = Presence::Always;
 
     fn link(_links: &Links) {}
+
+    fn needs(root: HostRoot, links: &Links) -> HostRoot {
+        root.context(links.actions.clone())
+    }
 
     fn slots(_place: &Place) -> Vec<()> {
         vec![()]

@@ -3,6 +3,7 @@
 use shell_host::HostCtx;
 use sill_ipc::request::Request;
 use sill_ipc::response::{FailureKind, Response};
+use sill_ui_kit::links::Origin;
 
 use super::quit::{Leaving, REFUSED, leaving_at};
 use super::reach::Reach;
@@ -16,22 +17,13 @@ pub fn route(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: Request) -> Re
     match request {
         Request::Ping => Response::Pong,
         Request::Quit => quit(ctx, reach),
-        Request::Reload => reload(ctx, reach),
+        Request::Reload => crate::actions::reload(ctx, reach),
+        Request::Do(ask) => crate::actions::perform(ctx, reach, ask, Origin::anywhere()),
         Request::Show(request) => show::dispatch(reach, request),
         Request::Status(request) => status::dispatch(reach, request),
         Request::Act(request) => act::dispatch(reach, request),
         Request::Debug(request) => debug::dispatch(ctx, reach, request),
     }
-}
-
-/// Re-read `settings.toml` and `style.css` and publish them: the bar and every surface pick them
-/// up through the settings feed, the scroll engine through `ctx`. Dock pins are not re-read here: the pins
-/// service watches its own file.
-fn reload(ctx: &mut HostCtx<ShellMsg>, reach: &Reach) -> Response {
-    crate::daemon::settings::reload(reach.store, reach.settings);
-    crate::daemon::settings::reload_user_style(reach.store, reach.user_style);
-    ctx.set_scroll_config(crate::scroll::config(&reach.settings.borrow()));
-    Response::Done
 }
 
 /// End the shell, unless the session is covered: a locked session needs the shell to take the

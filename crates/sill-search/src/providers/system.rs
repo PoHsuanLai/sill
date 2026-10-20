@@ -4,12 +4,13 @@
 //! title and its aliases), the same words the bar's system menu and the power menu show; what
 //! logind offers is the session service's state, read here and asked of logind nowhere else.
 //! `activate` stays pure (`sill_launcher::Provider`'s own contract): it only says which
-//! [`SystemCommand`] was chosen, and the launcher carries it out by `SessionAction::confirm`
-//! (Lock and Sleep at once, Log Out, Restart and Shut Down through the power menu's question).
+//! shell action was chosen (`Activation::Do`), and the daemon carries it out (Lock and Sleep at
+//! once, Log Out, Restart and Shut Down through the power menu's question, Reload at once).
 
+use sill_launcher::actions::ActionId as ShellAction;
 use sill_launcher::{
     Activation, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider, ProviderKind,
-    Query, RankWeights, ResultSink, SessionAction, SystemCommand, matching, rank_text,
+    Query, RankWeights, ResultSink, SessionAction, matching, rank_text,
 };
 use sill_model::session::{Offer, Session, words};
 use tokio::sync::watch;
@@ -18,11 +19,11 @@ use tokio::sync::watch;
 const RELOAD_TITLE: &str = "Reload";
 const RELOAD_ALIASES: &[&str] = &["Reload Sill", "Refresh"];
 
-/// One row's shape: its command, its id (the frecency key, kept from before the actions had one
+/// One row's shape: its action, its id (the frecency key, kept from before the actions had one
 /// list), its title and search words, and its glyph (design/08-ICONS.md §1.6 has only `lock` and
 /// `power`; Reload shows the provider's own glyph).
 struct Row {
-    command: SystemCommand,
+    action: ShellAction,
     id: &'static str,
     title: &'static str,
     aliases: &'static [&'static str],
@@ -32,7 +33,7 @@ struct Row {
 /// The row of `action`.
 fn action_row(action: SessionAction) -> Row {
     Row {
-        command: SystemCommand::Session(action),
+        action: ShellAction::of_session(action),
         id: action_id(action),
         title: words::title(action),
         aliases: words::aliases(action),
@@ -49,7 +50,7 @@ fn action_row(action: SessionAction) -> Row {
 /// The Reload row.
 fn reload_row() -> Row {
     Row {
-        command: SystemCommand::Reload,
+        action: ShellAction::Reload,
         id: "reload",
         title: RELOAD_TITLE,
         aliases: RELOAD_ALIASES,
@@ -147,7 +148,7 @@ impl Provider for SystemProvider {
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
         match (row_of(&item.id), choice) {
-            (Some(row), Choice::Primary) => Activation::System(row.command),
+            (Some(row), Choice::Primary) => Activation::Do(row.action),
             (Some(_), Choice::Action(_)) | (None, _) => Activation::Nothing,
         }
     }
@@ -156,9 +157,10 @@ impl Provider for SystemProvider {
 #[cfg(test)]
 mod tests {
     use super::SystemProvider;
+    use sill_launcher::actions::ActionId as ShellAction;
     use sill_launcher::{
         ActionId, Activation, Cancel, Choice, Item, ItemId, Provider, ProviderKind, Query, Score,
-        SessionAction, SystemCommand, VecSink,
+        SessionAction, VecSink,
     };
     use sill_model::session::{Offer, Session};
     use sill_model::units::Presence;
@@ -269,23 +271,23 @@ mod tests {
         }
     }
 
-    /// Enter on a row names its command (the launcher asks first by `SessionAction::confirm`);
+    /// Enter on a row names its action (the daemon asks first by `SessionAction::confirm`);
     /// no row carries an action, and an unknown id is nothing.
     #[test]
-    fn every_row_names_its_command_on_enter() {
+    fn every_row_names_its_action_on_enter() {
         let provider = provider(Session::everything());
         let cases = [
-            ("lock", SystemCommand::Session(SessionAction::Lock)),
-            ("log_out", SystemCommand::Session(SessionAction::LogOut)),
-            ("restart", SystemCommand::Session(SessionAction::Restart)),
-            ("shut_down", SystemCommand::Session(SessionAction::PowerOff)),
-            ("suspend", SystemCommand::Session(SessionAction::Suspend)),
-            ("reload", SystemCommand::Reload),
+            ("lock", ShellAction::Lock),
+            ("log_out", ShellAction::LogOut),
+            ("restart", ShellAction::Restart),
+            ("shut_down", ShellAction::ShutDown),
+            ("suspend", ShellAction::Sleep),
+            ("reload", ShellAction::Reload),
         ];
-        for (id, command) in cases {
+        for (id, action) in cases {
             assert_eq!(
                 provider.activate(&item(id), &Choice::Primary),
-                Activation::System(command),
+                Activation::Do(action),
                 "{id}"
             );
             assert_eq!(

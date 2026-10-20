@@ -3,6 +3,7 @@
 //! link is a watch channel or a value over one, never a Dioxus signal. [`Links`] holds them all;
 //! the daemon builds it once and hands it to every root.
 
+mod actions;
 mod banners;
 mod control_center;
 mod display_trial;
@@ -23,6 +24,7 @@ mod split_picker;
 mod switcher;
 mod window_menu;
 
+pub use actions::{ActionLink, ActionSent, Asked, Origin};
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use display_trial::{DisplayTrialLink, TrialAnswered, TrialReply, TrialRun, TrialSerial};
@@ -55,6 +57,8 @@ pub use window_menu::{
 /// The daemon's links.
 #[derive(Debug, Clone)]
 pub struct Links {
+    /// Every surface asks for an action here (`sill::actions` carries it out).
+    pub actions: ActionLink,
     pub focus: FocusLink,
     pub launcher: LauncherLink,
     pub osd: OsdLink,

@@ -25,14 +25,24 @@ pub mod stdout;
 pub mod style;
 #[cfg(test)]
 mod tests;
+mod verbs;
 mod word;
 
 pub use command::Command;
 pub use request::request;
+pub use verbs::{action_of, request_of_words};
 
 /// Parse the process's arguments. Help and version print and end with 0; any other mistake prints
 /// clap's message and ends with 64 (`EX_USAGE`), which leaves 2 for `sill launch`'s unknown id.
 pub fn parse_args() -> Result<Cli, ExitCode> {
+    // The verbs the compositor sends are read by their own parser, `shell_verbs::ShellVerb::parse`.
+    let args: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+    if let Some(command) = verbs::verb_command(&args) {
+        return Ok(Cli {
+            write_schema: None,
+            command: Some(command),
+        });
+    }
     Cli::try_parse().map_err(|error| {
         // A message that cannot be printed leaves nothing more to say.
         let _unprintable_is_dropped = error.print();

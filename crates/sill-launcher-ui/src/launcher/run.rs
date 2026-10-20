@@ -10,17 +10,18 @@ use sill_model::launch::{LaunchCommand, OpenRequest};
 use sill_services::ServiceError;
 use sill_ui_kit::services::Services;
 
-use crate::launcher::activate::{LauncherEffect, Unreachable};
+use crate::launcher::activate::LauncherEffect;
 use crate::launcher::companion::command_of;
-use sill_ui_kit::links::{PowerMenuLink, Preselect};
+use sill_ui_kit::links::{ActionLink, Origin};
 
 /// Where an effect is carried out from: the panel's surface (a launch's token), its output
-/// and the power menu's link (a Log Out, Restart or Shut Down row opens it there).
+/// and the link an action of the shell is asked on (the daemon asks first, picks the output and
+/// fetches the token).
 #[derive(Clone)]
 pub struct EffectFrom {
     pub surface: Option<SurfaceHandle>,
     pub output: OutputId,
-    pub power_menu: Option<PowerMenuLink>,
+    pub actions: Option<ActionLink>,
 }
 
 /// Do `effect` with `services`, from `from`.
@@ -69,18 +70,12 @@ pub async fn run_effect(
             }
             Ok(())
         }
-        LauncherEffect::Unreachable(why) => {
-            eprintln!("sill: launcher: {}", unreachable_text(&why));
-            Ok(())
-        }
-        LauncherEffect::Session(action) => services
-            .session
-            .control
-            .send(sill_model::session::SessionCommand::Run(action)),
-        LauncherEffect::PowerMenu(action) => {
-            match &from.power_menu {
-                Some(link) => link.open(from.output, Preselect::Action(action)),
-                None => eprintln!("sill: launcher: no power menu here to confirm {action:?} in"),
+        LauncherEffect::Do(action) => {
+            match &from.actions {
+                Some(actions) => {
+                    actions.do_it(action, Origin::of(from.surface.as_ref(), from.output));
+                }
+                None => eprintln!("sill: launcher: no daemon here to do {action:?}"),
             }
             Ok(())
         }
@@ -97,13 +92,5 @@ pub async fn run_effect(
             None => Ok(()),
         },
         LauncherEffect::ByRunner | LauncherEffect::Insert(_) | LauncherEffect::Nothing => Ok(()),
-    }
-}
-
-fn unreachable_text(why: &Unreachable) -> String {
-    match why {
-        Unreachable::System(command) => {
-            format!("{command:?} is the daemon's, which no surface reaches")
-        }
     }
 }

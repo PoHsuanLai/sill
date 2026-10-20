@@ -19,9 +19,6 @@ pub enum ShowRequest {
     ForceQuit(Reveal),
     /// The notification center (`sill notifications {toggle,open,close}`).
     NotificationCenter(Reveal),
-    /// The control center under the first bar's item: it is a popup of a bar, so it has no open
-    /// of its own to seed. Opens when closed, closes when open.
-    ControlCenter,
     /// The companion's summon (`sill companion {tap,summon,dismiss,stop-all}`).
     Companion(CompanionRequest),
     /// Hold-to-talk (`sill voice {hold-start,hold-end,hold-cancel}`).
@@ -40,12 +37,11 @@ pub enum Reveal {
     Close,
 }
 
-/// The launcher's three verbs (`sill launcher {toggle,open [--query],close}`).
+/// The launcher's two verbs that are not an action (`sill launcher {open [--query],close}`;
+/// `toggle` is the `launcher` action).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum LauncherRequest {
-    /// Open when closed, close when open: the launcher shortcut.
-    Toggle,
     /// Open with `query` already typed; an empty query opens a fresh launcher.
     Open { query: String },
     /// Close if open; nothing otherwise.

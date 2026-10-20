@@ -15,6 +15,8 @@ pub enum ShellMsg {
         request: Request,
         reply: SyncSender<Response>,
     },
+    /// An action a surface or a corner asked for (`crate::actions::spawn_asks` sends it).
+    Action(sill_ui_kit::links::Asked),
     /// `settings.toml` settled on a new value.
     Settings(Box<ShellFile>),
     /// `style.css` settled on a new text (empty when the file is gone).

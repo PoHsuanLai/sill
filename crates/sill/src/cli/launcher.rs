@@ -6,6 +6,9 @@ use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_ipc::status::StatusRequest;
+use sill_launcher::actions::ActionId;
+
+use super::verbs::do_request;
 
 /// `sill launcher ...`.
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
@@ -30,13 +33,14 @@ pub enum ClipboardAction {
 
 /// The request `sill launcher ACTION` sends.
 pub fn launcher_request(action: &LauncherAction) -> Request {
-    Request::Show(ShowRequest::Launcher(match action {
-        LauncherAction::Toggle => LauncherRequest::Toggle,
-        LauncherAction::Open { query } => LauncherRequest::Open {
+    let show = |request| Request::Show(ShowRequest::Launcher(request));
+    match action {
+        LauncherAction::Toggle => do_request(ActionId::Launcher),
+        LauncherAction::Open { query } => show(LauncherRequest::Open {
             query: query.clone(),
-        },
-        LauncherAction::Close => LauncherRequest::Close,
-    }))
+        }),
+        LauncherAction::Close => show(LauncherRequest::Close),
+    }
 }
 
 /// The request `sill clipboard ACTION` sends.

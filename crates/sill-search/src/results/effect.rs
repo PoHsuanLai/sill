@@ -27,7 +27,7 @@ pub(crate) fn effect(activation: &Activation) -> Effect {
         | Activation::Launch { .. }
         | Activation::Insert { .. }
         | Activation::OpenSettings { .. }
-        | Activation::System(_)
+        | Activation::Do(_)
         // Opening needs the surface's activation token, and the clipboard entry goes to the
         // clipboard service from the surface.
         | Activation::Open { .. }
@@ -65,7 +65,8 @@ impl Outlets {
 #[cfg(test)]
 mod tests {
     use super::{Effect, effect};
-    use sill_launcher::{Activation, AppId, DesktopAction, SettingsLink, SystemCommand, WindowKey};
+    use sill_launcher::actions::ActionId;
+    use sill_launcher::{Activation, AppId, DesktopAction, SettingsLink, WindowKey};
     use sill_model::windows::WlCommand;
 
     #[test]
@@ -115,10 +116,7 @@ mod tests {
                 },
                 Effect::Elsewhere,
             ),
-            (
-                Activation::System(SystemCommand::Session(sill_launcher::SessionAction::Lock)),
-                Effect::Elsewhere,
-            ),
+            (Activation::Do(ActionId::Lock), Effect::Elsewhere),
             (Activation::Nothing, Effect::Elsewhere),
         ];
         for (activation, want) in cases {

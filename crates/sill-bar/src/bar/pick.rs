@@ -1,10 +1,12 @@
 //! What picking a bar menu item does, as a value: the component turns it into service commands
-//! after the menu has closed (design A6 "closes then picks").
+//! after the menu has closed (design A6 "closes then picks"). The shell's own actions (Settings,
+//! a power action) are not commands of a service here: the bar names the action and the daemon
+//! carries it out.
 
-use sill_launcher::{AppId, Route, SessionAction};
+use sill_launcher::SessionAction;
+use sill_launcher::actions::ActionId;
+use sill_model::actions::Ask;
 use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem, own_commands};
-use sill_model::launch::{LaunchCommand, LaunchRequest};
-use sill_model::session::SessionCommand;
 use sill_model::tray::{TrayCommand, TrayItemId};
 use sill_model::windows::{Toplevels, WlCommand};
 
@@ -16,8 +18,8 @@ pub(crate) enum BarPick {
     Own { app_id: String, item: OwnItem },
     /// Open Settings.
     Settings,
-    /// A power action from the system menu: carried out at once, or asked about first in the
-    /// power menu on this bar's output, by its `confirm`.
+    /// A power action from the system menu: the daemon carries it out at once, or asks about it
+    /// first in the power menu on this bar's output.
     Session(SessionAction),
     /// A row of a tray item's dbusmenu, by its dbusmenu id.
     Tray { item: TrayItemId, entry: i32 },
@@ -25,18 +27,12 @@ pub(crate) enum BarPick {
     AppMenu { app: MenuApp, id: i32 },
 }
 
-/// The app the settings run as.
-const SETTINGS_APP: &str = "org.quire.Settings";
-
 /// Where a pick goes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Command {
     Wl(WlCommand),
-    Launch(LaunchCommand),
-    /// Open the power menu on this action (`PowerMenuLink::open`), which asks about it.
-    PowerMenu(SessionAction),
-    /// Carry out a power action at once.
-    Session(SessionCommand),
+    /// An action of the shell, asked of the daemon.
+    Do(Ask),
     /// Click a dbusmenu row of a tray item.
     Tray(TrayCommand),
     /// Click a row of the focused app's menu.
@@ -50,13 +46,8 @@ pub(crate) fn commands(pick: &BarPick, toplevels: &Toplevels) -> Vec<Command> {
             .into_iter()
             .map(Command::Wl)
             .collect(),
-        BarPick::Settings => vec![Command::Launch(LaunchCommand::Launch(LaunchRequest::app(
-            AppId(SETTINGS_APP.to_owned()),
-        )))],
-        BarPick::Session(action) => vec![match action.route() {
-            Route::Ask(action) => Command::PowerMenu(action),
-            Route::Now(action) => Command::Session(SessionCommand::Run(action)),
-        }],
+        BarPick::Settings => vec![Command::Do(Ask::of(ActionId::OpenSettings))],
+        BarPick::Session(action) => vec![Command::Do(Ask::of(ActionId::of_session(*action)))],
         BarPick::Tray { item, entry } => vec![Command::Tray(TrayCommand::MenuPick {
             item: item.clone(),
             entry: *entry,
@@ -71,11 +62,11 @@ pub(crate) fn commands(pick: &BarPick, toplevels: &Toplevels) -> Vec<Command> {
 #[cfg(test)]
 mod tests {
     use super::{BarPick, Command, commands};
+    use sill_launcher::actions::ActionId;
     use sill_launcher::{SessionAction, WindowKey};
+    use sill_model::actions::Ask;
     use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem};
     use sill_model::ids::OutputName;
-    use sill_model::launch::LaunchCommand;
-    use sill_model::session::SessionCommand;
     use sill_model::tray::{TrayCommand, TrayItemId};
     use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 
@@ -119,21 +110,19 @@ mod tests {
             ),
             (
                 BarPick::Session(SessionAction::PowerOff),
-                vec![Command::PowerMenu(SessionAction::PowerOff)],
+                vec![Command::Do(Ask::of(ActionId::ShutDown))],
             ),
             (
                 BarPick::Session(SessionAction::LogOut),
-                vec![Command::PowerMenu(SessionAction::LogOut)],
+                vec![Command::Do(Ask::of(ActionId::LogOut))],
             ),
             (
                 BarPick::Session(SessionAction::Lock),
-                vec![Command::Session(SessionCommand::Run(SessionAction::Lock))],
+                vec![Command::Do(Ask::of(ActionId::Lock))],
             ),
             (
                 BarPick::Session(SessionAction::Suspend),
-                vec![Command::Session(SessionCommand::Run(
-                    SessionAction::Suspend,
-                ))],
+                vec![Command::Do(Ask::of(ActionId::Sleep))],
             ),
             (
                 BarPick::Tray {
@@ -159,10 +148,9 @@ mod tests {
         for (pick, want) in cases {
             assert_eq!(commands(&pick, &toplevels), want, "{pick:?}");
         }
-        let settings = commands(&BarPick::Settings, &toplevels);
-        assert!(
-            matches!(settings.as_slice(), [Command::Launch(LaunchCommand::Launch(r))] if r.app.0 == "org.quire.Settings"),
-            "{settings:?}"
+        assert_eq!(
+            commands(&BarPick::Settings, &toplevels),
+            vec![Command::Do(Ask::of(ActionId::OpenSettings))]
         );
     }
 }

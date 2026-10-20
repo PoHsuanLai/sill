@@ -1,6 +1,7 @@
 //! What a client asks the daemon: one [`Request`] per connection.
 
 use serde::{Deserialize, Serialize};
+use sill_model::actions::Ask;
 
 use crate::act::ActRequest;
 use crate::debug::DebugRequest;
@@ -17,7 +18,11 @@ pub enum Request {
     Quit,
     /// Re-read the settings without restarting.
     Reload,
-    /// Open, close or toggle a panel.
+    /// Do an action of the shell: lock, a screenshot, a panel, a step of the switcher, a pin
+    /// (`sill lock`, `sill screenshot`, `sill launcher toggle`, ...). One request for every
+    /// action; what each is lives in `sill_model::actions`.
+    Do(Ask),
+    /// Open or close a panel with a particular way, or seed it.
     Show(ShowRequest),
     /// Read a state: answered with `Response::Status`.
     Status(StatusRequest),

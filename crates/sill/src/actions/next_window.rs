@@ -1,12 +1,11 @@
-//! `sill next-window`: the next window of the front app (Command+` on a Mac). The toplevel list
+//! The `next-window` action: the next window of the front app (Command+` on a Mac). The toplevel list
 //! is most recently activated first, so the window to bring forward is the front app's least
 //! recently used one on the front window's workspaces; with one window there is nothing to do.
 
 use sill_ipc::response::Response;
 use sill_model::windows::{Toplevel, Toplevels, WlCommand};
 
-use super::reach::Reach;
-use super::reply::sent;
+use crate::ipc::dispatch::{Reach, sent};
 
 /// Bring the front app's next window forward.
 pub fn ask(reach: &Reach) -> Response {

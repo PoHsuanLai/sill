@@ -32,7 +32,7 @@ use crate::launcher::run::{EffectFrom, run_effect};
 use crate::launcher::session::Session;
 use crate::launcher::view::{Expanded, View, toggled, view};
 use sill_ui_kit::hooks::{use_service, use_service_part, use_services};
-use sill_ui_kit::links::PowerMenuLink;
+use sill_ui_kit::links::ActionLink;
 use sill_ui_kit::links::{LauncherLink, LauncherOpening, OpenSerial, Reveal};
 
 /// The stderr line for one opening: from the request's arrival (`sill launcher toggle|open`)
@@ -62,9 +62,9 @@ pub(crate) struct PanelCtx {
     pub(crate) services: Services,
     pub(crate) providers: LauncherProviders,
     pub(crate) surface: Option<SurfaceHandle>,
-    /// Where a Log Out, Restart or Shut Down row opens the power menu (the daemon gives every
-    /// root one; a demo or a test may not).
-    pub(crate) power_menu: Option<PowerMenuLink>,
+    /// Where a System row asks for its action (the daemon gives every root one; a demo or a test
+    /// may not).
+    pub(crate) actions: Option<ActionLink>,
     pub(crate) picking: CopyValue<Picking>,
     /// How many times the preview pane has finished leaving (quire's `on_hidden`).
     pub(crate) left: Signal<u64>,
@@ -103,7 +103,7 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         services,
         providers,
         surface,
-        power_menu: try_use_context::<PowerMenuLink>(),
+        actions: try_use_context::<ActionLink>(),
         picking: use_hook(|| CopyValue::new(Picking::No)),
         left: use_signal(|| 0),
         palette: use_palette_handle(),
@@ -507,7 +507,7 @@ impl PanelCtx {
         let from = EffectFrom {
             surface: self.surface.clone(),
             output: self.output,
-            power_menu: self.power_menu.clone(),
+            actions: self.actions.clone(),
         };
         let (services, link) = (self.services.clone(), self.link.clone());
         let again = match &effect {

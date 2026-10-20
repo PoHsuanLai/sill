@@ -3,10 +3,12 @@
 //! `sill companion`, `sill voice`) take the enum itself, parsed by `word::word`.
 
 use clap::Subcommand;
-use sill_ipc::act::{ActRequest, DockRequest};
 use sill_ipc::request::Request;
-use sill_ipc::show::ShowRequest;
 use sill_launcher::AppId;
+use sill_launcher::actions::ActionId;
+use sill_model::actions::{Ask, Subject};
+
+use super::verbs::do_request;
 
 /// `sill dock ...`.
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
@@ -29,19 +31,20 @@ pub enum ControlCenterAction {
 /// The request `sill dock ACTION` sends.
 pub fn dock_request(action: &DockAction) -> Request {
     match action {
-        DockAction::Pin { app } => Request::Act(ActRequest::Dock(DockRequest::Pin {
-            app: AppId(app.clone()),
-        })),
-        DockAction::Unpin { app } => Request::Act(ActRequest::Dock(DockRequest::Unpin {
-            app: AppId(app.clone()),
-        })),
-        DockAction::ToggleHide => Request::Act(ActRequest::ToggleDockHide),
+        DockAction::Pin { app } => app_request(ActionId::PinApp, app),
+        DockAction::Unpin { app } => app_request(ActionId::UnpinApp, app),
+        DockAction::ToggleHide => do_request(ActionId::ToggleDockHide),
     }
+}
+
+/// The request that does `action` to the app with desktop id `app`.
+fn app_request(action: ActionId, app: &str) -> Request {
+    Request::Do(Ask::on(action, Subject::App(AppId(app.to_owned()))))
 }
 
 /// The request `sill control-center ACTION` sends.
 pub fn control_center_request(action: ControlCenterAction) -> Request {
     match action {
-        ControlCenterAction::Toggle => Request::Show(ShowRequest::ControlCenter),
+        ControlCenterAction::Toggle => do_request(ActionId::ControlCenter),
     }
 }

@@ -14,9 +14,9 @@ use sill_model::locker::LockPhase;
 use sill_services::env::Dirs;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
-    BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink, EyedropperLink,
-    ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PowerMenuLink, SpacesBarLink,
-    SplitPickerLink, SwitcherLink, WindowMenuLink,
+    ActionLink, BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink,
+    EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PowerMenuLink,
+    SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
@@ -177,6 +177,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         seat,
         notify,
         runtime: runtime.handle().clone(),
+        stash: std::cell::RefCell::default(),
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 
@@ -235,6 +236,7 @@ fn host_config(first: &ShellFile, dirs: &Dirs, route: shell_host::WaylandRoute) 
 fn build_links(runtime: &Runtime, settings_feed: &SettingsFeed, store: &Store) -> Links {
     let banners = BannerLink::new();
     Links {
+        actions: ActionLink::new(),
         focus: settings::spawn_focus(
             runtime.handle(),
             settings_feed.settings.clone(),
@@ -276,11 +278,11 @@ fn spawn_followers(
     crate::outgoing::spawn_all(runtime.handle(), links, host);
     crate::spaces_bar::spawn_outbox(runtime.handle(), links, host.clone());
     crate::eyedropper::spawn_follower(runtime.handle(), links, services, host.clone());
+    crate::actions::spawn_asks(runtime.handle(), &links.actions, host.clone());
     crate::corners::spawn_hits(
         runtime.handle(),
         links.clone(),
         settings_feed.settings.clone(),
-        services.clone(),
         host.clone(),
     );
 }

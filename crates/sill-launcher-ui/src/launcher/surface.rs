@@ -30,7 +30,7 @@ impl Surface for Launcher {
     }
 
     fn needs(root: HostRoot, links: &Links) -> HostRoot {
-        root.context(links.power_menu.clone())
+        root.context(links.actions.clone())
     }
 
     fn slots(_place: &Place) -> Vec<()> {

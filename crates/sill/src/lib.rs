@@ -1,6 +1,7 @@
 //! The sill daemon and command line, as a library so `crates/sill/tests/**` can exercise its
 //! internals (`main.rs` is a thin wrapper over this crate).
 
+pub mod actions;
 pub mod cli;
 pub mod companion;
 pub mod corners;

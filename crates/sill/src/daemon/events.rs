@@ -13,13 +13,14 @@ use sill_bar::Bar;
 use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
-use sill_ipc::show::{LauncherRequest, ShowRequest};
+use sill_launcher::actions::ActionId;
+use sill_model::actions::Ask;
 use sill_model::desktop::DesktopCommand;
 use sill_model::displays::DisplaysCommand;
 use sill_model::keyboard::{Grip, ShellKeys};
 use sill_model::keycap::KeycapCommand;
 use sill_settings::ShellFile;
-use sill_ui_kit::links::{BannerOutput, Links};
+use sill_ui_kit::links::{Asked, BannerOutput, Links};
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{OutputPolicy, Surface};
@@ -58,6 +59,8 @@ pub struct Shell {
     /// The async runtime the services run on, for the work an IPC request starts off the host
     /// thread (`sill launch` waits for the app's process).
     pub runtime: tokio::runtime::Handle,
+    /// The windows Show Desktop put away, to bring back on its next firing.
+    pub stash: RefCell<crate::actions::show_desktop::Stash>,
 }
 
 /// Every event, handled: an IPC request (needs the services and the settings), the lock's and the
@@ -78,6 +81,13 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
                 app,
                 reply,
             );
+        }
+        HostEvent::App(ShellMsg::Action(asked)) => {
+            let Asked { ask, origin } = asked.clone();
+            let response = reached(shell, ctx, |ctx, reach| {
+                crate::actions::perform(ctx, reach, ask, origin)
+            });
+            crate::actions::report(&asked, &response);
         }
         HostEvent::App(ShellMsg::Ipc { request, reply }) => {
             let _ = reply.send(answer(shell, ctx, request));
@@ -149,9 +159,25 @@ fn palmrest_ask(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, ask: &PalmrestAc
 fn answer(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> Response {
     let toggled_at = matches!(
         request,
-        Request::Show(ShowRequest::Launcher(LauncherRequest::Toggle))
+        Request::Do(Ask {
+            action: ActionId::Launcher,
+            ..
+        })
     )
     .then(Instant::now);
+    let response = reached(shell, ctx, |ctx, reach| route(ctx, reach, request));
+    if let Some(toggled_at) = toggled_at {
+        latency::log_open_latency(toggled_at.elapsed());
+    }
+    response
+}
+
+/// `then` run with what a request or an action may reach.
+fn reached<T>(
+    shell: &mut Shell,
+    ctx: &mut HostCtx<ShellMsg>,
+    then: impl FnOnce(&mut HostCtx<ShellMsg>, &Reach) -> T,
+) -> T {
     let seat = RefCell::new(&mut shell.seat);
     let carry = |command: DesktopCommand| {
         if seat.borrow_mut().command(command) {
@@ -168,12 +194,10 @@ fn answer(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> R
         settings: &shell.settings,
         user_style: &shell.user_style,
         desktop: DesktopLine(&carry),
+        runtime: &shell.runtime,
+        stash: &shell.stash,
     };
-    let response = route(ctx, &reach, request);
-    if let Some(toggled_at) = toggled_at {
-        latency::log_open_latency(toggled_at.elapsed());
-    }
-    response
+    then(ctx, &reach)
 }
 
 fn apply_lock(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, wish: crate::lock::LockWish) {

@@ -2,9 +2,9 @@
 //! status`, and their pure mappings to requests.
 
 use clap::{Subcommand, ValueEnum};
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::status::StatusRequest;
+use sill_launcher::actions::ActionId;
 
 /// `sill lock [VERB]`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -32,7 +32,7 @@ pub enum PolkitAction {
 /// The request `sill lock VERB` sends.
 pub fn lock_request(verb: LockVerb) -> Request {
     match verb {
-        LockVerb::Now => Request::Act(ActRequest::Lock),
+        LockVerb::Now => super::verbs::do_request(ActionId::Lock),
         LockVerb::Status => Request::Status(StatusRequest::Lock),
     }
 }

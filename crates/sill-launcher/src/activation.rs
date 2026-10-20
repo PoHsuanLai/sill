@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::actions::ActionId;
 use crate::companion::CompanionAct;
 use crate::ids::{AppId, ClipKey};
 use crate::query::Generation;
@@ -28,8 +29,8 @@ pub enum Activation {
     Insert { text: String },
     /// Open Settings at a place.
     OpenSettings { target: SettingsLink },
-    /// A session command.
-    System(SystemCommand),
+    /// An action of the shell, done by the daemon: a power action, Reload.
+    Do(ActionId),
     /// Open a file, its folder, or an address with the default handler (`xdg-open`, with the
     /// surface's activation token).
     Open { target: OpenTarget },
@@ -92,22 +93,12 @@ pub enum DesktopAction {
 #[serde(transparent)]
 pub struct WindowKey(pub u64);
 
-/// The system provider's commands: a session action, or sill's own reload.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SystemCommand {
-    /// A power action ([`SessionAction`]), carried out by the session service.
-    Session(SessionAction),
-    /// Re-read settings, apps and pins (the same as `sill reload`).
-    Reload,
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{Activation, DesktopAction, OpenTarget, SystemCommand, ViewerOpen, WindowKey};
+    use super::{Activation, DesktopAction, OpenTarget, ViewerOpen, WindowKey};
+    use crate::actions::ActionId;
     use crate::ids::{AppId, ClipKey};
     use crate::query::Generation;
-    use crate::session::SessionAction;
     use crate::settings_link::SettingsLink;
     use std::path::PathBuf;
 
@@ -153,12 +144,12 @@ mod tests {
                 r#"{"kind":"open_settings","v":{"target":"page:appearance"}}"#,
             ),
             (
-                Activation::System(SystemCommand::Session(SessionAction::PowerOff)),
-                r#"{"kind":"system","v":{"session":"power_off"}}"#,
+                Activation::Do(ActionId::ShutDown),
+                r#"{"kind":"do","v":"shut-down"}"#,
             ),
             (
-                Activation::System(SystemCommand::Reload),
-                r#"{"kind":"system","v":"reload"}"#,
+                Activation::Do(ActionId::Reload),
+                r#"{"kind":"do","v":"reload"}"#,
             ),
             (
                 Activation::Open {

@@ -124,6 +124,10 @@ pub enum Command {
     /// (the daemon runs it; not for people).
     #[command(hide = true)]
     AuthCheck,
+    /// A verb the compositor sends, read by `shell_verbs::ShellVerb::parse` (not a clap word:
+    /// the same words are also clap's grammar above, which has to agree with it).
+    #[command(skip)]
+    Verb(shell_verbs::ShellVerb),
     /// Take a screenshot with `screenshot.tool`; its thumbnail shows at the bottom right.
     Screenshot {
         /// `area` is a rectangle you drag out and `window` one window (both the picker); `screen`

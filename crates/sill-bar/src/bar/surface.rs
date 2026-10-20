@@ -29,7 +29,7 @@ impl Surface for Bar {
 
     fn needs(root: HostRoot, links: &Links) -> HostRoot {
         root.context(links.focus.clone())
-            .context(links.power_menu.clone())
+            .context(links.actions.clone())
             .context(links.notification_center.clone())
     }
 

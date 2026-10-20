@@ -1,13 +1,17 @@
 //! What a request can reach: the services, the outputs' surfaces, the links the surfaces follow
 //! and the settings the daemon holds.
 
+use std::cell::RefCell;
+
 use ds_settings::{Store, UserStyle};
 use sill_model::desktop::DesktopCommand;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
+use tokio::runtime::Handle;
 use tokio::sync::watch;
 
+use crate::actions::show_desktop::Stash;
 use crate::outputs::Outputs;
 
 /// Everything [`super::route`] may touch to answer one request.
@@ -23,6 +27,11 @@ pub struct Reach<'a> {
     pub user_style: &'a watch::Sender<UserStyle>,
     /// The desktop's own compositor, for the requests that ask it for something.
     pub desktop: DesktopLine<'a>,
+    /// The async runtime, for the work an action starts off the host thread (a launch waits for
+    /// its activation token).
+    pub runtime: &'a Handle,
+    /// The windows Show Desktop put away.
+    pub stash: &'a RefCell<Stash>,
 }
 
 /// Whether the desktop's own compositor took a command: it does not when the session runs

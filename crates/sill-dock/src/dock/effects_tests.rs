@@ -4,11 +4,12 @@ use super::{EffectCtx, effect_commands};
 use crate::dock::items::{DockItem, ItemKind};
 use crate::dock::machine::{ActivateMode, DockEffect, Instance, TileApp, TileId};
 use crate::dock::pick::DockCommand;
+use sill_launcher::actions::ActionId;
 use sill_launcher::{AppId, DesktopAction, WindowKey};
+use sill_model::actions::{Ask, Subject};
 use sill_model::apps::{
     App, AppIcon, AppIndex, DbusActivation, DesktopActionEntry, Listing, Terminal,
 };
-use sill_model::launch::LaunchCommand;
 use sill_model::pins::{DockPins, PinAt, PinEvent};
 use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use std::path::PathBuf;
@@ -187,7 +188,10 @@ fn every_outward_effect_becomes_its_commands() {
         (
             "Cmd-click shows in Files",
             DockEffect::ShowInFiles { tile: t(1) },
-            vec![DockCommand::Service(LaunchCommand::ShowInFiles(id("term")))],
+            vec![DockCommand::Do(Ask::on(
+                ActionId::ShowInFiles,
+                Subject::App(id("term")),
+            ))],
         ),
         (
             "a pinned tile moves",

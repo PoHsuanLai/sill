@@ -1,35 +1,20 @@
-//! What a client changes: the dock's pins, the brightness and volume keys, the lock, a
-//! screenshot, the switcher's chord, the clipboard history, the banners and
-//! the keyboard on the newest transient and keycap.
+//! What a client changes: the brightness and volume keys, the clipboard history, the banners and
+//! the keyboard on the newest transient and keycap. The shell's own actions (lock, a screenshot,
+//! the dock's pins, the switcher's chord, the workspaces) are `Request::Do`.
 
 use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
 use sill_model::intents::IntentsAsk;
 use sill_model::keycap::KeycapAsk;
-use sill_model::screenshots::ShotKind;
 
 /// A verb that changes something and answers `Done` once it is asked.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum ActRequest {
-    /// Change what the dock keeps (`sill dock {pin,unpin} <desktop-id>`).
-    Dock(DockRequest),
     /// The brightness and volume keys (`sill display {brightness,volume} ...`), bound to
     /// XF86MonBrightness*/XF86Audio* in the compositor's shortcuts.
     Display(DisplayRequest),
-    /// Lock the screen now (`sill lock`).
-    Lock,
-    /// Take a screenshot with `screenshot.tool` (`sill screenshot [area|window|screen]`): the
-    /// file it saves shows as the thumbnail through the folder watch.
-    Screenshot(ShotKind),
-    /// Flip `dock.autohide` in `settings.toml` (`sill dock toggle-hide`; the Mac's Option+Command+D).
-    ToggleDockHide,
-    /// Bring forward the next window of the front app, the least recently used one on the active
-    /// workspace (`sill next-window`; the Mac's Command+`).
-    NextWindow,
-    /// The app switcher's chord verbs (`sill switcher ...`).
-    Switcher(SwitcherRequest),
     /// Forget every clipboard entry now (`sill clipboard clear`).
     ClearClipboard,
     /// Dismiss every banner on screen (each sender hears `NotificationClosed`, reason 2).
@@ -38,9 +23,6 @@ pub enum ActRequest {
     /// banner, whichever appeared last (`sill focus-latest`; bound in the compositor's shortcuts like the
     /// launcher's). Nothing happens when none is showing.
     FocusLatest,
-    /// Step the workspace, or open the overview (`sill workspace {next,prev,overview}`; palmrest's
-    /// two-finger swipes run these).
-    Workspace(WorkspaceRequest),
     /// Restart keycap, or end its pause (`sill keycap retry|resume`).
     Keycap(KeycapAsk),
     /// Withdraw a standing terminal grant, or let a paused terminal go on (`sill intents revoke|resume`).
@@ -48,16 +30,6 @@ pub enum ActRequest {
     /// Open an installed app the way a click in the dock does (`sill launch <desktop-id>`):
     /// answered `Response::Launched` once the app's process exists, or `Failed`.
     Launch(AppId),
-}
-
-/// Pin changes.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum DockRequest {
-    /// Keep `app` in the dock, appended after the last pin.
-    Pin { app: AppId },
-    /// Stop keeping `app`; a running app keeps its tile in the running section.
-    Unpin { app: AppId },
 }
 
 /// A display key, or a slider standing in for one.
@@ -94,7 +66,7 @@ pub enum VolumeRequest {
     ToggleMute,
 }
 
-/// `sill switcher ...`: the window switcher shortcuts run
+/// The words of `sill switcher ...`: the window switcher shortcuts run
 /// `next` / `prev`; `cancel` and `commit` are for scripts and for a compositor
 /// that tells sill about the modifier's release some other way.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
@@ -110,7 +82,7 @@ pub enum SwitcherRequest {
     Commit,
 }
 
-/// `sill workspace ...`: palmrest's swipes run `prev` and `next`.
+/// The words of `sill workspace ...`: palmrest's swipes run `prev` and `next`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkspaceRequest {

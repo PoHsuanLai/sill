@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 use sill_launcher::{
     Action, ActionId, Activation, AppId, Choice, DesktopAction, Frecency, IconRef, Item, ItemId,
     ItemKey, Placement, Provider, ProviderKind, Query, QueryShape, ResultSink, Score, SectionPlan,
-    SectionSpan, SettingsLink, SystemCommand, UnixTime, WindowKey, place,
+    SectionSpan, SettingsLink, UnixTime, WindowKey, place,
 };
 use sill_launcher_ui::launcher::LauncherProviders;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
@@ -242,13 +242,9 @@ fn carry(
     let _ = match providers.activation(item, choice) {
         Activation::FocusWindow { window } => wl.send(WlCommand::Activate(window)),
         Activation::CloseWindow { window } => wl.send(WlCommand::Close(window)),
-        Activation::Launch { app, action } => launch.send(LaunchCommand::Launch(LaunchRequest {
-            app,
-            action,
-            files: Vec::new(),
-            uris: Vec::new(),
-            token: None,
-        })),
+        Activation::Launch { app, action } => launch.send(LaunchCommand::Launch(
+            LaunchRequest::app(app).action(action),
+        )),
         _ => Ok(()),
     };
 }
@@ -283,9 +279,7 @@ impl Provider for FakeProvider {
             (ProviderKind::Settings, _) => Activation::OpenSettings {
                 target: SettingsLink(format!("page:{}", item.id.0)),
             },
-            (ProviderKind::System, _) => {
-                Activation::System(SystemCommand::Session(sill_launcher::SessionAction::Lock))
-            }
+            (ProviderKind::System, _) => Activation::Do(sill_launcher::actions::ActionId::Lock),
             // The companion's kinds: the real providers say what their rows do (`tests/launcher_companion.rs`).
             (ProviderKind::Companion, choice) => sill_search::providers::CompanionProvider {
                 companion: watch::channel(sill_model::companion::Companion::default()).1,

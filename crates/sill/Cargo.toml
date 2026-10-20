@@ -19,6 +19,7 @@ ds-settings = { workspace = true }
 sill-shell-kit = { workspace = true }
 latchkey = { workspace = true }
 shell-host = { workspace = true }
+shell-verbs = { workspace = true }
 sill-ipc = { workspace = true }
 sill-launcher = { workspace = true }
 sill-search = { workspace = true }
