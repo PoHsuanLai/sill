@@ -19,13 +19,34 @@ enum Popup {
 }
 
 /// A surface's context menu: what [`use_context_menu`] returns.
-#[derive(Clone)]
 pub struct ContextMenu<Model: MenuModel> {
     surface: Option<SurfaceHandle>,
     feed: Option<SettingsFeed>,
     popup: CopyValue<Popup>,
     reports: mpsc::UnboundedSender<MenuReport<Model::Pick>>,
     name: &'static str,
+}
+
+// By hand: a derive would ask the menu model itself to be `Clone` and `Debug`.
+impl<Model: MenuModel> Clone for ContextMenu<Model> {
+    fn clone(&self) -> Self {
+        ContextMenu {
+            surface: self.surface.clone(),
+            feed: self.feed.clone(),
+            popup: self.popup,
+            reports: self.reports.clone(),
+            name: self.name,
+        }
+    }
+}
+
+impl<Model: MenuModel> std::fmt::Debug for ContextMenu<Model> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ContextMenu")
+            .field("name", &self.name)
+            .field("popup", &*self.popup.peek())
+            .finish_non_exhaustive()
+    }
 }
 
 impl<Model: MenuModel> ContextMenu<Model> {

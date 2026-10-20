@@ -6,9 +6,9 @@ mod frame;
 mod look;
 mod model;
 mod popup;
-mod use_context_menu;
 #[cfg(test)]
 mod tests;
+mod use_context_menu;
 
 pub use context::{ContextMenuLink, MenuReport, context_menu_popup};
 pub use frame::{POPUP_FRAME_CSS, PopupFrame};
