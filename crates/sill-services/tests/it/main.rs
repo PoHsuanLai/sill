@@ -29,6 +29,7 @@ mod keycap_layer;
 mod keycap_socket;
 mod keycap_systemd_bus;
 mod launch_viewer_bus;
+mod login_session;
 mod model_offer;
 mod night_shift;
 mod nm_bus;

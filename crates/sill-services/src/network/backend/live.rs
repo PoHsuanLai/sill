@@ -9,6 +9,7 @@ use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
+use crate::deadline::{BUS_CALL, NETWORK_REFRESH, within};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::nm::{
@@ -60,13 +61,13 @@ async fn session(
     loop {
         tokio::select! {
             Some(_) = next(&mut primary) => {
-                apply(tx, NetworkEvent::Link(primary_link(connection, &nm).await));
+                apply(tx, NetworkEvent::Link(bounded_link(connection, &nm).await));
             }
             Some(_) = next(&mut activating) => {
-                apply(tx, NetworkEvent::Activating(activating_status(connection, &nm).await));
+                apply(tx, NetworkEvent::Activating(bounded_activating(connection, &nm).await));
             }
             Some(change) = next(&mut connectivity) => {
-                if let Ok(value) = change.get().await {
+                if let Ok(Ok(value)) = within(BUS_CALL, "NetworkManager connectivity", change.get()).await {
                     apply(tx, NetworkEvent::Connectivity(Connectivity::from_nm(value)));
                 }
             }
@@ -85,14 +86,38 @@ async fn refresh(
     nm: &NetworkManagerProxy<'_>,
     tx: &watch::Sender<Network>,
 ) {
-    apply(tx, NetworkEvent::Link(primary_link(connection, nm).await));
+    apply(tx, NetworkEvent::Link(bounded_link(connection, nm).await));
     apply(
         tx,
-        NetworkEvent::Activating(activating_status(connection, nm).await),
+        NetworkEvent::Activating(bounded_activating(connection, nm).await),
     );
-    if let Ok(value) = nm.connectivity().await {
+    if let Ok(Ok(value)) = within(BUS_CALL, "NetworkManager connectivity", nm.connectivity()).await
+    {
         apply(tx, NetworkEvent::Connectivity(Connectivity::from_nm(value)));
     }
+}
+
+/// [`primary_link`] given up on after [`NETWORK_REFRESH`] (several calls in a row): a hung
+/// NetworkManager reads as disconnected and never stalls the loop.
+async fn bounded_link(connection: &Connection, nm: &NetworkManagerProxy<'_>) -> Link {
+    within(
+        NETWORK_REFRESH,
+        "NetworkManager primary connection",
+        primary_link(connection, nm),
+    )
+    .await
+    .unwrap_or(Link::Disconnected)
+}
+
+/// [`activating_status`] given up on after [`NETWORK_REFRESH`], as [`bounded_link`].
+async fn bounded_activating(connection: &Connection, nm: &NetworkManagerProxy<'_>) -> Activating {
+    within(
+        NETWORK_REFRESH,
+        "NetworkManager activating connection",
+        activating_status(connection, nm),
+    )
+    .await
+    .unwrap_or(Activating::Idle)
 }
 
 /// Reduces `event` onto the receiver's current value and publishes the result.

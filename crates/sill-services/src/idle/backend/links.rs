@@ -34,6 +34,8 @@ pub(crate) struct Reach {
     pub(crate) session: Bus,
     /// The session's desktop names (`XDG_CURRENT_DESKTOP`), which say whose session this is.
     pub(crate) current_desktop: String,
+    /// `XDG_SESSION_ID`, for finding the session when logind has none for the pid.
+    pub(crate) session_id: Option<String>,
 }
 
 impl Reach {
@@ -44,6 +46,7 @@ impl Reach {
             system: env.buses.system.clone(),
             session: env.buses.session.clone(),
             current_desktop: env.current_desktop.clone(),
+            session_id: env.session_id.clone(),
         }
     }
 }

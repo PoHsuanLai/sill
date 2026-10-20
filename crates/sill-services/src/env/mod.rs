@@ -80,6 +80,9 @@ pub struct Env {
     /// `XDG_CURRENT_DESKTOP` as the process was started with it (colon-separated names): read
     /// once at the edge, so a library never reads the environment.
     pub current_desktop: String,
+    /// `XDG_SESSION_ID` as the process was started with it, read once at the edge: the logind
+    /// session to use when logind places this process in none by pid.
+    pub session_id: Option<String>,
     /// Whether the session fell back to the safe compositor (`QUIRE_SESSION_MODE`), read once at
     /// the edge.
     pub session_mode: SessionMode,
@@ -141,6 +144,9 @@ impl Env {
             proc_root: PathBuf::from("/proc"),
             callers: Arc::new(DesktopCallers::from_system()),
             current_desktop: std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
+            session_id: std::env::var("XDG_SESSION_ID")
+                .ok()
+                .filter(|id| !id.is_empty()),
             session_mode: SessionMode::from_process(),
             release_bin: release::running_bin_dir(),
         }
@@ -188,6 +194,7 @@ impl Env {
                 peephole_bus::peephole_core::Table::empty(),
             )),
             current_desktop: String::new(),
+            session_id: None,
             session_mode: SessionMode::Normal,
             release_bin: None,
         }

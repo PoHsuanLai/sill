@@ -18,12 +18,13 @@ use tokio::sync::{mpsc, watch};
 use zbus::zvariant::OwnedFd;
 
 use super::logind;
-use super::logind::Logind;
+use super::logind::{Logind, Standing};
 use super::marker::{
     LockMarker, MarkerChange, Restore, marker_change, marker_path, restore_on_start,
 };
 use crate::env::Bus;
 use crate::stream::next_opt;
+use crate::supervise::Backoff;
 
 /// Everything the loop owns besides the machine.
 struct Live {
@@ -39,6 +40,26 @@ struct Live {
     marker: Option<PathBuf>,
     /// `XDG_CURRENT_DESKTOP`, from the environment at the process edge.
     desktop: String,
+    /// The `XDG_SESSION_ID` the process edge read.
+    session_id: Option<String>,
+    /// The system bus (or logind) was late: when to ask again, and the waits between asks.
+    retry: Retry,
+}
+
+/// Waiting for a late system bus.
+struct Retry {
+    at: Option<Instant>,
+    backoff: Backoff,
+}
+
+impl Retry {
+    /// Sets the next ask by `logind`'s standing.
+    fn after(&mut self, logind: &Logind) {
+        self.at = match logind.standing {
+            Standing::Waiting => Some(Instant::now() + self.backoff.wait()),
+            Standing::Absent | Standing::Up => None,
+        };
+    }
 }
 
 /// Runs until `commands` closes. Inert (`LockerMode::Off`) until the first `Configure`/`Use`.
@@ -46,19 +67,28 @@ pub(crate) async fn run(
     bus: Bus,
     runtime: Option<PathBuf>,
     desktop: String,
+    session_id: Option<String>,
     tx: watch::Sender<Lock>,
     mut commands: mpsc::UnboundedReceiver<LockerCommand>,
 ) {
+    let logind = logind::connect(&bus, session_id.as_deref()).await;
+    let mut retry = Retry {
+        at: None,
+        backoff: Backoff::default(),
+    };
+    retry.after(&logind);
     let mut live = Live {
         tx,
         machine: Locker::default(),
         mode: LockerMode::Off,
         epoch: Instant::now(),
-        logind: logind::connect(&bus).await,
+        logind,
         inhibitor: None,
         cause: None,
         marker: runtime.as_deref().map(marker_path),
         desktop,
+        session_id,
+        retry,
     };
     loop {
         let deadline = next_deadline(&live.machine).map(|at| live.instant(at));
@@ -78,6 +108,10 @@ pub(crate) async fn run(
             Some(_) = next_opt(&mut live.logind.lock) => {
                 let now = live.now();
                 live.feed(LockerEvent::Requested(Cause::Logind, now)).await;
+            }
+            () = sleep_until(live.retry.at) => {
+                live.logind = logind::connect(&bus, live.session_id.as_deref()).await;
+                live.retry.after(&live.logind);
             }
             () = sleep_until(deadline) => {
                 let now = live.now();

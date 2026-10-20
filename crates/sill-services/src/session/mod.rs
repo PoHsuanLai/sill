@@ -34,8 +34,9 @@ impl Service for SessionService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.system.clone();
         let actions = Arc::clone(&env.session_actions);
+        let hint = env.session_id.clone();
         async move {
-            backend::run(bus, actions, io.state, io.commands, deps).await;
+            backend::run(bus, actions, hint, io.state, io.commands, deps).await;
             Ok(())
         }
     }

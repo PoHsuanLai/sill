@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use logind_zbus::session::SessionProxy;
-use logind_zbus::user::UserProxy;
 use sill_model::locker::LockerCommand;
 use sill_model::session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, step};
 use sill_model::units::Presence;
@@ -16,7 +15,9 @@ use zbus::Connection;
 
 use crate::control::Control;
 use crate::env::{ActionReach, Bus, SessionActions};
+use crate::login_session::session_path;
 use crate::stream::next_opt;
+use crate::supervise::connect_when_up;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` holds what `actions` offers
 /// without it (`Session::default()` for logind's own). Every action goes through `actions`
@@ -24,14 +25,16 @@ use crate::stream::next_opt;
 pub(crate) async fn run(
     bus: Bus,
     actions: Arc<dyn SessionActions>,
+    hint: Option<String>,
     tx: watch::Sender<Session>,
     mut commands: mpsc::UnboundedReceiver<SessionCommand>,
     locker: Control<LockerCommand>,
 ) {
     let logind = connect(&bus).await;
+    let hint = hint.as_deref();
     let logind = logind.as_ref();
     let actions = actions.as_ref();
-    let mut session_id = refresh(logind, &tx, actions).await;
+    let mut session_id = refresh(logind, hint, &tx, actions).await;
     let mut sleeping = match logind {
         Some(logind) => logind.manager.receive_prepare_for_sleep().await.ok(),
         None => None,
@@ -45,12 +48,12 @@ pub(crate) async fn run(
                 {
                     // Resuming: what logind allows can have changed (a lid-close policy, a
                     // fresh inhibitor) since it was last asked.
-                    session_id = refresh(logind, &tx, actions).await;
+                    session_id = refresh(logind, hint, &tx, actions).await;
                 }
             }
             command = commands.recv() => match command {
                 Some(SessionCommand::Refresh) => {
-                    session_id = refresh(logind, &tx, actions).await;
+                    session_id = refresh(logind, hint, &tx, actions).await;
                 }
                 Some(SessionCommand::Run(SessionAction::Lock)) => {
                     // The locker service decides (its own locker, or logind's LockSession for
@@ -84,9 +87,10 @@ struct Logind {
     manager: ManagerProxy<'static>,
 }
 
-/// logind on `bus`, when the bus is there.
+/// logind on `bus`: waits (growing delay) for a system bus that is not up yet; `None` when the bus
+/// is absent by choice or logind is not on it.
 async fn connect(bus: &Bus) -> Option<Logind> {
-    let connection = bus.connect().await.ok().flatten()?;
+    let connection = connect_when_up(bus).await.ok()?;
     let manager = ManagerProxy::new(&connection).await.ok()?;
     Some(Logind {
         connection,
@@ -98,11 +102,12 @@ async fn connect(bus: &Bus) -> Option<Logind> {
 /// this process's session id when logind knows it.
 async fn refresh(
     logind: Option<&Logind>,
+    hint: Option<&str>,
     tx: &watch::Sender<Session>,
     actions: &dyn SessionActions,
 ) -> Option<String> {
     let (event, session_id) = match logind {
-        Some(logind) => probe(&logind.connection, &logind.manager).await,
+        Some(logind) => probe(&logind.connection, &logind.manager, hint).await,
         None => (SessionEvent::Gone, None),
     };
     let next = actions.offers(step(*tx.borrow(), event));
@@ -122,6 +127,7 @@ async fn refresh(
 async fn probe(
     connection: &Connection,
     manager: &ManagerProxy<'_>,
+    hint: Option<&str>,
 ) -> (SessionEvent, Option<String>) {
     let suspend = manager.can_suspend().await;
     let restart = manager.can_reboot().await;
@@ -130,7 +136,7 @@ async fn probe(
         return (SessionEvent::Gone, None);
     }
 
-    let session_id = current_session_id(connection, manager).await;
+    let session_id = current_session_id(connection, manager, hint).await;
     let lock_log_out = if session_id.is_some() {
         Offer::Available
     } else {
@@ -147,33 +153,22 @@ async fn probe(
     (SessionEvent::Probed(probed), session_id)
 }
 
-/// This process's own session id (`Session.Id`, e.g. `"3"`), by way of `GetSessionByPID` and the
-/// session object it names; `None` if logind cannot place this process in any session.
-///
-/// sill runs as the user service `sill.service`, which lives under the user manager and outside
-/// the login session, so `GetSessionByPID` finds nothing on a real login. The session it serves
-/// is then the user's graphical one: logind's `Display` of this user (what a user service of any
-/// desktop reads), when it has one.
-async fn current_session_id(connection: &Connection, manager: &ManagerProxy<'_>) -> Option<String> {
-    if let Ok(path) = manager.get_session_by_PID(std::process::id()).await {
-        let session = SessionProxy::builder(connection)
-            .path(path)
-            .ok()?
-            .build()
-            .await
-            .ok()?;
-        return session.id().await.ok();
-    }
-    let uid = rustix::process::getuid().as_raw();
-    let path = manager.get_user(uid).await.ok()?;
-    let user = UserProxy::builder(connection)
+/// This process's own session id (`Session.Id`, e.g. `"3"`), by way of the shared session lookup
+/// ([`session_path`]) and the session object it names; `None` if logind cannot place this
+/// process in any session.
+async fn current_session_id(
+    connection: &Connection,
+    manager: &ManagerProxy<'_>,
+    hint: Option<&str>,
+) -> Option<String> {
+    let path = session_path(connection, manager, hint).await?;
+    let session = SessionProxy::builder(connection)
         .path(path)
         .ok()?
         .build()
         .await
         .ok()?;
-    let display = user.display().await.ok()?;
-    Some(display.id().to_owned()).filter(|id| !id.is_empty())
+    session.id().await.ok().filter(|id| !id.is_empty())
 }
 
 /// Carries out `action` through logind.

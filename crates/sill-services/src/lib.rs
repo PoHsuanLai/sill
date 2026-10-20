@@ -43,6 +43,7 @@ pub mod kbd_backlight;
 pub mod keycap;
 pub mod launch;
 pub mod locker;
+pub mod login_session;
 pub mod model_offer;
 pub mod network;
 pub mod night_shift;

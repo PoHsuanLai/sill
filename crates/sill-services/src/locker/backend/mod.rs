@@ -5,5 +5,3 @@ mod logind;
 mod marker;
 
 pub(crate) use live::run;
-
-pub(crate) use logind::session_path;

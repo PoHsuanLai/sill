@@ -11,7 +11,7 @@ use zbus::Connection;
 use zbus::proxy::CacheProperties;
 
 use crate::env::Bus;
-use crate::locker::session_path;
+use crate::login_session::session_path;
 
 /// The connected half.
 pub(crate) struct IdleLogind {
@@ -38,7 +38,7 @@ pub(crate) async fn bus(bus: &Bus) -> Option<Connection> {
 }
 
 /// Connect to logind on `system`.
-pub(crate) async fn connect(system: &Bus) -> Option<IdleLogind> {
+pub(crate) async fn connect(system: &Bus, session_id: Option<&str>) -> Option<IdleLogind> {
     let connection = bus(system).await?;
     let manager = match ManagerProxy::builder(&connection)
         .cache_properties(CacheProperties::No)
@@ -52,7 +52,7 @@ pub(crate) async fn connect(system: &Bus) -> Option<IdleLogind> {
         }
     };
     let sleep = manager.receive_prepare_for_sleep().await.ok();
-    let session = match session_path(&connection, &manager).await {
+    let session = match session_path(&connection, &manager, session_id).await {
         Some(path) => match SessionProxy::builder(&connection).path(path) {
             Ok(builder) => builder.build().await.ok(),
             Err(_) => None,

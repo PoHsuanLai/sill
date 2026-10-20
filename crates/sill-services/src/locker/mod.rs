@@ -16,8 +16,6 @@ use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-pub(crate) use backend::session_path;
-
 /// sill's own lock screen as a [`Service`], logind on `env`'s system bus, the crash marker in
 /// its runtime directory. Inert until the first `Configure` or `Use`.
 #[derive(Debug)]
@@ -37,8 +35,9 @@ impl Service for LockerService {
         let bus = env.buses.system.clone();
         let runtime = env.dirs.runtime.clone();
         let desktop = env.current_desktop.clone();
+        let session_id = env.session_id.clone();
         async move {
-            backend::run(bus, runtime, desktop, io.state, io.commands).await;
+            backend::run(bus, runtime, desktop, session_id, io.state, io.commands).await;
             Ok(())
         }
     }

@@ -214,7 +214,8 @@ impl Live {
             self.state.held.clear();
         }
         if self.held.logind.is_none() {
-            self.held.logind = idle_logind::connect(&self.setup.system).await;
+            self.held.logind =
+                idle_logind::connect(&self.setup.system, self.setup.session_id.as_deref()).await;
             self.held.sleep = self.held.logind.as_mut().and_then(|l| l.sleep.take());
         }
         if self.held.served.is_none() {
