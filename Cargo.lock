@@ -388,7 +388,7 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92)",
  "rustix",
 ]
 
@@ -444,7 +444,7 @@ dependencies = [
  "docket-core",
  "docket-dbus",
  "ds-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92)",
  "futures-util",
  "latchkey",
  "log",
@@ -486,7 +486,7 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92)",
  "log",
  "rustix",
  "serde",
@@ -2552,6 +2552,7 @@ dependencies = [
  "pdfrum-anyrender",
  "peniko",
  "raw-window-handle",
+ "skrifa 0.44.0",
  "thiserror 2.0.21",
  "tokio",
  "wayland-backend",
@@ -2635,9 +2636,9 @@ dependencies = [
 [[package]]
 name = "ds-helpers"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be#9ddcbceecbb2490526a2f5a2f3344334333d72be"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92#a73dc452f2f3eb715e90ba6f432206b5f61cef92"
 dependencies = [
- "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be)",
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2680,7 +2681,7 @@ dependencies = [
 [[package]]
 name = "ds-peer"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=9ddcbceecbb2490526a2f5a2f3344334333d72be#9ddcbceecbb2490526a2f5a2f3344334333d72be"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92#a73dc452f2f3eb715e90ba6f432206b5f61cef92"
 dependencies = [
  "futures-timer",
  "thiserror 2.0.21",
