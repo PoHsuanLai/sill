@@ -161,7 +161,7 @@ code into `tests.rs`. Exceptions and renames:
 | `screenshots/{reduce,names}.rs`; `tool.rs` (parse only) | `sill-model/src/screenshots/`; the tool string is parsed at load by `sill-settings` into a typed `ShotTool` |
 | `screenshots/{child,folder_watch,live,preview}.rs` | `screenshots/backend/` |
 | `wallpaper/{cache,geometry}.rs` | `sill-model/src/wallpaper/` |
-| `wallpaper/{config,resize,watch,backdrop}.rs`, logic in `mod.rs` | `wallpaper/backend/` |
+| `wallpaper/{config,resize,watch,backdrop}.rs` (`config` also reads the old `wallpaper-source` file while the setting is empty), logic in `mod.rs` | `wallpaper/backend/` |
 | `tray/{model,icon}.rs`; `tray/host.rs` (498) | `sill-model/src/tray/`; `tray/backend/{host,items,menu}.rs` |
 | `now_playing/{model,art}.rs` (names); `mpris.rs`, `live.rs` (498) | `sill-model/src/now_playing/`; `now_playing/backend/{mpris,run}.rs`, `now_playing/backend/art/{mod,fetcher,curl,cache}.rs` |
 | `battery`, `kbd_backlight`, `power_profile`, `volume`, `session`, `badges`, `clock`: `model.rs`, `format.rs` | `sill-model/src/<x>/`; `live.rs`, `upower.rs`, `ppd.rs` -> `<x>/backend/` |
@@ -337,7 +337,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Spawning and closing surfaces per output | `sill::daemon::surfaces` (generic over `Surface`) |
 | Which surfaces exist on which output | `sill::daemon::outputs` |
 | A timed pure state machine and its timer; a machine's `Stamp` and the `FrameClock` that makes it | quire: `ds::base::machine` (`Machine`, `Elapsed`), `ds::machine` (`use_machine`, `MachineRef`), `ds::base::time::stamp` (`Stamp`, `FrameClock`); sill has none of its own |
-| Popup menus (bar, tray, dock, launcher actions) | `sill_ui_kit::menu` (`MenuModel`, `MenuPopup<M>`) over `ds`'s `menu_track`; a context menu a layer opens at its pointer is `context_menu_popup::<M>` (the popup root, reporting over a channel) |
+| Popup menus (bar, tray, dock, launcher actions) | `sill_ui_kit::menu` (`MenuModel`, `MenuPopup<M>`) over `ds`'s `menu_track`; a context menu a layer opens at its pointer is `use_context_menu::<M>` (one popup at a time, the report channel and the task that hands each pick to the owner; the desktop menu and the window menu both use it) over `context_menu_popup::<M>` (the popup root, reporting over a channel) |
 | Popup sizing | shell-host `FitContent`; no estimation code |
 | App icons, look, cache | `sill_ui_kit::app_icons` |
 | Status glyph props from service state | `sill_ui_kit::status` over `sill-shell-kit` glyphs |
@@ -725,7 +725,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 
 The wallpaper surface takes the pointer over the whole output (`RegionSpec::Whole`) and, on a
 secondary press, opens the desktop's context menu (`wallpaper/menu/`: a `MenuPopup` with
-Change Wallpaper…, which launches the wallpaper picker; no menu when no picker is installed).
+Change Wallpaper…, which opens Settings at its Wallpaper page; the picture is the `wallpaper.picture` setting, which `sill::policy::wallpaper` sends the wallpaper service).
 The notification center is the only place widgets are drawn; their providers live in
 `sill-ui-kit::widgets`.
 

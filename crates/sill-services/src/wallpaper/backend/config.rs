@@ -1,17 +1,21 @@
-//! The wallpaper's source: the file `sill/wallpaper-source` under the config directory, whose first
-//! line is the path of the picture (design/22 has no settings key for it).
+//! The wallpaper's source: the `wallpaper.picture` setting, which the daemon sends as a
+//! [`WallpaperPicture`].
 //!
-//! [`parse_source_path`] reads that line; a blank file, or a path that is not a file on disk,
-//! answers [`sill_model::wallpaper::WallpaperSource::None`] through [`resolve_source`].
+//! Migration: while the setting is empty ([`WallpaperPicture::Unset`]), the picture is the one the
+//! old private file `sill/wallpaper-source` under the config directory names (its first line).
+//! That file is only read here, never written or removed; the setting wins as soon as it is set.
+//!
+//! [`parse_source_path`] reads the old file's line; a blank file, or a path that is not a file on
+//! disk, answers [`WallpaperSource::None`] through [`resolve_source`].
 
 use std::path::{Path, PathBuf};
 
-use sill_model::wallpaper::WallpaperSource;
+use sill_model::wallpaper::{WallpaperPicture, WallpaperSource};
 
-/// The file this reads, under the config directory.
+/// The old file this reads while the setting is empty, under the config directory.
 const RELATIVE_PATH: &str = "sill/wallpaper-source";
 
-/// Where the wallpaper's path is kept under the config directory `config`.
+/// Where the old file is kept under the config directory `config`.
 pub fn config_path(config: &Path) -> PathBuf {
     config.join(RELATIVE_PATH)
 }
@@ -22,16 +26,24 @@ pub fn parse_source_path(text: &str) -> Option<PathBuf> {
     (!line.is_empty()).then(|| PathBuf::from(line))
 }
 
-/// The wallpaper source right now: the path the file names, when that is a file on disk
-/// otherwise [`WallpaperSource::None`], which the surface paints as `--paper`. A path [`image`]
-/// cannot decode (this crate's `image` build carries only `png`/`jpeg`) is not distinguished
-/// here: it reaches the same fallback once the resize fails (`resize::ensure_cached`'s `Err`).
-pub fn resolve_source(config: &Path) -> WallpaperSource {
-    let path = std::fs::read_to_string(config_path(config))
+/// The picture the old file names, if it exists and names one.
+fn old_file_picture(config: &Path) -> Option<PathBuf> {
+    std::fs::read_to_string(config_path(config))
         .ok()
         .and_then(|text| parse_source_path(&text))
-        .filter(|path| path.is_file());
-    match path {
+}
+
+/// The wallpaper source right now: the chosen picture, or (while none is chosen) the old file's,
+/// when that is a file on disk; otherwise [`WallpaperSource::None`], which the surface paints as
+/// `--paper`. A path [`image`] cannot decode (this crate's `image` build carries only
+/// `png`/`jpeg`) is not distinguished here: it reaches the same fallback once the resize fails
+/// (`resize::ensure_cached`'s `Err`).
+pub fn resolve_source(picture: &WallpaperPicture, config: &Path) -> WallpaperSource {
+    let path = match picture {
+        WallpaperPicture::Chosen(path) => Some(path.clone()),
+        WallpaperPicture::Unset => old_file_picture(config),
+    };
+    match path.filter(|path| path.is_file()) {
         Some(path) => WallpaperSource::File(path),
         None => WallpaperSource::None,
     }

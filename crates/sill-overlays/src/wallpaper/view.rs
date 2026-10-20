@@ -4,14 +4,14 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::style::appearance::blur::BlurState;
-use shell_host::{OutputInfo, use_watch};
+use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 
 use super::io::use_crossfade;
-use super::menu::{MenuWorld, secondary_press, use_desktop_menu};
+use super::menu::{secondary_press, use_desktop_menu};
 use super::model::url_for;
 use sill_services::WallpaperService;
-use sill_ui_kit::hooks::{use_appearance, use_service, use_services};
+use sill_ui_kit::hooks::{use_appearance, use_service};
 use sill_ui_kit::menu::use_popup_look;
 use sill_ui_kit::root::use_root_style;
 
@@ -30,8 +30,7 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
     let url = url_for(&wallpapers, on.as_ref(), resolved.scheme);
     let layers = use_crossfade(url);
     let root = use_root_style();
-    let apps = use_watch(use_services().apps.state);
-    let menu = use_desktop_menu(MenuWorld::of(&apps.read()), use_popup_look());
+    let menu = use_desktop_menu(use_popup_look());
     rsx! {
         Ds {
             sheet: Some(sill_shell_kit::stylesheet()),

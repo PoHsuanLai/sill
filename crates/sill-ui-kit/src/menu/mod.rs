@@ -6,6 +6,7 @@ mod frame;
 mod look;
 mod model;
 mod popup;
+mod use_context_menu;
 #[cfg(test)]
 mod tests;
 
@@ -14,3 +15,4 @@ pub use frame::{POPUP_FRAME_CSS, PopupFrame};
 pub use look::{CONTEXT_MENU_WIDTH, PopupLook, PopupRoom, use_popup_look};
 pub use model::MenuModel;
 pub use popup::MenuPopup;
+pub use use_context_menu::{ContextMenu, use_context_menu};

@@ -24,6 +24,7 @@ use crate::session::SessionSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
 use crate::voice::VoiceSettings;
+use crate::wallpaper::WallpaperSettings;
 use crate::window::WindowSettings;
 
 /// The keys whose struct sits on another page but which design/22 §5 puts on Power: the lock
@@ -71,6 +72,7 @@ pub fn schemas() -> Vec<Schema> {
         KeyboardSettings::schema(),
         CompanionSettings::schema(),
         VoiceSettings::schema(),
+        WallpaperSettings::schema(),
     ]
 }
 

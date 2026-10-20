@@ -46,6 +46,7 @@ mod sync_hold_bus;
 mod tray_bus;
 mod voice_bus;
 mod voice_support;
+mod wallpaper_source;
 mod work_areas_bus;
 mod workspace_looks_bus;
 

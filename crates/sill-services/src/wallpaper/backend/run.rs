@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::{
-    CACHE_DIR, WallpaperCommand, WallpaperImage, WallpaperSource, Wallpapers,
+    CACHE_DIR, WallpaperCommand, WallpaperImage, WallpaperPicture, WallpaperSource, Wallpapers,
 };
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch as channel};
@@ -43,7 +43,7 @@ async fn next_reload(reload: &mut Option<mpsc::UnboundedReceiver<()>>) -> Option
     }
 }
 
-/// Where the service reads the source path and keeps its resized copies.
+/// Where the service reads the old source file and keeps its resized copies.
 pub(crate) struct Places {
     pub(crate) config: PathBuf,
     pub(crate) cache: PathBuf,
@@ -62,7 +62,8 @@ pub(crate) async fn run(
         Some((watcher, reload)) => (Some(watcher), Some(reload)),
         None => (None, None),
     };
-    let mut source = resolve_source(&places.config);
+    let mut picture = WallpaperPicture::Unset;
+    let mut source = resolve_source(&picture, &places.config);
     let mut sizes: HashMap<OutputName, (u32, u32)> = HashMap::new();
     let cache_dir = places.cache;
     let mut listening = true;
@@ -77,15 +78,23 @@ pub(crate) async fn run(
                     sizes.remove(&output);
                     forget(&tx, &output);
                 }
+                Some(WallpaperCommand::Picture(chosen)) => {
+                    picture = chosen;
+                    let next = resolve_source(&picture, &places.config);
+                    if next != source {
+                        source = next;
+                        republish_all(&tx, &source, &sizes, &cache_dir, &rt).await;
+                    }
+                }
                 Some(WallpaperCommand::Reload) => {
-                    source = resolve_source(&places.config);
+                    source = resolve_source(&picture, &places.config);
                     republish_all(&tx, &source, &sizes, &cache_dir, &rt).await;
                 }
                 None => listening = false,
             },
             signal = next_reload(&mut reload) => match signal {
                 Some(()) => {
-                    source = resolve_source(&places.config);
+                    source = resolve_source(&picture, &places.config);
                     republish_all(&tx, &source, &sizes, &cache_dir, &rt).await;
                 }
                 None => reload = None,

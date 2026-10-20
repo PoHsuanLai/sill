@@ -27,6 +27,7 @@ use crate::session::SessionSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
 use crate::voice::VoiceSettings;
+use crate::wallpaper::WallpaperSettings;
 use crate::window::WindowSettings;
 
 /// The directory name under `$XDG_CONFIG_HOME`.
@@ -63,6 +64,8 @@ pub struct ShellFile {
     pub companion: CompanionSettings,
     /// Hold-to-talk and its consent.
     pub voice: VoiceSettings,
+    /// The desktop's picture.
+    pub wallpaper: WallpaperSettings,
 }
 
 impl SettingsDoc for ShellFile {

@@ -1,134 +1,57 @@
-//! The effects end of the desktop menu: open the popup at a pointer press, listen to what it
-//! reports, and launch the wallpaper picker when it is picked.
+//! The effects end of the desktop menu: open the popup at a pointer press ([`use_context_menu`]
+//! does the plumbing) and open Settings at its Wallpaper page when Change Wallpaper... is picked.
 
 use dioxus::prelude::*;
-use shell_host::{HostRoot, SurfaceHandle};
-use sill_launcher::{AppId, DesktopAction};
+use shell_host::SurfaceHandle;
+use sill_launcher::SettingsLink;
+use sill_model::launch::{LaunchCommand, SETTINGS_BUS_NAME, SettingsOpen};
 use sill_ui_kit::hooks::use_services;
-use sill_ui_kit::menu::{ContextMenuLink, MenuReport, PopupLook, context_menu_popup};
-use sill_ui_kit::services::Services;
-use sill_ui_kit::settings::SettingsFeed;
-use tokio::sync::mpsc;
+use sill_ui_kit::menu::{PopupLook, use_context_menu};
+use sill_ui_kit::surface::activation_token;
 
 use super::DesktopPoint;
 use super::geometry::{menu_config, menu_placement};
-use super::model::DesktopPick;
-use super::model::MenuWorld;
+use super::model::{DesktopMenu, DesktopPick};
 
 /// The document's `data-surface`: what a user stylesheet names the menu by.
 const DESKTOP_MENU: &str = "desktop-menu";
 
-/// Whether the wallpaper has its menu's popup up. A second popup may not be created while one holds
-/// the grab (xdg-shell: the compositor ends the connection), so a press that would open another
-/// waits for the first one to be gone.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Popup {
-    Up,
-    Down,
-}
+/// Settings' page for the wallpaper, by the id the schema declares it under.
+const WALLPAPER_PAGE: &str = "page:wallpaper";
 
-/// Where the carried-out asks go: the services (the launch) and the surface (its activation
-/// token).
-#[derive(Clone)]
-struct Outward {
-    services: Services,
-    surface: Option<SurfaceHandle>,
-}
-
-/// What the menu is opened with, from the wallpaper's latest render.
-#[derive(Clone)]
-struct Deps {
-    world: MenuWorld,
-    look: PopupLook,
-}
-
-/// The desktop menu of the wallpaper: the callback opens it with its corner at the point, over
-/// `world` and drawn in `look`. Nothing opens without a host (a test render) or without an entry.
-pub(in crate::wallpaper) fn use_desktop_menu(
-    world: MenuWorld,
-    look: PopupLook,
-) -> Callback<DesktopPoint> {
+/// The desktop menu of the wallpaper: the callback opens it with its corner at the point, drawn in
+/// `look`. Nothing opens without a host (a test render).
+pub(in crate::wallpaper) fn use_desktop_menu(look: PopupLook) -> Callback<DesktopPoint> {
     let surface = try_use_context::<SurfaceHandle>();
-    let feed = try_use_context::<SettingsFeed>();
-    let outward = Outward {
-        services: use_services(),
-        surface: surface.clone(),
-    };
-    let (reports, inbox) = use_hook(|| {
-        let (tx, rx) = mpsc::unbounded_channel::<MenuReport<DesktopPick>>();
-        (tx, CopyValue::new(Some(rx)))
+    let launch = use_services().launch.control;
+    let mut looks = use_hook(|| CopyValue::new(look));
+    looks.set(look);
+    let menu = use_context_menu::<DesktopMenu>(DESKTOP_MENU, move |pick| match pick {
+        DesktopPick::ChangeWallpaper => open_wallpaper_page(surface.clone(), launch.clone()),
     });
-    let mut deps = use_hook(|| {
-        CopyValue::new(Deps {
-            world: world.clone(),
-            look,
-        })
-    });
-    deps.set(Deps { world, look });
-    let mut popup = use_hook(|| CopyValue::new(Popup::Down));
-    use_hook(move || listen(deps, popup, outward, inbox));
-    let to_open = reports;
     Callback::new(move |at: DesktopPoint| {
-        let Some(surface) = surface.clone() else {
-            return;
-        };
-        if *popup.peek() == Popup::Up || deps.peek().world.picker.is_none() {
-            return;
-        }
-        popup.set(Popup::Up);
-        let held = deps.peek().clone();
-        let mut root = HostRoot::new(context_menu_popup::<MenuWorld>).context(ContextMenuLink {
-            model: held.world,
-            look: held.look,
-            surface: DESKTOP_MENU,
-            reports: to_open.clone(),
-        });
-        if let Some(feed) = feed.clone() {
-            root = root.context(feed);
-        }
-        surface.open_popup(menu_config(), menu_placement(at), root);
+        menu.open(
+            DesktopMenu,
+            *looks.peek(),
+            menu_config(),
+            menu_placement(at),
+        );
     })
 }
 
-/// The task that carries out each pick the popup reports, over the world the wallpaper last drew,
-/// and notes when the popup is gone.
-fn listen(
-    deps: CopyValue<Deps>,
-    popup: CopyValue<Popup>,
-    outward: Outward,
-    inbox: CopyValue<Option<mpsc::UnboundedReceiver<MenuReport<DesktopPick>>>>,
+/// Open Settings at the Wallpaper page, once the compositor has given the wallpaper an activation
+/// token for it (so the window it opens is let to the front). No other page stands in for it.
+fn open_wallpaper_page(
+    surface: Option<SurfaceHandle>,
+    launch: sill_services::control::Control<LaunchCommand>,
 ) {
-    let mut inbox = inbox;
-    let Some(mut rx) = inbox.write().take() else {
-        return;
-    };
-    let mut popup = popup;
     spawn(async move {
-        while let Some(report) = rx.recv().await {
-            match report {
-                MenuReport::Picked(DesktopPick::ChangeWallpaper) => {
-                    if let Some(app) = deps.peek().world.picker.clone() {
-                        open_picker(outward.clone(), app);
-                    }
-                }
-                MenuReport::Dismissed | MenuReport::Gone => popup.set(Popup::Down),
-            }
-        }
-    });
-}
-
-/// Launch `app` through the launch service, once the compositor has given the wallpaper an
-/// activation token for it (so the window it opens is let to the front).
-fn open_picker(outward: Outward, app: AppId) {
-    spawn(async move {
-        let _gone_is_dropped = sill_ui_kit::surface::launch_with_token(
-            outward.surface.as_ref(),
-            &outward.services.launch.control,
-            app,
-            DesktopAction::Default,
-            Vec::new(),
-        )
-        .await;
+        let token = match &surface {
+            Some(surface) => activation_token(surface, Some(SETTINGS_BUS_NAME.to_owned())).await,
+            None => None,
+        };
+        let open = SettingsOpen::at(SettingsLink(WALLPAPER_PAGE.to_owned())).with_token(token);
+        let _gone_is_dropped = launch.send(LaunchCommand::OpenSettings(open));
     });
 }
 

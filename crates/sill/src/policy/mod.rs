@@ -14,6 +14,7 @@ pub mod notifications;
 pub mod screenshots;
 pub mod search;
 pub mod voice;
+pub mod wallpaper;
 
 pub use follow::follow;
 

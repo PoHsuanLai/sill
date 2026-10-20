@@ -7,6 +7,6 @@ mod geometry;
 mod model;
 
 pub use cache::{CACHE_DIR, backdrop_file, cache_file_name, source_hash};
-pub use command::WallpaperCommand;
+pub use command::{WallpaperCommand, WallpaperPicture};
 pub use geometry::{CoverWindow, cover_window};
 pub use model::{WallpaperImage, WallpaperSource, Wallpapers};

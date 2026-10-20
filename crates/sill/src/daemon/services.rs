@@ -55,6 +55,7 @@ use crate::policy::{
     displays::DisplaysBridge, follow, idle::IdleBridge, keyboard::KeyboardBridge,
     night_shift::NightShiftBridge, notifications::NotificationsBridge,
     screenshots::ScreenshotsBridge, search::SearchBridge, voice::VoiceBridge,
+    wallpaper::WallpaperBridge,
 };
 
 /// Start every service on `rt` (the `windows` and volume threads on their own threads)
@@ -358,6 +359,13 @@ pub(crate) fn follow_settings(
         settings(),
         KeyboardBridge,
         services.keycap.control.clone(),
+    );
+    // The wallpaper follows `wallpaper.picture`.
+    follow(
+        rt,
+        settings(),
+        WallpaperBridge,
+        services.wallpaper.control.clone(),
     );
     // The calendar's sources and the screenshots' folders and tool.
     let home = env.dirs.home.clone();

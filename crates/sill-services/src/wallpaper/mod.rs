@@ -2,12 +2,12 @@
 //! `$XDG_CACHE_HOME/sill/wallpaper/<hash>-<w>x<h>.png` (image 0.25 Lanczos3; light/dark cross-fade
 //! over t-big; renders only on change).
 //!
-//! design/22 has no key naming the wallpaper file; sill reads the path from its own
-//! `sill/wallpaper-source` file in the config directory until one is added.
+//! The picture is the `wallpaper.picture` setting, which the daemon sends as
+//! `WallpaperCommand::Picture`; while it is empty the old `sill/wallpaper-source` file in the
+//! config directory is read instead (a read-only migration).
 //!
-//! `spawn`'s task owns everything effectful: `backend::config::resolve_source` reads the source
-//! path
-//! (I/O, `config`), `backend::watch::watch` notices it change (I/O, `watch`), and
+//! `spawn`'s task owns everything effectful: `backend::config::resolve_source` resolves the source
+//! path (I/O, `config`), `backend::watch::watch` notices the old file change (I/O, `watch`), and
 //! `backend::resize::prepare` resizes it onto the blocking pool (I/O, `resize`) using the pure
 //! geometry in `geometry` and the pure naming in `cache`.
 
@@ -20,7 +20,7 @@ use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
 /// The wallpapers as a [`Service`]: resized on the blocking pool, published as cached paths.
-/// The source path is read under `env`'s config directory, the resized copies kept in its cache.
+/// The old source file is read under `env`'s config directory, the resized copies kept in its cache.
 #[derive(Debug)]
 pub enum WallpaperService {}
 
