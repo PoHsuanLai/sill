@@ -12,9 +12,9 @@ use sill_launcher::{
 };
 use std::path::PathBuf;
 
+use sill_launcher::Confirm;
 use sill_model::results::LauncherPolicy;
 use sill_model::session::SessionAction;
-use sill_launcher::Confirm;
 use sill_search::providers::files::IndexSource;
 use sill_search::providers::{
     AppsProvider, CalculatorProvider, ClipboardProvider, CompanionProvider, EmojiProvider,

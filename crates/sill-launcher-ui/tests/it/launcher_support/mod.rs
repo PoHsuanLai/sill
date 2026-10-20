@@ -283,7 +283,9 @@ impl Provider for FakeProvider {
             (ProviderKind::Settings, _) => Activation::OpenSettings {
                 target: SettingsTarget::Key(item.id.0.clone()),
             },
-            (ProviderKind::System, _) => Activation::System(SystemCommand::Session(sill_launcher::SessionAction::Lock)),
+            (ProviderKind::System, _) => {
+                Activation::System(SystemCommand::Session(sill_launcher::SessionAction::Lock))
+            }
             // The companion's kinds: the real providers say what their rows do (`tests/launcher_companion.rs`).
             (ProviderKind::Companion, choice) => sill_search::providers::CompanionProvider {
                 companion: watch::channel(sill_model::companion::Companion::default()).1,

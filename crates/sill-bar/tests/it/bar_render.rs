@@ -56,8 +56,10 @@ fn the_bar_shows_what_the_services_hold() {
         ("the root draws the Space", "data-frame=\"tinted\"", 1),
         ("on the frame ground", "data-ground=\"frame\"", 1),
         ("no tint layer of the bar's own", "sill-bar-tint", 0),
-        // Sound, Wi-Fi and Battery (`control_center.menu_bar_*`), then the control center.
-        ("four status items", "data-image=\"only\"", 4),
+        // The system menu's glyph; Sound, Wi-Fi and Battery (`control_center.menu_bar_*`), then
+        // the control center.
+        ("five glyph items", "data-image=\"only\"", 5),
+        ("the system menu", "aria-label=\"System\"", 1),
         (
             "the control center item",
             "aria-label=\"Control Center\"",
@@ -142,7 +144,7 @@ fn each_tray_item_is_a_status_item_and_none_has_a_menu_open() {
     for (name, needle, was, now) in [
         ("the first item", "id=\"tray-0\"", 0, 1),
         ("the second item", "id=\"tray-1\"", 0, 1),
-        ("a status item each", "data-image=\"only\"", 4, 6),
+        ("a status item each", "data-image=\"only\"", 5, 7),
         ("no menu open", "aria-expanded=\"true\"", 0, 0),
     ] {
         assert_eq!(

@@ -37,7 +37,7 @@ pub enum Showing {
 pub enum Preselect {
     /// `power_menu.default_action`.
     Default,
-    /// A launcher row's own action (its Restart row opens on Restart).
+    /// The chosen action's own button (the launcher's or the system menu's Restart opens on Restart).
     Action(SessionAction),
 }
 

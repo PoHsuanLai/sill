@@ -38,7 +38,9 @@ impl SessionAction {
     /// apps, so the power menu asks about them; Lock and Sleep keep every app and happen at once.
     pub fn confirm(self) -> Confirm {
         match self {
-            SessionAction::LogOut | SessionAction::Restart | SessionAction::PowerOff => Confirm::Ask,
+            SessionAction::LogOut | SessionAction::Restart | SessionAction::PowerOff => {
+                Confirm::Ask
+            }
             SessionAction::Lock | SessionAction::Suspend => Confirm::Now,
         }
     }

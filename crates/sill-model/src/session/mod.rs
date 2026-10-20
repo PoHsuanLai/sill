@@ -3,9 +3,9 @@
 mod command;
 mod model;
 mod step;
-pub mod words;
 #[cfg(test)]
 mod tests;
+pub mod words;
 
 pub use command::{SessionCommand, SessionEvent};
 pub use model::{Offer, Session, SessionAction};

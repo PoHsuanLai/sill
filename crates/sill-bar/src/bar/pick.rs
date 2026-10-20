@@ -2,8 +2,10 @@
 //! after the menu has closed (design A6 "closes then picks").
 
 use sill_launcher::{AppId, DesktopAction};
+use sill_launcher::{Confirm, SessionAction};
 use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem, own_commands};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
+use sill_model::session::SessionCommand;
 use sill_model::tray::{TrayCommand, TrayItemId};
 use sill_model::windows::{Toplevels, WlCommand};
 
@@ -15,8 +17,9 @@ pub(crate) enum BarPick {
     Own { app_id: String, item: OwnItem },
     /// Open Settings.
     Settings,
-    /// Open the power menu on this bar's output (the app menu's "Shut Down…").
-    PowerMenu,
+    /// A power action from the system menu: carried out at once, or asked about first in the
+    /// power menu on this bar's output, by its `confirm`.
+    Session(SessionAction),
     /// A row of a tray item's dbusmenu, by its dbusmenu id.
     Tray { item: TrayItemId, entry: i32 },
     /// A row of the focused app's own menu, by its dbusmenu id: the person's click.
@@ -31,8 +34,10 @@ const SETTINGS_APP: &str = "org.quire.Settings";
 pub(crate) enum Command {
     Wl(WlCommand),
     Launch(LaunchCommand),
-    /// Open the power menu (`PowerMenuLink::open` with its default button).
-    PowerMenu,
+    /// Open the power menu on this action (`PowerMenuLink::open`), which asks about it.
+    PowerMenu(SessionAction),
+    /// Carry out a power action at once.
+    Session(SessionCommand),
     /// Click a dbusmenu row of a tray item.
     Tray(TrayCommand),
     /// Click a row of the focused app's menu.
@@ -53,7 +58,10 @@ pub(crate) fn commands(pick: &BarPick, toplevels: &Toplevels) -> Vec<Command> {
             uris: Vec::new(),
             token: None,
         }))],
-        BarPick::PowerMenu => vec![Command::PowerMenu],
+        BarPick::Session(action) => vec![match action.confirm() {
+            Confirm::Ask => Command::PowerMenu(*action),
+            Confirm::Now => Command::Session(SessionCommand::Run(*action)),
+        }],
         BarPick::Tray { item, entry } => vec![Command::Tray(TrayCommand::MenuPick {
             item: item.clone(),
             entry: *entry,
@@ -68,10 +76,11 @@ pub(crate) fn commands(pick: &BarPick, toplevels: &Toplevels) -> Vec<Command> {
 #[cfg(test)]
 mod tests {
     use super::{BarPick, Command, commands};
-    use sill_launcher::WindowKey;
+    use sill_launcher::{SessionAction, WindowKey};
     use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem};
     use sill_model::ids::OutputName;
     use sill_model::launch::LaunchCommand;
+    use sill_model::session::SessionCommand;
     use sill_model::tray::{TrayCommand, TrayItemId};
     use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 
@@ -113,7 +122,24 @@ mod tests {
                 own(OwnItem::HideOthers),
                 vec![Command::Wl(WlCommand::Minimize(WindowKey(3)))],
             ),
-            (BarPick::PowerMenu, vec![Command::PowerMenu]),
+            (
+                BarPick::Session(SessionAction::PowerOff),
+                vec![Command::PowerMenu(SessionAction::PowerOff)],
+            ),
+            (
+                BarPick::Session(SessionAction::LogOut),
+                vec![Command::PowerMenu(SessionAction::LogOut)],
+            ),
+            (
+                BarPick::Session(SessionAction::Lock),
+                vec![Command::Session(SessionCommand::Run(SessionAction::Lock))],
+            ),
+            (
+                BarPick::Session(SessionAction::Suspend),
+                vec![Command::Session(SessionCommand::Run(
+                    SessionAction::Suspend,
+                ))],
+            ),
             (
                 BarPick::Tray {
                     item: TrayItemId(":1.7/StatusNotifierItem".to_owned()),

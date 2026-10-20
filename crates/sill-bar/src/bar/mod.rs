@@ -21,6 +21,7 @@ mod popup;
 mod reorder;
 mod status_item;
 mod surface;
+mod system_item;
 mod title;
 pub mod track;
 mod tray;

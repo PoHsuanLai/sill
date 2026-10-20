@@ -1,5 +1,6 @@
-//! The bar's document: `Ds` root with the workspace's SpaceLook, `Material::Bar`, the left and
-//! right groups, and the one reusable menu popup's session in context.
+//! The bar's document: `Ds` root with the workspace's SpaceLook, `Material::Bar`, the left group
+//! (the system menu, the app's name and menus, the workspaces) and the right one, and the one
+//! reusable menu popup's session in context.
 
 use dioxus::prelude::*;
 use ds::prelude::*;
@@ -14,6 +15,7 @@ use super::io::use_bar;
 use super::model::BarInput;
 use super::module_item::ModuleItem;
 use super::status_item::status_metrics;
+use super::system_item::SystemItem;
 use super::track::{Event, Target};
 use super::tray::Tray;
 use super::workspaces::WorkspaceIndicator;
@@ -74,6 +76,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
                 onpointerdown: move |_| outside(Event::OutsidePress),
                 onpointerup: move |_| outside(Event::Release(Target::Outside)),
                 div { class: "sill-bar-group",
+                    SystemItem { output: output.clone() }
                     AppName { output: output.clone() }
                     AppMenuTitles { output: output.clone() }
                     WorkspaceIndicator { output: output.clone() }

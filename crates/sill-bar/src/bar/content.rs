@@ -7,10 +7,12 @@
 //! never a choice (quire's bar gaps).
 
 use ds::prelude::*;
+use sill_launcher::SessionAction;
 use sill_launcher::WindowKey;
 use sill_model::app_menu::{AppMenus, MenuApp, OwnGroup, QuitRow, Titles, own_groups, titles};
 use sill_model::apps::{AppIndex, match_app};
 use sill_model::ids::OutputName;
+use sill_model::session::{Offer, Session, words};
 use sill_model::tray::Tray;
 use sill_model::windows::Toplevels;
 
@@ -78,6 +80,8 @@ pub(crate) struct BarState {
     pub tray: Tray,
     /// The focused app's own menus, when it serves any.
     pub menus: Option<AppMenuState>,
+    /// What logind offers, which the system menu's power rows follow.
+    pub session: Session,
 }
 
 /// `menu`'s contents in `state`, a tray row's icon drawn as `icon` says.
@@ -100,6 +104,7 @@ pub(crate) fn body(menu: BarMenu, state: &BarState, icon: RowIcon) -> PopupBody 
                 })
                 .unwrap_or_default(),
         ),
+        BarMenu::System => PopupBody::Menu(system_menu(&state.session)),
         BarMenu::App => PopupBody::Menu(app_menu(state.app.as_ref(), state.menus.as_ref(), icon)),
         BarMenu::AppMenu(AppTitle(index)) => PopupBody::Menu(
             state
@@ -150,23 +155,52 @@ pub(crate) fn front_app(
     })
 }
 
+/// The system menu, the bar's first (macOS's Apple menu): System Settings, then the session's
+/// power actions in macOS's order (Sleep, Restart, Shut Down; Lock Screen, Log Out), named by the words the power menu and the launcher use. An action logind does not offer
+/// stays in its place, dimmed.
+fn system_menu(session: &Session) -> Vec<MenuItem<BarPick>> {
+    let power = |action: SessionAction| {
+        let availability = match session.offer(action) {
+            Offer::Available | Offer::NeedsAuth => Availability::Enabled,
+            Offer::Unavailable => Availability::Disabled,
+        };
+        MenuItem::Item {
+            value: BarPick::Session(action),
+            title: words::menu_title(action),
+            image: None,
+            key: None,
+            check: None,
+            availability,
+            hint: None,
+            after: AfterPick::Close,
+            text: Default::default(),
+        }
+    };
+    vec![
+        item(SETTINGS_TITLE.to_owned(), BarPick::Settings, None),
+        MenuItem::Separator,
+        power(SessionAction::Suspend),
+        power(SessionAction::Restart),
+        power(SessionAction::PowerOff),
+        MenuItem::Separator,
+        power(SessionAction::Lock),
+        power(SessionAction::LogOut),
+    ]
+}
+
+/// The system menu's Settings row, macOS's word for it.
+const SETTINGS_TITLE: &str = "System Settings…";
+
 /// The app menu: a header, the app's own first menu when it serves one (About, Settings), then
-/// the rows the shell makes from the compositor (windows, Minimise, Hide, Quit); then "Shut
-/// Down…", which opens the power menu (design/20 §1.8; the bar has no system menu of its own).
+/// the rows the shell makes from the compositor (windows, Minimise, Hide, Quit). The session's
+/// actions are the system menu's.
 fn app_menu(
     app: Option<&FrontApp>,
     menus: Option<&AppMenuState>,
     icon: RowIcon,
 ) -> Vec<MenuItem<BarPick>> {
-    let power = [
-        MenuItem::Separator,
-        item("Shut Down…".to_owned(), BarPick::PowerMenu, None),
-    ];
     let Some(app) = app else {
-        return lines_menu(["Desktop".to_owned()])
-            .into_iter()
-            .chain(power)
-            .collect();
+        return lines_menu(["Desktop".to_owned()]);
     };
     let own = menus
         .and_then(|menus| {
@@ -187,7 +221,6 @@ fn app_menu(
         }
         entries.extend(rows);
     }
-    entries.extend(power);
     entries
 }
 
@@ -243,10 +276,12 @@ mod tests {
     use crate::bar::menus::TraySlot;
     use crate::bar::pick::BarPick;
     use ds::prelude::*;
+    use sill_launcher::SessionAction;
     use sill_launcher::WindowKey;
     use sill_model::app_menu::{AppMenus, MenuApp, MenuName, OwnItem, ServedMenu};
     use sill_model::apps::AppIndex;
     use sill_model::ids::OutputName;
+    use sill_model::session::{Offer, Session};
     use sill_model::tray::{
         Check, Chord, Tray, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuIcon,
         TrayMenuKind, TrayStatus,
@@ -319,6 +354,7 @@ mod tests {
             control_center: sill_settings::ControlCenterSettings::default(),
             tray: Tray::default(),
             menus: None,
+            session: Session::everything(),
         };
         let menu = |m| match body(m, &state, &|_| None) {
             PopupBody::Menu(entries) => titles(&entries),
@@ -337,8 +373,19 @@ mod tests {
                 "Show All",
                 "--",
                 "Quit Foot",
+            ]
+        );
+        assert_eq!(
+            menu(BarMenu::System),
+            [
+                "System Settings…",
                 "--",
-                "Shut Down…"
+                "Sleep",
+                "Restart…",
+                "Shut Down…",
+                "--",
+                "Lock Screen",
+                "Log Out…",
             ]
         );
         assert_eq!(menu(BarMenu::ControlCenter), ["control center"]);
@@ -379,7 +426,69 @@ mod tests {
                 own(OwnItem::HideOthers),
                 own(OwnItem::ShowAll),
                 own(OwnItem::Quit),
-                BarPick::PowerMenu,
+            ]
+        );
+    }
+
+    /// The system menu is the same with or without an app in front; what logind does not offer
+    /// stays in its place, dimmed, and each row picks its own action.
+    #[test]
+    fn the_system_menu_follows_the_session_whatever_is_in_front() {
+        let no_power = Session {
+            presence: sill_model::units::Presence::Present,
+            lock: Offer::Available,
+            log_out: Offer::Available,
+            restart: Offer::NeedsAuth,
+            ..Session::default()
+        };
+        let state = |app: Option<FrontApp>| BarState {
+            app,
+            control_center: sill_settings::ControlCenterSettings::default(),
+            tray: Tray::default(),
+            menus: None,
+            session: no_power,
+        };
+        let foot = FrontApp {
+            app_id: "foot".to_owned(),
+            name: "Foot".to_owned(),
+            windows: Vec::new(),
+        };
+        let rows = |state: &BarState| -> Vec<(String, BarPick, Availability)> {
+            entries(BarMenu::System, state)
+                .into_iter()
+                .filter_map(|entry| match entry {
+                    MenuItem::Item {
+                        title,
+                        value,
+                        availability,
+                        ..
+                    } => Some((title, value, availability)),
+                    _ => None,
+                })
+                .collect()
+        };
+        let desktop = rows(&state(None));
+        assert_eq!(
+            desktop,
+            rows(&state(Some(foot))),
+            "the same in front of an app"
+        );
+        let on = Availability::Enabled;
+        let off = Availability::Disabled;
+        let session = BarPick::Session;
+        assert_eq!(
+            desktop,
+            [
+                ("System Settings…".to_owned(), BarPick::Settings, on),
+                ("Sleep".to_owned(), session(SessionAction::Suspend), off),
+                ("Restart…".to_owned(), session(SessionAction::Restart), on),
+                (
+                    "Shut Down…".to_owned(),
+                    session(SessionAction::PowerOff),
+                    off
+                ),
+                ("Lock Screen".to_owned(), session(SessionAction::Lock), on),
+                ("Log Out…".to_owned(), session(SessionAction::LogOut), on),
             ]
         );
     }
@@ -412,6 +521,7 @@ mod tests {
         let state = BarState {
             app: None,
             menus: None,
+            session: Session::default(),
             control_center: sill_settings::ControlCenterSettings::default(),
             tray: Tray {
                 items: vec![
@@ -481,6 +591,7 @@ mod tests {
             app: Some(app),
             control_center: sill_settings::ControlCenterSettings::default(),
             tray: Tray::default(),
+            session: Session::default(),
         }
     }
 
@@ -508,8 +619,6 @@ mod tests {
                 "Hide Foot",
                 "Hide Others",
                 "Show All",
-                "--",
-                "Shut Down…"
             ]
         );
         let picks = |menu| -> Vec<BarPick> {

@@ -27,6 +27,9 @@ const APP_TITLE_ID_BASE: u32 = 200_000;
 /// A bar title or status item that opens a menu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum BarMenu {
+    /// The system menu, always first (macOS's Apple menu): System Settings and the session's
+    /// power actions, whichever app is in front.
+    System,
     /// The frontmost app's name: its windows and Quit.
     App,
     /// Now Playing's own item (`control_center.menu_bar_now_playing`).
@@ -52,7 +55,8 @@ pub(crate) enum BarMenu {
 impl BarMenu {
     /// Every menu the bar always has, left to right along it. A tray item's menu comes and goes
     /// with the item.
-    pub(crate) const ALL: [BarMenu; 8] = [
+    pub(crate) const ALL: [BarMenu; 9] = [
+        BarMenu::System,
         BarMenu::App,
         BarMenu::NowPlaying,
         BarMenu::Display,
@@ -74,6 +78,7 @@ impl BarMenu {
             BarMenu::NowPlaying => 6,
             BarMenu::Display => 7,
             BarMenu::Bluetooth => 8,
+            BarMenu::System => 9,
             BarMenu::Tray(TraySlot(slot)) => TRAY_ID_BASE + u32::from(slot),
             BarMenu::AppMenu(AppTitle(index)) => APP_TITLE_ID_BASE + u32::from(index),
         })
@@ -97,7 +102,7 @@ impl BarMenu {
     /// Which side of its title the menu hangs from (design/13 §13.3.2).
     pub(crate) fn side(self) -> MenuSide {
         match self {
-            BarMenu::App | BarMenu::AppMenu(_) => MenuSide::Title,
+            BarMenu::System | BarMenu::App | BarMenu::AppMenu(_) => MenuSide::Title,
             BarMenu::ControlCenter => MenuSide::OutputEdge,
             BarMenu::NowPlaying
             | BarMenu::Display
@@ -112,6 +117,7 @@ impl BarMenu {
     /// The item's accessible name.
     pub(crate) fn label(self) -> &'static str {
         match self {
+            BarMenu::System => "System",
             BarMenu::App => "Application",
             BarMenu::AppMenu(_) => "Application menu",
             BarMenu::Volume => "Volume",
@@ -126,7 +132,7 @@ impl BarMenu {
     }
 
     /// The control center module whose component a module item's dropdown shows; `None` for the
-    /// app menu and the control center.
+    /// system and app menus and the control center.
     pub(crate) fn module(self) -> Option<ControlCenterModule> {
         ControlCenterModule::ALL.iter().copied().find(|&kind| {
             module(kind)
@@ -142,11 +148,11 @@ mod tests {
     use crate::bar::popup::MenuSide;
 
     #[test]
-    fn every_menu_round_trips_through_its_id_and_only_the_app_hangs_right() {
+    fn every_menu_round_trips_through_its_id_and_hangs_from_its_side() {
         for menu in BarMenu::ALL {
             assert_eq!(BarMenu::of(menu.id()), Some(menu), "{menu:?}");
             let side = match menu {
-                BarMenu::App => MenuSide::Title,
+                BarMenu::System | BarMenu::App => MenuSide::Title,
                 BarMenu::ControlCenter => MenuSide::OutputEdge,
                 _ => MenuSide::Status,
             };

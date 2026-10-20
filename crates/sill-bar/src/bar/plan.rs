@@ -483,7 +483,10 @@ mod tests {
                 title: "More".to_owned(),
                 image: None,
                 availability: Availability::Enabled,
-                children: vec![entry(BarPick::PowerMenu, Availability::Enabled)],
+                children: vec![entry(
+                    BarPick::Session(sill_launcher::SessionAction::PowerOff),
+                    Availability::Enabled,
+                )],
             },
             MenuItem::Submenu {
                 title: "Off".to_owned(),

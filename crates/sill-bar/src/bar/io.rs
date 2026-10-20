@@ -28,8 +28,9 @@ use super::tray_input::{chroma_limit, row_image};
 use crate::control_center::{PanelCap, height_cap};
 use ds::base::time::stamp::FrameClock;
 use sill_model::app_menu::{AppMenuCommand, Follower, MenuApp};
+use sill_model::session::SessionCommand;
 use sill_model::tray::TrayCommand;
-use sill_services::{AppMenuService, AppsService, TrayService, WindowsService};
+use sill_services::{AppMenuService, AppsService, SessionService, TrayService, WindowsService};
 use sill_ui_kit::hooks::{
     use_appearance, use_control, use_service, use_service_part, use_services, use_settings,
 };
@@ -111,6 +112,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         app,
         control_center: file.control_center.clone(),
         tray: use_service::<TrayService>()(),
+        session: use_service::<SessionService>()(),
     };
     use_menu_follow(output, state.app.as_ref());
     let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
@@ -365,8 +367,9 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
     announce(deps, menu);
 }
 
-/// Tell a tray item its menu is about to show (dbusmenu `AboutToShow`), so the app can refresh
-/// it; the other menus have nobody to tell.
+/// Tell a tray item or the focused app its menu is about to show (dbusmenu `AboutToShow`), so
+/// the app can refresh it, and the session to re-read what logind offers before the system menu
+/// shows; the other menus have nobody to tell.
 fn announce(deps: &SessionDeps, menu: BarMenu) {
     // The services may have stopped; then nothing is left to refresh.
     match menu {
@@ -376,6 +379,9 @@ fn announce(deps: &SessionDeps, menu: BarMenu) {
                     item: item.id.clone(),
                 });
             }
+        }
+        BarMenu::System => {
+            let _gone_is_dropped = deps.services.session.control.send(SessionCommand::Refresh);
         }
         BarMenu::App | BarMenu::AppMenu(_) => {
             if let Some((app, id)) = app_menu_id(deps, menu) {
@@ -478,9 +484,10 @@ fn run(pick: &BarPick, deps: &SessionDeps) {
             Command::Launch(c) => services.launch.control.send(c),
             Command::Tray(c) => services.tray.control.send(c),
             Command::AppMenu(c) => services.app_menu.control.send(c),
-            Command::PowerMenu => {
+            Command::Session(c) => services.session.control.send(c),
+            Command::PowerMenu(action) => {
                 if let Some(link) = &deps.power_menu {
-                    link.open(deps.output, Preselect::Default);
+                    link.open(deps.output, Preselect::Action(action));
                 }
                 Ok(())
             }
