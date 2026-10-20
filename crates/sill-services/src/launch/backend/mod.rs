@@ -14,6 +14,7 @@ mod viewer;
 
 pub use clock::monotonic_now;
 pub use links::LaunchLinks;
+pub(crate) use open::{Manager, user_manager};
 pub use open::{open_argv, reveal_folder};
 pub(crate) use reach::Reach;
 pub(crate) use run::run;

@@ -3,6 +3,7 @@
 //! and
 //! carries out [`SessionCommand`]s.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
@@ -13,7 +14,8 @@ use sill_model::units::Presence;
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 
-use crate::control::Control;
+use super::super::SessionLinks;
+use super::ending::{Ending, before};
 use crate::env::{ActionReach, Bus, SessionActions};
 use crate::login_session::session_path;
 use crate::stream::next_opt;
@@ -21,14 +23,16 @@ use crate::supervise::connect_when_up;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` holds what `actions` offers
 /// without it (`Session::default()` for logind's own). Every action goes through `actions`
-/// first, so a dry run never reaches logind or the locker.
+/// first, so a dry run never reaches logind or the locker. Log Out, Restart and Shut Down quit
+/// the apps before logind is asked, and stay undone when an app keeps a window open.
 pub(crate) async fn run(
     bus: Bus,
     actions: Arc<dyn SessionActions>,
     hint: Option<String>,
+    runtime: Option<PathBuf>,
     tx: watch::Sender<Session>,
     mut commands: mpsc::UnboundedReceiver<SessionCommand>,
-    locker: Control<LockerCommand>,
+    links: SessionLinks,
 ) {
     let logind = connect(&bus).await;
     let hint = hint.as_deref();
@@ -60,7 +64,7 @@ pub(crate) async fn run(
                     // the session's resident one); never logind here, so sill nested in another
                     // desktop's session cannot lock that desktop.
                     if actions.act(SessionAction::Lock) == ActionReach::Logind {
-                        let _gone_is_inert = locker.send(LockerCommand::Lock);
+                        let _gone_is_inert = links.locker.send(LockerCommand::Lock);
                     }
                 }
                 Some(SessionCommand::Run(action)) => {
@@ -71,6 +75,7 @@ pub(crate) async fn run(
                     if offer != Offer::Unavailable
                         && actions.act(action) == ActionReach::Logind
                         && let Some(logind) = logind
+                        && before(&links, runtime.as_deref(), action).await == Ending::Proceed
                     {
                         run_action(&logind.manager, session_id.as_deref(), action).await;
                     }

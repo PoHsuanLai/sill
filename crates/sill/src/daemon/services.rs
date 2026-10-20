@@ -36,7 +36,7 @@ use sill_services::notifications::NotificationsService;
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::seat::seat;
 use sill_services::service::spawn;
-use sill_services::session::SessionService;
+use sill_services::session::{SessionLinks, SessionService};
 use sill_services::sync_hold::{SyncHoldLinks, SyncHoldService};
 use sill_services::voice::{VoiceLinks, VoiceService};
 use sill_services::volume::VolumeService;
@@ -120,7 +120,17 @@ pub(crate) fn start(
     let windows = spawn::<WindowsService>(rt, env, ());
     let clipboard = spawn::<ClipboardService>(rt, env, ());
     let locker = spawn::<LockerService>(rt, env, ());
-    let session = spawn::<SessionService>(rt, env, locker.control.clone());
+    let session = spawn::<SessionService>(
+        rt,
+        env,
+        SessionLinks {
+            locker: locker.control.clone(),
+            windows: windows.state.clone(),
+            wl: windows.control.clone(),
+            apps: apps.state.clone(),
+            notifications: notifications.control.clone(),
+        },
+    );
     let results = spawn::<ResultsService>(
         rt,
         env,

@@ -46,6 +46,15 @@ pub fn prompt(action: SessionAction) -> &'static str {
     }
 }
 
+/// What the notice says when `app` kept the session from ending: the action's name, said as
+/// cancelled, and why.
+pub fn held(action: SessionAction, app: &str) -> (String, String) {
+    (
+        format!("{} Cancelled", title(action)),
+        format!("{app} is still open. Finish what it is asking, then try again."),
+    )
+}
+
 /// How long the power menu waits before it carries out an action that asks first, as macOS's
 /// shut-down dialog does.
 pub const COUNTDOWN_SECONDS: u32 = 60;
@@ -84,7 +93,7 @@ pub fn consequence(action: SessionAction) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{aliases, consequence, menu_title, prompt, title};
+    use super::{aliases, consequence, held, menu_title, prompt, title};
     use sill_launcher::SessionAction;
 
     #[test]
@@ -104,5 +113,12 @@ mod tests {
             assert!(consequence(action).ends_with('.'), "{action:?}");
             assert!(!aliases(action).is_empty(), "{action:?}");
         }
+    }
+
+    #[test]
+    fn a_held_session_names_the_action_and_the_app() {
+        let (summary, body) = held(SessionAction::LogOut, "Zen");
+        assert_eq!(summary, "Log Out Cancelled");
+        assert!(body.starts_with("Zen is still open."), "{body}");
     }
 }

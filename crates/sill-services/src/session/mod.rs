@@ -3,21 +3,24 @@
 //! menu (design/20 §1.8) and the launcher's System rows. Only this service asks logind.
 
 mod backend;
+mod links;
+mod quit_apps;
+
+pub use links::SessionLinks;
 
 use std::sync::Arc;
 
-use sill_model::locker::LockerCommand;
 use sill_model::session::{Session, SessionCommand};
 
-use crate::control::Control;
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
 /// logind's power actions as a [`Service`]. Without logind the state stays at
 /// `Session::default()` (absent: nothing offered), and the power menu shows every button
-/// unavailable. Its `Deps` is the locker's control, where `Run(Lock)` goes; the other actions go
-/// to `env`'s session actions.
+/// unavailable. Its `Deps` is [`SessionLinks`]: the locker, where `Run(Lock)` goes, and what Log Out,
+/// Restart and Shut Down use to quit the apps first; the actions themselves go to `env`'s
+/// session actions.
 #[derive(Debug)]
 pub enum SessionService {}
 
@@ -25,7 +28,7 @@ impl Service for SessionService {
     const NAME: &'static str = "session";
     type State = Session;
     type Command = SessionCommand;
-    type Deps = Control<LockerCommand>;
+    type Deps = SessionLinks;
 
     fn run(
         env: &Env,
@@ -35,8 +38,9 @@ impl Service for SessionService {
         let bus = env.buses.system.clone();
         let actions = Arc::clone(&env.session_actions);
         let hint = env.session_id.clone();
+        let runtime = env.dirs.runtime.clone();
         async move {
-            backend::run(bus, actions, hint, io.state, io.commands, deps).await;
+            backend::run(bus, actions, hint, runtime, io.state, io.commands, deps).await;
             Ok(())
         }
     }

@@ -100,7 +100,7 @@ pub use polkit_agent::PolkitAgentService;
 pub use power_profile::PowerProfileService;
 pub use screenshots::ScreenshotsService;
 pub use service::{Handle, Service, ServiceIo};
-pub use session::SessionService;
+pub use session::{SessionLinks, SessionService};
 pub use tray::TrayService;
 pub use voice::{VoiceLinks, VoiceService};
 pub use volume::VolumeService;
