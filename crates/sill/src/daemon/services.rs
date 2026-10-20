@@ -400,16 +400,7 @@ mod tests {
             tokio::sync::mpsc::unbounded_channel().0,
         );
 
-        assert_eq!(
-            services
-                .clock
-                .state
-                .borrow()
-                .text
-                .split_whitespace()
-                .count(),
-            4
-        );
+        assert!(services.clock.state.borrow().0.year() > 2000);
         assert_eq!(*services.apps.state.borrow(), Default::default());
         assert_eq!(*services.badges.state.borrow(), Default::default());
         assert_eq!(*services.pins.state.borrow(), Default::default());
