@@ -1,17 +1,14 @@
 //! What each power action is called and asked as, in the Mac's words: the one place the
 //! launcher's System rows, the bar's system menu and the power menu read them from.
 
+use sill_launcher::actions::ActionId;
 use sill_launcher::{Confirm, SessionAction};
+
+use crate::actions::def;
 
 /// The action's name: a launcher row's title and a power-menu button's label.
 pub fn title(action: SessionAction) -> &'static str {
-    match action {
-        SessionAction::Lock => "Lock Screen",
-        SessionAction::LogOut => "Log Out",
-        SessionAction::Restart => "Restart",
-        SessionAction::PowerOff => "Shut Down",
-        SessionAction::Suspend => "Sleep",
-    }
+    def(ActionId::of_session(action)).label
 }
 
 /// The action as a menu row: its name, with an ellipsis when choosing it asks first (the Mac's

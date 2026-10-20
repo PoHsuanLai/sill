@@ -5,6 +5,7 @@
 //! `sill-services::providers` and implement [`Provider`] from there; the clock is always an
 //! argument ([`UnixTime`]).
 
+pub mod actions;
 pub mod activation;
 pub mod companion;
 pub mod frecency;
