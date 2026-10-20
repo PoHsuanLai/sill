@@ -14,6 +14,14 @@ enum Telling {
 /// keeps its fallback.
 pub fn use_link<T: Clone + 'static>() -> Option<T> {
     let link = try_use_context::<T>();
+    tell_if_missing(&link);
+    link
+}
+
+/// Say once per hook instance on stderr that the link of type `T` is not provided, when `link`
+/// is `None`. For a hook that reads its link some other way than [`use_link`] (once, in
+/// `use_hook`) and keeps its own fallback.
+pub(crate) fn tell_if_missing<T: 'static>(link: &Option<T>) {
     let mut told = use_hook(|| CopyValue::new(Telling::Untold));
     if link.is_none() && *told.peek() == Telling::Untold {
         told.set(Telling::Told);
@@ -22,5 +30,4 @@ pub fn use_link<T: Clone + 'static>() -> Option<T> {
             std::any::type_name::<T>()
         );
     }
-    link
 }
