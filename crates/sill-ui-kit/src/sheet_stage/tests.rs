@@ -1,7 +1,8 @@
 //! The stage as a table: pure.
 
-use super::model::{Mapped, Pointer, SheetStage, StageIn};
+use super::model::{Mapped, SheetStage, StageIn};
 use super::step::advance;
+use crate::surface::Pointer;
 use ds::prelude::Shown;
 
 type Stage = SheetStage<u8>;
@@ -69,13 +70,13 @@ fn a_sheet_leaves_with_its_answer_and_hands_it_over_once_settled() {
 #[test]
 fn a_sheet_takes_the_pointer_only_while_it_is_up() {
     use super::exit::SheetExit;
-    assert_eq!(Stage::Empty.pointer(), Pointer::Passed);
-    assert_eq!(Stage::Up(1).pointer(), Pointer::Taken);
+    assert_eq!(Stage::Empty.pointer(), Pointer::PassesThrough);
+    assert_eq!(Stage::Up(1).pointer(), Pointer::Takes);
     assert_eq!(
         Stage::Leaving(1).pointer(),
-        Pointer::Passed,
+        Pointer::PassesThrough,
         "an exit lets clicks through"
     );
-    assert_eq!(SheetExit::<u8>::Open.pointer(), Pointer::Taken);
-    assert_eq!(SheetExit::Leaving(1u8).pointer(), Pointer::Passed);
+    assert_eq!(SheetExit::<u8>::Open.pointer(), Pointer::Takes);
+    assert_eq!(SheetExit::Leaving(1u8).pointer(), Pointer::PassesThrough);
 }

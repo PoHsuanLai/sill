@@ -18,7 +18,7 @@ pub(super) fn use_stage(output: &OutputInfo) -> Signal<SheetStage<TrialRun>> {
     let open = use_watch(link.subscribe());
     let shows = use_watch(link.banners().subscribe());
     let id = output.id;
-    use_sheet_stage(move || {
+    use_sheet_stage(super::surface::PRESET, move || {
         let current = *open.read();
         shows.read().shows_on(id).then_some(current).flatten()
     })

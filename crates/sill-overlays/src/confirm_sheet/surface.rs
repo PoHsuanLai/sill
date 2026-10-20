@@ -12,6 +12,13 @@ use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Presence
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "confirm-panel";
 
+/// The layer: over the whole output, but the pointer only on the panel, so a click beside the
+/// question reaches the window under it (a Mac alert blocks no other window; the sheet draws no
+/// scrim and closes on no outside press).
+pub(super) const PRESET: LayerPreset = LayerPreset::PanelOnly {
+    panel: PanelBlur::sheet(PANEL_ID),
+};
+
 /// The sheet that asks before intentd lets something that asks happen.
 #[derive(Debug)]
 pub enum ConfirmSheet {}
@@ -34,10 +41,7 @@ impl Surface for ConfirmSheet {
     }
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
-        LayerPreset::FullOutputSheet {
-            blur: Some(PanelBlur::sheet(PANEL_ID)),
-        }
-        .config(Self::NAME, output)
+        PRESET.config(Self::NAME, output)
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

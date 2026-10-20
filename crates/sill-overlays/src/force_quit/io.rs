@@ -13,7 +13,7 @@ pub(super) fn use_stage(output: &OutputInfo) -> Signal<SheetStage<ForceQuitOpeni
     let link = use_context::<ForceQuitLink>();
     let shown = use_watch(link.subscribe());
     let id = output.id;
-    use_sheet_stage(move || {
+    use_sheet_stage(super::surface::PRESET, move || {
         shown
             .read()
             .opening()

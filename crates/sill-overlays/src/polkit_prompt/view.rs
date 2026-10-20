@@ -97,7 +97,7 @@ fn prompt(
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<PolkitPromptView>> {
     let polkit = use_service::<PolkitAgentService>();
     let shows = use_banner_output();
-    use_sheet_stage(move || {
+    use_sheet_stage(super::surface::PRESET, move || {
         shows
             .read()
             .shows_on(output.id)

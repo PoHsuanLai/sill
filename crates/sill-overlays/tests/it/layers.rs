@@ -40,7 +40,8 @@ fn the_sheets_are_keyboard_exclusive_full_output_overlays() {
             sheet,
             Region::Whole,
         ),
-        (layer_of::<ConfirmSheet>(), "confirm", sheet, Region::Whole),
+        // The confirm takes the pointer on its panel only: a click beside it reaches the window.
+        (layer_of::<ConfirmSheet>(), "confirm", sheet, sheet),
         (
             layer_of::<PermissionSheet>(),
             "permission",

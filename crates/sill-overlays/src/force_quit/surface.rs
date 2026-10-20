@@ -12,6 +12,11 @@ use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Presence
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "force-quit-panel";
 
+/// The layer: over the whole output, the pointer everywhere on it.
+pub(super) const PRESET: LayerPreset = LayerPreset::FullOutputSheet {
+    blur: Some(PanelBlur::sheet(PANEL_ID)),
+};
+
 /// The Force Quit Applications panel.
 #[derive(Debug)]
 pub enum ForceQuit {}
@@ -33,10 +38,7 @@ impl Surface for ForceQuit {
     }
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
-        LayerPreset::FullOutputSheet {
-            blur: Some(PanelBlur::sheet(PANEL_ID)),
-        }
-        .config(Self::NAME, output)
+        PRESET.config(Self::NAME, output)
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

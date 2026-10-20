@@ -19,7 +19,8 @@ use super::labels::action_label;
 use super::sheet::{MenuSession, SheetInput, Then, advance};
 use sill_ui_kit::links::{OpenSerial, PanelFocus, Preselect};
 use sill_ui_kit::links::{PowerMenuLink, PowerMenuOpening, Reveal};
-use sill_ui_kit::sheet_stage::{ExitOut, Pointer, SheetExit, use_follow_pointer};
+use sill_ui_kit::sheet_stage::{ExitOut, SheetExit, use_follow_pointer};
+use sill_ui_kit::surface::Pointer;
 
 /// Everything the menu's handlers reach. Clone is cheap.
 #[derive(Clone)]
@@ -51,10 +52,10 @@ pub(super) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
     let shown = use_watch(link.subscribe());
     use_follow_visibility(shown, output);
     let menu = ctx.menu;
-    use_follow_pointer(move || {
+    use_follow_pointer(super::surface::PRESET, move || {
         menu.read()
             .as_ref()
-            .map_or(Pointer::Passed, |menu| menu.phase.pointer())
+            .map_or(Pointer::PassesThrough, |menu| menu.phase.pointer())
     });
     use_openings(ctx.clone(), shown, output, default);
     use_offers_arriving(ctx.clone(), default);

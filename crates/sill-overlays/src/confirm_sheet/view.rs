@@ -318,7 +318,7 @@ fn waiting_words(count: usize) -> String {
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<SheetView>> {
     let sheets = use_service_part::<IntentsService, _>(|intents| sheet_view(&intents.sheets));
     let shows = use_banner_output();
-    use_sheet_stage(move || {
+    use_sheet_stage(super::surface::PRESET, move || {
         let current = sheets();
         shows
             .read()

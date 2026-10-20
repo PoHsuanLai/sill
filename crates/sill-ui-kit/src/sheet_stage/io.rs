@@ -1,23 +1,27 @@
 //! The effects end of the stage: follow a wanted value onto it, map the surface to match, and
 //! settle it when the sheet's exit has played. The surface's input region follows the stage too:
-//! the whole output while a value is up, nothing from the moment its exit starts.
+//! the preset's input while a value is up, nothing from the moment its exit starts.
 
 use dioxus::prelude::*;
-use shell_host::{SurfaceHandle, Visibility};
+use shell_host::{RegionSpec, SurfaceHandle, Visibility};
 
-use super::model::{Mapped, Pointer, SheetStage, StageIn};
+use super::model::{Mapped, SheetStage, StageIn};
 use super::step::advance;
+use crate::surface::{LayerPreset, Pointer};
 
 /// The stage following `wanted` (read inside an effect, so the signals it reads drive it), and
-/// the surface's mapping following the stage. Nothing to map without a host (a test, an SSR
-/// render).
-pub fn use_sheet_stage<T>(wanted: impl Fn() -> Option<T> + 'static) -> Signal<SheetStage<T>>
+/// the surface's mapping and input (`preset`'s while up) following the stage. Nothing to map
+/// without a host (a test, an SSR render).
+pub fn use_sheet_stage<T>(
+    preset: LayerPreset,
+    wanted: impl Fn() -> Option<T> + 'static,
+) -> Signal<SheetStage<T>>
 where
     T: Clone + PartialEq + 'static,
 {
     let stage = use_signal(|| SheetStage::<T>::Empty);
     use_effect(move || step(stage, StageIn::Want(wanted())));
-    use_follow_pointer(move || stage.read().pointer());
+    use_follow_pointer(preset, move || stage.read().pointer());
     let surface = try_use_context::<SurfaceHandle>();
     let mut applied = use_hook(|| CopyValue::new(Mapped::No));
     use_effect(move || {
@@ -37,8 +41,9 @@ where
 }
 
 /// The surface's input region following `pointer` (read inside an effect, so the signals it reads
-/// drive it). Nothing to set without a host (a test, an SSR render).
-pub fn use_follow_pointer(pointer: impl Fn() -> Pointer + 'static) {
+/// drive it): `preset`'s input while it takes the pointer, none while it passes it through.
+/// Nothing to set without a host (a test, an SSR render).
+pub fn use_follow_pointer(preset: LayerPreset, pointer: impl Fn() -> Pointer + 'static) {
     let surface = try_use_context::<SurfaceHandle>();
     let mut applied = use_hook(|| CopyValue::new(None::<Pointer>));
     use_effect(move || {
@@ -48,7 +53,10 @@ pub fn use_follow_pointer(pointer: impl Fn() -> Pointer + 'static) {
         }
         applied.set(Some(now));
         if let Some(surface) = &surface {
-            surface.set_input_region(now.region());
+            surface.set_input_region(match now {
+                Pointer::Takes => preset.input(),
+                Pointer::PassesThrough => RegionSpec::Empty,
+            });
         }
     });
 }

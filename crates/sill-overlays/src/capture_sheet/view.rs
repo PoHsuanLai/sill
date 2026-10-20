@@ -234,7 +234,7 @@ fn SheetCard(asking: Asking, shown: Shown, stage: Signal<SheetStage<Asking>>) ->
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<Asking>> {
     let asking = use_service_part::<CaptureService, _>(|picker| picker.asking.clone());
     let shows = use_banner_output();
-    use_sheet_stage(move || {
+    use_sheet_stage(super::surface::PRESET, move || {
         let current = asking();
         shows
             .read()

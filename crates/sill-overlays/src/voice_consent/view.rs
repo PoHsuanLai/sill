@@ -103,7 +103,7 @@ fn ConsentCard(shown: Shown, stage: Signal<SheetStage<Asked>>) -> Element {
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<Asked>> {
     let sheet = use_service_part::<VoiceService, _>(|voice| voice.sheet);
     let shows = use_banner_output();
-    use_sheet_stage(move || {
+    use_sheet_stage(super::surface::PRESET, move || {
         let asking = match shows.read().shows_on(output.id) {
             true => sheet(),
             false => ConsentSheet::Closed,

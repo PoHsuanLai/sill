@@ -72,6 +72,20 @@ pub enum LayerPreset {
 }
 
 impl LayerPreset {
+    /// Where the surface takes the pointer: its configuration's `input`.
+    pub fn input(self) -> RegionSpec {
+        match self {
+            LayerPreset::FullOutputSheet { .. } => RegionSpec::Whole,
+            LayerPreset::PanelOnly { panel } => panel.region(),
+            LayerPreset::Strip { bar, .. } => bar.region(),
+            LayerPreset::Corner { card, .. } => card.region(),
+            LayerPreset::Whole { pointer, .. } => match pointer {
+                Pointer::Takes => RegionSpec::Whole,
+                Pointer::PassesThrough => RegionSpec::Empty,
+            },
+        }
+    }
+
     /// The configuration of the surface called `name` on `output`.
     pub fn config(self, name: &str, output: &OutputInfo) -> LayerConfig {
         let full = LayerSize {
@@ -88,7 +102,7 @@ impl LayerPreset {
             keyboard: KeyboardMode::None,
             output: OutputTarget::Output(output.id),
             blur: BlurSpec::None,
-            input: RegionSpec::Whole,
+            input: self.input(),
         };
         match self {
             LayerPreset::FullOutputSheet { blur } => LayerConfig {
@@ -99,20 +113,14 @@ impl LayerPreset {
             LayerPreset::PanelOnly { panel } => LayerConfig {
                 keyboard: KeyboardMode::Exclusive,
                 blur: BlurSpec::Region(panel.region()),
-                input: panel.region(),
                 ..base
             },
-            LayerPreset::Strip { height, bar } => LayerConfig {
+            LayerPreset::Strip { height, .. } => LayerConfig {
                 layer: LayerLevel::Top,
                 anchor: Anchor::TOP | Anchor::LEFT | Anchor::RIGHT,
                 size: LayerSize {
                     width: LayerExtent::Fill,
                     height: LayerExtent::Px(height),
-                },
-                input: RegionSpec::Element {
-                    id: ElementId::new(bar.id),
-                    radius: bar.radius,
-                    inflate: 0,
                 },
                 ..base
             },
@@ -130,15 +138,10 @@ impl LayerPreset {
                 },
                 exclusive,
                 blur: BlurSpec::Region(card.region()),
-                input: card.region(),
                 ..base
             },
-            LayerPreset::Whole { level, pointer } => LayerConfig {
+            LayerPreset::Whole { level, .. } => LayerConfig {
                 layer: level,
-                input: match pointer {
-                    Pointer::Takes => RegionSpec::Whole,
-                    Pointer::PassesThrough => RegionSpec::Empty,
-                },
                 ..base
             },
         }

@@ -2,8 +2,9 @@
 //! screen, kept a moment past its going so quire's `Sheet` can animate out, and whether the
 //! surface is mapped. [`step::advance`] is the pure machine, [`io::use_sheet_stage`] follows a
 //! wanted value onto it (and so onto the surface's mapping) and [`io::settle`] is what the
-//! sheet's `on_hidden` calls once the exit has played. A sheet takes pointer input only while it is
-//! up ([`Pointer`], [`io::use_follow_pointer`]): one playing its exit lets clicks through. [`SheetExit`] is the answer-carrying form: a
+//! sheet's `on_hidden` calls once the exit has played. A sheet takes the pointer (over its preset's
+//! input) only while it is up ([`io::use_follow_pointer`]): one playing its exit lets clicks
+//! through. [`SheetExit`] is the answer-carrying form: a
 //! sheet that leaves with an answer handed to the caller once its exit has settled.
 
 mod exit;
@@ -15,4 +16,4 @@ mod tests;
 
 pub use exit::{ExitIn, ExitOut, SheetExit};
 pub use io::{settle, use_follow_pointer, use_sheet_stage};
-pub use model::{Mapped, Pointer, SheetStage};
+pub use model::{Mapped, SheetStage};

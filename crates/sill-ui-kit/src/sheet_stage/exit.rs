@@ -5,7 +5,7 @@
 
 use ds::prelude::*;
 
-use super::model::Pointer;
+use crate::surface::Pointer;
 
 /// Whether a sheet is up, or leaving with the answer to carry out once it has gone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,8 +47,8 @@ impl<A: Clone> SheetExit<A> {
     /// Whether the sheet takes pointer input: only while it is open, never while it leaves.
     pub fn pointer(&self) -> Pointer {
         match self {
-            SheetExit::Open => Pointer::Taken,
-            SheetExit::Leaving(_) => Pointer::Passed,
+            SheetExit::Open => Pointer::Takes,
+            SheetExit::Leaving(_) => Pointer::PassesThrough,
         }
     }
 

@@ -123,7 +123,7 @@ fn QuestionCard(
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<PermissionAsking>> {
     let asking = use_service_part::<CaptureService, _>(|picker| picker.permission.clone());
     let shows = use_banner_output();
-    use_sheet_stage(move || {
+    use_sheet_stage(super::surface::PRESET, move || {
         let current = asking();
         shows
             .read()

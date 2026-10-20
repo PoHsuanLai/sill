@@ -12,6 +12,11 @@ use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Presence
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "permission-panel";
 
+/// The layer: over the whole output, the pointer everywhere on it.
+pub(super) const PRESET: LayerPreset = LayerPreset::FullOutputSheet {
+    blur: Some(PanelBlur::sheet(PANEL_ID)),
+};
+
 /// The sheet that asks whether an app may do something.
 #[derive(Debug)]
 pub enum PermissionSheet {}
@@ -34,10 +39,7 @@ impl Surface for PermissionSheet {
     }
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
-        LayerPreset::FullOutputSheet {
-            blur: Some(PanelBlur::sheet(PANEL_ID)),
-        }
-        .config(Self::NAME, output)
+        PRESET.config(Self::NAME, output)
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

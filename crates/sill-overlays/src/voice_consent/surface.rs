@@ -12,6 +12,11 @@ use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Presence
 /// The panel's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "voice-consent-panel";
 
+/// The layer: over the whole output, the pointer everywhere on it.
+pub(super) const PRESET: LayerPreset = LayerPreset::FullOutputSheet {
+    blur: Some(PanelBlur::sheet(PANEL_ID)),
+};
+
 /// The sheet that asks before the microphone may open.
 #[derive(Debug)]
 pub enum VoiceConsentSheet {}
@@ -34,10 +39,7 @@ impl Surface for VoiceConsentSheet {
     }
 
     fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
-        LayerPreset::FullOutputSheet {
-            blur: Some(PanelBlur::sheet(PANEL_ID)),
-        }
-        .config(Self::NAME, output)
+        PRESET.config(Self::NAME, output)
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {
