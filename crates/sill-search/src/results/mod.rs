@@ -28,7 +28,6 @@ use sill_launcher::Provider;
 use sill_model::apps::AppIndex;
 use sill_model::clipboard::Clipboard;
 use sill_model::companion::{Companion, CompanionCommand};
-use sill_model::launch::LaunchCommand;
 use sill_model::results::{LauncherPolicy, Results, SearchCommand};
 use sill_model::seed::Store;
 use sill_model::session::Session;
@@ -65,8 +64,8 @@ impl fmt::Debug for Sources {
 }
 
 /// The services the daemon's search reads and sends to: the ones its providers query, and the
-/// ones a chosen row's activation goes to (windows are focused and closed through `wl`, apps
-/// started through `launch`).
+/// ones a chosen row's activation goes to (windows are focused and closed through `wl`; the
+/// launcher surface starts apps itself, with an activation token).
 #[derive(Debug, Clone)]
 pub struct ResultsLinks {
     pub apps: watch::Receiver<AppIndex>,
@@ -78,7 +77,6 @@ pub struct ResultsLinks {
     /// What logind offers, which the system rows list (the session service's state).
     pub session: watch::Receiver<Session>,
     pub wl: Control<WlCommand>,
-    pub launch: Control<LaunchCommand>,
 }
 
 /// The launcher's search as a [`Service`]: its providers queried in parallel on the blocking
@@ -111,10 +109,7 @@ impl Service for ResultsService {
         let (providers, outlets) = match deps {
             Sources::Services(links) => (
                 registry::providers(&links, env, &history, &policy_rx),
-                Outlets {
-                    wl: Some(links.wl),
-                    launch: Some(links.launch),
-                },
+                Outlets { wl: Some(links.wl) },
             ),
             Sources::Providers(providers) => (providers, Outlets::default()),
         };

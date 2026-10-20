@@ -95,9 +95,9 @@ pub struct WindowKey(pub u64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum SettingsTarget {
-    /// A quire settings key path (`appearance.theme`), resolved through the schemas
-    /// (design/22-SETTINGS.md §9.3 "deep links").
-    Key(String),
+    /// The page of Settings a key lives on, by the slug Settings knows it by (`dock`): a key
+    /// found by the launcher (design/22-SETTINGS.md §9.3 "deep links") opens its page.
+    Page(String),
 }
 
 /// The system provider's commands: a session action, or sill's own reload.
@@ -157,9 +157,9 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsTarget::Key("appearance.theme".to_owned()),
+                    target: SettingsTarget::Page("appearance".to_owned()),
                 },
-                r#"{"kind":"open_settings","v":{"target":{"kind":"key","v":"appearance.theme"}}}"#,
+                r#"{"kind":"open_settings","v":{"target":{"kind":"page","v":"appearance"}}}"#,
             ),
             (
                 Activation::System(SystemCommand::Session(SessionAction::PowerOff)),

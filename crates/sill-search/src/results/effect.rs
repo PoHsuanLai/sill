@@ -1,9 +1,8 @@
 //! Where a chosen row's [`Activation`] goes. The runner carries out the ones a service it holds
-//! can do (windows through `windows`, apps through `launch`); the rest belong to the
+//! can do (windows through `windows`); the rest belong to the
 //! launcher surface or the daemon. Pure mapping, table-tested; the sending is [`Outlets::carry`].
 
 use sill_launcher::Activation;
-use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_model::windows::WlCommand;
 
 use sill_services::control::Control;
@@ -13,8 +12,6 @@ use sill_services::control::Control;
 pub(crate) enum Effect {
     /// A command to the `windows` thread.
     Wl(WlCommand),
-    /// A command to the launch service.
-    Launch(LaunchCommand),
     /// Not the runner's to do: the clipboard (`Copy`), the query field (`Insert`), a settings
     /// page, a session command, or nothing.
     Elsewhere,
@@ -25,17 +22,9 @@ pub(crate) fn effect(activation: &Activation) -> Effect {
     match activation {
         Activation::FocusWindow { window } => Effect::Wl(WlCommand::Activate(*window)),
         Activation::CloseWindow { window } => Effect::Wl(WlCommand::Close(*window)),
-        Activation::Launch { app, action } => {
-            Effect::Launch(LaunchCommand::Launch(LaunchRequest {
-                app: app.clone(),
-                action: action.clone(),
-                files: Vec::new(),
-                uris: Vec::new(),
-                // The launcher surface holds no activation token to hand over yet.
-                token: None,
-            }))
-        }
         Activation::Copy { .. }
+        // A launch needs the surface's activation token, so the surface sends it.
+        | Activation::Launch { .. }
         | Activation::Insert { .. }
         | Activation::OpenSettings { .. }
         | Activation::System(_)
@@ -57,15 +46,13 @@ pub(crate) fn effect(activation: &Activation) -> Effect {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Outlets {
     pub(crate) wl: Option<Control<WlCommand>>,
-    pub(crate) launch: Option<Control<LaunchCommand>>,
 }
 
 impl Outlets {
     /// Send `effect` where it goes.
     pub(crate) fn carry(&self, effect: Effect) {
-        let sent = match (effect, &self.wl, &self.launch) {
-            (Effect::Wl(command), Some(wl), _) => wl.send(command),
-            (Effect::Launch(command), _, Some(launch)) => launch.send(command),
+        let sent = match (effect, &self.wl) {
+            (Effect::Wl(command), Some(wl)) => wl.send(command),
             // No outlet for it, or not the runner's to do.
             _ => Ok(()),
         };
@@ -81,20 +68,10 @@ mod tests {
     use sill_launcher::{
         Activation, AppId, DesktopAction, SettingsTarget, SystemCommand, WindowKey,
     };
-    use sill_model::launch::{LaunchCommand, LaunchRequest};
     use sill_model::windows::WlCommand;
 
     #[test]
-    fn windows_go_to_the_compositor_apps_to_launch_and_the_rest_elsewhere() {
-        let launch = |action: DesktopAction| {
-            Effect::Launch(LaunchCommand::Launch(LaunchRequest {
-                app: AppId("foot".to_owned()),
-                action,
-                files: Vec::new(),
-                uris: Vec::new(),
-                token: None,
-            }))
-        };
+    fn windows_go_to_the_compositor_and_the_rest_elsewhere() {
         let cases: Vec<(Activation, Effect)> = vec![
             (
                 Activation::FocusWindow {
@@ -113,14 +90,14 @@ mod tests {
                     app: AppId("foot".to_owned()),
                     action: DesktopAction::Default,
                 },
-                launch(DesktopAction::Default),
+                Effect::Elsewhere,
             ),
             (
                 Activation::Launch {
                     app: AppId("foot".to_owned()),
                     action: DesktopAction::Named("new-window".to_owned()),
                 },
-                launch(DesktopAction::Named("new-window".to_owned())),
+                Effect::Elsewhere,
             ),
             (
                 Activation::Copy {
@@ -136,7 +113,7 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsTarget::Key("appearance.theme".to_owned()),
+                    target: SettingsTarget::Page("appearance".to_owned()),
                 },
                 Effect::Elsewhere,
             ),

@@ -16,6 +16,6 @@ pub use command::{
 pub use failure::{FailureCause, LaunchNotice, failure_sentence, failure_text};
 pub use model::{DONE_KEPT, LaunchedScope, Launches, ScopeUnit};
 pub use plan::{launch_argv, scope_unit};
-pub use settings_page::SettingsPage;
+pub use settings_page::{SettingsPage, SettingsVisit};
 pub use step::step;
 pub use timing::{LaunchDone, LaunchTiming, Pid, Stamp, answer_to, launch_line};

@@ -39,7 +39,7 @@ fn dark_mode_resolves_to_appearance_theme() {
     let targets = query_target(&provider, "dark mode");
     assert_eq!(
         targets.first(),
-        Some(&SettingsTarget::Key("appearance.theme".to_owned())),
+        Some(&SettingsTarget::Page("appearance".to_owned())),
         "{targets:?}"
     );
 }
@@ -50,7 +50,7 @@ fn magnification_resolves_to_dock_magnification() {
     let targets = query_target(&provider, "magnification");
     assert_eq!(
         targets.first(),
-        Some(&SettingsTarget::Key("dock.magnification".to_owned())),
+        Some(&SettingsTarget::Page("dock".to_owned())),
         "{targets:?}"
     );
 }
@@ -61,7 +61,7 @@ fn natural_scrolling_resolves_to_scroll_natural() {
     let targets = query_target(&provider, "natural scrolling");
     assert_eq!(
         targets.first(),
-        Some(&SettingsTarget::Key("scroll.natural".to_owned())),
+        Some(&SettingsTarget::Page("mouse_and_gestures".to_owned())),
         "{targets:?}"
     );
 }
@@ -75,7 +75,7 @@ fn bluetooth_does_not_deep_link_to_any_file_backed_key() {
     let provider = SettingsProvider::with_dirs(vec![fixture_dir()]);
     let targets = query_target(&provider, "bluetooth");
     assert!(
-        !targets.iter().any(|t| matches!(t, SettingsTarget::Key(_))),
+        !targets.iter().any(|t| matches!(t, SettingsTarget::Page(_))),
         "{targets:?}"
     );
 }
@@ -84,17 +84,17 @@ fn bluetooth_does_not_deep_link_to_any_file_backed_key() {
 fn both_fixture_schemas_are_discovered() {
     let provider = SettingsProvider::with_dirs(vec![fixture_dir()]);
     // Every key from both files should be reachable by an exact path search.
-    for path in [
-        "appearance.theme",
-        "appearance.accent",
-        "dock.magnification",
-        "scroll.natural",
-        "control_center.modules",
+    for (path, page) in [
+        ("appearance.theme", "appearance"),
+        ("appearance.accent", "appearance"),
+        ("dock.magnification", "dock"),
+        ("scroll.natural", "mouse_and_gestures"),
+        ("control_center.modules", "app:sill"),
     ] {
         let targets = query_target(&provider, path);
         assert!(
-            targets.contains(&SettingsTarget::Key(path.to_owned())),
-            "expected {path} to be found by its own path, got {targets:?}"
+            targets.contains(&SettingsTarget::Page(page.to_owned())),
+            "expected {path} to open {page}, got {targets:?}"
         );
     }
 }

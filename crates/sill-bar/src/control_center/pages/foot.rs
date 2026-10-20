@@ -5,12 +5,15 @@
 use dioxus::prelude::*;
 use ds::components::controls::button_model::Bezel;
 use ds::prelude::*;
+use shell_host::SurfaceHandle;
 use sill_launcher::{AppId, DesktopAction};
-use sill_model::launch::{LaunchCommand, LaunchRequest};
+use sill_model::launch::LaunchCommand;
 use sill_services::LaunchService;
+use sill_services::control::Control;
 use sill_shell_kit::prelude::*;
 
 use sill_ui_kit::hooks::use_control;
+use sill_ui_kit::surface::launch_with_token;
 
 /// The app the settings run as.
 const SETTINGS_APP: &str = "org.quire.Settings";
@@ -20,35 +23,56 @@ const SETTINGS_APP: &str = "org.quire.Settings";
 #[derive(Clone, Copy)]
 pub(crate) struct ClosePanel(pub Callback<()>);
 
+/// What opens Settings from a pane: the launch service, the popup's surface (for the activation
+/// token) and how to close the popup.
+#[derive(Clone)]
+pub(crate) struct SettingsOpener {
+    launch: Control<LaunchCommand>,
+    surface: Option<SurfaceHandle>,
+    close: Option<ClosePanel>,
+}
+
+impl SettingsOpener {
+    /// Launch Settings with a token from the still-mapped popup, then close the popup.
+    pub(crate) fn open(&self) {
+        let opener = self.clone();
+        spawn(async move {
+            // A stopped launcher drops it; the panel closes either way.
+            let _gone = launch_with_token(
+                opener.surface.as_ref(),
+                &opener.launch,
+                AppId(SETTINGS_APP.to_owned()),
+                DesktopAction::Default,
+                Vec::new(),
+            )
+            .await;
+            if let Some(ClosePanel(close)) = opener.close {
+                close.call(());
+            }
+        });
+    }
+}
+
+/// The opener for the pane being built.
+pub(crate) fn use_settings_opener() -> SettingsOpener {
+    SettingsOpener {
+        launch: use_control::<LaunchService>(),
+        surface: try_use_context::<SurfaceHandle>(),
+        close: try_use_context::<ClosePanel>(),
+    }
+}
+
 /// The foot: `label` opening Settings.
 #[component]
 pub(crate) fn SettingsFoot(label: String) -> Element {
-    let launch = use_control::<LaunchService>();
-    let close = try_use_context::<ClosePanel>();
+    let opener = use_settings_opener();
     rsx! {
         PaneFooter {
             Button {
                 bezel: Bezel::Inline,
                 label,
-                onclick: move |_| {
-                    // A stopped launcher drops it; the panel closes either way.
-                    let _gone = launch.send(open_settings());
-                    if let Some(ClosePanel(close)) = close {
-                        close.call(());
-                    }
-                },
+                onclick: move |_| opener.open(),
             }
         }
     }
-}
-
-/// Launch Settings.
-pub(crate) fn open_settings() -> LaunchCommand {
-    LaunchCommand::Launch(LaunchRequest {
-        app: AppId(SETTINGS_APP.to_owned()),
-        action: DesktopAction::Default,
-        files: Vec::new(),
-        uris: Vec::new(),
-        token: None,
-    })
 }

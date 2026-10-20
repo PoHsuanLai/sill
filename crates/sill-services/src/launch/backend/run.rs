@@ -5,8 +5,8 @@ use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, DbusActivation};
 use sill_model::launch::{
     FailureCause, LaunchCommand, LaunchOutcome, LaunchRequest, LaunchTiming, LaunchedScope,
-    Launches, Pid, SETTINGS_BUS_NAME, ScopeUnit, SettingsAccount, SettingsPage, Stamp, launch_argv,
-    scope_unit,
+    Launches, Pid, SETTINGS_BUS_NAME, ScopeUnit, SettingsAccount, SettingsPage, SettingsVisit,
+    Stamp, launch_argv, scope_unit,
 };
 use std::time::{Duration, Instant};
 
@@ -45,9 +45,9 @@ pub(crate) async fn run(
             LaunchCommand::ShowInFiles(_) => "showing an app in Files",
             LaunchCommand::ForceQuit(_) => "force quitting an app",
             LaunchCommand::Open(_) => "opening an item",
-            LaunchCommand::OpenSettings(_) | LaunchCommand::OpenSettingsPage(_) => {
-                "opening Settings"
-            }
+            LaunchCommand::OpenSettings(_)
+            | LaunchCommand::OpenSettingsPage(_)
+            | LaunchCommand::OpenSettingsAt(_) => "opening Settings",
         };
         let handled = within(
             LAUNCH_COMMAND,
@@ -108,6 +108,7 @@ async fn handle(
         LaunchCommand::Open(request) => super::open::open(setup, request).await,
         LaunchCommand::OpenSettings(account) => open_settings(&setup.session, &account).await,
         LaunchCommand::OpenSettingsPage(page) => open_settings_page(&setup.session, page).await,
+        LaunchCommand::OpenSettingsAt(visit) => open_settings_at(&setup.session, visit).await,
     }
 }
 
@@ -371,6 +372,20 @@ async fn open_settings_page(session: &Bus, page: SettingsPage) {
             BUS_CALL,
             "Settings",
             dbus::open_settings_page(&connection, page),
+        )
+        .await
+    {
+        eprintln!("sill: launch: opening Settings: {error}");
+    }
+}
+
+/// Settings at the page `visit` names, started by the bus when it is not running.
+async fn open_settings_at(session: &Bus, visit: SettingsVisit) {
+    if let Some(connection) = session_connection(session).await
+        && let Err(error) = call(
+            BUS_CALL,
+            "Settings",
+            dbus::open_settings_slug(&connection, &visit),
         )
         .await
     {

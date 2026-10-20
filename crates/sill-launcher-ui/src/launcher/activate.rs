@@ -104,10 +104,10 @@ impl LauncherProviders {
 /// What the panel does for an activation, once it has sent `SearchCommand::Chosen`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LauncherEffect {
-    /// The search runner carries it out on `Chosen` (windows, launches): the
+    /// The search runner carries it out on `Chosen` (focusing and closing windows): the
     /// panel only closes.
     ByRunner,
-    /// Ask for an activation token for `app`, then send the launch (a settings page).
+    /// Ask for an activation token for `app`, then send the launch.
     Launch {
         app: AppId,
         action: DesktopAction,
@@ -118,6 +118,8 @@ pub enum LauncherEffect {
     Insert(String),
     /// Ask for an activation token, then open the file, folder or address.
     Open(OpenTarget),
+    /// Ask for an activation token, then open Settings at the page this slug names.
+    OpenSettings(String),
     /// Make a clipboard history entry the clipboard again.
     SetClipboard(ClipKey),
     /// Drop a clipboard history entry and stay open.
@@ -143,8 +145,6 @@ pub enum LauncherEffect {
 pub enum Unreachable {
     /// A system command no surface can carry out: Reload is the daemon's.
     System(SystemCommand),
-    /// No quire settings app exists to deep-link a key into.
-    SettingsKey(String),
 }
 
 /// Whether an effect ends the launcher.
@@ -184,14 +184,13 @@ impl LauncherEffect {
 /// The effect of `activation`.
 pub fn effect_of(activation: Activation) -> LauncherEffect {
     match activation {
-        Activation::Launch { .. }
-        | Activation::FocusWindow { .. }
-        | Activation::CloseWindow { .. } => LauncherEffect::ByRunner,
+        Activation::Launch { app, action } => LauncherEffect::Launch { app, action },
+        Activation::FocusWindow { .. } | Activation::CloseWindow { .. } => LauncherEffect::ByRunner,
         Activation::Copy { text } => LauncherEffect::Copy(text),
         Activation::Insert { text } => LauncherEffect::Insert(text),
         Activation::OpenSettings {
-            target: SettingsTarget::Key(key),
-        } => LauncherEffect::Unreachable(Unreachable::SettingsKey(key)),
+            target: SettingsTarget::Page(slug),
+        } => LauncherEffect::OpenSettings(slug),
         Activation::System(command) => system_effect(command),
         Activation::Open { target } => LauncherEffect::Open(target),
         Activation::SetClipboard { entry } => LauncherEffect::SetClipboard(entry),
@@ -319,7 +318,10 @@ mod tests {
                     app: firefox.clone(),
                     action: DesktopAction::Named("new-window".to_owned()),
                 },
-                LauncherEffect::ByRunner,
+                LauncherEffect::Launch {
+                    app: firefox.clone(),
+                    action: DesktopAction::Named("new-window".to_owned()),
+                },
             ),
             (
                 Activation::CloseWindow {
@@ -347,11 +349,9 @@ mod tests {
             ),
             (
                 Activation::OpenSettings {
-                    target: SettingsTarget::Key("dock.magnification".to_owned()),
+                    target: SettingsTarget::Page("dock".to_owned()),
                 },
-                LauncherEffect::Unreachable(Unreachable::SettingsKey(
-                    "dock.magnification".to_owned(),
-                )),
+                LauncherEffect::OpenSettings("dock".to_owned()),
             ),
             (Activation::Nothing, LauncherEffect::Nothing),
         ];

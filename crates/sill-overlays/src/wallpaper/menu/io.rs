@@ -4,7 +4,6 @@
 use dioxus::prelude::*;
 use shell_host::{HostRoot, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
-use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_ui_kit::hooks::use_services;
 use sill_ui_kit::menu::{ContextMenuLink, MenuReport, PopupLook, context_menu_popup};
 use sill_ui_kit::services::Services;
@@ -122,24 +121,14 @@ fn listen(
 /// activation token for it (so the window it opens is let to the front).
 fn open_picker(outward: Outward, app: AppId) {
     spawn(async move {
-        let token = match &outward.surface {
-            Some(surface) => {
-                sill_ui_kit::surface::activation_token(surface, Some(app.0.clone())).await
-            }
-            None => None,
-        };
-        let _gone_is_dropped =
-            outward
-                .services
-                .launch
-                .control
-                .send(LaunchCommand::Launch(LaunchRequest {
-                    app,
-                    action: DesktopAction::Default,
-                    files: Vec::new(),
-                    uris: Vec::new(),
-                    token,
-                }));
+        let _gone_is_dropped = sill_ui_kit::surface::launch_with_token(
+            outward.surface.as_ref(),
+            &outward.services.launch.control,
+            app,
+            DesktopAction::Default,
+            Vec::new(),
+        )
+        .await;
     });
 }
 

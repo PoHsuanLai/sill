@@ -132,7 +132,6 @@ pub(crate) fn start(
             companion_control: companion.control.clone(),
             session: session.state.clone(),
             wl: windows.control.clone(),
-            launch: launch.control.clone(),
         }),
     );
     let auth = spawn::<AuthService>(rt, env, ());

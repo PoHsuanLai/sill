@@ -12,7 +12,6 @@ use ds::base::time::stamp::Stamp;
 use shell_host::{FrameDrive, HostRoot, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;
-use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_settings::DockMenuOrder;
 use sill_ui_kit::services::Services;
 use tokio::sync::mpsc;
@@ -342,23 +341,13 @@ fn send_all(outward: &Outward, commands: Vec<DockCommand>) {
 
 fn launch(outward: Outward, app: AppId, action: DesktopAction, uris: Vec<String>) {
     spawn(async move {
-        let token = match &outward.surface {
-            Some(surface) => {
-                sill_ui_kit::surface::activation_token(surface, Some(app.0.clone())).await
-            }
-            None => None,
-        };
-        let _gone_is_dropped =
-            outward
-                .services
-                .launch
-                .control
-                .send(LaunchCommand::Launch(LaunchRequest {
-                    app,
-                    action,
-                    files: Vec::new(),
-                    uris,
-                    token,
-                }));
+        let _gone_is_dropped = sill_ui_kit::surface::launch_with_token(
+            outward.surface.as_ref(),
+            &outward.services.launch.control,
+            app,
+            action,
+            uris,
+        )
+        .await;
     });
 }

@@ -5,7 +5,9 @@ use std::collections::HashMap;
 
 use ds_core::word::Word;
 use sill_model::apps::App;
-use sill_model::launch::{LaunchRequest, SETTINGS_BUS_NAME, SettingsAccount, SettingsPage};
+use sill_model::launch::{
+    LaunchRequest, SETTINGS_BUS_NAME, SettingsAccount, SettingsPage, SettingsVisit,
+};
 use zbus::Connection;
 use zbus::zvariant::Value;
 
@@ -39,18 +41,35 @@ pub async fn activate(
 /// `org.freedesktop.Application.ActivateAction("open-account", [path])` on `org.quire.Settings`:
 /// the bus starts it as its own unit when it is not running, and Settings opens at the account.
 pub async fn open_settings(connection: &Connection, account: &SettingsAccount) -> zbus::Result<()> {
-    settings_action(connection, "open-account", &account.0).await
+    settings_action(connection, "open-account", &account.0, None).await
 }
 
 /// `org.freedesktop.Application.ActivateAction("open-page", [slug])` on `org.quire.Settings`:
 /// Settings opens at the page the slug names.
 pub async fn open_settings_page(connection: &Connection, page: SettingsPage) -> zbus::Result<()> {
-    settings_action(connection, "open-page", page.slug()).await
+    settings_action(connection, "open-page", page.slug(), None).await
+}
+
+/// As [`open_settings_page`], for a page named by its slug, with the token that lets Settings
+/// take focus.
+pub async fn open_settings_slug(
+    connection: &Connection,
+    visit: &SettingsVisit,
+) -> zbus::Result<()> {
+    settings_action(connection, "open-page", &visit.slug, visit.token.as_deref()).await
 }
 
 /// One action of Settings with its one string parameter.
-async fn settings_action(connection: &Connection, action: &str, target: &str) -> zbus::Result<()> {
-    let platform_data: HashMap<&str, Value<'_>> = HashMap::new();
+async fn settings_action(
+    connection: &Connection,
+    action: &str,
+    target: &str,
+    token: Option<&str>,
+) -> zbus::Result<()> {
+    let mut platform_data: HashMap<&str, Value<'_>> = HashMap::new();
+    if let Some(token) = token {
+        platform_data.insert("activation-token", Value::from(token));
+    }
     connection
         .call_method(
             Some(SETTINGS_BUS_NAME),

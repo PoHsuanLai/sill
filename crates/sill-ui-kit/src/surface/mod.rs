@@ -14,7 +14,7 @@ mod naming;
 mod place;
 mod start;
 
-pub use activation::{ACTIVATION_DEADLINE, activation_token};
+pub use activation::{ACTIVATION_DEADLINE, activation_token, launch_with_token};
 pub use lock::{LockSurface, MountLockProps, mount_lock};
 pub use mount::{MountProps, mount};
 pub use naming::namespace;

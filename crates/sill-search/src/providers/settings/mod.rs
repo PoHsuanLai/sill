@@ -137,12 +137,16 @@ impl Provider for SettingsProvider {
     }
 
     fn activate(&self, item: &Item, _choice: &Choice) -> Activation {
-        if let Some(path) = item.id.0.strip_prefix(KEY_ID_PREFIX) {
-            return Activation::OpenSettings {
-                target: SettingsTarget::Key(path.to_owned()),
-            };
-        }
-        Activation::Nothing
+        let Some(path) = item.id.0.strip_prefix(KEY_ID_PREFIX) else {
+            return Activation::Nothing;
+        };
+        // Settings opens at the key's page: it has no way to land on one key.
+        self.index()
+            .iter()
+            .find(|key| key.path == path)
+            .map_or(Activation::Nothing, |key| Activation::OpenSettings {
+                target: SettingsTarget::Page(key.page_slug.clone()),
+            })
     }
 }
 

@@ -386,9 +386,8 @@ async fn next<T>(rx: &mut tokio::sync::mpsc::UnboundedReceiver<T>) -> Option<T> 
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_chosen_row_focuses_closes_or_launches_through_its_service() {
-    use sill_launcher::{ActionId, AppId, DesktopAction, WindowKey};
-    use sill_model::launch::{LaunchCommand, LaunchRequest};
+async fn a_chosen_row_focuses_or_closes_through_its_service() {
+    use sill_launcher::{ActionId, WindowKey};
     use sill_model::windows::WlCommand;
 
     let dir = TempDir::new("runner-activate");
@@ -398,11 +397,7 @@ async fn a_chosen_row_focuses_closes_or_launches_through_its_service() {
         .first(&[("Display", 600)])
         .panics_on_activate();
     let (wl, mut wl_rx) = Control::channel();
-    let (launch, mut launch_rx) = Control::channel();
-    let outlets = Outlets {
-        wl: Some(wl),
-        launch: Some(launch),
-    };
+    let outlets = Outlets { wl: Some(wl) };
     let (mut rx, control, _) = search_to(
         vec![windows.provider(), apps.provider(), broken.provider()],
         &dir,
@@ -427,21 +422,8 @@ async fn a_chosen_row_focuses_closes_or_launches_through_its_service() {
         Some(WlCommand::Activate(WindowKey(7)))
     );
     assert_eq!(next(&mut wl_rx).await, Some(WlCommand::Close(WindowKey(7))));
-    assert_eq!(
-        next(&mut launch_rx).await,
-        Some(LaunchCommand::Launch(LaunchRequest {
-            app: AppId("foot".to_owned()),
-            action: DesktopAction::Default,
-            files: Vec::new(),
-            uris: Vec::new(),
-            token: None,
-        }))
-    );
     // The panicking provider did not end the search: it still answers.
     send(&control, SearchCommand::Query("fo".to_owned()));
     until(&mut rx, |r| r.generation.0 == 2 && r.items.len() == 3).await;
-    assert!(
-        wl_rx.try_recv().is_err() && launch_rx.try_recv().is_err(),
-        "nothing else sent"
-    );
+    assert!(wl_rx.try_recv().is_err(), "nothing else sent");
 }

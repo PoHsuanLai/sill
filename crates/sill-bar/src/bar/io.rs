@@ -28,6 +28,7 @@ use super::tray_input::{chroma_limit, row_image};
 use crate::control_center::{PanelCap, height_cap};
 use ds::base::time::stamp::FrameClock;
 use sill_model::app_menu::{AppMenuCommand, Follower, MenuApp};
+use sill_model::launch::LaunchCommand;
 use sill_model::session::SessionCommand;
 use sill_model::tray::TrayCommand;
 use sill_services::{AppMenuService, AppsService, SessionService, TrayService, WindowsService};
@@ -36,6 +37,7 @@ use sill_ui_kit::hooks::{
 };
 use sill_ui_kit::links::{CenterLink, CenterShown, ControlCenterLink, PowerMenuLink, Preselect};
 use sill_ui_kit::menu::PopupLook;
+use sill_ui_kit::surface::launch_with_token;
 
 /// How long a menu opened while the notification center is up waits for it to leave. On KWin
 /// the center's unmapping moves the activation to the window under it, and a grabbing popup
@@ -473,6 +475,27 @@ fn refresh(slots: Slots, deps: &SessionDeps) {
     }
 }
 
+/// Send a launch with a token from the bar's own surface, which stays mapped as the menu closes.
+fn send_launch(command: LaunchCommand, deps: &SessionDeps) {
+    let launch = deps.services.launch.control.clone();
+    let surface = deps.surface.clone();
+    spawn(async move {
+        let _gone_is_dropped = match command {
+            LaunchCommand::Launch(request) => {
+                launch_with_token(
+                    surface.as_ref(),
+                    &launch,
+                    request.app,
+                    request.action,
+                    request.uris,
+                )
+                .await
+            }
+            other => launch.send(other),
+        };
+    });
+}
+
 /// Send `pick`'s commands. A service that has stopped drops them: the menu has closed and
 /// there is nobody left to tell.
 fn run(pick: &BarPick, deps: &SessionDeps) {
@@ -481,7 +504,10 @@ fn run(pick: &BarPick, deps: &SessionDeps) {
     for command in commands(pick, &toplevels) {
         let _gone_is_dropped = match command {
             Command::Wl(c) => services.windows.control.send(c),
-            Command::Launch(c) => services.launch.control.send(c),
+            Command::Launch(c) => {
+                send_launch(c, deps);
+                Ok(())
+            }
             Command::Tray(c) => services.tray.control.send(c),
             Command::AppMenu(c) => services.app_menu.control.send(c),
             Command::Session(c) => services.session.control.send(c),

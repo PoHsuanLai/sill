@@ -281,7 +281,7 @@ impl Provider for FakeProvider {
                 text: "42".to_owned(),
             },
             (ProviderKind::Settings, _) => Activation::OpenSettings {
-                target: SettingsTarget::Key(item.id.0.clone()),
+                target: SettingsTarget::Page(item.id.0.clone()),
             },
             (ProviderKind::System, _) => {
                 Activation::System(SystemCommand::Session(sill_launcher::SessionAction::Lock))

@@ -17,7 +17,7 @@ use sill_model::wifi::{
 use sill_shell_kit::prelude::*;
 
 use super::feature_switch::{FeatureSwitch, back_button};
-use super::foot::{ClosePanel, SettingsFoot, open_settings};
+use super::foot::{SettingsFoot, use_settings_opener};
 use crate::control_center::item_phase::{
     Aim, FAILED_WORDS, Item, ItemPhase, RowDisc, aim_after, item_phase,
 };
@@ -49,8 +49,7 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
     aim.set(last.clone());
     let services = use_services();
     let control = services.wifi.control.clone();
-    let launch = services.launch.control;
-    let close = try_use_context::<ClosePanel>();
+    let opener = use_settings_opener();
     use_hook({
         let control = control.clone();
         move || {
@@ -88,10 +87,8 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
                             WifiPick::Join(ssid) => control.send(WifiCommand::Connect(ssid)),
                             WifiPick::Leave => control.send(WifiCommand::Disconnect),
                             WifiPick::Setup => {
-                                if let Some(ClosePanel(close)) = close {
-                                    close.call(());
-                                }
-                                launch.send(open_settings())
+                                opener.open();
+                                Ok(())
                             }
                         };
                     },
