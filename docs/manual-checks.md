@@ -551,3 +551,12 @@ the real daemons or a real keyboard.
 - [ ] **Cancel and Escape**: Cancel, Escape and letting it time out each end it as "Not confirmed"; Escape while the caret is in the field cancels too. Return in the field adds a line and does not confirm.
 - [ ] **Old docket**: with a docket that does not send a brief, the sheet is the plain one it always was.
 - [ ] **Capture picker remembered sentence**: for an app whose choice is kept, the share sheet shows one quiet line under the choices ("Your choice is kept while {app} is open." or "...until you change it in Settings."); for an app asked every time it shows nothing.
+
+## The structure audit (sill 2026-10-20 to 2026-10-21, on a real login)
+
+- [ ] **One theme watch**: change light/dark in the control centre. The bar, dock, launcher, notification centre, banners and an open sheet all change at once.
+- [ ] **Focus loss**: open the notification centre, the switcher and the split picker in turn, then click a window. Each closes. Force Quit and the display trial stay open when a window is clicked.
+- [ ] **Lock from the bar and launcher**: the Apple menu's Lock Screen and the launcher's "Lock Screen" row each lock at once.
+- [ ] **Sheets on the focused window's output** (two displays): focus a window on the second display, then trigger a confirm (`quire-do shell lock`). The sheet shows on that display. A second question while the first is up stays on the same display.
+- [ ] **Confirm click-through**: answer a confirm and click the window under it at once. The click lands. With a confirm up, click another window beside the card. The click lands and the confirm stays.
+- [ ] **Lock links**: lock, then unlock with the password, on each output. The prompt works on every output (the lock now gets only its own link).
