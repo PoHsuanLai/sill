@@ -1,5 +1,5 @@
 //! The network: NetworkManager's primary connection over the system bus
-//! (sill's own proxies, `crate::nm`).
+//! (the `airwaves-nm` proxies).
 
 mod backend;
 

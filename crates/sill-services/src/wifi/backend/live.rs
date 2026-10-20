@@ -3,7 +3,7 @@
 //! connections' SSIDs, and the active access point; every change through
 //! [`sill_model::wifi::step`]; [`WifiCommand`]s carried out.
 //!
-//! Same bus and proxies as the network service (`crate::nm`). NetworkManager starting after sill
+//! Same bus and proxies as the network service (`airwaves-nm`). NetworkManager starting after sill
 //! or restarting under it is followed through its bus name ([`crate::owner`]), and the wireless
 //! device is looked for again whenever one is added or removed (a USB adapter plugged in later).
 //! Access point signals arrive in floods during a scan, so they are folded into one refresh a
@@ -12,6 +12,9 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use airwaves_nm::{
+    DeviceProxy, DeviceType, NetworkManagerProxy, SettingsProxy, WirelessDeviceProxy,
+};
 use sill_model::units::Presence;
 use sill_model::wifi::{Radio, Wifi, WifiCommand, WifiEvent, step};
 use tokio::sync::{mpsc, watch};
@@ -24,11 +27,8 @@ use crate::deadline::{BUS_CALL, NETWORK_REFRESH, call, within};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::machine::Published;
-use crate::nm::{DeviceProxy, DeviceType, NetworkManagerProxy, SettingsProxy, WirelessDeviceProxy};
 use crate::owner::{self, Ended};
 use crate::stream::{next, sleep_until_opt};
-
-const SERVICE: &str = "org.freedesktop.NetworkManager";
 
 /// How long after the last access point signal the list is read again: a scan reports every
 /// point it finds, one signal each, and one read after the burst shows the same list.
@@ -43,7 +43,7 @@ pub(crate) async fn run(
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
     let tx = Published::new(tx, step);
-    let owner = owner::Owner::of(&connection, SERVICE);
+    let owner = owner::Owner::of(&connection, airwaves_nm::SERVICE);
     while owner
         .session(session(&connection, &tx, &mut commands))
         .await
@@ -236,7 +236,7 @@ async fn find_wireless_device(
     let devices = nm.get_all_devices().await.ok()?;
     for path in devices {
         let device = device_proxy(connection, &path).await?;
-        if device.device_type().await.map(DeviceType::from).ok() == Some(DeviceType::Wifi) {
+        if device.device_type().await.map(DeviceType::from_wire).ok() == Some(DeviceType::Wifi) {
             return Some(path);
         }
     }

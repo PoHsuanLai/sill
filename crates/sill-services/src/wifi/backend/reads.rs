@@ -2,6 +2,10 @@
 //! Every read is bounded by [`NETWORK_REFRESH`], so NetworkManager hanging mid-list costs one
 //! skipped refresh, not the service.
 
+use airwaves_nm::{
+    AccessPointProxy, ConnectionSettingsProxy, DeviceProxy, DeviceState, NetworkManagerProxy,
+    SettingsProxy, WirelessDeviceProxy,
+};
 use sill_model::units::Percent;
 use sill_model::wifi::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEvent};
 use zbus::Connection;
@@ -9,10 +13,6 @@ use zbus::zvariant::OwnedObjectPath;
 
 use crate::deadline::{NETWORK_REFRESH, within};
 use crate::machine::Published;
-use crate::nm::{
-    AccessPointProxy, ConnectionSettingsProxy, DeviceProxy, DeviceState, NetworkManagerProxy,
-    SettingsProxy, WirelessDeviceProxy,
-};
 
 /// The most access points listed. A crowded building shows a few hundred; the list in the
 /// control center is useful for the strongest few dozen, and every entry costs bus calls.
@@ -55,7 +55,7 @@ pub(super) async fn refresh_access_points(
         let state = device
             .state()
             .await
-            .map(DeviceState::from)
+            .map(DeviceState::from_wire)
             .unwrap_or_default();
         let mut points = Vec::with_capacity(paths.len().min(MAX_ACCESS_POINTS));
         for path in paths.into_iter().take(MAX_ACCESS_POINTS) {

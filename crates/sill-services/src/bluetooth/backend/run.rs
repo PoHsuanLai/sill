@@ -29,8 +29,6 @@ use crate::machine::Published;
 use crate::owner::{Ended, Next, Owner};
 use crate::stream::next_opt;
 
-const SERVICE: &str = "org.bluez";
-
 const ADAPTER_IFACE: &str = "org.bluez.Adapter1";
 
 const DEVICE_IFACE: &str = "org.bluez.Device1";
@@ -79,7 +77,7 @@ pub(crate) async fn run(
     let tx = Published::new(tx, keeping_battery);
     let (internal_tx, mut internal_rx) = mpsc::unbounded_channel::<BluetoothEvent>();
     let mut tracked = Tracked::default();
-    let owner = Owner::of(&connection, SERVICE);
+    let owner = Owner::of(&connection, airwaves_bluez::SERVICE);
     while owner
         .session(session(
             &connection,
@@ -174,7 +172,7 @@ async fn attach(
 
 async fn open(connection: &Connection) -> Option<Live> {
     let object_manager = ObjectManagerProxy::builder(connection)
-        .destination(SERVICE)
+        .destination(airwaves_bluez::SERVICE)
         .ok()?
         .path("/")
         .ok()?

@@ -47,6 +47,8 @@ nix = { workspace = true }
 async-trait = { workspace = true }
 tokio = { workspace = true }
 zbus = { workspace = true }
+airwaves-nm = { workspace = true }
+airwaves-bluez = { workspace = true }
 smithay-client-toolkit = { workspace = true }
 wayland-client = { workspace = true }
 wayland-protocols = { workspace = true }

@@ -1,6 +1,9 @@
 //! NetworkManager's primary connection over the system bus: seeds a real first value, then
 //! feeds every property change through [`step`].
 
+use airwaves_nm::{
+    AccessPointProxy, ActiveConnectionProxy, NetworkManagerProxy, WirelessDeviceProxy,
+};
 use sill_model::network::{
     Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, step,
 };
@@ -13,13 +16,9 @@ use crate::deadline::{BUS_CALL, NETWORK_REFRESH, within};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::machine::Published;
-use crate::nm::{
-    AccessPointProxy, ActiveConnectionProxy, NetworkManagerProxy, WirelessDeviceProxy,
-};
 use crate::owner::{self, Ended};
 use crate::stream::next;
 
-const SERVICE: &str = "org.freedesktop.NetworkManager";
 
 /// Follows NetworkManager and runs until `commands` closes (the `Control` was dropped). Without
 /// it `tx` is left at its seeded default (disconnected); NetworkManager starting late or
@@ -31,7 +30,7 @@ pub(crate) async fn run(
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
     let tx = Published::new(tx, step);
-    let owner = owner::Owner::of(&connection, SERVICE);
+    let owner = owner::Owner::of(&connection, airwaves_nm::SERVICE);
     while owner
         .session(session(&connection, &tx, &mut commands))
         .await

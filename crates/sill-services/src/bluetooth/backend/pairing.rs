@@ -1,10 +1,10 @@
 //! What the service asks of BlueZ: the radio, connecting and disconnecting a device.
 
+use airwaves_bluez::{Adapter1Proxy, Device1Proxy};
 use sill_model::bluetooth::{Bluetooth, BluetoothEvent, BtAddress, BtConnection, BtPower};
 use tokio::sync::mpsc;
 use zbus::Connection;
 
-use super::bluez::{Adapter1Proxy, Device1Proxy};
 use super::run::Tracked;
 use crate::machine::Published;
 

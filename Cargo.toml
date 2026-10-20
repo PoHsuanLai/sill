@@ -237,6 +237,9 @@ shell-verbs = { path = "../casement-protocols/shell-verbs" }
 # person's own rows file, `Proof::Dev`) is only behind sill-services' `dev-callers`, itself only behind
 # the sill binary's `debug` feature, so no shipped build has it.
 # MIT OR Apache-2.0, own repo.
+# NetworkManager and BlueZ zbus proxies, shared with detent; zbus runs on tokio here.
+airwaves-nm = { git = "https://github.com/PoHsuanLai/airwaves", tag = "v0.1.0", default-features = false, features = ["tokio"] }
+airwaves-bluez = { git = "https://github.com/PoHsuanLai/airwaves", tag = "v0.1.0", default-features = false, features = ["tokio"] }
 peephole-bus = { git = "https://github.com/PoHsuanLai/peephole", tag = "v0.1.9", default-features = false, features = ["tokio", "desktop"] }
 prov = { path = "../porter/crates/prov" }
 porter-core = { path = "../porter/crates/porter-core" }

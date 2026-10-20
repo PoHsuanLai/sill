@@ -1,5 +1,6 @@
 //! BlueZ's adapter and devices read and followed: seeds and property watches.
 
+use airwaves_bluez::{Adapter1Proxy, Battery1Proxy, Device1Proxy};
 use sill_model::bluetooth::{
     Bluetooth, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice, BtPairing, BtPower,
     device_kind,
@@ -9,7 +10,6 @@ use tokio::sync::{mpsc, oneshot};
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
-use super::bluez::{Adapter1Proxy, Battery1Proxy, Device1Proxy};
 use crate::machine::Published;
 use crate::stream::next;
 

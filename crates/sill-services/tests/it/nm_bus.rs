@@ -1,6 +1,7 @@
 //! The network and Wi-Fi services against a stand-in `org.freedesktop.NetworkManager` on a
-//! private bus playing the system bus, never the real one. The stand-in serves the members sill's
-//! own proxies call and records the calls. The tests need a `dbus-daemon` and skip without one.
+//! private bus playing the system bus, never the real one. The stand-in serves the members the
+//! airwaves-nm proxies call and records the calls. The tests need a `dbus-daemon` and skip
+//! without one.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
