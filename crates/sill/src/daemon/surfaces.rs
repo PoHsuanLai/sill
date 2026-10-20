@@ -161,7 +161,7 @@ pub(crate) fn surface_root(
 }
 
 /// Each output's lock surface for shell-host's session lock: `LOCK`'s root with the
-/// daemon's usual contexts, which include the lock prompt's link.
+/// daemon's usual contexts and the links `LOCK.needs` names.
 pub(crate) fn lock_factory(
     services: &Services,
     settings_feed: &SettingsFeed,
@@ -174,19 +174,16 @@ pub(crate) fn lock_factory(
     crate::lock::host::LockFactory {
         config: (LOCK.config)(settings),
         build: Box::new(move |info: OutputInfo| {
-            // The lock surfaces are not on the `Surface` path yet (the lock pipeline holds them),
-            // so they are given the shared links by hand.
-            surface_root(
-                HostRoot::with_props(mount_lock, MountLockProps::new(LOCK, info)),
-                &services,
-                &settings_feed,
+            // The lock is not a `Surface` (the lock pipeline holds its surfaces), so it has its
+            // own declaration of the links it reads: `LOCK.needs`.
+            (LOCK.needs)(
+                surface_root(
+                    HostRoot::with_props(mount_lock, MountLockProps::new(LOCK, info)),
+                    &services,
+                    &settings_feed,
+                ),
+                &links,
             )
-            .context(links.focus.clone())
-            .context(links.power_menu.clone())
-            .context(links.notification_center.clone())
-            .context(links.banners.clone())
-            .context(links.switcher.clone())
-            .context(links.lock.clone())
         }),
     }
 }

@@ -1,9 +1,10 @@
 //! The session lock's surface: one document per output, made by shell-host's session lock.
 
 use dioxus::prelude::{Element, use_context_provider};
-use shell_host::{LockConfig, OutputInfo};
+use shell_host::{HostRoot, LockConfig, OutputInfo};
 use sill_settings::ShellFile;
 
+use crate::links::Links;
 use crate::root::{SurfaceName, use_host_signals};
 
 /// A surface the compositor's session lock draws instead of a layer surface: sill has one, the
@@ -14,6 +15,8 @@ pub struct LockSurface {
     pub name: &'static str,
     /// How shell-host sets its surfaces up.
     pub config: fn(&ShellFile) -> LockConfig,
+    /// The links its document reads by type, given to each root (the lock's `Surface::needs`).
+    pub needs: fn(HostRoot, &Links) -> HostRoot,
     /// The document on `output`; it runs as a root component, so it may call hooks.
     pub root: fn(OutputInfo) -> Element,
 }

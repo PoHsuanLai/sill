@@ -466,11 +466,12 @@ pub struct Place<'a> { pub output: &'a OutputInfo, pub rank: OutputRank, pub set
 pub struct LockSurface {
     pub name: &'static str,
     pub config: fn(&ShellFile) -> LockConfig,
+    pub needs: fn(HostRoot, &Links) -> HostRoot,   // the links its document reads by type (the lock: `LockLink` only)
     pub root: fn(OutputInfo) -> Element,
 }
 ```
 
-Implementors of `Surface`: the 25 layer surfaces (25 `impl Surface for` sites, one per `surface.rs` in `sill-bar`, `sill-dock`, `sill-launcher-ui`, `sill-notify-ui` and `sill-overlays`); the lock is the `LOCK` value and is not on this path. A new visible thing on its own layer surface
+Implementors of `Surface`: the 25 layer surfaces (25 `impl Surface for` sites, one per `surface.rs` in `sill-bar`, `sill-dock`, `sill-launcher-ui`, `sill-notify-ui` and `sill-overlays`); the lock is the `LOCK` value and is not on this path; `daemon::surfaces::lock_factory` gives each lock root `surface_root` plus `(LOCK.needs)(root, links)`, so the lock's links are declared beside `LOCK` and not listed by hand in the daemon. A new visible thing on its own layer surface
 is a new `Surface`. A popup of an existing surface is a `MenuPopup` or a component, not a
 `Surface`. `root` runs inside `surface::mount::<S>`, the one root component every spawned surface
 has, so a `root` may call hooks. `SurfaceRoot` stays a plain component that each view wraps its
