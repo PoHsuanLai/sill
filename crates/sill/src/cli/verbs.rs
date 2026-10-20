@@ -40,6 +40,7 @@ pub fn action_of(verb: ShellVerb) -> ActionId {
         ShellVerb::SwitcherCancel => switcher_action(SwitcherRequest::Cancel),
         ShellVerb::ControlCenterToggle => ActionId::ControlCenter,
         ShellVerb::NotificationCenterToggle => ActionId::NotificationCenter,
+        ShellVerb::EmojiAndSymbols => ActionId::EmojiAndSymbols,
     }
 }
 
