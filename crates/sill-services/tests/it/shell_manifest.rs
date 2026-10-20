@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use docket_core::{
     AppRefusal, CallId, ChoiceId, Invocation, Origin, ParamDecl, ParamNeed, ParamType, Value,
 };
+use ds_core::word::Word;
 use prov::{ActionName, Actor, Label, Labelled, SpaceId};
 use sill_launcher::actions::ActionId;
 use sill_model::actions::intent_of;

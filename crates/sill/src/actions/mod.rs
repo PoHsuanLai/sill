@@ -117,11 +117,10 @@ fn settings(
             Subject::Settings(link) => launch.send(LaunchCommand::OpenSettings(
                 SettingsOpen::at(link).with_token(token),
             )),
-            Subject::None | Subject::App(_) | Subject::Start(_) | Subject::Windows(_) => {
-                launch.send(LaunchCommand::Launch(
+            Subject::None | Subject::App(_) | Subject::Start(_) | Subject::Windows(_) => launch
+                .send(LaunchCommand::Launch(
                     LaunchRequest::app(AppId(SETTINGS_APP.to_owned())).token(token),
-                ))
-            }
+                )),
         },
     )
 }

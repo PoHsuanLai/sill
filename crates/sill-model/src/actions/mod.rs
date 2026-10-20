@@ -11,8 +11,8 @@ mod intent;
 mod tests;
 
 pub use ask::{Ask, Needs, Start, Subject};
-pub use intent::intent_of;
 use chordkit::StandardAction;
+pub use intent::intent_of;
 use sill_launcher::actions::ActionId;
 use sill_launcher::{Confirm, ProviderKind, SessionAction};
 

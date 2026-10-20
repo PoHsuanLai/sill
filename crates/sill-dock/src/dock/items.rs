@@ -191,11 +191,7 @@ mod tests {
     }
 
     fn index() -> AppIndex {
-        AppIndex::new(vec![
-            app("org.gnome.Nautilus"),
-            app("foot"),
-            app("firefox"),
-        ])
+        AppIndex::new(vec![app("org.gnome.Nautilus"), app("foot"), app("firefox")])
     }
 
     fn window(key: u64, app_id: &str, activity: Activity, state: WindowState) -> Toplevel {
