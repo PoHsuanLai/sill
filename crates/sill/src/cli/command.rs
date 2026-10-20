@@ -7,6 +7,7 @@ use sill_ipc::act::{SwitcherRequest, WorkspaceRequest};
 use sill_ipc::show::{CompanionRequest, Reveal, VoiceRequest};
 use sill_model::screenshots::ShotKind;
 
+use super::action::DoArgs;
 use super::debug::DebugAction;
 use super::desktop::{ControlCenterAction, DockAction};
 use super::display::DisplayAction;
@@ -26,6 +27,8 @@ pub enum Command {
     Run(crate::run_args::RunArgs),
     /// Open an installed app the way a click in the dock does.
     Launch(LaunchArgs),
+    /// Do any action of the shell by its id, as a menu or a chord would.
+    Do(DoArgs),
     /// Show, hide or seed the launcher.
     Launcher {
         #[command(subcommand)]

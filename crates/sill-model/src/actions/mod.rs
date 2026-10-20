@@ -5,11 +5,13 @@
 //! "ask first" for itself.
 
 mod ask;
+mod intent;
 
 #[cfg(test)]
 mod tests;
 
 pub use ask::{Ask, Needs, Start, Subject};
+pub use intent::intent_of;
 use chordkit::StandardAction;
 use sill_launcher::actions::ActionId;
 use sill_launcher::{Confirm, ProviderKind, SessionAction};

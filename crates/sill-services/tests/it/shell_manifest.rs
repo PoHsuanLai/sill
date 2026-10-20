@@ -9,6 +9,8 @@ use docket_core::{
     AppRefusal, CallId, ChoiceId, Invocation, Origin, ParamDecl, ParamNeed, ParamType, Value,
 };
 use prov::{ActionName, Actor, Label, Labelled, SpaceId};
+use sill_launcher::actions::ActionId;
+use sill_model::actions::intent_of;
 use sill_model::intents::shell::{action_of, menu_ask_of, window_ask_of};
 use sill_services::intents::manifest;
 
@@ -99,6 +101,40 @@ fn every_declared_action_reads_and_every_option_is_one_the_model_knows() {
                 }
             }
         }
+    }
+}
+
+#[test]
+fn the_manifest_and_the_shells_actions_name_each_other() {
+    let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));
+    let declared: Vec<&str> = manifest
+        .manifest()
+        .actions
+        .iter()
+        .map(|a| a.name.as_str())
+        .collect();
+    // Every action that names an intent names one the manifest declares.
+    for id in ActionId::ALL {
+        if let Some(name) = intent_of(*id) {
+            assert!(declared.contains(&name), "{id:?} names {name}");
+        }
+    }
+    // Every declared action the shell does as an action of its own (not a window, an app or a
+    // menu ask, which take ids from a listing) is the intent of at least one of them.
+    for action in &manifest.manifest().actions {
+        let given = action
+            .params
+            .iter()
+            .map(|p| (p.name.clone(), value_for(p)))
+            .collect();
+        let call = invocation(&action.name, given);
+        let own = matches!(menu_ask_of(&call), Ok(None))
+            && matches!(window_ask_of(&call), Ok(None))
+            && action_of(&call).is_ok();
+        let named = ActionId::ALL
+            .iter()
+            .any(|id| intent_of(*id) == Some(action.name.as_str()));
+        assert_eq!(own, named, "{}", action.name);
     }
 }
 

@@ -7,6 +7,7 @@ use sill_ipc::show::{Reveal, ShowRequest};
 use sill_launcher::actions::ActionId;
 
 use super::Command;
+use super::action::do_action_request;
 use super::debug::debug_request;
 use super::desktop::{control_center_request, dock_request};
 use super::display::display_request;
@@ -29,6 +30,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::NextWindow => do_request(ActionId::NextWindow),
         Command::Verb(verb) => do_request(action_of(*verb)),
         Command::Launch(args) => launch_request(args),
+        Command::Do(args) => do_action_request(args),
         Command::Launcher { action } => launcher_request(action),
         Command::Dock { action } => dock_request(action),
         Command::PowerMenu { action } => match action {

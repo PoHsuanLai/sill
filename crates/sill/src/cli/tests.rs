@@ -9,7 +9,7 @@ use sill_ipc::debug::{DebugRequest, KeyAction, KeySpec, Point, PointerButton, Su
 use sill_ipc::request::Request;
 use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest};
 use sill_ipc::status::StatusRequest;
-use sill_launcher::AppId;
+use sill_launcher::{AppId, SettingsLink, WindowKey};
 use sill_launcher::actions::ActionId as ShellAction;
 use sill_model::actions::{Ask, Subject};
 use sill_model::auth::FakeVerdict;
@@ -286,6 +286,29 @@ fn every_command_line_sends_its_request() {
                 Subject::App(AppId("foot".to_owned())),
             ))),
         ),
+        (&["do", "lock"], doing(ShellAction::Lock)),
+        (&["do", "emoji-and-symbols"], doing(ShellAction::EmojiAndSymbols)),
+        (
+            &["do", "open-app", "--app", "foot"],
+            Some(Request::Do(Ask::on(
+                ShellAction::OpenApp,
+                Subject::App(AppId("foot".to_owned())),
+            ))),
+        ),
+        (
+            &["do", "quit-app", "--windows", "4,7"],
+            Some(Request::Do(Ask::on(
+                ShellAction::QuitApp,
+                Subject::Windows(vec![WindowKey(4), WindowKey(7)]),
+            ))),
+        ),
+        (
+            &["do", "open-settings", "--settings", "page:wallpaper"],
+            Some(Request::Do(Ask::on(
+                ShellAction::OpenSettings,
+                Subject::Settings(SettingsLink("page:wallpaper".to_owned())),
+            ))),
+        ),
         (
             &["display", "brightness", "up"],
             brightness(LevelRequest::Up),
@@ -545,6 +568,9 @@ fn a_malformed_command_line_is_refused() {
         &["force-quit"],
         &["control-center", "open"],
         &["dock", "pin"],
+        &["do"],
+        &["do", "reboot"],
+        &["do", "open-app", "--app", "foot", "--windows", "1"],
         &["launch"],
         &["launch", "foot", "bar"],
         &["launch", "foot", "--timing"],
