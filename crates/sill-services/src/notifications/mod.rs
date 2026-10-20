@@ -25,10 +25,15 @@
 //! ([`NotificationsCommand::Post`]), through the same reducer, so the banners and the center can
 //! be accepted without a bus (and on a machine whose session already has a notification daemon).
 //!
+//! **Answers are events, not state.** What the person did to a notification (an action invoked,
+//! a close) is said on [`Answers`] as it happens, whoever holds the bus name: the services that
+//! posted a notice of their own hear it there, not on the bus.
+//!
 //! The shape is every service's: [`NotificationsService`] publishes [`NotesState`] (the live
 //! banners and name holder, and the history: one server's state, stepped together), and `step`
 //! is the only place it changes.
 
+mod answers;
 mod backend;
 
 use sill_model::notifications::{ImageDirs, NotesState, NotificationsCommand};
@@ -37,6 +42,7 @@ use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
+pub use answers::Answers;
 pub use backend::{BUS_NAME, OBJECT_PATH};
 
 /// The notifications server as a [`Service`]: on `env`'s session bus with its clock, the
@@ -49,11 +55,11 @@ impl Service for NotificationsService {
     const NAME: &'static str = "notifications";
     type State = NotesState;
     type Command = NotificationsCommand;
-    type Deps = ();
+    type Deps = Answers;
 
     fn run(
         env: &Env,
-        (): (),
+        answers: Answers,
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.session.clone();
@@ -61,7 +67,7 @@ impl Service for NotificationsService {
         let clock = std::sync::Arc::clone(&env.clock);
         let images = ImageDirs::new(env.dirs.notification_image_dirs());
         async move {
-            backend::run(bus, file, clock, images, io.state, io.commands).await;
+            backend::run(bus, file, clock, images, answers, io.state, io.commands).await;
             Ok(())
         }
     }

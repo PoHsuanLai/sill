@@ -7,8 +7,10 @@ use sill_model::sync_hold::{
     Dataset, SyncHoldCommand, SyncHoldEffect, SyncHoldEvent, SyncHoldState, dataset_of, shown_for,
     step,
 };
+use sill_model::notifications::Said;
+use tokio::sync::broadcast;
 use tokio::sync::mpsc::UnboundedReceiver;
-use zbus::{Connection, MessageStream};
+use zbus::Connection;
 
 use super::links::SyncHoldLinks;
 use super::notice;
@@ -18,7 +20,7 @@ use crate::control::Control;
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::machine::Machine;
-use crate::notices::{self, Board, Said};
+use crate::notices::Board;
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
 use crate::stream::next;
@@ -45,8 +47,9 @@ pub(crate) async fn run(
         state: tx,
         mut commands,
     } = io;
+    // Listening before the bus is reached, so no answer falls between.
+    let mut answers = links.answers.hear();
     let connection = bus.connect_waiting().await?;
-    let mut answers = notices::stream(&connection).await?;
     let mut live = Live {
         connection: connection.clone(),
         machine: Machine::new(tx, step),
@@ -70,7 +73,7 @@ impl Live {
     async fn session(
         &mut self,
         commands: &mut UnboundedReceiver<SyncHoldCommand>,
-        answers: &mut MessageStream,
+        answers: &mut broadcast::Receiver<Said>,
     ) -> Ended {
         let Ok(proxy) = SyncProxy::new(&self.connection).await else {
             return Ended::Unreadable;
@@ -90,11 +93,7 @@ impl Live {
                         self.heard(args.dataset(), args.held()).await;
                     }
                 }
-                Some(Ok(message)) = next(answers) => {
-                    if let Some(said) = notices::said(&self.connection, &message).await {
-                        self.heard_server(said);
-                    }
-                }
+                Ok(said) = answers.recv() => self.heard_server(said),
                 Ok(()) = self.board.changed() => self.learn(),
                 command = commands.recv() => match command {
                     Some(SyncHoldCommand::Rewatch) => {
@@ -162,7 +161,7 @@ impl Live {
                         )));
                 }
             }
-            Said::Closed(id) => self.board.closed(id),
+            Said::Closed { id, .. } => self.board.closed(id),
         }
     }
 

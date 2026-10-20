@@ -17,7 +17,7 @@ use std::time::Duration;
 
 use sill_model::notifications::{
     ImageDirs, NameHolder, NotesState, Notification, NotificationId, NotificationsCommand,
-    NotificationsEffect, NotificationsEvent, NotificationsPolicy, Posting, ServerMode,
+    NotificationsEffect, NotificationsEvent, NotificationsPolicy, Posting, Said, ServerMode,
     ServerStatus, UnixMs, assign_id, for_disk, holds, step,
 };
 use tokio::sync::{mpsc, watch};
@@ -28,6 +28,7 @@ use super::name_watch::Bus;
 use super::save::{SAVE_AFTER, Saver};
 use super::senders::{Admission, Owner, Senders};
 use crate::env::{Bus as BusRoute, WallClock};
+use crate::notifications::Answers;
 use crate::stream::next_opt;
 
 /// How often an app's critical banners are checked against their hold: the hold is minutes long,
@@ -40,6 +41,7 @@ pub(crate) async fn run(
     file: PathBuf,
     clock: Arc<dyn WallClock>,
     images: ImageDirs,
+    answers: Answers,
     published: watch::Sender<NotesState>,
     mut commands: mpsc::UnboundedReceiver<NotificationsCommand>,
 ) {
@@ -50,6 +52,7 @@ pub(crate) async fn run(
         published,
         clock,
         images,
+        answers,
         senders: Senders::default(),
         saver: Saver::new(file, SAVE_AFTER),
     };
@@ -94,6 +97,8 @@ struct Core {
     clock: Arc<dyn WallClock>,
     /// Where a bus caller's pictures may come from.
     images: ImageDirs,
+    /// Where the person's answers are said to the shell's own services.
+    answers: Answers,
     /// Who posted what, and how much each caller may still post.
     senders: Senders,
     /// When the history is next written.
@@ -224,19 +229,25 @@ impl Core {
             ) => Some(bus),
             _ => None,
         };
-        match (effect, speaking) {
-            (NotificationsEffect::Closed { id, reason }, Some(bus)) => bus.closed(id, reason).await,
-            (NotificationsEffect::Invoked { id, action, token }, Some(bus)) => {
-                bus.invoked(id, &action, &token, self.senders.sender_of(id))
-                    .await;
+        match effect {
+            NotificationsEffect::Closed { id, reason } => {
+                self.answers.say(Said::Closed { id, reason });
+                if let Some(bus) = speaking {
+                    bus.closed(id, reason).await;
+                }
             }
-            (NotificationsEffect::SaveHistory, _) => self.saver.request(),
-            (
-                NotificationsEffect::Closed { .. }
-                | NotificationsEffect::Invoked { .. }
-                | NotificationsEffect::Sound(_),
-                _,
-            ) => {}
+            NotificationsEffect::Invoked { id, action, token } => {
+                self.answers.say(Said::Pressed {
+                    id,
+                    key: action.clone(),
+                });
+                if let Some(bus) = speaking {
+                    bus.invoked(id, &action, &token, self.senders.sender_of(id))
+                        .await;
+                }
+            }
+            NotificationsEffect::SaveHistory => self.saver.request(),
+            NotificationsEffect::Sound(_) => {}
         }
     }
 

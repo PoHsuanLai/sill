@@ -15,7 +15,7 @@ use sill_model::notifications::{
 };
 use sill_services::env::{BusRoute, Buses, Env};
 use sill_services::guest_asks::{GuestAsksLinks, GuestAsksService};
-use sill_services::notifications::NotificationsService;
+use sill_services::notifications::{Answers, NotificationsService};
 use sill_services::service::{Handle, spawn};
 use sill_testkit::{PrivateBus, TempDir};
 use tokio::sync::watch;
@@ -182,7 +182,8 @@ async fn shell(bus: &PrivateBus) -> Shell {
         ..Env::isolated(scratch.path())
     };
     let runtime = tokio::runtime::Handle::current();
-    let mut notes = spawn::<NotificationsService>(&runtime, &env, ());
+    let answers = Answers::default();
+    let mut notes = spawn::<NotificationsService>(&runtime, &env, answers.clone());
     let _ = notes
         .control
         .send(NotificationsCommand::Policy(NotificationsPolicy {
@@ -200,6 +201,7 @@ async fn shell(bus: &PrivateBus) -> Shell {
         GuestAsksLinks {
             notifications: notes.control.clone(),
             notes: notes.state.clone(),
+            answers,
         },
     );
     Shell {

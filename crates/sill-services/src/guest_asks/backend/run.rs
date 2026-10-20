@@ -9,8 +9,10 @@ use sill_model::guest_asks::{
     Ask, Computer, GuestAsksCommand, GuestAsksEffect, GuestAsksEvent, GuestAsksState, Verdict,
     choice_of, shown_for, step,
 };
+use sill_model::notifications::Said;
+use tokio::sync::broadcast;
 use tokio::sync::mpsc::UnboundedReceiver;
-use zbus::{Connection, MessageStream};
+use zbus::Connection;
 
 use super::links::GuestAsksLinks;
 use super::notice;
@@ -19,10 +21,9 @@ use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::guest_asks::GuestAsksService;
 use crate::machine::Machine;
-use crate::notices::{self, Board, Said};
+use crate::notices::Board;
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
-use crate::stream::next;
 
 /// The shell's seat at inferd's guests.
 type Guests = Accounts<DbusTransport>;
@@ -47,8 +48,9 @@ pub(crate) async fn run(
         state: tx,
         mut commands,
     } = io;
+    // Listening before the bus is reached, so no answer falls between.
+    let mut answers = links.answers.hear();
     let connection = bus.connect_waiting().await?;
-    let mut answers = notices::stream(&connection).await?;
     let mut live = Live {
         connection: connection.clone(),
         machine: Machine::new(tx, step),
@@ -71,7 +73,7 @@ impl Live {
     async fn session(
         &mut self,
         commands: &mut UnboundedReceiver<GuestAsksCommand>,
-        answers: &mut MessageStream,
+        answers: &mut broadcast::Receiver<Said>,
     ) -> Ended {
         let proxy = Accounts::over(DbusTransport::over(self.connection.clone()));
         // Open before reading, so a question asked in between is not lost.
@@ -93,11 +95,7 @@ impl Live {
                         self.reread(&proxy).await;
                     }
                 },
-                Some(Ok(message)) = next(answers) => {
-                    if let Some(said) = notices::said(&self.connection, &message).await {
-                        self.heard_server(said, &proxy).await;
-                    }
-                }
+                Ok(said) = answers.recv() => self.heard_server(said, &proxy).await,
                 Ok(()) = self.board.changed() => self.learn(),
                 command = commands.recv() => match command {
                     Some(GuestAsksCommand::Reread) => {
@@ -150,7 +148,7 @@ impl Live {
                         .await;
                 }
             }
-            Said::Closed(id) => self.board.closed(id),
+            Said::Closed { id, .. } => self.board.closed(id),
         }
     }
 

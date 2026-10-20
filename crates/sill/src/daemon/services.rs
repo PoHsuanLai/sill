@@ -28,7 +28,7 @@ use sill_services::keycap::{KeycapLinks, KeycapService};
 use sill_services::launch::{LaunchLinks, LaunchService};
 use sill_services::locker::LockerService;
 use sill_services::night_shift::NightShiftService;
-use sill_services::notifications::NotificationsService;
+use sill_services::notifications::{Answers, NotificationsService};
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::seat::seat;
 use sill_services::service::spawn;
@@ -73,7 +73,9 @@ pub(crate) fn start(
     let (seat_publisher, seat_view) = seat();
     let apps = spawn::<AppsService>(rt, env, ());
     // Passive (never asks for the bus name) until the daemon sends its first policy.
-    let notifications = spawn::<NotificationsService>(rt, env, ());
+    // What the person does to a notification is said here; the services with notices hear it.
+    let answers = Answers::default();
+    let notifications = spawn::<NotificationsService>(rt, env, answers.clone());
     let launch = spawn::<LaunchService>(
         rt,
         env,
@@ -170,6 +172,7 @@ pub(crate) fn start(
         AccountsLinks {
             notifications: notifications.control.clone(),
             notes: notifications.state.clone(),
+            answers: answers.clone(),
         },
     );
     let accounts_sheet = spawn::<AccountsSheetService>(
@@ -185,6 +188,7 @@ pub(crate) fn start(
         SyncHoldLinks {
             notifications: notifications.control.clone(),
             notes: notifications.state.clone(),
+            answers: answers.clone(),
             launch: launch.control.clone(),
         },
     );
@@ -194,6 +198,7 @@ pub(crate) fn start(
         GuestAsksLinks {
             notifications: notifications.control.clone(),
             notes: notifications.state.clone(),
+            answers: answers.clone(),
         },
     );
     // Night Shift tells casement which monitors the displays service warms itself.

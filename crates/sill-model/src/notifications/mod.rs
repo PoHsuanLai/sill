@@ -17,6 +17,7 @@ mod origin;
 mod policy;
 mod rate;
 mod rules;
+mod said;
 mod step;
 mod stored;
 #[cfg(test)]
@@ -51,5 +52,6 @@ pub use policy::{
 };
 pub use rate::{Allowance, Rate};
 pub use rules::holds;
+pub use said::Said;
 pub use step::{assign_id, step};
 pub use stored::{STORED_VERSION, StoredHistory, for_disk};

@@ -60,7 +60,7 @@ fn start(
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
         ..Env::isolated(scratch.path())
     };
-    let service = spawn::<NotificationsService>(runtime.handle(), &env, ());
+    let service = spawn::<NotificationsService>(runtime.handle(), &env, Default::default());
     (service.state, service.control)
 }
 

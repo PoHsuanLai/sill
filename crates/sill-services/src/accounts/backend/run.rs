@@ -9,11 +9,12 @@ use sill_model::accounts::{
     AccountKey, AccountsCommand, AccountsEffect, AccountsEvent, AccountsLink, AccountsState,
     NeedsSignIn, account_of, shown_for, step,
 };
-use sill_model::notifications::NotificationsCommand;
+use sill_model::notifications::{NotificationsCommand, Said};
 use tokio::runtime::Handle;
+use tokio::sync::broadcast;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::task::AbortHandle;
-use zbus::{Connection, MessageStream};
+use zbus::Connection;
 
 use super::links::AccountsLinks;
 use super::retry::{self, Retry, Wait};
@@ -23,7 +24,7 @@ use crate::accounts::AccountsService;
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::machine::Machine;
-use crate::notices::{self, Board, Said};
+use crate::notices::Board;
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
 use crate::stream::next;
@@ -51,8 +52,9 @@ pub(crate) async fn run(
         state: tx,
         mut commands,
     } = io;
+    // Listening before the bus is reached, so no answer falls between.
+    let mut answers = links.answers.hear();
     let connection = bus.connect_waiting().await?;
-    let mut actions = notices::stream(&connection).await?;
     let (told, mut events) = unbounded_channel();
     let mut live = Live {
         connection: connection.clone(),
@@ -64,7 +66,7 @@ pub(crate) async fn run(
     };
     let owner = owner::Owner::of(&connection, wire::ACCOUNTS);
     while owner
-        .session(live.lifetime(&mut commands, &mut actions, &mut events))
+        .session(live.lifetime(&mut commands, &mut answers, &mut events))
         .await
         == owner::Next::Again
     {
@@ -86,7 +88,7 @@ impl Live {
     async fn lifetime(
         &mut self,
         commands: &mut UnboundedReceiver<AccountsCommand>,
-        answers: &mut MessageStream,
+        answers: &mut broadcast::Receiver<Said>,
         events: &mut UnboundedReceiver<AccountsEvent>,
     ) -> Ended {
         let mut retry = Retry::default();
@@ -112,7 +114,7 @@ impl Live {
     async fn session(
         &mut self,
         commands: &mut UnboundedReceiver<AccountsCommand>,
-        answers: &mut MessageStream,
+        answers: &mut broadcast::Receiver<Said>,
         events: &mut UnboundedReceiver<AccountsEvent>,
     ) -> Met {
         let Ok(manager) = ManagerProxy::new(&self.connection).await else {
@@ -139,11 +141,7 @@ impl Live {
                     }
                 }
                 Some(event) = events.recv() => self.apply(event),
-                Some(Ok(message)) = next(answers) => {
-                    if let Some(said) = notices::said(&self.connection, &message).await {
-                        self.heard_server(said);
-                    }
-                }
+                Ok(said) = answers.recv() => self.heard_server(said),
                 Ok(()) = self.board.changed() => self.learn(),
                 command = commands.recv() => match command {
                     Some(AccountsCommand::SignInAgain(account)) => self.sign_in(&account),
@@ -177,7 +175,7 @@ impl Live {
                     self.sign_in(&account);
                 }
             }
-            Said::Closed(id) => self.board.closed(id),
+            Said::Closed { id, .. } => self.board.closed(id),
         }
     }
 

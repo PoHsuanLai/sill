@@ -52,7 +52,7 @@ fn launcher(
     env.children = children.clone();
     let (_apps, apps) = watch::channel(AppIndex::default());
     let rt = tokio::runtime::Handle::current();
-    let notifications = spawn::<NotificationsService>(&rt, &env, ()).control;
+    let notifications = spawn::<NotificationsService>(&rt, &env, Default::default()).control;
     let links = LaunchLinks {
         apps,
         notifications,

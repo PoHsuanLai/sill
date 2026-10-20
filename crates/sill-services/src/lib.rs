@@ -98,7 +98,7 @@ pub use launch::LaunchService;
 pub use locker::LockerService;
 pub use network::NetworkService;
 pub use night_shift::NightShiftService;
-pub use notifications::NotificationsService;
+pub use notifications::{Answers, NotificationsService};
 pub use now_playing::NowPlayingService;
 pub use pins::PinsService;
 pub use polkit_agent::PolkitAgentService;
