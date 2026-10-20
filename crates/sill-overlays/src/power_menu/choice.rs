@@ -1,7 +1,7 @@
-//! Which actions the power menu's alert offers and which one it is about, pure: the action an
-//! opening starts on (the launcher row's, else `power_menu.default_action`) is the alert's
-//! default, the one Return presses, and the alert's answers are that action first, the other
-//! actions logind offers after it, and Cancel.
+//! Which action the power menu's alert is about, pure: the action an opening starts on (the system
+//! menu's or the launcher row's, else `power_menu.default_action`). As macOS's shut-down dialog
+//! does, the alert asks about that one action only: its button, the one Return presses, and
+//! Cancel.
 
 use sill_model::session::{Offer, Session, SessionAction};
 use sill_settings::PowerMenuDefault;
@@ -31,14 +31,12 @@ pub fn initial(
     }
 }
 
-/// The actions the alert answers with, in its order: `default` first when it is offered, then the
-/// rest of `SessionAction::POWER_MENU` that logind offers.
+/// The action the alert answers with besides Cancel: `default`, when logind offers it.
 pub fn answers(default: SessionAction, session: &Session) -> Vec<SessionAction> {
-    let first = offered(session, default).then_some(default);
-    let rest = SessionAction::POWER_MENU
+    offered(session, default)
+        .then_some(default)
         .into_iter()
-        .filter(|&action| action != default && offered(session, action));
-    first.into_iter().chain(rest).collect()
+        .collect()
 }
 
 /// `power_menu.default_action` as the action it names.
@@ -120,15 +118,16 @@ mod tests {
     }
 
     #[test]
-    fn the_default_leads_and_only_offered_actions_answer() {
+    fn the_alert_answers_with_its_own_action_when_offered() {
         use SessionAction::{LogOut, PowerOff, Restart, Suspend};
         let all = session(Offer::Available);
         let no_suspend = session(Offer::Unavailable);
         let none = Session::default();
         let cases: Vec<(SessionAction, &Session, Vec<SessionAction>)> = vec![
-            (PowerOff, &all, vec![PowerOff, LogOut, Restart, Suspend]),
-            (LogOut, &all, vec![LogOut, Restart, PowerOff, Suspend]),
-            (Suspend, &no_suspend, vec![LogOut, Restart, PowerOff]),
+            (PowerOff, &all, vec![PowerOff]),
+            (LogOut, &all, vec![LogOut]),
+            (Restart, &no_suspend, vec![Restart]),
+            (Suspend, &no_suspend, Vec::new()),
             (PowerOff, &none, Vec::new()),
         ];
         for (default, session, want) in cases {

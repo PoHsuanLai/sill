@@ -35,15 +35,39 @@ pub fn aliases(action: SessionAction) -> &'static [&'static str] {
     }
 }
 
-/// The power menu's question about the action, as macOS's shut-down dialog asks it.
+/// The power menu's question about the action, in macOS's words.
 pub fn prompt(action: SessionAction) -> &'static str {
     match action {
-        SessionAction::Lock => "Lock the screen now?",
-        SessionAction::LogOut => "Log out now?",
-        SessionAction::Restart => "Restart this computer now?",
-        SessionAction::PowerOff => "Shut down this computer now?",
-        SessionAction::Suspend => "Put this computer to sleep now?",
+        SessionAction::Lock => "Are you sure you want to lock the screen now?",
+        SessionAction::LogOut => "Are you sure you want to quit all apps and log out now?",
+        SessionAction::Restart => "Are you sure you want to restart your computer now?",
+        SessionAction::PowerOff => "Are you sure you want to shut down your computer now?",
+        SessionAction::Suspend => "Are you sure you want to put your computer to sleep now?",
     }
+}
+
+/// How long the power menu waits before it carries out an action that asks first, as macOS's
+/// shut-down dialog does.
+pub const COUNTDOWN_SECONDS: u32 = 60;
+
+/// The line under the question while the power menu counts down to an action that asks first:
+/// what happens if the person does nothing, and in how long. `None` for an action that never
+/// asks (Lock, Sleep), whose line is its [`consequence`].
+pub fn countdown(action: SessionAction, seconds: u32) -> Option<String> {
+    let unit = if seconds == 1 { "second" } else { "seconds" };
+    let what = match action.confirm() {
+        Confirm::Now => return None,
+        Confirm::Ask => match action {
+            SessionAction::LogOut => "you will be logged out",
+            SessionAction::Restart => "your computer will restart",
+            SessionAction::PowerOff | SessionAction::Lock | SessionAction::Suspend => {
+                "your computer will shut down"
+            }
+        },
+    };
+    Some(format!(
+        "If you do nothing, {what} automatically in {seconds} {unit}."
+    ))
 }
 
 /// The line under the question: what the action does to the running apps. Each is short

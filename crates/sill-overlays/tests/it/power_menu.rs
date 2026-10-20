@@ -100,6 +100,14 @@ fn nth_button(n: usize) -> String {
     format!(".ds-alert-slot:nth-child({n}) .ds-button")
 }
 
+/// The alert's button that says `label`.
+fn button(harness: &Harness, label: &str) -> String {
+    (1..=6)
+        .map(nth_button)
+        .find(|button| harness.text_of(button).as_deref() == Some(label))
+        .unwrap_or_else(|| panic!("no {label} button:\n{}", harness.html()))
+}
+
 #[test]
 fn hidden_it_draws_nothing() {
     let mut running = start(ShellFile::default(), Session::everything());
@@ -126,36 +134,28 @@ fn open_it_draws_the_alert_and_its_buttons() {
     );
     assert_eq!(
         h.text_of(".ds-alert-title").as_deref(),
-        Some("Shut down this computer now?")
+        Some("Are you sure you want to shut down your computer now?")
     );
     assert_eq!(
         h.text_of(".ds-alert-body").as_deref(),
-        Some("Apps quit and the computer turns off.")
+        Some("If you do nothing, your computer will shut down automatically in 60 seconds.")
     );
     assert_eq!(
         h.attr(".ds-alert-footer", "data-layout").as_deref(),
-        Some("stack"),
-        "five buttons stack, the default on top"
+        Some("row"),
+        "two buttons side by side, as macOS's shut-down dialog"
     );
-    let buttons = [
-        ("Shut Down", "normal", Some("return")),
-        ("Log Out", "normal", None),
-        ("Restart", "destructive", None),
-        ("Sleep", "normal", None),
-        ("Cancel", "normal", Some("escape")),
-    ];
-    assert_eq!(h.count(".ds-alert-footer .ds-button"), buttons.len());
-    for (n, (label, role, answers)) in buttons.iter().enumerate() {
-        let button = nth_button(n + 1);
-        assert_eq!(h.text_of(&button).as_deref(), Some(*label));
+    assert_eq!(h.count(".ds-alert-footer .ds-button"), 2);
+    for (label, answers) in [("Shut Down", "return"), ("Cancel", "escape")] {
+        let button = button(h, label);
         assert_eq!(
             h.attr(&button, "data-role").as_deref(),
-            Some(*role),
+            Some("normal"),
             "{label}"
         );
         assert_eq!(
             h.attr(&button, "data-answers").as_deref(),
-            *answers,
+            Some(answers),
             "{label}"
         );
     }
@@ -275,7 +275,10 @@ fn tab_and_shift_tab_move_the_ring_between_the_buttons_and_run_nothing() {
         Session::everything(),
         Preselect::Default,
     );
-    let steps = [(ShortcutKey::Tab, "Log Out"), (ShortcutKey::Tab, "Restart")];
+    let steps = [
+        (ShortcutKey::Tab, "Cancel"),
+        (ShortcutKey::Tab, "Shut Down"),
+    ];
     for (key, want) in steps {
         running.harness.send(Input::key(key));
         let harness = &mut running.harness;
@@ -323,12 +326,12 @@ fn space_presses_the_button_the_keyboard_is_on() {
     );
     running.harness.send(Input::key(ShortcutKey::Tab));
     settle(&mut running.harness, |h| {
-        focused(h).as_deref() == Some("Log Out")
+        focused(h).as_deref() == Some("Cancel")
     });
     running.harness.send(Input::key(ShortcutKey::Space));
     let link = running.link.clone();
     settle(&mut running.harness, |_| !is_open(&link));
-    assert_eq!(ran(&mut running), vec![SessionAction::LogOut]);
+    assert!(ran(&mut running).is_empty(), "Space pressed Cancel");
 }
 
 #[test]
@@ -409,17 +412,15 @@ fn a_click_runs_that_button() {
         Session::everything(),
         Preselect::Default,
     );
-    let log_out = running.harness.centre(&nth_button(2));
-    assert_eq!(
-        running.harness.text_of(&nth_button(2)).as_deref(),
-        Some("Log Out")
-    );
+    let shut_down = running
+        .harness
+        .centre(&button(&running.harness, "Shut Down"));
     running.harness.send(Input::click(
-        log_out.expect("the Log Out button is laid out"),
+        shut_down.expect("the Shut Down button is laid out"),
     )); // test-only
     let link = running.link.clone();
     settle(&mut running.harness, |_| !is_open(&link));
-    assert_eq!(ran(&mut running), vec![SessionAction::LogOut]);
+    assert_eq!(ran(&mut running), vec![SessionAction::PowerOff]);
 }
 
 #[test]
@@ -429,7 +430,7 @@ fn cancel_leaves_and_closes_running_nothing() {
         Session::everything(),
         Preselect::Default,
     );
-    let cancel = running.harness.centre(&nth_button(5));
+    let cancel = running.harness.centre(&button(&running.harness, "Cancel"));
     running
         .harness
         .send(Input::click(cancel.expect("the Cancel button is laid out"))); // test-only
@@ -441,17 +442,15 @@ fn cancel_leaves_and_closes_running_nothing() {
 #[test]
 fn an_action_logind_does_not_offer_is_left_out() {
     let offers = Session {
-        suspend: Offer::Unavailable,
+        power_off: Offer::Unavailable,
         ..Session::everything()
     };
     let running = opened(shut_down_default(), offers, Preselect::Default);
     let h = &running.harness;
-    let labels: Vec<Option<String>> = (1..=4).map(|n| h.text_of(&nth_button(n))).collect();
-    assert_eq!(
-        labels,
-        ["Shut Down", "Log Out", "Restart", "Cancel"].map(|label| Some(label.to_owned()))
-    );
-    assert_eq!(h.count(".ds-alert-footer .ds-button"), 4);
+    let labels: Vec<Option<String>> = (1..=2).map(|n| h.text_of(&nth_button(n))).collect();
+    assert!(labels.contains(&Some("Log Out".to_owned())), "{labels:?}");
+    assert!(labels.contains(&Some("Cancel".to_owned())), "{labels:?}");
+    assert_eq!(h.count(".ds-alert-footer .ds-button"), 2);
 }
 
 #[test]
