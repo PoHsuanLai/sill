@@ -1,9 +1,7 @@
 //! The screenshots task: on `Configure`, resolve the folders (`folders_of`, the Pictures folder
-//! from the Pictures folder of [`Dirs`]), keep those that exist, watch them with `notify` (a file
-//! closed
-//! after writing, or renamed into place, whose name `is_screenshot_name`, [`super::folder_watch`]),
-//! and
-//! publish `Watching`; run each event and command through `step` and carry out its
+//! from the Pictures folder of [`Dirs`]), keep those that exist, watch them with
+//! [`crate::debounced`] (a burst of writes settles into one look at the folders for a name that
+//! `is_screenshot_name`, [`super::folder_watch`]), and publish `Watching`; run each event and command through `step` and carry out its
 //! effects: `MakePreview` on the blocking pool ([`super::preview`]), `Open` (`xdg-open`),
 //! `Trash` (`gio trash`), `RunTool` (`tool_command` into `save_folder`, a child whose exit is
 //! `TakeEnded`). Ends when every receiver is gone.
@@ -13,12 +11,12 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use notify::RecommendedWatcher;
 use sill_model::screenshots::{
     ShotCommand, ShotEffect, ShotEvent, ShotKind, ShotPolicy, Shots, Watching, folders_of,
     save_folder, step, tool_command,
 };
 use tokio::sync::{mpsc, watch};
+use tokio::task::JoinSet;
 
 use crate::env::{Children, Dirs};
 use crate::machine::Machine;
@@ -30,7 +28,7 @@ struct Live {
     policy: Option<ShotPolicy>,
     folders: Vec<PathBuf>,
     /// Held so the watch lives; replaced on every new policy.
-    watcher: Option<RecommendedWatcher>,
+    watcher: JoinSet<()>,
     /// Pictures and home (the folders), and the cache (the previews).
     dirs: Dirs,
     /// Starts the opener and the trash.
@@ -49,7 +47,7 @@ pub(crate) async fn run(
         events,
         policy: None,
         folders: Vec::new(),
-        watcher: None,
+        watcher: JoinSet::new(),
         dirs,
         children,
     };
@@ -84,7 +82,7 @@ impl Live {
         if self.policy.as_ref() == Some(&policy) {
             return None;
         }
-        self.watcher = None;
+        self.watcher = JoinSet::new();
         self.folders = folders_of(&policy.folders, self.dirs.pictures.as_deref());
         let (watcher, watching) = super::folder_watch::start(&self.folders, self.events.clone());
         self.watcher = watcher;

@@ -51,6 +51,8 @@ pub(crate) enum Place {
     File(PathBuf),
     /// A folder and everything under it.
     Tree(PathBuf),
+    /// A folder's own entries, not what is under them.
+    Folder(PathBuf),
     /// A file that may not exist yet, nor its folders: the nearest folder above it that exists,
     /// and everything under that, so the file being created later is seen.
     Appearing(PathBuf),
@@ -71,6 +73,7 @@ impl Place {
         match self {
             Place::File(file) => Some((file.parent()?.to_path_buf(), RecursiveMode::NonRecursive)),
             Place::Tree(dir) => Some((dir.clone(), RecursiveMode::Recursive)),
+            Place::Folder(dir) => Some((dir.clone(), RecursiveMode::NonRecursive)),
             Place::Appearing(file) => {
                 let above = file.parent()?.ancestors().find(|dir| dir.is_dir())?;
                 Some((above.to_path_buf(), RecursiveMode::Recursive))
@@ -85,6 +88,7 @@ impl Place {
                 path.parent() == file.parent() && path.file_name() == file.file_name()
             }
             Place::Tree(dir) => path.starts_with(dir),
+            Place::Folder(dir) => path.parent() == Some(dir.as_path()),
             Place::Appearing(file) => path == file,
         }
     }
