@@ -259,6 +259,25 @@ fn menus_open_on_secondary_press_and_on_a_held_press() {
 }
 
 #[test]
+fn the_dock_menu_opens_on_a_secondary_press_over_the_pill_only() {
+    let p = params();
+    let on_pill = |button, hit| DockEvent::Press {
+        button,
+        at: pt(100, 40),
+        hit,
+    };
+    let (dock, out) = acts(&p, &[(0, on_pill(Button::Secondary, Hit::Pill))]);
+    assert_eq!(out, vec![DockEffect::OpenDividerMenu { at: pt(100, 40) }]);
+    assert_eq!(dock.menu, MenuState::Open);
+    for (name, event) in [
+        ("primary press", on_pill(Button::Primary, Hit::Pill)),
+        ("secondary outside", on_pill(Button::Secondary, Hit::Outside)),
+    ] {
+        assert_eq!(acts(&p, &[(0, event)]).1, vec![], "{name}");
+    }
+}
+
+#[test]
 fn drags_reorder_remove_or_cancel() {
     let p = params();
     let start = |zone| {

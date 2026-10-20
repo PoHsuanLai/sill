@@ -1,7 +1,7 @@
 //! The machine's effects that leave the dock, as [`DockCommand`]s (design/10 §10.3.6,
 //! §10.3.8, §10.3.9): pure over what the services said when the effect came.
 
-use sill_launcher::{AppId, DesktopAction};
+use sill_launcher::DesktopAction;
 use sill_model::apps::AppIndex;
 use sill_model::ids::WorkspaceKey;
 use sill_model::pins::{DockPins, PinAt, PinEvent};
@@ -10,10 +10,7 @@ use sill_model::windows::Toplevels;
 use crate::dock::activate::activation;
 use crate::dock::items::{DockItem, ItemKind, item_windows};
 use crate::dock::machine::{ActivateMode, DockEffect, Instance, TileId};
-use crate::dock::pick::{DockCommand, DockPick, open, pick_commands};
-
-/// The file manager the Trash tile opens `trash:///` in (design/10 §10.3.9).
-const FILES_APP: &str = "org.gnome.Nautilus";
+use crate::dock::pick::{DockCommand, DockPick, open, open_trash, pick_commands};
 
 /// The desktop action a middle click prefers (design/10 §10.3.6).
 const NEW_WINDOW: &str = "new-window";
@@ -80,11 +77,7 @@ fn launch(item: &DockItem, instance: Instance, ctx: &EffectCtx<'_>) -> Vec<DockC
 /// The Trash tile's launch: the file manager on `trash:///`.
 fn trash(item: &DockItem) -> Vec<DockCommand> {
     match item.kind {
-        ItemKind::Trash => vec![open(
-            AppId(FILES_APP.to_owned()),
-            DesktopAction::Default,
-            vec!["trash:///".to_owned()],
-        )],
+        ItemKind::Trash => vec![open_trash()],
         _ => Vec::new(),
     }
 }

@@ -1,11 +1,9 @@
-//! Table tests for `context_menu.rs`.
+//! Table tests for the app tile's menu: its rows (`app.rs`) and its entries (`entries.rs`).
 
-use super::{
-    Checked, DockMenuRow, Minimized, OptionHeld, context_menu, menu_entries, menu_windows,
-};
+use super::{Checked, DockMenuRow, Minimized, OptionHeld, app, menu_entries, menu_windows};
 use crate::dock::items::{DockItem, ItemKind};
 use crate::dock::machine::{TileApp, TileId};
-use crate::dock::pick::DockPick;
+use crate::dock::pick::{DockPick, LoginChange};
 use ds::prelude::*;
 use sill_launcher::{AppId, WindowKey};
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
@@ -96,22 +94,32 @@ fn names(entries: &[MenuItem<DockPick>]) -> Vec<String> {
 }
 
 fn menu(item: &DockItem, order: DockMenuOrder, option: OptionHeld) -> Vec<MenuItem<DockPick>> {
-    let app = term();
+    menu_at_login(item, order, option, Checked::Unchecked)
+}
+
+fn menu_at_login(
+    item: &DockItem,
+    order: DockMenuOrder,
+    option: OptionHeld,
+    login: Checked,
+) -> Vec<MenuItem<DockPick>> {
+    let entry = term();
     let all = toplevels();
-    let rows = context_menu(item, Some(&app), &all, order, option);
-    let windows = menu_windows(item, Some(&app), &all);
-    menu_entries(&rows, item, &windows, order)
+    let rows = app::rows(item, Some(&entry), &all, order, option, login);
+    let windows = menu_windows(item, Some(&entry), &all);
+    menu_entries(&rows, item.kind.app_id(), &windows, order)
 }
 
 #[test]
 fn a_running_pinned_app_lists_windows_actions_remove_and_quit() {
     let item = pinned(TileApp::Active { windows: 2 });
-    let rows = context_menu(
+    let rows = app::rows(
         &item,
         Some(&term()),
         &toplevels(),
         DockMenuOrder::WindowsFirst,
         OptionHeld::Up,
+        Checked::Unchecked,
     );
     assert_eq!(
         rows,
@@ -177,12 +185,13 @@ fn a_running_pinned_app_lists_windows_actions_remove_and_quit() {
 fn not_running_offers_no_quit_and_a_running_app_can_be_kept() {
     let idle = pinned(TileApp::NotRunning);
     let none = Toplevels::default();
-    let rows = context_menu(
+    let rows = app::rows(
         &idle,
         Some(&term()),
         &none,
         DockMenuOrder::WindowsFirst,
         OptionHeld::Up,
+        Checked::Unchecked,
     );
     assert_eq!(
         rows.last(),
@@ -195,24 +204,10 @@ fn not_running_offers_no_quit_and_a_running_app_can_be_kept() {
     };
     let entries = menu(&running, DockMenuOrder::WindowsFirst, OptionHeld::Up);
     assert!(names(&entries).contains(&"Keep in Dock".to_owned()));
-    let trash = DockItem {
-        kind: ItemKind::Trash,
-        ..pinned(TileApp::NotRunning)
-    };
-    assert!(
-        context_menu(
-            &trash,
-            None,
-            &none,
-            DockMenuOrder::WindowsFirst,
-            OptionHeld::Up
-        )
-        .is_empty()
-    );
 }
 
 #[test]
-fn apple_order_puts_keep_and_show_in_an_options_submenu_and_option_forces() {
+fn apple_order_puts_the_options_in_a_submenu_and_adds_show_all_windows() {
     let item = pinned(TileApp::Inactive);
     let entries = menu(&item, DockMenuOrder::AppleOrder, OptionHeld::Held);
     assert_eq!(
@@ -223,10 +218,86 @@ fn apple_order_puts_keep_and_show_in_an_options_submenu_and_option_forces() {
             "--",
             "New Window",
             "--",
-            "Options > [Keep in Dock ✓, Show in Files]",
+            "Options > [Remove from Dock, Open at Login, Show in Files]",
             "--",
+            "Show All Windows",
             "Hide",
             "Force Quit"
         ]
     );
+    let running = DockItem {
+        kind: ItemKind::Running(AppId(TERM.to_owned())),
+        ..pinned(TileApp::Inactive)
+    };
+    let kept = names(&menu(&running, DockMenuOrder::AppleOrder, OptionHeld::Up));
+    assert!(kept.contains(&"Options > [Keep in Dock, Open at Login, Show in Files]".to_owned()));
+}
+
+#[test]
+fn open_at_login_is_checked_when_the_folder_says_so_and_a_pick_flips_it() {
+    let item = pinned(TileApp::Inactive);
+    let login_pick = |login| {
+        let entries = menu_at_login(&item, DockMenuOrder::AppleOrder, OptionHeld::Up, login);
+        let options = entries.into_iter().find_map(|e| match e {
+            MenuItem::Submenu { children, .. } => Some(children),
+            _ => None,
+        });
+        options
+            .into_iter()
+            .flatten()
+            .find_map(|e| match e {
+                MenuItem::Item {
+                    title,
+                    value,
+                    check,
+                    ..
+                } if title == "Open at Login" => Some((check, value)),
+                _ => None,
+            })
+            .expect("Open at Login is offered")
+    };
+    let app = || AppId(TERM.to_owned());
+    assert_eq!(
+        login_pick(Checked::Unchecked),
+        (
+            None,
+            DockPick::OpenAtLogin(LoginChange::On {
+                app: app(),
+                entry: PathBuf::from("/usr/share/applications/foot.desktop"),
+            })
+        )
+    );
+    assert_eq!(
+        login_pick(Checked::Checked),
+        (
+            Some(Check::On),
+            DockPick::OpenAtLogin(LoginChange::Off { app: app() })
+        )
+    );
+}
+
+#[test]
+fn show_all_windows_brings_back_the_minimized_ones_and_raises_the_front() {
+    let item = pinned(TileApp::Inactive);
+    let entries = menu(&item, DockMenuOrder::AppleOrder, OptionHeld::Up);
+    let pick = entries.into_iter().find_map(|e| match e {
+        MenuItem::Item { title, value, .. } if title == "Show All Windows" => Some(value),
+        _ => None,
+    });
+    assert_eq!(
+        pick,
+        Some(DockPick::ShowAll {
+            minimized: vec![WindowKey(1)],
+            front: Some(WindowKey(2)),
+        })
+    );
+}
+
+#[test]
+fn windows_first_has_neither_options_nor_show_all_windows() {
+    let item = pinned(TileApp::Inactive);
+    let listed = names(&menu(&item, DockMenuOrder::WindowsFirst, OptionHeld::Up));
+    let extra = |n: &&String| n.starts_with("Options") || n.as_str() == "Show All Windows";
+    assert!(!listed.iter().any(|n| extra(&n)));
+    assert!(!listed.contains(&"Open at Login".to_owned()));
 }

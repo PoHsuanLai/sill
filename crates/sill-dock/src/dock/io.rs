@@ -7,22 +7,24 @@
 //! so an idle dock renders nothing. A `Redraw` stamps the time the next render draws at.
 
 use dioxus::prelude::*;
+use ds::prelude::MenuItem;
 use ds::base::time::clock::sleep;
 use ds::base::time::stamp::Stamp;
-use shell_host::{FrameDrive, SurfaceHandle};
+use shell_host::{FrameDrive, Rect, SurfaceHandle};
 use sill_model::badges::Badges;
-use sill_settings::DockMenuOrder;
+use sill_settings::{AutoHide, DockMenuOrder, Magnification};
 use sill_ui_kit::services::Services;
 
-use crate::dock::context_menu::{OptionHeld, context_menu, menu_entries, menu_windows};
+use crate::dock::context_menu::{OptionHeld, app, divider, menu_entries, menu_windows, trash};
 use crate::dock::effects::{EffectCtx, effect_commands};
 use crate::dock::frame::Frame;
-use crate::dock::items::DockItem;
-use crate::dock::machine::{DockEffect, DockEvent, DockParams, DockState, TileId, step};
+use crate::dock::items::{DockItem, ItemKind};
+use crate::dock::machine::{DockEffect, DockEvent, DockParams, DockState, Point, TileId, step};
 use crate::dock::menu::DockMenu;
-use crate::dock::menu_geometry::{GEOM, tile_anchor};
-use crate::dock::pick::{DockCommand, pick_commands};
+use crate::dock::menu_geometry::{GEOM, pill_anchor, tile_anchor};
+use crate::dock::pick::{DockCommand, DockPick, pick_commands};
 use crate::dock::pointer::{DockInput, resolve};
+use crate::dock::system::{change_login, empty_trash_availability, login_state};
 use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::hooks::{use_link, use_services};
 use sill_ui_kit::links::{ActionLink, Origin};
@@ -37,6 +39,9 @@ pub(crate) struct SessionDeps {
     pub params: DockParams,
     pub world: World,
     pub order: DockMenuOrder,
+    /// `dock.autohide` and `dock.magnification`, which the dock's own menu reads.
+    pub autohide: AutoHide,
+    pub magnification: Magnification,
     pub look: PopupLook,
     /// `dock.remove_threshold_px`.
     pub remove: sill_model::units::Cpx,
@@ -235,6 +240,7 @@ fn apply(
             }
         }
         DockEffect::OpenMenu { tile } => open_menu(slots, deps, outward, *tile),
+        DockEffect::OpenDividerMenu { at } => open_divider_menu(slots, deps, outward, *at),
         // The label is ds `Tooltip{Fly}`'s own (tile.rs); minimize targets need shell-host
         // support first.
         DockEffect::ShowLabel { .. } | DockEffect::HideLabel | DockEffect::SetMinimizeRects => {}
@@ -272,22 +278,55 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
         return;
     };
     let item = &deps.items[at];
-    let app = item.kind.app_id().and_then(|id| deps.world.index.get(id));
-    let rows = context_menu(item, app, &deps.world.toplevels, deps.order, OptionHeld::Up);
-    let windows = menu_windows(item, app, &deps.world.toplevels);
-    let entries = menu_entries(&rows, item, &windows, deps.order);
+    let entry = item.kind.app_id().and_then(|id| deps.world.index.get(id));
+    let toplevels = &deps.world.toplevels;
+    let (rows, windows) = match item.kind {
+        ItemKind::Trash => (trash::rows(empty_trash_availability()), Vec::new()),
+        ItemKind::Pinned(_) | ItemKind::Running(_) | ItemKind::Unmatched(_) => (
+            app::rows(
+                item,
+                entry,
+                toplevels,
+                deps.order,
+                OptionHeld::Up,
+                login_state(item.kind.app_id()),
+            ),
+            menu_windows(item, entry, toplevels),
+        ),
+    };
+    let entries = menu_entries(&rows, item.kind.app_id(), &windows, deps.order);
+    let anchor = deps.frame.tiles.get(at).map(|area| tile_anchor(*area));
+    show(slots, deps, outward, entries, anchor);
+}
+
+/// Open the dock's own menu over the pill at `at`.
+fn open_divider_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, at: Point) {
+    let rows = divider::rows(deps.autohide, deps.magnification);
+    let entries = menu_entries(&rows, None, &[], deps.order);
+    let anchor = Some(pill_anchor(deps.frame.pill, at.x));
+    show(slots, deps, outward, entries, anchor);
+}
+
+/// Open the menu of `entries` over `anchor`; with nothing to show, or no surface, or a menu
+/// already up, it closes as it opens.
+fn show(
+    slots: Slots,
+    deps: &SessionDeps,
+    outward: &Outward,
+    entries: Vec<MenuItem<DockPick>>,
+    anchor: Option<Rect>,
+) {
     let menu = slots.menu.peek().clone();
-    let (Some(area), Some(_), true, false) = (
-        deps.frame.tiles.get(at),
+    let (Some(anchor), Some(_), true, false) = (
+        anchor,
         &outward.surface,
         menu.is_free(),
         entries.is_empty(),
     ) else {
-        // Nothing to show (the Trash tile): the menu closes as it opens.
         close_menu(slots.feed);
         return;
     };
-    menu.open(DockMenu { entries }, deps.look, GEOM, tile_anchor(*area));
+    menu.open(DockMenu { entries }, deps.look, GEOM, anchor);
 }
 
 /// Send `commands`: the shell's own actions to the daemon, which asks this surface for the
@@ -299,6 +338,10 @@ fn send_all(outward: &Outward, commands: Vec<DockCommand>) {
         let _gone_is_dropped = match command {
             DockCommand::Wl(c) => services.windows.control.send(c),
             DockCommand::Pins(c) => services.pins.control.send(c),
+            DockCommand::AtLogin(change) => {
+                change_login(change);
+                Ok(())
+            }
             DockCommand::Do(ask) => {
                 // The daemon carries it out; the dock's surface is where the person clicked.
                 if let Some(actions) = &outward.actions {

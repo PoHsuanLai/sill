@@ -191,6 +191,11 @@ pub enum DockEffect {
     OpenMenu {
         tile: TileId,
     },
+    /// The dock's own menu, over the pill at this point (a right click on the separator or the
+    /// empty background).
+    OpenDividerMenu {
+        at: Point,
+    },
     Launch {
         tile: TileId,
         instance: Instance,

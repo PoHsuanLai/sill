@@ -79,6 +79,14 @@ pub(crate) fn step(
             },
         ) => pressed(dock, tile, button, at, now, p, out),
         (
+            Press::Up,
+            DockEvent::Press {
+                button: Button::Secondary,
+                at,
+                hit: Hit::Pill,
+            },
+        ) => open_divider_menu(dock, at, now, p, out),
+        (
             Press::Down {
                 tile,
                 at: origin,
@@ -241,6 +249,21 @@ fn open_menu(
     out: &mut Vec<DockEffect>,
 ) -> DockState {
     out.push(DockEffect::OpenMenu { tile });
+    let dock = hover::freeze(dock, FreezeCause::Menu, now, p);
+    DockState {
+        menu: MenuState::Open,
+        ..dock
+    }
+}
+
+fn open_divider_menu(
+    dock: DockState,
+    at: Point,
+    now: Stamp,
+    p: &DockParams,
+    out: &mut Vec<DockEffect>,
+) -> DockState {
+    out.push(DockEffect::OpenDividerMenu { at });
     let dock = hover::freeze(dock, FreezeCause::Menu, now, p);
     DockState {
         menu: MenuState::Open,

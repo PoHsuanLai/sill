@@ -120,6 +120,8 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         params,
         world: world.clone(),
         order: file.dock.context_menu_order,
+        autohide: file.dock.autohide,
+        magnification: file.dock.magnification,
         look: PopupLook {
             appearance,
             system: environment.system,
