@@ -365,7 +365,7 @@ dependencies = [
 name = "anyview-core"
 version = "0.1.0-beta.1"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37)",
+ "chordkit",
  "ds-core",
  "infer",
  "jiff",
@@ -388,7 +388,7 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=5a3b660e72156132104f51e9a1f203e262515f5d)",
  "rustix",
 ]
 
@@ -444,7 +444,7 @@ dependencies = [
  "docket-core",
  "docket-dbus",
  "ds-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=5a3b660e72156132104f51e9a1f203e262515f5d)",
  "futures-util",
  "latchkey",
  "log",
@@ -486,7 +486,7 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=5a3b660e72156132104f51e9a1f203e262515f5d)",
  "log",
  "rustix",
  "serde",
@@ -1312,14 +1312,6 @@ dependencies = [
 [[package]]
 name = "chordkit"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=7b80eddb86559909eeb63b882d5563d36f5bad37#7b80eddb86559909eeb63b882d5563d36f5bad37"
-dependencies = [
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "chordkit"
-version = "0.1.0"
 source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0#eb0deff12add543565ec41eecffda646ede43cf0"
 dependencies = [
  "serde",
@@ -1340,7 +1332,7 @@ name = "chordkit-gnome"
 version = "0.1.0"
 source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0#eb0deff12add543565ec41eecffda646ede43cf0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "chordkit-file",
 ]
 
@@ -1349,7 +1341,7 @@ name = "chordkit-kde"
 version = "0.1.0"
 source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0#eb0deff12add543565ec41eecffda646ede43cf0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "chordkit-file",
 ]
 
@@ -2512,7 +2504,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 name = "ds"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "dioxus",
  "ds-core",
  "ds-intents",
@@ -2543,7 +2535,7 @@ dependencies = [
  "blitz-paint",
  "blitz-shell",
  "blitz-traits",
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "chordkit-gnome",
  "chordkit-kde",
  "dioxus",
@@ -2575,7 +2567,7 @@ dependencies = [
 name = "ds-core"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "ds-core-derive",
  "futures-timer",
  "keyboard-types 0.7.0",
@@ -2613,7 +2605,7 @@ dependencies = [
  "blitz-kit",
  "blitz-paint",
  "blitz-traits",
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "dioxus",
  "dioxus-native-dom",
  "ds",
@@ -2644,9 +2636,9 @@ dependencies = [
 [[package]]
 name = "ds-helpers"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92#a73dc452f2f3eb715e90ba6f432206b5f61cef92"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=5a3b660e72156132104f51e9a1f203e262515f5d#5a3b660e72156132104f51e9a1f203e262515f5d"
 dependencies = [
- "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92)",
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=5a3b660e72156132104f51e9a1f203e262515f5d)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2689,7 +2681,7 @@ dependencies = [
 [[package]]
 name = "ds-peer"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=a73dc452f2f3eb715e90ba6f432206b5f61cef92#a73dc452f2f3eb715e90ba6f432206b5f61cef92"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=5a3b660e72156132104f51e9a1f203e262515f5d#5a3b660e72156132104f51e9a1f203e262515f5d"
 dependencies = [
  "futures-timer",
  "thiserror 2.0.21",
@@ -4297,7 +4289,7 @@ dependencies = [
 name = "keycap-client"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "chordkit-file",
  "keycap-protocol",
  "rustix",
@@ -7061,7 +7053,7 @@ dependencies = [
 name = "sill-dock"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "desktop-client",
  "dioxus",
  "ds",
@@ -7099,7 +7091,7 @@ name = "sill-launcher"
 version = "0.1.0"
 dependencies = [
  "almanac-core",
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "docket-core",
  "ds-core",
  "nucleo-matcher",
@@ -7118,7 +7110,7 @@ dependencies = [
  "anyview-image",
  "anyview-peek",
  "anyview-platform",
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "companion-wire",
  "dioxus",
  "dioxus-ssr",
@@ -7193,7 +7185,7 @@ dependencies = [
 name = "sill-overlays"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "desktop-client",
  "dioxus",
  "ds",
@@ -7364,7 +7356,7 @@ dependencies = [
 name = "sill-ui-kit"
 version = "0.1.0"
 dependencies = [
- "chordkit 0.1.0 (git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0)",
+ "chordkit",
  "companion-wire",
  "dioxus",
  "dioxus-ssr",
