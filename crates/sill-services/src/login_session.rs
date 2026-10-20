@@ -35,6 +35,7 @@ pub async fn find_session(
 }
 
 /// logind's manager on a connection: the real [`SessionLookup`].
+#[derive(Debug)]
 pub struct ManagerLookup<'a, 'm> {
     pub connection: &'a Connection,
     pub manager: &'a ManagerProxy<'m>,
