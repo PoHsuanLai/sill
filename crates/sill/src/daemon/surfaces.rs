@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn every_kind_draws_at_a_place_of_its_own() {
         let orders: Vec<u8> = kinds().iter().map(|kind| kind.order).collect();
-        assert_eq!(orders.len(), 25);
+        assert_eq!(orders.len(), 26);
         assert!(
             orders.windows(2).all(|pair| pair[0] < pair[1]),
             "two kinds share a place: {orders:?}"

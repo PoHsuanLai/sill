@@ -26,7 +26,7 @@ impl Surface for EmptyTrashSheet {
     type Link = EmptyTrashLink;
     type Slot = ();
     const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
-    const LAYER_ORDER: u8 = 150;
+    const LAYER_ORDER: u8 = 145;
     const PRESENCE: Presence = Presence::SheetStage;
 
     fn link(links: &Links) -> EmptyTrashLink {
