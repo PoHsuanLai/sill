@@ -6992,7 +6992,6 @@ dependencies = [
  "ds-blitz",
  "ds-core",
  "ds-harness",
- "ds-helpers 0.1.0",
  "ds-lint",
  "ds-settings",
  "keyboard-types 0.7.0",
@@ -7020,7 +7019,6 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "toml",
- "toml_edit",
  "voice-wire",
  "zbus",
 ]
@@ -7037,6 +7035,7 @@ dependencies = [
  "ds-lint",
  "ds-settings",
  "image",
+ "jiff",
  "serde_json",
  "shell-host",
  "sill-launcher",
