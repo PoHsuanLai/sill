@@ -340,11 +340,14 @@ impl Live {
 
 /// Tell the loop each time the portal backend leaves or is replaced.
 async fn watch_caller(connection: Connection, left: mpsc::UnboundedSender<()>) {
-    loop {
-        owner::appeared(&connection, PORTAL_BUS).await;
-        owner::changed(&connection, PORTAL_BUS).await;
-        if left.send(()).is_err() {
-            return;
-        }
-    }
+    owner::while_owned(
+        &connection,
+        PORTAL_BUS,
+        || left.closed(),
+        || {
+            // A closed receiver ends the next task's wait, so a lost send is no loss.
+            let _ = left.send(());
+        },
+    )
+    .await;
 }

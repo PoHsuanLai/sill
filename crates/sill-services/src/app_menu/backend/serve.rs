@@ -15,7 +15,7 @@ use zbus::{Connection, Proxy};
 use crate::app_menu::wire::{MENU_INTERFACE, MENU_PATH, read_layout};
 use crate::callers::{Peers, menu_shown};
 use crate::deadline::{MENU_CALL, within};
-use crate::owner;
+use crate::owner::{self, Ended, Next, Owner};
 use crate::stream::next;
 
 /// Follow `app`'s menu at `name` until the receiver of `events` goes.
@@ -27,15 +27,16 @@ pub(super) async fn follow(
     name: MenuName,
     events: UnboundedSender<AppMenuEvent>,
 ) {
-    loop {
-        owner::appeared(&connection, &name.0).await;
-        tokio::select! {
-            () = session(&connection, &peers, &windows, &app, &name, &events) => {
-                // The app answered badly: nothing to show until its owner changes.
-                owner::changed(&connection, &name.0).await;
-            }
-            () = owner::changed(&connection, &name.0) => {}
-        }
+    let owner = Owner::of(&connection, &name.0);
+    // An app that answered badly leaves nothing to show until its owner changes.
+    while owner
+        .session(async {
+            session(&connection, &peers, &windows, &app, &name, &events).await;
+            Ended::Unreadable
+        })
+        .await
+        == Next::Again
+    {
         if events.send(AppMenuEvent::Gone(app.clone())).is_err() {
             return;
         }

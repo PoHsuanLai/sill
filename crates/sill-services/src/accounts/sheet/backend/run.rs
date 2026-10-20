@@ -229,13 +229,16 @@ fn watch_services(connection: &Connection, left: &mpsc::UnboundedSender<Host>) {
         let connection = connection.clone();
         let left = left.clone();
         tokio::spawn(async move {
-            loop {
-                owner::appeared(&connection, host.bus()).await;
-                owner::changed(&connection, host.bus()).await;
-                if left.send(host).is_err() {
-                    return;
-                }
-            }
+            owner::while_owned(
+                &connection,
+                host.bus(),
+                || left.closed(),
+                || {
+                    // A closed receiver ends the next task's wait, so a lost send is no loss.
+                    let _ = left.send(host);
+                },
+            )
+            .await;
         });
     }
 }
