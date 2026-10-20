@@ -63,6 +63,7 @@ fn arg_words(fault: ArgFault) -> &'static str {
         ArgFault::OutOfRange => "out of range",
         ArgFault::UnknownHandle => "something it no longer holds",
         ArgFault::CrossSpace => "from another Space",
+        ArgFault::HandleAsText => "a name where words belong",
     }
 }
 
