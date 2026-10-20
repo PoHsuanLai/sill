@@ -27,7 +27,7 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
     owner::while_owned(
         &connection,
         CUA_BUS,
-        async || manage(&connection, &events).await,
+        || manage(&connection, &events),
         // With cuad gone nothing is known about the screen model, so nothing is said. A send
         // that fails means the events have no receiver, which ends `manage` on its own.
         || {

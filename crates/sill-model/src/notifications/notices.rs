@@ -96,7 +96,7 @@ mod tests {
         key.0.strip_prefix("press:").map(str::to_owned)
     }
 
-    fn shown_for(notes: &NotesState, name: &String) -> Option<NotificationId> {
+    fn shown_for(notes: &NotesState, name: &str) -> Option<NotificationId> {
         shown_with_action(notes, ENTRY, &key_of(name))
     }
 
@@ -159,7 +159,9 @@ mod tests {
         let mut notes = NotesState::default();
         notes.live.banners = vec![banner(note(1, ENTRY, "a")), banner(note(2, ENTRY, "b"))];
         let mut notices = Notices::default();
-        notices.learn(&notes, [&a, &b], shown_for);
+        notices.learn(&notes, [&a, &b], |notes, name: &String| {
+            shown_for(notes, name)
+        });
         assert_eq!(answer(&notices, 1, &key_of("a")), Some(a.clone()));
         assert_eq!(answer(&notices, 2, &key_of("b")), Some(b.clone()));
         // The right id with the wrong key, a foreign id, and a key that is not a press.
@@ -169,7 +171,9 @@ mod tests {
 
         // A pressed button leaves the notes before its signal is heard; the id still answers.
         notes.live.banners.clear();
-        notices.learn(&notes, [&a, &b], shown_for);
+        notices.learn(&notes, [&a, &b], |notes, name: &String| {
+            shown_for(notes, name)
+        });
         assert_eq!(answer(&notices, 1, &key_of("a")), Some(a.clone()));
         // Closed by the server: it answers nothing, and the other key's is untouched.
         notices.closed(NotificationId(1));
@@ -186,9 +190,9 @@ mod tests {
         let mut notes = NotesState::default();
         notes.live.banners = vec![banner(note(1, ENTRY, "a"))];
         let mut notices = Notices::default();
-        notices.learn(&notes, [&a], shown_for);
+        notices.learn(&notes, [&a], |notes, name: &String| shown_for(notes, name));
         notes.live.banners = vec![banner(note(5, ENTRY, "a"))];
-        notices.learn(&notes, [&a], shown_for);
+        notices.learn(&notes, [&a], |notes, name: &String| shown_for(notes, name));
         assert_eq!(answer(&notices, 1, &key_of("a")), None);
         assert_eq!(answer(&notices, 5, &key_of("a")), Some(a));
     }

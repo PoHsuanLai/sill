@@ -43,14 +43,14 @@ pub(crate) async fn run(
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
     let tx = Published::new(tx, step);
-    owner::follow_owner(
-        &connection,
-        SERVICE,
-        &mut commands,
-        async |commands| session(&connection, &tx, commands).await,
-        |_| tx.feed(WifiEvent::Gone),
-    )
-    .await;
+    let owner = owner::Owner::of(&connection, SERVICE);
+    while owner
+        .session(session(&connection, &tx, &mut commands))
+        .await
+        == owner::Next::Again
+    {
+        tx.feed(WifiEvent::Gone);
+    }
     Ok(())
 }
 

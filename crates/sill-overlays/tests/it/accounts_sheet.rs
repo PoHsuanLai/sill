@@ -142,9 +142,8 @@ impl Run {
     /// Carry what the drawn parts sent to the service into the stepped state.
     fn pump(&mut self) {
         while let Ok(command) = self.running.feeds.accounts_sheet_commands.try_recv() {
-            if let AccountsSheetCommand::Act(handle, action) = command {
-                self.feed(SheetEvent::Acted(handle, action));
-            }
+            let AccountsSheetCommand::Act(handle, action) = command;
+            self.feed(SheetEvent::Acted(handle, action));
         }
     }
 

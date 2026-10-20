@@ -131,12 +131,7 @@ async fn miner_state(session: &Bus) -> zbus::Result<IndexState> {
 
 /// `Endpoint.Query(sparql, the pipe's write end, {})`; the cursor arrives on the pipe.
 async fn ask_endpoint(session: &Bus, sparql: &str, writer: &PipeWriter) -> Result<(), IndexFault> {
-    let connection = session
-        .connect()
-        .await
-        .ok()
-        .flatten()
-        .ok_or(IndexFault::NoBus)?;
+    let connection = session.try_connect().await.map_err(|_| IndexFault::NoBus)?;
     let arguments: HashMap<&str, Value<'_>> = HashMap::new();
     connection
         .call_method(

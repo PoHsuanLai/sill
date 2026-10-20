@@ -53,14 +53,14 @@ pub(crate) async fn run(
         launch: links.launch,
         board: Board::new(links.notifications, links.notes, shown_for),
     };
-    owner::follow_owner(
-        &connection,
-        wire::SYNC,
-        &mut live,
-        async |live| live.session(&mut commands, &mut answers).await,
-        Live::lost,
-    )
-    .await;
+    let owner = owner::Owner::of(&connection, wire::SYNC);
+    while owner
+        .session(live.session(&mut commands, &mut answers))
+        .await
+        == owner::Next::Again
+    {
+        live.lost();
+    }
     Ok(())
 }
 

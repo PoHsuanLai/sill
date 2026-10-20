@@ -635,7 +635,7 @@ async fn follow_answers(connection: Connection, inner: mpsc::UnboundedSender<Inn
     owner::while_owned(
         &connection,
         COMPANION_BUS,
-        async || announce(&connection, &inner).await,
+        || announce(&connection, &inner),
         || {},
     )
     .await;
@@ -673,7 +673,7 @@ async fn follow_intentd(connection: Connection, events: mpsc::UnboundedSender<Co
     owner::while_owned(
         &connection,
         INTENTS_BUS,
-        async || intents::follow(connection.clone(), events.clone()).await,
+        || intents::follow(connection.clone(), events.clone()),
         || {},
     )
     .await;

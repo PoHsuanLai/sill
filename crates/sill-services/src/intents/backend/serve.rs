@@ -83,12 +83,12 @@ fn intentd_at(connection: &Connection, proc_root: &Path) -> Identity {
     Identity::on(connection.clone(), intentd_only(), fixture)
 }
 
-/// docket's `serve_on_with` reports a name that is taken only as text ("<name> is taken"), so
-/// this is the one place that reads it; everything sill claims itself says it with a type
+/// docket's `serve_on_with` reports a name that is taken only as text (docket's "<name> is taken",
+/// or zbus's "already taken" passed through), so this is the one place that reads it; everything sill claims itself says it with a type
 /// ([`serve::take_name`]).
 fn docket_trouble(error: impl Display) -> ClaimError {
     let text = error.to_string();
-    if text.contains("is taken") {
+    if text.contains("taken") {
         ClaimError::NameTaken(text)
     } else {
         ClaimError::Refused(text)

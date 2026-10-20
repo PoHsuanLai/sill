@@ -65,7 +65,7 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
     owner::while_owned(
         &connection,
         COMPANION_BUS,
-        async || changes(&connection, &events).await,
+        || changes(&connection, &events),
         || {},
     )
     .await;
