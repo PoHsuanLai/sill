@@ -40,7 +40,7 @@ pub(crate) fn providers(
             ..CalculatorProvider::default()
         }),
         Arc::new(SettingsProvider::new(&env.dirs.data)),
-        Arc::new(SystemProvider::new(env.buses.system.clone())),
+        Arc::new(SystemProvider::new(links.session.clone())),
         Arc::new(FilesProvider {
             policy: policy.clone(),
             frecency: history.shared(),

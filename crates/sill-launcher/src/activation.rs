@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::companion::CompanionAct;
 use crate::ids::{AppId, ClipKey};
 use crate::query::Generation;
+use crate::session::SessionAction;
 
 /// The effect of choosing a result.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,17 +100,12 @@ pub enum SettingsTarget {
     Key(String),
 }
 
-/// The system provider's commands.
+/// The system provider's commands: a session action, or sill's own reload.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SystemCommand {
-    /// `loginctl lock-session`.
-    Lock,
-    /// logind `TerminateSession`.
-    LogOut,
-    Suspend,
-    Restart,
-    ShutDown,
+    /// A power action ([`SessionAction`]), carried out by the session service.
+    Session(SessionAction),
     /// Re-read settings, apps and pins (the same as `sill reload`).
     Reload,
 }
@@ -121,6 +117,7 @@ mod tests {
     };
     use crate::ids::{AppId, ClipKey};
     use crate::query::Generation;
+    use crate::session::SessionAction;
     use std::path::PathBuf;
 
     /// Every variant's wire form, pinned: the daemon and the launcher UI agree on these.
@@ -165,8 +162,12 @@ mod tests {
                 r#"{"kind":"open_settings","v":{"target":{"kind":"key","v":"appearance.theme"}}}"#,
             ),
             (
-                Activation::System(SystemCommand::ShutDown),
-                r#"{"kind":"system","v":"shut_down"}"#,
+                Activation::System(SystemCommand::Session(SessionAction::PowerOff)),
+                r#"{"kind":"system","v":{"session":"power_off"}}"#,
+            ),
+            (
+                Activation::System(SystemCommand::Reload),
+                r#"{"kind":"system","v":"reload"}"#,
             ),
             (
                 Activation::Open {

@@ -35,6 +35,7 @@ use sill_services::night_shift::NightShiftService;
 use sill_services::notifications::NotificationsService;
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::seat::seat;
+use sill_services::session::SessionService;
 use sill_services::service::spawn;
 use sill_services::sync_hold::{SyncHoldLinks, SyncHoldService};
 use sill_services::voice::{VoiceLinks, VoiceService};
@@ -118,6 +119,8 @@ pub(crate) fn start(
     let battery = spawn::<BatteryService>(rt, env, ());
     let windows = spawn::<WindowsService>(rt, env, ());
     let clipboard = spawn::<ClipboardService>(rt, env, ());
+    let locker = spawn::<LockerService>(rt, env, ());
+    let session = spawn::<SessionService>(rt, env, locker.control.clone());
     let results = spawn::<ResultsService>(
         rt,
         env,
@@ -127,11 +130,11 @@ pub(crate) fn start(
             clipboard: clipboard.state.clone(),
             companion: companion.state.clone(),
             companion_control: companion.control.clone(),
+            session: session.state.clone(),
             wl: windows.control.clone(),
             launch: launch.control.clone(),
         }),
     );
-    let locker = spawn::<LockerService>(rt, env, ());
     let auth = spawn::<AuthService>(rt, env, ());
     let idle = spawn::<IdleService>(
         rt,
@@ -210,7 +213,7 @@ pub(crate) fn start(
         ),
         pins: spawn(rt, env, apps.state.clone()),
         wallpaper: spawn(rt, env, ()),
-        session: spawn(rt, env, locker.control.clone()),
+        session,
         notifications,
         events: spawn(rt, env, ()),
         screenshots,

@@ -1,44 +1,9 @@
 //! The session's state: which power actions logind offers right now.
 
 use serde::{Deserialize, Serialize};
-use sill_launcher::SystemCommand;
+pub use sill_launcher::SessionAction;
 
 use crate::units::Presence;
-
-/// One power action, in the power menu's order (design/20 §1.8: Log Out, Restart, Shut Down,
-/// Suspend; Lock is the launcher's and the bar's, not a power-menu button).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SessionAction {
-    Lock,
-    LogOut,
-    Restart,
-    PowerOff,
-    Suspend,
-}
-
-impl SessionAction {
-    /// The power menu's buttons, left to right.
-    pub const POWER_MENU: [SessionAction; 4] = [
-        SessionAction::LogOut,
-        SessionAction::Restart,
-        SessionAction::PowerOff,
-        SessionAction::Suspend,
-    ];
-
-    /// The session action a launcher system row names; `None` for `Reload`, which is the
-    /// daemon's, not logind's.
-    pub fn of_system(command: SystemCommand) -> Option<SessionAction> {
-        match command {
-            SystemCommand::Lock => Some(SessionAction::Lock),
-            SystemCommand::LogOut => Some(SessionAction::LogOut),
-            SystemCommand::Suspend => Some(SessionAction::Suspend),
-            SystemCommand::Restart => Some(SessionAction::Restart),
-            SystemCommand::ShutDown => Some(SessionAction::PowerOff),
-            SystemCommand::Reload => None,
-        }
-    }
-}
 
 /// Whether logind will carry out an action now: its `Can*` answer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]

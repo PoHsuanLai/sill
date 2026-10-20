@@ -16,6 +16,7 @@ pub mod preview;
 pub mod provider;
 pub mod query;
 pub mod rank;
+pub mod session;
 pub mod sink;
 pub mod subject;
 pub mod time;
@@ -37,6 +38,7 @@ pub use rank::sections::{
     ShownSection, Weight, place, shown, weighted,
 };
 pub use rank::{Prefix, RankWeights, Score, rank, rank_text};
+pub use session::{Confirm, SessionAction};
 pub use sink::{Batch, ResultSink, VecSink};
 pub use subject::{
     CharCount, ClipFacts, ClipKind, EmojiFacts, Excerpt, FileFacts, HelperAttention, HelperFacts,

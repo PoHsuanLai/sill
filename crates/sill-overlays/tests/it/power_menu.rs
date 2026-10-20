@@ -141,7 +141,7 @@ fn open_it_draws_the_alert_and_its_buttons() {
         ("Shut Down", "normal", Some("return")),
         ("Log Out", "normal", None),
         ("Restart", "destructive", None),
-        ("Suspend", "normal", None),
+        ("Sleep", "normal", None),
         ("Cancel", "normal", Some("escape")),
     ];
     assert_eq!(h.count(".ds-alert-footer .ds-button"), buttons.len());
@@ -247,7 +247,7 @@ fn it_opens_on_the_default_button_with_the_ring_on_it() {
         Session::everything(),
         Preselect::Default,
     );
-    assert_eq!(primary(&suspend.harness).as_deref(), Some("Suspend"));
+    assert_eq!(primary(&suspend.harness).as_deref(), Some("Sleep"));
 }
 
 #[test]

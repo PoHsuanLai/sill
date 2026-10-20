@@ -23,7 +23,6 @@ ds-settings = { workspace = true }
 emojis = { workspace = true }
 fend-core = { workspace = true }
 jiff = { workspace = true }
-logind-zbus = { workspace = true }
 mime_guess = { workspace = true }
 nucleo-matcher = { workspace = true }
 percent-encoding = { workspace = true }

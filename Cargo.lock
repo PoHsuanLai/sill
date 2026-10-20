@@ -7218,7 +7218,6 @@ dependencies = [
  "emojis",
  "fend-core",
  "jiff",
- "logind-zbus",
  "mime_guess",
  "nucleo-matcher",
  "percent-encoding",

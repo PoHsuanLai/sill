@@ -131,7 +131,7 @@ impl SectionPlan {
                 rule(K::Settings, S::Settings, 700, 3),
                 rule(K::Clipboard, S::Clipboard, 0, 3),
                 rule(K::Emoji, S::Emoji, 0, 8),
-                rule(K::System, S::System, 0, 3),
+                rule(K::System, S::System, 950, 3),
                 rule(K::Things, S::Things, 0, 5),
                 rule(K::Helpers, S::Helpers, 0, 8),
                 rule(K::Runs, S::Runs, 0, 3),

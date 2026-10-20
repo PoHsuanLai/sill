@@ -1,5 +1,5 @@
 //! What the launcher shows for a typed query, end to end through the pure part of the runner: the
-//! apps and emoji providers answer, `step` merges their batches and `arranged` places them in
+//! apps, system and emoji providers answer, `step` merges their batches and `arranged` places them in
 //! Spotlight's sections. Top Hit comes from the primary providers only, an app that starts with
 //! the query outranks one that merely contains it, and letters scattered along a long title
 //! (`term` in "Capture Current Monitor") come last. The apps are the ones the nested readiness run
@@ -18,7 +18,8 @@ use sill_model::apps::{
 use sill_model::results::{
     Asked, LauncherPolicy, Results, ResultsEvent, Typed, arranged, step as merge,
 };
-use sill_search::providers::{AppsProvider, EmojiProvider};
+use sill_model::session::Session;
+use sill_search::providers::{AppsProvider, EmojiProvider, SystemProvider};
 
 /// An installed app: `(name, generic name, keywords, desktop actions)`.
 type Installed<'a> = (&'a str, &'a str, &'a [&'a str], &'a [&'a str]);
@@ -84,8 +85,10 @@ fn shown(text: &str) -> Placement {
     );
     let (_apps_tx, apps) = tokio::sync::watch::channel(index);
     let (_policy_tx, policy) = tokio::sync::watch::channel(LauncherPolicy::default());
+    let (_session_tx, session) = tokio::sync::watch::channel(Session::everything());
     let frecency = Arc::new(Mutex::new(Frecency::default()));
     let providers: Vec<Box<dyn Provider>> = vec![
+        Box::new(SystemProvider::new(session)),
         Box::new(AppsProvider {
             apps,
             frecency: frecency.clone(),
@@ -181,4 +184,32 @@ fn term_ranks_the_terminals_above_scattered_letters() {
 fn a_whole_name_beats_a_longer_one_that_starts_with_it() {
     let placement = shown("kmail");
     assert_eq!(titles(&placement, Section::TopHit), ["KMail"]);
+}
+
+/// What a person types for a session command finds it on top, whichever name they know it by
+/// (the words are the bar's and the power menu's, from one list).
+#[test]
+fn a_session_command_by_any_of_its_names_is_the_top_hit() {
+    const CASES: &[(&str, &str)] = &[
+        ("logout", "Log Out"),
+        ("log out", "Log Out"),
+        ("sign out", "Log Out"),
+        ("shutdown", "Shut Down"),
+        ("shut down", "Shut Down"),
+        ("power off", "Shut Down"),
+        ("restart", "Restart"),
+        ("reboot", "Restart"),
+        ("sleep", "Sleep"),
+        ("suspend", "Sleep"),
+        ("lock", "Lock Screen"),
+    ];
+    for &(text, want) in CASES {
+        let placement = shown(text);
+        assert_eq!(titles(&placement, Section::TopHit), [want], "{text:?}");
+        assert_eq!(
+            placement.spans.first().map(|span| span.section),
+            Some(Section::TopHit),
+            "{text:?}"
+        );
+    }
 }

@@ -140,7 +140,7 @@ mod tests {
                 },
                 Effect::Elsewhere,
             ),
-            (Activation::System(SystemCommand::Lock), Effect::Elsewhere),
+            (Activation::System(SystemCommand::Session(sill_launcher::SessionAction::Lock)), Effect::Elsewhere),
             (Activation::Nothing, Effect::Elsewhere),
         ];
         for (activation, want) in cases {

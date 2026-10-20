@@ -1,22 +1,5 @@
-use sill_launcher::SystemCommand;
-
 use super::{Offer, Session, SessionAction, SessionEvent, step};
 use crate::units::Presence;
-
-#[test]
-fn launcher_rows_name_their_session_actions() {
-    const CASES: &[(SystemCommand, Option<SessionAction>)] = &[
-        (SystemCommand::Lock, Some(SessionAction::Lock)),
-        (SystemCommand::LogOut, Some(SessionAction::LogOut)),
-        (SystemCommand::Suspend, Some(SessionAction::Suspend)),
-        (SystemCommand::Restart, Some(SessionAction::Restart)),
-        (SystemCommand::ShutDown, Some(SessionAction::PowerOff)),
-        (SystemCommand::Reload, None),
-    ];
-    for &(command, want) in CASES {
-        assert_eq!(SessionAction::of_system(command), want, "{command:?}");
-    }
-}
 
 #[test]
 fn logind_words_map_to_offers() {

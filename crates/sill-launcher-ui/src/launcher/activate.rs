@@ -14,6 +14,7 @@ use std::path::PathBuf;
 
 use sill_model::results::LauncherPolicy;
 use sill_model::session::SessionAction;
+use sill_launcher::Confirm;
 use sill_search::providers::files::IndexSource;
 use sill_search::providers::{
     AppsProvider, CalculatorProvider, ClipboardProvider, CompanionProvider, EmojiProvider,
@@ -55,7 +56,7 @@ impl LauncherProviders {
             }),
             Arc::new(CalculatorProvider::default()),
             Arc::new(SettingsProvider::default()),
-            Arc::new(SystemProvider::new(buses.system)),
+            Arc::new(SystemProvider::new(services.session.state.clone())),
             Arc::new(FilesProvider {
                 policy: policy.clone(),
                 frecency: Arc::new(Mutex::default()),
@@ -244,17 +245,15 @@ pub fn with_results(
     }
 }
 
-/// A session row: Lock and Suspend at once, Log Out, Restart and Shut Down through the power
-/// menu (it is their confirmation); Reload is the daemon's, which no surface reaches.
+/// A session row: by its `confirm`, at once (Lock, Sleep) or through the power menu's question
+/// (Log Out, Restart, Shut Down); Reload is the daemon's, which no surface reaches.
 fn system_effect(command: SystemCommand) -> LauncherEffect {
-    match SessionAction::of_system(command) {
-        Some(action @ (SessionAction::Lock | SessionAction::Suspend)) => {
-            LauncherEffect::Session(action)
-        }
-        Some(
-            action @ (SessionAction::LogOut | SessionAction::Restart | SessionAction::PowerOff),
-        ) => LauncherEffect::PowerMenu(action),
-        None => LauncherEffect::Unreachable(Unreachable::System(command)),
+    match command {
+        SystemCommand::Session(action) => match action.confirm() {
+            Confirm::Now => LauncherEffect::Session(action),
+            Confirm::Ask => LauncherEffect::PowerMenu(action),
+        },
+        SystemCommand::Reload => LauncherEffect::Unreachable(Unreachable::System(command)),
     }
 }
 
@@ -431,23 +430,23 @@ mod tests {
         use sill_model::session::SessionAction;
         let cases = [
             (
-                SystemCommand::Lock,
+                SystemCommand::Session(SessionAction::Lock),
                 LauncherEffect::Session(SessionAction::Lock),
             ),
             (
-                SystemCommand::Suspend,
+                SystemCommand::Session(SessionAction::Suspend),
                 LauncherEffect::Session(SessionAction::Suspend),
             ),
             (
-                SystemCommand::LogOut,
+                SystemCommand::Session(SessionAction::LogOut),
                 LauncherEffect::PowerMenu(SessionAction::LogOut),
             ),
             (
-                SystemCommand::Restart,
+                SystemCommand::Session(SessionAction::Restart),
                 LauncherEffect::PowerMenu(SessionAction::Restart),
             ),
             (
-                SystemCommand::ShutDown,
+                SystemCommand::Session(SessionAction::PowerOff),
                 LauncherEffect::PowerMenu(SessionAction::PowerOff),
             ),
             (

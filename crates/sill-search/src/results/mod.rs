@@ -31,6 +31,7 @@ use sill_model::companion::{Companion, CompanionCommand};
 use sill_model::launch::LaunchCommand;
 use sill_model::results::{LauncherPolicy, Results, SearchCommand};
 use sill_model::seed::Store;
+use sill_model::session::Session;
 use sill_model::windows::{WindowModel, WlCommand};
 use tokio::sync::watch;
 
@@ -74,13 +75,15 @@ pub struct ResultsLinks {
     /// The companion's state, which its three providers read, and where its two lookups go.
     pub companion: watch::Receiver<Companion>,
     pub companion_control: Control<CompanionCommand>,
+    /// What logind offers, which the system rows list (the session service's state).
+    pub session: watch::Receiver<Session>,
     pub wl: Control<WlCommand>,
     pub launch: Control<LaunchCommand>,
 }
 
 /// The launcher's search as a [`Service`]: its providers queried in parallel on the blocking
-/// pool, its history loaded from sill's folder of `env`'s state directory. logind (the system
-/// rows' offers) and Tracker (the files index) are reached on `env`'s buses; the rates cache and
+/// pool, its history loaded from sill's folder of `env`'s state directory. Tracker (the files
+/// index) is reached on `env`'s session bus; the rates cache and
 /// the files provider's home are `env`'s directories.
 #[derive(Debug)]
 pub enum ResultsService {}

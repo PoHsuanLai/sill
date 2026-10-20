@@ -1,8 +1,9 @@
-//! The session's power actions: what logind offers, as the power menu draws it.
+//! The session's power actions: what logind offers, and what each is called (`words`).
 
 mod command;
 mod model;
 mod step;
+pub mod words;
 #[cfg(test)]
 mod tests;
 

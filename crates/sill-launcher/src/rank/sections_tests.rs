@@ -121,18 +121,32 @@ fn typed_text_is_the_weighted_top_hit_then_sections_in_order() {
             ],
         ),
         (
-            "emoji, clipboard and system rows never take Top Hit, whatever their score",
+            "emoji and clipboard rows never take Top Hit, whatever their score",
             vec![
                 (Emoji, "✉", 900_000_000),
                 (Clipboard, "mail me", 5000),
-                (System, "Lock", 4000),
                 (Apps, "Mailo", 950),
             ],
             vec![
                 (Section::TopHit, vec!["Mailo"]),
                 (Section::Clipboard, vec!["mail me"]),
                 (Section::Emoji, vec!["✉"]),
-                (Section::System, vec!["Lock"]),
+            ],
+        ),
+        (
+            "a system row that matches best is the Top Hit (typing logout finds Log Out first)",
+            vec![(System, "Log Out", 1350), (Files, "logout-notes.md", 900)],
+            vec![
+                (Section::TopHit, vec!["Log Out"]),
+                (Section::Documents, vec!["logout-notes.md"]),
+            ],
+        ),
+        (
+            "an app that matches as well as a system row is the Top Hit",
+            vec![(System, "Lock Screen", 1000), (Apps, "Lockdown", 1000)],
+            vec![
+                (Section::TopHit, vec!["Lockdown"]),
+                (Section::System, vec!["Lock Screen"]),
             ],
         ),
         (

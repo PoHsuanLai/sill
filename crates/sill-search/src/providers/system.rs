@@ -1,28 +1,26 @@
-//! Session commands: lock, log out, suspend, restart, shut down, reload.
+//! Session commands: the power actions (`SessionAction::ALL`) and sill's own Reload.
 //!
-//! `query` lists every command whose name (or an alias) matches, except that Suspend, Restart
-//! and Shut Down are left off when logind says it cannot do them right now (`Manager.Can*`,
-//! read-only) or logind is unreachable at all; Lock and Reload need no such check (`loginctl
-//! lock-session` and the daemon's own reload need no session permission that can vary at runtime).
-//! `activate` stays pure (`sill_launcher::Provider`'s own contract): it never calls `loginctl` or
-//! logind itself, only says which [`SystemCommand`] was chosen. Every row's Enter is its command:
-//! the launcher runs Lock and Suspend at once and opens the power menu for Log Out, Restart and
-//! Shut Down, which is their confirmation, so no row needs a confirm action of its own.
+//! Every action logind offers is a row named and searched by `sill_model::session::words` (its
+//! title and its aliases), the same words the bar's system menu and the power menu show; what
+//! logind offers is the session service's state, read here and asked of logind nowhere else.
+//! `activate` stays pure (`sill_launcher::Provider`'s own contract): it only says which
+//! [`SystemCommand`] was chosen, and the launcher carries it out by `SessionAction::confirm`
+//! (Lock and Sleep at once, Log Out, Restart and Shut Down through the power menu's question).
 
-use std::sync::{Mutex, PoisonError};
-use std::time::{Duration, Instant};
-
-use sill_services::env::Bus;
-
-use logind_zbus::manager::{IsSupported, ManagerProxy};
 use sill_launcher::{
     Activation, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider, ProviderKind,
-    Query, RankWeights, ResultSink, SystemCommand, matching, rank_text,
+    Query, RankWeights, ResultSink, SessionAction, SystemCommand, matching, rank_text,
 };
+use sill_model::session::{Offer, Session, words};
+use tokio::sync::watch;
 
-/// One row's static shape: its command, title, search aliases and glyph (design/08-ICONS.md
-/// §1.6 has only `lock` and `power`; every power-menu row but Lock shares `power`, and Reload —
-/// not a power-menu action — shows the provider's own glyph instead of a made-up one).
+/// The Reload row's words: sill's own command, not a power action.
+const RELOAD_TITLE: &str = "Reload";
+const RELOAD_ALIASES: &[&str] = &["Reload Sill", "Refresh"];
+
+/// One row's shape: its command, its id (the frecency key, kept from before the actions had one
+/// list), its title and search words, and its glyph (design/08-ICONS.md §1.6 has only `lock` and
+/// `power`; Reload shows the provider's own glyph).
 struct Row {
     command: SystemCommand,
     id: &'static str,
@@ -31,155 +29,76 @@ struct Row {
     glyph: Option<&'static str>,
 }
 
-/// Every session command, in no particular order (the query ranks them).
-const ROWS: &[Row] = &[
+/// The row of `action`.
+fn action_row(action: SessionAction) -> Row {
     Row {
-        command: SystemCommand::Lock,
-        id: "lock",
-        title: "Lock",
-        aliases: &["Lock Screen"],
-        glyph: Some("lock"),
-    },
-    Row {
-        command: SystemCommand::LogOut,
-        id: "log_out",
-        title: "Log Out",
-        aliases: &["Sign Out"],
-        glyph: Some("power"),
-    },
-    Row {
-        command: SystemCommand::Suspend,
-        id: "suspend",
-        title: "Suspend",
-        aliases: &["Sleep"],
-        glyph: Some("power"),
-    },
-    Row {
-        command: SystemCommand::Restart,
-        id: "restart",
-        title: "Restart",
-        aliases: &["Reboot"],
-        glyph: Some("power"),
-    },
-    Row {
-        command: SystemCommand::ShutDown,
-        id: "shut_down",
-        title: "Shut Down",
-        aliases: &["Power Off", "Shutdown"],
-        glyph: Some("power"),
-    },
+        command: SystemCommand::Session(action),
+        id: action_id(action),
+        title: words::title(action),
+        aliases: words::aliases(action),
+        glyph: Some(match action {
+            SessionAction::Lock => "lock",
+            SessionAction::LogOut
+            | SessionAction::Restart
+            | SessionAction::PowerOff
+            | SessionAction::Suspend => "power",
+        }),
+    }
+}
+
+/// The Reload row.
+fn reload_row() -> Row {
     Row {
         command: SystemCommand::Reload,
         id: "reload",
-        title: "Reload",
-        aliases: &["Reload Sill", "Refresh"],
+        title: RELOAD_TITLE,
+        aliases: RELOAD_ALIASES,
         glyph: None,
-    },
-];
-
-/// Whether logind currently allows a command that can say no (`CanSuspend`/`CanReboot`/
-/// `CanPowerOff`); every other command is always [`Offer::Available`] from this provider's own
-/// side (whether it actually succeeds is the daemon's business at activation time).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Offer {
-    Available,
-    Unavailable,
-}
-
-/// A snapshot of what logind allows, taken once and reused for the process's lifetime (a fresh
-/// `zbus::Connection::system` per keystroke would blow the 50 ms budget; session policy does not
-/// change keystroke to keystroke).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Availability {
-    suspend: Offer,
-    restart: Offer,
-    shut_down: Offer,
-}
-
-impl Availability {
-    /// Logind unreachable, or a property it could not answer: offer nothing that needs it.
-    const NONE: Availability = Availability {
-        suspend: Offer::Unavailable,
-        restart: Offer::Unavailable,
-        shut_down: Offer::Unavailable,
-    };
-
-    fn of(self, command: SystemCommand) -> Offer {
-        match command {
-            SystemCommand::Suspend => self.suspend,
-            SystemCommand::Restart => self.restart,
-            SystemCommand::ShutDown => self.shut_down,
-            SystemCommand::Lock | SystemCommand::LogOut | SystemCommand::Reload => Offer::Available,
-        }
     }
+}
+
+/// An action's row id.
+fn action_id(action: SessionAction) -> &'static str {
+    match action {
+        SessionAction::Lock => "lock",
+        SessionAction::LogOut => "log_out",
+        SessionAction::Restart => "restart",
+        SessionAction::PowerOff => "shut_down",
+        SessionAction::Suspend => "suspend",
+    }
+}
+
+/// The rows `session` allows: every action logind offers (asking for a password first counts),
+/// then Reload, which needs nothing of logind.
+fn rows(session: &Session) -> Vec<Row> {
+    SessionAction::ALL
+        .into_iter()
+        .filter(|&action| matches!(session.offer(action), Offer::Available | Offer::NeedsAuth))
+        .map(action_row)
+        .chain(std::iter::once(reload_row()))
+        .collect()
+}
+
+/// The row named `id`, whatever logind offers now (a row already shown is still chosen).
+fn row_of(id: &ItemId) -> Option<Row> {
+    SessionAction::ALL
+        .into_iter()
+        .map(action_row)
+        .chain(std::iter::once(reload_row()))
+        .find(|row| row.id == id.0)
 }
 
 /// Rows for the session commands whose names match the query.
 #[derive(Debug)]
 pub struct SystemProvider {
-    /// logind's bus, asked what it allows (read only).
-    system: Bus,
-    availability: Mutex<Probed>,
-}
-
-/// How long logind is given to say what the session allows.
-const PROBE_DEADLINE: Duration = Duration::from_secs(2);
-
-/// How long after a probe that got no answer the next is held off: a logind that is not up yet
-/// is asked again soon, a hung one is not asked on every keystroke.
-const REPROBE_AFTER: Duration = Duration::from_secs(15);
-
-/// What the provider knows of logind's answer: nothing yet, an answer (kept for good), or the
-/// time of an attempt that got none.
-#[derive(Debug, Clone, Copy)]
-enum Probed {
-    Not,
-    Known(Availability),
-    Failed(Instant),
+    /// What logind offers: the session service's state.
+    session: watch::Receiver<Session>,
 }
 
 impl SystemProvider {
-    /// Rows whose availability logind on `system` answers, asked once it answers.
-    pub fn new(system: Bus) -> SystemProvider {
-        SystemProvider {
-            system,
-            availability: Mutex::new(Probed::Not),
-        }
-    }
-
-    /// A provider whose availability is fixed, never touching logind — for tests of the
-    /// matching and activation logic, which have nothing to do with what this machine's session
-    /// happens to allow right now.
-    #[cfg(test)]
-    fn with_availability(availability: Availability) -> SystemProvider {
-        SystemProvider {
-            system: Bus::system(sill_services::env::BusRoute::Absent),
-            availability: Mutex::new(Probed::Known(availability)),
-        }
-    }
-
-    /// What the session allows. Asked of logind while it is not known; an answer is kept, and a
-    /// missing one is not: nothing is offered meanwhile, and the next ask after
-    /// [`REPROBE_AFTER`] tries again. The lock is held through the probe, which has its own
-    /// deadline, so a second keystroke waits for it rather than asking again.
-    fn availability(&self) -> Availability {
-        let mut probed = self
-            .availability
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner);
-        match *probed {
-            Probed::Known(known) => known,
-            Probed::Failed(at) if at.elapsed() < REPROBE_AFTER => Availability::NONE,
-            Probed::Not | Probed::Failed(_) => {
-                if let Some(known) = probe_availability(&self.system) {
-                    *probed = Probed::Known(known);
-                    known
-                } else {
-                    *probed = Probed::Failed(Instant::now());
-                    Availability::NONE
-                }
-            }
-        }
+    /// Rows for what `session` says logind offers.
+    pub fn new(session: watch::Receiver<Session>) -> SystemProvider {
+        SystemProvider { session }
     }
 }
 
@@ -195,39 +114,30 @@ impl Provider for SystemProvider {
         let needle = Needle::parse(&query.text);
         let weights = RankWeights::DEFAULT;
         let mut matcher = matching::matcher();
-        let availability = self.availability();
-
-        let mut items = Vec::new();
-        for row in ROWS {
-            if availability.of(row.command) == Offer::Unavailable {
-                continue;
-            }
-            let mut texts = Vec::with_capacity(row.aliases.len() + 1);
-            texts.push(row.title);
-            texts.extend_from_slice(row.aliases);
-            let Some(score) = texts
-                .iter()
-                .filter_map(|text| {
-                    rank_text(&needle, text, FrecencyScore::NONE, &weights, &mut matcher)
+        let session = *self.session.borrow();
+        let mut items: Vec<Item> = rows(&session)
+            .into_iter()
+            .filter_map(|row| {
+                let score = std::iter::once(row.title)
+                    .chain(row.aliases.iter().copied())
+                    .filter_map(|text| {
+                        rank_text(&needle, text, FrecencyScore::NONE, &weights, &mut matcher)
+                    })
+                    .max()?;
+                Some(Item {
+                    id: ItemId(row.id.to_owned()),
+                    provider: ProviderKind::System,
+                    title: row.title.to_owned(),
+                    subtitle: String::new(),
+                    icon: row
+                        .glyph
+                        .map_or(IconRef::None, |name| IconRef::Glyph(name.to_owned())),
+                    score,
+                    actions: Vec::new(),
+                    subject: sill_launcher::Subject::None,
                 })
-                .max()
-            else {
-                continue;
-            };
-            items.push(Item {
-                id: ItemId(row.id.to_owned()),
-                provider: ProviderKind::System,
-                title: row.title.to_owned(),
-                subtitle: String::new(),
-                icon: row
-                    .glyph
-                    .map_or(IconRef::None, |name| IconRef::Glyph(name.to_owned())),
-                score,
-                actions: Vec::new(),
-                subject: sill_launcher::Subject::None,
-            });
-        }
-
+            })
+            .collect();
         if query.is_cancelled() {
             return;
         }
@@ -236,126 +146,108 @@ impl Provider for SystemProvider {
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
-        let Some(row) = row_of(&item.id) else {
-            return Activation::Nothing;
-        };
-        match choice {
-            Choice::Primary => Activation::System(row.command),
-            Choice::Action(_) => Activation::Nothing,
+        match (row_of(&item.id), choice) {
+            (Some(row), Choice::Primary) => Activation::System(row.command),
+            (Some(_), Choice::Action(_)) | (None, _) => Activation::Nothing,
         }
     }
 }
 
-fn row_of(id: &ItemId) -> Option<&'static Row> {
-    ROWS.iter().find(|row| row.id == id.0)
-}
-
-/// `Yes` and `Challenge` (a polkit prompt) both mean logind lets the launcher offer the row; a
-/// prompt the user then cancels is no different from cancelling any other launcher action.
-fn offer_of(supported: IsSupported) -> Offer {
-    match supported {
-        IsSupported::Yes | IsSupported::Challenge => Offer::Available,
-        IsSupported::No | IsSupported::NA => Offer::Unavailable,
-    }
-}
-
-/// The real check, bridged from this trait's sync `query` into async zbus: the results service
-/// runs every provider's `query` inside `tokio::task::spawn_blocking`, and `Handle::block_on` from
-/// inside a blocking-pool task is the documented way back into async code there — this panics only
-/// if called directly from an async task instead (never done here).
-fn probe_availability(system: &Bus) -> Option<Availability> {
-    let handle = tokio::runtime::Handle::try_current().ok()?;
-    handle
-        .block_on(tokio::time::timeout(PROBE_DEADLINE, probe_logind(system)))
-        .ok()?
-        .ok()
-}
-
-/// `CanSuspend`/`CanReboot`/`CanPowerOff` only: read-only properties, never `Suspend`,
-/// `Reboot`, `PowerOff` or `TerminateSession` themselves (those are the daemon's call, once it
-/// receives the `Activation` this provider produced).
-async fn probe_logind(system: &Bus) -> zbus::Result<Availability> {
-    let connection = system
-        .connect()
-        .await?
-        .ok_or_else(|| zbus::Error::Failure("no system bus".to_owned()))?;
-    let manager = ManagerProxy::new(&connection).await?;
-    Ok(Availability {
-        suspend: offer_of(manager.can_suspend().await?),
-        restart: offer_of(manager.can_reboot().await?),
-        shut_down: offer_of(manager.can_power_off().await?),
-    })
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{Availability, Offer, SystemProvider};
+    use super::SystemProvider;
     use sill_launcher::{
-        ActionId, Cancel, Choice, Item, ItemId, Provider, ProviderKind, Query, Score,
-        SystemCommand, VecSink,
+        ActionId, Activation, Cancel, Choice, Item, ItemId, Provider, ProviderKind, Query, Score,
+        SessionAction, SystemCommand, VecSink,
     };
+    use sill_model::session::{Offer, Session};
+    use sill_model::units::Presence;
+    use tokio::sync::watch;
 
-    const ALL_AVAILABLE: Availability = Availability {
-        suspend: Offer::Available,
-        restart: Offer::Available,
-        shut_down: Offer::Available,
-    };
+    fn provider(session: Session) -> SystemProvider {
+        let (_tx, rx) = watch::channel(session);
+        SystemProvider::new(rx)
+    }
 
     fn titles(provider: &SystemProvider, text: &str) -> Vec<String> {
         let cancel = Cancel::new();
         let query = Query::begin(text, &cancel);
         let mut sink = VecSink::default();
         provider.query(&query, &mut sink);
-        sink.0
-            .into_iter()
-            .flatten()
-            .map(|item| item.title)
-            .collect()
+        let mut got: Vec<String> = sink.0.into_iter().flatten().map(|i| i.title).collect();
+        got.sort();
+        got
     }
 
     #[test]
     fn a_query_table_matches_titles_and_aliases() {
-        let provider = SystemProvider::with_availability(ALL_AVAILABLE);
+        let provider = provider(Session::everything());
         const CASES: &[(&str, &[&str])] = &[
             (
                 "",
                 &[
-                    "Lock",
+                    "Lock Screen",
                     "Log Out",
                     "Reload",
                     "Restart",
                     "Shut Down",
-                    "Suspend",
+                    "Sleep",
                 ],
             ),
-            ("lock", &["Lock"]),
+            ("lock", &["Lock Screen"]),
+            ("logout", &["Log Out"]),
+            ("log out", &["Log Out"]),
             ("sign", &["Log Out"]),
-            ("sleep", &["Suspend"]),
-            ("reboot", &["Restart"]),
+            ("shutdown", &["Shut Down"]),
+            ("shut", &["Shut Down"]),
             ("power off", &["Shut Down"]),
+            ("sleep", &["Sleep"]),
+            ("suspend", &["Sleep"]),
+            ("reboot", &["Restart"]),
             ("refresh", &["Reload"]),
             ("zzz", &[]),
         ];
         for &(text, want) in CASES {
-            let mut got = titles(&provider, text);
-            got.sort();
-            let mut want = want.to_vec();
-            want.sort_unstable();
-            assert_eq!(got, want, "{text:?}");
+            let mut want = want.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+            want.sort();
+            assert_eq!(titles(&provider, text), want, "{text:?}");
         }
     }
 
     #[test]
-    fn unavailable_commands_do_not_list() {
-        let provider = SystemProvider::with_availability(Availability::NONE);
-        let mut got = titles(&provider, "");
-        got.sort();
-        assert_eq!(got, vec!["Lock", "Log Out", "Reload"]);
+    fn only_what_the_session_offers_lists() {
+        let offline = Session::default();
+        assert_eq!(
+            titles(&provider(offline), ""),
+            vec!["Reload"],
+            "logind never answered"
+        );
+        let no_power = Session {
+            presence: Presence::Present,
+            lock: Offer::Available,
+            log_out: Offer::Available,
+            restart: Offer::NeedsAuth,
+            ..Session::default()
+        };
+        assert_eq!(
+            titles(&provider(no_power), ""),
+            vec!["Lock Screen", "Log Out", "Reload", "Restart"],
+            "a password prompt still offers it"
+        );
+    }
+
+    #[test]
+    fn the_list_follows_the_session_service() {
+        let (tx, rx) = watch::channel(Session::default());
+        let provider = SystemProvider::new(rx);
+        assert_eq!(titles(&provider, "log"), Vec::<String>::new());
+        tx.send_replace(Session::everything());
+        assert_eq!(titles(&provider, "log"), vec!["Log Out"]);
     }
 
     #[test]
     fn a_cancelled_query_yields_nothing() {
-        let provider = SystemProvider::with_availability(ALL_AVAILABLE);
+        let provider = provider(Session::everything());
         let cancel = Cancel::new();
         let query = Query::begin("lock", &cancel);
         cancel.begin();
@@ -364,11 +256,11 @@ mod tests {
         assert!(sink.0.is_empty());
     }
 
-    fn item(id: &str, title: &str) -> Item {
+    fn item(id: &str) -> Item {
         Item {
             id: ItemId(id.to_owned()),
             provider: ProviderKind::System,
-            title: title.to_owned(),
+            title: id.to_owned(),
             subtitle: String::new(),
             icon: sill_launcher::IconRef::None,
             score: Score(0),
@@ -377,57 +269,34 @@ mod tests {
         }
     }
 
-    #[test]
-    fn a_direct_command_activates_on_enter() {
-        let provider = SystemProvider::with_availability(ALL_AVAILABLE);
-        assert_eq!(
-            provider.activate(&item("lock", "Lock"), &Choice::Primary),
-            sill_launcher::Activation::System(SystemCommand::Lock)
-        );
-    }
-
-    /// Enter on a Log Out, Restart or Shut Down row names its command, and the launcher opens
-    /// the power menu on it (the confirmation); no row carries an action.
+    /// Enter on a row names its command (the launcher asks first by `SessionAction::confirm`);
+    /// no row carries an action, and an unknown id is nothing.
     #[test]
     fn every_row_names_its_command_on_enter() {
-        let provider = SystemProvider::with_availability(ALL_AVAILABLE);
+        let provider = provider(Session::everything());
         let cases = [
-            ("log_out", SystemCommand::LogOut),
-            ("restart", SystemCommand::Restart),
-            ("shut_down", SystemCommand::ShutDown),
-            ("suspend", SystemCommand::Suspend),
+            ("lock", SystemCommand::Session(SessionAction::Lock)),
+            ("log_out", SystemCommand::Session(SessionAction::LogOut)),
+            ("restart", SystemCommand::Session(SessionAction::Restart)),
+            ("shut_down", SystemCommand::Session(SessionAction::PowerOff)),
+            ("suspend", SystemCommand::Session(SessionAction::Suspend)),
+            ("reload", SystemCommand::Reload),
         ];
         for (id, command) in cases {
             assert_eq!(
-                provider.activate(&item(id, id), &Choice::Primary),
-                sill_launcher::Activation::System(command),
+                provider.activate(&item(id), &Choice::Primary),
+                Activation::System(command),
                 "{id}"
             );
             assert_eq!(
-                provider.activate(
-                    &item(id, id),
-                    &Choice::Action(ActionId("confirm".to_owned()))
-                ),
-                sill_launcher::Activation::Nothing,
-                "{id}: no confirm action any more"
+                provider.activate(&item(id), &Choice::Action(ActionId("confirm".to_owned()))),
+                Activation::Nothing,
+                "{id}: no row action"
             );
         }
-        let cancel = Cancel::new();
-        let query = Query::begin("", &cancel);
-        let mut sink = VecSink::default();
-        provider.query(&query, &mut sink);
-        assert!(
-            sink.0.iter().flatten().all(|i| i.actions.is_empty()),
-            "no row carries an action"
-        );
-    }
-
-    #[test]
-    fn an_unknown_row_id_activates_to_nothing() {
-        let provider = SystemProvider::with_availability(ALL_AVAILABLE);
         assert_eq!(
-            provider.activate(&item("no-such-row", "?"), &Choice::Primary),
-            sill_launcher::Activation::Nothing
+            provider.activate(&item("no-such-row"), &Choice::Primary),
+            Activation::Nothing
         );
     }
 }

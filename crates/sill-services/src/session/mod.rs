@@ -1,12 +1,6 @@
-//! The session: logind's power actions and what it currently allows (design/20 §1.8: the power
-//! menu's Log Out, Restart, Shut Down and Suspend; the launcher's system rows carry out through
-//! the same control).
-//!
-//! logind is spoken through `logind-zbus` (already a dependency, the launcher's system provider
-//! uses it for `Can*`). The provider keeps its own availability snapshot for now (its
-//! `OnceLock`, taken on the first query): moving it onto this service's receiver is a change to
-//! the provider's constructor, which the results runner and the launcher panel both call, and
-//! nothing is gained until the power menu needs the two to agree live.
+//! The session: logind's power actions and what it currently allows. Every surface that offers
+//! them reads this service's state and sends to its control: the bar's system menu, the power
+//! menu (design/20 §1.8) and the launcher's System rows. Only this service asks logind.
 
 mod backend;
 
