@@ -2,7 +2,7 @@ use ds_core::word::Word;
 use sill_launcher::actions::ActionId;
 use sill_launcher::{AppId, Confirm, SessionAction, SettingsLink, WindowKey};
 
-use super::{Ask, Effect, Needs, Panel, Subject, def};
+use super::{Ask, Effect, Needs, Panel, Subject, def, panel_action, screenshot_action};
 use crate::screenshots::ShotKind;
 
 #[test]
@@ -65,7 +65,7 @@ fn the_session_actions_ask_as_the_power_menu_does() {
 #[test]
 fn a_screenshot_kind_and_a_panel_find_their_action() {
     for kind in [ShotKind::Area, ShotKind::Window, ShotKind::Screen] {
-        assert_eq!(def(ActionId::screenshot(kind)).effect, Effect::Shot(kind));
+        assert_eq!(def(screenshot_action(kind)).effect, Effect::Shot(kind));
     }
     for panel in [
         Panel::Launcher,
@@ -74,7 +74,7 @@ fn a_screenshot_kind_and_a_panel_find_their_action() {
         Panel::NotificationCenter,
         Panel::ControlCenter,
     ] {
-        assert_eq!(def(ActionId::panel(panel)).effect, Effect::Panel(panel));
+        assert_eq!(def(panel_action(panel)).effect, Effect::Panel(panel));
     }
 }
 

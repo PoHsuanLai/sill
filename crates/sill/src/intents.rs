@@ -14,7 +14,7 @@ use sill_ipc::request::Request;
 use sill_ipc::response::{FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_launcher::actions::ActionId;
-use sill_model::actions::{Ask, Subject};
+use sill_model::actions::{Ask, Subject, screenshot_action};
 use sill_model::intents::shell::{ShellAction, ShellFault, WorkspaceStep};
 use sill_services::ShellCall;
 use tokio::runtime::Handle;
@@ -39,7 +39,7 @@ pub fn request_of(action: ShellAction) -> Request {
             Request::Do(Ask::of(ActionId::PreviousSpace))
         }
         ShellAction::Lock => Request::Do(Ask::of(ActionId::Lock)),
-        ShellAction::Screenshot(kind) => Request::Do(Ask::of(ActionId::screenshot(kind))),
+        ShellAction::Screenshot(kind) => Request::Do(Ask::of(screenshot_action(kind))),
     }
 }
 

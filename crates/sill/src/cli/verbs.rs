@@ -12,6 +12,7 @@ use sill_ipc::act::{SwitcherRequest, WorkspaceRequest};
 use sill_ipc::request::Request;
 use sill_launcher::actions::ActionId;
 use sill_model::actions::Ask;
+pub(super) use sill_model::actions::screenshot_action;
 use sill_model::screenshots::ShotKind;
 
 use super::{Cli, Command, request};
@@ -40,11 +41,6 @@ pub fn action_of(verb: ShellVerb) -> ActionId {
         ShellVerb::ControlCenterToggle => ActionId::ControlCenter,
         ShellVerb::NotificationCenterToggle => ActionId::NotificationCenter,
     }
-}
-
-/// The action `sill screenshot KIND` is.
-pub(super) fn screenshot_action(kind: ShotKind) -> ActionId {
-    ActionId::screenshot(kind)
 }
 
 /// The action `sill switcher WORD` is.

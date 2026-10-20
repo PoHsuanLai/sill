@@ -167,25 +167,23 @@ impl Effect {
     }
 }
 
-impl ActionId {
-    /// The action that takes a screenshot of `kind`.
-    pub fn screenshot(kind: ShotKind) -> ActionId {
-        match kind {
-            ShotKind::Area => ActionId::ScreenshotArea,
-            ShotKind::Window => ActionId::ScreenshotWindow,
-            ShotKind::Screen => ActionId::ScreenshotScreen,
-        }
+/// The action that takes a screenshot of `kind`.
+pub fn screenshot_action(kind: ShotKind) -> ActionId {
+    match kind {
+        ShotKind::Area => ActionId::ScreenshotArea,
+        ShotKind::Window => ActionId::ScreenshotWindow,
+        ShotKind::Screen => ActionId::ScreenshotScreen,
     }
+}
 
-    /// The action that opens `panel`.
-    pub fn panel(panel: Panel) -> ActionId {
-        match panel {
-            Panel::Launcher => ActionId::Launcher,
-            Panel::PowerMenu => ActionId::PowerMenu,
-            Panel::ForceQuit => ActionId::ForceQuitPanel,
-            Panel::NotificationCenter => ActionId::NotificationCenter,
-            Panel::ControlCenter => ActionId::ControlCenter,
-        }
+/// The action that opens `panel`.
+pub fn panel_action(panel: Panel) -> ActionId {
+    match panel {
+        Panel::Launcher => ActionId::Launcher,
+        Panel::PowerMenu => ActionId::PowerMenu,
+        Panel::ForceQuit => ActionId::ForceQuitPanel,
+        Panel::NotificationCenter => ActionId::NotificationCenter,
+        Panel::ControlCenter => ActionId::ControlCenter,
     }
 }
 
