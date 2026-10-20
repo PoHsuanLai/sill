@@ -12,7 +12,7 @@ use sill_launcher::{
     SettingsLink,
 };
 
-use ds_settings::schema::{Schema, data_dirs_from};
+use ds_settings::schema::Schema;
 use ds_settings::target::SettingsTarget;
 use index::{IndexedKey, SettingsIndex};
 use schema_files::{fingerprint, schema_paths};
@@ -45,14 +45,18 @@ impl Default for SettingsProvider {
 }
 
 impl SettingsProvider {
-    /// Indexes the installed quire and sill schemas (`ds_settings::schema::data_dirs_from` of
-    /// the data directory `data_home` and `$XDG_DATA_DIRS`, a system search path read like `$PATH`).
-    pub fn new(data_home: &Path) -> SettingsProvider {
-        SettingsProvider::with_dirs(data_dirs_from(
-            Some(data_home.into()),
-            std::env::var_os("XDG_DATA_DIRS"),
-            None,
-        ))
+    /// Indexes the installed quire and sill schemas: `quire/settings` in each of `data_dirs` (the
+    /// system data directories) and then in `data_home`, as the environment was read once at the
+    /// edge ([`sill_services::env::Dirs`]).
+    pub fn new(data_home: &Path, data_dirs: &[PathBuf]) -> SettingsProvider {
+        SettingsProvider::with_dirs(
+            data_dirs
+                .iter()
+                .map(PathBuf::as_path)
+                .chain(std::iter::once(data_home))
+                .map(|base| base.join("quire").join("settings"))
+                .collect(),
+        )
     }
 
     /// As [`SettingsProvider::new`], but discovering schemas under `dirs` instead of the real

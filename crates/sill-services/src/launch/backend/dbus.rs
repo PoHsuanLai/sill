@@ -11,7 +11,8 @@ use zbus::zvariant::Value;
 
 use super::uri::file_uri;
 
-/// `org.freedesktop.Application.Activate` on the bus name `app.id`, object path derived from it
+/// `org.freedesktop.Application.Activate` on the app's bus name ([`App::bus_name`]: what the
+/// entry declares in `X-Quire-BusNames`, else its desktop id), object path derived from it
 /// (GApplication's own convention: each `.` becomes `/`, each `-` becomes `_`, prefixed with
 /// `/`), with the activation token as `platform_data["desktop-startup-id"]` when one was
 /// granted.
@@ -26,8 +27,8 @@ pub async fn activate(
     }
     connection
         .call_method(
-            Some(app.id.0.as_str()),
-            object_path(&app.id.0).as_str(),
+            Some(app.bus_name()),
+            object_path(app.bus_name()).as_str(),
             Some("org.freedesktop.Application"),
             "Activate",
             &(platform_data,),

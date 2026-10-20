@@ -39,7 +39,7 @@ pub(crate) fn providers(
             rates_file: crate::providers::calculator::fetch::cache_path(&env.dirs),
             ..CalculatorProvider::default()
         }),
-        Arc::new(SettingsProvider::new(&env.dirs.data)),
+        Arc::new(SettingsProvider::new(&env.dirs.data, &env.dirs.data_dirs)),
         Arc::new(SystemProvider::new(links.session.clone())),
         Arc::new(FilesProvider {
             policy: policy.clone(),

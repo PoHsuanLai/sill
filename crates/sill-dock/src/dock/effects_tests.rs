@@ -24,6 +24,8 @@ fn app(id: &str, actions: &[&str]) -> App {
         icon: AppIcon::None,
         startup_wm_class: None,
         flatpak: None,
+        bus_names: Vec::new(),
+        intents_app: None,
         terminal: Terminal::No,
         activation: DbusActivation::Exec,
         actions: actions

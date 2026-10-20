@@ -1,6 +1,7 @@
 use docket_core::Keep;
 use prov::{RunId, SpaceId, TaskId};
 use sill_launcher::{ProviderKind, WindowKey};
+use sill_model::apps::AppIndex;
 use sill_model::companion::{LauncherOrigin, Summon};
 use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 
@@ -213,6 +214,7 @@ fn a_prompt_from_a_panel_summoned_over_a_window_keeps_the_window_chip_only() {
         "forward the receipts".to_owned(),
         &summon,
         &toplevels(),
+        &AppIndex::default(),
         SpaceId::parse("work").unwrap_or_else(|e| panic!("{e}")),
     );
     assert_eq!(
@@ -244,6 +246,7 @@ fn a_prompt_from_the_search_or_over_no_window_carries_no_context() {
             "what time is it".to_owned(),
             &summon,
             &toplevels(),
+            &AppIndex::default(),
             SpaceId::desktop(),
         );
         assert_eq!((ask.window, ask.app), (None, None), "{summon:?}");

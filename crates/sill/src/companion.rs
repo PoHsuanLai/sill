@@ -14,6 +14,7 @@ use sill_ipc::response::Response;
 use sill_ipc::show::CompanionRequest;
 use sill_launcher_ui::Launcher;
 use sill_model::companion::{CompanionCommand, FocusInput, LauncherFacts, SummonOut};
+use sill_model::windows::intents_app_for;
 use sill_services::Control;
 use sill_ui_kit::links::{LauncherLink, Reveal};
 use sill_ui_kit::services::Services;
@@ -24,14 +25,15 @@ use crate::daemon::msg::ShellMsg;
 use crate::ipc::dispatch::{Reach, sent};
 use crate::outputs::Outputs;
 
-/// What is focused now: the active window, its app when the Wayland app id is a bus name, and the
+/// What is focused now: the active window, its app (named as its entry declares), and the
 /// panel.
 pub fn focus_of(services: &Services, launcher: &LauncherLink) -> FocusInput {
     let toplevels = services.windows.state.borrow();
+    let apps = services.apps.state.borrow();
     let active = toplevels.toplevels.active();
     FocusInput {
         window: active.map(|window| window.key),
-        app: active.and_then(|window| prov::AppName::parse(&window.app_id).ok()),
+        app: active.and_then(|window| intents_app_for(&window.app_id, &apps)),
         launcher: match launcher.now() {
             Reveal::Revealed(opening) => LauncherFacts::Open(opening.mode),
             Reveal::Hidden { .. } => LauncherFacts::Closed,

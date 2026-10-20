@@ -35,15 +35,10 @@ fn scan_walks_every_dir_and_yields_them_in_precedence_order() {
     let found = scan(&fixture_dirs(), &theme(), &IconRoots::default(), &[]);
 
     let firefoxes: Vec<_> = found.iter().filter(|a| a.id.0 == "firefox").collect();
-    assert_eq!(firefoxes.len(), 2, "both firefox.desktop files are yielded");
-    assert_eq!(
-        firefoxes[0].name, "Firefox (home)",
-        "the home directory is scanned before the system one"
-    );
-    assert_eq!(firefoxes[1].name, "Firefox (system)");
+    assert_eq!(firefoxes.len(), 1, "the home file shadows the system one");
+    assert_eq!(firefoxes[0].name, "Firefox (home)");
 
-    // Dedup itself is `apps::step`'s job (already frozen and tested): feeding this scan
-    // through it keeps whichever came first, i.e. home's.
+    // The index keeps one entry per id as well, whatever the scan hands it.
     let index = sill_model::apps::step(AppIndex::default(), AppsEvent::Scanned(found.clone()));
     let deduped: Vec<_> = index.apps.iter().filter(|a| a.id.0 == "firefox").collect();
     assert_eq!(deduped.len(), 1);

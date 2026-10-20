@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 
+use ds_helpers::{AppKeys, match_app};
 use keycap_protocol::ProfileName;
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
@@ -20,6 +21,13 @@ impl AppIndex {
             .binary_search_by(|app| app.id.cmp(id))
             .ok()
             .and_then(|i| self.apps.get(i))
+    }
+
+    /// The entry a toplevel with Wayland `app_id` (and, through XWayland, `wm_class`) belongs to,
+    /// by the five rules of [`ds_helpers::match_app`], the one matcher every shell part shares.
+    pub fn matching(&self, app_id: &str, wm_class: Option<&str>) -> Option<&App> {
+        let keys: Vec<AppKeys> = self.apps.iter().map(App::keys).collect();
+        self.apps.get(match_app(app_id, wm_class, &keys)?)
     }
 }
 
@@ -40,6 +48,11 @@ pub struct App {
     pub startup_wm_class: Option<String>,
     /// `X-Flatpak`, the Flatpak app id, for `match_app`; `None` for a host app.
     pub flatpak: Option<String>,
+    /// `X-Quire-BusNames`: the well-known session-bus names the app owns, most important first;
+    /// empty when the entry declares none (activation then falls back to the desktop id).
+    pub bus_names: Vec<String>,
+    /// `X-Quire-IntentsApp`: the app's name in its intents manifest; `None` when it declares none.
+    pub intents_app: Option<String>,
     pub terminal: Terminal,
     pub activation: DbusActivation,
     /// `Actions=` in declared order, each with its `[Desktop Action]` group.
@@ -58,6 +71,25 @@ pub struct App {
     pub listing: Listing,
     /// The `.desktop` file (for `%k`, Show in Files, autostart copies).
     pub path: PathBuf,
+}
+
+impl App {
+    /// What window matching reads from this entry.
+    pub fn keys(&self) -> AppKeys {
+        AppKeys {
+            id: self.id.0.clone(),
+            startup_wm_class: self.startup_wm_class.clone(),
+            flatpak: self.flatpak.clone(),
+        }
+    }
+
+    /// The well-known bus name that activates the app: its first declared one, else its desktop
+    /// id (what an entry with no `X-Quire-BusNames` is assumed to own).
+    pub fn bus_name(&self) -> &str {
+        self.bus_names
+            .first()
+            .map_or(self.id.0.as_str(), String::as_str)
+    }
 }
 
 /// An entry's icon, resolved against the icon theme at scan time.
@@ -146,7 +178,7 @@ pub(crate) mod tests {
     use sill_launcher::AppId;
     use std::path::PathBuf;
 
-    /// A minimal entry with `id` and `name`, for this module's and `match_app`'s tests.
+    /// A minimal entry with `id` and `name`, for this module's and the matcher's tests.
     pub(crate) fn app(id: &str, name: &str) -> App {
         App {
             id: AppId(id.to_owned()),
@@ -157,6 +189,8 @@ pub(crate) mod tests {
             icon: AppIcon::None,
             startup_wm_class: None,
             flatpak: None,
+            bus_names: Vec::new(),
+            intents_app: None,
             terminal: Terminal::No,
             activation: DbusActivation::Exec,
             actions: Vec::new(),
@@ -248,5 +282,23 @@ pub(crate) mod tests {
             Some("D")
         );
         assert!(index.get(&AppId("c".to_owned())).is_none());
+    }
+
+    #[test]
+    fn matching_finds_an_entry_by_the_shared_rules_and_bus_name_falls_back_to_the_id() {
+        let mut steam = app("com.valvesoftware.Steam", "Steam");
+        steam.startup_wm_class = Some("steam".to_owned());
+        steam.bus_names = vec!["com.valvesoftware.Steam.Main".to_owned()];
+        let index = step(
+            AppIndex::default(),
+            AppsEvent::Scanned(vec![steam, app("org.mozilla.firefox", "Firefox")]),
+        );
+        let name = |id: &str| index.matching(id, None).map(|a| a.name.as_str());
+        assert_eq!(name("STEAM"), Some("Steam"));
+        assert_eq!(name("firefox"), Some("Firefox"));
+        assert_eq!(name("fox"), None);
+        let bus = |id: &str| index.matching(id, None).map(App::bus_name);
+        assert_eq!(bus("steam"), Some("com.valvesoftware.Steam.Main"));
+        assert_eq!(bus("firefox"), Some("org.mozilla.firefox"));
     }
 }

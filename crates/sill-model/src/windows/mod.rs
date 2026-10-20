@@ -10,7 +10,7 @@ mod subjects;
 pub mod toplevels;
 pub mod workspaces;
 
-pub use app::{AppMatch, app_for, app_of};
+pub use app::{AppMatch, app_for, app_of, intents_app_for};
 pub use caps::{WorkspaceCap, WorkspaceCaps};
 pub use command::{Relative, WlCommand};
 pub use ids::{Activity, Pinning};

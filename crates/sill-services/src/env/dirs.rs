@@ -4,9 +4,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-/// The system data directories when `$XDG_DATA_DIRS` names none (the XDG base directory
-/// specification's own default).
-const DEFAULT_DATA_DIRS: [&str; 2] = ["/usr/local/share", "/usr/share"];
+use ds_helpers::XdgEnv;
 
 /// The system configuration directories when `$XDG_CONFIG_DIRS` names none.
 const DEFAULT_CONFIG_DIRS: [&str; 1] = ["/etc/xdg"];
@@ -24,12 +22,6 @@ const HOME_OPT: &str = ".local/opt";
 
 /// The folder snap keeps each installed snap in, `<name>/current` being its active revision.
 const SNAP: &str = "/snap";
-
-/// The system app stores' folders of desktop entries, outside the data directories.
-const STORE_EXPORTS: [&str; 2] = [
-    "/var/lib/flatpak/exports/share/applications",
-    "/var/lib/snapd/desktop/applications",
-];
 
 /// Where the person's files, settings, state, caches and session sockets live.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -60,9 +52,11 @@ pub struct Dirs {
     /// `/opt`, `~/.local/opt` and each snap's `current` folder, listed once when the process started (a snap
     /// installed later is seen at the next start).
     pub app_stores: Vec<PathBuf>,
-    /// The system app stores' folders of desktop entries: Flatpak's system install, then
-    /// snap's (Ubuntu's Firefox is a snap).
-    pub store_exports: Vec<PathBuf>,
+    /// The folders of desktop entries, most important first: the person's, each system data
+    /// directory's, then the app stores' exports (Flatpak's installs, snap's; Ubuntu's Firefox is
+    /// a snap). [`ds_helpers::XdgEnv::applications_dirs`] decides it, for every part of the
+    /// desktop alike.
+    pub applications: Vec<PathBuf>,
 }
 
 impl Dirs {
@@ -70,10 +64,12 @@ impl Dirs {
     /// no passwd entry) everything hangs off `/`, where writes fail and are logged.
     pub fn from_process() -> Dirs {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
+        let xdg = XdgEnv::from_process();
         Dirs {
             config: dirs::config_dir().unwrap_or_else(|| home.join(".config")),
-            data: dirs::data_dir().unwrap_or_else(|| home.join(".local/share")),
-            data_dirs: data_dirs_from(std::env::var_os("XDG_DATA_DIRS")),
+            data: xdg.data_home().unwrap_or_else(|| home.join(".local/share")),
+            data_dirs: xdg.data_dirs(),
+            applications: xdg.applications_dirs(),
             config_dirs: config_dirs_from(std::env::var_os("XDG_CONFIG_DIRS")),
             program_dirs: absolute_dirs(std::env::var_os("PATH")),
             state: dirs::state_dir().unwrap_or_else(|| home.join(".local/state")),
@@ -81,7 +77,6 @@ impl Dirs {
             runtime: dirs::runtime_dir(),
             pictures: dirs::picture_dir(),
             app_stores: app_stores_in(&[PathBuf::from(OPT), home.join(HOME_OPT)], Path::new(SNAP)),
-            store_exports: STORE_EXPORTS.iter().map(PathBuf::from).collect(),
             home,
         }
     }
@@ -101,10 +96,10 @@ impl Dirs {
             runtime: Some(root.join("run")),
             pictures: None,
             app_stores: vec![root.join("opt"), root.join("home").join(HOME_OPT)],
-            store_exports: STORE_EXPORTS
-                .iter()
-                .map(|dir| root.join(dir.trim_start_matches('/')))
-                .collect(),
+            applications: vec![
+                root.join("data/applications"),
+                root.join("share/applications"),
+            ],
         }
     }
 
@@ -196,13 +191,8 @@ fn or_default(named: Vec<PathBuf>, default: &[&str]) -> Vec<PathBuf> {
     }
 }
 
-/// The directories `$XDG_DATA_DIRS` (`raw`) names: colon-separated, absolute ones only; the
+/// The directories `$XDG_CONFIG_DIRS` (`raw`) names: colon-separated, absolute ones only; the
 /// specification's default when it is unset or names none.
-fn data_dirs_from(raw: Option<OsString>) -> Vec<PathBuf> {
-    or_default(absolute_dirs(raw), &DEFAULT_DATA_DIRS)
-}
-
-/// The directories `$XDG_CONFIG_DIRS` (`raw`) names, as [`data_dirs_from`] reads its own.
 fn config_dirs_from(raw: Option<OsString>) -> Vec<PathBuf> {
     or_default(absolute_dirs(raw), &DEFAULT_CONFIG_DIRS)
 }
@@ -212,7 +202,7 @@ mod tests {
     use std::ffi::OsString;
     use std::path::{Path, PathBuf};
 
-    use super::{Dirs, app_stores_in, data_dirs_from};
+    use super::{Dirs, app_stores_in};
 
     #[test]
     fn a_scratch_root_holds_every_directory() {
@@ -230,22 +220,6 @@ mod tests {
         assert_eq!(dirs.pictures, None);
         assert_eq!(dirs.sill_state(), Path::new("/scratch/state/sill"));
         assert_eq!(dirs.keycap_config(), Path::new("/scratch/config/keycap"));
-    }
-
-    #[test]
-    fn data_dirs_are_the_absolute_entries_or_the_default() {
-        const CASES: &[(Option<&str>, &[&str])] = &[
-            (None, &["/usr/local/share", "/usr/share"]),
-            (Some(""), &["/usr/local/share", "/usr/share"]),
-            (Some("a:b"), &["/usr/local/share", "/usr/share"]),
-            (Some("/opt/x:/usr/share"), &["/opt/x", "/usr/share"]),
-            (Some("/opt/x::rel:/y"), &["/opt/x", "/y"]),
-        ];
-        for (raw, want) in CASES {
-            let got = data_dirs_from(raw.map(OsString::from));
-            let want: Vec<PathBuf> = want.iter().map(PathBuf::from).collect();
-            assert_eq!(got, want, "{raw:?}");
-        }
     }
 
     #[test]

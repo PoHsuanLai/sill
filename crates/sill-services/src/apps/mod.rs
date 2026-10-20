@@ -11,10 +11,7 @@ use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-pub use backend::{
-    IconRoots, IconTheme, applications_dirs, icon_theme, parse_entry, pixmap_dirs, resolve_icon,
-    scan,
-};
+pub use backend::{IconRoots, IconTheme, icon_theme, parse_entry, pixmap_dirs, resolve_icon, scan};
 
 /// The desktop entries and their icons as a [`Service`]: scanned once and published, then every
 /// applications directory watched and rescanned after half a second of quiet.
@@ -33,7 +30,7 @@ impl Service for AppsService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let config = env.dirs.config.clone();
-        let dirs = applications_dirs(&env.dirs.data, &env.dirs.data_dirs, &env.dirs.store_exports);
+        let dirs = env.dirs.applications.clone();
         let roots = env.dirs.icon_file_roots();
         async move {
             backend::run(io.state, io.commands, config, dirs, roots).await;

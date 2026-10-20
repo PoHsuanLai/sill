@@ -6,16 +6,18 @@
 use docket_core::{ContextKeep, Keep, TurnVia};
 use prov::{AppName, SpaceId};
 use sill_launcher::WindowKey;
+use sill_model::apps::AppIndex;
 use sill_model::companion::LauncherOrigin;
 use sill_model::companion::{AskInput, Summon};
-use sill_model::windows::Toplevels;
+use sill_model::windows::{Toplevels, intents_app_for};
 
-/// The ask for `prompt` in the summon `summon` found the panel in, over `toplevels`, made in
-/// `space`.
+/// The ask for `prompt` in the summon `summon` found the panel in, over `toplevels` (their apps
+/// named through `apps`), made in `space`.
 pub fn ask_input(
     prompt: String,
     summon: &Summon,
     toplevels: &Toplevels,
+    apps: &AppIndex,
     space: SpaceId,
 ) -> AskInput {
     let window = match summon {
@@ -41,17 +43,17 @@ pub fn ask_input(
             },
         },
         window,
-        app: window.and_then(|key| app_of(toplevels, key)),
+        app: window.and_then(|key| app_of(toplevels, apps, key)),
         space,
         via: TurnVia::Typed,
     }
 }
 
-/// The app of a window, when its Wayland app id is a bus name.
-fn app_of(toplevels: &Toplevels, key: WindowKey) -> Option<AppName> {
+/// The app of a window, by the name its entry declares for the intents manifests.
+fn app_of(toplevels: &Toplevels, apps: &AppIndex, key: WindowKey) -> Option<AppName> {
     toplevels
         .windows
         .iter()
         .find(|window| window.key == key)
-        .and_then(|window| AppName::parse(&window.app_id).ok())
+        .and_then(|window| intents_app_for(&window.app_id, apps))
 }

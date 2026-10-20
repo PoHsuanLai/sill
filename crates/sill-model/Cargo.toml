@@ -12,6 +12,7 @@ publish.workspace = true
 sill-launcher = { workspace = true }
 chordkit = { workspace = true }
 ds-core = { workspace = true }
+ds-helpers = { workspace = true }
 keycap-protocol = { workspace = true }
 docket-core = { workspace = true }
 companion-wire = { workspace = true }

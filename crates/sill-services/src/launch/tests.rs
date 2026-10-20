@@ -22,6 +22,8 @@ fn index_with(id: &str, exec: &str) -> AppIndex {
         icon: AppIcon::None,
         startup_wm_class: None,
         flatpak: None,
+        bus_names: Vec::new(),
+        intents_app: None,
         terminal: Terminal::No,
         activation: DbusActivation::Exec,
         actions: Vec::new(),

@@ -3,7 +3,7 @@
 use std::borrow::Cow;
 use std::path::Path;
 
-use ds_helpers::{DESKTOP_ENTRY_CAP, DesktopFile, DesktopGroup, EntryLocale};
+use ds_helpers::{ApplicationEntry, DesktopFile, DesktopGroup, EntryLocale};
 use keycap_protocol::ProfileName;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
@@ -20,21 +20,19 @@ const CURRENT_DESKTOPS: [&str; 1] = ["quire"];
 /// The desktop entry key naming the keyboard profile an app wants.
 const KEYBOARD_PROFILE_KEY: &str = "X-Keycap-Profile";
 
-/// One `.desktop` file's text as an [`App`] with id `id` (derived from `path` relative to its
-/// applications directory by the scan: `kde/foo.desktop` is `kde-foo`); `None` for text over
-/// [`DESKTOP_ENTRY_CAP`], a non-Application type, an entry without `Name`/`Exec`, or one whose
+/// One loaded `.desktop` file as an [`App`], its id the entry's desktop id without the suffix
+/// (`kde/foo.desktop` is `kde-foo`, [`ds_helpers::DesktopId`]'s rule); `None` for a
+/// non-Application type, an entry without `Name`/`Exec`, or one whose
 /// `TryExec` names a binary not found on `PATH` (the Desktop Entry Specification's own words:
 /// such an entry "may be ignored" — it is not really installed, so it should not occupy a dedup
 /// slot or ever be offered to launch). Translated words are picked for `locales`, best first.
 pub fn parse_entry(
-    path: &Path,
-    id: &str,
-    text: &str,
+    loaded: &ApplicationEntry,
     theme: &IconTheme,
     roots: &IconRoots,
     locales: &[EntryLocale],
 ) -> Option<App> {
-    let file = DesktopFile::parse(text, DESKTOP_ENTRY_CAP).ok()?;
+    let file = &loaded.file;
     let entry = file.entry()?;
     if !is_application(entry) {
         return None;
@@ -45,8 +43,9 @@ pub fn parse_entry(
         return None;
     }
 
+    let identity = loaded.identity()?;
     Some(App {
-        id: AppId(id.to_owned()),
+        id: AppId(loaded.id.stem().to_owned()),
         name,
         generic_name: words(entry, "GenericName", locales),
         comment: words(entry, "Comment", locales),
@@ -54,8 +53,10 @@ pub fn parse_entry(
         icon: entry
             .string("Icon")
             .map_or(AppIcon::None, |icon| resolve_icon(&icon, theme, roots)),
-        startup_wm_class: entry.string("StartupWMClass").map(Cow::into_owned),
-        flatpak: entry.string("X-Flatpak").map(Cow::into_owned),
+        startup_wm_class: loaded.keys.startup_wm_class.clone(),
+        flatpak: loaded.keys.flatpak.clone(),
+        bus_names: identity.bus_names,
+        intents_app: identity.intents_app,
         terminal: if entry.is_true("Terminal") {
             Terminal::Yes
         } else {
@@ -66,17 +67,17 @@ pub fn parse_entry(
         } else {
             DbusActivation::Exec
         },
-        actions: actions(&file, entry, locales),
+        actions: actions(file, entry, locales),
         mime_types: entry.list("MimeType"),
         categories: entry.list("Categories"),
-        keyboard_profile: keyboard_profile(entry, path),
+        keyboard_profile: keyboard_profile(entry, &loaded.path),
         keywords: entry.localized_list("Keywords", locales),
         listing: if is_listed(entry) {
             Listing::Shown
         } else {
             Listing::Hidden
         },
-        path: path.to_owned(),
+        path: loaded.path.clone(),
     })
 }
 
@@ -168,7 +169,9 @@ mod tests {
     use super::super::icon_roots::IconRoots;
     use super::super::icons::IconTheme;
     use super::{is_application, is_listed, on_path, parse_entry};
-    use ds_helpers::{DESKTOP_ENTRY_CAP, DesktopFile, EntryLocale};
+    use ds_helpers::{
+        AppKeys, ApplicationEntry, DESKTOP_ENTRY_CAP, DesktopFile, DesktopId, EntryLocale,
+    };
     use keycap_protocol::ProfileName;
     use sill_model::apps::{App, Listing};
     use std::path::Path;
@@ -177,16 +180,21 @@ mod tests {
         DesktopFile::parse(text, DESKTOP_ENTRY_CAP).unwrap_or_else(|e| panic!("{e}"))
     }
 
-    /// `text` as an app for `locales` (locale texts such as `de_AT.UTF-8`).
+    /// `text` as an app for `locales` (locale texts such as `de_AT.UTF-8`), loaded as the scan
+    /// would load `/a/x.desktop`.
     fn app_in(text: &str, locales: &[&str]) -> Option<App> {
         let locales: Vec<EntryLocale> = locales
             .iter()
             .filter_map(|l| EntryLocale::parse(l))
             .collect();
+        let loaded = ApplicationEntry {
+            path: Path::new("/a/x.desktop").to_owned(),
+            id: DesktopId::parse("x")?,
+            keys: AppKeys::default(),
+            file: DesktopFile::parse(text, DESKTOP_ENTRY_CAP).ok()?,
+        };
         parse_entry(
-            Path::new("/a/x.desktop"),
-            "x",
-            text,
+            &loaded,
             &IconTheme("hicolor".to_owned()),
             &IconRoots::default(),
             &locales,
@@ -282,20 +290,10 @@ mod tests {
     }
 
     #[test]
-    fn parse_entry_refuses_without_name_or_exec_or_over_the_cap() {
+    fn parse_entry_refuses_without_name_or_exec() {
         let no_name = "[Desktop Entry]\nType=Application\nExec=x\n";
         let no_exec = "[Desktop Entry]\nType=Application\nName=X\n";
-        let no_entry = "[Other]\nName=X\nExec=x\n";
-        let too_big = format!(
-            "[Desktop Entry]\nName=X\nExec=x\n#{}\n",
-            "a".repeat(usize::try_from(DESKTOP_ENTRY_CAP.limit()).unwrap_or(usize::MAX))
-        );
-        for (name, text) in [
-            ("no name", no_name),
-            ("no exec", no_exec),
-            ("no entry group", no_entry),
-            ("over the cap", too_big.as_str()),
-        ] {
+        for (name, text) in [("no name", no_name), ("no exec", no_exec)] {
             assert!(app(text).is_none(), "{name}");
         }
     }
@@ -417,5 +415,21 @@ mod tests {
                 "{name}"
             );
         }
+    }
+
+    #[test]
+    fn parse_entry_carries_the_names_the_entry_declares() {
+        const TEXT: &str = "[Desktop Entry]\nName=Mail\nExec=mailo\n\
+            X-Quire-BusNames=io.github.PoHsuanLai.mailo;org.quire.Mail;\n\
+            X-Quire-IntentsApp=org.quire.Mail\n";
+        let app = app(TEXT).unwrap_or_else(|| panic!("expected an App"));
+        assert_eq!(
+            app.bus_names,
+            ["io.github.PoHsuanLai.mailo", "org.quire.Mail"]
+        );
+        assert_eq!(app.intents_app.as_deref(), Some("org.quire.Mail"));
+        let bare =
+            self::app("[Desktop Entry]\nName=X\nExec=x\n").unwrap_or_else(|| panic!("no App"));
+        assert!(bare.bus_names.is_empty() && bare.intents_app.is_none());
     }
 }

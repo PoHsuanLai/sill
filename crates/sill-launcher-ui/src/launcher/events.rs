@@ -482,10 +482,17 @@ impl PanelCtx {
             LauncherEffect::Companion(CompanionAct::Ask { prompt }) => {
                 let companion = self.services.companion.state.borrow();
                 let toplevels = self.services.windows.state.borrow().toplevels.clone();
+                let apps = self.services.apps.state.borrow();
                 // sill has no Space store yet, so no workspace has a Space of its own and every
                 // ask is made on the desktop (FINDINGS: the Space store).
                 let space = prov::SpaceId::desktop();
-                LauncherEffect::Ask(ask_input(prompt, &companion.summon, &toplevels, space))
+                LauncherEffect::Ask(ask_input(
+                    prompt,
+                    &companion.summon,
+                    &toplevels,
+                    &apps,
+                    space,
+                ))
             }
             other => other,
         };
