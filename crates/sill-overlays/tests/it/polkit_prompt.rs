@@ -15,7 +15,7 @@ use sill_model::polkit_agent::{
 };
 use sill_overlays::PolkitPrompt;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{BannerLink, BannerOutput};
+use sill_ui_kit::links::{SheetLink, SheetOutput};
 
 type Running = SurfaceHarness<PolkitPrompt>;
 
@@ -27,10 +27,10 @@ const VIEWPORT: Viewport = Viewport {
     scale_percent: 100,
 };
 
-/// The prompt, hidden, with the banners on `on` (the test output is `OutputId(1)`).
+/// The prompt, hidden, with the sheets on `on` (the test output is `OutputId(1)`).
 fn start(on: OutputId) -> Running {
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(on));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(on));
     SurfaceHarness::<PolkitPrompt>::setup(link, ())
         .viewport(VIEWPORT)
         .start()

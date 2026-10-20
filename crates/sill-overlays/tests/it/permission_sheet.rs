@@ -1,5 +1,5 @@
 //! What the permission sheet draws and sends, on the harness over the fake capture service:
-//! nothing until a question is put, or while the banners are on another output; with a question,
+//! nothing until a question is put, or while the sheets are on another output; with a question,
 //! quire's `Alert` with the app's words and the two buttons the question names; each button, and
 //! Escape, sending its answer once; nothing after the question is gone. The compositor's question
 //! says what the program may do and ends with the Settings line; Escape dismisses it instead of
@@ -21,7 +21,7 @@ use sill_overlays::PermissionSheet;
 use sill_overlays::permission_sheet::PERMISSION_ARM_AFTER;
 use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{BannerLink, BannerOutput};
+use sill_ui_kit::links::{SheetLink, SheetOutput};
 
 type Running = SurfaceHarness<PermissionSheet>;
 
@@ -35,8 +35,8 @@ const VIEWPORT: Viewport = Viewport {
 };
 
 fn start(on: OutputId) -> Running {
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(on));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(on));
     SurfaceHarness::<PermissionSheet>::setup(link, ())
         .viewport(VIEWPORT)
         .start()
@@ -44,8 +44,8 @@ fn start(on: OutputId) -> Running {
 
 /// The sheet on an output where `companion.confirm_arm_ms` is `arm_ms`.
 fn start_arming_after(on: OutputId, arm_ms: u16) -> Running {
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(on));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(on));
     let mut settings = ShellFile::default();
     settings.companion.confirm_arm_ms = Ms(arm_ms);
     SurfaceHarness::<PermissionSheet>::setup(link, ())

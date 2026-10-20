@@ -1,7 +1,7 @@
 //! The confirmation sheet (design/32 section 8, phase A): what intentd asks the person before it
 //! lets the terminal, the companion or an outside agent do something that asks. One Overlay per
-//! output, kept warm and hidden like the polkit prompt, shown on the main display (the banners'
-//! output) while the intents service's queue holds a question. It draws the question the router
+//! output, kept warm and hidden like the polkit prompt, shown on the sheets' output (the
+//! focused window's, latched while a question is up) while the intents service's queue holds a question. It draws the question the router
 //! formatted (`sill_model::intents::sheet::SheetView`: the action's own label, who asks, the
 //! arguments, the reasons) on quire's `Sheet`, centred, with quire's `FactList` and `Button`s, and
 //! answers through `IntentsCommand::Answer`.

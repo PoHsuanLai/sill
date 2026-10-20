@@ -1,6 +1,6 @@
 //! sill's own polkit prompt (design/20 §1.10): one
-//! Overlay per output, kept warm and hidden like the power menu, shown on the main display (the
-//! banners' `BannerLink` output) while the polkit agent's `current` holds a request: quire's
+//! Overlay per output, kept warm and hidden like the power menu, shown on the sheets' output (the
+//! focused window's, latched by the daemon: `SheetLink`) while the polkit agent's `current` holds a request: quire's
 //! `PolkitPrompt` (a narrow `Sheet` over the modal scrim, `peek-in` in and `sheet-out` out: the
 //! avatar and name of the identity asked for, the action's sentence, the details as a hover
 //! card, a secret field, Cancel and Authenticate; `Wrong` shakes once) in `Ds { material: Sheet,

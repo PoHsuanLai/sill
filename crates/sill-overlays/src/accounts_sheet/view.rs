@@ -1,4 +1,4 @@
-//! The accounts sheet's root: while accountd has a sheet open and the banners' output is this one,
+//! The accounts sheet's root: while accountd has a sheet open and the sheets' output is this one,
 //! the surface maps itself and a window stands centred in it: quire's titlebar carrying the step's
 //! title, over the step's own column. The consent question is quire's `ConsentBody` in the same window. Every part is quire's; what sill adds is the window's place
 //! and look (`style.css`, tokens only) and where each event goes (`io.rs`).
@@ -14,7 +14,7 @@ use ds_shell::prelude::{
 use shell_host::OutputInfo;
 use sill_model::accounts::sheet::{AccountsSheets, SheetAction};
 use sill_services::accounts::sheet::AccountsSheetService;
-use sill_ui_kit::hooks::{use_banner_output, use_follow_visibility, use_service};
+use sill_ui_kit::hooks::{use_follow_visibility, use_service, use_sheet_output};
 use sill_ui_kit::root::SurfaceRoot;
 
 use super::ACCOUNTS_SHEET_CSS;
@@ -211,13 +211,13 @@ fn body(step: Step, io: Io) -> Element {
     }
 }
 
-/// The step on screen on `output`, following the service and the banners' output, and the
+/// The step on screen on `output`, following the service and the sheets' output, and the
 /// surface's mapping following it.
 fn use_drawn(output: OutputInfo) -> Memo<Option<Drawn>> {
     let sheets: ReadSignal<AccountsSheets> = use_service::<AccountsSheetService>();
-    let banners = use_banner_output();
+    let placed = use_sheet_output();
     let shown = use_memo(move || {
-        let here = if banners.read().shows_on(output.id) {
+        let here = if placed.read().shows_on(output.id) {
             Here::Yes
         } else {
             Here::No

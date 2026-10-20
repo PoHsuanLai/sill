@@ -36,8 +36,8 @@ use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
     DisplayTrialLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource, LockLink, OsdKind,
-    OsdLink, PowerMenuLink, Preselect, PromptOutput, SpacesBarLink, SplitPickerLink, SwitcherAsk,
-    SwitcherLink,
+    OsdLink, PowerMenuLink, Preselect, PromptOutput, SheetLink, SheetOutput, SpacesBarLink,
+    SplitPickerLink, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::surface::Surface;
 
@@ -464,8 +464,8 @@ fn switcher_states() -> Vec<(&'static str, String)> {
 
 /// The prompt hidden, then showing a request for a password once its sheet has settled.
 fn polkit_prompt_states() -> Vec<(&'static str, String)> {
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(fake::output().id));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(fake::output().id));
     let mut prompt = SurfaceHarness::<PolkitPrompt>::setup(link, ()).start();
     prompt.harness.advance(Duration::from_millis(40));
     let hidden = prompt.harness.html();
@@ -521,8 +521,8 @@ fn capture_sheet_states() -> Vec<(&'static str, String)> {
         }),
         ..CapturePicker::default()
     };
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(fake::output().id));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(fake::output().id));
     let mut sheet = SurfaceHarness::<CaptureSheet>::setup(link, ()).start();
     sheet.harness.advance(Duration::from_millis(40));
     let mut states = vec![("hidden", sheet.harness.html())];
@@ -548,8 +548,8 @@ fn permission_sheet_states() -> Vec<(&'static str, String)> {
     use sill_model::capture_pick::{
         AskId, AskedBy, CapturePicker, PermissionAsk, PermissionAsking,
     };
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(fake::output().id));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(fake::output().id));
     let mut sheet = SurfaceHarness::<PermissionSheet>::setup(link, ()).start();
     sheet.harness.advance(Duration::from_millis(40));
     let hidden = sheet.harness.html();
@@ -577,9 +577,9 @@ fn permission_sheet_states() -> Vec<(&'static str, String)> {
 /// The display trial: hidden, then asking whether to keep the displays.
 fn display_trial_states() -> Vec<(&'static str, String)> {
     use sill_model::desktop::{DisplayTrial, TrialId};
-    let banners = BannerLink::new();
-    banners.set(BannerOutput::On(fake::output().id));
-    let link = DisplayTrialLink::new(banners);
+    let sheets = SheetLink::new();
+    sheets.set(SheetOutput::On(fake::output().id));
+    let link = DisplayTrialLink::new(sheets);
     let mut sheet = SurfaceHarness::<DisplayTrialSheet>::setup(link, ()).start();
     sheet.harness.advance(Duration::from_millis(40));
     let hidden = sheet.harness.html();
@@ -617,8 +617,8 @@ fn confirm_sheet_states() -> Vec<(&'static str, String)> {
         },
         ..Intents::default()
     };
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(fake::output().id));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(fake::output().id));
     let mut sheet = SurfaceHarness::<ConfirmSheet>::setup(link, ()).start();
     sheet.harness.advance(Duration::from_millis(40));
     let mut states = vec![("hidden", sheet.harness.html())];
@@ -650,8 +650,8 @@ fn confirm_sheet_states() -> Vec<(&'static str, String)> {
 /// The consent sheet hidden, then asking.
 fn voice_consent_states() -> Vec<(&'static str, String)> {
     use sill_model::voice::{ConsentSheet, Voice};
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(fake::output().id));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(fake::output().id));
     let mut sheet = SurfaceHarness::<VoiceConsentSheet>::setup(link, ()).start();
     sheet.harness.advance(Duration::from_millis(40));
     let mut states = vec![("hidden", sheet.harness.html())];
@@ -712,8 +712,8 @@ fn accounts_sheet_states() -> Vec<(&'static str, String)> {
             {"account":"home","label":"ada@home.example","provider":"nextcloud"}]}}"#,
         ),
     ];
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(fake::output().id));
+    let link = sill_ui_kit::links::SheetLink::new();
+    link.set(SheetOutput::On(fake::output().id));
     let mut sheet = SurfaceHarness::<AccountsSheet>::setup(link, ()).start();
     sheet.harness.advance(Duration::from_millis(40));
     let mut states = vec![("hidden", sheet.harness.html())];

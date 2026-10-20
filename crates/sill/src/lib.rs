@@ -24,6 +24,7 @@ pub mod policy;
 pub mod release;
 pub mod run_args;
 pub mod scroll;
+pub mod sheet_latch;
 pub mod spaces_bar;
 pub mod split_picker;
 pub mod voice;

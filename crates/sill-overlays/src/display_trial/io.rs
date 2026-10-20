@@ -1,4 +1,4 @@
-//! The effects end of the trial sheet: follow the [`DisplayTrialLink`] and the banners' output
+//! The effects end of the trial sheet: follow the [`DisplayTrialLink`] and the sheets' output
 //! onto the stage (which maps the surface), write the person's answer to the link, and count the
 //! seconds down on quire's one timer.
 
@@ -12,11 +12,11 @@ use sill_model::desktop::{TrialAnswer, TrialId, seconds_left, until_next_second}
 use sill_ui_kit::links::{DisplayTrialLink, TrialRun};
 use sill_ui_kit::sheet_stage::{SheetStage, use_sheet_stage};
 
-/// The stage on `output`, following the open trial and the banners' output.
+/// The stage on `output`, following the open trial and the sheets' output.
 pub(super) fn use_stage(output: &OutputInfo) -> Signal<SheetStage<TrialRun>> {
     let link = use_context::<DisplayTrialLink>();
     let open = use_watch(link.subscribe());
-    let shows = use_watch(link.banners().subscribe());
+    let shows = use_watch(link.sheets().subscribe());
     let id = output.id;
     use_sheet_stage(super::surface::PRESET, move || {
         let current = *open.read();

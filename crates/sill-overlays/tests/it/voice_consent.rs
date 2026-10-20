@@ -1,5 +1,5 @@
 //! What the voice consent sheet draws and sends, on the harness over the fake voice service:
-//! nothing until the service asks, or while the banners are on another output; with the question,
+//! nothing until the service asks, or while the sheets are on another output; with the question,
 //! quire's `Sheet` with the one sentence of what listening means and two buttons; Allow, Not Now
 //! and Escape each sending their answer once; nothing after the service stops asking. All on the
 //! harness's virtual clock; nothing here reaches a bus.
@@ -12,7 +12,7 @@ use shell_host::OutputId;
 use sill_model::voice::{ConsentAnswer, ConsentSheet, Voice, VoiceCommand};
 use sill_overlays::VoiceConsentSheet;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{BannerLink, BannerOutput};
+use sill_ui_kit::links::{SheetLink, SheetOutput};
 
 type Running = SurfaceHarness<VoiceConsentSheet>;
 
@@ -26,8 +26,8 @@ const VIEWPORT: Viewport = Viewport {
 };
 
 fn start(on: OutputId) -> Running {
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(on));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(on));
     SurfaceHarness::<VoiceConsentSheet>::setup(link, ())
         .viewport(VIEWPORT)
         .start()

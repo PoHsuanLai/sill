@@ -1,6 +1,6 @@
 //! The sheet's root.
 //!
-//! While the capture service holds a permission question and the `BannerLink` names this output,
+//! While the capture service holds a permission question and the `SheetLink` names this output,
 //! the surface maps itself (`SurfaceHandle::set_visibility`) and a `Ds { material: Sheet, extent:
 //! Viewport }` holds one quire `Alert` per question, keyed by its id: the app's icon, the
 //! headline, the app's name set strong with what it says, and the two buttons. The yes button
@@ -19,7 +19,7 @@ use sill_model::capture_pick::{PermissionAsking, PermissionOutcome};
 use sill_services::capture_pick::CaptureService;
 use sill_settings::confirm_arm;
 use sill_ui_kit::app_icons::{LogicalPx, use_tile_icons};
-use sill_ui_kit::hooks::{use_banner_output, use_section, use_service_part};
+use sill_ui_kit::hooks::{use_section, use_service_part, use_sheet_output};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -119,10 +119,10 @@ fn QuestionCard(
     }
 }
 
-/// The stage on `output`, following the question and the banners' output.
+/// The stage on `output`, following the question and the sheets' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<PermissionAsking>> {
     let asking = use_service_part::<CaptureService, _>(|picker| picker.permission.clone());
-    let shows = use_banner_output();
+    let shows = use_sheet_output();
     use_sheet_stage(super::surface::PRESET, move || {
         let current = asking();
         shows

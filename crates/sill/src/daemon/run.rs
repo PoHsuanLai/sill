@@ -16,7 +16,7 @@ use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     ActionLink, BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink,
     EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, PowerMenuLink,
-    SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
+    SheetLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
@@ -178,6 +178,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         notify,
         runtime: runtime.handle().clone(),
         stash: std::cell::RefCell::default(),
+        sheet_latch: crate::sheet_latch::SheetLatch::default(),
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 
@@ -235,6 +236,7 @@ fn host_config(first: &ShellFile, dirs: &Dirs, route: shell_host::WaylandRoute) 
 /// Build the shared links every surface root is given.
 fn build_links(runtime: &Runtime, settings_feed: &SettingsFeed, store: &Store) -> Links {
     let banners = BannerLink::new();
+    let sheets = SheetLink::new();
     Links {
         actions: ActionLink::new(),
         focus: settings::spawn_focus(
@@ -247,8 +249,9 @@ fn build_links(runtime: &Runtime, settings_feed: &SettingsFeed, store: &Store) -
         power_menu: PowerMenuLink::new(),
         control_center: ControlCenterLink::new(),
         notification_center: CenterLink::new(),
-        display_trial: DisplayTrialLink::new(banners.clone()),
+        display_trial: DisplayTrialLink::new(sheets.clone()),
         banners,
+        sheets,
         corners: CornerLink::new(),
         switcher: SwitcherLink::new(),
         lock: LockLink::new(),
@@ -273,6 +276,7 @@ fn spawn_followers(
 ) {
     crate::lock::spawn_follower(runtime.handle(), services, host.clone());
     crate::idle_dim::spawn_follower(runtime.handle(), services, host.clone());
+    crate::sheet_latch::spawn_follower(runtime.handle(), services, links, host.clone());
     settings::spawn_watch(runtime, store, host.clone());
     settings::spawn_user_style_watch(runtime, store, host.clone());
     crate::outgoing::spawn_all(runtime.handle(), links, host);

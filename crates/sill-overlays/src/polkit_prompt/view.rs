@@ -1,6 +1,6 @@
 //! The polkit prompt's root.
 //!
-//! While `use_service::<PolkitAgentService>().current` is a request and the `BannerLink` names this
+//! While `use_service::<PolkitAgentService>().current` is a request and the `SheetLink` names this
 //! output, the surface maps itself (`SurfaceHandle::set_visibility`), and a `Ds { material: Sheet,
 //! extent: Viewport }` holds `sill_shell_kit::prelude::PolkitPrompt` from [`super::model::prompt_view`] (keyed by the cookie,
 //! so a new request enters again), `caps` from the last key event's modifiers, `onsubmit` sending
@@ -22,7 +22,7 @@ use sill_shell_kit::prelude::*;
 
 use super::model::{PolkitPromptView, prompt_view};
 use super::surface::PANEL_ID;
-use sill_ui_kit::hooks::{use_banner_output, use_control, use_service};
+use sill_ui_kit::hooks::{use_control, use_service, use_sheet_output};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -93,10 +93,10 @@ fn prompt(
     }
 }
 
-/// The stage on `output`, following the agent and the banners' output.
+/// The stage on `output`, following the agent and the sheets' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<PolkitPromptView>> {
     let polkit = use_service::<PolkitAgentService>();
-    let shows = use_banner_output();
+    let shows = use_sheet_output();
     use_sheet_stage(super::surface::PRESET, move || {
         shows
             .read()

@@ -1,12 +1,12 @@
 //! The picker as a [`Surface`]: one per output, spawned hidden and mapped while the capture
-//! service holds a request and the banners' output names this one.
+//! service holds a request and the sheets' output names this one.
 
 use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use super::view::capture_sheet;
-use sill_ui_kit::links::{BannerLink, Links};
+use sill_ui_kit::links::{Links, SheetLink};
 use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Presence, Surface};
 
 /// The panel's element id: the surface's blur region.
@@ -24,14 +24,14 @@ pub enum CaptureSheet {}
 impl Surface for CaptureSheet {
     const NAME: &'static str = "capture";
     /// Only the output the link names shows the sheet.
-    type Link = BannerLink;
+    type Link = SheetLink;
     type Slot = ();
-    const OUTPUTS: OutputPolicy = OutputPolicy::Main;
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
     const LAYER_ORDER: u8 = 120;
     const PRESENCE: Presence = Presence::SheetStage;
 
-    fn link(links: &Links) -> BannerLink {
-        links.banners.clone()
+    fn link(links: &Links) -> SheetLink {
+        links.sheets.clone()
     }
 
     fn slots(_place: &Place) -> Vec<()> {

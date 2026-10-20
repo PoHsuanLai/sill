@@ -1,6 +1,6 @@
 //! The accounts sheet (design/31 §4.5 and §5.6, PLAN §2.4): accountd's consent question and its
 //! add-account steps, drawn by sill on `org.quire.AccountsSheet1`. A centred window of its own on
-//! the banners' output, with a titlebar that carries the step's title, over an Overlay layer that
+//! the sheets' output, with a titlebar that carries the step's title, over an Overlay layer that
 //! takes the keyboard exclusively; the steps inside are quire's `ds-shell::accounts` parts, given
 //! the props `props.rs` makes of accountd's `SheetView`.
 //!

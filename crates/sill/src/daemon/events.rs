@@ -61,6 +61,8 @@ pub struct Shell {
     pub runtime: tokio::runtime::Handle,
     /// The windows Show Desktop put away, to bring back on its next firing.
     pub stash: RefCell<crate::actions::show_desktop::Stash>,
+    /// The output the sheets' current questions were started on.
+    pub sheet_latch: crate::sheet_latch::SheetLatch,
 }
 
 /// Every event, handled: an IPC request (needs the services and the settings), the lock's and the
@@ -94,6 +96,10 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
         }
         HostEvent::Palmrest(ask) => palmrest_ask(shell, ctx, &ask),
         HostEvent::App(ShellMsg::Lock(wish)) => apply_lock(shell, ctx, wish),
+        HostEvent::App(ShellMsg::Sheets) => {
+            let latch = std::mem::take(&mut shell.sheet_latch);
+            shell.sheet_latch = latch.follow(&shell.services, &shell.links, &shell.outputs);
+        }
         HostEvent::App(ShellMsg::Dim(dim)) => crate::idle_dim::apply(ctx, &shell.outputs, dim),
         HostEvent::App(ShellMsg::Summon(out)) => {
             crate::companion::apply(&shell.outputs, &shell.services, &shell.links.launcher, out)
@@ -299,7 +305,7 @@ fn tell_keycap_the_holders(shell: &mut Shell, event: &HostEvent<ShellMsg>) {
 }
 
 /// Spawn whatever each output lacks, then point the banners' link at the output that has a
-/// banner column.
+/// banner column and the sheets' link at the latched output (or the first one, when that went).
 fn spawn_missing(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>) {
     let spawn = Spawn {
         services: &shell.services,
@@ -314,6 +320,7 @@ fn spawn_missing(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>) {
             .pick(OutputPolicy::Main, None)
             .map_or(BannerOutput::Nowhere, BannerOutput::On),
     );
+    shell.links.sheets.set(shell.sheet_latch.output(&shell.outputs));
     shell.links.lock.set(crate::lock::prompt_among(
         shell.links.lock.now(),
         &shell.outputs,

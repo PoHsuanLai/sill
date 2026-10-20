@@ -1,5 +1,5 @@
 //! The consent sheet's root: one quire `Sheet` over the whole output while the voice service asks
-//! on the banners' output. The title says what is being asked, one sentence says what listening
+//! on the sheets' output. The title says what is being asked, one sentence says what listening
 //! means, and the buttons are quire's: Not Now (Escape) and Allow (the default). Nothing is styled
 //! under `.ds-sheet*` or `.ds-button*`.
 
@@ -17,7 +17,7 @@ use sill_services::VoiceService;
 
 use super::VOICE_CONSENT_CSS;
 use super::surface::PANEL_ID;
-use sill_ui_kit::hooks::{use_banner_output, use_control, use_service_part};
+use sill_ui_kit::hooks::{use_control, use_service_part, use_sheet_output};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -99,10 +99,10 @@ fn ConsentCard(shown: Shown, stage: Signal<SheetStage<Asked>>) -> Element {
     }
 }
 
-/// The stage on `output`, following the service and the banners' output.
+/// The stage on `output`, following the service and the sheets' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<Asked>> {
     let sheet = use_service_part::<VoiceService, _>(|voice| voice.sheet);
-    let shows = use_banner_output();
+    let shows = use_sheet_output();
     use_sheet_stage(super::surface::PRESET, move || {
         let asking = match shows.read().shows_on(output.id) {
             true => sheet(),

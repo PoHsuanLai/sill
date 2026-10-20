@@ -20,7 +20,7 @@ use sill_model::accounts::sheet::{
 use sill_overlays::AccountsSheet;
 use sill_ui_kit::harness::{FocusFallback, SurfaceHarness, fake};
 use sill_ui_kit::hooks::PinnedAppearance;
-use sill_ui_kit::links::{BannerLink, BannerOutput};
+use sill_ui_kit::links::SheetOutput;
 
 const VIEWPORT: Viewport = Viewport {
     width: 1280,
@@ -89,8 +89,8 @@ fn start_on(output: OutputId, environment: Environment) -> Run {
 }
 
 fn start_with(output: OutputId, environment: Environment, focus: FocusFallback) -> Run {
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(output));
+    let link = sill_ui_kit::links::SheetLink::new();
+    link.set(SheetOutput::On(output));
     let mut running = SurfaceHarness::<AccountsSheet>::setup(link, ())
         .viewport(VIEWPORT)
         .appearance(PinnedAppearance(environment))

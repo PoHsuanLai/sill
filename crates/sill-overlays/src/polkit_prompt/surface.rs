@@ -1,12 +1,12 @@
 //! The polkit prompt as a [`Surface`]: one per output, spawned hidden and mapped while the
-//! agent holds a request and the banners' output names it.
+//! agent holds a request and the sheets' output names it.
 
 use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use super::view::polkit_prompt;
-use sill_ui_kit::links::{BannerLink, Links};
+use sill_ui_kit::links::{Links, SheetLink};
 use sill_ui_kit::surface::{LayerPreset, OutputPolicy, PanelBlur, Place, Presence, Surface};
 
 /// The panel's element id: the surface's blur region.
@@ -25,14 +25,14 @@ pub enum PolkitPrompt {}
 impl Surface for PolkitPrompt {
     const NAME: &'static str = "polkit";
     /// Only the output the link names shows the prompt.
-    type Link = BannerLink;
+    type Link = SheetLink;
     type Slot = ();
-    const OUTPUTS: OutputPolicy = OutputPolicy::Main;
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
     const LAYER_ORDER: u8 = 80;
     const PRESENCE: Presence = Presence::SheetStage;
 
-    fn link(links: &Links) -> BannerLink {
-        links.banners.clone()
+    fn link(links: &Links) -> SheetLink {
+        links.sheets.clone()
     }
 
     fn slots(_place: &Place) -> Vec<()> {

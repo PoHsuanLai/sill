@@ -1,7 +1,7 @@
 //! The display trial: when a program other than the shell changes the displays, the compositor
 //! applies the change and asks whether to keep it, going back by itself if the person does not say
 //! so in time (a bad mode can blank the screen). The question is the Mac's: quire's `Alert`
-//! "Keep these display settings?" centred on the banners' output over an Overlay layer that takes
+//! "Keep these display settings?" centred on the sheets' output over an Overlay layer that takes
 //! the keyboard, with a line under the headline that counts the seconds down ("Reverting in 15
 //! seconds", changed every second). Revert comes first, so it is the default (Return) and the
 //! button Escape presses; Keep Changes keeps the new setup.

@@ -1,5 +1,5 @@
 //! What the display trial draws and sends, on the harness over a `DisplayTrialLink` the test
-//! writes as the daemon does: nothing until the compositor opens a trial, or while the banners are
+//! writes as the daemon does: nothing until the compositor opens a trial, or while the sheets are
 //! on another output; then quire's `Alert` "Keep these display settings?" with a line that counts
 //! the seconds down and two buttons, Revert (the default, and Escape) and Keep Changes, each
 //! writing its answer to the link once; a restart of the trial starts the count over; the
@@ -15,7 +15,7 @@ use sill_model::desktop::{DisplayTrial, TrialAnswer, TrialId};
 use sill_overlays::DisplayTrialSheet;
 use sill_overlays::arming::QUESTION_ARM_AFTER;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{BannerLink, BannerOutput, DisplayTrialLink};
+use sill_ui_kit::links::{DisplayTrialLink, SheetLink, SheetOutput};
 
 type Running = SurfaceHarness<DisplayTrialSheet>;
 
@@ -36,9 +36,9 @@ fn trial(id: u32, seconds: u32) -> DisplayTrial {
 }
 
 fn start(on: OutputId) -> Running {
-    let banners = BannerLink::new();
-    banners.set(BannerOutput::On(on));
-    SurfaceHarness::<DisplayTrialSheet>::setup(DisplayTrialLink::new(banners), ())
+    let sheets = SheetLink::new();
+    sheets.set(SheetOutput::On(on));
+    SurfaceHarness::<DisplayTrialSheet>::setup(DisplayTrialLink::new(sheets), ())
         .viewport(VIEWPORT)
         .start()
 }

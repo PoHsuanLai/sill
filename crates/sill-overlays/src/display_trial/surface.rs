@@ -1,8 +1,8 @@
 //! The display trial as a [`Surface`]: one per output, spawned hidden and mapped while the link
-//! holds a trial and the banners' output names this one.
+//! holds a trial and the sheets' output names this one.
 
 use dioxus::prelude::Element;
-use shell_host::{HostRoot, LayerConfig, OutputInfo};
+use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use super::view::display_trial;
@@ -23,19 +23,15 @@ pub enum DisplayTrialSheet {}
 
 impl Surface for DisplayTrialSheet {
     const NAME: &'static str = "display-trial";
-    /// The link also names the output that shows the sheet.
+    /// The sheets' link names the output that shows the sheet.
     type Link = DisplayTrialLink;
     type Slot = ();
-    const OUTPUTS: OutputPolicy = OutputPolicy::Main;
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
     const LAYER_ORDER: u8 = 140;
     const PRESENCE: Presence = Presence::SheetStage;
 
     fn link(links: &Links) -> DisplayTrialLink {
         links.display_trial.clone()
-    }
-
-    fn needs(root: HostRoot, links: &Links) -> HostRoot {
-        root.context(links.banners.clone())
     }
 
     fn slots(_place: &Place) -> Vec<()> {

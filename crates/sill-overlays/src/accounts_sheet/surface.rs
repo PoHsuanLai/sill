@@ -1,12 +1,12 @@
 //! The accounts sheet as a [`Surface`]: one per output, spawned hidden and mapped while accountd
-//! has a sheet open and the banners' output names this one.
+//! has a sheet open and the sheets' output names this one.
 
 use dioxus::prelude::Element;
 use shell_host::{LayerConfig, OutputInfo};
 use sill_settings::ShellFile;
 
 use super::view::accounts_sheet;
-use sill_ui_kit::links::{BannerLink, Links};
+use sill_ui_kit::links::{Links, SheetLink};
 use sill_ui_kit::surface::{LayerPreset, OutputPolicy, Place, Presence, Surface};
 
 /// The layer: over the whole output, the pointer everywhere on it while the sheet is up. The
@@ -21,14 +21,14 @@ pub enum AccountsSheet {}
 impl Surface for AccountsSheet {
     const NAME: &'static str = "accounts-sheet";
     /// Only the output the link names shows the sheet.
-    type Link = BannerLink;
+    type Link = SheetLink;
     type Slot = ();
-    const OUTPUTS: OutputPolicy = OutputPolicy::Main;
+    const OUTPUTS: OutputPolicy = OutputPolicy::FocusedWindow;
     const LAYER_ORDER: u8 = 110;
     const PRESENCE: Presence = Presence::SelfMapped;
 
-    fn link(links: &Links) -> BannerLink {
-        links.banners.clone()
+    fn link(links: &Links) -> SheetLink {
+        links.sheets.clone()
     }
 
     fn slots(_place: &Place) -> Vec<()> {

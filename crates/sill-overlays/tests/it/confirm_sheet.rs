@@ -1,5 +1,5 @@
 //! What the confirmation sheet draws and sends, on the harness over the fake intents service: nothing
-//! while the queue is empty or the banners are elsewhere; with a question, quire's `Sheet` with the
+//! while the queue is empty or the sheets are elsewhere; with a question, quire's `Sheet` with the
 //! action's own label, who asks, the arguments and reasons the router formatted, and the buttons;
 //! the buttons disabled and Return ignored while it arms, Escape denying at any time; the offered
 //! second answer ("Allow from the terminal: this action, until logout"); a destructive action's
@@ -15,7 +15,7 @@ use sill_model::intents::sheet::{Pending, Serial, SheetChoice, Sheets};
 use sill_model::intents::{ConfirmId, Intents, IntentsCommand, IntentsLink};
 use sill_overlays::ConfirmSheet;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{BannerLink, BannerOutput};
+use sill_ui_kit::links::{SheetLink, SheetOutput};
 
 pub(crate) type Running = SurfaceHarness<ConfirmSheet>;
 
@@ -50,10 +50,10 @@ fn pending(serial: u64, id: &str, offer: &str, gesture: &str, effect: &str) -> P
     }
 }
 
-/// The sheet, hidden, with the banners on `on` (the test output is `OutputId(1)`).
+/// The sheet, hidden, with the sheets on `on` (the test output is `OutputId(1)`).
 fn start(on: OutputId) -> Running {
-    let link = BannerLink::new();
-    link.set(BannerOutput::On(on));
+    let link = SheetLink::new();
+    link.set(SheetOutput::On(on));
     SurfaceHarness::<ConfirmSheet>::setup(link, ())
         .viewport(VIEWPORT)
         .start()

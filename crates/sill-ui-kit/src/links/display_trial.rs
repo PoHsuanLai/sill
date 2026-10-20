@@ -1,8 +1,8 @@
 //! The display trial's two channels: the daemon writes the trial the compositor opens (a program
-//! changed the displays and the compositor asks whether to keep them) and the banners' output's
+//! changed the displays and the compositor asks whether to keep them) and the sheets' output's
 //! trial surface follows it; the surface writes the person's answer and the daemon carries it
 //! out. The compositor ends a trial by itself (answered, timed out, replaced) and the daemon
-//! takes the question down on the link then. The link holds the banners' link too, so the
+//! takes the question down on the link then. The link holds the sheets' link too, so the
 //! question shows on the output the other questions show on.
 
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use sill_model::desktop::{DisplayTrial, TrialAnswer, TrialId};
 use tokio::sync::watch;
 
-use super::{BannerLink, Outbox, Sent, Shared};
+use super::{Outbox, Sent, Shared, SheetLink};
 
 /// Counts the compositor's sends of a trial; each is one more than the last, across trials, so
 /// a restart is told from the trial before it even when both carry one id.
@@ -46,17 +46,17 @@ pub struct DisplayTrialLink {
     open: Shared<Option<TrialRun>>,
     answered: Outbox<TrialReply>,
     sent: Arc<AtomicU64>,
-    banners: BannerLink,
+    sheets: SheetLink,
 }
 
 impl DisplayTrialLink {
-    /// No trial, no answer; the question shows on the output `banners` names.
-    pub fn new(banners: BannerLink) -> DisplayTrialLink {
+    /// No trial, no answer; the question shows on the output `sheets` names.
+    pub fn new(sheets: SheetLink) -> DisplayTrialLink {
         DisplayTrialLink {
             open: Shared::default(),
             answered: Outbox::default(),
             sent: Arc::new(AtomicU64::new(0)),
-            banners,
+            sheets,
         }
     }
 
@@ -89,9 +89,9 @@ impl DisplayTrialLink {
         self.open.subscribe()
     }
 
-    /// The output the question shows on: the banners'.
-    pub fn banners(&self) -> &BannerLink {
-        &self.banners
+    /// The output the question shows on: the sheets'.
+    pub fn sheets(&self) -> &SheetLink {
+        &self.sheets
     }
 
     /// The person answered `trial`. The question comes down at once; the compositor's end of the
@@ -116,7 +116,7 @@ impl DisplayTrialLink {
 mod tests {
     use sill_model::desktop::{DisplayTrial, TrialAnswer, TrialId};
 
-    use super::{BannerLink, DisplayTrialLink, TrialSerial};
+    use super::{DisplayTrialLink, SheetLink, TrialSerial};
 
     fn trial(id: u32, seconds: u32) -> DisplayTrial {
         DisplayTrial {
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn a_trial_opens_restarts_and_ends_with_its_own_number() {
-        let link = DisplayTrialLink::new(BannerLink::new());
+        let link = DisplayTrialLink::new(SheetLink::new());
         assert_eq!(link.latest(), None);
         link.begin(trial(4, 15));
         let first = link.latest().expect("open");
@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn an_answer_counts_on_and_takes_the_question_down() {
-        let link = DisplayTrialLink::new(BannerLink::new());
+        let link = DisplayTrialLink::new(SheetLink::new());
         assert_eq!(link.last_answer(), None);
         link.begin(trial(2, 15));
         link.answer(TrialId::new(2), TrialAnswer::Revert);

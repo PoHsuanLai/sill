@@ -19,6 +19,7 @@ mod outbox;
 mod power_menu;
 mod reveal;
 mod shared;
+mod sheets;
 mod spaces_bar;
 mod split_picker;
 mod switcher;
@@ -45,6 +46,7 @@ pub use outbox::{Outbox, Sent};
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, PowerMenuPayload, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, Opening, PanelFocus, PanelLink, Reveal};
 pub(crate) use shared::Shared;
+pub use sheets::{SheetLink, SheetOutput};
 pub use spaces_bar::{SpacesBarFeed, SpacesBarLink, SpacesBarPicked};
 pub use split_picker::{
     OfferSerial, SplitAnswer, SplitAnswered, SplitOffer, SplitPickerLink, SplitReply,
@@ -66,6 +68,8 @@ pub struct Links {
     pub control_center: ControlCenterLink,
     pub notification_center: CenterLink,
     pub banners: BannerLink,
+    /// Where the sheets (the questions) show: the daemon latches it per burst of questions.
+    pub sheets: SheetLink,
     /// Every corner surface writes its firings here; the daemon carries them out. The
     /// screenshot thumbnail follows `banners` (it shows on the banners' output).
     pub corners: CornerLink,
@@ -89,7 +93,7 @@ pub struct Links {
     /// the colour being asked for, the eyedropper surfaces draw them.
     pub eyedropper: EyedropperLink,
     /// The display trial (a program changed the displays and the compositor asks whether to keep
-    /// them): the daemon opens it, the surface on the banners' output shows it, and the answer
+    /// them): the daemon opens it, the surface on the sheets' output shows it, and the answer
     /// goes back to the daemon.
     pub display_trial: DisplayTrialLink,
 }

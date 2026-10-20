@@ -27,6 +27,8 @@ pub enum ShellMsg {
     Lock(crate::lock::LockWish),
     /// Map or unmap the idle dim surfaces (`crate::idle_dim::spawn_follower` sends it).
     Dim(sill_model::idle::DimShown),
+    /// A source of questions changed; the sheets' latch looks again (`crate::sheet_latch`).
+    Sheets,
     /// Open, switch or close the launcher for a summon (`crate::companion::spawn_follower`
     /// sends it).
     Summon(sill_model::companion::SummonOut),

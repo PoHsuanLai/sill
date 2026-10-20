@@ -10,9 +10,9 @@ pub enum OutputPolicy {
     /// One surface on every output, and nothing picks among them: the dock, a hot corner.
     Every,
     /// One warm surface on every output; a panel opens on the focused window's output, else the
-    /// pointer's.
+    /// pointer's. A sheet is one too: it is mapped on the output the sheets' link latches.
     FocusedWindow,
-    /// A surface on the main display only: the sheets that ask the person a question.
+    /// A surface on the main display only: the banners, whose one column counts and pauses once.
     Main,
 }
 

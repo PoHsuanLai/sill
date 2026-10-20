@@ -1,6 +1,6 @@
 //! The confirmation sheet's root.
 //!
-//! While the intents service's queue holds a question and the `BannerLink` names this output, the
+//! While the intents service's queue holds a question and the `SheetLink` names this output, the
 //! surface maps itself (`SurfaceHandle::set_visibility`) and a `Ds { material: Sheet, extent: Viewport }`
 //! holds one `Sheet` per question, keyed by the question's id so the next one enters again and
 //! starts its arming over: the title (the action's own label), who asks and where, the arguments
@@ -30,7 +30,7 @@ use super::gate::{AnswerGate, GateIn};
 use super::held::held_line;
 use super::io::{use_brief_answer, use_gate, use_undo};
 use super::surface::PANEL_ID;
-use sill_ui_kit::hooks::{use_banner_output, use_service_part};
+use sill_ui_kit::hooks::{use_service_part, use_sheet_output};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -314,10 +314,10 @@ fn waiting_words(count: usize) -> String {
     }
 }
 
-/// The stage on `output`, following the queue and the banners' output.
+/// The stage on `output`, following the queue and the sheets' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<SheetView>> {
     let sheets = use_service_part::<IntentsService, _>(|intents| sheet_view(&intents.sheets));
-    let shows = use_banner_output();
+    let shows = use_sheet_output();
     use_sheet_stage(super::surface::PRESET, move || {
         let current = sheets();
         shows

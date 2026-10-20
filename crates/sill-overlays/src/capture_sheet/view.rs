@@ -1,6 +1,6 @@
 //! The picker's root.
 //!
-//! While the capture service holds a request and the `BannerLink` names this output, the surface
+//! While the capture service holds a request and the `SheetLink` names this output, the surface
 //! maps itself (`SurfaceHandle::set_visibility`) and a `Ds { material: Sheet, extent: Viewport }` holds
 //! one `Sheet` per request, keyed by its id: the title, who asks, a segmented control for the
 //! kinds the app accepts (only when both), quire's `List` of `Row`s for what can be shared, a
@@ -32,7 +32,7 @@ use super::CAPTURE_SHEET_CSS;
 use super::io::use_end;
 use super::rows::{byline_of, empty_words, key_of, pointer_words, rows_of, source_of, tab_words};
 use super::surface::PANEL_ID;
-use sill_ui_kit::hooks::{use_banner_output, use_service_part};
+use sill_ui_kit::hooks::{use_service_part, use_sheet_output};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -230,10 +230,10 @@ fn SheetCard(asking: Asking, shown: Shown, stage: Signal<SheetStage<Asking>>) ->
     }
 }
 
-/// The stage on `output`, following the request and the banners' output.
+/// The stage on `output`, following the request and the sheets' output.
 fn use_stage(output: OutputInfo) -> Signal<SheetStage<Asking>> {
     let asking = use_service_part::<CaptureService, _>(|picker| picker.asking.clone());
-    let shows = use_banner_output();
+    let shows = use_sheet_output();
     use_sheet_stage(super::surface::PRESET, move || {
         let current = asking();
         shows
