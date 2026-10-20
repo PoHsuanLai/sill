@@ -11,6 +11,7 @@ use tokio::sync::{mpsc, watch};
 use super::file::{FILE_NAME, load, save};
 use crate::debounced::{self, Debounced};
 use crate::first_run::store_of;
+use crate::machine::Published;
 
 /// Run until `commands` closes (the `Control` was dropped). While the file has never been
 /// written, wait for the installed apps and start the dock from them (once).
@@ -20,6 +21,7 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<PinEvent>,
     apps: watch::Receiver<AppIndex>,
 ) {
+    let tx = Published::new(tx, step);
     let mut fresh = (store_of(&dir.join(FILE_NAME)) == Store::Missing).then_some(apps);
     let mut touched = match Debounced::file(&dir, FILE_NAME) {
         Ok(touched) => Some(touched),
@@ -61,30 +63,23 @@ pub(crate) async fn run(
 
 /// Start the dock from `installed` unless the file was written in the meantime (a pin made
 /// before the apps were known).
-fn seed(dir: &Path, tx: &watch::Sender<DockPins>, installed: &AppIndex) {
+fn seed(dir: &Path, tx: &Published<DockPins, PinEvent>, installed: &AppIndex) {
     if let Some(pins) = first_dock(store_of(&dir.join(FILE_NAME)), installed) {
         apply_and_save(dir, tx, PinEvent::Replaced(pins));
     }
 }
 
 /// Saved before it is published: whoever sees the new pins finds them on disk too.
-fn apply_and_save(dir: &Path, tx: &watch::Sender<DockPins>, event: PinEvent) {
-    let next = step(tx.borrow().clone(), event);
+fn apply_and_save(dir: &Path, tx: &Published<DockPins, PinEvent>, event: PinEvent) {
+    let next = tx.next(event);
     if let Err(error) = save(dir, &next) {
         eprintln!("sill: saving {}: {error}", dir.display());
     }
-    tx.send_replace(next);
+    tx.set(next);
 }
 
 /// An external edit settled: re-read and publish only if it actually changed the value (our
 /// own writes trigger the same watch; re-reading them back is a no-op here).
-fn reread(dir: &Path, tx: &watch::Sender<DockPins>) {
-    let found = load(dir);
-    tx.send_if_modified(|pins| {
-        let changed = *pins != found;
-        if changed {
-            *pins = found;
-        }
-        changed
-    });
+fn reread(dir: &Path, tx: &Published<DockPins, PinEvent>) {
+    tx.set(load(dir));
 }

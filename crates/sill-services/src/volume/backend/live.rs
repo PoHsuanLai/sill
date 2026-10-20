@@ -26,6 +26,7 @@ use sill_model::volume::{Mute, Volume, VolumeCommand, VolumeEvent, step, stepped
 use tokio::sync::watch;
 
 use super::wake::Wake;
+use crate::machine::Published;
 use crate::supervise::Backoff;
 
 /// The default sink this service last saw: enough to address a volume or mute change back to
@@ -54,13 +55,14 @@ pub(crate) fn run(
     commands: &Receiver<VolumeCommand>,
     wake: &Arc<Wake>,
 ) {
+    let tx = &Published::new(tx.clone(), step);
     let mut backoff = Backoff::default();
     loop {
         let started = Instant::now();
         match session(tx, commands, wake) {
             Session::Commands => return,
             Session::Lost => {
-                apply_event(tx, VolumeEvent::SinkGone);
+                tx.feed(VolumeEvent::SinkGone);
                 backoff.after_attempt(started.elapsed());
                 if matches!(wait_out(backoff.wait(), commands), Waited::CommandsClosed) {
                     return;
@@ -102,7 +104,7 @@ enum Link {
 
 /// One connection to the sound server, from connecting to its end.
 fn session(
-    tx: &watch::Sender<Volume>,
+    tx: &Published<Volume, VolumeEvent>,
     commands: &Receiver<VolumeCommand>,
     wake: &Arc<Wake>,
 ) -> Session {
@@ -175,7 +177,7 @@ fn drain(
     link: Link,
     context: &Rc<RefCell<Context>>,
     sink: &Rc<RefCell<Sink>>,
-    tx: &watch::Sender<Volume>,
+    tx: &Published<Volume, VolumeEvent>,
 ) -> Option<Session> {
     loop {
         match commands.try_recv() {
@@ -188,7 +190,7 @@ fn drain(
 }
 
 /// Subscribes to sink and server changes, refreshing the default sink on every one.
-fn subscribe(context: &Rc<RefCell<Context>>, tx: &watch::Sender<Volume>, sink: &Rc<RefCell<Sink>>) {
+fn subscribe(context: &Rc<RefCell<Context>>, tx: &Published<Volume, VolumeEvent>, sink: &Rc<RefCell<Sink>>) {
     let context_ref = Rc::clone(context);
     let tx = tx.clone();
     let sink_ref = Rc::clone(sink);
@@ -203,7 +205,7 @@ fn subscribe(context: &Rc<RefCell<Context>>, tx: &watch::Sender<Volume>, sink: &
 }
 
 /// Re-reads the default sink and sends the resulting `Volume` (or `SinkGone` if there is none).
-fn refresh(context: &Rc<RefCell<Context>>, tx: &watch::Sender<Volume>, sink: &Rc<RefCell<Sink>>) {
+fn refresh(context: &Rc<RefCell<Context>>, tx: &Published<Volume, VolumeEvent>, sink: &Rc<RefCell<Sink>>) {
     let introspector = context.borrow().introspect();
     let context = Rc::clone(context);
     let tx = tx.clone();
@@ -213,7 +215,7 @@ fn refresh(context: &Rc<RefCell<Context>>, tx: &watch::Sender<Volume>, sink: &Rc
             fetch_sink(&context, name.to_owned(), &tx, &sink);
         } else {
             *sink.borrow_mut() = Sink::default();
-            apply_event(&tx, VolumeEvent::SinkGone);
+            tx.feed(VolumeEvent::SinkGone);
         }
     });
 }
@@ -222,7 +224,7 @@ fn refresh(context: &Rc<RefCell<Context>>, tx: &watch::Sender<Volume>, sink: &Rc
 fn fetch_sink(
     context: &Rc<RefCell<Context>>,
     name: String,
-    tx: &watch::Sender<Volume>,
+    tx: &Published<Volume, VolumeEvent>,
     sink: &Rc<RefCell<Sink>>,
 ) {
     let introspector = context.borrow().introspect();
@@ -241,8 +243,7 @@ fn fetch_sink(
             } else {
                 Mute::Audible
             };
-            apply_event(
-                &tx,
+            tx.feed(
                 VolumeEvent::Sink {
                     sink: info.description.as_deref().unwrap_or_default().to_owned(),
                     level: percent_of(info.volume.avg()),
@@ -253,7 +254,7 @@ fn fetch_sink(
         ListResult::End => {
             if !seen {
                 *sink.borrow_mut() = Sink::default();
-                apply_event(&tx, VolumeEvent::SinkGone);
+                tx.feed(VolumeEvent::SinkGone);
             }
         }
         ListResult::Error => {}
@@ -264,7 +265,7 @@ fn fetch_sink(
 fn apply(
     context: &Rc<RefCell<Context>>,
     sink: &Rc<RefCell<Sink>>,
-    tx: &watch::Sender<Volume>,
+    tx: &Published<Volume, VolumeEvent>,
     command: VolumeCommand,
 ) {
     let Sink { index, channels } = *sink.borrow();
@@ -301,12 +302,6 @@ fn apply(
                 .set_sink_mute_by_index(index, !muted, None);
         }
     }
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-fn apply_event(tx: &watch::Sender<Volume>, event: VolumeEvent) {
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
 }
 
 /// Rounds to the nearest percent rather than truncating, so it round-trips through

@@ -22,13 +22,27 @@ impl<T: Clone + PartialEq, E> Published<T, E> {
 
     /// Reduce `event` onto the value now and publish the result when it differs.
     pub(crate) fn feed(&self, event: E) {
-        let next = (self.step)(self.tx.borrow().clone(), event);
-        self.set(next);
+        self.set(self.next(event));
+    }
+
+    /// The value `event` would make, for a service that must do something (save it) before
+    /// readers see it: publish the result with [`Published::set`].
+    pub(crate) fn next(&self, event: E) -> T {
+        (self.step)(self.tx.borrow().clone(), event)
     }
 
     /// Publish `next` when it differs from the value now.
     pub(crate) fn set(&self, next: T) {
         publish(&self.tx, next);
+    }
+}
+
+impl<T, E> Clone for Published<T, E> {
+    fn clone(&self) -> Published<T, E> {
+        Published {
+            tx: self.tx.clone(),
+            step: self.step,
+        }
     }
 }
 
