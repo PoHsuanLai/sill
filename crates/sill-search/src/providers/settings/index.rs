@@ -111,7 +111,7 @@ mod tests {
     use sill_launcher::Needle;
 
     use super::{IndexedKey, SettingsIndex};
-    use ds_settings::schema::Schema;
+    use ds_settings::schema::{PageId, Schema};
 
     fn key(path: &str, label: &str, help: &str, page: &str) -> IndexedKey {
         IndexedKey {
