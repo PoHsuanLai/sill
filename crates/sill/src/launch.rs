@@ -5,15 +5,15 @@
 
 use std::sync::mpsc::SyncSender;
 
-use shell_host::{HostCtx, SurfaceHandle};
+use shell_host::HostCtx;
 use sill_dock::Dock;
 use sill_ipc::response::{Failure, FailureKind, Response};
-use sill_launcher::{AppId, DesktopAction};
+use sill_launcher::AppId;
 use sill_model::launch::{
     FailureCause, LaunchCommand, LaunchDone, LaunchRequest, Launches, answer_to, failure_sentence,
 };
+use sill_services::Control;
 use sill_services::launch::monotonic_now;
-use sill_services::{Control, ServiceError};
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::ACTIVATION_DEADLINE;
 use tokio::runtime::Handle;
@@ -22,31 +22,6 @@ use tokio::sync::{oneshot, watch};
 use crate::daemon::msg::ShellMsg;
 use crate::ipc::server::REPLY_TIMEOUT;
 use crate::outputs::Outputs;
-
-/// Launch `app` (its `action`) from `surface`, with a fresh activation token when the
-/// compositor grants one. Dropped files and URIs are the dock and launcher's own concern
-/// (drag-and-drop launches are not wired yet: both are empty here).
-pub async fn launch(
-    surface: &SurfaceHandle,
-    service: &Control<LaunchCommand>,
-    app: AppId,
-    action: DesktopAction,
-) -> Result<(), ServiceError> {
-    let token = sill_ui_kit::surface::activation_token(surface, Some(app.0.clone())).await;
-    service.send(LaunchCommand::Launch(LaunchRequest {
-        app,
-        action,
-        files: Vec::new(),
-        uris: Vec::new(),
-        token,
-    }))
-}
-
-// `SurfaceHandle::new` is `pub(crate)` to shell-host, so this file has no way to build one for
-// a unit test; the only untested line is the `activation_token` call and the `LaunchRequest`
-// shape, both a direct read of shell-host's and sill-services' own frozen signatures. Covered
-// live by dock clicks once dock-ui lands (design/10 §10.3.6), and by `launch::run`'s own tests
-// for what happens to the request past this point.
 
 /// One `sill launch` on its way from the host thread to the launch service.
 #[derive(Debug)]
@@ -122,13 +97,9 @@ pub async fn serve(
         .and_then(Result::ok)
         .flatten();
     let asked_at = monotonic_now();
-    let sent = control.send(LaunchCommand::Launch(LaunchRequest {
-        app: app.clone(),
-        action: DesktopAction::Default,
-        files: Vec::new(),
-        uris: Vec::new(),
-        token,
-    }));
+    let sent = control.send(LaunchCommand::Launch(
+        LaunchRequest::app(app.clone()).token(token),
+    ));
     let response = match sent {
         Ok(()) => {
             let ended = tokio::time::timeout(REPLY_TIMEOUT, async {

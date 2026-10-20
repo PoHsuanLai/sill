@@ -46,6 +46,35 @@ pub struct LaunchRequest {
     pub token: Option<String>,
 }
 
+impl LaunchRequest {
+    /// A plain start of `app`: its own `Exec`, no files, no addresses, no token. The one place
+    /// a request is spelled out; every launch builds on it.
+    pub fn app(app: AppId) -> LaunchRequest {
+        LaunchRequest {
+            app,
+            action: DesktopAction::Default,
+            files: Vec::new(),
+            uris: Vec::new(),
+            token: None,
+        }
+    }
+
+    /// This request starting the desktop action `action` instead of the entry's own `Exec`.
+    pub fn action(self, action: DesktopAction) -> LaunchRequest {
+        LaunchRequest { action, ..self }
+    }
+
+    /// This request handing over `uris` (`%u`/`%U`).
+    pub fn uris(self, uris: Vec<String>) -> LaunchRequest {
+        LaunchRequest { uris, ..self }
+    }
+
+    /// This request carrying `token`.
+    pub fn token(self, token: Option<String>) -> LaunchRequest {
+        LaunchRequest { token, ..self }
+    }
+}
+
 /// What the launch service can be told.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]

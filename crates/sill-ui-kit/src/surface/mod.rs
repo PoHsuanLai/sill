@@ -19,7 +19,7 @@ mod start;
 
 pub use activation::{
     ACTIVATION_DEADLINE, SETTINGS_APP, activation_token, launch_with_token,
-    open_settings_with_token,
+    open_settings_with_token, token_from,
 };
 pub use lifecycle::{ClosesOnFocusLoss, FocusLoss, Presence};
 pub use lock::{LockSurface, MountLockProps, mount_lock};

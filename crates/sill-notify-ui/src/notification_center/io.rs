@@ -160,10 +160,7 @@ impl CenterCtx {
             self.link.clone(),
         );
         spawn(async move {
-            let token = match &surface {
-                Some(surface) => sill_ui_kit::surface::activation_token(surface, app).await,
-                None => None,
-            };
+            let token = sill_ui_kit::surface::token_from(surface.as_ref(), app).await;
             let token = token.map_or(Activation::NoToken, |t| {
                 Activation::Token(ActivationToken(t))
             });

@@ -1,8 +1,7 @@
 //! What picking a bar menu item does, as a value: the component turns it into service commands
 //! after the menu has closed (design A6 "closes then picks").
 
-use sill_launcher::{AppId, DesktopAction};
-use sill_launcher::{Confirm, SessionAction};
+use sill_launcher::{AppId, Route, SessionAction};
 use sill_model::app_menu::{AppMenuCommand, MenuApp, OwnItem, own_commands};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_model::session::SessionCommand;
@@ -51,16 +50,12 @@ pub(crate) fn commands(pick: &BarPick, toplevels: &Toplevels) -> Vec<Command> {
             .into_iter()
             .map(Command::Wl)
             .collect(),
-        BarPick::Settings => vec![Command::Launch(LaunchCommand::Launch(LaunchRequest {
-            app: AppId(SETTINGS_APP.to_owned()),
-            action: DesktopAction::Default,
-            files: Vec::new(),
-            uris: Vec::new(),
-            token: None,
-        }))],
-        BarPick::Session(action) => vec![match action.confirm() {
-            Confirm::Ask => Command::PowerMenu(*action),
-            Confirm::Now => Command::Session(SessionCommand::Run(*action)),
+        BarPick::Settings => vec![Command::Launch(LaunchCommand::Launch(LaunchRequest::app(
+            AppId(SETTINGS_APP.to_owned()),
+        )))],
+        BarPick::Session(action) => vec![match action.route() {
+            Route::Ask(action) => Command::PowerMenu(action),
+            Route::Now(action) => Command::Session(SessionCommand::Run(action)),
         }],
         BarPick::Tray { item, entry } => vec![Command::Tray(TrayCommand::MenuPick {
             item: item.clone(),

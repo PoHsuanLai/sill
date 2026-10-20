@@ -7,7 +7,7 @@ use sill_launcher::SettingsLink;
 use sill_model::launch::{LaunchCommand, SETTINGS_BUS_NAME, SettingsOpen};
 use sill_ui_kit::hooks::use_services;
 use sill_ui_kit::menu::{PopupGeom, PopupLook, point_anchor, use_context_menu};
-use sill_ui_kit::surface::activation_token;
+use sill_ui_kit::surface::token_from;
 
 use super::DesktopPoint;
 use super::model::{DesktopMenu, DesktopPick};
@@ -45,10 +45,7 @@ fn open_wallpaper_page(
     launch: sill_services::control::Control<LaunchCommand>,
 ) {
     spawn(async move {
-        let token = match &surface {
-            Some(surface) => activation_token(surface, Some(SETTINGS_BUS_NAME.to_owned())).await,
-            None => None,
-        };
+        let token = token_from(surface.as_ref(), Some(SETTINGS_BUS_NAME.to_owned())).await;
         let open = SettingsOpen::at(SettingsLink(WALLPAPER_PAGE.to_owned())).with_token(token);
         let _gone_is_dropped = launch.send(LaunchCommand::OpenSettings(open));
     });

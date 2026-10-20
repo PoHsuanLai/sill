@@ -37,7 +37,7 @@ pub use rank::sections::{
     ShownSection, Weight, place, shown, weighted,
 };
 pub use rank::{Prefix, RankWeights, Score, rank, rank_text};
-pub use session::{Confirm, SessionAction};
+pub use session::{Confirm, Route, SessionAction};
 pub use settings_link::SettingsLink;
 pub use sink::{Batch, ResultSink, VecSink};
 pub use subject::{

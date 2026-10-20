@@ -24,6 +24,16 @@ pub async fn activation_token(surface: &SurfaceHandle, app: Option<String>) -> O
         .flatten()
 }
 
+/// The token for launching `app` from `surface`, when the launch has a surface to ask for it:
+/// the one place the "has a surface" question is answered, so no entrance launches without a
+/// token it could have had.
+pub async fn token_from(surface: Option<&SurfaceHandle>, app: Option<String>) -> Option<String> {
+    match surface {
+        Some(surface) => activation_token(surface, app).await,
+        None => None,
+    }
+}
+
 /// Launch `app` through `launch` with a token asked of `surface` (none when the surface is gone
 /// or the compositor gives none): the one path every launch from a surface takes, so the app's
 /// window is let to the front.
@@ -34,17 +44,13 @@ pub async fn launch_with_token(
     action: DesktopAction,
     uris: Vec<String>,
 ) -> Result<(), ServiceError> {
-    let token = match surface {
-        Some(surface) => activation_token(surface, Some(app.0.clone())).await,
-        None => None,
-    };
-    launch.send(LaunchCommand::Launch(LaunchRequest {
-        app,
-        action,
-        files: Vec::new(),
-        uris,
-        token,
-    }))
+    let token = token_from(surface, Some(app.0.clone())).await;
+    launch.send(LaunchCommand::Launch(
+        LaunchRequest::app(app)
+            .action(action)
+            .uris(uris)
+            .token(token),
+    ))
 }
 
 /// The app Settings runs as: the one an activation token for Settings is asked for.
@@ -57,10 +63,7 @@ pub async fn open_settings_with_token(
     launch: &Control<LaunchCommand>,
     link: SettingsLink,
 ) -> Result<(), ServiceError> {
-    let token = match surface {
-        Some(surface) => activation_token(surface, Some(SETTINGS_APP.to_owned())).await,
-        None => None,
-    };
+    let token = token_from(surface, Some(SETTINGS_APP.to_owned())).await;
     launch.send(LaunchCommand::OpenSettings(
         SettingsOpen::at(link).with_token(token),
     ))

@@ -12,7 +12,7 @@ use sill_launcher::{
 };
 use std::path::PathBuf;
 
-use sill_launcher::Confirm;
+use sill_launcher::Route;
 use sill_model::results::LauncherPolicy;
 use sill_model::session::SessionAction;
 use sill_search::providers::files::IndexSource;
@@ -246,9 +246,9 @@ pub fn with_results(
 /// (Log Out, Restart, Shut Down); Reload is the daemon's, which no surface reaches.
 fn system_effect(command: SystemCommand) -> LauncherEffect {
     match command {
-        SystemCommand::Session(action) => match action.confirm() {
-            Confirm::Now => LauncherEffect::Session(action),
-            Confirm::Ask => LauncherEffect::PowerMenu(action),
+        SystemCommand::Session(action) => match action.route() {
+            Route::Now(action) => LauncherEffect::Session(action),
+            Route::Ask(action) => LauncherEffect::PowerMenu(action),
         },
         SystemCommand::Reload => LauncherEffect::Unreachable(Unreachable::System(command)),
     }

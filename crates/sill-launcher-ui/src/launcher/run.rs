@@ -41,10 +41,7 @@ pub async fn run_effect(
             .await
         }
         LauncherEffect::Open(target) => {
-            let token = match &from.surface {
-                Some(surface) => sill_ui_kit::surface::activation_token(surface, None).await,
-                None => None,
-            };
+            let token = sill_ui_kit::surface::token_from(from.surface.as_ref(), None).await;
             services
                 .launch
                 .control

@@ -209,10 +209,7 @@ impl Column {
         let surface = self.surface.peek().clone();
         let app_id = Some(card.app.0.clone());
         spawn(async move {
-            let token = match surface {
-                Some(surface) => sill_ui_kit::surface::activation_token(&surface, app_id).await,
-                None => None,
-            };
+            let token = sill_ui_kit::surface::token_from(surface.as_ref(), app_id).await;
             let token = token.map_or(Activation::NoToken, |t| {
                 Activation::Token(ActivationToken(t))
             });

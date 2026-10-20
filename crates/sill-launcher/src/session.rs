@@ -46,6 +46,26 @@ impl SessionAction {
     }
 }
 
+/// Where choosing an action goes: the one answer every entrance shares, so no surface decides
+/// "ask first or do it" for itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Route {
+    /// To the power menu, which asks and then carries it out.
+    Ask(SessionAction),
+    /// To the session service, at once.
+    Now(SessionAction),
+}
+
+impl SessionAction {
+    /// Where choosing the action goes, by its [`confirm`](SessionAction::confirm).
+    pub fn route(self) -> Route {
+        match self.confirm() {
+            Confirm::Ask => Route::Ask(self),
+            Confirm::Now => Route::Now(self),
+        }
+    }
+}
+
 /// Whether an action is asked about before it is carried out.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Confirm {
@@ -57,7 +77,18 @@ pub enum Confirm {
 
 #[cfg(test)]
 mod tests {
-    use super::{Confirm, SessionAction};
+    use super::{Confirm, Route, SessionAction};
+
+    #[test]
+    fn a_route_keeps_the_action_and_follows_its_confirm() {
+        for action in SessionAction::ALL {
+            let want = match action.confirm() {
+                Confirm::Ask => Route::Ask(action),
+                Confirm::Now => Route::Now(action),
+            };
+            assert_eq!(action.route(), want, "{action:?}");
+        }
+    }
 
     #[test]
     fn only_what_ends_the_apps_is_asked_about() {
