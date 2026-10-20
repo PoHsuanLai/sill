@@ -5,7 +5,8 @@
 use std::path::PathBuf;
 
 use sill_launcher::actions::ActionId;
-use sill_launcher::{AppId, DesktopAction, SettingsLink, WindowKey};
+use sill_launcher::settings_target::page;
+use sill_launcher::{AppId, DesktopAction, WindowKey};
 use sill_model::actions::{Ask, Start, Subject};
 use sill_model::pins::PinEvent;
 use sill_model::windows::WlCommand;
@@ -13,8 +14,8 @@ use sill_model::windows::WlCommand;
 /// The file manager the Trash tile opens `trash:///` in (design/10 §10.3.9).
 const FILES_APP: &str = "org.gnome.Nautilus";
 
-/// The Settings place the dock's own menu opens.
-const DOCK_PAGE: &str = "page:dock";
+/// The Settings page the dock's own menu opens ("Dock Settings…").
+const DOCK_PAGE: &str = "dock";
 
 /// A change to whether an app starts at login: the autostart folder's, made off the UI thread.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -121,7 +122,7 @@ pub fn pick_commands(pick: &DockPick) -> Vec<DockCommand> {
         }
         DockPick::OpenDockSettings => vec![DockCommand::Do(Ask::on(
             ActionId::OpenSettings,
-            Subject::Settings(SettingsLink(DOCK_PAGE.to_owned())),
+            Subject::Settings(page(DOCK_PAGE)),
         ))],
         DockPick::Hide(keys) => vec![on_windows(ActionId::HideApp, keys)],
         DockPick::Quit(keys) => vec![on_windows(ActionId::QuitApp, keys)],
@@ -133,7 +134,8 @@ pub fn pick_commands(pick: &DockPick) -> Vec<DockCommand> {
 mod tests {
     use super::{DockCommand, DockPick, LoginChange, open, open_trash, pick_commands};
     use sill_launcher::actions::ActionId;
-    use sill_launcher::{AppId, DesktopAction, SettingsLink, WindowKey};
+    use sill_launcher::settings_target::page;
+    use sill_launcher::{AppId, DesktopAction, WindowKey};
     use sill_model::actions::{Ask, Subject};
     use sill_model::windows::WlCommand;
 
@@ -216,7 +218,7 @@ mod tests {
                 DockPick::OpenDockSettings,
                 vec![DockCommand::Do(Ask::on(
                     ActionId::OpenSettings,
-                    Subject::Settings(SettingsLink("page:dock".to_owned())),
+                    Subject::Settings(page("dock")),
                 ))],
             ),
             (
