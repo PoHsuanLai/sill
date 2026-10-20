@@ -11,6 +11,7 @@ use zbus::Connection;
 use super::upower::KbdBacklightProxy;
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::machine::Published;
 use crate::owner::{self, Ended};
 use crate::stream::next_opt;
 
@@ -24,12 +25,13 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<KbdCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
+    let tx = Published::new(tx, step);
     owner::follow_owner(
         &connection,
         SERVICE,
         &mut commands,
         async |commands| session(&connection, &tx, commands).await,
-        |_| apply(&tx, KbdEvent::Gone),
+        |_| tx.feed(KbdEvent::Gone),
     )
     .await;
     Ok(())
@@ -38,7 +40,7 @@ pub(crate) async fn run(
 /// One UPower lifetime: seed, then follow every brightness change and carry out commands.
 async fn session(
     connection: &Connection,
-    tx: &watch::Sender<KbdBacklight>,
+    tx: &Published<KbdBacklight, KbdEvent>,
     commands: &mut mpsc::UnboundedReceiver<KbdCommand>,
 ) -> Ended {
     let Ok(proxy) = KbdBacklightProxy::new(connection).await else {
@@ -51,7 +53,7 @@ async fn session(
         tokio::select! {
             Some(signal) = next_opt(&mut changes) => {
                 if let Ok(args) = signal.args() {
-                    apply(tx, KbdEvent::Brightness(u32::try_from(args.value).unwrap_or(0)));
+                    tx.feed(KbdEvent::Brightness(u32::try_from(args.value).unwrap_or(0)));
                 }
             }
             command = commands.recv() => match command {
@@ -71,7 +73,7 @@ async fn session(
 
 /// Reads the range and the step once and publishes them; a range of 0 or an error is no
 /// backlight.
-async fn seed(tx: &watch::Sender<KbdBacklight>, proxy: &KbdBacklightProxy<'_>) {
+async fn seed(tx: &Published<KbdBacklight, KbdEvent>, proxy: &KbdBacklightProxy<'_>) {
     let max = proxy
         .get_max_brightness()
         .await
@@ -86,16 +88,10 @@ async fn seed(tx: &watch::Sender<KbdBacklight>, proxy: &KbdBacklightProxy<'_>) {
         }),
         None => KbdEvent::Gone,
     };
-    apply(tx, event);
+    tx.feed(event);
 }
 
 /// UPower's `i32` as a step: a negative one is an error.
 fn level_of(value: i32) -> Option<u32> {
     u32::try_from(value).ok()
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-fn apply(tx: &watch::Sender<KbdBacklight>, event: KbdEvent) {
-    let next = step(*tx.borrow(), event);
-    let _ = tx.send(next);
 }

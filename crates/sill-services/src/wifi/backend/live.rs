@@ -13,16 +13,17 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use sill_model::units::Presence;
-use sill_model::wifi::{Radio, Wifi, WifiCommand, WifiEvent};
+use sill_model::wifi::{Radio, Wifi, WifiCommand, WifiEvent, step};
 use tokio::sync::{mpsc, watch};
 use tokio::time::Instant;
 use zbus::Connection;
 use zbus::zvariant::{ObjectPath, OwnedObjectPath};
 
-use super::reads::{apply, refresh_access_points, refresh_radio, refresh_saved, saved_ssid_of};
+use super::reads::{refresh_access_points, refresh_radio, refresh_saved, saved_ssid_of};
 use crate::deadline::{BUS_CALL, NETWORK_REFRESH, call, within};
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::machine::Published;
 use crate::nm::{DeviceProxy, DeviceType, NetworkManagerProxy, SettingsProxy, WirelessDeviceProxy};
 use crate::owner::{self, Ended};
 use crate::stream::{next, sleep_until_opt};
@@ -41,12 +42,13 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<WifiCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
+    let tx = Published::new(tx, step);
     owner::follow_owner(
         &connection,
         SERVICE,
         &mut commands,
         async |commands| session(&connection, &tx, commands).await,
-        |_| apply(&tx, WifiEvent::Gone),
+        |_| tx.feed(WifiEvent::Gone),
     )
     .await;
     Ok(())
@@ -63,7 +65,7 @@ enum Followed {
 /// One NetworkManager lifetime: find a wireless device, follow it, find one again when it goes.
 async fn session(
     connection: &Connection,
-    tx: &watch::Sender<Wifi>,
+    tx: &Published<Wifi, WifiEvent>,
     commands: &mut mpsc::UnboundedReceiver<WifiCommand>,
 ) -> Ended {
     let (Ok(nm), Ok(settings)) = (
@@ -111,8 +113,8 @@ async fn session(
         match followed {
             Followed::Commands => return Ended::Commands,
             Followed::DeviceGone => {
-                apply(tx, WifiEvent::Device(Presence::Absent));
-                apply(tx, WifiEvent::AccessPoints(Vec::new()));
+                tx.feed(WifiEvent::Device(Presence::Absent));
+                tx.feed(WifiEvent::AccessPoints(Vec::new()));
             }
         }
     }
@@ -124,7 +126,7 @@ async fn follow(
     nm: &NetworkManagerProxy<'_>,
     settings: &SettingsProxy<'_>,
     device_path: &OwnedObjectPath,
-    tx: &watch::Sender<Wifi>,
+    tx: &Published<Wifi, WifiEvent>,
     commands: &mut mpsc::UnboundedReceiver<WifiCommand>,
     removed: &mut (impl zbus::export::futures_core::Stream + Unpin),
 ) -> Followed {
@@ -143,7 +145,7 @@ async fn follow(
         return Followed::DeviceGone;
     };
 
-    apply(tx, WifiEvent::Device(Presence::Present));
+    tx.feed(WifiEvent::Device(Presence::Present));
     refresh_radio(nm, tx).await;
     refresh_access_points(connection, &wireless, &device, tx).await;
     refresh_saved(connection, settings, tx).await;

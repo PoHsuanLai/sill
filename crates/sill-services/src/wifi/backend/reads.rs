@@ -3,12 +3,12 @@
 //! skipped refresh, not the service.
 
 use sill_model::units::Percent;
-use sill_model::wifi::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEvent, step};
-use tokio::sync::watch;
+use sill_model::wifi::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEvent};
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
 use crate::deadline::{NETWORK_REFRESH, within};
+use crate::machine::Published;
 use crate::nm::{
     AccessPointProxy, ConnectionSettingsProxy, DeviceProxy, DeviceState, NetworkManagerProxy,
     SettingsProxy, WirelessDeviceProxy,
@@ -19,7 +19,7 @@ use crate::nm::{
 pub(super) const MAX_ACCESS_POINTS: usize = 128;
 
 /// Reads `WirelessEnabled` and `WirelessHardwareEnabled` and publishes the radio they describe.
-pub(super) async fn refresh_radio(nm: &NetworkManagerProxy<'_>, tx: &watch::Sender<Wifi>) {
+pub(super) async fn refresh_radio(nm: &NetworkManagerProxy<'_>, tx: &Published<Wifi, WifiEvent>) {
     let read = within(NETWORK_REFRESH, "NetworkManager", async {
         let enabled = nm.wireless_enabled().await.unwrap_or(false);
         let hw_enabled = nm.wireless_hardware_enabled().await.unwrap_or(true);
@@ -27,7 +27,7 @@ pub(super) async fn refresh_radio(nm: &NetworkManagerProxy<'_>, tx: &watch::Send
     })
     .await;
     if let Ok(radio) = read {
-        apply(tx, WifiEvent::Radio(radio));
+        tx.feed(WifiEvent::Radio(radio));
     }
 }
 
@@ -47,7 +47,7 @@ pub(super) async fn refresh_access_points(
     connection: &Connection,
     wireless: &WirelessDeviceProxy<'_>,
     device: &DeviceProxy<'_>,
-    tx: &watch::Sender<Wifi>,
+    tx: &Published<Wifi, WifiEvent>,
 ) {
     let read = within(NETWORK_REFRESH, "NetworkManager", async {
         let paths = wireless.access_points().await.ok()?;
@@ -68,7 +68,7 @@ pub(super) async fn refresh_access_points(
     })
     .await;
     if let Ok(Some(points)) = read {
-        apply(tx, WifiEvent::AccessPoints(points));
+        tx.feed(WifiEvent::AccessPoints(points));
     }
 }
 
@@ -132,7 +132,7 @@ fn association_of(state: DeviceState) -> Association {
 pub(super) async fn refresh_saved(
     connection: &Connection,
     settings: &SettingsProxy<'_>,
-    tx: &watch::Sender<Wifi>,
+    tx: &Published<Wifi, WifiEvent>,
 ) {
     if let Ok(Some(ssids)) = within(
         NETWORK_REFRESH,
@@ -141,7 +141,7 @@ pub(super) async fn refresh_saved(
     )
     .await
     {
-        apply(tx, WifiEvent::Saved(ssids));
+        tx.feed(WifiEvent::Saved(ssids));
     }
 }
 
@@ -169,12 +169,6 @@ pub(super) async fn saved_ssid_of(connection: &Connection, path: &OwnedObjectPat
     let ssid = all.remove("802-11-wireless")?.remove("ssid")?;
     let bytes = Vec::<u8>::try_from(ssid).ok()?;
     Some(Ssid(String::from_utf8_lossy(&bytes).into_owned()))
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-pub(super) fn apply(tx: &watch::Sender<Wifi>, event: WifiEvent) {
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
 }
 
 #[cfg(test)]

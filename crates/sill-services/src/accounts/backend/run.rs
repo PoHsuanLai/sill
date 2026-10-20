@@ -12,7 +12,6 @@ use sill_model::accounts::{
 use sill_model::notifications::NotificationsCommand;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
-use tokio::sync::watch;
 use tokio::task::AbortHandle;
 use zbus::{Connection, MessageStream};
 
@@ -22,6 +21,7 @@ use super::{notice, wire};
 use crate::accounts::AccountsService;
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::machine::Machine;
 use crate::notices::{self, Board, Said};
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
@@ -32,8 +32,7 @@ struct Live {
     connection: Connection,
     rt: Handle,
     told: UnboundedSender<AccountsEvent>,
-    tx: watch::Sender<AccountsState>,
-    state: AccountsState,
+    machine: Machine<AccountsState, AccountsEvent, AccountsEffect>,
     /// The sign-in notices, one per account.
     board: Board<AccountKey>,
     /// One watch per account that needs signing in again, ended when it is well.
@@ -58,8 +57,7 @@ pub(crate) async fn run(
         connection: connection.clone(),
         rt: Handle::current(),
         told,
-        tx,
-        state: AccountsState::default(),
+        machine: Machine::new(tx, step),
         board: Board::new(links.notifications, links.notes, shown_for),
         watches: HashMap::new(),
     };
@@ -158,7 +156,8 @@ impl Live {
     /// Keep the id of each notice the notes now hold for an account that needs the person.
     fn learn(&mut self) {
         let accounts: Vec<AccountKey> = self
-            .state
+            .machine
+            .state()
             .needing
             .iter()
             .map(|n| n.account.clone())
@@ -198,7 +197,13 @@ impl Live {
 
     /// Ask accountd to sign `account` in again, when it is one that needs it.
     fn sign_in(&self, account: &AccountKey) {
-        if !self.state.needing.iter().any(|n| n.account == *account) {
+        if !self
+            .machine
+            .state()
+            .needing
+            .iter()
+            .any(|n| n.account == *account)
+        {
             return;
         }
         let (connection, account) = (self.connection.clone(), account.clone());
@@ -226,16 +231,7 @@ impl Live {
 
     /// Step the state by `event`, publish it, and carry out what the step asks.
     fn apply(&mut self, event: AccountsEvent) {
-        let (next, effects) = step(std::mem::take(&mut self.state), event);
-        self.tx.send_if_modified(|published| {
-            let changed = *published != next;
-            if changed {
-                published.clone_from(&next);
-            }
-            changed
-        });
-        self.state = next;
-        for effect in effects {
+        for effect in self.machine.feed(event) {
             self.carry_out(effect);
         }
         self.follow();
@@ -252,8 +248,14 @@ impl Live {
 
     /// Watch each account that needs signing in again while accountd is there, and no other.
     fn follow(&mut self) {
-        let wanted: Vec<&AccountKey> = match self.state.link {
-            AccountsLink::Present => self.state.needing.iter().map(|n| &n.account).collect(),
+        let wanted: Vec<&AccountKey> = match self.machine.state().link {
+            AccountsLink::Present => self
+                .machine
+                .state()
+                .needing
+                .iter()
+                .map(|n| &n.account)
+                .collect(),
             AccountsLink::Absent => Vec::new(),
         };
         self.watches.retain(|account, watch| {

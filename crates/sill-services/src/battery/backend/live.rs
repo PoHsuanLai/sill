@@ -9,6 +9,7 @@ use zbus::Connection;
 
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::machine::Published;
 use crate::owner::{self, Ended};
 use crate::stream::next;
 
@@ -23,12 +24,13 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<BatteryCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
+    let tx = Published::new(tx, step);
     owner::follow_owner(
         &connection,
         SERVICE,
         &mut commands,
         async |commands| session(&connection, &tx, commands).await,
-        |_| apply(&tx, BatteryEvent::Presence(Presence::Absent)),
+        |_| tx.feed(BatteryEvent::Presence(Presence::Absent)),
     )
     .await;
     Ok(())
@@ -38,7 +40,7 @@ pub(crate) async fn run(
 /// closed, [`Ended::Unreadable`] when UPower did not answer.
 async fn session(
     connection: &Connection,
-    tx: &watch::Sender<Battery>,
+    tx: &Published<Battery, BatteryEvent>,
     commands: &mut mpsc::UnboundedReceiver<BatteryCommand>,
 ) -> Ended {
     let Ok(upower) = UPowerProxy::new(connection).await else {
@@ -60,27 +62,27 @@ async fn session(
         tokio::select! {
             Some(change) = next(&mut presence) => {
                 if let Ok(present) = change.get().await {
-                    apply(tx, BatteryEvent::Presence(presence_of(present)));
+                    tx.feed(BatteryEvent::Presence(presence_of(present)));
                 }
             }
             Some(change) = next(&mut level) => {
                 if let Ok(value) = change.get().await {
-                    apply(tx, BatteryEvent::Level(percent_of(value)));
+                    tx.feed(BatteryEvent::Level(percent_of(value)));
                 }
             }
             Some(change) = next(&mut charge) => {
                 if let Ok(value) = change.get().await {
-                    apply(tx, BatteryEvent::Charge(charge_of(value)));
+                    tx.feed(BatteryEvent::Charge(charge_of(value)));
                 }
             }
             Some(change) = next(&mut to_empty) => {
                 if let Ok(value) = change.get().await {
-                    apply(tx, BatteryEvent::TimeToEmpty(seconds_of(value)));
+                    tx.feed(BatteryEvent::TimeToEmpty(seconds_of(value)));
                 }
             }
             Some(change) = next(&mut to_full) => {
                 if let Ok(value) = change.get().await {
-                    apply(tx, BatteryEvent::TimeToFull(seconds_of(value)));
+                    tx.feed(BatteryEvent::TimeToFull(seconds_of(value)));
                 }
             }
             command = commands.recv() => match command {
@@ -94,28 +96,22 @@ async fn session(
 }
 
 /// Reads every property once and sends the resulting `Battery`.
-async fn seed(tx: &watch::Sender<Battery>, device: &DeviceProxy<'_>) {
+async fn seed(tx: &Published<Battery, BatteryEvent>, device: &DeviceProxy<'_>) {
     if let Ok(present) = device.is_present().await {
-        apply(tx, BatteryEvent::Presence(presence_of(present)));
+        tx.feed(BatteryEvent::Presence(presence_of(present)));
     }
     if let Ok(value) = device.percentage().await {
-        apply(tx, BatteryEvent::Level(percent_of(value)));
+        tx.feed(BatteryEvent::Level(percent_of(value)));
     }
     if let Ok(value) = device.state().await {
-        apply(tx, BatteryEvent::Charge(charge_of(value)));
+        tx.feed(BatteryEvent::Charge(charge_of(value)));
     }
     if let Ok(value) = device.time_to_empty().await {
-        apply(tx, BatteryEvent::TimeToEmpty(seconds_of(value)));
+        tx.feed(BatteryEvent::TimeToEmpty(seconds_of(value)));
     }
     if let Ok(value) = device.time_to_full().await {
-        apply(tx, BatteryEvent::TimeToFull(seconds_of(value)));
+        tx.feed(BatteryEvent::TimeToFull(seconds_of(value)));
     }
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-fn apply(tx: &watch::Sender<Battery>, event: BatteryEvent) {
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
 }
 
 fn presence_of(is_present: bool) -> Presence {

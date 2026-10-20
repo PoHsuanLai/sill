@@ -13,7 +13,7 @@ use sill_model::accounts::sheet::{
     admits, step,
 };
 use sill_model::launch::{LaunchCommand, OpenRequest};
-use tokio::sync::{mpsc, watch};
+use tokio::sync::mpsc;
 use zbus::Connection;
 use zbus::fdo;
 
@@ -23,6 +23,7 @@ use crate::accounts::sheet::{AccountsSheetLinks, AccountsSheetService};
 use crate::callers::CallerSource;
 use crate::control::Control;
 use crate::env::{Bus, NameClaims};
+use crate::machine::Machine;
 use crate::owner;
 use crate::serve;
 use crate::service::ServiceIo;
@@ -75,8 +76,7 @@ pub(crate) async fn run(
     let (left_tx, mut left) = mpsc::unbounded_channel();
     watch_services(&connection, &left_tx);
     let mut live = Live {
-        sheets: AccountsSheets::default(),
-        tx,
+        machine: Machine::new(tx, step),
         connection,
         launch: links.launch,
         openers: HashMap::new(),
@@ -98,8 +98,7 @@ pub(crate) async fn run(
 }
 
 struct Live {
-    sheets: AccountsSheets,
-    tx: watch::Sender<AccountsSheets>,
+    machine: Machine<AccountsSheets, SheetEvent, SheetOut>,
     connection: Connection,
     launch: Control<LaunchCommand>,
     /// Who opened each handle: the connection `Input` goes to, and the only one that may change it.
@@ -122,16 +121,7 @@ impl Live {
     }
 
     fn feed(&mut self, event: SheetEvent) {
-        let (next, out) = step(std::mem::take(&mut self.sheets), event);
-        self.tx.send_if_modified(|published| {
-            let changed = *published != next;
-            if changed {
-                published.clone_from(&next);
-            }
-            changed
-        });
-        self.sheets = next;
-        for effect in out {
+        for effect in self.machine.feed(event) {
             self.carry_out(effect);
         }
     }
@@ -178,7 +168,7 @@ impl Live {
                 opener,
                 answer,
             } => {
-                let verdict = match admits(&self.sheets, &handle) {
+                let verdict = match admits(self.machine.state(), &handle) {
                     Admit::Yes => Ok(()),
                     Admit::Duplicate => Err(fdo::Error::InvalidArgs("handle in use".to_owned())),
                     Admit::Full => Err(fdo::Error::LimitsExceeded("too many sheets".to_owned())),

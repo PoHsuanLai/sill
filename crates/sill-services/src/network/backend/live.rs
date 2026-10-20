@@ -12,6 +12,7 @@ use zbus::zvariant::OwnedObjectPath;
 use crate::deadline::{BUS_CALL, NETWORK_REFRESH, within};
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::machine::Published;
 use crate::nm::{
     AccessPointProxy, ActiveConnectionProxy, NetworkManagerProxy, WirelessDeviceProxy,
 };
@@ -29,12 +30,13 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<NetworkCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
+    let tx = Published::new(tx, step);
     owner::follow_owner(
         &connection,
         SERVICE,
         &mut commands,
         async |commands| session(&connection, &tx, commands).await,
-        |_| apply(&tx, NetworkEvent::Gone),
+        |_| tx.feed(NetworkEvent::Gone),
     )
     .await;
     Ok(())
@@ -43,7 +45,7 @@ pub(crate) async fn run(
 /// One NetworkManager lifetime: seed, then follow every change.
 async fn session(
     connection: &Connection,
-    tx: &watch::Sender<Network>,
+    tx: &Published<Network, NetworkEvent>,
     commands: &mut mpsc::UnboundedReceiver<NetworkCommand>,
 ) -> Ended {
     let Ok(nm) = NetworkManagerProxy::new(connection).await else {
@@ -59,14 +61,14 @@ async fn session(
     loop {
         tokio::select! {
             Some(_) = next(&mut primary) => {
-                apply(tx, NetworkEvent::Link(bounded_link(connection, &nm).await));
+                tx.feed(NetworkEvent::Link(bounded_link(connection, &nm).await));
             }
             Some(_) = next(&mut activating) => {
-                apply(tx, NetworkEvent::Activating(bounded_activating(connection, &nm).await));
+                tx.feed(NetworkEvent::Activating(bounded_activating(connection, &nm).await));
             }
             Some(change) = next(&mut connectivity) => {
                 if let Ok(Ok(value)) = within(BUS_CALL, "NetworkManager connectivity", change.get()).await {
-                    apply(tx, NetworkEvent::Connectivity(Connectivity::from_nm(value)));
+                    tx.feed(NetworkEvent::Connectivity(Connectivity::from_nm(value)));
                 }
             }
             command = commands.recv() => match command {
@@ -82,16 +84,15 @@ async fn session(
 async fn refresh(
     connection: &Connection,
     nm: &NetworkManagerProxy<'_>,
-    tx: &watch::Sender<Network>,
+    tx: &Published<Network, NetworkEvent>,
 ) {
-    apply(tx, NetworkEvent::Link(bounded_link(connection, nm).await));
-    apply(
-        tx,
-        NetworkEvent::Activating(bounded_activating(connection, nm).await),
-    );
+    tx.feed(NetworkEvent::Link(bounded_link(connection, nm).await));
+    tx.feed(NetworkEvent::Activating(
+        bounded_activating(connection, nm).await,
+    ));
     if let Ok(Ok(value)) = within(BUS_CALL, "NetworkManager connectivity", nm.connectivity()).await
     {
-        apply(tx, NetworkEvent::Connectivity(Connectivity::from_nm(value)));
+        tx.feed(NetworkEvent::Connectivity(Connectivity::from_nm(value)));
     }
 }
 
@@ -116,12 +117,6 @@ async fn bounded_activating(connection: &Connection, nm: &NetworkManagerProxy<'_
     )
     .await
     .unwrap_or(Activating::Idle)
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-fn apply(tx: &watch::Sender<Network>, event: NetworkEvent) {
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
 }
 
 /// The primary connection's link, or `Disconnected` if there is none or it cannot be read.

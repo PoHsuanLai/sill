@@ -13,6 +13,7 @@ use zbus::zvariant::OwnedValue;
 use super::ppd::UPowerPowerProfilesProxy;
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::machine::Published;
 use crate::owner::{self, Ended};
 use crate::stream::next;
 
@@ -26,12 +27,13 @@ pub(crate) async fn run(
     mut commands: mpsc::UnboundedReceiver<ProfileCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connect_waiting().await?;
+    let tx = Published::new(tx, step);
     owner::follow_owner(
         &connection,
         SERVICE,
         &mut commands,
         async |commands| session(&connection, &tx, commands).await,
-        |_| apply(&tx, ProfileEvent::Gone),
+        |_| tx.feed(ProfileEvent::Gone),
     )
     .await;
     Ok(())
@@ -41,7 +43,7 @@ pub(crate) async fn run(
 /// [`ProfileCommand`]s.
 async fn session(
     connection: &Connection,
-    tx: &watch::Sender<PowerProfiles>,
+    tx: &Published<PowerProfiles, ProfileEvent>,
     commands: &mut mpsc::UnboundedReceiver<ProfileCommand>,
 ) -> Ended {
     let Some(ppd) = connect(connection).await else {
@@ -59,17 +61,17 @@ async fn session(
                 if let Ok(value) = change.get().await
                     && let Some(profile) = Profile::from_daemon(&value)
                 {
-                    apply(tx, ProfileEvent::Active(profile));
+                    tx.feed(ProfileEvent::Active(profile));
                 }
             }
             Some(change) = next(&mut profiles) => {
                 if let Ok(value) = change.get().await {
-                    apply(tx, ProfileEvent::Offered(value.iter().filter_map(profile_of).collect()));
+                    tx.feed(ProfileEvent::Offered(value.iter().filter_map(profile_of).collect()));
                 }
             }
             Some(change) = next(&mut degraded) => {
                 if let Ok(value) = change.get().await {
-                    apply(tx, ProfileEvent::Degraded(degraded_of(value)));
+                    tx.feed(ProfileEvent::Degraded(degraded_of(value)));
                 }
             }
             command = commands.recv() => match command {
@@ -93,21 +95,20 @@ async fn connect(connection: &Connection) -> Option<UPowerPowerProfilesProxy<'_>
 }
 
 /// Reads every property once and publishes the resulting `PowerProfiles`.
-async fn seed(tx: &watch::Sender<PowerProfiles>, ppd: &UPowerPowerProfilesProxy<'_>) {
-    apply(tx, ProfileEvent::Found);
+async fn seed(tx: &Published<PowerProfiles, ProfileEvent>, ppd: &UPowerPowerProfilesProxy<'_>) {
+    tx.feed(ProfileEvent::Found);
     if let Ok(active) = ppd.active_profile().await
         && let Some(profile) = Profile::from_daemon(&active)
     {
-        apply(tx, ProfileEvent::Active(profile));
+        tx.feed(ProfileEvent::Active(profile));
     }
     if let Ok(offered) = ppd.profiles().await {
-        apply(
-            tx,
-            ProfileEvent::Offered(offered.iter().filter_map(profile_of).collect()),
-        );
+        tx.feed(ProfileEvent::Offered(
+            offered.iter().filter_map(profile_of).collect(),
+        ));
     }
     if let Ok(degraded) = ppd.performance_degraded().await {
-        apply(tx, ProfileEvent::Degraded(degraded_of(degraded)));
+        tx.feed(ProfileEvent::Degraded(degraded_of(degraded)));
     }
 }
 
@@ -126,10 +127,4 @@ fn degraded_of(reason: String) -> ProfileDegraded {
     } else {
         ProfileDegraded::Because(reason)
     }
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-fn apply(tx: &watch::Sender<PowerProfiles>, event: ProfileEvent) {
-    let next = step(tx.borrow().clone(), event);
-    let _ = tx.send(next);
 }

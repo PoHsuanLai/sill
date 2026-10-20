@@ -8,7 +8,6 @@ use sill_model::sync_hold::{
     step,
 };
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::sync::watch;
 use zbus::{Connection, MessageStream};
 
 use super::links::SyncHoldLinks;
@@ -18,6 +17,7 @@ use crate::accounts::label_of;
 use crate::control::Control;
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::machine::Machine;
 use crate::notices::{self, Board, Said};
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
@@ -27,8 +27,7 @@ use crate::sync_hold::SyncHoldService;
 /// Everything the loop owns.
 struct Live {
     connection: Connection,
-    tx: watch::Sender<SyncHoldState>,
-    state: SyncHoldState,
+    machine: Machine<SyncHoldState, SyncHoldEvent, SyncHoldEffect>,
     launch: Control<LaunchCommand>,
     /// The notices, one per held dataset.
     board: Board<Dataset>,
@@ -50,8 +49,7 @@ pub(crate) async fn run(
     let mut answers = notices::stream(&connection).await?;
     let mut live = Live {
         connection: connection.clone(),
-        tx,
-        state: SyncHoldState::default(),
+        machine: Machine::new(tx, step),
         launch: links.launch,
         board: Board::new(links.notifications, links.notes, shown_for),
     };
@@ -130,7 +128,8 @@ impl Live {
     /// Keep the id of each notice the notes now hold for a dataset that is held.
     fn learn(&mut self) {
         let datasets: Vec<Dataset> = self
-            .state
+            .machine
+            .state()
             .holds
             .iter()
             .map(|hold| hold.dataset.clone())
@@ -149,7 +148,13 @@ impl Live {
                 else {
                     return;
                 };
-                if let Some(hold) = self.state.holds.iter().find(|h| h.dataset == dataset) {
+                if let Some(hold) = self
+                    .machine
+                    .state()
+                    .holds
+                    .iter()
+                    .find(|h| h.dataset == dataset)
+                {
                     let _ = self
                         .launch
                         .send(LaunchCommand::OpenSettings(SettingsOpen::at(
@@ -165,7 +170,8 @@ impl Live {
     /// taken back and told again from its answer.
     fn lost(&mut self) {
         let datasets: Vec<Dataset> = self
-            .state
+            .machine
+            .state()
             .holds
             .iter()
             .map(|hold| hold.dataset.clone())
@@ -177,16 +183,7 @@ impl Live {
 
     /// Step the state by `event`, publish it, and carry out what the step asks.
     fn apply(&mut self, event: SyncHoldEvent) {
-        let (next, effects) = step(std::mem::take(&mut self.state), event);
-        self.tx.send_if_modified(|published| {
-            let changed = *published != next;
-            if changed {
-                published.clone_from(&next);
-            }
-            changed
-        });
-        self.state = next;
-        for effect in effects {
+        for effect in self.machine.feed(event) {
             self.carry_out(effect);
         }
     }

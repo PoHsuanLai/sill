@@ -10,7 +10,6 @@ use sill_model::guest_asks::{
     choice_of, shown_for, step,
 };
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::sync::watch;
 use zbus::{Connection, MessageStream};
 
 use super::links::GuestAsksLinks;
@@ -19,6 +18,7 @@ use super::wire;
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::guest_asks::GuestAsksService;
+use crate::machine::Machine;
 use crate::notices::{self, Board, Said};
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
@@ -30,8 +30,7 @@ type Guests = Accounts<DbusTransport>;
 /// Everything the loop owns.
 struct Live {
     connection: Connection,
-    tx: watch::Sender<GuestAsksState>,
-    state: GuestAsksState,
+    machine: Machine<GuestAsksState, GuestAsksEvent, GuestAsksEffect>,
     /// The questions, one notice per asking computer.
     board: Board<Computer>,
 }
@@ -52,8 +51,7 @@ pub(crate) async fn run(
     let mut answers = notices::stream(&connection).await?;
     let mut live = Live {
         connection: connection.clone(),
-        tx,
-        state: GuestAsksState::default(),
+        machine: Machine::new(tx, step),
         board: Board::new(links.notifications, links.notes, shown_for),
     };
     owner::follow_owner(
@@ -128,7 +126,13 @@ impl Live {
 
     /// Keep the id of each notice the notes now hold for a computer that is asking.
     fn learn(&mut self) {
-        let computers: Vec<Computer> = self.state.asks.iter().map(|a| a.node.clone()).collect();
+        let computers: Vec<Computer> = self
+            .machine
+            .state()
+            .asks
+            .iter()
+            .map(|a| a.node.clone())
+            .collect();
         self.board.learn(&computers);
     }
 
@@ -153,12 +157,7 @@ impl Live {
     /// inferd is gone: what it was asking is unknown until it is back, so the notices are taken
     /// back and told again from its answer.
     fn lost(&mut self) {
-        let (next, effects) = step(
-            std::mem::take(&mut self.state),
-            GuestAsksEvent::Waiting(Vec::new()),
-        );
-        self.publish(next);
-        for effect in effects {
+        for effect in self.machine.feed(GuestAsksEvent::Waiting(Vec::new())) {
             if let GuestAsksEffect::Withdraw(node) = effect {
                 self.withdraw(&node);
             }
@@ -167,26 +166,13 @@ impl Live {
 
     /// Step the state by `event`, publish it, and carry out what the step asks.
     async fn apply(&mut self, event: GuestAsksEvent, proxy: &Guests) {
-        let (next, effects) = step(std::mem::take(&mut self.state), event);
-        self.publish(next);
-        for effect in effects {
+        for effect in self.machine.feed(event) {
             match effect {
                 GuestAsksEffect::Tell(ask) => self.tell(&ask),
                 GuestAsksEffect::Withdraw(node) => self.withdraw(&node),
                 GuestAsksEffect::Answer(node, verdict) => answer(proxy, &node, verdict).await,
             }
         }
-    }
-
-    fn publish(&mut self, next: GuestAsksState) {
-        self.tx.send_if_modified(|published| {
-            let changed = *published != next;
-            if changed {
-                published.clone_from(&next);
-            }
-            changed
-        });
-        self.state = next;
     }
 
     fn tell(&mut self, ask: &Ask) {
