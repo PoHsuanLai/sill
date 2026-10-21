@@ -5,7 +5,7 @@
 use std::sync::{Arc, Mutex};
 
 use almanac_core::{FactView, TimelineEntry, TimelinePage};
-use docket_core::{Displayed, Hit, SessionOpened, SummonAnswer, UndoEntry, UndoFault};
+use docket_core::{Displayed, Hit, Mode, SessionOpened, SummonAnswer, UndoEntry, UndoFault};
 use docket_dbus::answer_path;
 use prov::{DataClass, Label, SessionId, Source, SpaceId};
 use zbus::fdo;
@@ -48,6 +48,52 @@ impl StandInSession {
         };
         Ok(json(&shown))
     }
+}
+
+/// What the stand-in router answers a switch of mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SwitchAnswer {
+    /// Done, and `ModeChanged` follows.
+    Done,
+    /// An administrator holds every conversation in Manual.
+    Locked,
+}
+
+/// A router that records turns and switches of mode, and answers the switches as told.
+pub struct StandInModeSession {
+    pub log: Log,
+    pub answer: Arc<Mutex<SwitchAnswer>>,
+}
+
+#[interface(name = "org.quire.Intents1.Session")]
+impl StandInModeSession {
+    async fn turn(&self, session: String, turn: String, _options: Details) -> fdo::Result<u64> {
+        self.log.push(format!("turn {session} {turn}"));
+        Ok(41)
+    }
+
+    async fn set_mode(
+        &self,
+        session: String,
+        mode: String,
+        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
+    ) -> fdo::Result<()> {
+        self.log.push(format!("set_mode {session} {mode}"));
+        let answer = *self.answer.lock().unwrap_or_else(|e| panic!("{e}"));
+        match answer {
+            SwitchAnswer::Locked => Err(fdo::Error::Failed("Locked".to_owned())),
+            SwitchAnswer::Done => Self::mode_changed(&emitter, &session, &mode)
+                .await
+                .map_err(|e| fdo::Error::Failed(e.to_string())),
+        }
+    }
+
+    #[zbus(signal)]
+    async fn mode_changed(
+        emitter: &SignalEmitter<'_>,
+        session: &str,
+        mode: &str,
+    ) -> zbus::Result<()>;
 }
 
 /// The handle whose words are somebody else's.
@@ -231,6 +277,7 @@ impl StandInCompanion {
         Ok(json(&SessionOpened {
             session: SessionId::parse("s-1").unwrap_or_else(|e| panic!("{e}")),
             task: task(),
+            mode: Mode::Auto,
         }))
     }
 
