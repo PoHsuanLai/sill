@@ -611,3 +611,7 @@ the real daemons or a real keyboard.
 - [ ] **A new conversation's start**: Settings > Intelligence "New conversations start in" set to Manual; open the assistant and ask: the control reads Manual from the first answer. Set it to Auto and ask again in a fresh conversation: Auto.
 - [ ] **Locked by an administrator**: with the admin floor holding Manual, the first switch shows the control unavailable on Manual with "Your administrator keeps conversations in Manual."; ⇧⌘M does nothing.
 - [ ] **Follows other changes**: switch the same conversation from another shell or the control role (`quire-do`); the box follows without reopening.
+
+## Wallpaper pictures (detent wallthumb lane, a real login)
+
+- [ ] **The pictures show**: Settings, Wallpaper shows every system wallpaper as a picture, one tile per wallpaper (a KDE wallpaper folder is one tile under its own name, not one per size). The first opening fills the tiles in within a few seconds; the second shows them at once. A picture that cannot be shrunk is a tile with only its name. Clicking a tile changes the desktop's wallpaper. Fedora's own .jxl wallpaper is not offered yet (the desktop cannot draw .jxl).

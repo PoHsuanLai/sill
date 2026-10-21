@@ -876,7 +876,11 @@ html,body{margin:0;padding:0;background:transparent}
    fills the view's own box, which the consumer sizes. The view takes the keyboard itself and draws
    no ring: its selection is the highlight. The selected tile's thumbnail sits on the neutral
    wash and its caption is a pill, in the accent while the view holds the keyboard and in the grey
-   wash when it does not (`data-focus=away`, an inactive window). A tile arrives with a fade and
+   wash when it does not (`data-focus=away`, an inactive window). A tile that takes a
+   drop is outlined while a drag is on (`data-drop=accepts`), its thumbnail is washed and ringed
+   under the pointer (`data-drop=target`), and the one being dragged is dimmed (`data-drag=source`),
+   as a row's are. A badge sits centred under the caption in the room the caption band already
+   keeps, so the pitch does not change. A tile arrives with a fade and
    leaves with one (the roster's `data-presence`), under Reduced motion with the same fades. */
 
 .ds-cv{ display:flex; flex-direction:column; flex:1 1 0; height:100%; min-height:0; outline:none; cursor:default; background:var(--surface); }
@@ -899,11 +903,15 @@ html,body{margin:0;padding:0;background:transparent}
   white-space:nowrap; overflow:hidden; text-align:center;
 }
 .ds-cv-edit{ display:block; width:100%; margin-top:var(--s-4); }
+.ds-cv-badge{ display:flex; flex:none; align-items:center; justify-content:center; max-width:100%; margin-top:var(--s-2); overflow:hidden; }
 
 .ds-cv-item[*|aria-selected=true] .ds-cv-thumb{ background:var(--sel-neutral); }
 .ds-cv-item[*|aria-selected=true] .ds-cv-caption{ background:var(--sel-bg); color:var(--sel-ink); }
 .ds[*|data-activity=inactive] .ds-cv-item[*|aria-selected=true] .ds-cv-caption,
 .ds-cv[*|data-focus=away] .ds-cv-item[*|aria-selected=true] .ds-cv-caption{ background:var(--sel-bg-quiet); color:var(--ink); }
+.ds-cv-item[*|data-drag=source]{ opacity:.35; }
+.ds-cv-item[*|data-drop=accepts] .ds-cv-thumb{ box-shadow:inset 0 0 0 var(--hair) var(--accent-text); }
+.ds-cv-item[*|data-drop=target] .ds-cv-thumb{ background:var(--accent-soft); box-shadow:0 0 0 var(--s-2) var(--accent); }
 
 .ds-cv-item[*|data-presence=entering]{ animation:fade var(--t-move) var(--e-out) backwards; }
 .ds-cv-item[*|data-presence=present]{ animation:hold var(--t-quick) var(--e-linear); }
@@ -964,6 +972,13 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-palette[*|data-host=surface] .ds-text-field .ds-input-wrap[*|data-variant=plain] .ds-input-placeholder{ font-size:var(--fs-shell-field); font-weight:var(--fw-shell-field); }
 .ds-palette[*|data-host=surface] .ds-row-title{ font-size:var(--fs-shell-row); }
 .ds-palette[*|data-host=surface] .ds-row-detail{ font-size:var(--fs-shell-detail); }
+/* A control at the end of the search row (`trailing`): the row is the field and the control side
+   by side, the field taking what the control leaves (`min-width:0`, so a long query is cut at the
+   field's edge), the control keeping its own size and the card's inset beside it. */
+.ds-palette-head{ display:flex; align-items:center; min-width:0; }
+.ds-palette-head > .ds-text-field{ flex:1 1 auto; min-width:0; }
+.ds-palette-trailing{ display:flex; align-items:center; flex:none; padding-right:var(--s-12); }
+.ds-palette[*|data-host=surface] .ds-palette-trailing{ padding-right:var(--s-16); }
 /* Kept mounted while hidden: nothing is laid out, and each showing replays
    the entrance under the keyframe's other name (`data-pulse`, design/05-MOTION.md section 9
    rule 2), so the animation starts over even where the engine kept the element's styles. */
@@ -976,7 +991,8 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-palette{ --aside:0px; }
 .ds-palette[*|data-aside=shown]{ display:grid; grid-template-columns:minmax(0, 1fr) auto; grid-template-rows:auto minmax(0, 1fr); }
 .ds-palette[*|data-host=overlay][*|data-aside=shown]{ width:min(calc(540px + var(--aside)), 96%); }
-.ds-palette[*|data-aside=shown] > .ds-text-field{ grid-row:1; grid-column:1 / -1; }
+.ds-palette[*|data-aside=shown] > .ds-text-field,
+.ds-palette[*|data-aside=shown] > .ds-palette-head{ grid-row:1; grid-column:1 / -1; }
 .ds-palette[*|data-aside=shown] > .ds-palette-list{ grid-row:2; grid-column:1; min-width:0; }
 .ds-palette-aside{ grid-row:2; grid-column:2; display:flex; min-height:0; box-sizing:border-box; border-left:var(--hair) solid var(--line-soft); overflow:hidden; }
 /* The results' motions (design/26-DETAILS.md section 5.4): a group's Show More brings the rows
@@ -3036,6 +3052,20 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-stepper-down[*|aria-disabled=true]{ opacity:.35; }
 .ds-stepper[*|aria-busy=true] .ds-stepper-pair,
 .ds-stepper .ds-stepper-pair[*|aria-disabled=true]{ opacity:.35; pointer-events:none; }
+/* -- status_bar -- */
+/* Status bar (design/27 section 5.10): a thin row at the bottom of a window's content. The text is
+   centred between two slots of equal basis, so it stays centred when only one slot is used. Small
+   type in the secondary ink, a hairline on top; the slots hold small controls. */
+
+.ds-status-bar{
+  display:flex; align-items:center; box-sizing:border-box; flex:none; min-height:var(--s-24); padding:var(--s-4) var(--s-12);
+  gap:var(--s-8); min-width:0; border-top:var(--hairline) solid var(--line); color:var(--ink-soft);
+  font-size:var(--fs-help); user-select:none;
+}
+.ds-status-bar-leading,
+.ds-status-bar-trailing{ display:flex; align-items:center; flex:1 1 0; min-width:0; gap:var(--s-8); }
+.ds-status-bar-trailing{ justify-content:flex-end; }
+.ds-status-bar-text{ flex:0 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-align:center; }
 /* -- status_glyph -- */
 /* The status glyphs (design/26-DETAILS.md 5.1): each glyph a stack of parts, one `svg`
    per part, so the stylesheet can move each part (it cannot reach inside an SVG on Blitz, spike
@@ -3390,11 +3420,14 @@ html,body{margin:0;padding:0;background:transparent}
    inside the pill, in the accent's ink on the pill. A hide taken back plays `hold`. A short notice
    stays on one line; a long one wraps inside a column of about 28em (never wider than the window
    less its margins), and the action keeps its one line beside it. While a sheet or a peek is up
-   it sits at the top right instead (`data-place=top`), clear of the sheet's buttons. */
+   it sits at the top right instead (`data-place=top`), clear of the sheet's buttons. A toast that
+   appeared under a still pointer is transparent to it (`data-armed=waiting`) until the pointer
+   moves (`live`), so a press there reaches the button below. */
 
 .ds-toast{ position:absolute; right:var(--s-14); bottom:var(--s-14); transform:translateX(var(--swipe-dx,0px));
   display:flex; align-items:center; gap:var(--s-8); background:var(--ink); color:var(--paper); border-radius:var(--r-pill);
   padding:var(--s-6) var(--s-6) var(--s-6) var(--s-15); box-shadow:var(--shadow-2); font-size:var(--fs-meta); font-weight:600; box-sizing:border-box; max-width:min(28em, calc(100% - var(--s-14) * 2)); pointer-events:auto; touch-action:none; }
+.ds-toast[*|data-armed=waiting]{ pointer-events:none; }
 .ds-toast[*|data-place=top]{ top:var(--s-14); bottom:auto; }
 .ds-toast[*|data-presence=entering],.ds-toast[*|data-presence=present]{ animation:panel-in var(--t-move) var(--e-out); }
 .ds-toast[*|data-presence=entering][*|data-pulse=b],.ds-toast[*|data-presence=present][*|data-pulse=b]{ animation-name:panel-in--b; }
