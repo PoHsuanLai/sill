@@ -30,6 +30,7 @@ use crate::launcher::layer::{
     CARD_ID, CARD_INSET, CARD_RADIUS, MENU_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH, PANEL_WIDTH,
     SHADOW_SIDE,
 };
+use crate::launcher::mode_switch::ModeSwitch;
 use crate::launcher::pane_session::PaneSession;
 use crate::launcher::preview::keys::{Pane, PaneFocus};
 use crate::launcher::preview::{LauncherPane, PREVIEW_WIDTH_PX};
@@ -39,9 +40,10 @@ use crate::launcher::sections_view::{Draw, palette_groups};
 use crate::launcher::session::Session;
 use crate::launcher::view::View;
 use sill_model::clock::ClockHours;
+use sill_model::companion::{ModeView, mode_view};
 use sill_model::voice::listening_line;
 use sill_search::ResultsService;
-use sill_services::{ClipboardService, VoiceService};
+use sill_services::{ClipboardService, CompanionService, VoiceService};
 use sill_ui_kit::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
 use sill_ui_kit::hooks::{use_appearance, use_hours, use_service, use_service_part, use_settings};
 use sill_ui_kit::links::LauncherLink;
@@ -77,6 +79,8 @@ pub(crate) struct Shown {
     pub mode: LauncherMode,
     /// What voice says on the prompt while the key is held, or after a hold that failed.
     pub voice_line: Option<String>,
+    /// The mode of the conversation the prompt types into (drawn in companion mode).
+    pub permissions: ModeView,
 }
 
 impl Shown {
@@ -127,6 +131,8 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let results = use_service::<ResultsService>();
     let voice_line =
         use_service_part::<VoiceService, _>(|voice| listening_line(&voice.phase, voice.notice));
+    let permissions =
+        use_service_part::<CompanionService, _>(|companion| mode_view(&companion.mode));
     let panel = use_panel(output.id, results);
     let root = panel.clone();
     let shown = panel.opening_tracked().map(|opening| {
@@ -139,6 +145,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             pane,
             mode: opening.mode,
             voice_line: voice_line.read().clone(),
+            permissions: *permissions.read(),
         }
     });
     let contacts = use_contacts();
@@ -321,6 +328,7 @@ fn palette(
     let (input, pick, close) = (panel.clone(), panel.clone(), panel.clone());
     let (select, key, claim) = (panel.clone(), panel.clone(), panel.clone());
     let (action_pick, action_close) = (panel.clone(), panel.clone());
+    let switch = panel.clone();
     let mut row = panel.row;
     let selected = selected_item.as_ref().map(RowRef::of);
     let hung = (row)();
@@ -370,6 +378,12 @@ fn palette(
             handle: Some(panel.palette),
             aside: pane,
             aside_width: Px(PREVIEW_WIDTH_PX as f32),
+        }
+        if shown.mode == LauncherMode::Companion {
+            ModeSwitch {
+                view: shown.permissions,
+                onswitch: move |mode| switch.mode_switched(mode),
+            }
         }
         div {
             class: "sill-launcher-foot",

@@ -33,6 +33,7 @@ mod events;
 mod follow;
 mod helpers;
 mod layer;
+mod mode_switch;
 mod pane_keys;
 pub(crate) mod panel;
 mod picking;

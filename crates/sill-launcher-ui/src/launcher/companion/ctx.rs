@@ -5,10 +5,11 @@
 use std::time::Duration;
 
 use dioxus::prelude::*;
+use docket_core::Mode;
 use ds::components::menus::palette::palette_claim::Claim;
 use prov::TaskId;
 use sill_launcher::{LauncherMode, ProviderKind, Subject};
-use sill_model::companion::{CompanionCommand, Summon};
+use sill_model::companion::{CompanionCommand, ModeMsg, Summon};
 use sill_ui_kit::links::LauncherOpening;
 
 use super::{CompanionOut, companion_step, follows_state, pane_of, selected_of};
@@ -33,6 +34,11 @@ impl PanelCtx {
         if let Err(error) = self.services.companion.control.send(command) {
             eprintln!("sill: launcher: {error}");
         }
+    }
+
+    /// The person chose `mode` on the switch in the input box.
+    pub(crate) fn mode_switched(&self, mode: Mode) {
+        self.companion_send(CompanionCommand::Mode(ModeMsg::Switch(mode)));
     }
 
     /// The panel's mode changed in place (the same opening): becoming a prompt keeps the search
@@ -108,6 +114,9 @@ impl PanelCtx {
                 run,
                 control: sill_launcher::RunControl::Stop,
             }),
+            CompanionOut::SwitchMode => {
+                self.companion_send(CompanionCommand::Mode(ModeMsg::Flip));
+            }
             CompanionOut::Back => self.select(0),
             CompanionOut::Dismiss => {
                 // The summon decides whether Escape closes the panel or restores the search it

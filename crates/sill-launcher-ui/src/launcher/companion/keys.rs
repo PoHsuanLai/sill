@@ -20,6 +20,8 @@ pub enum CompanionKey {
     CommandEnter,
     /// Command-period.
     CommandPeriod,
+    /// The action that flips the conversation's permissions mode.
+    SwitchMode,
 }
 
 /// What the selected row is.
@@ -46,6 +48,8 @@ pub enum CompanionOut {
     Cancel(TaskId),
     /// Stop the selected run.
     StopRun(RunId),
+    /// Flip the conversation between Auto and Manual.
+    SwitchMode,
     /// Back to the prompt: the selection returns to the Ask row.
     Back,
     /// Put the companion away: the summon decides whether that closes the panel or restores the
@@ -56,6 +60,14 @@ pub enum CompanionOut {
 /// What `key` asks for in `pane` with `selected` under the selection.
 pub fn companion_step(key: CompanionKey, pane: &Pane, selected: &Selected) -> Vec<CompanionOut> {
     match (key, pane) {
+        (
+            CompanionKey::SwitchMode,
+            Pane::Composing
+            | Pane::Thinking(_)
+            | Pane::Showing(_)
+            | Pane::Form(_)
+            | Pane::Confirming(_),
+        ) => vec![CompanionOut::SwitchMode],
         (CompanionKey::Escape, Pane::Composing) => vec![CompanionOut::Dismiss],
         (
             CompanionKey::Escape,

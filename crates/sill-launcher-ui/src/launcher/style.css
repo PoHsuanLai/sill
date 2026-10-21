@@ -8,7 +8,9 @@
    Blitz). Everything drawn is quire's. */
 .sill-launcher{ position:absolute; inset:0; }
 .sill-launcher-catcher{ width:100vw; height:100vh; }
-.sill-launcher-body{ display:flex; flex-direction:column; }
+.sill-launcher-body{ display:flex; flex-direction:column; position:relative; }
+/* The permissions mode sits at the field's trailing edge, over the card's top row. */
+.sill-launcher-mode{ position:absolute; top:var(--s-16); right:var(--s-16); display:flex; align-items:center; gap:var(--s-8); }
 .sill-launcher-foot{ flex:none; height:0; }
 /* The preview pane is quire's, set in the palette's aside; its
    wrapper only fills the aside's width. The body widens to the card's and the pane's room while

@@ -601,3 +601,12 @@ the real daemons or a real keyboard.
 - [ ] **First run**: `detent --page accounts-setup` shows "Sign in to Your Accounts", Add Account… opens the provider list, Skip always works, Continue once an account is listed.
 - [ ] **Needs attention** (detent d022958): an account that must sign in again, or that its provider signs out on a set day, shows a yellow banner with Sign In…, which starts the sign-in; its row's dot says "Sign-in ends soon" (or needs sign-in).
 - [ ] **Input shortcuts** (detent 9d7f723): Settings > Keyboard Shortcuts lists an Input group with Next input language and Emoji & Symbols, and both keys work on the desktop.
+
+## Permissions mode (docket 3b)
+
+- [ ] **Switch in the box**: open the assistant (double tap). The input box shows an Auto / Manual control at its right end with the mode the conversation is in. Click Manual: the thumb slides and the next change the assistant makes asks first. Hovering shows "Permissions mode  ⇧⌘M".
+- [ ] **⇧⌘M**: with the assistant's box open, ⇧⌘M flips Auto and Manual, whether you are typing, an answer is thinking or one is showing. In the search box (not the assistant) it does nothing.
+- [ ] **Mid-task switch**: ask for something with several steps and switch to Manual while it works. "From the next step" shows beside the control, the step already running finishes, and the next change asks. The note goes when the next step starts or the answer ends. A change already waiting on its sheet keeps its sheet.
+- [ ] **A new conversation's start**: Settings > Intelligence "New conversations start in" set to Manual; open the assistant and ask: the control reads Manual from the first answer. Set it to Auto and ask again in a fresh conversation: Auto.
+- [ ] **Locked by an administrator**: with the admin floor holding Manual, the first switch shows the control unavailable on Manual with "Your administrator keeps conversations in Manual."; ⇧⌘M does nothing.
+- [ ] **Follows other changes**: switch the same conversation from another shell or the control role (`quire-do`); the box follows without reopening.

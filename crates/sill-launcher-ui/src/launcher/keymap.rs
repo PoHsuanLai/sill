@@ -32,7 +32,8 @@ pub fn launcher_key(
 }
 
 /// `key` with `modifiers` held, when it is one companion mode reads before the palette does:
-/// Escape, and the actions that send on (`sill.promote`, ⌘↵) and cancel (Cancel, ⌘.).
+/// Escape, and the actions that send on (`sill.promote`, ⌘↵), cancel (Cancel, ⌘.) and switch the
+/// permissions mode (`sill.switch-mode`, ⇧⌘M).
 pub fn companion_key(
     key: &Key,
     modifiers: Modifiers,
@@ -43,6 +44,9 @@ pub fn companion_key(
         (_, Some(Action::Standard(StandardAction::Cancel))) => Some(CompanionKey::CommandPeriod),
         (_, Some(action)) if OwnAction::of(action) == Some(OwnAction::Promote) => {
             Some(CompanionKey::CommandEnter)
+        }
+        (_, Some(action)) if OwnAction::of(action) == Some(OwnAction::SwitchMode) => {
+            Some(CompanionKey::SwitchMode)
         }
         _ => None,
     }
@@ -102,12 +106,13 @@ mod tests {
     }
 
     #[test]
-    fn companion_keys_are_escape_and_the_two_actions() {
+    fn companion_keys_are_escape_and_the_three_actions() {
         use crate::launcher::companion::CompanionKey as K;
         type CompanionCase = (Key, Modifiers, Option<Action>, Option<K>);
         let k = |s: &str| Key::Character(s.to_owned());
         let none = Modifiers::empty();
         let promote = own(OwnAction::Promote);
+        let switch_mode = own(OwnAction::SwitchMode);
         let cancel = Some(Action::Standard(StandardAction::Cancel));
         let cases: Vec<CompanionCase> = vec![
             (Key::Escape, none, None, Some(K::Escape)),
@@ -115,6 +120,12 @@ mod tests {
             (Key::Enter, none, None, None),
             (Key::Enter, Modifiers::SUPER, promote, Some(K::CommandEnter)),
             (k("."), Modifiers::SUPER, cancel, Some(K::CommandPeriod)),
+            (
+                k("m"),
+                Modifiers::SUPER | Modifiers::SHIFT,
+                switch_mode,
+                Some(K::SwitchMode),
+            ),
             (k("."), none, None, None),
             (k(","), Modifiers::SUPER, None, None),
         ];

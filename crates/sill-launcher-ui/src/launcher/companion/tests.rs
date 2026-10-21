@@ -128,6 +128,20 @@ fn companion_keys_table() {
             Selected::Answer(task()),
             vec![],
         ),
+        (
+            "the mode key flips the mode while composing",
+            K::SwitchMode,
+            Pane::Composing,
+            Selected::Ask,
+            vec![O::SwitchMode],
+        ),
+        (
+            "the mode key flips the mode while a step runs",
+            K::SwitchMode,
+            Pane::Thinking(task()),
+            Selected::Answer(task()),
+            vec![O::SwitchMode],
+        ),
     ];
     for (name, key, pane, selected, want) in cases {
         assert_eq!(companion_step(key, &pane, &selected), want, "{name}");
