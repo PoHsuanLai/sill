@@ -585,6 +585,11 @@ the real daemons or a real keyboard.
 - [ ] **Quick Look and Get Info**: Space previews the selected file and arrows move it; Space or Escape closes. ⌘I shows Kind, Size in words and bytes, Where and the dates.
 - [ ] **Remembered view**: change a folder's sort, quit Files, reopen that folder: the sort is kept (stored in the state folder's files/folders.toml).
 
+- [ ] **Disks** (files 909056d): plug in a USB stick: it appears under Locations; click opens it. Eject takes it away and the stick can be pulled. With a terminal `cd`'d into it, Eject says "The disk “name” wasn't ejected because one or more programs may be using it: bash." An unmounted partition is listed and mounts on click (a password prompt if the system asks).
+- [ ] **From the command line** (files 909056d): `quire-do files open ~/Documents` shows it in the window; `quire-do files selection` prints the selected paths; `quire-do files trash <file>` moves it with the Undo toast; an assistant's Empty Trash only puts up the window's own question.
+- [ ] **Tabs** (files bfc7579): ⌘T opens a tab on the same folder and the tab bar appears; ⇧⌘[ and ⇧⌘] switch, each tab keeps its folder; ⌘W closes the tab and the bar goes at one. Right-click a folder, Open in New Tab, then keys still work in the new tab.
+- [ ] **Tags** (files bfc7579): right-click a file, Tags, Red: a red dot shows after its name, and `getfattr -n user.xdg.tags <file>` reads `Red`. The sidebar's Red lists it (and other red-tagged files under home). On a FAT stick it says "Tags can't be added on this disk."
+
 ## Internet Accounts page (detent c4a69c2, a real login with porter running)
 
 - [ ] **List beside detail**: Settings > Internet Accounts shows the accounts on the left and the chosen one on the right; arrows and click choose. The split is tall enough and scrolls inside on a small window (`.accounts-split` is a fixed 40em).
