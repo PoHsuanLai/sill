@@ -404,7 +404,7 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=90e73d8d4aab5a5bb4636a4235d3d92c046a58e0)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=cf6d13fd9290a252917ddeb8578d978ad0b0256d)",
  "rustix",
 ]
 
@@ -460,7 +460,7 @@ dependencies = [
  "docket-core",
  "docket-dbus",
  "ds-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=90e73d8d4aab5a5bb4636a4235d3d92c046a58e0)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=cf6d13fd9290a252917ddeb8578d978ad0b0256d)",
  "futures-util",
  "latchkey",
  "log",
@@ -502,7 +502,7 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=90e73d8d4aab5a5bb4636a4235d3d92c046a58e0)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=cf6d13fd9290a252917ddeb8578d978ad0b0256d)",
  "log",
  "rustix",
  "serde",
@@ -1328,7 +1328,7 @@ dependencies = [
 [[package]]
 name = "chordkit"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0#eb0deff12add543565ec41eecffda646ede43cf0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=ae28c234f10aa79bb4a9167bc58e0911b21fedae#ae28c234f10aa79bb4a9167bc58e0911b21fedae"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -1337,7 +1337,7 @@ dependencies = [
 [[package]]
 name = "chordkit-file"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0#eb0deff12add543565ec41eecffda646ede43cf0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=ae28c234f10aa79bb4a9167bc58e0911b21fedae#ae28c234f10aa79bb4a9167bc58e0911b21fedae"
 dependencies = [
  "libc",
  "thiserror 2.0.21",
@@ -1346,7 +1346,7 @@ dependencies = [
 [[package]]
 name = "chordkit-gnome"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0#eb0deff12add543565ec41eecffda646ede43cf0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=ae28c234f10aa79bb4a9167bc58e0911b21fedae#ae28c234f10aa79bb4a9167bc58e0911b21fedae"
 dependencies = [
  "chordkit",
  "chordkit-file",
@@ -1355,7 +1355,7 @@ dependencies = [
 [[package]]
 name = "chordkit-kde"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=eb0deff12add543565ec41eecffda646ede43cf0#eb0deff12add543565ec41eecffda646ede43cf0"
+source = "git+https://github.com/PoHsuanLai/chordkit.git?rev=ae28c234f10aa79bb4a9167bc58e0911b21fedae#ae28c234f10aa79bb4a9167bc58e0911b21fedae"
 dependencies = [
  "chordkit",
  "chordkit-file",
@@ -2653,9 +2653,9 @@ dependencies = [
 [[package]]
 name = "ds-helpers"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=90e73d8d4aab5a5bb4636a4235d3d92c046a58e0#90e73d8d4aab5a5bb4636a4235d3d92c046a58e0"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=cf6d13fd9290a252917ddeb8578d978ad0b0256d#cf6d13fd9290a252917ddeb8578d978ad0b0256d"
 dependencies = [
- "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=90e73d8d4aab5a5bb4636a4235d3d92c046a58e0)",
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=cf6d13fd9290a252917ddeb8578d978ad0b0256d)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2698,7 +2698,7 @@ dependencies = [
 [[package]]
 name = "ds-peer"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=90e73d8d4aab5a5bb4636a4235d3d92c046a58e0#90e73d8d4aab5a5bb4636a4235d3d92c046a58e0"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=cf6d13fd9290a252917ddeb8578d978ad0b0256d#cf6d13fd9290a252917ddeb8578d978ad0b0256d"
 dependencies = [
  "futures-timer",
  "thiserror 2.0.21",
