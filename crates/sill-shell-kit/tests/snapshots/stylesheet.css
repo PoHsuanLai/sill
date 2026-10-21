@@ -3456,6 +3456,10 @@ html,body{margin:0;padding:0;background:transparent}
 /* A table zoomed out has rows shorter than the compact row: the row is the item's height. */
 .ds-vtable .ds-vtable-item > .ds-row{ min-height:0; }
 .ds-vtable-spacer{ flex:none; }
+/* The rows' box stacks the items one under another and the track holds the pinned table's scrolling
+   pane at least as wide as its columns (its inline `min-width`), padding included. */
+.ds-vtable-rows{ display:block; }
+.ds-vtable-track{ display:block; box-sizing:border-box; }
 
 /* The list looks (`TableLook::Striped` and `Unstriped`, Finder's list view and the SwiftUI Table;
    `data-look`). The header stays above the scroller, so no row passes under it and it needs no
