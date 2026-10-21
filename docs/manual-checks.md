@@ -589,6 +589,9 @@ the real daemons or a real keyboard.
 - [ ] **From the command line** (files 909056d): `quire-do files open ~/Documents` shows it in the window; `quire-do files selection` prints the selected paths; `quire-do files trash <file>` moves it with the Undo toast; an assistant's Empty Trash only puts up the window's own question.
 - [ ] **Tabs** (files bfc7579): ⌘T opens a tab on the same folder and the tab bar appears; ⇧⌘[ and ⇧⌘] switch, each tab keeps its folder; ⌘W closes the tab and the bar goes at one. Right-click a folder, Open in New Tab, then keys still work in the new tab.
 - [ ] **Tags** (files bfc7579): right-click a file, Tags, Red: a red dot shows after its name, and `getfattr -n user.xdg.tags <file>` reads `Red`. The sidebar's Red lists it (and other red-tagged files under home). On a FAT stick it says "Tags can't be added on this disk."
+- [ ] **Icon view** (files 234a3f3, quire v0.3.39): ⌘1 shows icons, ⌘2 the list, and the toolbar switch does the same; arrows move in two directions, a click selects, Shift and ⌘ extend. Double-click or ⌘↓ opens, ⌘↑ goes to the enclosing folder (in the list too). Return renames the tile in place, and Space shows Quick Look. Quit and reopen a folder you set to icons: it is still icons.
+- [ ] **Go to Folder** (files 234a3f3): ⇧⌘G opens the sheet; type `~/Documents` and Return goes; Escape stays.
+- [ ] **Sheets take the keys** (files 234a3f3): right-click a file, Open With, Other…: arrows and Return work in the list at once, with no click first; ⌘I then Return closes Get Info.
 
 ## Internet Accounts page (detent c4a69c2, a real login with porter running)
 
@@ -596,3 +599,5 @@ the real daemons or a real keyboard.
 - [ ] **Sync line**: a synced account shows "Synced N minutes ago" and its storage under Sync now; a ring turns round its mark while items wait.
 - [ ] **Apps with access**: each app row reads "Allowed on <date>"; hovering shows Revoke on the row and a card naming what it uses.
 - [ ] **First run**: `detent --page accounts-setup` shows "Sign in to Your Accounts", Add Account… opens the provider list, Skip always works, Continue once an account is listed.
+- [ ] **Needs attention** (detent d022958): an account that must sign in again, or that its provider signs out on a set day, shows a yellow banner with Sign In…, which starts the sign-in; its row's dot says "Sign-in ends soon" (or needs sign-in).
+- [ ] **Input shortcuts** (detent 9d7f723): Settings > Keyboard Shortcuts lists an Input group with Next input language and Emoji & Symbols, and both keys work on the desktop.
