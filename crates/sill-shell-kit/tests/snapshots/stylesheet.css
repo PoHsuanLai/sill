@@ -868,6 +868,46 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-chip[*|data-state=on]{ color:var(--ink); box-shadow:0 0 0 var(--hair) var(--ink-faint); }
 .ds-chip[*|data-variant=neutral][*|data-state=on],
 .ds-chip[*|data-variant=person][*|data-state=on]{ background:var(--fill); border-color:var(--ink-faint); box-shadow:none; }
+/* -- collection_view -- */
+/* CollectionView (design/27-HIG-PARITY.md section 5.24, Finder's icon view): tiles of a thumbnail
+   over a one-line caption in a grid, mounted only near the viewport. The view writes `--cv-thumb`,
+   `--cv-tile` and `--cv-pitch` inline from the size, and `grid-template-columns` from the width it
+   measured; a row is `--cv-pitch` tall, which is what the window counts rows by. The scroller
+   fills the view's own box, which the consumer sizes. The view takes the keyboard itself and draws
+   no ring: its selection is the highlight. The selected tile's thumbnail sits on the neutral
+   wash and its caption is a pill, in the accent while the view holds the keyboard and in the grey
+   wash when it does not (`data-focus=away`, an inactive window). A tile arrives with a fade and
+   leaves with one (the roster's `data-presence`), under Reduced motion with the same fades. */
+
+.ds-cv{ display:flex; flex-direction:column; flex:1 1 0; height:100%; min-height:0; outline:none; cursor:default; background:var(--surface); }
+.ds-cv > .ds-scroller{ flex:1 1 0; }
+.ds-cv-spacer{ flex:none; }
+.ds-cv-grid{ display:grid; grid-auto-rows:var(--cv-pitch); padding:0 var(--s-6); }
+
+.ds-cv-item{
+  display:flex; flex-direction:column; align-items:center; min-width:0; box-sizing:border-box;
+  padding-top:var(--s-6); overflow:hidden; animation:none;
+}
+.ds-cv-thumb{
+  display:flex; align-items:center; justify-content:center; flex:none; box-sizing:border-box;
+  width:var(--cv-thumb); height:var(--cv-thumb); border-radius:var(--r-item); color:var(--ink-soft);
+}
+.ds-cv-image{ display:block; width:100%; height:100%; object-fit:contain; border-radius:var(--r-tiny); }
+.ds-cv-caption{
+  display:block; max-width:100%; box-sizing:border-box; margin-top:var(--s-4); padding:var(--s-1) var(--s-6);
+  border-radius:var(--r-shell-highlight); font-size:var(--fs-small); line-height:1.3; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-align:center;
+}
+.ds-cv-edit{ display:block; width:100%; margin-top:var(--s-4); }
+
+.ds-cv-item[*|aria-selected=true] .ds-cv-thumb{ background:var(--sel-neutral); }
+.ds-cv-item[*|aria-selected=true] .ds-cv-caption{ background:var(--sel-bg); color:var(--sel-ink); }
+.ds[*|data-activity=inactive] .ds-cv-item[*|aria-selected=true] .ds-cv-caption,
+.ds-cv[*|data-focus=away] .ds-cv-item[*|aria-selected=true] .ds-cv-caption{ background:var(--sel-bg-quiet); color:var(--ink); }
+
+.ds-cv-item[*|data-presence=entering]{ animation:fade var(--t-move) var(--e-out) backwards; }
+.ds-cv-item[*|data-presence=present]{ animation:hold var(--t-quick) var(--e-linear); }
+.ds-cv-item[*|data-presence=leaving]{ pointer-events:none; animation:menu-out var(--t-quick) var(--e-exit) forwards; }
 /* -- column -- */
 /* Column: children stacked with a token gap (`--column-gap`, set by the component from a spacing
    step) and aligned across the width. Attribute selectors carry `*|` (spike S2). */

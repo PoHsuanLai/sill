@@ -286,7 +286,8 @@ fn every_table_name_is_declared_on_the_root() {
 /// avatar's computed colours (design/04-COMPONENTS.md "Shared vocabulary" and section 11), and
 /// an external icon's size (`IconView`, design/08-ICONS.md section 1.5), and a Space dot's
 /// stops (`SpaceDot`, the editor's presets, handles, discs and swatch), and a
-/// tinted plate's per-scheme stops and ink (`IconView { plate_tint }`).
+/// tinted plate's per-scheme stops and ink (`IconView { plate_tint }`), and a collection's
+/// thumbnail size and pitch (`CollectionView`).
 const PER_ELEMENT: &[&str] = &[
     // A chip's leading colour dot (quire `Chip { dot }`).
     "--chip-dot",
@@ -335,6 +336,9 @@ const PER_ELEMENT: &[&str] = &[
     "--from",
     "--to",
     "--tip",
+    // A collection's thumbnail size and grid pitch (`CollectionView`).
+    "--cv-thumb",
+    "--cv-pitch",
 ];
 
 #[test]
