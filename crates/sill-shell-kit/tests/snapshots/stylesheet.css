@@ -2154,6 +2154,11 @@ html,body{margin:0;padding:0;background:transparent}
 }
 .ds-row[*|data-density=settings]{ min-height:var(--row-settings-h); }
 .ds-row[*|data-density=palette]{ min-height:var(--row-palette-h); }
+/* A flush row (`line_height`): the lines sit on the caller's grid. `--row-line` is the caller's
+   px, set inline; the default is the face's own 1.3. No padding, gap, rounding or minimum. */
+.ds-row[*|data-density=lines]{ --row-line:1.3em; min-height:0; padding:0; gap:0; border-radius:0; align-items:flex-start; }
+.ds-row[*|data-density=lines] .ds-row-title,
+.ds-row[*|data-density=lines] .ds-row-detail{ line-height:var(--row-line); }
 .ds-row[*|aria-disabled=true]{ opacity:.35; }
 .ds-row[*|aria-busy=true]{ cursor:default; }
 
