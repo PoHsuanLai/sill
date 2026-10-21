@@ -2,7 +2,7 @@
    plate in its material, inside a transparent scope of that material, so the plate and its
    group's layers paint the material's tint, edge and drop (the transparent-root card rule in the
    materials section). Geometry is the `--notifications-*` tokens `NotificationMetrics` writes:
-   360 wide, at least 64 tall, padded 12, the icon 32, the close button 18. Attribute selectors
+   320 wide, at least 48 tall, padded 10, the icon 28, the close button 18. Attribute selectors
    carry `*|` (spike S2).
 
    Hover (`data-hover=on`, set from the pointer in Rust so the caller hears it too): the body
@@ -26,7 +26,7 @@
 .ds-notification-layer{ position:absolute; top:calc(var(--i) * var(--notifications-group-offset)); bottom:calc((var(--layers) - var(--i)) * var(--notifications-group-offset));
   left:calc(var(--i) * var(--s-6)); right:calc(var(--i) * var(--s-6)); border-radius:var(--m-radius); opacity:calc(1 - var(--i) * .2); pointer-events:none; }
 
-.ds-notification-plate{ position:relative; display:flex; align-items:flex-start; gap:var(--s-10); box-sizing:border-box;
+.ds-notification-plate{ position:relative; display:flex; align-items:flex-start; gap:var(--s-8); box-sizing:border-box;
   min-height:var(--notifications-banner-min-height); padding:var(--notifications-banner-padding); border-radius:var(--m-radius); cursor:default; }
 .ds-notification-icon{ display:flex; align-items:center; justify-content:center; flex:none; width:var(--notifications-icon); height:var(--notifications-icon); line-height:0; }
 .ds-notification-words{ display:flex; flex-direction:column; gap:var(--s-2); flex:1; min-width:0; }

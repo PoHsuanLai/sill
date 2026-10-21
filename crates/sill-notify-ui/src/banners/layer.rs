@@ -81,7 +81,7 @@ mod tests {
         assert_eq!(config.namespace, "sill-banners-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::TOP | Anchor::RIGHT | Anchor::BOTTOM);
-        assert_eq!(config.size.width, LayerExtent::Px(360 + 2 * ROOM));
+        assert_eq!(config.size.width, LayerExtent::Px(320 + 2 * ROOM));
         assert_eq!(config.size.height, LayerExtent::Fill);
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::None);

@@ -248,10 +248,10 @@ impl Default for NotificationsSettings {
             banner_style: Presentation::Banner,
             position_right_px: Px(8),
             position_top_gap_px: Px(8),
-            banner_width_px: Px(360),
-            banner_min_height_px: Px(64),
-            banner_padding_px: Px(12),
-            icon_px: Px(32),
+            banner_width_px: Px(320),
+            banner_min_height_px: Px(48),
+            banner_padding_px: Px(10),
+            icon_px: Px(28),
             banner_hold_ms: Ms(5200),
             hover_min_remaining_ms: Ms(1500),
             close_button_px: Px(18),
@@ -266,7 +266,7 @@ impl Default for NotificationsSettings {
             swipe: Swipe::KeepInCenter,
             banner_position: BannerPosition::TopRight,
             history_cap: Count(100),
-            center_width_px: Px(360),
+            center_width_px: Px(320),
         }
     }
 }

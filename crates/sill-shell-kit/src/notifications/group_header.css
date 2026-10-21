@@ -3,7 +3,7 @@
    `--ink-soft`, not tracked) with the app's name a step stronger in `--ink`; the icon is 16 in its own column; the count is tabular; the trailing pair (the
    fold toggle and Clear, Quiet buttons) ends the row. */
 
-.ds-group-header{ display:flex; align-items:center; gap:var(--s-8); width:100%; box-sizing:border-box; padding:var(--s-12) var(--s-6) var(--s-6);
+.ds-group-header{ display:flex; align-items:center; gap:var(--s-8); width:100%; box-sizing:border-box; padding:var(--s-8) var(--s-6) var(--s-2);
   font-family:var(--font-ui); font-size:var(--fs-eyebrow); font-weight:600; letter-spacing:0; font-variant-numeric:tabular-nums; color:var(--ink-soft); }
 /* The keyboard's cursor on a header (`data-focus=ring`, written by the list's owner): the ring. */
 .ds-group-header[*|data-focus=ring]{ outline:var(--ring) solid var(--accent-ring); outline-offset:var(--focus-gap); border-radius:var(--r-btn); }

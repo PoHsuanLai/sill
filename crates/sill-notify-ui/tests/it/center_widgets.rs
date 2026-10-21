@@ -28,10 +28,10 @@ fn the_center_draws_calendar_then_up_next_under_the_history() {
         first.origin.y.0 >= list.origin.y.0 + list.size.height.0 - 0.5,
         "under the history: {list:?} {first:?}"
     );
-    // A medium tile (336: two 160 cells and a gap) fills the center's 360 px column after the panel's padding.
+    // A medium tile (296: two 140 cells and a gap) fills the center's 320 px column after the panel's padding.
     let column = h.rect(".sill-nc-column").expect("the column");
     let tile = h.rect("#widget-up-next").expect("a medium tile");
-    assert_eq!(tile.size.width.0.round(), 336.0);
+    assert_eq!(tile.size.width.0.round(), 296.0);
     assert!(
         tile.origin.x.0 >= column.origin.x.0 - 0.5
             && tile.origin.x.0 + tile.size.width.0 <= column.origin.x.0 + column.size.width.0 + 0.5,

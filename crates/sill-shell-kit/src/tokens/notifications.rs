@@ -13,32 +13,32 @@ use ds::style::tokens::tuned::px;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Word, Token)]
 #[token(prefix = "", kind = tuned)]
 pub enum NotificationToken {
-    /// `--notifications-banner-width` (`notifications.banner_width_px`, 360).
+    /// `--notifications-banner-width` (`notifications.banner_width_px`, 320).
     #[token(
         name = "notifications-banner-width",
         input = "--notifications-banner-width-px",
-        value = "360px"
+        value = "320px"
     )]
     BannerWidth,
-    /// `--notifications-banner-min-height` (`notifications.banner_min_height_px`, 64).
+    /// `--notifications-banner-min-height` (`notifications.banner_min_height_px`, 48).
     #[token(
         name = "notifications-banner-min-height",
         input = "--notifications-banner-min-height-px",
-        value = "64px"
+        value = "48px"
     )]
     BannerMinHeight,
-    /// `--notifications-banner-padding` (`notifications.banner_padding_px`, 12).
+    /// `--notifications-banner-padding` (`notifications.banner_padding_px`, 10).
     #[token(
         name = "notifications-banner-padding",
         input = "--notifications-banner-padding-px",
-        value = "12px"
+        value = "10px"
     )]
     BannerPadding,
-    /// `--notifications-icon` (`notifications.icon_px`, 32): the app icon's side.
+    /// `--notifications-icon` (`notifications.icon_px`, 28): the app icon's side.
     #[token(
         name = "notifications-icon",
         input = "--notifications-icon-px",
-        value = "32px"
+        value = "28px"
     )]
     Icon,
     /// `--notifications-close` (`notifications.close_button_px`, 18): the close button's diameter.
@@ -63,11 +63,11 @@ pub enum NotificationToken {
         value = "4px"
     )]
     GroupOffset,
-    /// `--notifications-center-width` (`notifications.center_width_px`, 360).
+    /// `--notifications-center-width` (`notifications.center_width_px`, 320).
     #[token(
         name = "notifications-center-width",
         input = "--notifications-center-width-px",
-        value = "360px"
+        value = "320px"
     )]
     CenterWidth,
 }
@@ -76,13 +76,13 @@ pub enum NotificationToken {
 /// around the banners or the center.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NotificationMetrics {
-    /// A banner's width, 360.
+    /// A banner's width, 320.
     pub banner_width: Px,
-    /// A banner's least height, 64.
+    /// A banner's least height, 48.
     pub banner_min_height: Px,
-    /// A banner's padding, 12.
+    /// A banner's padding, 10.
     pub banner_padding: Px,
-    /// The app icon's side, 32.
+    /// The app icon's side, 28.
     pub icon: Px,
     /// The close button's diameter, 18.
     pub close: Px,
@@ -90,7 +90,7 @@ pub struct NotificationMetrics {
     pub stack_gap: Px,
     /// Each group layer's offset below the one above it, 4.
     pub group_offset: Px,
-    /// The notification center's width, 360 (the key's range is 280 to 600).
+    /// The notification center's width, 320 (the key's range is 280 to 600).
     pub center_width: Px,
 }
 
@@ -98,20 +98,20 @@ impl Default for NotificationMetrics {
     /// The keys' defaults (design/22 section 3.12).
     fn default() -> Self {
         NotificationMetrics {
-            banner_width: Px(360.0),
-            banner_min_height: Px(64.0),
-            banner_padding: Px(12.0),
-            icon: Px(32.0),
+            banner_width: Px(320.0),
+            banner_min_height: Px(48.0),
+            banner_padding: Px(10.0),
+            icon: Px(28.0),
             close: Px(18.0),
             stack_gap: Px(8.0),
             group_offset: Px(4.0),
-            center_width: Px(360.0),
+            center_width: Px(320.0),
         }
     }
 }
 
 impl NotificationMetrics {
-    /// Every input, inline: `--notifications-banner-width-px:360px;…`. The center's width is
+    /// Every input, inline: `--notifications-banner-width-px:320px;…`. The center's width is
     /// held to its key's 280 to 600; every other length to 0 to 999.
     pub fn style_attr(&self) -> String {
         let length = |value: Px| px(value.0.round().clamp(0.0, 999.0) as u16);

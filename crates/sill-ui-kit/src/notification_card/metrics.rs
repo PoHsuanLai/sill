@@ -33,7 +33,7 @@ pub fn swipe_metrics(n: &NotificationsSettings) -> SwipeMetrics {
     }
 }
 
-/// The app icon's side (`notifications.icon_px`, 32), held to what an `IconPx` holds.
+/// The app icon's side (`notifications.icon_px`, 28), held to what an `IconPx` holds.
 pub fn icon_size(n: &NotificationsSettings) -> IconPx {
     IconPx(u8::try_from(n.icon_px.0).unwrap_or(u8::MAX))
 }
@@ -55,7 +55,7 @@ mod tests {
                 n.clone(),
                 NotificationMetrics::default(),
                 SwipeMetrics::default(),
-                IconPx(32),
+                IconPx(28),
             ),
             (
                 NotificationsSettings {
