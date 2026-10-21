@@ -323,5 +323,13 @@ mod view_tests {
         assert_eq!(app_words(&name), "Mail");
         assert_eq!(app_words(&app("org.quire.Companion")), "Assistant");
         assert!(!why_words(&docket_core::AskReason::Mass(porter_core::Count(3))).is_empty());
+        let said = |why: &str| docket_core::AskReason::Said {
+            rule: docket_core::PolicyId("ask-after-untrusted".to_owned()),
+            why: why.to_owned(),
+        };
+        let sentence =
+            "It read something you did not write, so it asks again before changing anything.";
+        assert_eq!(why_words(&said(sentence)), sentence);
+        assert_eq!(why_words(&said("  ")), "A rule asks.");
     }
 }

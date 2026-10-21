@@ -1012,7 +1012,7 @@ mod routed {
         ScriptedReviewer, ScriptedWriter,
     };
     use docket_router::{AppFault, AppLink, GrantStore, LinkFault, NoLog, Router, Seams};
-    use policy_point::Pdp;
+    use policy_point::Presets;
     use porter_core::consent::{Decision, Grant, Usage};
     use porter_core::{AppId, DataClass, Isolation};
     use prov::{AgentRef, SpaceId, SpaceScope, UnixSeconds};
@@ -1304,7 +1304,7 @@ mod routed {
         let router = Router::new(
             seams,
             docket_core::AgentConfig::default(),
-            Pdp::standard().unwrap_or_else(|e| panic!("{e:?}")),
+            Presets::built_in().unwrap_or_else(|e| panic!("{e:?}")),
         );
         {
             let mut state = router.state.lock().unwrap_or_else(|e| e.into_inner());

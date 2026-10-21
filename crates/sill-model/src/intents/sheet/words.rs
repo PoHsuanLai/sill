@@ -63,6 +63,9 @@ pub fn why_words(reason: &AskReason) -> String {
         AskReason::OutsideTask => "It goes beyond what you asked for.".to_owned(),
         AskReason::Disagreement => "The reviewers did not agree.".to_owned(),
         AskReason::Rule(_) => "A rule asks.".to_owned(),
+        // The rule's own sentence (its `@why`); a rule that wrote none reads like `Rule`.
+        AskReason::Said { why, .. } if why.trim().is_empty() => "A rule asks.".to_owned(),
+        AskReason::Said { why, .. } => why.clone(),
     }
 }
 
