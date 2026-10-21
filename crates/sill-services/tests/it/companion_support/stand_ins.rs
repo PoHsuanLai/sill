@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use almanac_core::{FactView, TimelineEntry, TimelinePage};
 use docket_core::{Displayed, Hit, Mode, SessionOpened, SummonAnswer, UndoEntry, UndoFault};
-use docket_dbus::answer_path;
+use docket_dbus::{IntentsError, answer_path};
 use prov::{DataClass, Label, SessionId, Source, SpaceId};
 use zbus::fdo;
 use zbus::message::Header;
@@ -77,14 +77,14 @@ impl StandInModeSession {
         session: String,
         mode: String,
         #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
-    ) -> fdo::Result<()> {
+    ) -> Result<(), IntentsError> {
         self.log.push(format!("set_mode {session} {mode}"));
         let answer = *self.answer.lock().unwrap_or_else(|e| panic!("{e}"));
         match answer {
-            SwitchAnswer::Locked => Err(fdo::Error::Failed("Locked".to_owned())),
+            SwitchAnswer::Locked => Err(IntentsError::Locked(String::new())),
             SwitchAnswer::Done => Self::mode_changed(&emitter, &session, &mode)
                 .await
-                .map_err(|e| fdo::Error::Failed(e.to_string())),
+                .map_err(IntentsError::ZBus),
         }
     }
 

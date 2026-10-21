@@ -49,6 +49,7 @@ fn answer(phase: AnswerPhase, lines: usize) -> CompanionEvent {
         body: AnswerBody::Text { lines: Vec::new() },
         progress: (0..lines).map(|n| format!("step {n}")).collect(),
         footer: FooterWire {
+            mode: docket_core::Mode::default(),
             served: Vec::new(),
             sources: Vec::new(),
             keep: ContextKeep {

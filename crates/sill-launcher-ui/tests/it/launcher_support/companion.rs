@@ -42,6 +42,7 @@ pub fn answer(id: &str, prompt: &str, phase: AnswerPhase, body: AnswerBody) -> A
             body,
             progress: Vec::new(),
             footer: FooterWire {
+                mode: docket_core::Mode::default(),
                 served: Vec::new(),
                 sources: Vec::new(),
                 keep: ContextKeep {

@@ -69,6 +69,7 @@ fn card(id: &str, effect: prov::Effect) -> CardWire {
 
 fn footer() -> FooterWire {
     FooterWire {
+        mode: docket_core::Mode::default(),
         served: Vec::new(),
         sources: vec![person("Sam Lee", "sam@example.org")],
         keep: ContextKeep {

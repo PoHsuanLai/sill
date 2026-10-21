@@ -339,6 +339,7 @@ fn answer_in(phase: companion_wire::AnswerPhase) -> sill_model::companion::Compa
         body: AnswerBody::Text { lines: Vec::new() },
         progress: Vec::new(),
         footer: FooterWire {
+            mode: docket_core::Mode::default(),
             served: Vec::new(),
             sources: Vec::new(),
             keep: ContextKeep {

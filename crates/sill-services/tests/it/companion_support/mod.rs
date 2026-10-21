@@ -260,6 +260,7 @@ impl Desk {
 
 pub fn footer() -> FooterWire {
     FooterWire {
+        mode: docket_core::Mode::default(),
         served: Vec::new(),
         sources: Vec::new(),
         keep: ContextKeep {

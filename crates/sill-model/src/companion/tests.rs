@@ -26,6 +26,7 @@ fn task(id: &str) -> TaskId {
 
 fn footer() -> FooterWire {
     FooterWire {
+        mode: docket_core::Mode::default(),
         served: Vec::new(),
         sources: Vec::new(),
         keep: ContextKeep {

@@ -347,6 +347,8 @@ fn thinking(task: &TaskId) -> AnswerWire {
         body: AnswerBody::Text { lines: Vec::new() },
         progress: Vec::new(),
         footer: FooterWire {
+            // The placeholder names no mode of its own; the answer the companion writes names the real one.
+            mode: docket_core::Mode::default(),
             served: Vec::new(),
             sources: Vec::new(),
             keep: ContextKeep {

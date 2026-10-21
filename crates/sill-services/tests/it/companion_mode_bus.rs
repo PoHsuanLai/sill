@@ -7,10 +7,8 @@ use crate::companion_support;
 
 use std::sync::{Arc, Mutex};
 
-use companion_support::stand_ins::{
-    ActsAs, StandInAnswer, StandInCompanion, StandInModeSession, SwitchAnswer,
-};
-use companion_support::{Desk, json, task, wire};
+use companion_support::stand_ins::{ActsAs, StandInCompanion, StandInModeSession, SwitchAnswer};
+use companion_support::{Desk, json, wire};
 use companion_wire::AnswerPhase;
 use docket_core::{ContextKeep, Keep, Mode};
 use docket_dbus::{COMPANION_BUS, INTENTS_BUS};
