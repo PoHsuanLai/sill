@@ -49,6 +49,8 @@ pub enum OwnAction {
     FocusPane,
     /// Send the companion's question or answer on.
     Promote,
+    /// Switch Permissions Mode: flip the conversation between Auto and Manual.
+    SwitchMode,
 }
 
 impl OwnAction {
@@ -68,6 +70,7 @@ impl OwnAction {
             OwnAction::ShowActions => "Primary+K",
             OwnAction::FocusPane => "Primary+Right",
             OwnAction::Promote => "Primary+Enter",
+            OwnAction::SwitchMode => "Primary+Shift+M",
         };
         text.parse().ok()
     }

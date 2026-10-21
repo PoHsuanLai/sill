@@ -14,6 +14,9 @@ mod emphasis;
 mod helpers;
 #[cfg(test)]
 mod memory_line_tests;
+mod mode;
+#[cfg(test)]
+mod mode_tests;
 mod model;
 mod model_picker;
 #[cfg(test)]
@@ -55,6 +58,10 @@ pub use helpers::{
     kind_line, last_run_line, login_line, model_groups, model_hint, model_line, needs_sign_in_line,
     offered_apps, offers_sign_out, proposal_what, proposal_when, proposal_why, remove_question,
     remove_routine_question, repeat_label, sign_in_buttons, state_label, update as update_helpers,
+};
+pub use mode::{
+    ConversationMode, FROM_NEXT_STEP, Knowing, LOCKED_HELP, ModeLock, ModeMsg, ModeNote, ModeView,
+    SWITCH_NAME, TIP_NAME, mode_label, mode_view, other_mode, update as update_mode,
 };
 pub use model::{
     AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,

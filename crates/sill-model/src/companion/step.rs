@@ -13,6 +13,7 @@ use sill_launcher::Generation;
 use super::card::{card_call, handle_fallback, settled};
 use super::command::{CompanionEffect, CompanionEvent, CompanionParams};
 use super::helpers::{HelpersMsg, update};
+use super::mode::{answer_moved, turn_began, update as update_mode};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
 use super::model_picker::{Picker, opens, picker_of, touched};
 use super::summon::{SummonCx, SummonIn, SummonOut};
@@ -60,6 +61,7 @@ pub fn step(
         CompanionEvent::Dismissed => summoned(state, SummonIn::Dismiss, at, params),
         CompanionEvent::Helpers(msg) => helped(state, *msg),
         CompanionEvent::Terminals(msg) => in_terminals(state, msg),
+        CompanionEvent::Mode(msg) => update_mode(state, msg),
         other => {
             let task = touched(&other).cloned();
             let before = task
@@ -143,8 +145,8 @@ fn summoned(
 /// The events that only change what is published.
 fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
     match event {
-        CompanionEvent::Asked { task, prompt, .. } => asked(state, task, prompt),
-        CompanionEvent::Answer(wire) => answered(state, *wire),
+        CompanionEvent::Asked { task, prompt, .. } => turn_began(asked(state, task, prompt)),
+        CompanionEvent::Answer(wire) => answer_moved(answered(state, *wire)),
         CompanionEvent::AnswerGone(task) => {
             let mut answers = state.answers;
             answers.remove(&task);
@@ -274,7 +276,8 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
         | CompanionEvent::LauncherClosed
         | CompanionEvent::Dismissed
         | CompanionEvent::Helpers(_)
-        | CompanionEvent::Terminals(_) => state,
+        | CompanionEvent::Terminals(_)
+        | CompanionEvent::Mode(_) => state,
     }
 }
 

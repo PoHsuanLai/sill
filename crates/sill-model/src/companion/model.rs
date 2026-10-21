@@ -12,6 +12,7 @@ use prov::{AppName, EntityKind, RunId, SessionId, TaskId};
 use sill_launcher::Generation;
 
 use super::helpers::HelpersModel;
+use super::mode::ConversationMode;
 use super::sight::SightState;
 use super::summon::Summon;
 use super::tap::Tap;
@@ -174,4 +175,6 @@ pub struct Companion {
     pub helpers: HelpersModel,
     /// The sessions the person started in a terminal.
     pub terminals: TerminalsModel,
+    /// The mode of the conversation the input box types into.
+    pub mode: ConversationMode,
 }

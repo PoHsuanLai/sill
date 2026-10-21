@@ -4,7 +4,7 @@
 use almanac_core::{FactId, FactView, MemoryItem, TimelineEntry};
 use companion_wire::{AnswerWire, RouteNote};
 use docket_core::{
-    CallRequest, CardActionId, ContextKeep, Handle, Hit, SummonAnswer, SummonSerial, TurnVia,
+    CallRequest, CardActionId, ContextKeep, Handle, Hit, Mode, SummonAnswer, SummonSerial, TurnVia,
     UndoEntry, UndoScope,
 };
 use ds_core::vocab::MemoryVerb;
@@ -14,6 +14,7 @@ use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
 use std::collections::BTreeSet;
 
 use super::helpers::{HelpersCommand, HelpersMsg};
+use super::mode::ModeMsg;
 use super::model::{CompanionLink, Opener, RunFacts};
 use super::sight::SightState;
 use super::summon::{FocusFacts, LauncherFacts, SummonOut, SummonParams};
@@ -133,6 +134,8 @@ pub enum CompanionCommand {
     Helpers(HelpersMsg),
     /// Something the person did to a session in a terminal.
     Terminals(TerminalsMsg),
+    /// The person chose or flipped the conversation's mode.
+    Mode(ModeMsg),
 }
 
 /// What happens in the service.
@@ -247,6 +250,9 @@ pub enum CompanionEvent {
     Helpers(Box<HelpersMsg>),
     /// Something about the sessions in terminals: the person's doing, or what the companion said.
     Terminals(TerminalsMsg),
+    /// Something about the conversation's mode: the person's switch, what a session opened in,
+    /// or what the router said.
+    Mode(ModeMsg),
 }
 
 /// What the service must do outside the pure state.
@@ -263,6 +269,13 @@ pub enum CompanionEffect {
     Helpers(HelpersCommand),
     /// The panel asks the companion about the sessions in terminals.
     Terminals(TerminalsCommand),
+    /// Ask the router to put `session` in `mode`. The answer is a [`ModeMsg`] event.
+    SetMode {
+        /// The session.
+        session: SessionId,
+        /// The mode to switch to.
+        mode: Mode,
+    },
 }
 
 impl SummonOut {
