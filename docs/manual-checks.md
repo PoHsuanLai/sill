@@ -571,6 +571,7 @@ the real daemons or a real keyboard.
 - [ ] **Trash**: Open shows the Trash in the file manager. Empty Trash is dimmed while the Trash is empty. With something in it, Empty Trash asks "Are you sure you want to permanently erase the items in the Trash?" with "You can't undo this action." and Cancel (default, Escape) and Empty Trash. Cancel leaves everything. Empty Trash erases `files/` and `info/` of the home Trash; per-volume trash folders on other disks are left.
 - [ ] **The dock's own menu**: Turn Hiding On hides the dock and the item then reads Turn Hiding Off; Turn Magnification Off stops the icons growing and the item reads Turn Magnification On. Both change `settings.toml` and Settings shows the same state. Dock Settings… opens Settings on the Dock page. There is no Position on Screen or Minimise Windows Using row: the dock has no such setting yet.
 - [ ] **Order setting**: Settings, Dock, Menu order (Advanced) set to Windows first gives the flat app menu (no Options, no Show All Windows).
+- [ ] **A click outside closes it** (casement d32dc13): open a tile's menu, then click the desktop, the bar, and another tile in turn (reopening it each time). Each click only closes the menu: the other tile does not open its app, and the next click works as usual.
 
 ## files, the file manager (files 9ffce62..dcbd439; install the binary and dist/ files per its README, on a real login)
 

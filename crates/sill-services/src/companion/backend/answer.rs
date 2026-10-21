@@ -47,6 +47,7 @@ pub(super) async fn ask(
         started_from: None,
         external: None,
         helper: None,
+        acts_for: None,
     };
     let opened: SessionOpened = from_json(&companion.open(&to_json(&open)?).await?)?;
     let _ = events.send(CompanionEvent::Mode(ModeMsg::Opened {
