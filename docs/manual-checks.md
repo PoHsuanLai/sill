@@ -571,3 +571,23 @@ the real daemons or a real keyboard.
 - [ ] **Trash**: Open shows the Trash in the file manager. Empty Trash is dimmed while the Trash is empty. With something in it, Empty Trash asks "Are you sure you want to permanently erase the items in the Trash?" with "You can't undo this action." and Cancel (default, Escape) and Empty Trash. Cancel leaves everything. Empty Trash erases `files/` and `info/` of the home Trash; per-volume trash folders on other disks are left.
 - [ ] **The dock's own menu**: Turn Hiding On hides the dock and the item then reads Turn Hiding Off; Turn Magnification Off stops the icons growing and the item reads Turn Magnification On. Both change `settings.toml` and Settings shows the same state. Dock Settings… opens Settings on the Dock page. There is no Position on Screen or Minimise Windows Using row: the dock has no such setting yet.
 - [ ] **Order setting**: Settings, Dock, Menu order (Advanced) set to Windows first gives the flat app menu (no Options, no Show All Windows).
+
+## files, the file manager (files 9ffce62..dcbd439; install the binary and dist/ files per its README, on a real login)
+
+- [ ] **Show in Files**: the launcher's "Show in Files" on a file opens Files on its folder with the file selected. With Files already open, the same window changes folder and comes to the front; no second window opens.
+- [ ] **Dock Trash**: the dock Trash tile's Open shows Files on the Trash (rows say where each item came from; the date column reads Date Deleted).
+- [ ] **Default for folders**: `xdg-open ~/Documents` opens Files once org.quire.Files.desktop is installed and set as the folder default (`xdg-mime default org.quire.Files.desktop inode/directory`).
+- [ ] **Open a file**: double-click a PDF or image; it opens in its default app. A file type with no app set shows "There is no app set to open “name”."
+- [ ] **Trash round trip**: ⌘⌫ a file; the toast says Moved “name” to the Trash with Undo, and Undo brings it back. Trash it again, open the Trash, Put Back returns it to its folder. Empty Trash asks first.
+- [ ] **New Folder and rename**: ⇧⌘N makes "untitled folder" with its name ready to type; Return renames. ⌘Z undoes the rename.
+- [ ] **Copy over an existing name**: copy a file and paste it into a folder that has one with the same name: the Replace / Keep Both / Stop sheet; Keep Both makes "name 2".
+- [ ] **Drop from another app**: drag a file from another app onto a folder row: it is copied there.
+- [ ] **Quick Look and Get Info**: Space previews the selected file and arrows move it; Space or Escape closes. ⌘I shows Kind, Size in words and bytes, Where and the dates.
+- [ ] **Remembered view**: change a folder's sort, quit Files, reopen that folder: the sort is kept (stored in the state folder's files/folders.toml).
+
+## Internet Accounts page (detent c4a69c2, a real login with porter running)
+
+- [ ] **List beside detail**: Settings > Internet Accounts shows the accounts on the left and the chosen one on the right; arrows and click choose. The split is tall enough and scrolls inside on a small window (`.accounts-split` is a fixed 40em).
+- [ ] **Sync line**: a synced account shows "Synced N minutes ago" and its storage under Sync now; a ring turns round its mark while items wait.
+- [ ] **Apps with access**: each app row reads "Allowed on <date>"; hovering shows Revoke on the row and a card naming what it uses.
+- [ ] **First run**: `detent --page accounts-setup` shows "Sign in to Your Accounts", Add Account… opens the provider list, Skip always works, Continue once an account is listed.
