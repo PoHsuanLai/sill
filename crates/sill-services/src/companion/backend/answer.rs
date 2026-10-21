@@ -7,12 +7,12 @@
 use companion_wire::{AnswerWire, AskWire, RouteNote};
 use docket_client::{DbusTransport, Intents};
 use docket_core::{
-    CardActionId, Origin, SessionOpen, SessionOpened, TurnIn, TurnSource, UserTurn, WindowKey,
+    CardActionId, Mode, Origin, SessionOpen, SessionOpened, TurnIn, TurnSource, UserTurn, WindowKey,
 };
 use docket_dbus::{CompanionAnswerProxy, CompanionProxy, Details, answer_path};
 use prov::{AgentRef, SessionId, TaskId, UnixSeconds};
 use sill_launcher::WindowKey as ShellWindow;
-use sill_model::companion::{AskInput, CompanionEvent};
+use sill_model::companion::{AskInput, CompanionEvent, ModeMsg};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
@@ -29,10 +29,12 @@ fn window_key(window: Option<ShellWindow>) -> Result<WindowKey, CallError> {
 }
 
 /// Send `input` to the companion: open a session, record the turn, ask. Returns the answer's
-/// object, which the caller follows.
+/// object, which the caller follows. The turn carries `mode` (the conversation's, when the router
+/// has told one) so the router puts the new session in it before the turn is recorded.
 pub(super) async fn ask(
     connection: &Connection,
     input: AskInput,
+    mode: Option<Mode>,
     at: UnixSeconds,
     events: &UnboundedSender<CompanionEvent>,
 ) -> Result<OwnedObjectPath, CallError> {
@@ -47,12 +49,17 @@ pub(super) async fn ask(
         helper: None,
     };
     let opened: SessionOpened = from_json(&companion.open(&to_json(&open)?).await?)?;
+    let _ = events.send(CompanionEvent::Mode(ModeMsg::Opened {
+        session: opened.session.clone(),
+        mode: opened.mode,
+    }));
     let intents = Intents::over(DbusTransport::new(connection.clone()));
     let turn = TurnIn {
         text: input.prompt.clone(),
         origin: Origin::Launcher,
         keep: input.keep,
         via: input.via,
+        mode,
     };
     let id = intents.session_turn(opened.session.clone(), turn).await?;
     let recorded = UserTurn {
@@ -61,6 +68,7 @@ pub(super) async fn ask(
         at,
         from: TurnSource::Launcher,
         via: input.via,
+        mode,
     };
     let session = opened.session;
     let wire = AskWire {

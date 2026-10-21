@@ -45,6 +45,7 @@ pub(super) async fn tell(
             window: Keep::Dropped,
         },
         via: TurnVia::Typed,
+        mode: None,
     };
     let id = intents.session_turn(opened.session.clone(), turn).await?;
     let draft = MessageDraft {
@@ -66,6 +67,7 @@ pub(super) async fn tell(
                 at,
                 from: TurnSource::Launcher,
                 via: TurnVia::Typed,
+                mode: None,
             };
             companion
                 .told(&to_json(&agent)?, space.as_str(), &to_json(&recorded)?)

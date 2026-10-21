@@ -3,17 +3,19 @@
 
 use std::collections::BTreeSet;
 
-use docket_client::{DbusTransport, Intents};
+use docket_client::{ClientError, DbusTransport, Intents};
 use docket_core::{
-    CallRequest, Generation as SearchGeneration, Handle, Hit, JournalFilter, SearchAsk,
-    SearchScope, UndoEntry, UndoScope,
+    CallRequest, Generation as SearchGeneration, Handle, Hit, JournalFilter, Mode, SearchAsk,
+    SearchScope, UndoEntry, UndoScope, WireRefusal,
 };
-use docket_dbus::{RegistryProxy, SearchProxy};
+use docket_dbus::{RegistryProxy, SearchProxy, SessionProxy};
 use porter_core::Count;
 use prov::AppName;
 use prov::SessionId;
 use sill_launcher::Generation;
-use sill_model::companion::{CompanionEvent, HelpersMsg, Opener, offered_apps, openers_of};
+use sill_model::companion::{
+    CompanionEvent, HelpersMsg, ModeMsg, Opener, offered_apps, openers_of,
+};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
 
@@ -103,22 +105,45 @@ pub(super) async fn perform(connection: &Connection, call: CallRequest) -> Resul
         .map_err(|refusal| CallError::Declined(format!("{refusal:?}")))
 }
 
+/// Ask the router to put `session` in `mode`, and say what it came to: the mode now, or that an
+/// administrator holds every conversation in Manual, or that the switch did not reach it.
+pub(super) async fn set_mode(connection: &Connection, session: SessionId, mode: Mode) -> ModeMsg {
+    match intents(connection)
+        .session_mode(session.clone(), mode)
+        .await
+    {
+        Ok(()) => ModeMsg::Changed { session, mode },
+        Err(ClientError::Refused(WireRefusal::Locked)) => ModeMsg::Locked,
+        Err(error) => {
+            eprintln!("sill: companion: switching the mode: {error}");
+            ModeMsg::NotApplied(mode)
+        }
+    }
+}
+
+/// A mode as the router's signal names it.
+fn mode_of(word: &str) -> Option<Mode> {
+    serde_json::from_value(serde_json::Value::String(word.to_owned())).ok()
+}
+
 /// What intentd says on its own while it is on the bus: the hits an app answered late, the
 /// journal's changes and the apps' manifests. The streams are subscribed before the journal and
 /// the manifests are first read, so the first journal the service publishes says they are up.
 /// Ends when the bus or the receiver goes.
 pub(super) async fn follow(connection: Connection, events: UnboundedSender<CompanionEvent>) {
-    let (Ok(search), Ok(control), Ok(registry)) = (
+    let (Ok(search), Ok(control), Ok(registry), Ok(sessions)) = (
         SearchProxy::new(&connection).await,
         docket_dbus::ControlProxy::new(&connection).await,
         RegistryProxy::new(&connection).await,
+        SessionProxy::new(&connection).await,
     ) else {
         return std::future::pending().await;
     };
-    let (Ok(mut hits), Ok(mut changes), Ok(mut manifests)) = (
+    let (Ok(mut hits), Ok(mut changes), Ok(mut manifests), Ok(mut modes)) = (
         search.receive_hits().await,
         control.receive_journal_changed().await,
         registry.receive_manifest_changed().await,
+        sessions.receive_mode_changed().await,
     ) else {
         return std::future::pending().await;
     };
@@ -154,6 +179,15 @@ pub(super) async fn follow(connection: Connection, events: UnboundedSender<Compa
                     .and_then(|()| events.send(CompanionEvent::Helpers(Box::new(HelpersMsg::AppsOffered(apps))))),
                 Err(_) => continue,
             },
+            Some(signal) = next(&mut modes) => {
+                let Ok(args) = signal.args() else { continue };
+                let (Ok(session), Some(mode)) =
+                    (SessionId::parse(args.session()), mode_of(args.mode()))
+                else {
+                    continue;
+                };
+                events.send(CompanionEvent::Mode(ModeMsg::Changed { session, mode }))
+            }
             else => return,
         };
         if sent.is_err() {

@@ -20,7 +20,7 @@ use prov::{SessionId, TaskId, UnixSeconds};
 use sill_launcher::{Generation, RunControl};
 use sill_model::companion::{
     Busy, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionLink,
-    CompanionParams, HelpersCommand, HelpersMsg, SummonOut, TerminalsCommand, card_call,
+    CompanionParams, HelpersCommand, HelpersMsg, ModeMsg, SummonOut, TerminalsCommand, card_call,
     going_runs, promote_card, step, unresolved_handles, wake,
 };
 use sill_model::launch::{LaunchCommand, SettingsOpen, assistant_model};
@@ -292,6 +292,7 @@ impl Live {
                     )));
                 });
             }
+            CompanionEffect::SetMode { session, mode } => self.set_mode(session, mode),
             CompanionEffect::Helpers(command) => self.helpers(command),
             CompanionEffect::Terminals(command) => self.terminals(command),
             CompanionEffect::Summon(SummonOut::AskApp { app, serial }) => {
@@ -341,6 +342,32 @@ impl Live {
             if let Some(reply) = reply {
                 let _ = events.send(CompanionEvent::Helpers(Box::new(reply)));
             }
+        });
+    }
+
+    /// Ask the router to switch `session` to `mode` on its own task; what it comes to goes back
+    /// as an event. Without the seat the choice is kept and rides the next turn.
+    fn set_mode(&self, session: SessionId, mode: docket_core::Mode) {
+        let events = self.events.clone();
+        let Some(connection) = self.connection.clone() else {
+            let _ = events.send(CompanionEvent::Mode(ModeMsg::NotApplied(mode)));
+            return;
+        };
+        tokio::spawn(async move {
+            let said = match within(
+                COMPANION_CALL,
+                "the permissions mode",
+                intents::set_mode(&connection, session, mode),
+            )
+            .await
+            {
+                Ok(said) => said,
+                Err(silent) => {
+                    eprintln!("sill: companion: {silent}");
+                    ModeMsg::NotApplied(mode)
+                }
+            };
+            let _ = events.send(CompanionEvent::Mode(said));
         });
     }
 
@@ -499,6 +526,7 @@ impl Live {
             }
             CompanionCommand::Helpers(msg) => self.feed(CompanionEvent::Helpers(Box::new(msg))),
             CompanionCommand::Terminals(msg) => self.feed(CompanionEvent::Terminals(msg)),
+            CompanionCommand::Mode(msg) => self.feed(CompanionEvent::Mode(msg)),
         }
     }
 
@@ -507,11 +535,12 @@ impl Live {
             return;
         };
         let (inner, events, at) = (self.inner.clone(), self.events.clone(), self.unix());
+        let mode = self.state.mode.turn_mode();
         tokio::spawn(async move {
             let asked = within(
                 COMPANION_CALL,
                 "the assistant",
-                answer::ask(&connection, input, at, &events),
+                answer::ask(&connection, input, mode, at, &events),
             )
             .await;
             match asked {
