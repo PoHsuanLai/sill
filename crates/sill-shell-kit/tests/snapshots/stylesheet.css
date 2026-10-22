@@ -853,8 +853,10 @@ html,body{margin:0;padding:0;background:transparent}
 }
 .ds-chip-remove{ border:0; background:none; padding:0; cursor:default; color:var(--ink-faint); line-height:0; }
 
-/* A leading colour dot: the chip's `dot` colour in `--chip-dot`. */
+/* A leading colour dot: the chip's `dot` colour (a `--tag-*` token or any CSS colour) in `--chip-dot`. */
 .ds-chip-dot{ display:inline-block; vertical-align:middle; flex:none; width:12px; height:12px; margin-right:var(--s-4); border-radius:var(--r-pill); background:var(--chip-dot); }
+/* A dot with no text (a tag in a row): nothing to keep apart from. */
+.ds-chip-dot:only-child{ margin-right:0; }
 
 /* Pressable: the face is a button that wears the chip's own type and ink; the chip lays the
    face and its remove button in a row. Focus ring: the global keyboard rule. */
@@ -879,7 +881,7 @@ html,body{margin:0;padding:0;background:transparent}
    wash when it does not (`data-focus=away`, an inactive window). A tile that takes a
    drop is outlined while a drag is on (`data-drop=accepts`), its thumbnail is washed and ringed
    under the pointer (`data-drop=target`), and the one being dragged is dimmed (`data-drag=source`),
-   as a row's are. A badge sits centred under the caption in the room the caption band already
+   as a row's are. `data-aspect=landscape` makes the thumbnail 16:10 (`--cv-thumb-h` tall) with its picture covering it; `data-extent=content` sizes the view to its rows (the inline height) and leaves the scrolling to the page. A badge sits centred under the caption in the room the caption band already
    keeps, so the pitch does not change. A tile arrives with a fade and
    leaves with one (the roster's `data-presence`), under Reduced motion with the same fades. */
 
@@ -896,6 +898,10 @@ html,body{margin:0;padding:0;background:transparent}
   display:flex; align-items:center; justify-content:center; flex:none; box-sizing:border-box;
   width:var(--cv-thumb); height:var(--cv-thumb); border-radius:var(--r-item); color:var(--ink-soft);
 }
+.ds-cv[*|data-aspect=landscape] .ds-cv-thumb{ height:var(--cv-thumb-h, var(--cv-thumb)); }
+.ds-cv[*|data-aspect=landscape] .ds-cv-image{ object-fit:cover; border-radius:var(--r-item); }
+.ds-cv[*|data-extent=content]{ flex:none; height:auto; }
+.ds-cv[*|data-extent=content] > .ds-scroller{ overflow-y:visible; }
 .ds-cv-image{ display:block; width:100%; height:100%; object-fit:contain; border-radius:var(--r-tiny); }
 .ds-cv-caption{
   display:block; max-width:100%; box-sizing:border-box; margin-top:var(--s-4); padding:var(--s-1) var(--s-6);
@@ -1588,6 +1594,27 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-list[*|data-style=source-list][*|data-sidebar-size=small] .ds-row-leading[*|data-leading=tile] > .ds-icon-tile{ width:var(--sidebar-tile-s); height:var(--sidebar-tile-s); }
 .ds-list[*|data-style=source-list][*|data-sidebar-size=large] .ds-row-leading[*|data-leading=tile]{ width:var(--sidebar-tile-l); }
 .ds-list[*|data-style=source-list][*|data-sidebar-size=large] .ds-row-leading[*|data-leading=tile] > .ds-icon-tile{ width:var(--sidebar-tile-l); height:var(--sidebar-tile-l); }
+/* -- marquee -- */
+/* Marquee (Finder's rubber band, shared by CollectionView and VirtualTable): a drag that begins on
+   empty space draws a rectangle in the accent's translucent wash with a hairline of the accent, and
+   selects what it touches. The band sits in a layer of no height at the top of the view's
+   scroller content, placed in the content's own coordinates, so it grows and scrolls with the
+   content. The layer, not the scroller, is its containing box: a positioned scroller would be
+   hit over the table's header. It never takes the pointer. */
+
+.ds-marquee-layer{ position:relative; height:0; }
+.ds-marquee{
+  position:absolute; box-sizing:border-box; pointer-events:none; z-index:var(--z-raise);
+  background:var(--accent-soft); border:var(--hair) solid var(--accent); border-radius:var(--r-tiny);
+}
+/* -- name_cell -- */
+/* NameCell (design/27-HIG-PARITY.md section 5.24, Finder's list view): a glyph beside the name on
+   one line. The glyph is its own width and the name takes the rest, clipped at its end when no room
+   was given to cut it from the middle by (name_cell/view.rs). */
+
+.ds-name-cell{ display:flex; align-items:center; gap:var(--s-6); min-width:0; }
+.ds-name-icon{ display:inline-flex; flex:none; align-items:center; justify-content:center; color:var(--ink-soft); }
+.ds-name-text{ min-width:0; overflow:hidden; white-space:nowrap; }
 /* -- loadable -- */
 /* Loadable (design/30 sections 1.3 and 2.9): a column that fills its container and holds one
    layer, the placeholder, the content or the failure. The layer that arrives on a change of phase
@@ -1719,6 +1746,23 @@ html,body{margin:0;padding:0;background:transparent}
 .ds[*|data-activity=inactive] .ds-menu-item[*|data-focus=highlight][*|data-selected=true] .ds-ic,
 .ds[*|data-activity=inactive] .ds-menu-item[*|data-focus=highlight][*|aria-expanded=true] .ds-menu-trailing,
 .ds[*|data-activity=inactive] .ds-menu-item[*|data-focus=highlight][*|aria-expanded=true] .ds-ic{ color:var(--ink); }
+
+/* A swatch (`MenuImage::Swatch`): a 12 px dot in the tag's colour (`data-tag`), ringed by a
+   hairline so a pale tag reads on the highlight; it keeps its colour when the row is highlighted. */
+.ds-menu-image[*|data-image=swatch]{ color:inherit; }
+.ds-menu-swatch{ display:block; width:12px; height:12px; border-radius:var(--r-pill); box-shadow:var(--shadow-mark); }
+.ds-menu-swatch[*|data-tag=red]{ background:var(--tag-red); }
+.ds-menu-swatch[*|data-tag=orange]{ background:var(--tag-orange); }
+.ds-menu-swatch[*|data-tag=yellow]{ background:var(--tag-yellow); }
+.ds-menu-swatch[*|data-tag=green]{ background:var(--tag-green); }
+.ds-menu-swatch[*|data-tag=mint]{ background:var(--tag-mint); }
+.ds-menu-swatch[*|data-tag=teal]{ background:var(--tag-teal); }
+.ds-menu-swatch[*|data-tag=cyan]{ background:var(--tag-cyan); }
+.ds-menu-swatch[*|data-tag=blue]{ background:var(--tag-blue); }
+.ds-menu-swatch[*|data-tag=indigo]{ background:var(--tag-indigo); }
+.ds-menu-swatch[*|data-tag=purple]{ background:var(--tag-purple); }
+.ds-menu-swatch[*|data-tag=pink]{ background:var(--tag-pink); }
+.ds-menu-swatch[*|data-tag=brown]{ background:var(--tag-brown); }
 
 /* Disabled (design/13 section 13.3.3): opacity .35, not selectable. */
 .ds-menu-item[*|aria-disabled=true]{ opacity:.35; }
@@ -1975,6 +2019,15 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-picture-picker{ display:grid; gap:0; outline:none; cursor:default; }
 .ds-picture-cell{ display:grid; place-items:center; min-width:0; box-sizing:border-box; border-radius:var(--r-menu-item); cursor:default; }
 .ds-picture-cell[*|aria-checked=true]{ background:var(--accent-soft); }
+/* -- picture -- */
+/* Picture: an image cropped to fill a rounded frame of one ratio (`data-shape`: landscape 16:10,
+   square). The frame is as wide as its parent, `overflow:hidden` at the media radius, and the
+   picture covers it. Attribute selectors carry `*|` (spike S2). */
+
+.ds-picture{ position:relative; display:block; box-sizing:border-box; width:100%; overflow:hidden; border-radius:var(--r-media); background:var(--fill-quaternary); }
+.ds-picture[*|data-shape=landscape]{ aspect-ratio:16/10; }
+.ds-picture[*|data-shape=square]{ aspect-ratio:1; }
+.ds-picture-image{ display:block; width:100%; height:100%; object-fit:cover; user-select:none; }
 /* -- pinned_bar -- */
 /* PinnedBar: a bar laid over the top or bottom edge of a scroll container. Blitz has no
    `position: sticky`, so the container is positioned and the bar is absolute within it, outside
@@ -2125,7 +2178,7 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-preview-action[*|data-focused=true]{ box-shadow:0 0 0 var(--focus-ring) var(--accent-ring); }
 /* -- provider_mark -- */
 /* ProviderMark (design/04-COMPONENTS.md section 28): `S:552-560`. The tile is on the control
-   ladder (`data-size` mini 11, small 13, regular 14; large repeats regular); where a mark sits on
+   ladder (`data-size` mini 11, small 13, regular 14; large 64 (a header avatar)); where a mark sits on
    a `PinTile` is that tile's rule. The white chip is
    `--mark-ground` and the provider's identity colour arrives inline as `--pc` (O-3); the rings
    are `--shadow-mark` and `--shadow-mark-tile`. Attribute selectors carry `*|` (spike S2).
@@ -2138,9 +2191,14 @@ html,body{margin:0;padding:0;background:transparent}
   font-family:var(--font-display); font-weight:800; font-size:var(--fs-nano); line-height:1;
   box-shadow:var(--shadow-mark); flex:none;
 }
-.ds-provider[*|data-size=regular],.ds-provider[*|data-size=large]{
+.ds-provider[*|data-size=regular]{
   width:14px; height:14px; font-size:var(--fs-micro); border-radius:var(--r-kbd);
 }
+/* Large: a header avatar (an account's detail page), 64 px. */
+.ds-provider[*|data-size=large]{
+  width:64px; height:64px; font-size:var(--fs-display); border-radius:var(--r-tile);
+}
+.ds-provider[*|data-size=large][*|data-kind=face][*|data-letters="2"]{ font-size:var(--fs-subject); }
 .ds-provider[*|data-size=mini]{
   width:11px; height:11px; font-size:var(--fs-pico); border-radius:var(--r-micro);
   margin-right:var(--s-4); vertical-align:-1px; box-shadow:0 0 0 var(--hair) var(--line);
@@ -2475,6 +2533,11 @@ html,body{margin:0;padding:0;background:transparent}
 /* Bottom (`Attach::Bottom`): `--s-8` above the root's bottom edge, never taller than half of it,
    rising from below (`--sheet-dy`, the keyframes' offset, with no scale). */
 .ds-sheet[*|data-attach=bottom]{ --sheet-dy:calc(100% + var(--s-36)); --sheet-scale:1; top:auto; bottom:var(--s-8); max-height:calc(50% - var(--s-8)); border-radius:var(--r-panel); }
+
+/* Actions (`SheetActions`): the sheet's buttons side by side at the trailing edge, `--s-8` apart,
+   the default one last. A leading control stays at the start of the row. */
+.ds-sheet-actions{ display:flex; align-items:center; justify-content:flex-end; gap:var(--s-8); }
+.ds-sheet-actions-leading{ display:flex; align-items:center; margin-right:auto; }
 /* -- shot_thumbnail -- */
 /* ShotThumbnail and ShotGhost (design/04-COMPONENTS.md section 39, design/20 section 1.13).
    The card is a plate in the Toast material inside a transparent Toast scope (the
@@ -3485,7 +3548,9 @@ html,body{margin:0;padding:0;background:transparent}
    px band: the leading items at the start, the title centred in what is left, the trailing items
    at the end, `--s-12` in from each edge. The title is 13 pt semibold over an optional subtitle
    in the faint ink; a control put in its place is centred the same way. Items are toolbar
-   buttons, each 40 px with its gap (the pitch the overflow rule counts by). */
+   buttons, each 40 px with its gap (the pitch the overflow rule counts by). A title and a centre
+   item together (Finder): the title keeps its own width at the start, the item is centred in the
+   room that is left. */
 
 .ds-toolbar{
   display:flex; align-items:center; box-sizing:border-box; flex:none; height:52px; padding:0 var(--s-12); gap:var(--s-8);
@@ -3497,6 +3562,8 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-toolbar-title{ display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1 1 0; min-width:0; line-height:1.25; }
 .ds-toolbar-heading{ max-width:100%; overflow:hidden; white-space:nowrap; font-size:var(--fs-control); font-weight:600; color:var(--ink); }
 .ds-toolbar-subtitle{ max-width:100%; overflow:hidden; white-space:nowrap; font-size:var(--fs-help); color:var(--ink-faint); }
+.ds-toolbar-title[*|data-with-center]{ flex:0 1 auto; align-items:flex-start; }
+.ds-toolbar-center{ display:flex; align-items:center; justify-content:center; flex:1 1 0; min-width:0; }
 /* The search item: the field at its minimum width, drawn where the magnifier button would be. */
 .ds-toolbar-search{ display:flex; flex:none; min-width:0; max-width:100%; }
 .ds-toolbar-search > .ds-text-field{ flex:1 1 auto; min-width:0; }
@@ -3595,6 +3662,18 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-vtable-held-head::after{ content:""; position:absolute; top:0; bottom:0; right:0; width:var(--hair); background:var(--line); opacity:0; pointer-events:none; }
 .ds-vtable[*|data-across=yes] .ds-vtable-held::after,
 .ds-vtable[*|data-across=yes] .ds-vtable-held-head::after{ opacity:1; }
+
+/* The outline (`outline` given; outline.rs): the first column's cell is indented by its depth (the
+   inline `padding-left`) and starts with a disclosure triangle, or with a gap of the same width on
+   a row that has no children so the names line up. The triangle is the disclosure's own, turned
+   a quarter when open; it is quiet until the pointer is over it and in the selected ink on a
+   selected row. */
+.ds-vtable-outline{ display:flex; align-items:center; min-width:0; }
+.ds-vtable-twisty,
+.ds-vtable-twisty-gap{ display:inline-flex; flex:none; align-items:center; justify-content:center; width:16px; height:16px; }
+.ds-vtable-twisty{ color:var(--ink-faint); cursor:default; }
+.ds-vtable-twisty:hover{ color:var(--ink-soft); }
+.ds-vtable-outline-cell{ display:block; flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; }
 /* -- voice_orb -- */
 /* The voice orb (design/30 section 2.9). Three glows, six conic gradients turning at different
    speeds and directions about their own centres, behind a fine dot grid. The turn `--orb-turn`
