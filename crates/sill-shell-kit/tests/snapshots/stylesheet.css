@@ -937,6 +937,35 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-column[*|data-extent=fixed][*|data-size=small]{ --column-extent:var(--ctl-h-s); }
 .ds-column[*|data-extent=fixed][*|data-size=large]{ --column-extent:var(--ctl-h-l); }
 .ds-column[*|data-extent=fixed][*|data-size=extra-large]{ --column-extent:var(--ctl-h-xl); }
+/* -- column_browser -- */
+/* ColumnBrowser (design/27-HIG-PARITY.md section 5.24, Finder's column view): columns side by side
+   in a box that scrolls sideways, each a scrolling list of compact rows with a hairline between it
+   and the next. A selected row is the accent while its column holds the keys; a parent column's
+   selection is the quiet wash, as is every selection once the browser loses the keyboard or its
+   window goes inactive (`data-active=no` on a parent column, `data-focus=away` on the browser).
+   The divider is a six-pixel grab across a column's right edge. The preview takes the room after
+   the last column, at least a column's width. The browser takes the keyboard itself and draws no
+   ring. Attribute selectors carry `*|` (spike S2). */
+
+.ds-colbrowser{ display:flex; height:100%; min-height:0; overflow-x:auto; overflow-y:hidden; outline:none; cursor:default; background:var(--surface); }
+.ds-colbrowser-strip{ display:flex; flex:none; min-width:100%; height:100%; }
+.ds-colbrowser-column{ position:relative; display:flex; flex-direction:column; flex:none; box-sizing:border-box; height:100%; min-height:0; border-right:var(--hair) solid var(--line); }
+.ds-colbrowser-column > .ds-scroller{ flex:1 1 0; min-height:0; }
+.ds-colbrowser-item{ box-sizing:border-box; padding:0 var(--s-6); }
+.ds-colbrowser .ds-row{ height:var(--row-compact-h); min-height:var(--row-compact-h); padding:0 var(--s-8); }
+.ds-colbrowser .ds-row-words{ flex:1 1 auto; min-width:0; overflow:hidden; }
+.ds-colbrowser-divider{ position:absolute; top:0; bottom:0; right:-3px; width:6px; z-index:var(--z-raise); cursor:ew-resize; }
+.ds-colbrowser-preview{ display:flex; flex-direction:column; flex:1 1 220px; min-width:220px; box-sizing:border-box; padding:var(--s-16); min-height:0; overflow:hidden; }
+
+.ds-colbrowser-column[*|data-active=no] .ds-row[*|data-focus=highlight][*|aria-selected=true],
+.ds-colbrowser[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true]{ background:var(--sel-bg-quiet); color:var(--ink); }
+.ds-colbrowser-column[*|data-active=no] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing,
+.ds-colbrowser-column[*|data-active=no] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing .ds-ic,
+.ds-colbrowser[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing,
+.ds-colbrowser[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-row-trailing .ds-ic{ color:var(--ink-soft); }
+.ds-colbrowser-column[*|data-active=no] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-name-icon,
+.ds-colbrowser[*|data-focus=away] .ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-name-icon{ color:var(--ink-soft); }
+.ds-row[*|data-focus=highlight][*|aria-selected=true] .ds-name-icon{ color:var(--sel-ink); }
 /* -- command_line -- */
 /* CommandLine: a command to copy. One selectable line in the data face on a quiet fill, the
    Copy button beside it. Placement (margins) is the parent's. */
@@ -1056,6 +1085,47 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-disclosure-body{ min-width:0; }
 .ds-disclosure-body[*|data-closed=true]{ visibility:hidden; pointer-events:none; }
 .ds-disclosure-content{ display:flow-root; }
+/* -- document_tabs -- */
+/* DocumentTabs (design/27 section 5, pre-Liquid-Glass; Finder and Safari tabs): a full-width strip
+   under the toolbar, 28 tall, a hairline below. The tabs share the width equally (`flex:1 1 0`,
+   `min-width:0`) with a hairline between; the selected one is raised to the window's surface, the
+   others sit in the recessed `--line-soft`, and a tab under the pointer takes the faint
+   `--hover-wash`. The title is centred and truncates with `.ds-truncate` (no ellipsis on Blitz);
+   the close button sits at the leading edge, hidden until the pointer is over the tab and always
+   on the selected one. The plus is a fixed square at the end. `data-drop=target` tints the tab a
+   dragged one would take the place of; `data-drag=source` dims the one dragged. Attribute
+   selectors carry `*|` (spike S2). */
+
+.ds-document-tabs{
+  display:flex; align-items:stretch; box-sizing:border-box; flex:none; width:100%; min-width:0; height:var(--s-28);
+  background:var(--line-soft); box-shadow:inset 0 calc(var(--hair) * -1) 0 var(--line); user-select:none;
+}
+
+.ds-document-tab{
+  position:relative; display:flex; align-items:center; justify-content:center; box-sizing:border-box; flex:1 1 0; min-width:0;
+  padding:0 var(--s-24); color:var(--ink-soft); font-size:var(--fs-help); cursor:default;
+  box-shadow:inset calc(var(--hair) * -1) 0 0 var(--line);
+}
+.ds-document-tab:hover{ background:var(--hover-wash); color:var(--ink); }
+.ds-document-tab[*|data-selected=true]{ background:var(--surface); color:var(--ink); }
+.ds-document-tab[*|data-drop=target]{ background:var(--accent-soft); }
+.ds-document-tab[*|data-drag=source]{ opacity:.35; }
+.ds-document-tab-title{ display:block; min-width:0; max-width:100%; white-space:nowrap; text-align:center; }
+
+.ds-document-tab-close{
+  position:absolute; top:50%; left:var(--s-6); display:grid; place-items:center; box-sizing:border-box; width:var(--s-16); height:var(--s-16);
+  margin:0; padding:0; border:0; border-radius:var(--r-item); background:transparent; color:var(--ink-soft); line-height:0; cursor:default;
+  transform:translateY(-50%); opacity:0;
+}
+.ds-document-tab:hover .ds-document-tab-close,
+.ds-document-tab[*|data-selected=true] .ds-document-tab-close{ opacity:1; }
+.ds-document-tab-close:hover{ background:var(--line); color:var(--ink); }
+
+.ds-document-tabs-new{
+  display:grid; place-items:center; box-sizing:border-box; flex:none; width:var(--s-32); height:100%; margin:0; padding:0; border:0;
+  background:transparent; color:var(--ink-soft); line-height:0; cursor:default;
+}
+.ds-document-tabs-new:hover{ background:var(--hover-wash); color:var(--ink); }
 /* -- drag_ghost -- */
 /* DragGhost and DropLine (design/04-COMPONENTS.md section 34): `C:579-586`, `S:747-752`.
    The ghost goes through OverlayHost at a Rust point (pointer - (40, 18)), 1:1 with the pointer and
@@ -1787,6 +1857,18 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-menu-image[*|data-image=avatar]{ color:inherit; width:auto; min-width:22px; }
 .ds-menu-item[*|data-focus=highlight][*|data-selected=true] .ds-menu-subtitle{ color:var(--accent-ink); }
 .ds[*|data-activity=inactive] .ds-menu-item[*|data-focus=highlight][*|data-selected=true] .ds-menu-subtitle{ color:var(--ink-faint); }
+
+/* A row of swatches (`MenuItem::Swatches`, Finder's tag colours): the dots side by side and
+   centred, each a 20 px target that rings in the accent when the keys or the pointer rest on it
+   (`data-selected`) and carries the 12 px `.ds-menu-swatch` in its tag's colour. A dot whose tag
+   is on the files draws a check (or a dash for some of them) in the dot, in the ink that sits on
+   the accent. The row is not one of the item rows, so it keeps no state or image column. */
+.ds-menu-swatches{ display:flex; flex-direction:row; align-items:center; justify-content:center; gap:var(--s-4); min-height:var(--shell-menu-row); padding:var(--s-2) var(--s-8); }
+.ds-menu-dot{ position:relative; display:inline-flex; align-items:center; justify-content:center; flex:none; box-sizing:border-box; width:20px; height:20px; border:2px solid transparent; border-radius:var(--r-pill); cursor:default; }
+.ds-menu-dot[*|data-focus=highlight][*|data-selected=true]{ border-color:var(--accent); }
+.ds[*|data-activity=inactive] .ds-menu-dot[*|data-focus=highlight][*|data-selected=true]{ border-color:var(--ink-faint); }
+.ds-menu-dot[*|aria-disabled=true]{ opacity:.35; }
+.ds-menu-dot .ds-menu-swatch{ display:flex; align-items:center; justify-content:center; color:var(--accent-ink); }
 /* -- search_card -- */
 /* The search card (`present: SuggestionsPresent::Card`, Spotlight): the field and its results as
    one surface. Floated from a `CardPlace`, the popover is the surface and this adds the width and
@@ -2975,6 +3057,29 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-space-edit-title{ padding:var(--s-20) var(--s-20) 0; }
 .ds-space-edit-colour{ padding:var(--s-14); }
 .ds-space-edit-acts{ display:flex; justify-content:flex-end; gap:var(--s-8); padding:0 var(--s-20) var(--s-20); }
+/* -- path_control -- */
+/* PathControl (design/30 section 4): a path as a row of segments, a glyph and a name each, with a
+   chevron between neighbours. Small type in the secondary ink; the last segment is in the full
+   ink. A segment under a drag takes the same lit look as a row (`data-drop`). The middle of a
+   long path is one "…" button. Attribute selectors carry `*|` (spike S2). */
+
+.ds-path-control{
+  display:flex; align-items:center; box-sizing:border-box; min-width:0; gap:var(--s-2);
+  font-size:var(--fs-help); color:var(--ink-soft); user-select:none;
+}
+.ds-path-segment,
+.ds-path-more{
+  display:inline-flex; align-items:center; flex:0 1 auto; min-width:0; gap:var(--s-4); height:var(--s-24);
+  padding:0 var(--s-8); border:0; border-radius:var(--r-small); background:transparent; color:inherit;
+  font:inherit; cursor:default;
+}
+.ds-path-segment:hover,
+.ds-path-more:hover{ background:var(--hover-wash); }
+.ds-path-segment[*|aria-current]{ color:var(--ink); }
+.ds-path-name{ min-width:0; }
+.ds-path-chevron{ display:inline-flex; flex:none; color:var(--ink-faint); }
+.ds-path-segment[*|data-drop=accepts]{ box-shadow:inset 0 0 0 var(--hair) var(--accent-text); }
+.ds-path-segment[*|data-drop=target]{ background:var(--accent-soft); color:var(--ink); box-shadow:0 0 0 var(--s-2) var(--accent); }
 /* -- progress -- */
 /* ProgressIndicator (design/30 section 2.9). Attribute selectors carry `*|` (spike S2). Sized
    by the ladder: the bar's thickness is `--progress-*`, the spinner's and the ring's box
@@ -3674,6 +3779,16 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-vtable-twisty{ color:var(--ink-faint); cursor:default; }
 .ds-vtable-twisty:hover{ color:var(--ink-soft); }
 .ds-vtable-outline-cell{ display:block; flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; }
+
+/* Dragging rows (`onrowdrop`; row_drag.rs): the drop indicator is drawn in a layer of no height at
+   the top of the scroller's content, placed in the content's own coordinates so it scrolls with the
+   rows, as the rubber band is. Over a folder's row it is the row outlined in the accent under its
+   wash (`data-drop=onto`, the row's own rounded block); in a gap it is a line (`data-drop=between`,
+   the height Rust gives it). It never takes the pointer. */
+.ds-vtable-drop-layer{ position:relative; height:0; }
+.ds-vtable-drop{ position:absolute; left:var(--s-6); right:var(--s-6); box-sizing:border-box; pointer-events:none; z-index:var(--z-raise); }
+.ds-vtable-drop[*|data-drop=onto]{ border:2px solid var(--accent); border-radius:var(--r-shell-highlight); background:var(--accent-soft); }
+.ds-vtable-drop[*|data-drop=between]{ border-radius:var(--r-micro); background:var(--accent-text); }
 /* -- voice_orb -- */
 /* The voice orb (design/30 section 2.9). Three glows, six conic gradients turning at different
    speeds and directions about their own centres, behind a fine dot grid. The turn `--orb-turn`
