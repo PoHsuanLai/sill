@@ -101,7 +101,9 @@ pub fn wire_of(command: &DesktopCommand, state: &DesktopState) -> Result<Vec<Wir
         | DesktopCommand::SetSpaceTargets { .. }
         | DesktopCommand::SetNewSpaceTarget { .. }
         | DesktopCommand::AnswerPermission { .. }
-        | DesktopCommand::AnswerTrial { .. } => Err(Refusal::Unsupported),
+        | DesktopCommand::AnswerTrial { .. }
+        | DesktopCommand::SetFullScreenBar(_)
+        | DesktopCommand::SetMotion(_) => Err(Refusal::Unsupported),
     }
 }
 

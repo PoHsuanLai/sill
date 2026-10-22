@@ -16,7 +16,7 @@ use super::io::use_bar;
 use super::layer::layer;
 use super::model::BarInput;
 use super::module_item::ModuleItem;
-use super::reveal::{BODY_ID, RevealEvent, STRIP_ID, lifted, timing};
+use super::reveal::{BODY_ID, RevealEvent, STRIP_ID, lifted, mode_on, timing};
 use super::status_item::status_metrics;
 use super::system_item::SystemItem;
 use super::track::{Event, Target};
@@ -25,7 +25,9 @@ use super::workspaces::WorkspaceIndicator;
 use crate::control_center::menu_bar_modules;
 use sill_services::TrayService;
 use sill_ui_kit::autohide::Phase;
-use sill_ui_kit::hooks::{use_appearance, use_follow_layer, use_service, use_settings};
+use sill_ui_kit::hooks::{
+    use_appearance, use_follow_layer, use_full_screen, use_service, use_settings,
+};
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::root::use_root_style;
@@ -53,8 +55,9 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     let root = use_root_style();
     let session = use_bar(&output, popup_look);
     let times = timing(&file, environment.settings.appearance.motion_level);
-    let hide = use_hide(file.bar.autohide, times, session, output.id);
-    use_follow_layer(layer(&output, &file));
+    let mode = mode_on(file.bar.autohide, use_full_screen(output.id)());
+    let hide = use_hide(mode, times, session, output.id);
+    use_follow_layer(layer(&output, &file, mode));
     let state = *hide.machine.read();
     let lift = lifted(&state, (hide.drawn)(), &times, &file).0;
     let lifted_style = match lift {

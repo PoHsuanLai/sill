@@ -33,3 +33,28 @@ pub fn use_edge_reveal(edge: RevealEdge, output: OutputId, reveal: Callback<Show
         });
     });
 }
+
+/// Whether `output` shows a full-screen Space, following the daemon's word; `Hidden` without the
+/// link (a session without the desktop's compositor).
+pub fn use_full_screen(output: OutputId) -> ReadSignal<Shown> {
+    let link = try_use_context::<EdgeLink>();
+    let mut full = use_signal(|| Shown::Hidden);
+    use_hook(move || {
+        let Some(link) = link else {
+            return;
+        };
+        let mut feed = link.subscribe();
+        spawn(async move {
+            loop {
+                let now = feed.borrow_and_update().full_screen.on(output);
+                if *full.peek() != now {
+                    full.set(now);
+                }
+                if feed.changed().await.is_err() {
+                    return;
+                }
+            }
+        });
+    });
+    full.into()
+}

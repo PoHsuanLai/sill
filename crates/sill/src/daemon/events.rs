@@ -30,9 +30,11 @@ use super::msg::ShellMsg;
 use super::palmrest::{self, Plan};
 use super::settings;
 use super::surfaces::{self, Spawn};
+use crate::edge_reveal::FullScreenPrefs;
 use crate::ipc::dispatch::{Carried, DesktopLine, Reach, route};
 use crate::ipc::latency;
 use crate::outputs::{OutputAction, OutputSurfaces, Outputs, reconcile};
+use sill_ui_kit::shell_motion::shell_motion;
 
 /// What the host's event handler holds between events.
 #[derive(Debug)]
@@ -130,7 +132,10 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
                 );
             }
         }
-        HostEvent::App(ShellMsg::Desktop) => shell.seat.desktop_changed(),
+        HostEvent::App(ShellMsg::Desktop) => {
+            shell.seat.desktop_changed();
+            follow_full_screen(shell);
+        }
         other => host_event(shell, ctx, other),
     }
 }
@@ -252,9 +257,25 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     settings::publish_watched_appearance(&shell.appearance, &event);
     rescan_displays(&shell.services, &event);
     on_event(ctx, &mut shell.outputs, event);
+    follow_full_screen(shell);
     spawn_missing(shell, ctx);
     crate::work_areas::publish(&shell.services, &shell.outputs, &shell.settings.borrow());
     crate::workspace_looks::publish(&shell.services, &shell.settings.borrow());
+}
+
+/// Full screen as the settings, the appearance and the desktop now have it: the compositor hears
+/// what the bar does there and how much motion is allowed (only what changed is sent), and the
+/// bars hear which outputs show a full-screen Space.
+fn follow_full_screen(shell: &mut Shell) {
+    let prefs = {
+        let file = shell.settings.borrow();
+        let environment = shell.appearance.borrow();
+        FullScreenPrefs::of(file.bar.autohide, shell_motion(&environment))
+    };
+    shell.seat.set_prefs(prefs);
+    let outputs = &shell.outputs;
+    let full = crate::edge_reveal::full_screens(&shell.seat.view(), |name| outputs.named(name));
+    shell.links.edges.set_full_screen(full);
 }
 
 /// A keyboard focus change goes to the surface's own route, which its `Surface::KEYBOARD`

@@ -29,6 +29,7 @@ use tokio::sync::watch;
 use super::events::Shell;
 use super::msg::ShellMsg;
 use super::targets::{forward, nudge};
+use crate::edge_reveal::FullScreenPrefs;
 use crate::outputs::Outputs;
 
 /// The route the host connects by: the socket the compositor handed over, else the environment.
@@ -50,6 +51,15 @@ pub struct ShellSeat {
     desktop: watch::Receiver<DesktopView>,
     /// The docks' icons and the targets the compositor holds for them.
     targets: Targets,
+    /// What the compositor is told about full screen.
+    prefs: Prefs,
+}
+
+/// The full-screen prefs wanted and what was last sent.
+#[derive(Default)]
+struct Prefs {
+    wanted: Option<FullScreenPrefs>,
+    sent: Option<FullScreenPrefs>,
 }
 
 /// What the minimise targets are worked out from, and what was last sent.
@@ -76,6 +86,7 @@ impl ShellSeat {
             arm: None,
             desktop,
             targets: Targets::default(),
+            prefs: Prefs::default(),
         }
     }
 
@@ -97,6 +108,7 @@ impl ShellSeat {
             arm: None,
             desktop,
             targets: Targets::default(),
+            prefs: Prefs::default(),
         }
     }
 
@@ -129,6 +141,29 @@ impl ShellSeat {
     /// The desktop's windows changed.
     pub fn desktop_changed(&mut self) {
         self.retarget();
+    }
+
+    /// The compositor is to hear `prefs` about full screen: sent now when they differ from what
+    /// it last heard, and again when the arm starts.
+    pub fn set_prefs(&mut self, prefs: FullScreenPrefs) {
+        self.prefs.wanted = Some(prefs);
+        self.send_prefs();
+    }
+
+    /// Send the full-screen prefs that differ from the ones last sent. Nothing without a running
+    /// arm; a command that failed is sent again at the next change.
+    fn send_prefs(&mut self) {
+        let Some(wanted) = self.prefs.wanted else {
+            return;
+        };
+        if self.arm.is_none() {
+            return;
+        }
+        let commands = wanted.since(self.prefs.sent);
+        let all_sent = commands.into_iter().all(|command| self.command(command));
+        if all_sent {
+            self.prefs.sent = Some(wanted);
+        }
     }
 
     /// Send the minimise targets that differ from the ones last sent. Nothing without a
@@ -165,6 +200,8 @@ impl ShellSeat {
                         });
                     }
                     self.arm = Some(arm);
+                    // A new arm is a new binding: it has heard nothing yet.
+                    self.prefs.sent = None;
                 }
                 Err(error) => {
                     eprintln!("sill: desktop: {error}; the shell protocol is not followed");
@@ -184,6 +221,7 @@ impl ShellSeat {
         // A surface registered: the compositor may now accept targets it refused before.
         self.targets.sent = MinimiseTargets::default();
         self.retarget();
+        self.send_prefs();
     }
 }
 
@@ -236,7 +274,11 @@ pub fn apply(shell: &Shell, note: ShellNote) {
             &shell.services.capture.control,
             picture,
         ),
-        ShellNote::Reveal { edge, shown } => edge_reveal(shell, edge, shown),
+        ShellNote::Reveal {
+            output,
+            edge,
+            shown,
+        } => edge_reveal(shell, output.as_deref(), edge, shown),
         ShellNote::MenuFlash { .. } => menu_flash(),
         ShellNote::Bell(_) => bell(),
         ShellNote::Reopen(_) => reopen_in_dock(),
@@ -325,7 +367,7 @@ fn switcher_panel() {}
 /// An edge reveal shows or hides the bar (top edge) or the dock (bottom edge) while a window is
 /// full screen. The note names no output: a reveal is for the focused window's output (the
 /// full-screen one), a hide for every output.
-fn edge_reveal(shell: &Shell, edge: ScreenEdge, shown: Shown) {
+fn edge_reveal(shell: &Shell, output: Option<&str>, edge: ScreenEdge, shown: Shown) {
     let focus = shell
         .services
         .windows
@@ -333,10 +375,12 @@ fn edge_reveal(shell: &Shell, edge: ScreenEdge, shown: Shown) {
         .borrow()
         .toplevels
         .focused_output();
-    let on = shell
+    let focused = shell
         .outputs
         .pick(OutputPolicy::FocusedWindow, focus.as_ref());
-    crate::edge_reveal::apply(&shell.links.edges, edge, shown, on);
+    let named = output.map(|name| shell.outputs.named(name));
+    let landing = crate::edge_reveal::landing(named, shown, focused);
+    crate::edge_reveal::apply(&shell.links.edges, edge, shown, landing);
 }
 
 /// A menu item activated by a key will flash in the bar's menu. Lane P3-MN.

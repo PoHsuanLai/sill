@@ -31,6 +31,8 @@ pub enum ShellNote {
     HotCorner(Corner),
     /// The desktop wants an edge's bar or dock shown or hidden (in full screen).
     Reveal {
+        /// The output's name; `None` from a compositor that does not say, and the shell picks.
+        output: Option<String>,
         /// Which edge.
         edge: ScreenEdge,
         /// Show or hide.

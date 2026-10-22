@@ -8,16 +8,16 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::ShellFile;
+use sill_settings::{MenuBarHiding, ShellFile};
 
 use super::reveal::{rest_phase, strip_input};
 use sill_ui_kit::autohide::Phase;
 use sill_ui_kit::surface::namespace;
 
-/// The bar's layer configuration on `output`.
-pub(super) fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
+/// The bar's layer configuration on `output`, resting under `mode` (`reveal::mode_on`).
+pub(super) fn layer(output: &OutputInfo, settings: &ShellFile, mode: MenuBarHiding) -> LayerConfig {
     let height = u32::from(settings.bar.height_px.0);
-    let phase = rest_phase(settings.bar.autohide);
+    let phase = rest_phase(mode);
     LayerConfig {
         namespace: namespace("bar", output),
         layer: LayerLevel::Top,
@@ -65,7 +65,7 @@ mod tests {
                 },
                 ..ShellFile::default()
             };
-            let config = layer(&output(Some("DP-1")), &settings);
+            let config = layer(&output(Some("DP-1")), &settings, settings.bar.autohide);
             assert_eq!(config.namespace, "sill-bar-DP-1");
             assert_eq!(config.layer, LayerLevel::Top);
             assert_eq!(config.anchor, Anchor::TOP | Anchor::LEFT | Anchor::RIGHT);
@@ -95,7 +95,7 @@ mod tests {
                 },
                 ..ShellFile::default()
             };
-            let config = layer(&output(Some("DP-1")), &settings);
+            let config = layer(&output(Some("DP-1")), &settings, settings.bar.autohide);
             assert_eq!(
                 config.exclusive,
                 ExclusiveZone::Reserve(reserved),

@@ -141,6 +141,14 @@ impl Outputs {
         Some(self.outputs.remove(index).1)
     }
 
+    /// The output called `name`, when it is connected.
+    pub fn named(&self, name: &str) -> Option<OutputId> {
+        self.outputs
+            .iter()
+            .find(|(info, _)| info.name.as_deref() == Some(name))
+            .map(|(info, _)| info.id)
+    }
+
     /// The output `policy` names. This is the one place that decides it, for the daemon's
     /// spawns and for every opener of a panel (verbs, chords, the companion, the notifications).
     ///

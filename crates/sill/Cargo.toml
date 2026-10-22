@@ -48,6 +48,8 @@ sill-ui-kit = { workspace = true, features = ["harness"] }
 ds = { workspace = true }
 # The key a `debug key` request parses to (dispatch/debug/inject.rs tests).
 keyboard-types = { workspace = true }
+# A Space's id in the full-screen rows (edge_reveal.rs tests).
+porter-core = { workspace = true }
 # The voice bench shared with sill-services' tests names who its stand-in voiced is.
 peephole-bus = { workspace = true, features = ["fake"] }
 

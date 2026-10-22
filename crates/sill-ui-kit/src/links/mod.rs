@@ -31,7 +31,7 @@ pub use actions::{ActionLink, ActionSent, Asked, Origin};
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use display_trial::{DisplayTrialLink, TrialAnswered, TrialReply, TrialRun, TrialSerial};
-pub use edge::{EdgeFeed, EdgeLink, EdgeState, RevealEdge};
+pub use edge::{EdgeFeed, EdgeLink, EdgeState, FullScreens, RevealEdge};
 pub use empty_trash::{
     EmptyTrashAnswered, EmptyTrashLink, EmptyTrashOpening, EmptyTrashShown, EmptyTrashYes,
 };

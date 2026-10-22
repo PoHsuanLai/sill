@@ -138,7 +138,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         timing: super::track::timing(&file.menus),
         chroma: chroma_limit(use_appearance()().settings.icons.symbolic_chroma_max.0),
         look,
-        namespace: layer(output, &file).namespace,
+        namespace: layer(output, &file, file.bar.autohide).namespace,
         output: output.id,
         actions: use_link::<ActionLink>(),
         settings: use_context::<SettingsFeed>(),

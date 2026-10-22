@@ -17,8 +17,8 @@ use casement_protocols::vocab::{
 use desktop_client::capture::{CaptureEvent, ShmFormat};
 use desktop_client::fake::FakeDesktop;
 use desktop_client::quire::{
-    AppChange, AppEvent, DisplayTrial as WireTrial, MenuSource, QuireEvent, ShellEvent,
-    SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent,
+    AppChange, AppEvent, DisplayTrial as WireTrial, MenuSource, QuireEvent, RevealOutput,
+    ShellEvent, SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent,
 };
 use desktop_client::toplevel::{ToplevelChange, ToplevelEvent, ToplevelFlags};
 use desktop_client::workspace::{
@@ -575,8 +575,14 @@ fn the_shell_protocols_events_become_notes_in_order() {
             ShellEvent::OverviewDone,
             ShellEvent::HotCorner(Corner::TopRight),
             ShellEvent::Reveal {
+                output: RevealOutput::Named(OutputName::new("DP-1")),
                 edge: ScreenEdge::Bottom,
                 shown: Shown::Shown,
+            },
+            ShellEvent::Reveal {
+                output: RevealOutput::Unnamed,
+                edge: ScreenEdge::Top,
+                shown: Shown::Hidden,
             },
             ShellEvent::MenuFlash {
                 app: term(),
@@ -647,8 +653,14 @@ fn the_shell_protocols_events_become_notes_in_order() {
             ShellNote::Overview(OverviewNote::Laid),
             ShellNote::HotCorner(Corner::TopRight),
             ShellNote::Reveal {
+                output: Some("DP-1".to_owned()),
                 edge: ScreenEdge::Bottom,
                 shown: Shown::Shown
+            },
+            ShellNote::Reveal {
+                output: None,
+                edge: ScreenEdge::Top,
+                shown: Shown::Hidden
             },
             ShellNote::MenuFlash {
                 app: "org.example.term".to_owned(),

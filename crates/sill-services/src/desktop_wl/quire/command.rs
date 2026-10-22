@@ -131,6 +131,8 @@ pub fn quire_wire_of(
             trial: *trial,
             answer: *answer,
         }),
+        DesktopCommand::SetFullScreenBar(mode) => one(Wire::SetFullScreenBar(*mode)),
+        DesktopCommand::SetMotion(motion) => one(Wire::SetMotion(*motion)),
     }
 }
 

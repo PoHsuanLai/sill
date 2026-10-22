@@ -1,9 +1,10 @@
-//! The compositor's edge reveals (`quire_shell_v1.reveal`), from the daemon to the bar and dock
-//! surfaces: in full screen it shows the bar when the pointer rests at the top edge and the dock
-//! at the bottom, and hides them when it goes away. The note names no output, so the daemon
-//! writes the focused window's output (the full-screen window) for a reveal; a hide is for
-//! every output. The compositor moves the surface itself; the surfaces only make their content
-//! drawn and hit-testable.
+//! The compositor's edge reveals (`quire_shell_v1.reveal_on_output`), from the daemon to the bar
+//! and dock surfaces: in full screen it shows an output's bar when the pointer rests at the top
+//! edge and its dock at the bottom, and hides them when it goes away. The compositor moves the
+//! surface itself; the surfaces only make their content drawn and hit-testable. The daemon also
+//! writes which outputs show a full-screen Space, for the bar modes that stay up there.
+
+use std::collections::BTreeSet;
 
 use shell_host::OutputId;
 use sill_model::desktop::Shown;
@@ -11,22 +12,30 @@ use tokio::sync::watch;
 
 use super::Shared;
 
-/// One edge: away everywhere, or revealed on one output.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum EdgeState {
-    /// Hidden on every output.
-    #[default]
-    Away,
-    /// Revealed on this output.
-    Revealed(OutputId),
-}
+/// One edge: the outputs it is revealed on.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct EdgeState(BTreeSet<OutputId>);
 
 impl EdgeState {
     /// Whether the surface on `output` is revealed.
-    pub fn on(self, output: OutputId) -> Shown {
-        match self {
-            EdgeState::Revealed(on) if on == output => Shown::Shown,
-            EdgeState::Revealed(_) | EdgeState::Away => Shown::Hidden,
+    pub fn on(&self, output: OutputId) -> Shown {
+        match self.0.contains(&output) {
+            true => Shown::Shown,
+            false => Shown::Hidden,
+        }
+    }
+}
+
+/// The outputs whose shown Space is a full-screen one.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct FullScreens(pub BTreeSet<OutputId>);
+
+impl FullScreens {
+    /// Whether `output` shows a full-screen Space.
+    pub fn on(&self, output: OutputId) -> Shown {
+        match self.0.contains(&output) {
+            true => Shown::Shown,
+            false => Shown::Hidden,
         }
     }
 }
@@ -40,21 +49,30 @@ pub enum RevealEdge {
     Bottom,
 }
 
-/// The two edges that carry a surface.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// The two edges that carry a surface, and the outputs in full screen.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct EdgeFeed {
     /// The bar's edge.
     pub top: EdgeState,
     /// The dock's edge.
     pub bottom: EdgeState,
+    /// The outputs showing a full-screen Space.
+    pub full_screen: FullScreens,
 }
 
 impl EdgeFeed {
     /// The state of `edge`.
-    pub fn at(&self, edge: RevealEdge) -> EdgeState {
+    pub fn at(&self, edge: RevealEdge) -> &EdgeState {
         match edge {
-            RevealEdge::Top => self.top,
-            RevealEdge::Bottom => self.bottom,
+            RevealEdge::Top => &self.top,
+            RevealEdge::Bottom => &self.bottom,
+        }
+    }
+
+    fn at_mut(&mut self, edge: RevealEdge) -> &mut EdgeState {
+        match edge {
+            RevealEdge::Top => &mut self.top,
+            RevealEdge::Bottom => &mut self.bottom,
         }
     }
 }
@@ -71,20 +89,32 @@ impl EdgeLink {
         EdgeLink::default()
     }
 
-    /// The top edge (the bar's) is now `state`.
-    pub fn set_top(&self, state: EdgeState) {
+    /// `edge` of `output` is now `shown`.
+    pub fn set(&self, edge: RevealEdge, output: OutputId, shown: Shown) {
         self.feed.modify_if(|feed| {
-            let changed = feed.top != state;
-            feed.top = state;
+            let outputs = &mut feed.at_mut(edge).0;
+            match shown {
+                Shown::Shown => outputs.insert(output),
+                Shown::Hidden => outputs.remove(&output),
+            }
+        });
+    }
+
+    /// `edge` is hidden on every output (a compositor that names no output hid it).
+    pub fn clear(&self, edge: RevealEdge) {
+        self.feed.modify_if(|feed| {
+            let outputs = &mut feed.at_mut(edge).0;
+            let changed = !outputs.is_empty();
+            outputs.clear();
             changed
         });
     }
 
-    /// The bottom edge (the dock's) is now `state`.
-    pub fn set_bottom(&self, state: EdgeState) {
+    /// The outputs showing a full-screen Space are now `outputs`.
+    pub fn set_full_screen(&self, outputs: FullScreens) {
         self.feed.modify_if(|feed| {
-            let changed = feed.bottom != state;
-            feed.bottom = state;
+            let changed = feed.full_screen != outputs;
+            feed.full_screen = outputs;
             changed
         });
     }
@@ -102,20 +132,30 @@ impl EdgeLink {
 
 #[cfg(test)]
 mod tests {
-    use super::{EdgeLink, EdgeState};
+    use std::collections::BTreeSet;
+
+    use super::{EdgeLink, FullScreens, RevealEdge};
     use shell_host::OutputId;
     use sill_model::desktop::Shown;
 
     #[test]
-    fn a_reveal_is_for_one_output_and_a_hide_for_all() {
+    fn each_output_keeps_its_own_reveal_and_a_clear_hides_all() {
         let link = EdgeLink::new();
         let (a, b) = (OutputId(1), OutputId(2));
-        link.set_top(EdgeState::Revealed(a));
+        link.set(RevealEdge::Top, a, Shown::Shown);
+        link.set(RevealEdge::Top, b, Shown::Shown);
+        link.set(RevealEdge::Bottom, b, Shown::Shown);
+        link.set(RevealEdge::Top, a, Shown::Hidden);
         let feed = link.latest();
-        assert_eq!(feed.top.on(a), Shown::Shown);
-        assert_eq!(feed.top.on(b), Shown::Hidden);
+        assert_eq!(feed.top.on(a), Shown::Hidden);
+        assert_eq!(feed.top.on(b), Shown::Shown);
         assert_eq!(feed.bottom.on(a), Shown::Hidden);
-        link.set_top(EdgeState::Away);
-        assert_eq!(link.latest().top.on(a), Shown::Hidden);
+        assert_eq!(feed.bottom.on(b), Shown::Shown);
+        link.clear(RevealEdge::Bottom);
+        assert_eq!(link.latest().bottom.on(b), Shown::Hidden);
+        assert_eq!(link.latest().top.on(b), Shown::Shown);
+        link.set_full_screen(FullScreens(BTreeSet::from([a])));
+        assert_eq!(link.latest().full_screen.on(a), Shown::Shown);
+        assert_eq!(link.latest().full_screen.on(b), Shown::Hidden);
     }
 }

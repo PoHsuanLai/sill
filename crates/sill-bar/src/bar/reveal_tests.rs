@@ -2,8 +2,8 @@
 //! effects that matter. The shared machine's own timing is the dock's (`dock/machine/reveal.rs`).
 
 use super::{
-    BarReveal, RevealEffect, RevealEvent, rest_phase, shown_blur, shown_input, step, strip_input,
-    timing,
+    BarReveal, RevealEffect, RevealEvent, mode_on, rest_phase, shown_blur, shown_input, step,
+    strip_input, timing,
 };
 use ds::base::time::stamp::Stamp;
 use ds::prelude::Motion;
@@ -35,15 +35,25 @@ fn phase(mode: MenuBarHiding, script: Script) -> Phase {
 }
 
 #[test]
-fn the_desktop_gives_each_mode_its_resting_phase() {
+fn each_mode_rests_as_its_place_asks_on_the_desktop_and_in_full_screen() {
+    // (mode, on the desktop, over a full-screen Space)
     let cases = [
-        (MenuBarHiding::Always, Phase::Hidden),
-        (MenuBarHiding::DesktopOnly, Phase::Hidden),
-        (MenuBarHiding::FullScreenOnly, Phase::Fixed),
-        (MenuBarHiding::Never, Phase::Fixed),
+        (MenuBarHiding::Always, Phase::Hidden, Phase::Hidden),
+        (MenuBarHiding::DesktopOnly, Phase::Hidden, Phase::Fixed),
+        (MenuBarHiding::FullScreenOnly, Phase::Fixed, Phase::Fixed),
+        (MenuBarHiding::Never, Phase::Fixed, Phase::Fixed),
     ];
-    for (mode, want) in cases {
-        assert_eq!(rest_phase(mode), want, "{mode:?}");
+    for (mode, desktop, full_screen) in cases {
+        assert_eq!(
+            rest_phase(mode_on(mode, Shown::Hidden)),
+            desktop,
+            "{mode:?}"
+        );
+        assert_eq!(
+            rest_phase(mode_on(mode, Shown::Shown)),
+            full_screen,
+            "{mode:?}"
+        );
     }
 }
 

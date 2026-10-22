@@ -21,7 +21,7 @@ mod use_user_style;
 
 pub use use_appearance::{PinnedAppearance, SwitchableAppearance, use_appearance};
 pub use use_banner_output::use_banner_output;
-pub use use_edge_reveal::use_edge_reveal;
+pub use use_edge_reveal::{use_edge_reveal, use_full_screen};
 pub use use_entrance::{Entrance, use_entrance};
 pub use use_focus_mode::use_focus_mode;
 pub use use_follow_layer::use_follow_layer;

@@ -7026,6 +7026,7 @@ dependencies = [
  "keyboard-types 0.7.0",
  "latchkey",
  "peephole-bus",
+ "porter-core",
  "prov",
  "rustix",
  "serde",

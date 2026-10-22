@@ -8,6 +8,7 @@
 //! slides the bar down over the windows. An open popup holds it shown; after the last one closes
 //! with the pointer off the bar it slides away. In full screen the compositor shows and hides the
 //! bar itself (`Edge`): this machine only makes the content drawn and hit-testable, with no slide.
+//! `DesktopOnly` rests fixed on an output showing a full-screen Space ([`mode_on`]).
 
 use ds::base::time::stamp::{Ms, Stamp};
 use ds::prelude::Motion;
@@ -53,6 +54,16 @@ pub(super) fn rest_phase(mode: MenuBarHiding) -> Phase {
     match mode {
         MenuBarHiding::Always | MenuBarHiding::DesktopOnly => Phase::Hidden,
         MenuBarHiding::FullScreenOnly | MenuBarHiding::Never => Phase::Fixed,
+    }
+}
+
+/// The mode the bar rests under on an output: `DesktopOnly` hides on the desktop but stays up over
+/// a full-screen Space, as `Never` does (the compositor then keeps it and sizes the window below
+/// it); the other modes are the same everywhere.
+pub(super) fn mode_on(mode: MenuBarHiding, full_screen: Shown) -> MenuBarHiding {
+    match (mode, full_screen) {
+        (MenuBarHiding::DesktopOnly, Shown::Shown) => MenuBarHiding::Never,
+        (mode, _) => mode,
     }
 }
 

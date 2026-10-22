@@ -1,6 +1,6 @@
 //! The shell protocol's events as [`ShellNote`]s.
 
-use desktop_client::quire::ShellEvent;
+use desktop_client::quire::{RevealOutput, ShellEvent};
 use porter_core::SpaceId;
 use sill_model::desktop::{Consent, DisplayTrial, OverviewNote, ShellNote, SwitcherNote};
 
@@ -31,7 +31,15 @@ pub fn note_of(event: &ShellEvent) -> Option<ShellNote> {
         }),
         ShellEvent::OverviewDone => ShellNote::Overview(OverviewNote::Laid),
         ShellEvent::HotCorner(corner) => ShellNote::HotCorner(*corner),
-        ShellEvent::Reveal { edge, shown } => ShellNote::Reveal {
+        ShellEvent::Reveal {
+            output,
+            edge,
+            shown,
+        } => ShellNote::Reveal {
+            output: match output {
+                RevealOutput::Named(name) => Some(name.as_str().to_owned()),
+                RevealOutput::Unnamed => None,
+            },
             edge: *edge,
             shown: *shown,
         },

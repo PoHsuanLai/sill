@@ -1,7 +1,8 @@
 //! What the shell asks of the desktop, and which backend can carry it.
 
 use casement_protocols::vocab::{
-    Answer, AskId, Assign, OverviewMode, PlaceTarget, Toggle, TrialAnswer, TrialId, WindowEntry,
+    Answer, AskId, Assign, FullScreenBar, Motion, OverviewMode, PlaceTarget, Toggle, TrialAnswer,
+    TrialId, WindowEntry,
 };
 use porter_core::SpaceId;
 
@@ -141,6 +142,12 @@ pub enum DesktopCommand {
         /// What the person said.
         answer: TrialAnswer,
     },
+    /// Say what the bar does in full screen: slide in at the top edge, or stay up with the
+    /// full-screen window sized below it. Quire only, sent at the start and on each change.
+    SetFullScreenBar(FullScreenBar),
+    /// Say how much motion the person allows; reduced makes the full-screen bar and dock
+    /// cross-fade. Quire only, sent at the start and on each change.
+    SetMotion(Motion),
 }
 
 /// Whether a backend can carry a command.
