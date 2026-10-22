@@ -89,6 +89,7 @@ fn names(entries: &[MenuItem<DockPick>]) -> Vec<String> {
             }
             MenuItem::Info { title, .. } => format!("i {title}"),
             MenuItem::Separator => "--".to_owned(),
+            MenuItem::Swatches(row) => format!("* {}", row.title),
         })
         .collect()
 }

@@ -91,6 +91,7 @@ fn describe(entries: &[MenuItem<BarPick>]) -> String {
             MenuItem::Separator => "--".to_owned(),
             MenuItem::Header(text) => format!("# {text}"),
             MenuItem::Info { title, .. } => format!("i {title}"),
+            MenuItem::Swatches(row) => format!("* {}", row.title),
             MenuItem::Item {
                 value,
                 title,
