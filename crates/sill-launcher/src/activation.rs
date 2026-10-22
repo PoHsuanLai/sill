@@ -51,6 +51,24 @@ pub enum Activation {
     Nothing,
 }
 
+impl Activation {
+    /// Perform `action` of `app` through intentd, on nothing and with no arguments (a hot
+    /// corner's app action). `None` when either name is not a valid name.
+    pub fn app_action(app: &str, action: &str) -> Option<Activation> {
+        let action = docket_core::ActionRef {
+            app: prov::AppName::parse(app).ok()?,
+            name: prov::ActionName::parse(action).ok()?,
+        };
+        Some(Activation::Intent(Box::new(docket_core::CallRequest {
+            action,
+            target: docket_core::TargetValue::Nothing,
+            args: docket_core::Args::new(),
+            // docket has no corner origin; a corner is a configured shortcut.
+            origin: docket_core::Origin::Shortcut,
+        })))
+    }
+}
+
 /// What [`Activation::Open`] opens.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
@@ -223,6 +241,23 @@ mod tests {
             assert_eq!(written, wire, "{activation:?}");
             let read: Activation = serde_json::from_str(wire).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(read, activation, "{wire}");
+        }
+    }
+
+    #[test]
+    fn an_app_action_is_an_intent_on_nothing_and_a_bad_name_is_none() {
+        let cases = [
+            ("org.quire.Mail", "mail.compose", true),
+            ("not an app", "mail.compose", false),
+            ("org.quire.Mail", "", false),
+        ];
+        for (app, action, ok) in cases {
+            let made = Activation::app_action(app, action);
+            assert_eq!(
+                matches!(made, Some(Activation::Intent(_))),
+                ok,
+                "{app} {action}"
+            );
         }
     }
 }

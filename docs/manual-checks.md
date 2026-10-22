@@ -206,6 +206,11 @@ screen.
 - [ ] **Workspace gestures**: with two workspaces, `sill workspace next` and `prev` move between
   them; at the ends nothing happens; the Magic Mouse two-finger swipes do the same (palmrest).
   `sill workspace overview` opens Mission Control, and so does a hot corner set to Workspaces.
+- [ ] **Hot corner, keyed binding**: give the top left corner two bindings, none held (Mission Control) and Option held (Lock Screen). Rest the pointer there: Mission Control opens. Leave, hold Option, rest in the corner: the screen locks (not Mission Control).
+- [ ] **Hot corner, only a keyed binding**: set the bottom right corner to one binding that needs Command held. A plain rest there does nothing; hold Command and rest: it fires. Hold Command and Shift: nothing (the keys must match exactly).
+- [ ] **Hot corner, app action**: bind a corner to an app's action that needs no parameters (Mail > Compose). Rest in it: the action runs in that app. Name an action the app does not have: a line in the journal says why, and Settings does not open.
+- [ ] **Hot corner, open a folder**: bind a corner to open `~/Documents`. Rest in it: the folder opens in the file manager. The same for an app (it starts) and a web address (the browser opens it).
+- [ ] **Hot corner, Application Windows and Assistant**: Application Windows opens App Exposé for the focused app; Assistant opens the companion as the double-tap does. Put Display to Sleep logs that it is not available yet until the idle service can turn the displays off on request.
 - [ ] **Force Quit Applications**: `sill force-quit toggle` opens a sheet listing the open apps with
   their icons; an app that does not answer shows "(not responding)" and starts selected; Force
   Quit asks "Do you want to force quit ...?" with Cancel as the default; Force Quit ends the

@@ -258,7 +258,11 @@ pub fn apply(shell: &Shell, note: ShellNote) {
         ShellNote::HotCorner(corner) => hot_corner(shell, corner),
         ShellNote::Gesture(gesture) => key_gesture(shell, gesture),
         ShellNote::Killed => companion_stop(shell),
-        ShellNote::Modifiers(_) => option_variants(),
+        ShellNote::Modifiers(mods) => {
+            // The hot corners pick their binding by these.
+            shell.held_mods.send_replace(mods);
+            option_variants();
+        }
         ShellNote::Switcher(_) => switcher_panel(),
         bar @ (ShellNote::Overview(_)
         | ShellNote::OverviewOutput { .. }
@@ -355,8 +359,8 @@ fn companion_stop(shell: &Shell) {
 /// The hold overlay (a key held for its cheat sheet) has no surface yet. Lane P3-SILL.
 fn hold_overlay() {}
 
-/// The modifiers over a shell surface will switch the dock's and bar's Option variants and gate
-/// the hot corners; keycap stays the source of truth for chords. Lane P3-SILL.
+/// The modifiers over a shell surface will switch the dock's and bar's Option variants (they
+/// already pick a hot corner's binding, `Shell::held_mods`); keycap stays the source of truth for chords. Lane P3-SILL.
 fn option_variants() {}
 
 /// The compositor's switcher events (apps, shown, selected, hidden) will drive the switcher

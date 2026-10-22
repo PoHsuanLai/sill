@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 use ds_settings::Store;
 use shell_host::{Host, HostConfig, HostHandle};
-use sill_model::desktop::DesktopView;
+use sill_model::desktop::{DesktopView, MacMods};
 use sill_model::locker::LockPhase;
 use sill_services::env::Dirs;
 use sill_settings::ShellFile;
@@ -139,6 +139,8 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         first_appearance,
         host_handle.clone(),
     );
+    // The modifiers held over the shell's surfaces, which the hot corners pick their binding by.
+    let (held_mods, held) = watch::channel(MacMods::NONE);
     spawn_followers(
         &runtime,
         &services,
@@ -146,6 +148,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         &host_handle,
         &links,
         &store,
+        held,
     );
     crate::intents::spawn_follower(runtime.handle(), host_handle.clone(), shell_actions);
     crate::companion::spawn_follower(
@@ -172,6 +175,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         runtime: runtime.handle().clone(),
         stash: std::cell::RefCell::default(),
         sheet_latch: crate::sheet_latch::SheetLatch::default(),
+        held_mods,
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 
@@ -274,6 +278,7 @@ fn spawn_followers(
     host: &HostHandle<ShellMsg>,
     links: &Links,
     store: &Store,
+    held: watch::Receiver<MacMods>,
 ) {
     crate::lock::spawn_follower(runtime.handle(), services, host.clone());
     crate::idle_dim::spawn_follower(runtime.handle(), services, host.clone());
@@ -288,7 +293,9 @@ fn spawn_followers(
     crate::corners::spawn_hits(
         runtime.handle(),
         links.clone(),
+        services.clone(),
         settings_feed.settings.clone(),
+        held,
         host.clone(),
     );
 }

@@ -10,7 +10,9 @@ use ds_harness::{Harness, Input, Viewport};
 use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_overlays::HotCorners;
-use sill_settings::{CornerAction, HotCornerSettings, ShellFile};
+use sill_settings::{
+    CornerAction, CornerBinding, CornerBindings, CornerDo, CornerKeys, HotCornerSettings, ShellFile,
+};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{Corner, CornerLink};
 
@@ -19,7 +21,10 @@ const REARM_MS: u16 = 60;
 
 fn settings() -> HotCornerSettings {
     let mut settings = HotCornerSettings::default();
-    settings.top_left = CornerAction::Launcher;
+    settings.top_left = CornerBindings(vec![CornerBinding {
+        keys: CornerKeys::default(),
+        action: CornerDo::Desktop(CornerAction::Launcher),
+    }]);
     settings.dwell_ms = Ms(DWELL_MS);
     settings.rearm_ms = Ms(REARM_MS);
     settings

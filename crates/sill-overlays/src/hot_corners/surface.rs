@@ -1,4 +1,4 @@
-//! The hot corners as a [`Surface`]: a slot per corner whose action is not `None`, shown at
+//! The hot corners as a [`Surface`]: a slot per corner with a binding, shown at
 //! once.
 
 use dioxus::prelude::Element;

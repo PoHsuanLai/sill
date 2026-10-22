@@ -42,9 +42,9 @@ pub use bar_thumbs::{
 };
 pub use casement_protocols::vocab::{
     Answer, AppLifeKind, AppVisibility, AskId as ConsentId, Attention, Corner, DragOutcome,
-    FullScreenBar, KeyGesture, Memory, Motion, OverviewMode, OverviewState, Power, ProofKind,
-    ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide, SubjectKind, TrialAnswer, TrialId,
-    WindowEntries, WindowEntry, WireCode,
+    FullScreenBar, KeyGesture, MacMods, Memory, Motion, OverviewMode, OverviewState, Power,
+    ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide, SubjectKind, TrialAnswer,
+    TrialId, WindowEntries, WindowEntry, WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
 pub use consent::{Consent, ConsentSubject, SUBJECT_MAX_CHARS};
@@ -52,7 +52,7 @@ pub use force_quit::{ForceQuitRow, Standing, force_quit_rows, hung_first};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};
 pub use note::{OverviewNote, ShellNote, SwitcherNote};
 pub use output_picture::{OutputPicture, OutputShot};
-pub use overview::open_mission_control;
+pub use overview::{open_app_expose, open_mission_control};
 pub use spaces_bar::{
     BarPick, BarShow, BarSpace, bar_show, bar_space_ids, bar_spaces, commands_of,
 };

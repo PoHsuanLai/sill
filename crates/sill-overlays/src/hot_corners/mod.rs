@@ -1,5 +1,5 @@
 //! Hot corners (design/20 §1.16; macOS's Hot Corners): a transparent square of
-//! `hot_corners.size_px` in each corner whose action is not `None`, on every output. The pointer
+//! `hot_corners.size_px` in each corner that has a binding, on every output. The pointer
 //! resting in one for `hot_corners.dwell_ms` fires it once; it fires again only after the
 //! pointer has left and `rearm_ms` has passed ([`ds_behaviour::hot_corner::Corner`], the machine the compositor runs too). A firing is written to the
 //! [`sill_ui_kit::links::CornerLink`]; the daemon carries out the action (`crates/sill/src/corners.rs`), since
@@ -15,6 +15,6 @@ mod model;
 mod surface;
 mod view;
 
-pub use model::{active_corners, corner_action, corner_command};
+pub use model::{active_corners, corner_bindings};
 pub use surface::HotCorners;
 pub use view::HOT_CORNERS_CSS;

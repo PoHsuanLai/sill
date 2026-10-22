@@ -41,6 +41,10 @@ const BASIC: &[&str] = &[
     "companion.notify",
     "voice.hold_to_talk",
     "wallpaper.picture",
+    "hot_corners.top_left",
+    "hot_corners.top_right",
+    "hot_corners.bottom_left",
+    "hot_corners.bottom_right",
 ];
 
 #[test]
@@ -59,7 +63,7 @@ fn exposure_follows_section_5() {
 fn basic_keys_are_on_their_section_5_pages() {
     let page_of = |prefix: &str| match prefix {
         "bar" => Page::Appearance,
-        "dock" => Page::Dock,
+        "dock" | "hot_corners" => Page::Dock,
         "scroll" => Page::MouseAndGestures,
         "notifications" | "sound" => Page::Notifications,
         "spaces" => Page::Spaces,
@@ -198,10 +202,7 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ("calendar.up_next_days", toml::Value::Integer(7)),
         ("screenshot.thumbnail_hold_ms", toml::Value::Integer(5200)),
         ("screenshot.tool", toml::Value::String("auto".to_owned())),
-        (
-            "hot_corners.top_left",
-            toml::Value::String("none".to_owned()),
-        ),
+        ("hot_corners.top_left", toml::Value::Array(Vec::new())),
         ("hot_corners.dwell_ms", toml::Value::Integer(150)),
         ("hot_corners.size_px", toml::Value::Integer(2)),
         ("session.lock_grace_s", toml::Value::Integer(5)),

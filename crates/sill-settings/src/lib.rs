@@ -51,7 +51,10 @@ pub use dock::{
 };
 pub use file::{APP, ShellFile};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};
-pub use hot_corners::{CornerAction, HotCornerSettings};
+pub use hot_corners::{
+    CornerAction, CornerBinding, CornerBindings, CornerDo, CornerKey, CornerKeys,
+    HotCornerSettings, OpenItem,
+};
 pub use idle::IdleSettings;
 pub use keyboard::{KeyboardOverride, KeyboardSettings, RejectedRow, overrides};
 pub use launcher::LauncherSettings;

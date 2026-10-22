@@ -11,3 +11,11 @@ pub fn open_mission_control() -> DesktopCommand {
         toggle: Toggle::On,
     }
 }
+
+/// Open App Exposé, the focused app's windows spread out (the `app_windows` hot corner).
+pub fn open_app_expose() -> DesktopCommand {
+    DesktopCommand::Overview {
+        mode: OverviewMode::AppExpose,
+        toggle: Toggle::On,
+    }
+}

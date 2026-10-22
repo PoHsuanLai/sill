@@ -15,7 +15,7 @@ use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_launcher::actions::ActionId;
 use sill_model::actions::Ask;
-use sill_model::desktop::DesktopCommand;
+use sill_model::desktop::{DesktopCommand, MacMods};
 use sill_model::displays::DisplaysCommand;
 use sill_model::keyboard::{Grip, ShellKeys};
 use sill_model::keycap::KeycapCommand;
@@ -65,6 +65,9 @@ pub struct Shell {
     pub stash: RefCell<crate::actions::show_desktop::Stash>,
     /// The output the sheets' current questions were started on.
     pub sheet_latch: crate::sheet_latch::SheetLatch,
+    /// The modifiers held over the shell's surfaces now (the compositor's last
+    /// `ShellNote::Modifiers`), which `corners::spawn_hits` reads at a firing.
+    pub held_mods: watch::Sender<MacMods>,
 }
 
 /// Every event, handled: an IPC request (needs the services and the settings), the lock's and the

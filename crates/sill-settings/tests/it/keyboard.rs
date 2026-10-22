@@ -119,7 +119,12 @@ fn a_malformed_row_costs_only_that_row() {
          [[keyboard.overrides]]\napp = \"d\"\nprofile = \"four\"\n",
     );
     let loaded = store(&dir).load::<ShellFile>();
-    assert!(loaded.invalid.is_empty(), "{:?}", loaded.invalid);
+    let reported: Vec<&str> = loaded.invalid.iter().map(|key| key.path.as_str()).collect();
+    assert_eq!(
+        reported,
+        ["keyboard.overrides"],
+        "the dropped rows are reported"
+    );
     assert!(loaded.unknown.is_empty(), "{:?}", loaded.unknown);
     let keyboard = &loaded.value.keyboard;
     assert_eq!(keyboard.overrides, [row("a", "one"), row("d", "four")]);
