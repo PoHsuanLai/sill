@@ -16,7 +16,6 @@ use docket_core::{ContextKeep, Keep};
 use docket_dbus::{COMPANION_BUS, INTENTS_BUS, answer_path};
 use prov::SpaceId;
 use sill_model::companion::{AskInput, CompanionCommand};
-use sill_model::launch::{LaunchCommand, SettingsOpen, assistant_model};
 use zbus::Connection;
 
 const HAIKU_LINE: &str = "Answered by Claude Haiku 4.5 via OpenRouter (already loaded)";
@@ -213,7 +212,7 @@ async fn a_declined_named_model_fails_the_task_with_its_reason() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_turn_that_meets_no_model_opens_the_model_picker_once_and_says_nothing() {
+async fn a_turn_that_meets_no_model_opens_nothing_by_itself() {
     let mut bench = bench!(Some("[]"));
     bench.ask();
     let refused = AnswerWire {
@@ -222,16 +221,11 @@ async fn a_turn_that_meets_no_model_opens_the_model_picker_once_and_says_nothing
         ..wire(AnswerPhase::Failed, "")
     };
     bench.views(&refused).await;
-    assert_eq!(
-        bench.desk.next_launched().await,
-        LaunchCommand::OpenSettings(SettingsOpen::at(assistant_model()))
-    );
-    // The refusal written again, then a later view: by the time the later view is held, the
-    // service has handled the repeat, and it asked for nothing more.
-    bench.views(&refused).await;
+    // By the time the later view is held, the service has handled the refusal, and it asked
+    // for nothing.
     bench.notes_after_view("later").await;
     assert!(
         bench.desk.launched.try_recv().is_err(),
-        "one refusal opens the picker once"
+        "a refusal opens nothing until the person presses the button"
     );
 }

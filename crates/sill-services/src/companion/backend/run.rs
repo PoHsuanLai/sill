@@ -277,8 +277,7 @@ impl Live {
                     answer::prepare(&connection).await
                 });
             }
-            CompanionEffect::PickModel
-            | CompanionEffect::Helpers(HelpersCommand::OpenModelPicker) => {
+            CompanionEffect::Helpers(HelpersCommand::OpenModelPicker) => {
                 let page = LaunchCommand::OpenSettings(SettingsOpen::at(assistant_model()));
                 if let Err(error) = self.launch.send(page) {
                     eprintln!("sill: companion: opening the model picker: {error}");

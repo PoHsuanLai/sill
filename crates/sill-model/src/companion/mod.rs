@@ -18,9 +18,9 @@ mod mode;
 #[cfg(test)]
 mod mode_tests;
 mod model;
-mod model_picker;
+mod no_model;
 #[cfg(test)]
-mod model_picker_tests;
+mod no_model_tests;
 #[cfg(test)]
 mod openers_tests;
 mod presence;
@@ -68,6 +68,7 @@ pub use mode::{
 pub use model::{
     AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,
 };
+pub use no_model::{CHOOSE_MODEL_LABEL, NO_MODEL_LINE, lacks_model};
 pub use presence::presence_of;
 pub use program_labels::ProgramLabels;
 pub use progress::{ProgressShown, preview_progress};

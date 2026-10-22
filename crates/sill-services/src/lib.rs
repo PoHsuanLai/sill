@@ -48,7 +48,6 @@ pub mod launch;
 pub mod locker;
 pub mod login_session;
 mod machine;
-pub mod model_offer;
 pub mod network;
 pub mod night_shift;
 mod notices;

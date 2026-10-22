@@ -15,7 +15,6 @@ use super::command::{CompanionEffect, CompanionEvent, CompanionParams};
 use super::helpers::{HelpersMsg, update};
 use super::mode::{answer_moved, turn_began, update as update_mode};
 use super::model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase};
-use super::model_picker::{Picker, opens, picker_of, touched};
 use super::summon::{SummonCx, SummonIn, SummonOut};
 use super::tap::{TapIn, TapOut};
 use super::terminals::{TerminalsMsg, update as update_terminals};
@@ -62,17 +61,7 @@ pub fn step(
         CompanionEvent::Helpers(msg) => helped(state, *msg),
         CompanionEvent::Terminals(msg) => in_terminals(state, msg),
         CompanionEvent::Mode(msg) => update_mode(state, msg),
-        other => {
-            let task = touched(&other).cloned();
-            let before = task
-                .as_ref()
-                .map_or(Picker::Unneeded, |task| picker_of(&state, task));
-            let state = bookkeeping(state, other);
-            let after = task
-                .as_ref()
-                .map_or(Picker::Unneeded, |task| picker_of(&state, task));
-            (state, opens(before, after))
-        }
+        other => (bookkeeping(state, other), Vec::new()),
     }
 }
 

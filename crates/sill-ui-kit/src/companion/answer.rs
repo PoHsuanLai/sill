@@ -16,6 +16,8 @@ use ds::components::content::text_runs::TextLine;
 use ds::stack::toast_hub::UndoToken;
 use ds_core::vocab::{Availability, EffectMark};
 
+use sill_model::companion::NO_MODEL_LINE;
+
 use super::ViewCx;
 use super::card::actions;
 use super::footer::footer_view;
@@ -150,8 +152,8 @@ fn needs_you_actions(phase: &AnswerPhase) -> Vec<CardAction> {
     }
 }
 
-/// The card of a refusal. A turn that met no model has no failure to show: the shell opens the
-/// model picker, and the card is the footer alone with nothing in its body.
+/// The card of a refusal. A turn that met no model has no failure to show: the card says to
+/// choose one, and the row's button opens Settings at the choice.
 fn refused(refusal: &RefusalWire, footer: CardFooter) -> AnswerView {
     let (why, actions) = match refusal {
         RefusalWire::NeedsCloud(class) => (
@@ -183,7 +185,7 @@ fn refused(refusal: &RefusalWire, footer: CardFooter) -> AnswerView {
         RefusalWire::Failed(why) => (RefusedView::Failed { why: why.clone() }, Vec::new()),
         RefusalWire::NoModel => {
             return AnswerView::Text(TextAnswer {
-                body: Vec::new(),
+                body: vec![TextLine::Plain(NO_MODEL_LINE.to_owned())],
                 streaming: Streaming::Complete,
                 actions: Vec::new(),
                 footer,

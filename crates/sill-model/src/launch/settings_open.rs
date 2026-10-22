@@ -30,8 +30,3 @@ impl SettingsOpen {
 pub fn assistant_model() -> SettingsTarget {
     page("assistant-model")
 }
-
-/// The same picker as the first-run step, with Continue and Skip.
-pub fn assistant_model_setup() -> SettingsTarget {
-    page("assistant-model-setup")
-}

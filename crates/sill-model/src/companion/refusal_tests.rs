@@ -5,7 +5,7 @@ use companion_wire::{AnswerBody, AnswerPhase, RefusalWire};
 use docket_core::DenyCode;
 
 use super::answer_line;
-use super::model_picker_tests::{held, task, wire};
+use super::no_model_tests::{held, task, wire};
 
 #[test]
 fn a_denied_call_says_never_when_the_person_said_never() {

@@ -12,6 +12,7 @@ use ds::components::companion::answer::model::{AnswerView, Streaming};
 use ds::components::companion::answer::refused::RefusedView;
 use ds::components::companion::form::model::{FieldNeed, FormInput, FormValue};
 use ds::components::companion::plan::model::{PlanFinish, PlanPhase, PlanStepState, StopWhy};
+use ds::components::content::text_runs::TextLine;
 use ds_core::vocab::EffectMark;
 use ds_core::word::Word;
 use jiff::tz::TimeZone;
@@ -552,7 +553,7 @@ fn a_denied_call_is_worded_by_why_it_was_denied() {
 }
 
 #[test]
-fn a_refusal_for_want_of_a_model_shows_no_failure() {
+fn a_refusal_for_want_of_a_model_says_to_choose_one() {
     let zone = TimeZone::UTC;
     let cx = cx(&zone, &none);
     let body = AnswerBody::Refused(RefusalWire::NoModel);
@@ -561,7 +562,13 @@ fn a_refusal_for_want_of_a_model_shows_no_failure() {
         panic!("a card with no failure on it");
     };
     assert_eq!(
-        (quiet.body.len(), quiet.actions.len(), quiet.streaming),
-        (0, 0, Streaming::Complete)
+        (quiet.body, quiet.actions.len(), quiet.streaming),
+        (
+            vec![TextLine::Plain(
+                "Choose a model to use the assistant.".to_owned()
+            )],
+            0,
+            Streaming::Complete
+        )
     );
 }

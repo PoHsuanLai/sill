@@ -9,7 +9,7 @@ use prov::{Actor, AgentRole, SystemPart};
 use super::emphasis::plain_of;
 use super::helpers::HelpersModel;
 use super::model::{AnswerFacts, Busy};
-use super::model_picker::lacks_model;
+use super::no_model::{NO_MODEL_LINE, lacks_model};
 use super::program_labels::ProgramLabels;
 use super::progress::row_progress;
 use crate::untrusted::for_display;
@@ -25,10 +25,10 @@ pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
 
 /// Where the answer stands: what it waits for, how it failed, or its latest line. A pressed
 /// button's step that is still going, or that failed, is said even when the task itself is
-/// done. A turn that met no model says nothing: the model picker opens instead.
+/// done. A turn that met no model says to choose one.
 fn standing(answer: &AnswerFacts) -> String {
     if lacks_model(&answer.wire.body) {
-        return String::new();
+        return NO_MODEL_LINE.to_owned();
     }
     match &answer.wire.phase {
         AnswerPhase::Thinking => row_progress(answer).unwrap_or_else(|| "Thinking".to_owned()),
@@ -103,7 +103,7 @@ fn refusal_words(body: &AnswerBody) -> String {
         AnswerBody::Refused(RefusalWire::NoWay { .. }) => "No way to do that".to_owned(),
         AnswerBody::Refused(RefusalWire::OverBudget(_)) => "Over its budget".to_owned(),
         AnswerBody::Refused(RefusalWire::Failed(why)) => why.clone(),
-        AnswerBody::Refused(RefusalWire::NoModel) => String::new(),
+        AnswerBody::Refused(RefusalWire::NoModel) => NO_MODEL_LINE.to_owned(),
         _ => "Could not finish".to_owned(),
     }
 }

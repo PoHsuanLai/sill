@@ -12,9 +12,11 @@ use sill_launcher::{
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
 use sill_model::companion::{
-    AnswerFacts, BRING_BACK_LABEL, Busy, Companion, CompanionLink, TerminalsModel, activity_line,
-    answer_line, cards_of, session_subtitle, session_title,
+    AnswerFacts, BRING_BACK_LABEL, Busy, CHOOSE_MODEL_LABEL, Companion, CompanionLink,
+    TerminalsModel, activity_line, answer_line, cards_of, lacks_model, session_subtitle,
+    session_title,
 };
+use sill_model::launch::assistant_model;
 use tokio::sync::watch;
 
 /// The id prefix of the Ask row: the prompt follows it.
@@ -25,6 +27,10 @@ pub const UNDO_ACTION: &str = "undo";
 
 /// The action id that brings a session in a terminal back.
 pub const BRING_BACK_ACTION: &str = "bring-back";
+
+/// The action id that opens Settings at the assistant's model, on an answer refused for want
+/// of one.
+pub const CHOOSE_MODEL_ACTION: &str = "choose-model";
 
 /// Rows from the companion's state.
 #[derive(Debug, Clone)]
@@ -68,6 +74,12 @@ impl Provider for CompanionProvider {
                 Some(first) => self.activate(item, &Choice::Action(first.id.clone())),
                 None => Activation::Companion(CompanionAct::Mode(LauncherMode::Companion)),
             },
+            // The button of a turn that met no model: Settings opens at the model, once pressed.
+            (Subject::Answer(_), Choice::Action(ActionId(id))) if id == CHOOSE_MODEL_ACTION => {
+                Activation::OpenSettings {
+                    target: assistant_model(),
+                }
+            }
             (Subject::Answer(task), Choice::Action(ActionId(id))) => CardActionId::parse(id)
                 .map_or(Activation::Nothing, |action| {
                     Activation::Companion(CompanionAct::Card {
@@ -194,6 +206,13 @@ fn answer_row(answer: &AnswerFacts, at: usize) -> Item {
 /// An answer's card buttons as the row's actions. While a press is going there are none, so a
 /// second Enter cannot press it again; a press the companion refused offers its buttons again.
 fn card_actions(answer: &AnswerFacts) -> Vec<Action> {
+    if lacks_model(&answer.wire.body) {
+        return vec![Action {
+            id: ActionId(CHOOSE_MODEL_ACTION.to_owned()),
+            label: CHOOSE_MODEL_LABEL.to_owned(),
+            keys: sill_launcher::ActionKeys::default(),
+        }];
+    }
     match answer.busy {
         Busy::Acting { .. } => Vec::new(),
         Busy::Idle | Busy::Refused(_) => cards_of(&answer.wire.body)
@@ -510,6 +529,54 @@ mod tests {
             Activation::Companion(CompanionAct::Mode(LauncherMode::Companion)),
             "Enter on it does not undo it again"
         );
+    }
+
+    #[test]
+    fn a_turn_that_met_no_model_offers_the_button_and_only_a_press_opens_settings() {
+        let mut companion = state();
+        companion.answers.insert(
+            task("t-3"),
+            answer(
+                "t-3",
+                "find receipts",
+                AnswerPhase::Failed,
+                AnswerBody::Refused(companion_wire::RefusalWire::NoModel),
+            ),
+        );
+        let (_tx, rx) = watch::channel(companion.clone());
+        let provider = CompanionProvider { companion: rx };
+        let found = rows(companion, "", Scope::Only(ProviderKind::Companion));
+        let by_title = |title: &str| {
+            found
+                .iter()
+                .find(|i| i.title == title)
+                .cloned()
+                .unwrap_or_else(|| panic!("{title}"))
+        };
+        let refused = by_title("find receipts");
+        assert_eq!(
+            (refused.subtitle.as_str(), labels(&refused)),
+            (
+                "Choose a model to use the assistant.",
+                vec!["Choose Model\u{2026}"]
+            )
+        );
+        let opens = Activation::OpenSettings {
+            target: assistant_model(),
+        };
+        assert_eq!(provider.activate(&refused, &Choice::Primary), opens);
+        let by_button = Choice::Action(ActionId(CHOOSE_MODEL_ACTION.to_owned()));
+        assert_eq!(provider.activate(&refused, &by_button), opens);
+        for other in ["reply to Sam", "what is on today"] {
+            assert!(
+                !labels(&by_title(other)).contains(&"Choose Model\u{2026}"),
+                "{other}: any other answer has no such button"
+            );
+        }
+    }
+
+    fn labels(item: &Item) -> Vec<&str> {
+        item.actions.iter().map(|a| a.label.as_str()).collect()
     }
 
     fn in_terminal(session: &str, handover: Handover) -> TerminalSession {

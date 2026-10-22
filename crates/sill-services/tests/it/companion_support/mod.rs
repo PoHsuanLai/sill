@@ -196,14 +196,6 @@ impl Desk {
             .unwrap_or_else(|e| panic!("{e}"));
     }
 
-    /// The next thing the service asked the launch service to do.
-    pub async fn next_launched(&mut self) -> LaunchCommand {
-        tokio::time::timeout(GIVE_UP, self.launched.recv())
-            .await
-            .unwrap_or_else(|_| panic!("the service asked the launch service for nothing"))
-            .unwrap_or_else(|| panic!("the service stopped"))
-    }
-
     /// The next effect the service handed the daemon.
     pub async fn next_summon(&mut self) -> SummonOut {
         self.summons

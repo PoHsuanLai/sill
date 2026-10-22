@@ -106,12 +106,6 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
             });
         }
     }
-    // The person has entered the desktop: the first start offers the assistant's model picker.
-    if let Err(error) =
-        sill_services::model_offer::offer_first_run(&env.dirs, &services.launch.control)
-    {
-        eprintln!("sill: offering the model picker: {error}");
-    }
     let seat = match handed_by_compositor {
         true => super::compositor::ShellSeat::linked(
             runtime.handle().clone(),

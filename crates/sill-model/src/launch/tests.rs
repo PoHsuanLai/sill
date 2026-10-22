@@ -2,7 +2,7 @@ use sill_launcher::AppId;
 
 use super::{
     DONE_KEPT, FailureCause, LaunchDone, LaunchOutcome, LaunchTiming, LaunchedScope, Launches, Pid,
-    ScopeUnit, Stamp, answer_to, assistant_model, assistant_model_setup, launch_line, step,
+    ScopeUnit, Stamp, answer_to, assistant_model, launch_line, step,
 };
 
 fn scope(app: &str, n: u32) -> LaunchedScope {
@@ -73,10 +73,6 @@ fn scopes_come_and_go() {
 #[test]
 fn the_model_pages_are_opened_by_the_ids_settings_serves() {
     assert_eq!(assistant_model().to_string(), "page:assistant-model");
-    assert_eq!(
-        assistant_model_setup().to_string(),
-        "page:assistant-model-setup"
-    );
 }
 
 fn timing(

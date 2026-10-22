@@ -433,11 +433,9 @@ A settled item is deleted, not marked closed.
   reach the service as `CompanionParams` (`CompanionBridge`), whose times are `sill_model::units::Ms`.
 - **The assistant has no default model, and only Settings changes the setting.** A turn that finds
   none comes back as `RefusalWire::NoModel` (`{"kind":"no_model"}`, docket's `companion-wire`); the
-  card and the row say nothing and sill opens Settings' `assistant-model` page once for that turn
-  (`SettingsPage`, `CompanionEffect::PickModel`). A refusal found on the bus at start, of an
-  answer this shell did not ask, opens nothing. The first start of a user opens
-  `assistant-model-setup` once (`sill_services::model_offer`), recorded in
-  `$XDG_STATE_HOME/sill/model-offered.json` whether the person picks or skips.
+  card and the row say "Choose a model to use the assistant." with a "Choose Model…" button that
+  opens Settings' `assistant-model` page (`Activation::OpenSettings`); nothing opens Settings
+  without a press. The model is picked in the one-time OS setup (`detent --first-run`), not by sill.
 
 ## Decisions in force (departures from the design docs)
 
@@ -596,17 +594,12 @@ a source; `assumed` means not yet checked.
 
 ### sill
 
-- **The first-run model picker is offered whether or not a model is set.** sill has no read-only way to
-  learn that a model is set (only Settings may call inferd's settings), so the first start of every
-  user opens `assistant-model-setup` once, and Settings' page decides what to show a person who
-  already has one. Ends when Settings (or inferd) offers a read-only "is a model set" that sill
-  may call; `sill_services::model_offer::offer_first_run` then checks it before recording the offer.
 - **The two Settings slugs wait on detent's names.** `SettingsPage` (`sill_model::launch`) writes
-  `assistant-model` and `assistant-model-setup`; if detent names its pages differently, change the
+  `assistant-model`; if detent names its pages differently, change the
   two `#[word(slug = ...)]` attributes and nothing else. Ends when detent's pages are merged under
   those names.
 - **`RefusalWire::NoModel` must be in docket's `companion-wire` before sill builds.** sill matches
-  it in `sill_model::companion::words`, `sill_ui_kit::companion::answer` and `model_picker`. Ends when
+  it in `sill_model::companion::words`, `sill_ui_kit::companion::answer` and `no_model`. Ends when
   docket's variant is merged.
 - **anyview is taken by path.** The root `Cargo.toml` names `anyview-core`, `anyview-image`, `anyview-peek`,
   `anyview-platform` and `anyview-store` at `../anyview/crates/...`, a sibling checkout. Ends when

@@ -271,8 +271,6 @@ pub enum CompanionEffect {
     Summon(SummonOut),
     /// Warm the planner model: a prompt is about to be typed.
     Prepare,
-    /// The person asked and no model is set: open Settings' model picker.
-    PickModel,
     /// The helpers screen asks the companion for something.
     Helpers(HelpersCommand),
     /// The panel asks the companion about the sessions in terminals.
