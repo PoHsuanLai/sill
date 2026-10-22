@@ -6,9 +6,10 @@
 //! - `File(path)` and `Url(url)`: `xdg-open <path|url>` in a transient `systemd-run --user
 //!   --scope` like an app launch, with `XDG_ACTIVATION_TOKEN` set to the request's token.
 //! - `Reveal(path)`: `org.freedesktop.FileManager1.ShowItems([file uri], startup id = token)`
-//!   when the name has an owner or is activatable (the call then starts the file manager), so
-//!   the file manager opens the folder with the file selected; else `xdg-open` on
-//!   [`reveal_folder`].
+//!   to the desktop's own Files (`org.quire.Files`) when it is installed, else to whichever
+//!   file manager holds `org.freedesktop.FileManager1`; a name with an owner or an activatable
+//!   service is asked (the call then starts it), so the file manager opens the folder with the
+//!   file selected; else `xdg-open` on [`reveal_folder`].
 //!
 //! Nothing here is logged beyond the failure's kind: a path can be private.
 //!
@@ -23,6 +24,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use sill_launcher::{AppId, OpenTarget};
 use sill_model::launch::{OpenRequest, ScopeUnit, scope_unit};
+use zbus::Connection;
 
 use super::Reach;
 use super::uri::file_uri;
@@ -30,6 +32,11 @@ use super::viewer::{Handed, hand_over, viewer_request};
 use crate::deadline::{BUS_CALL, within};
 use crate::env::{Bus, Children, ConnectError, NameState, ProcessGroup, Start, name_state};
 
+/// The desktop's own file manager, asked before any other: it serves `FileManager1` on its
+/// own name too, so another file manager holding the shared name does not take its place.
+const DESKTOP_FILES: &str = "org.quire.Files";
+
+/// The name any file manager offers.
 const FILE_MANAGER: &str = "org.freedesktop.FileManager1";
 
 const FILE_MANAGER_PATH: &str = "/org/freedesktop/FileManager1";
@@ -128,24 +135,52 @@ async fn show_items(session: &Bus, path: &Path, token: Option<&str>) -> Shown {
             Err(ConnectError::NoBus(_)) => return Ok(Shown::No),
             Err(ConnectError::Refused(why)) => return Err(zbus::Error::Failure(why)),
         };
-        if asks_file_manager(name_state(&connection, FILE_MANAGER).await?) == Shown::No {
+        let Some(name) = file_manager(&connection).await? else {
             return Ok::<Shown, zbus::Error>(Shown::No);
-        }
-        connection
-            .call_method(
-                Some(FILE_MANAGER),
-                FILE_MANAGER_PATH,
-                Some(FILE_MANAGER),
-                "ShowItems",
-                &(vec![file_uri(path)], token.unwrap_or_default()),
-            )
-            .await?;
+        };
+        show_items_at(
+            &connection,
+            name,
+            vec![file_uri(path)],
+            token.unwrap_or_default(),
+        )
+        .await?;
         Ok(Shown::Yes)
     };
     match within(BUS_CALL, "the file manager", shown).await {
         Ok(Ok(shown)) => shown,
         Ok(Err(_)) | Err(_) => Shown::No,
     }
+}
+
+/// The file manager to ask: the desktop's own Files, else any, the first that is running or
+/// can be started; none when no file manager is on the bus.
+pub(super) async fn file_manager(connection: &Connection) -> zbus::Result<Option<&'static str>> {
+    for name in [DESKTOP_FILES, FILE_MANAGER] {
+        if asks_file_manager(name_state(connection, name).await?) == Shown::Yes {
+            return Ok(Some(name));
+        }
+    }
+    Ok(None)
+}
+
+/// `FileManager1.ShowItems(uris, startup)` on the file manager that owns `name`.
+pub(super) async fn show_items_at(
+    connection: &Connection,
+    name: &str,
+    uris: Vec<String>,
+    startup: &str,
+) -> zbus::Result<()> {
+    connection
+        .call_method(
+            Some(name),
+            FILE_MANAGER_PATH,
+            Some(FILE_MANAGER),
+            "ShowItems",
+            &(uris, startup),
+        )
+        .await?;
+    Ok(())
 }
 
 /// Whether a file manager in `state` is asked to show the item: running or activatable, since

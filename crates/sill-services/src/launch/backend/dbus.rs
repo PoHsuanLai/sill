@@ -8,6 +8,7 @@ use sill_model::launch::{LaunchRequest, SETTINGS_BUS_NAME, SettingsOpen};
 use zbus::Connection;
 use zbus::zvariant::Value;
 
+use super::open::{file_manager, show_items_at};
 use super::uri::file_uri;
 
 /// `org.freedesktop.Application.Activate` on the app's bus name ([`App::bus_name`]: what the
@@ -74,20 +75,14 @@ async fn settings_action(
     Ok(())
 }
 
-/// `org.freedesktop.FileManager1.ShowItems([file:// URI of the entry's own .desktop file], "")`.
-/// The URI is percent-encoded (a space or `#` in the path would otherwise break it).
+/// `org.freedesktop.FileManager1.ShowItems([file:// URI of the entry's own .desktop file], "")`,
+/// to the file manager a reveal asks (the desktop's own Files first). The URI is
+/// percent-encoded (a space or `#` in the path would otherwise break it).
 pub async fn show_in_files(connection: &Connection, app: &App) -> zbus::Result<()> {
-    let uri = file_uri(&app.path);
-    connection
-        .call_method(
-            Some("org.freedesktop.FileManager1"),
-            "/org/freedesktop/FileManager1",
-            Some("org.freedesktop.FileManager1"),
-            "ShowItems",
-            &(vec![uri], String::new()),
-        )
-        .await?;
-    Ok(())
+    let Some(name) = file_manager(connection).await? else {
+        return Ok(());
+    };
+    show_items_at(connection, name, vec![file_uri(&app.path)], "").await
 }
 
 /// `/` followed by `id` with every `.` turned into `/` and every `-` into `_` (D-Bus object

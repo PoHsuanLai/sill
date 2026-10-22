@@ -10,6 +10,10 @@ use sill_launcher::{AppId, Mime};
 /// The registered category of a file manager (Nautilus, Dolphin, Thunar, Nemo...).
 const FILE_MANAGER: &str = "FileManager";
 
+/// The desktop's own file manager's entry id (the files repo): the Trash opens in it when
+/// installed.
+const DESKTOP_FILES: &str = "org.quire.Files";
+
 /// Every installed application, sorted by id, one entry per id (the first found in XDG
 /// precedence order wins).
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -55,16 +59,20 @@ impl AppIndex {
         self.apps.get(match_app(app_id, wm_class, &self.keys)?)
     }
 
-    /// The file manager the Trash opens in: the first listed entry, by id, that is a
-    /// `FileManager` and opens folders; none when no such app is installed.
+    /// The file manager the Trash opens in: the desktop's own Files when it is installed, else
+    /// the first listed entry, by id, that is a `FileManager` and opens folders; none when no
+    /// such app is installed.
     pub fn file_manager(&self) -> Option<&AppId> {
-        self.apps
-            .iter()
-            .find(|app| {
+        let managers = || {
+            self.apps.iter().filter(|app| {
                 app.listing == Listing::Shown
                     && app.categories.iter().any(|c| c == FILE_MANAGER)
                     && app.mime_types.iter().any(|m| m == Mime::FOLDER)
             })
+        };
+        managers()
+            .find(|app| app.id.0 == DESKTOP_FILES)
+            .or_else(|| managers().next())
             .map(|app| &app.id)
     }
 }
@@ -369,6 +377,18 @@ pub(crate) mod tests {
             AppsEvent::Scanned(vec![folders("code", &["Development"])]),
         );
         assert_eq!(none.file_manager(), None);
+        let ours = step(
+            AppIndex::default(),
+            AppsEvent::Scanned(vec![
+                folders("org.gnome.Nautilus", &["System", "FileManager"]),
+                folders("org.quire.Files", &["System", "FileManager"]),
+            ]),
+        );
+        assert_eq!(
+            ours.file_manager().map(|id| id.0.as_str()),
+            Some("org.quire.Files"),
+            "the desktop's own Files comes before the first by id"
+        );
     }
 
     #[test]
