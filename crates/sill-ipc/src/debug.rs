@@ -10,6 +10,7 @@ use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, PreviewKind};
 use sill_model::auth::FakeVerdict;
+use sill_model::companion::{Mode, SessionId};
 use sill_model::hot_corners::Corner;
 use sill_model::notifications::Posting;
 use sill_model::osd::OsdKind;
@@ -92,6 +93,12 @@ pub enum DebugRequest {
     /// the nested compositor counts no synthetic input as activity). Refused by a daemon built
     /// without `debug`: inside the lock grace it opens the lock.
     IdleWake,
+    /// Switch the conversation `session` to `mode` as the shell does (`Intents1.Session.SetMode`):
+    /// for a run the companion's box does not hold, such as one asked through `quire-do`
+    /// (`desktop/scenarios`). Refused by a daemon built without `debug`. Answered once the
+    /// companion service has it; what the router made of it is its `ModeChanged` signal, and a
+    /// refusal is in the daemon's log.
+    Mode { session: SessionId, mode: Mode },
 }
 
 /// Which pointer button a debug click presses.

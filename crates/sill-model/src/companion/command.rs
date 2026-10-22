@@ -63,6 +63,14 @@ pub struct AskInput {
 /// What the daemon and the surfaces tell the service.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompanionCommand {
+    /// Switch a conversation the box may not hold to `mode`, for a probe (`sill debug mode`): the
+    /// router is asked as for the box's own, and only a change it signals reaches the box.
+    SessionMode {
+        /// The conversation.
+        session: SessionId,
+        /// The mode it is to be in.
+        mode: docket_core::Mode,
+    },
     /// The settings changed.
     Params(CompanionParams),
     /// The double-tap key was tapped.

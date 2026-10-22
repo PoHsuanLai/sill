@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use sill_ipc::response::Response;
 use sill_launcher::AppId;
 use sill_model::auth::FakeVerdict;
+use sill_model::companion::{Mode, SessionId};
 use sill_model::hot_corners::Corner;
 use sill_model::notifications::{NotificationsCommand, Posting};
 use sill_model::osd::OsdKind;
@@ -120,4 +121,17 @@ pub fn idle_wake(reach: &Reach) -> Response {
 #[cfg(not(feature = "debug"))]
 pub fn idle_wake(_reach: &Reach) -> Response {
     unsupported("built without the debug feature (a made-up wake could open the lock)")
+}
+
+/// Switch a conversation's mode as the shell does, through the companion service.
+pub fn mode(reach: &Reach, session: SessionId, mode: Mode) -> Response {
+    use sill_model::companion::CompanionCommand;
+    sent(
+        reach
+            .services
+            .companion
+            .control
+            .send(CompanionCommand::SessionMode { session, mode }),
+        "companion",
+    )
 }

@@ -10,6 +10,7 @@ use sill_ipc::request::Request;
 
 use sill_launcher::AppId;
 use sill_model::auth::FakeVerdict;
+use sill_model::companion::{Mode, SessionId};
 use sill_model::hot_corners::Corner;
 use sill_model::osd::OsdKind;
 use sill_model::units::Percent;
@@ -105,6 +106,17 @@ pub enum DebugAction {
     /// Wake idle as real input would (a debug daemon only; inside the lock grace it opens the
     /// lock).
     IdleWake,
+    /// Switch the conversation SESSION to MODE (`auto` or `manual`) as the shell does, for a run
+    /// the companion's box does not hold (one asked through `quire-do`). The router's
+    /// `ModeChanged` signal says it took; a refusal is in the daemon's log.
+    Mode {
+        /// The conversation's id, as `SessionOpened` names it.
+        #[arg(value_parser = session_id)]
+        session: SessionId,
+        /// `auto` or `manual`.
+        #[arg(value_parser = mode_word)]
+        mode: Mode,
+    },
 }
 
 /// The request `sill debug ACTION` sends.
@@ -180,7 +192,23 @@ pub fn debug_request(action: &DebugAction) -> Request {
         },
         DebugAction::LauncherRows => DebugRequest::LauncherRows,
         DebugAction::IdleWake => DebugRequest::IdleWake,
+        DebugAction::Mode { session, mode } => DebugRequest::Mode {
+            session: session.clone(),
+            mode: *mode,
+        },
     })
+}
+
+fn session_id(text: &str) -> Result<SessionId, String> {
+    SessionId::parse(text).map_err(|error| error.to_string())
+}
+
+fn mode_word(text: &str) -> Result<Mode, String> {
+    match text {
+        "auto" => Ok(Mode::Auto),
+        "manual" => Ok(Mode::Manual),
+        _ => Err("auto or manual".to_owned()),
+    }
 }
 
 fn surface_name(surface: &str) -> SurfaceName {

@@ -62,7 +62,8 @@ fn probe_of(request: &DebugRequest) -> Probe {
         | DebugRequest::Auth(_)
         | DebugRequest::Polkit(_)
         | DebugRequest::Switcher { .. }
-        | DebugRequest::IdleWake => Probe::Acts,
+        | DebugRequest::IdleWake
+        | DebugRequest::Mode { .. } => Probe::Acts,
     }
 }
 
@@ -108,6 +109,7 @@ fn run_probe(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: DebugRequest) 
         DebugRequest::Polkit(request) => fakes::polkit(reach, request),
         DebugRequest::Switcher { apps } => fakes::switcher(reach, apps),
         DebugRequest::IdleWake => fakes::idle_wake(reach),
+        DebugRequest::Mode { session, mode } => fakes::mode(reach, session, mode),
         DebugRequest::LauncherRows => launcher::rows(&reach.links.launcher),
     }
 }

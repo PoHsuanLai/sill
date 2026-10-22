@@ -341,6 +341,14 @@ fn every_command_line_sends_its_request() {
         ),
         (&["debug", "idle-wake"], debug(DebugRequest::IdleWake)),
         (
+            &["debug", "mode", "s-1", "manual"],
+            debug(DebugRequest::Mode {
+                session: sill_model::companion::SessionId::parse("s-1")
+                    .unwrap_or_else(|e| panic!("{e}")),
+                mode: sill_model::companion::Mode::Manual,
+            }),
+        ),
+        (
             &["debug", "auth", "accept"],
             debug(DebugRequest::Auth(FakeVerdict::Accept)),
         ),

@@ -152,3 +152,42 @@ async fn a_refused_switch_locks_the_box_in_manual() {
         .count();
     assert_eq!(asked, 1, "a locked box asks the router nothing more");
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_probe_switches_any_conversation_and_only_a_change_of_the_boxs_own_reaches_it() {
+    let Some(bench) = bench().await else { return };
+    bench.ask();
+    bench
+        .desk
+        .state(|c| (c.mode.knowing == Knowing::Known).then_some(()))
+        .await;
+    let probe = |session: &str, mode| CompanionCommand::SessionMode {
+        session: prov::SessionId::parse(session).unwrap_or_else(|e| panic!("{e}")),
+        mode,
+    };
+    // Another conversation, refused: the router is asked, the box's own stays as it was.
+    *bench.answer.lock().unwrap_or_else(|e| panic!("{e}")) = SwitchAnswer::Locked;
+    bench.desk.send(probe("s-9", Mode::Manual));
+    bench.desk.log_has("set_mode s-9 manual").await;
+    // The ask follows the probe on the same channel: its turn proves the probe was handled.
+    bench.ask();
+    bench
+        .desk
+        .log
+        .until(|lines| (lines.iter().filter(|l| l.starts_with("turn ")).count() == 2).then_some(()))
+        .await;
+    let unmoved = bench.desk.state(|c| Some(mode_view(&c.mode))).await;
+    assert_eq!(
+        (unmoved.mode, unmoved.lock),
+        (Mode::Auto, ModeLock::Free),
+        "a refusal for another conversation says nothing of the box's"
+    );
+    // The box's own conversation, done: the change reaches the box.
+    *bench.answer.lock().unwrap_or_else(|e| panic!("{e}")) = SwitchAnswer::Done;
+    bench.desk.send(probe("s-1", Mode::Manual));
+    bench.desk.log_has("set_mode s-1 manual").await;
+    bench
+        .desk
+        .state(|c| (mode_view(&c.mode).mode == Mode::Manual).then_some(()))
+        .await;
+}

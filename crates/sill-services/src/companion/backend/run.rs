@@ -371,6 +371,34 @@ impl Live {
         });
     }
 
+    /// Ask the router to switch `session`, which the box may not hold, to `mode` (a probe). Only a
+    /// change reaches the box, which keeps it when it is the box's own conversation; a refusal or
+    /// silence is the log's, since it says nothing of the box's conversation.
+    fn probe_mode(&self, session: SessionId, mode: docket_core::Mode) {
+        let events = self.events.clone();
+        let Some(connection) = self.connection.clone() else {
+            eprintln!("sill: companion: no bus to switch {session} to {mode:?}");
+            return;
+        };
+        tokio::spawn(async move {
+            let said = within(
+                COMPANION_CALL,
+                "the permissions mode",
+                intents::set_mode(&connection, session.clone(), mode),
+            )
+            .await;
+            match said {
+                Ok(changed @ ModeMsg::Changed { .. }) => {
+                    let _ = events.send(CompanionEvent::Mode(changed));
+                }
+                Ok(other) => {
+                    eprintln!("sill: companion: switching {session} to {mode:?}: {other:?}")
+                }
+                Err(silent) => eprintln!("sill: companion: {silent}"),
+            }
+        });
+    }
+
     /// Ask the companion about the sessions in terminals on its own task; what it answers goes
     /// back to the panel as an event. Without the seat nothing is asked: the list stays as it was.
     fn terminals(&self, command: TerminalsCommand) {
@@ -527,6 +555,7 @@ impl Live {
             CompanionCommand::Helpers(msg) => self.feed(CompanionEvent::Helpers(Box::new(msg))),
             CompanionCommand::Terminals(msg) => self.feed(CompanionEvent::Terminals(msg)),
             CompanionCommand::Mode(msg) => self.feed(CompanionEvent::Mode(msg)),
+            CompanionCommand::SessionMode { session, mode } => self.probe_mode(session, mode),
         }
     }
 
