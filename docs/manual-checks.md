@@ -615,3 +615,16 @@ the real daemons or a real keyboard.
 ## Wallpaper pictures (detent wallthumb lane, a real login)
 
 - [ ] **The pictures show**: Settings, Wallpaper shows every system wallpaper as a picture, one tile per wallpaper (a KDE wallpaper folder is one tile under its own name, not one per size). The first opening fills the tiles in within a few seconds; the second shows them at once. A picture that cannot be shrunk is a tile with only its name. Clicking a tile changes the desktop's wallpaper. Fedora's own .jxl wallpaper is not offered yet (the desktop cannot draw .jxl).
+
+## Hiding the menu bar (lane barhide, not built or run when written; a real casement login)
+
+Settings > Appearance, "Automatically hide and show the menu bar" (`bar.autohide`): Always, On Desktop Only, In Full Screen Only (the default), Never. The slide uses the dock's delay and duration (`dock.autohide_delay_ms`, `dock.autohide_slide_ms`) and the dock's edge strip height.
+
+- [ ] **Always hides it on the desktop**: set Always. The bar slides away; windows now use the full height (maximise one: it reaches the top edge). Rest the pointer at the top edge for about 0.2 s: the bar slides down over the windows. Move the pointer off it: it slides away. Pushing past the edge for a moment and back out before the delay does nothing.
+- [ ] **A menu keeps it**: with the bar down, open an app menu, then a status item's menu, then the Control Centre, one after the other. Each time, move the pointer off the bar into the menu and away from it: the bar stays down. Close the menu with the pointer off the bar: the bar slides away. With the pointer still on the bar when the menu closes, it stays.
+- [ ] **Control Centre by command**: with the bar hidden, run `sill control-center toggle`. The bar comes down with the panel; closing the panel lets it go.
+- [ ] **On Desktop Only and the desktop**: set On Desktop Only; the bar hides on the desktop exactly as in Always. In full screen it should stay (waits for the compositor's mode request, see the full-screen row).
+- [ ] **In Full Screen Only and Never fix it**: set either: the bar comes back at once, reserving its height again, with no blur gap or strip left behind; it never slides on the desktop.
+- [ ] **Live**: change the setting while the bar is up and while it is down: it applies without a restart.
+- [ ] **Reduced motion**: with appearance motion set to Reduced, the bar appears and goes without sliding.
+- [ ] **Full screen reveal (needs casement's `reveal` for the top and bottom edges)**: full screen an app. In Always and In Full Screen Only, rest the pointer at the top edge: casement slides the bar in over the app, its content drawn and clickable (open a menu from it); moving away hides it. On a second display showing the desktop, nothing moves. At the bottom edge the dock does the same. On Desktop Only and Never the bar should stay in full screen once sill tells casement the mode (a request still to come from the compositor owner).

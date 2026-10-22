@@ -24,6 +24,7 @@ fn every_domain_names_sills_file() {
 
 /// §5: the keys each Settings page shows. Every other sill key is Advanced (file only).
 const BASIC: &[&str] = &[
+    "bar.autohide",
     "dock.magnification",
     "dock.tile_size_px",
     "dock.autohide",
@@ -57,6 +58,7 @@ fn exposure_follows_section_5() {
 #[test]
 fn basic_keys_are_on_their_section_5_pages() {
     let page_of = |prefix: &str| match prefix {
+        "bar" => Page::Appearance,
         "dock" => Page::Dock,
         "scroll" => Page::MouseAndGestures,
         "notifications" | "sound" => Page::Notifications,
@@ -133,7 +135,8 @@ fn deep_links_resolve_through_the_schemas() {
         ("magnification", "dock.magnification"),
         ("natural scrolling", "scroll.natural"),
         ("do not disturb", "notifications.dnd"),
-        ("automatically hide", "dock.autohide"),
+        ("automatically hide the dock", "dock.autohide"),
+        ("hide and show the menu bar", "bar.autohide"),
     ];
     for &(query, want) in CASES {
         assert_eq!(
@@ -161,6 +164,10 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ("dock.influence_radius_px", toml::Value::Integer(72)),
         ("dock.magnification", toml::Value::String("on".to_owned())),
         ("dock.autohide", toml::Value::String("off".to_owned())),
+        (
+            "bar.autohide",
+            toml::Value::String("full_screen_only".to_owned()),
+        ),
         ("launcher.top_vertical_fraction", toml::Value::Integer(400)),
         ("scroll.natural", toml::Value::String("natural".to_owned())),
         ("scroll.momentum_a", toml::Value::Float(30.0)),
@@ -210,4 +217,48 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
     for (path, want) in cases {
         assert_eq!(&default_of(path), want, "{path}");
     }
+}
+
+/// `bar.autohide` offers the Mac's four choices in its order, by the words the file holds and
+/// the labels System Settings shows; the Mac's default is the full-screen one.
+#[test]
+fn the_menu_bar_choices_are_the_macs() {
+    use ds_core::word::Word;
+    use ds_settings::schema::KeyKind;
+    use sill_settings::MenuBarHiding;
+    const WORDS: [(MenuBarHiding, &str, &str); 4] = [
+        (MenuBarHiding::Always, "always", "Always"),
+        (
+            MenuBarHiding::DesktopOnly,
+            "desktop_only",
+            "On Desktop Only",
+        ),
+        (
+            MenuBarHiding::FullScreenOnly,
+            "full_screen_only",
+            "In Full Screen Only",
+        ),
+        (MenuBarHiding::Never, "never", "Never"),
+    ];
+    for (choice, slug, label) in WORDS {
+        assert_eq!((choice.slug(), choice.label()), (slug, label));
+    }
+    assert_eq!(MenuBarHiding::default(), MenuBarHiding::FullScreenOnly);
+    let whole = schema();
+    let key = whole
+        .key
+        .iter()
+        .find(|k| k.path.0 == "bar.autohide")
+        .unwrap_or_else(|| panic!("bar.autohide missing"));
+    assert_eq!(key.label.0, "Automatically hide and show the menu bar");
+    assert_eq!(key.page, Page::Appearance);
+    assert_eq!(
+        key.kind,
+        KeyKind::Segmented {
+            variants: WORDS
+                .iter()
+                .map(|(_, slug, _)| (*slug).to_owned())
+                .collect()
+        }
+    );
 }

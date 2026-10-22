@@ -14,6 +14,7 @@
 pub mod app_icons;
 pub mod app_menu;
 pub mod appearance_write;
+pub mod autohide;
 pub mod companion;
 pub mod dock_rects;
 #[cfg(feature = "harness")]

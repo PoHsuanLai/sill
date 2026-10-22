@@ -17,7 +17,8 @@ use sill_model::capture_pick::CaptureCommand;
 use sill_model::companion::CompanionCommand;
 use sill_model::desktop::target::{MinimiseTargets, OutputRects};
 use sill_model::desktop::{
-    Corner as ProtocolCorner, DesktopCommand, DesktopView, KeyGesture, ShellNote, ShellRole,
+    Corner as ProtocolCorner, DesktopCommand, DesktopView, KeyGesture, ScreenEdge, ShellNote,
+    ShellRole, Shown,
 };
 use sill_services::desktop_wl::quire::{ShellArm, WlSurface, spawn_shell_arm};
 use sill_ui_kit::links::Corner;
@@ -235,7 +236,7 @@ pub fn apply(shell: &Shell, note: ShellNote) {
             &shell.services.capture.control,
             picture,
         ),
-        ShellNote::Reveal { .. } => edge_reveal(),
+        ShellNote::Reveal { edge, shown } => edge_reveal(shell, edge, shown),
         ShellNote::MenuFlash { .. } => menu_flash(),
         ShellNote::Bell(_) => bell(),
         ShellNote::Reopen(_) => reopen_in_dock(),
@@ -321,9 +322,22 @@ fn option_variants() {}
 /// machine. Lane P3-SW (casement side) and P3-SILL (the panel).
 fn switcher_panel() {}
 
-/// An edge reveal will show or hide the bar and dock while a window is full screen.
-/// Lane P3-SILL.
-fn edge_reveal() {}
+/// An edge reveal shows or hides the bar (top edge) or the dock (bottom edge) while a window is
+/// full screen. The note names no output: a reveal is for the focused window's output (the
+/// full-screen one), a hide for every output.
+fn edge_reveal(shell: &Shell, edge: ScreenEdge, shown: Shown) {
+    let focus = shell
+        .services
+        .windows
+        .state
+        .borrow()
+        .toplevels
+        .focused_output();
+    let on = shell
+        .outputs
+        .pick(OutputPolicy::FocusedWindow, focus.as_ref());
+    crate::edge_reveal::apply(&shell.links.edges, edge, shown, on);
+}
 
 /// A menu item activated by a key will flash in the bar's menu. Lane P3-MN.
 fn menu_flash() {}

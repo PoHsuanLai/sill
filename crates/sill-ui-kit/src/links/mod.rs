@@ -7,6 +7,7 @@ mod actions;
 mod banners;
 mod control_center;
 mod display_trial;
+mod edge;
 mod empty_trash;
 mod eyedropper;
 mod focus;
@@ -30,6 +31,7 @@ pub use actions::{ActionLink, ActionSent, Asked, Origin};
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use display_trial::{DisplayTrialLink, TrialAnswered, TrialReply, TrialRun, TrialSerial};
+pub use edge::{EdgeFeed, EdgeLink, EdgeState, RevealEdge};
 pub use empty_trash::{
     EmptyTrashAnswered, EmptyTrashLink, EmptyTrashOpening, EmptyTrashShown, EmptyTrashYes,
 };
@@ -103,4 +105,7 @@ pub struct Links {
     /// The Empty Trash question: the daemon opens it, the surface on the focused window's output
     /// shows it, and a yes goes back to the daemon, which empties the Trash.
     pub empty_trash: EmptyTrashLink,
+    /// The compositor's edge reveals in full screen: the daemon writes them, the bar and dock
+    /// surfaces follow.
+    pub edges: EdgeLink,
 }

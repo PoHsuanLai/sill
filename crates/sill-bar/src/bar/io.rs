@@ -31,6 +31,7 @@ use sill_model::app_menu::{AppMenuCommand, Follower, MenuApp};
 use sill_model::session::SessionCommand;
 use sill_model::tray::TrayCommand;
 use sill_services::{AppMenuService, AppsService, SessionService, TrayService, WindowsService};
+use sill_ui_kit::autohide::Hold;
 use sill_ui_kit::hooks::{
     use_appearance, use_control, use_link, use_service, use_service_part, use_services,
     use_settings,
@@ -60,6 +61,19 @@ impl MenuBar {
     /// Whether `menu` is the one showing (subscribes the caller).
     pub(crate) fn is_open(&self, menu: BarMenu) -> bool {
         (self.open)() == Some(menu)
+    }
+
+    /// Whether any popup of the bar is open (subscribes the caller).
+    pub(super) fn any_open(&self) -> bool {
+        (self.open)().is_some()
+    }
+
+    /// What the open popups do to the bar's hiding right now: an open one holds it shown.
+    pub(super) fn hold(&self) -> Hold {
+        match *self.open.peek() {
+            Some(_) => Hold::Held,
+            None => Hold::Free,
+        }
     }
 
     /// Open `menu` as a click on its title would, or close it when it is the one showing:

@@ -15,7 +15,7 @@ use sill_model::locker::LockPhase;
 use sill_services::env::Dirs;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
-    ActionLink, BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink,
+    ActionLink, BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink, EdgeLink,
     EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink,
     PowerMenuLink, SheetLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
@@ -266,6 +266,7 @@ fn build_links(
         spaces_bar: SpacesBarLink::following(desktop.clone()),
         eyedropper: EyedropperLink::new(),
         empty_trash: EmptyTrashLink::new(),
+        edges: EdgeLink::new(),
     }
 }
 

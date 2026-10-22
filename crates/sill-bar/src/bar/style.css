@@ -4,7 +4,15 @@
 
 /* The box around the Ds root that carries the shell type scale's inputs (quire's
    `ShellMetrics`), so the root's tuned tokens read the settings. */
-.sill-bar-root{ display:block; }
+.sill-bar-root{ display:block; position:relative; }
+
+/* The bar's content (`bar-body`): slid up out of the surface while the bar hides (an inline
+   transform, `bar.autohide`), and the element the shown input and blur regions follow. */
+.sill-bar-body{ display:block; }
+
+/* The hide trigger (`bar-strip`): a transparent strip along the top edge that takes the pointer
+   while the bar is hidden; its height is `dock.autohide_trigger_strip_px`. */
+.sill-bar-strip{ position:absolute; left:0; top:0; width:100%; }
 
 /* The strip: the layer's full size, title groups at either end. The trailing edge keeps 2 pt, and
    the last item its own 8 pt: the clock's text ends 10 pt from the screen's edge (a Mac's 8 to 10). The Ds root under it draws the

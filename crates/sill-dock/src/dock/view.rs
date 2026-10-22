@@ -16,7 +16,8 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::chrome::Ground;
 use ds::style::appearance::blur::BlurState;
-use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
+use shell_host::OutputInfo;
+use sill_model::desktop::Shown;
 use sill_model::ids::OutputName;
 use sill_model::units::Cpx;
 use sill_settings::AutoHide;
@@ -27,15 +28,19 @@ use crate::dock::geometry::{dock_metrics, pill_corner};
 use crate::dock::io::{SessionDeps, World, use_dock};
 use crate::dock::items::dock_items;
 use crate::dock::layer::layer;
-use crate::dock::machine::{DockParams, DockState, Label, Reveal, displayed, slide_offset};
+use crate::dock::machine::{
+    DockEvent, DockParams, DockState, Label, Reveal, displayed, slide_offset,
+};
 use crate::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::dock::rest_rects::app_rects;
 use crate::dock::tile::{LabelShown, Tile, TileLook, px};
 use sill_services::{AppsService, BadgesService, PinsService, WindowsService};
 use sill_ui_kit::app_icons::icon_look;
 use sill_ui_kit::hooks::{
-    use_appearance, use_service, use_service_part, use_services, use_settings,
+    use_appearance, use_edge_reveal, use_follow_layer, use_service, use_service_part, use_services,
+    use_settings,
 };
+use sill_ui_kit::links::RevealEdge;
 use sill_ui_kit::look::{active_workspace, use_active_look};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::root::use_root_style;
@@ -73,8 +78,14 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         AutoHide::On => Reveal::Hidden,
     });
     let session = use_dock(initial);
+    let feed = session.feed;
+    use_edge_reveal(
+        RevealEdge::Bottom,
+        output.id,
+        use_callback(move |shown: Shown| feed.call(DockInput::Event(DockEvent::Edge(shown)))),
+    );
     let services = use_services();
-    follow_layer(layer(&output, &file));
+    use_follow_layer(layer(&output, &file));
     let machine = session.machine.read().clone();
     let label = LabelShown(match machine.label {
         Label::Shown { tile } => Some(tile),
@@ -131,7 +142,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         },
         remove: Cpx::px(i32::from(file.dock.remove_threshold_px.0)),
     });
-    let feed = session.feed;
     let platform = use_platform();
     let send = move |input: PointerInput| feed.call(DockInput::Pointer(input));
     let rows = Rows::new(&file.dock);
@@ -204,23 +214,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
             }
         }
     }
-}
-
-/// Re-apply the layer's size, exclusive zone and regions when the settings change them (the
-/// daemon spawns the dock once with the settings of that moment).
-fn follow_layer(config: LayerConfig) {
-    let surface = try_use_context::<SurfaceHandle>();
-    let mut last = use_hook(|| CopyValue::new(config.clone()));
-    if *last.peek() == config {
-        return;
-    }
-    if let Some(surface) = surface {
-        surface.set_size(config.size);
-        surface.set_exclusive_zone(config.exclusive);
-        surface.set_input_region(config.input.clone());
-        surface.set_blur(config.blur.clone());
-    }
-    last.set(config);
 }
 
 /// The layer that carries the surface's coordinates inside the pill-sized root: moved back by

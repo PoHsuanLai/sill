@@ -3,11 +3,13 @@
 
 use ds::base::time::stamp::Ms;
 use ds::motion::hover_intent::HoverProfile;
-use ds::prelude::*;
 use ds::style::tokens::delay::TipDelay;
 use ds::style::tokens::easing::{CubicBezier, EasingToken};
-use sill_model::units::{Cpx, Permille};
+use sill_model::units::Cpx;
 use sill_settings::{ActiveClick, DockModifierClicks, DockSettings, Magnification};
+// `eased` is quire's one curve evaluator, which the dock's magnification shares with the reveal.
+use sill_ui_kit::autohide::Timing;
+pub(super) use sill_ui_kit::autohide::eased;
 
 /// The label's first delay: quire's `HoverProfile::Label` (100 ms; design/30 section 1.2), where
 /// it was 350 ms (`--d-fly`) before the dock followed `DockLabel`.
@@ -50,13 +52,17 @@ pub struct DockParams {
     pub pill_blur_radius: i32,
 }
 
-/// `curve` at time `t` (thousandths, at most all): quire's one evaluator, [`CubicBezier::at`].
-pub(super) fn eased(curve: CubicBezier, t: Permille) -> Permille {
-    let at = Fraction(u16::try_from(t.0.min(1000)).unwrap_or(1000));
-    Permille(u32::from(curve.at(at).0))
-}
-
 impl DockParams {
+    /// The auto-hide numbers, for the shared reveal machine (`sill_ui_kit::autohide`).
+    pub fn timing(&self) -> Timing {
+        Timing {
+            delay: self.autohide_delay_ms,
+            slide_ms: self.slide_ms,
+            ease_out: self.ease_out,
+            ease_exit: self.ease_exit,
+        }
+    }
+
     /// The parameters for `dock` settings.
     pub fn new(dock: &DockSettings) -> DockParams {
         let curve = |token: EasingToken| token.easing().curve();

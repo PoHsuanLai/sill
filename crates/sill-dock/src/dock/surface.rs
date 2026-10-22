@@ -26,6 +26,7 @@ impl Surface for Dock {
 
     fn needs(root: HostRoot, links: &Links) -> HostRoot {
         root.context(links.actions.clone())
+            .context(links.edges.clone())
     }
 
     fn slots(_place: &Place) -> Vec<()> {

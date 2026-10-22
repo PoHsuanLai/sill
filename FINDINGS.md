@@ -1809,3 +1809,16 @@ The line is built by the pure `sill_model::launch::launch_line`.
   answered `Timeout` (exit 1) although it opens. `sill launch` never starts a daemon.
 - **Open: the queue.** The launch service handles one command at a time; a D-Bus `Activate` that is slow holds
   later launches back, and `requested_at` (taken when the service reaches the command) does not count that wait.
+
+## bar: hiding the menu bar waits on
+
+- **design/22 has no `bar.autohide` row.** The key ships (Appearance page, Basic, the Mac's "Automatically
+  hide and show the menu bar"); `crates/sill-settings/tests/keys.rs` lists it as `UNCATALOGUED`. Ends
+  when quire's design/22 gains the row.
+- **The reveal note names no output.** `reveal(edge, shown)` is applied to the focused window's output
+  (`sill::edge_reveal`), a hide to every output; ends when the note carries the output.
+- **Full screen with `desktop_only` or `never`.** The bar should stay in full screen there; sill has no
+  request to tell casement the mode yet (the compositor owner's), so casement still hides it.
+- **The bar reuses the dock's hide numbers** (`dock.autohide_delay_ms`, `dock.autohide_slide_ms`,
+  `dock.autohide_trigger_strip_px`) and does not follow the desktop's own reduce-motion preference, only
+  `appearance.motion_level` (the dock follows neither).

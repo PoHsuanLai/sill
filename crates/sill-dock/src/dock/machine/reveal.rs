@@ -2,34 +2,18 @@
 
 use ds::base::time::stamp::Stamp;
 use shell_host::{BlurSpec, ElementId, ExclusiveZone, RegionSpec};
-use sill_model::units::{Cpx, Permille};
+use sill_model::units::Cpx;
+use sill_ui_kit::autohide::{self, Change, Hold, Input, advance};
 
 use super::params::DockParams;
-use super::params::eased;
 use super::press::Press;
-use super::types::{DockEffect, DockEvent, DockState, Hit, MenuState};
+use super::types::{DockEffect, DockEvent, DockState, Hit, MenuState, Pointer};
 
-/// The auto-hide phase.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Reveal {
-    /// Auto-hide is off: always shown, exclusive zone reserved.
-    #[default]
-    Fixed,
-    Hidden,
-    /// The pointer is in the trigger strip; shows after the delay.
-    Armed {
-        since: Stamp,
-    },
-    Showing {
-        since: Stamp,
-    },
-    Shown,
-    Hiding {
-        since: Stamp,
-    },
-}
+/// The auto-hide phase: `Fixed` is auto-hide off (the shared machine, `sill_ui_kit::autohide`).
+pub use sill_ui_kit::autohide::Phase as Reveal;
 
-/// Which machines an event reaches: a hidden dock only watches its strip.
+/// Which machines an event reaches: a hidden dock only watches its strip, and the compositor's
+/// edge reveal is the reveal's alone.
 pub(crate) enum Gate {
     Reveal,
     Dock,
@@ -41,7 +25,7 @@ pub(crate) fn gate(dock: &DockState, event: &DockEvent) -> Gate {
         event,
         DockEvent::PointerEnter { .. } | DockEvent::PointerMove { .. } | DockEvent::PointerLeave
     );
-    if hidden && pointer {
+    if (hidden && pointer) || matches!(event, DockEvent::Edge(_)) {
         Gate::Reveal
     } else {
         Gate::Dock
@@ -50,28 +34,29 @@ pub(crate) fn gate(dock: &DockState, event: &DockEvent) -> Gate {
 
 /// Whether the slide needs a frame every refresh.
 pub(crate) fn animating(reveal: &Reveal) -> bool {
-    matches!(reveal, Reveal::Showing { .. } | Reveal::Hiding { .. })
+    autohide::animating(reveal)
 }
 
 /// How far below its rest position the dock is drawn at `now` (design/10 §10.5.5).
 pub fn slide_offset(reveal: &Reveal, now: Stamp, p: &DockParams) -> Cpx {
-    let distance = f64::from(p.slide_distance.0);
-    let t = |since: Stamp| {
-        Permille(
-            u32::try_from(now.since(since) * 1000 / p.slide_ms.max(1))
-                .unwrap_or(1000)
-                .min(1000),
-        )
-    };
-    let scaled =
-        |fraction: Permille| Cpx((distance * f64::from(fraction.0) / 1000.0).round() as i32);
-    match *reveal {
-        Reveal::Fixed | Reveal::Shown => Cpx(0),
-        Reveal::Hidden | Reveal::Armed { .. } => p.slide_distance,
-        Reveal::Showing { since } => scaled(Permille(
-            1000u32.saturating_sub(eased(p.ease_out, t(since)).0.min(1000)),
-        )),
-        Reveal::Hiding { since } => scaled(Permille(eased(p.ease_exit, t(since)).0.min(1000))),
+    autohide::slide_offset(reveal, now, &p.timing(), p.slide_distance)
+}
+
+/// The shared machine's input for `event`, when the reveal cares about it.
+fn input_of(dock: &DockState, event: &DockEvent) -> Option<Input> {
+    let hiding = matches!(dock.reveal, Reveal::Hiding { .. });
+    match *event {
+        DockEvent::PointerEnter { hit, .. } | DockEvent::PointerMove { hit, .. }
+            if hiding || hit != Hit::Outside =>
+        {
+            Some(Input::Inside)
+        }
+        DockEvent::PointerLeave => Some(Input::Outside),
+        DockEvent::MenuClosed if dock.pointer == Pointer::Outside => Some(Input::Outside),
+        DockEvent::Tick => Some(Input::Tick),
+        DockEvent::Frame => Some(Input::Frame),
+        DockEvent::Edge(shown) => Some(Input::Edge(shown)),
+        _ => None,
     }
 }
 
@@ -83,59 +68,42 @@ pub(crate) fn step(
     p: &DockParams,
     out: &mut Vec<DockEffect>,
 ) -> DockState {
-    let inside = |hit: &Hit| *hit != Hit::Outside;
-    let busy = dock.menu == MenuState::Open || matches!(dock.press, Press::Dragging { .. });
-    let reveal = match (dock.reveal, *event) {
-        (Reveal::Fixed, _) => Reveal::Fixed,
-        (
-            Reveal::Hidden,
-            DockEvent::PointerEnter { hit, .. } | DockEvent::PointerMove { hit, .. },
-        ) if inside(&hit) => {
-            out.push(DockEffect::WakeAt(now.after(p.autohide_delay_ms)));
-            Reveal::Armed { since: now }
-        }
-        (Reveal::Armed { .. }, DockEvent::PointerLeave) => Reveal::Hidden,
-        (Reveal::Armed { since }, DockEvent::Tick | DockEvent::Frame)
-            if now.since(since) >= p.autohide_delay_ms.0 =>
-        {
-            out.push(DockEffect::SetInput(hit_region()));
-            out.push(DockEffect::SetBlur(BlurSpec::Region(pill_region(
-                p.pill_blur_radius,
-            ))));
+    let hold = if dock.menu == MenuState::Open || matches!(dock.press, Press::Dragging { .. }) {
+        Hold::Held
+    } else {
+        Hold::Free
+    };
+    let Some(input) = input_of(&dock, event) else {
+        return dock;
+    };
+    let (reveal, change) = advance(dock.reveal, input, now, hold, &p.timing());
+    if let Some(change) = change {
+        apply(change, p, out);
+    }
+    DockState { reveal, ..dock }
+}
+
+/// What the dock's layer does for `change`.
+fn apply(change: Change, p: &DockParams, out: &mut Vec<DockEffect>) {
+    let shown = |out: &mut Vec<DockEffect>| {
+        out.push(DockEffect::SetInput(hit_region()));
+        out.push(DockEffect::SetBlur(BlurSpec::Region(pill_region(
+            p.pill_blur_radius,
+        ))));
+    };
+    match change {
+        Change::Arm(at) => out.push(DockEffect::WakeAt(at)),
+        Change::Show => {
+            shown(out);
             out.push(DockEffect::RequestFrames);
-            Reveal::Showing { since: now }
         }
-        (Reveal::Showing { since }, DockEvent::Frame) if now.since(since) >= p.slide_ms => {
-            Reveal::Shown
-        }
-        (Reveal::Shown, DockEvent::PointerLeave) if !busy => {
-            out.push(DockEffect::RequestFrames);
-            Reveal::Hiding { since: now }
-        }
-        (Reveal::Shown, DockEvent::MenuClosed)
-            if dock.pointer == super::types::Pointer::Outside =>
-        {
-            out.push(DockEffect::RequestFrames);
-            Reveal::Hiding { since: now }
-        }
-        (
-            Reveal::Hiding { since },
-            DockEvent::PointerEnter { .. } | DockEvent::PointerMove { .. },
-        ) => {
-            // Reverse from the current offset: the show starts as far along as the hide was not.
-            let done = now.since(since).min(p.slide_ms);
-            Reveal::Showing {
-                since: Stamp(now.0.saturating_sub(p.slide_ms - done)),
-            }
-        }
-        (Reveal::Hiding { since }, DockEvent::Frame) if now.since(since) >= p.slide_ms => {
+        Change::Pop => shown(out),
+        Change::Hide => out.push(DockEffect::RequestFrames),
+        Change::Rest | Change::Tuck => {
             out.push(DockEffect::SetInput(strip_region()));
             out.push(DockEffect::SetBlur(BlurSpec::None));
-            Reveal::Hidden
         }
-        (other, _) => other,
-    };
-    DockState { reveal, ..dock }
+    }
 }
 
 /// The input region while shown: the `dock-hit` element (design/10 §10.3.12).
@@ -275,6 +243,58 @@ mod tests {
         for (name, events, want) in cases {
             assert_eq!(run(&events), want, "{name}");
         }
+    }
+
+    #[test]
+    fn the_compositors_edge_reveal_shows_and_hides_with_no_slide() {
+        use super::{hit_region, strip_region};
+        use crate::dock::machine::DockEffect;
+        use sill_model::desktop::Shown;
+        let edge = |shown| DockEvent::Edge(shown);
+        let cases: Vec<(&str, Script, Reveal)> = vec![
+            (
+                "a reveal shows the hidden dock at once",
+                vec![(0, edge(Shown::Shown))],
+                Reveal::Shown,
+            ),
+            (
+                "a reveal while armed shows it too",
+                vec![(0, strip()), (50, edge(Shown::Shown))],
+                Reveal::Shown,
+            ),
+            (
+                "a hide puts it back at once",
+                vec![(0, edge(Shown::Shown)), (100, edge(Shown::Hidden))],
+                Reveal::Hidden,
+            ),
+            (
+                "a hide of a dock already hidden changes nothing",
+                vec![(0, edge(Shown::Hidden))],
+                Reveal::Hidden,
+            ),
+        ];
+        for (name, events, want) in cases {
+            assert_eq!(run(&events), want, "{name}");
+        }
+        let p = params();
+        let (shown, effects) = step(
+            DockState::new(Reveal::Hidden),
+            edge(Shown::Shown),
+            Stamp(0),
+            &p,
+        );
+        assert!(effects.contains(&DockEffect::SetInput(hit_region())));
+        let (_, effects) = step(shown, edge(Shown::Hidden), Stamp(1), &p);
+        assert!(effects.contains(&DockEffect::SetInput(strip_region())));
+        // A dock that never hides has nothing to reveal.
+        let (fixed, effects) = step(
+            DockState::new(Reveal::Fixed),
+            edge(Shown::Shown),
+            Stamp(0),
+            &p,
+        );
+        assert_eq!(fixed.reveal, Reveal::Fixed);
+        assert!(effects.is_empty());
     }
 
     #[test]

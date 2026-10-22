@@ -37,7 +37,7 @@ pub mod wallpaper;
 pub mod widgets;
 pub mod window;
 
-pub use bar::{BarGlyphSize, BarSettings};
+pub use bar::{BarGlyphSize, BarSettings, MenuBarHiding};
 pub use calendar::{CalendarSettings, FirstWeekday, WeekNumbers};
 pub use companion::{
     CONFIRM_ARM_FLOOR_MS, CompanionSettings, InField, NotifyWhen, SummonKey, confirm_arm,

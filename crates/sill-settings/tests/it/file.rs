@@ -115,6 +115,7 @@ fn a_save_is_one_file_and_reads_back() {
     let file = with(|f| {
         f.dock.autohide = sill_settings::AutoHide::On;
         f.bar.height_px = Px(28);
+        f.bar.autohide = sill_settings::MenuBarHiding::Always;
         f.launcher.web_engine_url = "https://example.org/?q={query}".to_owned();
         f.screenshot.tool = ShotTool::Command("shoot \"$1\"".to_owned());
     });

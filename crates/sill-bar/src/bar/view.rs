@@ -11,9 +11,12 @@ use super::app_name::AppName;
 use super::app_titles::AppMenuTitles;
 use super::clock::ClockItem;
 use super::control_center_item::ControlCenterItem;
+use super::hide::use_hide;
 use super::io::use_bar;
+use super::layer::layer;
 use super::model::BarInput;
 use super::module_item::ModuleItem;
+use super::reveal::{BODY_ID, RevealEvent, STRIP_ID, lifted, timing};
 use super::status_item::status_metrics;
 use super::system_item::SystemItem;
 use super::track::{Event, Target};
@@ -21,7 +24,8 @@ use super::tray::Tray;
 use super::workspaces::WorkspaceIndicator;
 use crate::control_center::menu_bar_modules;
 use sill_services::TrayService;
-use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
+use sill_ui_kit::autohide::Phase;
+use sill_ui_kit::hooks::{use_appearance, use_follow_layer, use_service, use_settings};
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::root::use_root_style;
@@ -48,6 +52,17 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     };
     let root = use_root_style();
     let session = use_bar(&output, popup_look);
+    let times = timing(&file, environment.settings.appearance.motion_level);
+    let hide = use_hide(file.bar.autohide, times, session, output.id);
+    use_follow_layer(layer(&output, &file));
+    let state = *hide.machine.read();
+    let lift = lifted(&state, (hide.drawn)(), &times, &file).0;
+    let lifted_style = match lift {
+        0 => String::new(),
+        up => format!("transform:translateY(-{:.2}px)", f64::from(up) / 100.0),
+    };
+    let strip_up = matches!(state.phase, Phase::Hidden | Phase::Armed { .. });
+    let strip_px = file.dock.autohide_trigger_strip_px.0;
     let modules = menu_bar_modules(&file.control_center);
     let outside = move |input: Event| session.feed(BarInput::Bar { input, title: None });
     let strip = format!("height:{}px", file.bar.height_px.0);
@@ -57,7 +72,12 @@ pub(super) fn bar(output: OutputInfo) -> Element {
         status_metrics(&file.bar).style_attr()
     );
     rsx! {
-        div { class: "sill-bar-root", style: metrics.style_attr(),
+        div {
+            class: "sill-bar-root",
+            style: metrics.style_attr(),
+            onmouseenter: move |_| hide.feed(RevealEvent::Enter),
+            onmouseleave: move |_| hide.feed(RevealEvent::Leave),
+        div { id: BODY_ID, class: "sill-bar-body", style: lifted_style,
         Ds {
             sheet: Some(sill_shell_kit::stylesheet()),
             appearance: popup_look.appearance,
@@ -92,6 +112,10 @@ pub(super) fn bar(output: OutputInfo) -> Element {
                     ClockItem { output }
                 }
             }
+        }
+        }
+        if strip_up {
+            div { id: STRIP_ID, class: "sill-bar-strip", style: "height:{strip_px}px" }
         }
         }
     }

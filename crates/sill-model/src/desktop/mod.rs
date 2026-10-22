@@ -42,8 +42,9 @@ pub use bar_thumbs::{
 };
 pub use casement_protocols::vocab::{
     Answer, AppLifeKind, AppVisibility, AskId as ConsentId, Attention, Corner, DragOutcome,
-    KeyGesture, Memory, OverviewMode, OverviewState, Power, ProofKind, ShellRole, Shown, SpaceKind,
-    SplitSide, SubjectKind, TrialAnswer, TrialId, WindowEntries, WindowEntry, WireCode,
+    KeyGesture, Memory, OverviewMode, OverviewState, Power, ProofKind, ScreenEdge, ShellRole,
+    Shown, SpaceKind, SplitSide, SubjectKind, TrialAnswer, TrialId, WindowEntries, WindowEntry,
+    WireCode,
 };
 pub use command::{DesktopCommand, Supports, supports};
 pub use consent::{Consent, ConsentSubject, SUBJECT_MAX_CHARS};

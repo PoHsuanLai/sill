@@ -31,6 +31,7 @@ impl Surface for Bar {
         root.context(links.focus.clone())
             .context(links.actions.clone())
             .context(links.notification_center.clone())
+            .context(links.edges.clone())
     }
 
     fn slots(_place: &Place) -> Vec<()> {

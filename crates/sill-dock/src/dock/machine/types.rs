@@ -2,6 +2,7 @@
 
 use ds::base::time::stamp::Stamp;
 use shell_host::{BlurSpec, ExclusiveZone, RegionSpec};
+use sill_model::desktop::Shown;
 use sill_model::units::Cpx;
 
 use super::hover::Hover;
@@ -166,6 +167,9 @@ pub enum DockEvent {
     DndLeave,
     Drop,
     MenuClosed,
+    /// The compositor shows or hides the dock over a full-screen window (the pointer rests at
+    /// the bottom edge, or goes away): it moves the surface itself, so the dock slides nowhere.
+    Edge(Shown),
     /// A `wl_surface.frame` callback.
     Frame,
     /// A one-shot timer asked for with [`DockEffect::WakeAt`] fired.
