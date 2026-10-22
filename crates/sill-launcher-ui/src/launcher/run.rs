@@ -24,6 +24,9 @@ pub struct EffectFrom {
     pub actions: Option<ActionLink>,
 }
 
+/// What an open is launched through: the token names it, as a launch names its app.
+const OPENER: &str = "xdg-open";
+
 /// Do `effect` with `services`, from `from`.
 pub async fn run_effect(
     effect: LauncherEffect,
@@ -42,7 +45,11 @@ pub async fn run_effect(
             .await
         }
         LauncherEffect::Open(target) => {
-            let token = sill_ui_kit::surface::token_from(from.surface.as_ref(), None).await;
+            // A token named for a launch lives long enough for a slow app's first window (the
+            // compositor's launch reach); the handler is xdg-open's pick, so the opener is named.
+            let token =
+                sill_ui_kit::surface::token_from(from.surface.as_ref(), Some(OPENER.to_owned()))
+                    .await;
             services
                 .launch
                 .control
