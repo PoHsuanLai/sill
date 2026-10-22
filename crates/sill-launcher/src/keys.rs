@@ -60,8 +60,9 @@ impl OwnAction {
     }
 
     /// The portable chord it starts with. `Primary` is Command on our desktop. None of these is
-    /// a standard action's chord, which the keymap would refuse: the launcher offers no bold, so
-    /// [`registration`] forgoes it and Search the web keeps Spotlight's ⌘B.
+    /// a standard action's chord, which the keymap would refuse: the launcher offers no bold and
+    /// no Move to Trash, so [`registration`] forgoes both; Search the web keeps Spotlight's ⌘B
+    /// and forgetting a clipboard entry keeps ⌘⌫.
     pub fn default_chord(self) -> Option<DefaultChord> {
         let text = match self {
             OwnAction::SearchWeb => "Primary+B",
@@ -91,13 +92,16 @@ impl OwnAction {
 pub const APP: &str = "sill";
 
 /// What the panel registers for `app`: every own action with its default chord, and the standard
-/// action the launcher does not offer (Bold, whose ⌘B Search the web takes).
+/// actions the launcher does not offer (Bold, whose ⌘B Search the web takes, and Move to Trash,
+/// whose ⌘⌫ forgets a clipboard entry).
 pub fn registration(app: &AppId) -> Registration {
     let rows = OwnAction::ALL
         .iter()
         .filter_map(|own| Some((own.action()?, own.default_chord()?)));
     rows.fold(
-        Registration::new(app).forgo(StandardAction::Bold),
+        Registration::new(app)
+            .forgo(StandardAction::Bold)
+            .forgo(StandardAction::MoveToTrash),
         |registration, (action, chord)| registration.action(action, chord),
     )
 }
