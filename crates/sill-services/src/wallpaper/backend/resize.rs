@@ -163,10 +163,20 @@ mod tests {
 
     #[test]
     fn a_resize_round_trip_keeps_the_source_centre_at_the_targets_centre() {
-        let dir =
-            std::env::temp_dir().join(format!("sill-wallpaper-resize-{}", std::process::id()));
+        // Every format a wallpaper may be: png and webp are written here (the jpeg encoder is
+        // lossy, so its centre pixel would only be near red).
+        for name in ["source.png", "source.webp"] {
+            round_trip(name);
+        }
+    }
+
+    fn round_trip(name: &str) {
+        let dir = std::env::temp_dir().join(format!(
+            "sill-wallpaper-resize-{}-{name}",
+            std::process::id()
+        ));
         std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));
-        let source = dir.join("source.png");
+        let source = dir.join(name);
         marked_source()
             .save(&source)
             .unwrap_or_else(|e| panic!("{e}"));
