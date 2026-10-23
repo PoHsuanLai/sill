@@ -447,6 +447,7 @@ fn a_form_field_carries_its_need_its_input_and_its_value() {
             ),
             need: ParamNeed::Required,
             sink: docket_core::ArgSink::Recipient,
+            filled: None,
         },
         ParamDecl {
             name: name("note"),
@@ -457,6 +458,7 @@ fn a_form_field_carries_its_need_its_input_and_its_value() {
             },
             need: ParamNeed::Optional,
             sink: docket_core::ArgSink::Body,
+            filled: None,
         },
     ];
     let mut values = Args::new();
