@@ -387,7 +387,9 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
             ctx.set_scroll_config(crate::scroll::config(&file));
         }
         // Published by `host_event` to the feed the surfaces draw it from; no geometry follows.
-        HostEvent::App(ShellMsg::Style(..) | ShellMsg::TurnOnStyles | ShellMsg::Appearance(_)) => {}
+        HostEvent::App(
+            ShellMsg::Style(..) | ShellMsg::Look | ShellMsg::TurnOnStyles | ShellMsg::Appearance(_),
+        ) => {}
         // Answered by `handle`, which holds the lock's state.
         HostEvent::App(ShellMsg::Lock(_)) => {}
         // Answered by `handle`, which maps the idle dim surfaces.

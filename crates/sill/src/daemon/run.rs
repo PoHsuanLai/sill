@@ -71,6 +71,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         settings::desktop_store(&env.dirs.config),
         store.clone(),
         appearance_store.clone(),
+        settings::LookSearch::of(&env.dirs),
         &env.dirs.quire_state(),
     );
     let (styles_rx, guard_rx) = styles.feeds();

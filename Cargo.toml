@@ -47,6 +47,8 @@ ds-behaviour = { path = "../quire/crates/ds-behaviour" }
 ds-core    = { path = "../quire/crates/ds-core" }
 ds         = { path = "../quire/crates/ds" }
 ds-lint    = { path = "../quire/crates/ds-lint" }
+# Extensions: the folder scan and the look capability (bayonet comes through it).
+ds-extensions = { path = "../quire/crates/ds-extensions" }
 ds-shell   = { path = "../quire/crates/ds-shell" }
 # quire's safe file reads and writes (`read_capped`, `write_atomic`); the PackageKit half is not needed.
 ds-helpers = { path = "../quire/crates/ds-helpers", default-features = false }

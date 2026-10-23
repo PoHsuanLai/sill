@@ -30,6 +30,9 @@ pub enum ShellMsg {
     Settings(Box<ShellFile>),
     /// A `style.css` settled on a new text (empty when the file is gone).
     Style(Sheet, Box<UserStyle>),
+    /// `extensions.toml` or an Extension folder settled on a change: the look is looked for again
+    /// (the look watch in `settings::look` sends it).
+    Look,
     /// The person pressed Turn On Again on the bar's notice (`settings::spawn_turn_on_follower` sends it).
     TurnOnStyles,
     /// The appearance (`appearance.toml` and the portal) settled on a new value.

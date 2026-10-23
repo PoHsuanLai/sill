@@ -17,6 +17,8 @@ ds-blitz = { workspace = true }
 ds = { workspace = true }
 ds-core = { workspace = true }
 ds-settings = { workspace = true }
+ds-extensions = { workspace = true }
+notify = { workspace = true }
 sill-shell-kit = { workspace = true }
 latchkey = { workspace = true }
 shell-host = { workspace = true }

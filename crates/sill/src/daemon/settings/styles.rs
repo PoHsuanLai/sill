@@ -13,12 +13,15 @@
 //! `sill style check` reports what is wrong in it. A `url()` the reach rule cut is logged once
 //! per change, one line each, so the person can see why an image did not show.
 //!
-//! The look is the third sheet of the cascade; it stays empty until `appearance.look` lands,
-//! which fills `Styles::look` and `StyleHomes::look` in [`load_styles`] and nowhere else.
+//! The look is the third sheet of the cascade: the stylesheet of the look Extension
+//! `appearance.look` names (`look.rs`), filled into `Styles::look` and `StyleHomes::look` in
+//! [`load_styles`] and nowhere else. It is looked for again when the appearance changes, when
+//! `extensions.toml` or an Extension folder changes, and at `sill reload`. The crash guard covers
+//! it like the other two sheets, since it is part of [`Styles`].
 
 use std::path::Path;
 
-use ds::style::kit::{LookStyle, StyleHomes, Styles, UserStyle};
+use ds::style::kit::{StyleHomes, Styles, UserStyle};
 use ds_blitz::{StylesGuard, TokioSpawner};
 use ds_settings::schema::KeyPath;
 use ds_settings::{AppearanceFile, SettingsError, SettingsWriter, Store, WatchState};
@@ -28,33 +31,43 @@ use sill_ui_kit::settings::TurnOnStyles;
 use tokio::runtime::Runtime;
 use tokio::sync::watch;
 
+use super::look::{ChosenLook, LookSearch, chosen_look, spawn_look_watch};
 use super::store::report;
 use crate::daemon::msg::{Sheet, ShellMsg};
 
 /// The name the guard keeps its record under, and the notice names.
 const PROGRAM: &str = "sill";
 
-/// The three stores a style comes from, the feeds they are published to, and the guard.
+/// The three stores a style comes from (the desktop one also holds `extensions.toml`), the feeds they are published to, and the guard.
 #[derive(Debug)]
 pub struct StyleKeeper {
     desktop: Store,
     app: Store,
     appearance: Store,
+    search: LookSearch,
     styles: watch::Sender<Styles>,
     guard: watch::Sender<Option<StylesGuard>>,
 }
 
 impl StyleKeeper {
-    /// Read both files from `desktop` and `app` and begin the guard in `state_dir` (before any
-    /// surface loads the styles). `appearance` is the store Turn On Again writes.
-    pub fn start(desktop: Store, app: Store, appearance: Store, state_dir: &Path) -> StyleKeeper {
-        let styles = load_styles(&desktop, &app);
+    /// Read both files from `desktop` and `app`, and the look `appearance` names from the
+    /// Extensions `search` finds, and begin the guard in `state_dir` (before any surface loads
+    /// the styles). `appearance` is also the store Turn On Again writes.
+    pub fn start(
+        desktop: Store,
+        app: Store,
+        appearance: Store,
+        search: LookSearch,
+        state_dir: &Path,
+    ) -> StyleKeeper {
+        let styles = load_styles(&desktop, &app, &appearance, &search);
         report_dropped(&styles);
         let guard = StylesGuard::begin(state_dir, PROGRAM, &styles);
         StyleKeeper {
             desktop,
             app,
             appearance,
+            search,
             styles: watch::channel(styles).0,
             guard: watch::channel(Some(guard)).0,
         }
@@ -70,15 +83,30 @@ impl StyleKeeper {
         (self.styles.subscribe(), self.guard.subscribe())
     }
 
-    /// Watch both files on `runtime`, sending each settled text to `host`.
+    /// Watch both files, `extensions.toml` and the Extension folders on `runtime`, sending each
+    /// settled text, and each reason to look for the look again, to `host`.
     pub fn spawn_watches(&self, runtime: &Runtime, host: &HostHandle<ShellMsg>) {
         spawn_style_watch(runtime, &self.desktop, Sheet::Desktop, host.clone());
         spawn_style_watch(runtime, &self.app, Sheet::App, host.clone());
+        spawn_look_watch(runtime, &self.desktop, &self.search, host.clone());
     }
 
-    /// Re-read both files and publish them.
+    /// Re-read both files and the look, and publish them.
     pub fn reload(&self) {
-        self.replace(load_styles(&self.desktop, &self.app));
+        self.replace(self.loaded());
+    }
+
+    /// Look for the look again and publish it, keeping the person's two sheets as they are.
+    pub fn refresh_look(&self) {
+        let ChosenLook { style, home } = chosen_look(&self.desktop, &self.appearance, &self.search);
+        let mut next = self.styles.borrow().clone();
+        next.look = style;
+        next.homes.look = home;
+        self.replace(next);
+    }
+
+    fn loaded(&self) -> Styles {
+        load_styles(&self.desktop, &self.app, &self.appearance, &self.search)
     }
 
     /// `sheet`'s new text, published.
@@ -91,11 +119,13 @@ impl StyleKeeper {
         self.replace(next);
     }
 
-    /// `event`'s change, published, if it is a watched style (`ShellMsg::Style`) or the person's
-    /// Turn On Again (`ShellMsg::TurnOnStyles`); anything else is a no-op.
+    /// `event`'s change, published, if it is a watched style (`ShellMsg::Style`), a reason to look
+    /// for the look again (`ShellMsg::Look`, `ShellMsg::Appearance`) or the person's Turn On
+    /// Again (`ShellMsg::TurnOnStyles`); anything else is a no-op.
     pub fn publish(&self, event: &HostEvent<ShellMsg>) {
         match event {
             HostEvent::App(ShellMsg::Style(sheet, text)) => self.set(*sheet, (**text).clone()),
+            HostEvent::App(ShellMsg::Look | ShellMsg::Appearance(_)) => self.refresh_look(),
             HostEvent::App(ShellMsg::TurnOnStyles) => self.turn_on_again(),
             _ => {}
         }
@@ -131,19 +161,26 @@ impl StyleKeeper {
     }
 }
 
-/// Both files as the stores have them now, and the folder each may read pictures from (the
-/// folder of the file). The look is empty until `appearance.look` lands.
-pub fn load_styles(desktop: &Store, app: &Store) -> Styles {
+/// Both files and the look as they are now, and the folder each may read pictures from (the
+/// folder of the file; the look Extension's folder). `desktop` also holds `extensions.toml`, and
+/// `appearance` `appearance.toml`.
+pub fn load_styles(
+    desktop: &Store,
+    app: &Store,
+    appearance: &Store,
+    search: &LookSearch,
+) -> Styles {
     let own = app.load::<UserStyle>();
     report(&own);
     let wide = desktop.load::<UserStyle>();
     report(&wide);
+    let ChosenLook { style, home } = chosen_look(desktop, appearance, search);
     Styles {
-        look: LookStyle::default(),
+        look: style,
         desktop: wide.value,
         app: own.value,
         homes: StyleHomes {
-            look: None,
+            look: home,
             desktop: desktop.dir(),
             app: app.dir(),
         },

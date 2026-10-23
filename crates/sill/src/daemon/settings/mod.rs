@@ -3,6 +3,7 @@
 
 mod appearance;
 mod focus;
+mod look;
 mod publish;
 mod store;
 mod styles;
@@ -13,6 +14,7 @@ pub use appearance::{
     appearance_store, load_appearance, publish_watched_appearance, spawn_appearance_watch,
 };
 pub use focus::spawn_focus;
+pub use look::LookSearch;
 pub use publish::{publish_watched, reload};
 #[cfg(test)]
 pub use store::save;

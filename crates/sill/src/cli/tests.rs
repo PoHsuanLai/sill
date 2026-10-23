@@ -638,6 +638,14 @@ fn write_schema_needs_no_subcommand() {
     assert!(cli.command.is_none());
 }
 
+#[test]
+fn write_selectors_needs_no_subcommand() {
+    let cli = Cli::try_parse_from(["sill", "--write-selectors", "/tmp/selectors"])
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(cli.write_selectors, Some(PathBuf::from("/tmp/selectors")));
+    assert!(cli.command.is_none());
+}
+
 /// The verbs the compositor sends are read by their own parser and by clap's grammar, and both
 /// come to the one request: the action `action_of` names. No string is copied here: the words are
 /// the verb's own `argv()`.

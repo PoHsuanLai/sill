@@ -22,6 +22,18 @@ fn main() -> ExitCode {
             }
         };
     }
+    if let Some(dir) = &cli.write_selectors {
+        return match sill::cli::selectors::write_to(dir) {
+            Ok(path) => sill::cli::stdout::print(&format!("{}\n", path.display())).exit_code(),
+            Err(error) => {
+                eprintln!(
+                    "sill: writing the style parts to {}: {error}",
+                    dir.display()
+                );
+                ExitCode::FAILURE
+            }
+        };
+    }
     match cli.command {
         Some(cli::Command::Run(args)) => sill::daemon::run(&args),
         Some(cli::Command::AuthCheck) => sill::cli::auth_check::main(),

@@ -21,6 +21,7 @@ mod launcher;
 mod made_up;
 mod notifications;
 mod request;
+pub mod selectors;
 mod session;
 pub mod stdout;
 pub mod style;
@@ -41,6 +42,7 @@ pub fn parse_args() -> Result<Cli, ExitCode> {
     if let Some(command) = verbs::verb_command(&args) {
         return Ok(Cli {
             write_schema: None,
+            write_selectors: None,
             command: Some(command),
         });
     }
@@ -66,6 +68,9 @@ pub struct Cli {
     /// Write `sill.settings.toml` (the settings schema, design/22 §9.2) into DIR and exit.
     #[arg(long, value_name = "DIR")]
     pub write_schema: Option<PathBuf>,
+    /// Write `sill.toml`, the style parts a stylesheet may rely on, into DIR and exit.
+    #[arg(long, value_name = "DIR")]
+    pub write_selectors: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Option<Command>,
 }

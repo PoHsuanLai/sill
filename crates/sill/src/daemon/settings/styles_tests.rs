@@ -15,6 +15,8 @@ use shell_host::HostEvent;
 
 use super::StyleKeeper;
 use crate::daemon::msg::{Sheet, ShellMsg};
+use crate::daemon::settings::look::LookSearch;
+use crate::daemon::settings::look::tests as look_tests;
 use crate::daemon::settings::store::{desktop_store, store};
 
 fn style(text: &str) -> UserStyle {
@@ -36,6 +38,7 @@ fn keeper(dir: &Path) -> StyleKeeper {
         desktop_store(dir),
         store(dir),
         desktop_store(dir),
+        LookSearch::new(dir.join("data"), Vec::new()),
         &dir.join("state"),
     )
 }
@@ -60,7 +63,7 @@ fn a_watched_style_event_publishes_its_own_sheet() {
     keeper.publish(&watched(Sheet::App, ".a { }"));
     let now = styles_of(&keeper);
     assert_eq!((now.desktop, now.app), (style(".d { }"), style(".a { }")));
-    assert!(now.look.is_blank(), "the look stays empty for now");
+    assert!(now.look.is_blank(), "no look is chosen");
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -174,4 +177,26 @@ fn a_change_to_any_sheet_gives_a_turned_off_start_a_fresh_try() {
 fn text_of<D: ds_settings::SettingsDoc>(store: &Store) -> String {
     let path = store.path::<D>().unwrap_or_else(|| panic!("no path"));
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+}
+
+/// The look joins the cascade at start, follows `appearance.look` and `extensions.toml` through
+/// the host events that announce them, and leaves the person's two sheets as they were.
+#[test]
+fn the_chosen_look_reaches_the_feed_with_its_folder_and_leaves_the_other_sheets() {
+    let scratch_look = look_tests::Scratch::new("keeper");
+    let folder = scratch_look.install_paper();
+    let own = scratch_look.path();
+    scratch_look.choose("org.example.Paper");
+    let keeper = keeper(own);
+    keeper.publish(&watched(Sheet::Desktop, ".d { }"));
+    let now = styles_of(&keeper);
+    assert_eq!(now.look.0, ".sill-bar { background: ivory; }\n");
+    assert_eq!(now.homes.look, Some(folder));
+    assert_eq!(now.desktop, style(".d { }"));
+
+    scratch_look.turn_off("org.example.Paper");
+    keeper.publish(&HostEvent::App(ShellMsg::Look));
+    let now = styles_of(&keeper);
+    assert!(now.look.is_blank() && now.homes.look.is_none());
+    assert_eq!(now.desktop, style(".d { }"), "the person's sheet is kept");
 }

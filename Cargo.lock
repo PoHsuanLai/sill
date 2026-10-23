@@ -454,7 +454,7 @@ dependencies = [
  "anyview-core",
  "anyview-plugin",
  "anyview-plugin-protocol",
- "bayonet",
+ "bayonet 0.2.0 (git+https://github.com/PoHsuanLai/bayonet.git?rev=2c5038dfdaa9352b0438c568856b5326eb95b818)",
  "dirs 6.0.0",
  "docket-client",
  "docket-core",
@@ -483,7 +483,7 @@ version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "anyview-plugin-protocol",
- "bayonet",
+ "bayonet 0.2.0 (git+https://github.com/PoHsuanLai/bayonet.git?rev=2c5038dfdaa9352b0438c568856b5326eb95b818)",
  "serde",
  "thiserror 2.0.21",
 ]
@@ -492,7 +492,7 @@ dependencies = [
 name = "anyview-plugin-protocol"
 version = "0.1.0-beta.1"
 dependencies = [
- "bayonet",
+ "bayonet 0.2.0 (git+https://github.com/PoHsuanLai/bayonet.git?rev=2c5038dfdaa9352b0438c568856b5326eb95b818)",
  "serde",
  "thiserror 2.0.21",
 ]
@@ -784,6 +784,18 @@ name = "base64"
 version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+
+[[package]]
+name = "bayonet"
+version = "0.2.0"
+source = "git+https://github.com/PoHsuanLai/bayonet.git?rev=0f5897c30033287b7df4e76dd653698b8ec5f3df#0f5897c30033287b7df4e76dd653698b8ec5f3df"
+dependencies = [
+ "rustix",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "toml",
+]
 
 [[package]]
 name = "bayonet"
@@ -2608,6 +2620,18 @@ name = "ds-desktop"
 version = "0.1.0"
 dependencies = [
  "ds-peer 0.1.0",
+]
+
+[[package]]
+name = "ds-extensions"
+version = "0.1.0"
+dependencies = [
+ "bayonet 0.2.0 (git+https://github.com/PoHsuanLai/bayonet.git?rev=0f5897c30033287b7df4e76dd653698b8ec5f3df)",
+ "ds-core",
+ "ds-helpers 0.1.0",
+ "ds-settings",
+ "serde",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -7020,11 +7044,13 @@ dependencies = [
  "ds",
  "ds-blitz",
  "ds-core",
+ "ds-extensions",
  "ds-harness",
  "ds-lint",
  "ds-settings",
  "keyboard-types 0.7.0",
  "latchkey",
+ "notify",
  "peephole-bus",
  "porter-core",
  "prov",
