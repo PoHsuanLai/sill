@@ -129,15 +129,24 @@ write_scene() {
 [launcher]
 files_backend = "fd"
 EOF
-  cat >"$CONFIG/sill/dock.json" <<'EOF'
-{
-  "pinned": [
-    "foot",
-    "org.gnome.Nautilus",
-    "google-chrome",
-    "btop"
-  ]
-}
+  cat >"$CONFIG/sill/layout.toml" <<'EOF'
+version = 1
+
+[[dock]]
+kind = "quire.dock.app"
+app = "foot"
+
+[[dock]]
+kind = "quire.dock.app"
+app = "org.gnome.Nautilus"
+
+[[dock]]
+kind = "quire.dock.app"
+app = "google-chrome"
+
+[[dock]]
+kind = "quire.dock.app"
+app = "btop"
 EOF
   backdrop_seed "$CONFIG"
 }

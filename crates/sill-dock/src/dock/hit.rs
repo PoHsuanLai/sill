@@ -47,7 +47,7 @@ fn half_gap(frame: &Frame) -> i32 {
 
 /// Where `dragged` would land with the pointer at `at`: beyond the pill grown by `remove`,
 /// removal; else the index among the other app tiles whose rest centres lie left of the
-/// pointer (the index a `dock.json` move takes, after the tile left its place).
+/// pointer (the index a `layout.toml` move takes, after the tile left its place).
 pub fn drop_zone(
     frame: &Frame,
     items: &[DockItem],

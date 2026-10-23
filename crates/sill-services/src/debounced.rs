@@ -187,7 +187,7 @@ mod tests {
 
     use super::{Debounced, EventFilter, OWN_FILE_QUIET, Place};
 
-    const FILE_NAME: &str = "dock.json";
+    const FILE_NAME: &str = "layout.toml";
 
     /// A rename onto the file (the atomic writer's own move) settles as exactly one touch,
     /// and a change to an unrelated sibling file is not reported at all.
@@ -196,7 +196,7 @@ mod tests {
         let dir = TempDir::new("fs-watch");
         let mut touched = Debounced::file(dir.path(), FILE_NAME).unwrap_or_else(|e| panic!("{e}"));
 
-        let tmp = dir.path().join("dock.json.part");
+        let tmp = dir.path().join("layout.toml.part");
         std::fs::write(&tmp, b"{}").unwrap_or_else(|e| panic!("{e}"));
         std::fs::rename(&tmp, dir.path().join(FILE_NAME)).unwrap_or_else(|e| panic!("{e}"));
 
@@ -253,10 +253,10 @@ mod tests {
     #[test]
     fn a_place_covers_its_file_its_tree_or_the_one_path_it_waits_for() {
         use std::path::Path;
-        let file = Place::File("/d/dock.json".into());
-        assert!(file.covers(Path::new("/d/dock.json")));
-        assert!(!file.covers(Path::new("/d/dock.json.part")));
-        assert!(!file.covers(Path::new("/d/sub/dock.json")));
+        let file = Place::File("/d/layout.toml".into());
+        assert!(file.covers(Path::new("/d/layout.toml")));
+        assert!(!file.covers(Path::new("/d/layout.toml.part")));
+        assert!(!file.covers(Path::new("/d/sub/layout.toml")));
         let tree = Place::Tree("/d".into());
         assert!(tree.covers(Path::new("/d/a/b.ics")));
         assert!(!tree.covers(Path::new("/e/b.ics")));

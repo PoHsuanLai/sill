@@ -8,9 +8,8 @@ use sill_model::pins::{DockPins, PinEvent, step};
 use sill_model::seed::{Store, first_dock};
 use tokio::sync::{mpsc, watch};
 
-use super::file::{FILE_NAME, load, save};
+use super::file::{FILE_NAME, load, save, store};
 use crate::debounced::{self, Debounced};
-use crate::first_run::store_of;
 use crate::machine::Published;
 
 /// Run until `commands` closes (the `Control` was dropped). While the file has never been
@@ -22,7 +21,7 @@ pub(crate) async fn run(
     apps: watch::Receiver<AppIndex>,
 ) {
     let tx = Published::new(tx, step);
-    let mut fresh = (store_of(&dir.join(FILE_NAME)) == Store::Missing).then_some(apps);
+    let mut fresh = (store(&dir) == Store::Missing).then_some(apps);
     let mut touched = match Debounced::file(&dir, FILE_NAME) {
         Ok(touched) => Some(touched),
         Err(error) => {
@@ -64,7 +63,7 @@ pub(crate) async fn run(
 /// Start the dock from `installed` unless the file was written in the meantime (a pin made
 /// before the apps were known).
 fn seed(dir: &Path, tx: &Published<DockPins, PinEvent>, installed: &AppIndex) {
-    if let Some(pins) = first_dock(store_of(&dir.join(FILE_NAME)), installed) {
+    if let Some(pins) = first_dock(store(dir), installed) {
         apply_and_save(dir, tx, PinEvent::Replaced(pins));
     }
 }

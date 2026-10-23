@@ -468,7 +468,7 @@ A settled item is deleted, not marked closed.
   line on the daemon's stderr (`sill: settings.toml: unknown key ...`), on every read, and the next
   save drops it. A value that does not parse costs only its own key; a file that is not TOML at
   all keeps the last good file in the watch and is reported invalid.
-- **Places are state, not settings**: dock pins (`$XDG_CONFIG_HOME/sill/dock.json`) and, per
+- **Places are state, not settings**: dock pins (`[[dock]]` rows of `$XDG_CONFIG_HOME/sill/layout.toml`, version = 1, kind `quire.dock.app` + `app`; an old `dock.json` is read once into it and left in place) and, per
   output connector, the desktop's widget list and cells (`$XDG_STATE_HOME/sill/desktop-widgets.json`:
   `{"outputs":[{"output":"DP-1","widgets":[...],"places":[...]}]}`). `widgets.desktop_widgets` is
   the default list: an output has a `widgets` list of its own once Edit Widgets has edited it

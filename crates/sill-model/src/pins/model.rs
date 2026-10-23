@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
 
-/// `dock.json`: the pinned apps, left to right.
+/// The `[[dock]]` rows of `layout.toml`: the pinned apps, left to right.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct DockPins {
     #[serde(default)]

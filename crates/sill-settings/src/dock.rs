@@ -1,5 +1,5 @@
 //! `dock.*` (design/22 §3.5, §4.1; design/10 §10.6). The Dock page shows the eleven keys §5
-//! lists; the geometry and timing keys are Advanced. Pinned apps are state in `dock.json`, not
+//! lists; the geometry and timing keys are Advanced. Pinned apps are placements in `layout.toml`, not
 //! here.
 
 use ds_settings::schema::Page;

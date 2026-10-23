@@ -1,5 +1,6 @@
-//! The dock's pinned apps, `~/.config/sill/dock.json` (design/10 §10.6: "pinned items stay in
-//! `~/.config/sill/dock.json`"; state, not a setting, design/22 §1 rule 3).
+//! The dock's pinned apps, the `[[dock]]` rows of `~/.config/sill/layout.toml` (design/28 §5.6:
+//! membership and order are data in the program's layout file). The old `dock.json` is read once
+//! into it and left in place.
 
 mod backend;
 
@@ -14,7 +15,7 @@ use crate::service::{Service, ServiceIo};
 /// The dock pins as a [`Service`]: loaded at once, then every [`PinEvent`] sent to the control
 /// applied and the file written atomically after each; an external edit (another process, a
 /// text editor) is picked up through a 30 ms debounced directory watch and published as if it
-/// were a `Replaced` event. A fresh account's file does not exist: once the installed apps are
+/// were a `Replaced` event. A fresh account's dock does not exist: once the installed apps are
 /// known the dock starts with the desktop's own (`sill_model::seed::first_dock`), once.
 #[derive(Debug)]
 pub enum PinsService {}

@@ -56,7 +56,7 @@ fn ids(pins: &DockPins) -> Vec<&str> {
 
 fn start(scratch: &TempDir) -> (Handle<PinsService>, watch::Sender<AppIndex>, PathBuf) {
     let env = Env::isolated(scratch.path());
-    let file = env.dirs.sill_config().join("dock.json");
+    let file = env.dirs.sill_config().join("layout.toml");
     let (apps, index) = watch::channel(AppIndex::default());
     let pins = spawn::<PinsService>(&tokio::runtime::Handle::current(), &env, index);
     (pins, apps, file)
@@ -103,7 +103,8 @@ async fn an_emptied_dock_stays_empty() {
     let scratch = TempDir::new("pins-seed-emptied");
     let folder = scratch.path().join("config/sill");
     std::fs::create_dir_all(&folder).unwrap_or_else(|e| panic!("{e}"));
-    std::fs::write(folder.join("dock.json"), r#"{"pinned":[]}"#).unwrap_or_else(|e| panic!("{e}"));
+    std::fs::write(folder.join("layout.toml"), "version = 1\ndock = []\n")
+        .unwrap_or_else(|e| panic!("{e}"));
     let (mut pins, apps, _) = start(&scratch);
     apps.send_replace(installed(&["mailo", "org.quire.Settings"]));
     assert!(
@@ -126,4 +127,43 @@ async fn a_pin_made_before_the_apps_were_known_is_kept() {
         !pinned_within(&mut pins, QUIET, |p| ids(p) != ["firefox"]).await,
         "the person's pin stands alone"
     );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn an_old_dock_file_is_carried_over_and_never_seeded_over() {
+    let scratch = TempDir::new("pins-seed-migrated");
+    let folder = scratch.path().join("config/sill");
+    std::fs::create_dir_all(&folder).unwrap_or_else(|e| panic!("{e}"));
+    let old = r#"{"pinned":["firefox"]}"#;
+    std::fs::write(folder.join("dock.json"), old).unwrap_or_else(|e| panic!("{e}"));
+    let (mut pins, apps, file) = start(&scratch);
+    assert!(pinned_within(&mut pins, SETTLE, |p| ids(p) == ["firefox"]).await);
+    apps.send_replace(installed(&["mailo", "org.quire.Settings"]));
+    assert!(
+        !pinned_within(&mut pins, QUIET, |p| ids(p) != ["firefox"]).await,
+        "the carried-over dock is not filled with the desktop's apps"
+    );
+    assert!(file.exists(), "the dock now lives in layout.toml");
+    assert_eq!(
+        std::fs::read_to_string(folder.join("dock.json")).unwrap_or_default(),
+        old,
+        "the old file is left as it was"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn an_edit_of_layout_toml_reaches_the_dock() {
+    let scratch = TempDir::new("pins-live-reload");
+    // The folder is there before the shell starts, as on any login: the watch is on it.
+    let folder = scratch.path().join("config/sill");
+    std::fs::create_dir_all(&folder).unwrap_or_else(|e| panic!("{e}"));
+    let (mut pins, _apps, file) = start(&scratch);
+    // Let the first read and the watch settle before the edit.
+    tokio::time::sleep(SETTLE / 4).await;
+    std::fs::write(
+        &file,
+        "version = 1\n[[dock]]\nkind = \"quire.dock.app\"\napp = \"btop\"\n",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert!(pinned_within(&mut pins, SETTLE, |p| ids(p) == ["btop"]).await);
 }

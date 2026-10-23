@@ -1,4 +1,4 @@
-//! Which tiles the dock shows, in order (design/10 §10.3.9): `[pinned (dock.json order)]
+//! Which tiles the dock shows, in order (design/10 §10.3.9): `[pinned (layout.toml order)]
 //! [running, unpinned, in launch order] | [Trash]`, running windows grouped by `match_app`.
 //!
 //! "Launch order" is read from the window keys: the `windows` thread numbers toplevels as it
