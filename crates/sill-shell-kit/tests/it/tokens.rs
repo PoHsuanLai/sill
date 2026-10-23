@@ -313,6 +313,17 @@ const PER_ELEMENT: &[&str] = &[
     "--plate-base-d",
     "--plate-deep-d",
     "--plate-ink-d",
+    // A file icon's tinted folder and marks per scheme, and its label size (`FileIcon`).
+    "--file-tab-l",
+    "--file-tab-d",
+    "--file-body-l",
+    "--file-body-d",
+    "--file-ink-l",
+    "--file-ink-d",
+    "--file-light-l",
+    "--file-light-d",
+    "--file-mark",
+    "--file-label-size",
     // A notification group's layer count (`NotificationCard`).
     "--layers",
     "--swipe-dx",

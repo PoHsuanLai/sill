@@ -404,8 +404,9 @@ pub(super) fn role_of(kind: FieldKind) -> FieldRole {
         FieldKind::OutgoingPort => FieldRole::OutgoingPort,
         FieldKind::OutgoingSecurity => FieldRole::OutgoingSecurity,
         FieldKind::SessionUrl => FieldRole::SessionUrl,
-        // An AI server's address (porter's ServerUrl), and any kind porter adds later: quire's
-        // form has no role of its own for it yet, so it is the plain server field.
+        FieldKind::ServerUrl => FieldRole::ServerUrl,
+        // Any kind porter adds later: quire's form has no role of its own for it yet, so it is the
+        // plain server field.
         _ => FieldRole::Server,
     }
 }
@@ -427,6 +428,7 @@ pub(super) fn kind_of(role: FieldRole) -> FieldKind {
         FieldRole::OutgoingPort => FieldKind::OutgoingPort,
         FieldRole::OutgoingSecurity => FieldKind::OutgoingSecurity,
         FieldRole::SessionUrl => FieldKind::SessionUrl,
+        FieldRole::ServerUrl => FieldKind::ServerUrl,
     }
 }
 
