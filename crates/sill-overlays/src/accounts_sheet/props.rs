@@ -368,7 +368,8 @@ fn part_of(kind: FieldKind) -> Option<FormPart> {
         FieldKind::Username | FieldKind::Password | FieldKind::AppPassword | FieldKind::Token => {
             Some(FormPart::SignIn)
         }
-        FieldKind::Address | FieldKind::ApiKey => None,
+        // A server address (porter's ServerUrl) and any kind porter adds later: no group.
+        _ => None,
     }
 }
 
@@ -403,6 +404,9 @@ pub(super) fn role_of(kind: FieldKind) -> FieldRole {
         FieldKind::OutgoingPort => FieldRole::OutgoingPort,
         FieldKind::OutgoingSecurity => FieldRole::OutgoingSecurity,
         FieldKind::SessionUrl => FieldRole::SessionUrl,
+        // An AI server's address (porter's ServerUrl), and any kind porter adds later: quire's
+        // form has no role of its own for it yet, so it is the plain server field.
+        _ => FieldRole::Server,
     }
 }
 
