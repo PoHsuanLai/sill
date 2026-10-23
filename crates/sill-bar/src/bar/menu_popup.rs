@@ -27,7 +27,7 @@ use super::pick::BarPick;
 use super::plan::{Landing, PopupReport, landing};
 use super::popup::{MAX_PX, room};
 use crate::control_center::{ControlCenter, ModuleDropdown};
-use sill_ui_kit::hooks::use_user_style;
+use sill_ui_kit::hooks::use_styles;
 use sill_ui_kit::menu::PopupFrame;
 use sill_ui_kit::root::RootStyle;
 
@@ -97,7 +97,7 @@ pub(crate) fn BarPopup() -> Element {
 /// it is on.
 #[component]
 pub(crate) fn PopupDocument(current: PopupView) -> Element {
-    let user_style = use_user_style();
+    let styles = use_styles();
     let look = current.look;
     let which = current.menu;
     // A text menu wraps at design/13 §13.3.3's maximum; a panel is as wide as its settings say.
@@ -130,7 +130,7 @@ pub(crate) fn PopupDocument(current: PopupView) -> Element {
             CONTROL_CENTER,
         ),
     };
-    let root = RootStyle::popup(name, user_style);
+    let root = RootStyle::popup(name, styles);
     rsx! {
         AppStyle { css: CONTROL_CENTER_CSS }
         PopupFrame { room: room(), widest, submenu_room, style: look.metrics.style_attr(),
@@ -144,7 +144,8 @@ pub(crate) fn PopupDocument(current: PopupView) -> Element {
                 tint_alpha: Some(look.tint),
                 stack: Some(look.stack),
                 surface: root.surface,
-                user_style: root.user_style,
+                styles: root.styles,
+                custom_styles: root.custom_styles,
                 {content}
             }
         }

@@ -3,7 +3,7 @@
 
 use std::cell::RefCell;
 
-use ds_settings::{Store, UserStyle};
+use ds_settings::Store;
 use sill_model::desktop::DesktopCommand;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
@@ -12,6 +12,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::actions::show_desktop::Stash;
+use crate::daemon::settings::StyleKeeper;
 use crate::outputs::Outputs;
 
 /// Everything [`super::route`] may touch to answer one request.
@@ -24,7 +25,7 @@ pub struct Reach<'a> {
     /// The settings file's store.
     pub store: &'a Store,
     pub settings: &'a watch::Sender<ShellFile>,
-    pub user_style: &'a watch::Sender<UserStyle>,
+    pub styles: &'a StyleKeeper,
     /// The desktop's own compositor, for the requests that ask it for something.
     pub desktop: DesktopLine<'a>,
     /// The async runtime, for the work an action starts off the host thread (a launch waits for

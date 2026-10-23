@@ -7,6 +7,15 @@ use sill_ipc::request::Request;
 use sill_ipc::response::Response;
 use sill_settings::ShellFile;
 
+/// Which of the person's two `style.css` files a text is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Sheet {
+    /// `~/.config/quire/style.css`, every quire app's.
+    Desktop,
+    /// `~/.config/sill/style.css`, the shell's own.
+    App,
+}
+
 /// One message to the host thread (`HostHandle::send`).
 #[derive(Debug)]
 pub enum ShellMsg {
@@ -19,8 +28,10 @@ pub enum ShellMsg {
     Action(sill_ui_kit::links::Asked),
     /// `settings.toml` settled on a new value.
     Settings(Box<ShellFile>),
-    /// `style.css` settled on a new text (empty when the file is gone).
-    UserStyle(Box<UserStyle>),
+    /// A `style.css` settled on a new text (empty when the file is gone).
+    Style(Sheet, Box<UserStyle>),
+    /// The person pressed Turn On Again on the bar's notice (`settings::spawn_turn_on_follower` sends it).
+    TurnOnStyles,
     /// The appearance (`appearance.toml` and the portal) settled on a new value.
     Appearance(Box<Environment>),
     /// Hold or drop shell-host's session lock (`crate::lock::spawn_follower` sends it).

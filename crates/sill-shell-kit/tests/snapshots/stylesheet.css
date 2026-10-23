@@ -1,5 +1,5 @@
 /* ds::stylesheet(), generated from the token table. Do not edit. */
-@layer ds, app;
+@layer ds, app, look;
 @layer ds {
 /* == reset == */
 /* reset.css: the document stays transparent and `.ds` carries the base text (design/02-TYPE.md

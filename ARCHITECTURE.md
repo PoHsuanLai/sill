@@ -879,10 +879,18 @@ the file and the file changes the mode; the file stays the one truth. The appear
 (`daemon/settings/appearance.rs`: `appearance.toml` and the settings portal, one watch for the
 whole shell, published as `SettingsFeed::appearance`).
 
-The person's stylesheet (`~/.config/sill/style.css`, quire's `UserStyle`, ARCHITECTURE.md
-section 10 in quire) takes the same path: `daemon/settings/user_style.rs` watches it through
-`ds_settings::Store`, publishes it on the feed, and `SurfaceRoot` passes it to `Ds`, so every
-surface restyles live. Each surface root carries `data-surface = Surface::NAME`, which makes
+The person's styles take the same path, as three sheets in quire's cascade (`ds::style::kit::Styles`:
+the look, the desktop-wide `~/.config/quire/style.css` and sill's own `~/.config/sill/style.css`,
+quire's `UserStyle`, ARCHITECTURE.md section 10 in quire). `daemon/settings/styles.rs`'s
+`StyleKeeper` watches both files through `ds_settings::Store`, publishes them on the feed, and
+`SurfaceRoot` passes them to `Ds` with `custom_styles` (`appearance.custom_styles`, "Use my
+styles"), so every surface restyles live. The look stays empty until `appearance.look` lands; the
+one place that fills it is `load_styles`. A `url()` the reach rule cut is logged once per change.
+The keeper also begins quire's crash guard (`ds_blitz::StylesGuard`, record in
+`$XDG_STATE_HOME/sill/styles-guard/sill`): a start it turned the styles off for draws none, and the
+bar shows quire's `StylesOffNotice` (`sill_ui_kit::root::StylesNotice`; the bar is the one surface
+every session has) whose Turn On Again sets `appearance.custom_styles` back to `use`. Each
+surface root carries `data-surface = Surface::NAME`, which makes
 the surface names part of the public selector surface: renaming one breaks the person's file
 and needs a note. `sill style check` prints `ds_lint::user_stylesheet`'s notes for the file.
 The person's rules are unlayered and win over both cascade layers: quire's `@layer ds`, and

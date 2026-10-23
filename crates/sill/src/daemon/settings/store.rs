@@ -11,13 +11,19 @@ use std::path::Path;
 
 #[cfg(test)]
 use ds_settings::SettingsError;
-use ds_settings::{ConfigRoot, Loaded, SettingsDoc, Store};
+use ds_settings::{AppName, ConfigRoot, Loaded, SettingsDoc, Store};
 use sill_settings::{APP, ShellFile};
 
 /// The store of `sill/settings.toml` under `config`, `$XDG_CONFIG_HOME` as `Env` resolved it (a
 /// scratch directory in a test or a dev script).
 pub fn store(config: &Path) -> Store {
     Store::new(ConfigRoot::Scratch(config.to_path_buf()), APP)
+}
+
+/// The store of `quire/style.css` under `config`: the person's desktop-wide style, which every
+/// quire app reads beside its own.
+pub fn desktop_store(config: &Path) -> Store {
+    Store::new(ConfigRoot::Scratch(config.to_path_buf()), AppName::QUIRE)
 }
 
 /// Print what `loaded` reports, one line per key.

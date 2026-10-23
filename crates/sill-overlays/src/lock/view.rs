@@ -90,7 +90,8 @@ fn Stage(
             extent: RootExtent::Viewport,
             blur: BlurState::Unavailable,
             surface: root.surface,
-            user_style: root.user_style,
+            styles: root.styles,
+            custom_styles: root.custom_styles,
             AppStyle { css: LOCK_CSS }
             LockBody { output, scheme, host, caps, on_unlock }
         }

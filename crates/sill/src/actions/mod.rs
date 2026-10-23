@@ -127,12 +127,12 @@ fn settings(
     )
 }
 
-/// Re-read `settings.toml` and `style.css` and publish them: the bar and every surface pick them
+/// Re-read `settings.toml` and both `style.css` files and publish them: the bar and every surface pick them
 /// up through the settings feed, the scroll engine through `ctx`. Dock pins are not re-read here: the pins
 /// service watches its own file.
 pub fn reload(ctx: &mut HostCtx<ShellMsg>, reach: &Reach) -> Response {
     crate::daemon::settings::reload(reach.store, reach.settings);
-    crate::daemon::settings::reload_user_style(reach.store, reach.user_style);
+    reach.styles.reload();
     ctx.set_scroll_config(crate::scroll::config(&reach.settings.borrow()));
     Response::Done
 }

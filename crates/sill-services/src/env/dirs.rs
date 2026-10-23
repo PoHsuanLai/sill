@@ -145,6 +145,12 @@ impl Dirs {
         self.state.join("sill")
     }
 
+    /// The desktop's shared folder under the state directory (`quire`): where quire keeps records
+    /// every app shares, such as the styles guard's.
+    pub fn quire_state(&self) -> PathBuf {
+        self.state.join("quire")
+    }
+
     /// `sill`'s own folder under the cache directory.
     pub fn sill_cache(&self) -> PathBuf {
         self.cache.join("sill")

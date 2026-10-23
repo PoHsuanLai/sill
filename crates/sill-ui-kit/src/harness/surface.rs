@@ -8,9 +8,10 @@ use std::rc::Rc;
 
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
-use ds_blitz::FocusFallback;
+use ds::style::kit::{Styles, UserStyle};
+use ds_blitz::{FocusFallback, StylesGuard};
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
-use ds_settings::{Environment, UserStyle};
+use ds_settings::Environment;
 use shell_host::{LayerExtent, OutputInfo};
 use sill_settings::ShellFile;
 use tokio::sync::watch;
@@ -53,8 +54,12 @@ pub struct SurfaceHarness<S: Surface> {
     pub link: S::Link,
     /// The settings file the surface follows: send a new one to change a setting live.
     pub settings: watch::Sender<ShellFile>,
-    /// The person's `style.css` the surface follows: send a new one to restyle it live.
-    pub user_style: watch::Sender<UserStyle>,
+    /// The styles the surface follows: send new ones to restyle it live.
+    pub styles: watch::Sender<Styles>,
+    /// The crash guard the surface follows.
+    pub guard: watch::Sender<Option<StylesGuard>>,
+    /// What the surface's notice sends when the person presses Turn On Again.
+    pub turn_on: crate::links::Outbox<crate::settings::TurnOnStyles>,
     /// The size and scale the document draws at.
     pub(super) viewport: Viewport,
 }
@@ -79,7 +84,8 @@ pub struct SurfaceSetup<S: Surface> {
     appearance: PinnedAppearance,
     services: Option<(Services, fake::Feeds)>,
     root_hook: Option<Rc<dyn Fn()>>,
-    user_style: UserStyle,
+    styles: Styles,
+    guard: Option<StylesGuard>,
     focus: FocusFallback,
     file_roots: shell_host::FileRoots,
 }
@@ -116,7 +122,8 @@ impl<S: Surface> SurfaceHarness<S> {
             appearance: PinnedAppearance::default(),
             services: None,
             root_hook: None,
-            user_style: UserStyle::default(),
+            styles: Styles::default(),
+            guard: None,
             focus: FocusFallback::default(),
             file_roots: shell_host::FileRoots::default(),
         }
@@ -136,9 +143,21 @@ impl<S: Surface> SurfaceSetup<S> {
         self
     }
 
-    /// The person's `style.css` the surface starts with.
-    pub fn user_style(mut self, text: &str) -> Self {
-        self.user_style = UserStyle(text.to_owned());
+    /// The person's desktop-wide `style.css` the surface starts with.
+    pub fn desktop_style(mut self, text: &str) -> Self {
+        self.styles.desktop = UserStyle(text.to_owned());
+        self
+    }
+
+    /// The person's `style.css` for the shell the surface starts with.
+    pub fn app_style(mut self, text: &str) -> Self {
+        self.styles.app = UserStyle(text.to_owned());
+        self
+    }
+
+    /// The crash guard the surface starts with (`StylesGuard::begin` on a scratch folder).
+    pub fn guard(mut self, guard: StylesGuard) -> Self {
+        self.guard = Some(guard);
         self
     }
 
@@ -194,17 +213,22 @@ impl<S: Surface> SurfaceSetup<S> {
             appearance,
             services,
             root_hook,
-            user_style,
+            styles,
+            guard,
             focus,
             file_roots,
         } = self;
         let viewport = viewport.unwrap_or_else(|| layer_viewport::<S>(&output, &settings, slot));
         let (services, feeds) = services.unwrap_or_else(fake::services);
         let (settings, settings_rx) = watch::channel(settings);
-        let (user_style_tx, user_style_rx) = watch::channel(user_style);
+        let (styles_tx, styles_rx) = watch::channel(styles);
+        let (guard_tx, guard_rx) = watch::channel(guard);
+        let turn_on = crate::links::Outbox::default();
         let feed = SettingsFeed {
             settings: settings_rx,
-            user_style: user_style_rx,
+            styles: styles_rx,
+            guard: guard_rx,
+            turn_on: turn_on.clone(),
             appearance: watch::channel(Environment::default()).1,
         };
         let context_link = link.clone();
@@ -235,7 +259,9 @@ impl<S: Surface> SurfaceSetup<S> {
             feeds,
             link,
             settings,
-            user_style: user_style_tx,
+            styles: styles_tx,
+            guard: guard_tx,
+            turn_on,
             viewport,
         }
     }

@@ -168,7 +168,8 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                 tint_alpha: Some(environment.tint_alpha()),
                 stack: Some(stack),
                 surface: root.surface,
-                user_style: root.user_style,
+                styles: root.styles,
+                custom_styles: root.custom_styles,
                 AppStyle { css: DOCK_CSS }
                 DockFloor {}
                 div {

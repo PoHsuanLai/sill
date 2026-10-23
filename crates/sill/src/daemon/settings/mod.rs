@@ -5,7 +5,7 @@ mod appearance;
 mod focus;
 mod publish;
 mod store;
-mod user_style;
+mod styles;
 mod watch;
 mod write_key;
 
@@ -16,9 +16,7 @@ pub use focus::spawn_focus;
 pub use publish::{publish_watched, reload};
 #[cfg(test)]
 pub use store::save;
-pub use store::{load, store};
-pub use user_style::{
-    load_user_style, publish_watched_style, reload_user_style, spawn_user_style_watch,
-};
+pub use store::{desktop_store, load, store};
+pub use styles::{StyleKeeper, spawn_turn_on_follower};
 pub use watch::spawn_watch;
 pub use write_key::write_key;

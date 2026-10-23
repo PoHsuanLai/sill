@@ -7,11 +7,11 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::prelude::*;
+use ds::style::kit::{Styles, UserStyle};
 use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shell_type::ShellMetrics;
 use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use ds_lint::{Exception, LintConfig, Profile, Rule, assert_clean};
-use ds_settings::UserStyle;
 use sill_settings::ShellFile;
 
 use crate::settings::SettingsFeed;
@@ -63,7 +63,11 @@ fn app() -> Element {
 /// The popup as its opener leaves it, plus the person's stylesheet on the feed it hands over.
 fn styled_app() -> Element {
     use_context_provider(|| SettingsFeed {
-        user_style: tokio::sync::watch::channel(UserStyle(STYLE.to_owned())).1,
+        styles: tokio::sync::watch::channel(Styles {
+            app: UserStyle(STYLE.to_owned()),
+            ..Styles::default()
+        })
+        .1,
         ..SettingsFeed::fixed(ShellFile::default())
     });
     provide_popup_contexts();
@@ -149,7 +153,7 @@ fn a_popup_names_its_surface_and_draws_the_person_style_its_opener_handed_over()
         Some("test-menu")
     );
     assert_eq!(
-        bare.html().matches("data-ds-user").count(),
+        bare.html().matches("data-ds-style").count(),
         0,
         "no feed: no style"
     );
@@ -158,7 +162,8 @@ fn a_popup_names_its_surface_and_draws_the_person_style_its_opener_handed_over()
         styled.attr(".ds", "data-surface").as_deref(),
         Some("test-menu")
     );
-    assert_eq!(styled.html().matches("data-ds-user").count(), 1);
+    assert_eq!(styled.html().matches("data-ds-style").count(), 1);
+    assert!(styled.html().contains("data-ds-style=\"app\""));
     assert!(styled.html().contains(STYLE), "{}", styled.html());
 }
 

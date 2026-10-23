@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 use std::time::Instant;
 
-use ds_settings::{Environment, Store, UserStyle};
+use ds_settings::{Environment, Store};
 use shell_host::{
     CloseReason, HostCtx, HostEvent, KeyboardFocus, LayerOp, PalmrestAction, SurfaceId,
 };
@@ -46,8 +46,8 @@ pub struct Shell {
     /// The settings file's store.
     pub store: Store,
     pub settings: watch::Sender<ShellFile>,
-    /// The person's `style.css`, which every surface root draws.
-    pub user_style: watch::Sender<UserStyle>,
+    /// The person's styles and their crash guard, which every surface root draws.
+    pub styles: settings::StyleKeeper,
     /// The desktop's appearance, which every surface root draws.
     pub appearance: watch::Sender<Environment>,
     /// The links every surface root is given and the requests write.
@@ -203,7 +203,7 @@ fn reached<T>(
         links: &shell.links,
         store: &shell.store,
         settings: &shell.settings,
-        user_style: &shell.user_style,
+        styles: &shell.styles,
         desktop: DesktopLine(&carry),
         runtime: &shell.runtime,
         stash: &shell.stash,
@@ -256,7 +256,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     // The watch's re-read reaches the feed (every follower: the policies, the locker, corners, the
     // focus mode) the same way `sill reload` does; geometry follows the same event just below.
     settings::publish_watched(&shell.settings, &event);
-    settings::publish_watched_style(&shell.user_style, &event);
+    shell.styles.publish(&event);
     settings::publish_watched_appearance(&shell.appearance, &event);
     rescan_displays(&shell.services, &event);
     on_event(ctx, &mut shell.outputs, event);
@@ -387,7 +387,7 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
             ctx.set_scroll_config(crate::scroll::config(&file));
         }
         // Published by `host_event` to the feed the surfaces draw it from; no geometry follows.
-        HostEvent::App(ShellMsg::UserStyle(_) | ShellMsg::Appearance(_)) => {}
+        HostEvent::App(ShellMsg::Style(..) | ShellMsg::TurnOnStyles | ShellMsg::Appearance(_)) => {}
         // Answered by `handle`, which holds the lock's state.
         HostEvent::App(ShellMsg::Lock(_)) => {}
         // Answered by `handle`, which maps the idle dim surfaces.

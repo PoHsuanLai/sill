@@ -7,8 +7,8 @@ use std::rc::Rc;
 
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
+use ds::style::kit::Styles;
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
-use ds_settings::UserStyle;
 use shell_host::OutputInfo;
 use sill_settings::ShellFile;
 use tokio::sync::watch;
@@ -30,8 +30,8 @@ pub struct LockHarness {
     surface: LockSurface,
     /// The surface's link, the daemon's end.
     pub link: LockLink,
-    /// The person's `style.css` the surface follows: send a new one to restyle it live.
-    pub user_style: watch::Sender<UserStyle>,
+    /// The styles the surface follows: send new ones to restyle it live.
+    pub styles: watch::Sender<Styles>,
 }
 
 impl fmt::Debug for LockHarness {
@@ -112,9 +112,9 @@ impl LockSetup {
         };
         let (mut services, feeds) = fake::services();
         change(&mut services);
-        let (user_style, user_style_rx) = watch::channel(UserStyle::default());
+        let (styles, styles_rx) = watch::channel(Styles::default());
         let feed = SettingsFeed {
-            user_style: user_style_rx,
+            styles: styles_rx,
             ..SettingsFeed::fixed(settings)
         };
         let context_link = link.clone();
@@ -134,7 +134,7 @@ impl LockSetup {
             feeds,
             surface,
             link,
-            user_style,
+            styles,
         }
     }
 }

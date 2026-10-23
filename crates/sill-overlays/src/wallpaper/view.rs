@@ -40,7 +40,8 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
             extent: RootExtent::Viewport,
             blur: BlurState::Unavailable,
             surface: root.surface,
-            user_style: root.user_style,
+            styles: root.styles,
+            custom_styles: root.custom_styles,
             AppStyle { css: WALLPAPER_CSS }
             div {
                 class: "sill-wallpaper",

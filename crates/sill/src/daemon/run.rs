@@ -16,7 +16,7 @@ use sill_services::env::Dirs;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     ActionLink, BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink, EdgeLink,
-    EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink,
+    EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, Outbox,
     PowerMenuLink, SheetLink, SpacesBarLink, SplitPickerLink, SwitcherLink, WindowMenuLink,
 };
 use sill_ui_kit::services::{Services, Wiring};
@@ -66,13 +66,21 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let store = settings::store(&env.dirs.config);
     let first = settings::load(&store);
     let (settings, settings_rx) = watch::channel(first.clone());
-    let (user_style, user_style_rx) = watch::channel(settings::load_user_style(&store));
     let appearance_store = settings::appearance_store();
+    let styles = settings::StyleKeeper::start(
+        settings::desktop_store(&env.dirs.config),
+        store.clone(),
+        appearance_store.clone(),
+        &env.dirs.quire_state(),
+    );
+    let (styles_rx, guard_rx) = styles.feeds();
     let first_appearance = settings::load_appearance(&appearance_store);
     let (appearance, appearance_rx) = watch::channel(first_appearance.clone());
     let settings_feed = SettingsFeed {
         settings: settings_rx,
-        user_style: user_style_rx,
+        styles: styles_rx,
+        guard: guard_rx,
+        turn_on: Outbox::default(),
         appearance: appearance_rx,
     };
     let links = build_links(&runtime, &settings_feed, &store, &services.desktop);
@@ -150,6 +158,8 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         &store,
         held,
     );
+    styles.spawn_watches(&runtime, &host_handle);
+    settings::spawn_turn_on_follower(&runtime, &settings_feed.turn_on, host_handle.clone());
     crate::intents::spawn_follower(runtime.handle(), host_handle.clone(), shell_actions);
     crate::companion::spawn_follower(
         runtime.handle(),
@@ -166,7 +176,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         settings_feed,
         store,
         settings,
-        user_style,
+        styles,
         appearance,
         links,
         keys: sill_model::keyboard::ShellKeys::default(),
@@ -284,7 +294,6 @@ fn spawn_followers(
     crate::idle_dim::spawn_follower(runtime.handle(), services, host.clone());
     crate::sheet_latch::spawn_follower(runtime.handle(), services, links, host.clone());
     settings::spawn_watch(runtime, store, host.clone());
-    settings::spawn_user_style_watch(runtime, store, host.clone());
     crate::outgoing::spawn_all(runtime.handle(), links, host);
     crate::empty_trash::spawn_follower(runtime.handle(), &links.empty_trash);
     crate::spaces_bar::spawn_outbox(runtime.handle(), links, host.clone());

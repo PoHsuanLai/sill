@@ -17,7 +17,7 @@ mod use_service;
 mod use_services;
 mod use_settings;
 mod use_sheet_output;
-mod use_user_style;
+mod use_styles;
 
 pub use use_appearance::{PinnedAppearance, SwitchableAppearance, use_appearance};
 pub use use_banner_output::use_banner_output;
@@ -32,4 +32,4 @@ pub use use_service::{use_control, use_service, use_service_part};
 pub use use_services::use_services;
 pub use use_settings::{use_section, use_settings};
 pub use use_sheet_output::use_sheet_output;
-pub use use_user_style::use_user_style;
+pub use use_styles::{StyleSource, use_styles};

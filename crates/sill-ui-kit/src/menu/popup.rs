@@ -12,7 +12,7 @@ use ds::style::appearance::blur::BlurState;
 use super::frame::PopupFrame;
 use super::look::{PopupLook, PopupRoom};
 use super::model::MenuModel;
-use crate::hooks::use_user_style;
+use crate::hooks::use_styles;
 use crate::root::RootStyle;
 
 /// `model`'s menu: `on_pick` hears a pick, `on_close` the menu closing (after a pick too).
@@ -25,7 +25,7 @@ pub fn MenuPopup<Model: MenuModel>(
     surface: &'static str,
 ) -> Element {
     let look = use_context::<PopupLook>();
-    let root = RootStyle::popup(surface, use_user_style());
+    let root = RootStyle::popup(surface, use_styles());
     let room = use_context::<PopupRoom>();
     rsx! {
         PopupFrame { room, style: look.metrics.style_attr(),
@@ -39,7 +39,8 @@ pub fn MenuPopup<Model: MenuModel>(
                 tint_alpha: Some(look.tint),
                 stack: Some(look.stack),
                 surface: root.surface,
-                user_style: root.user_style,
+                styles: root.styles,
+                custom_styles: root.custom_styles,
                 Menu {
                     placement: MenuPlacement::Context,
                     // The frame lays the card in flow: the anchor places nothing.

@@ -39,7 +39,8 @@ pub fn SurfaceRoot(
             tint_alpha: Some(environment.tint_alpha()),
             stack: Some(environment.material_stack()),
             surface: root.surface,
-            user_style: root.user_style,
+            styles: root.styles,
+            custom_styles: root.custom_styles,
             {children}
         }
     }

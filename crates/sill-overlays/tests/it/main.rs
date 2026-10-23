@@ -18,9 +18,9 @@ mod polkit_prompt;
 mod power_menu;
 mod spaces_bar;
 mod split_picker;
+mod styles;
 mod switcher;
 mod switcher_wlr;
-mod user_style;
 mod voice_consent;
 mod wallpaper;
 

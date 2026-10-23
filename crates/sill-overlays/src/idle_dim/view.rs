@@ -24,7 +24,8 @@ pub(super) fn idle_dim(output: OutputInfo) -> Element {
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
             surface: root.surface,
-            user_style: root.user_style,
+            styles: root.styles,
+            custom_styles: root.custom_styles,
             IdleDim { level: scene.level, phase: scene.phase }
         }
     }

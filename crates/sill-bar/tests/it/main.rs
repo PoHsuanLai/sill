@@ -15,6 +15,7 @@ mod control_center_lint;
 mod control_center_render;
 mod dark_contrast;
 mod status_glyphs;
+mod styles_notice;
 
 /// A file in `tests/it` that `main.rs` does not list would compile to nothing.
 #[test]

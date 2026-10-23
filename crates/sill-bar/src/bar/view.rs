@@ -1,6 +1,7 @@
 //! The bar's document: `Ds` root with the workspace's SpaceLook, `Material::Bar`, the left group
 //! (the system menu, the app's name and menus, the workspaces) and the right one, and the one
-//! reusable menu popup's session in context.
+//! reusable menu popup's session in context. The bar also carries the crash guard's notice that
+//! the person's styles were turned off (`StylesNotice`): it is the one surface every session has.
 
 use dioxus::prelude::*;
 use ds::prelude::*;
@@ -30,7 +31,7 @@ use sill_ui_kit::hooks::{
 };
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::menu::PopupLook;
-use sill_ui_kit::root::use_root_style;
+use sill_ui_kit::root::{StylesNotice, use_root_style};
 use sill_ui_kit::shell_style::shell_metrics;
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
@@ -91,7 +92,8 @@ pub(super) fn bar(output: OutputInfo) -> Element {
             tint_alpha: Some(popup_look.tint),
             stack: Some(popup_look.stack),
             surface: root.surface,
-            user_style: root.user_style,
+            styles: root.styles,
+            custom_styles: root.custom_styles,
             AppStyle { css: BAR_CSS }
             div {
                 class: "sill-bar",
@@ -104,6 +106,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
                     AppMenuTitles { output: output.clone() }
                     WorkspaceIndicator { output: output.clone() }
                 }
+                StylesNotice {}
                 div { class: "sill-bar-group", style: status,
                     if !tray.items.is_empty() {
                         Tray { output: output.clone() }
