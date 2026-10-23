@@ -81,7 +81,7 @@ anyview-store = { path = "../anyview/crates/anyview-store" }
 
 # The portable Blitz repairs (own repo, public). Local checkouts redirect it to a sibling path through
 # each workspace root's [patch] (quire/CONSUMING.md section 1); git consumers get this rev.
-blitz-kit = { git = "https://github.com/PoHsuanLai/blitz-kit", rev = "07f0272ba48cee9a14297dbdc845a3e3a9bc96aa" }
+blitz-kit = { git = "https://github.com/PoHsuanLai/blitz-kit", rev = "ec1fd3e2ea6afb10b91fbe84d0b07a061b17f21a" }
 
 # The portable keymap core (own repo, public): actions, chords, the resolver and per-platform
 # sources. quire is the one toolkit integration (`ds::keys`); apps declare their actions with it.

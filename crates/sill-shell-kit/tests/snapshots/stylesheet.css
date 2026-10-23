@@ -1237,6 +1237,12 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-empty-state-title{ font-family:var(--font-display); font-size:var(--fs-title); font-weight:700; line-height:1.3; color:var(--ink); }
 .ds-empty-state-body{ max-width:32em; font-size:var(--fs-control); line-height:1.45; color:var(--ink-soft); }
 .ds-empty-state-action{ display:flex; gap:var(--s-8); align-items:center; justify-content:center; margin-top:var(--s-8); }
+/* -- fade -- */
+/* Fade: a box round content that fades out before it is unmounted. The content appears at once;
+   it leaves over `--t-quick` with the popover's exit and takes no press while it goes. */
+
+.ds-fade{ display:inline-flex; align-items:center; justify-content:center; flex:none; }
+.ds-fade[*|data-presence=leaving]{ pointer-events:none; animation:menu-out var(--t-quick) var(--e-exit) forwards; }
 /* -- fact_list -- */
 /* FactList (design/30 section 2.2): FieldRow's Form layout without a control. Attribute selectors
    carry `*|` (spike S2). The label column is FieldRow's 120 px, ending at the value, in the
@@ -3232,6 +3238,13 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-progress[*|data-style=ring] .ds-progress-track{ color:var(--line); }
 .ds-progress[*|data-style=ring] .ds-progress-fill{ color:var(--accent); }
 .ds-progress[*|data-style=ring][*|data-pending=step] .ds-progress-fill{ transform:rotate(calc(var(--step) * 30deg)); }
+/* Pie: the outline circle and the wedge share one box, as the ring's do. */
+.ds-progress[*|data-style=pie]{ width:var(--pg-box); height:var(--pg-box); }
+.ds-progress[*|data-style=pie] .ds-progress-track,
+.ds-progress[*|data-style=pie] .ds-progress-fill{ position:absolute; top:0; left:0; width:100%; height:100%; }
+.ds-progress[*|data-style=pie] .ds-progress-track{ color:var(--line); }
+.ds-progress[*|data-style=pie] .ds-progress-fill{ color:var(--accent); }
+.ds-progress[*|data-style=pie][*|data-pending=step] .ds-progress-fill{ transform:rotate(calc(var(--step) * 30deg)); }
 .ds-progress-glyph{ position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
 /* -- split_view -- */
 /* SplitView (design/30 section 2.7, `NSSplitView`). Attribute selectors carry `*|` (spike S2). A
