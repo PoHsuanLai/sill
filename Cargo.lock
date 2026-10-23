@@ -404,7 +404,7 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=99cffc7d8717b75d1fa1e85867a54987df366470)",
  "rustix",
 ]
 
@@ -460,7 +460,7 @@ dependencies = [
  "docket-core",
  "docket-dbus",
  "ds-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=99cffc7d8717b75d1fa1e85867a54987df366470)",
  "futures-util",
  "latchkey",
  "log",
@@ -502,7 +502,7 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=99cffc7d8717b75d1fa1e85867a54987df366470)",
  "log",
  "rustix",
  "serde",
@@ -2666,9 +2666,9 @@ dependencies = [
 [[package]]
 name = "ds-helpers"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78#3dfaadd23e4bb7f60f5bcf359f712e9d59011b78"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=99cffc7d8717b75d1fa1e85867a54987df366470#99cffc7d8717b75d1fa1e85867a54987df366470"
 dependencies = [
- "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78)",
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=99cffc7d8717b75d1fa1e85867a54987df366470)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2711,7 +2711,7 @@ dependencies = [
 [[package]]
 name = "ds-peer"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78#3dfaadd23e4bb7f60f5bcf359f712e9d59011b78"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=99cffc7d8717b75d1fa1e85867a54987df366470#99cffc7d8717b75d1fa1e85867a54987df366470"
 dependencies = [
  "futures-timer",
  "thiserror 2.0.21",
