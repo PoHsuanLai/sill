@@ -3865,6 +3865,7 @@ html,body{margin:0;padding:0;background:transparent}
 }
 /* A bar with a trailing control can keep the title to the room beside it. */
 .ds-titlebar[*|data-title-room=beside] .ds-titlebar-title{ position:relative; flex:1 1 0; min-width:0; left:auto; right:auto; margin:0 var(--s-8); }
+.ds-titlebar-leading{ position:relative; flex:none; display:flex; align-items:center; margin-left:var(--s-8); }
 .ds-titlebar-trailing{ position:relative; flex:none; display:flex; align-items:center; margin-left:auto; }
 .ds-titlebar-name{ min-width:0; overflow:hidden; }
 .ds-titlebar-subtitle{ min-width:0; overflow:hidden; font-weight:400; font-size:var(--fs-help); color:var(--f-ink-faint); }
