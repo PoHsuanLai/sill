@@ -404,7 +404,7 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=7fa27afc834e8365b356e7a0db94b269e62aaaf6)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78)",
  "rustix",
 ]
 
@@ -454,13 +454,13 @@ dependencies = [
  "anyview-core",
  "anyview-plugin",
  "anyview-plugin-protocol",
- "bayonet 0.2.0 (git+https://github.com/PoHsuanLai/bayonet.git?rev=0f5897c30033287b7df4e76dd653698b8ec5f3df)",
+ "bayonet",
  "dirs 6.0.0",
  "docket-client",
  "docket-core",
  "docket-dbus",
  "ds-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=7fa27afc834e8365b356e7a0db94b269e62aaaf6)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78)",
  "futures-util",
  "latchkey",
  "log",
@@ -483,7 +483,7 @@ version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
  "anyview-plugin-protocol",
- "bayonet 0.2.0 (git+https://github.com/PoHsuanLai/bayonet.git?rev=0f5897c30033287b7df4e76dd653698b8ec5f3df)",
+ "bayonet",
  "serde",
  "thiserror 2.0.21",
 ]
@@ -492,7 +492,7 @@ dependencies = [
 name = "anyview-plugin-protocol"
 version = "0.1.0-beta.1"
 dependencies = [
- "bayonet 0.2.0 (git+https://github.com/PoHsuanLai/bayonet.git?rev=0f5897c30033287b7df4e76dd653698b8ec5f3df)",
+ "bayonet",
  "serde",
  "thiserror 2.0.21",
 ]
@@ -502,7 +502,7 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=7fa27afc834e8365b356e7a0db94b269e62aaaf6)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78)",
  "log",
  "rustix",
  "serde",
@@ -784,18 +784,6 @@ name = "base64"
 version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
-
-[[package]]
-name = "bayonet"
-version = "0.2.0"
-source = "git+https://github.com/PoHsuanLai/bayonet.git?rev=0f5897c30033287b7df4e76dd653698b8ec5f3df#0f5897c30033287b7df4e76dd653698b8ec5f3df"
-dependencies = [
- "rustix",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "toml",
-]
 
 [[package]]
 name = "bayonet"
@@ -2626,7 +2614,7 @@ dependencies = [
 name = "ds-extensions"
 version = "0.1.0"
 dependencies = [
- "bayonet 0.2.0 (git+https://github.com/PoHsuanLai/bayonet.git?rev=d66e243188033c1b7c74e636cb5f548f75caecb8)",
+ "bayonet",
  "ds-core",
  "ds-helpers 0.1.0",
  "ds-settings",
@@ -2678,9 +2666,9 @@ dependencies = [
 [[package]]
 name = "ds-helpers"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=7fa27afc834e8365b356e7a0db94b269e62aaaf6#7fa27afc834e8365b356e7a0db94b269e62aaaf6"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78#3dfaadd23e4bb7f60f5bcf359f712e9d59011b78"
 dependencies = [
- "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=7fa27afc834e8365b356e7a0db94b269e62aaaf6)",
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2723,7 +2711,7 @@ dependencies = [
 [[package]]
 name = "ds-peer"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=7fa27afc834e8365b356e7a0db94b269e62aaaf6#7fa27afc834e8365b356e7a0db94b269e62aaaf6"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=3dfaadd23e4bb7f60f5bcf359f712e9d59011b78#3dfaadd23e4bb7f60f5bcf359f712e9d59011b78"
 dependencies = [
  "futures-timer",
  "thiserror 2.0.21",
