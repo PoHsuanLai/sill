@@ -69,7 +69,12 @@ fn spec(kind: FieldKind, entry: Entry, presence: Presence) -> FieldSpec {
 }
 
 fn row(kind: CapabilityKind, state: ServiceState, limit: Option<LimitReason>) -> ServiceRow {
-    ServiceRow { kind, state, limit }
+    ServiceRow {
+        kind,
+        state,
+        limit,
+        access: None,
+    }
 }
 
 fn line(key: &str, name: &str, offer: ServiceOffer, limit: Option<Limitation>) -> ServiceLine {
