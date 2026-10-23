@@ -1664,6 +1664,26 @@ html,body{margin:0;padding:0;background:transparent}
 .ds-list[*|data-style=source-list][*|data-sidebar-size=small] .ds-row-leading[*|data-leading=tile] > .ds-icon-tile{ width:var(--sidebar-tile-s); height:var(--sidebar-tile-s); }
 .ds-list[*|data-style=source-list][*|data-sidebar-size=large] .ds-row-leading[*|data-leading=tile]{ width:var(--sidebar-tile-l); }
 .ds-list[*|data-style=source-list][*|data-sidebar-size=large] .ds-row-leading[*|data-leading=tile] > .ds-icon-tile{ width:var(--sidebar-tile-l); height:var(--sidebar-tile-l); }
+
+/* Reorder (`onreorder`): each row leads with its grip, in the row's leading pad, which widens to
+   hold it; the hairline between rows still runs from the row's text. A press on the grip holds
+   the row; past 3 px it lifts (`data-drag=lifted`: on the group's ground, over the others, with
+   the drag shadow) and follows the pointer by `--drag-y`, and the rows it passes slide one row's
+   height out of its way (`data-drag=moved`) over `--t-quick`. The grip is the row's quietest ink
+   and shows the hand that grabs; it comes after the row, so it is drawn over it and takes its
+   own presses. */
+.ds-list[*|data-reorder=grip]{ --list-grip:calc(var(--s-10) + var(--s-14)); }
+.ds-list[*|data-reorder=grip] .ds-list-item{ position:relative; }
+.ds-list[*|data-reorder=grip] .ds-list-item > .ds-row{ padding-left:calc(var(--s-6) + var(--list-grip)); }
+.ds-list[*|data-reorder=grip][*|data-style=grouped] .ds-list-item + .ds-list-item > .ds-row::before{ left:calc(var(--sep) - var(--s-14) + var(--s-6) + var(--list-grip)); }
+.ds-list-grip{
+  position:absolute; left:var(--s-10); top:0; bottom:0; width:var(--s-14);
+  display:flex; align-items:center; justify-content:center; color:var(--ink-faint); cursor:grab;
+}
+.ds-list-item[*|data-drag]{ transform:translateY(var(--drag-y)); }
+.ds-list-item[*|data-drag=moved]{ transition:transform var(--t-quick) var(--e-out); }
+.ds-list-item[*|data-drag=lifted]{ z-index:var(--z-raise); background:var(--grp); box-shadow:var(--shadow-drag); }
+.ds-list-item[*|data-drag=lifted] .ds-list-grip{ cursor:grabbing; }
 /* -- marquee -- */
 /* Marquee (Finder's rubber band, shared by CollectionView and VirtualTable): a drag that begins on
    empty space draws a rectangle in the accent's translucent wash with a hairline of the accent, and

@@ -339,6 +339,8 @@ const PER_ELEMENT: &[&str] = &[
     // A collection's thumbnail size and grid pitch (`CollectionView`).
     "--cv-thumb",
     "--cv-pitch",
+    // A dragged list row's offset while it is reordered (`List { onreorder }`).
+    "--drag-y",
 ];
 
 #[test]
