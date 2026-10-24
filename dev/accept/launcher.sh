@@ -313,7 +313,7 @@ stop_fm() {
   FM=
 }
 
-# `sill debug key`'s spelling (a W3C key name, `+ctrl`, `+shift`) of a key by its usual word;
+# `sill debug key`'s spelling (a W3C key name, `+super` for ⌘ (Cmd arrives as Super), `+shift`) of a key by its usual word;
 # any other word is already a key name (`f`, `Home`).
 key_spec() {
   case "$1" in
@@ -326,9 +326,9 @@ key_spec() {
     space) echo Space ;;
     tab) echo Tab ;;
     shift-tab) echo Tab+shift ;;
-    actions) echo k+ctrl ;;
-    quick-look) echo y+ctrl ;;
-    reveal) echo r+ctrl ;;
+    actions) echo k+super ;;
+    quick-look) echo y+super ;;
+    reveal) echo r+super ;;
     *) echo "$1" ;;
   esac
 }

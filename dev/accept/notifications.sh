@@ -136,11 +136,12 @@ EXIT_MS=250
 SLACK_MS=400
 # The banners' column: the card's centre in it (surface-local), layer::ROOM plus half a 360 x 72
 # card; the capture's drawn height, the cards' shadows included: one card (a group adds its
-# layers) stays under 170; three stack to 240-360 (a card and its gap are about 80 px).
+# layers) stays under 170; three one-line cards (48 least height since the denser cards of
+# 7e90a7cb, and an 8 px gap) stack to about 190, and four would pass 215.
 BANNER_CARD_X=220
 BANNER_CARD_Y=76
 ONE_CARD_MAX=170
-THREE_CARDS_MIN=240
+THREE_CARDS_MIN=160
 # The real-input run's resting pointer: somewhere on the desktop, away from every sill surface
 # but the wallpaper.
 REST_X=$(( WIDTH / 3 ))
@@ -350,7 +351,7 @@ step_grouping() {
   shows "$OUT_DIR/five.png" || return 1
   h3=$(drawn_height "$OUT_DIR/five.png")
   echo "five from five apps: drawn ${h3} px tall (three cards past ${THREE_CARDS_MIN}, under four)" >&2
-  [ "$h3" -ge "$THREE_CARDS_MIN" ] && [ "$h3" -le $((THREE_CARDS_MIN + 120)) ] || return 1
+  [ "$h3" -ge "$THREE_CARDS_MIN" ] && [ "$h3" -le $((THREE_CARDS_MIN + 50)) ] || return 1
   clear_banners || return 1
   notify "Ada Lovelace" --app chat --body "Hi" || return 1
   notify "Ada Lovelace" --app chat --body "Are you there?" || return 1

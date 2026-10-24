@@ -173,6 +173,7 @@ EOF
 # 3.
 step_launch() {
   local log="$OUT_DIR/launch.log" x before after start
+  command -v foot >/dev/null || { expected_skip "the launch needs foot, which is not installed here (not a jail tool)"; return; }
   kill_nested_terms
   sleep 1
   x=$(first_tile_x)
@@ -205,6 +206,7 @@ red() { [ "$1" -gt 150 ] && [ "$2" -lt 110 ] && [ "$4" -gt 128 ]; }
 # 4.
 step_badge() {
   local log="$OUT_DIR/badge.log" x y before after start
+  command -v foot >/dev/null || { expected_skip "the badge sits on the launched foot's tile; foot is not installed here"; return; }
   # Inside the badge's right padding, clear of its digit: quire's Small `Badge` is a 14 px tall
   # capsule hung off the plate's top right corner (`DockTile`), its right edge 2 px right of the
   # plate's (80.5 % of a 48 px tile) and its middle 7 px below the tile's top.
@@ -247,8 +249,13 @@ step_menu() {
 # 6.
 step_radius() {
   local log="$OUT_DIR/radius.log"
+  # Step 5 left the menu open with the real pointer on the dock, which keeps it magnified (the
+  # tiles then reach above the pill and the edge below is not the pill's): on casement a click
+  # far from the dock closes the menu and takes the pointer off it.
+  [ "$COMPOSITOR" = casement ] && casementctl debug inject "move 10 10" "sleep 60" "press left" \
+    "sleep 40" "release left" "sleep 200" >/dev/null 2>&1
   sill debug leave "$DOCK" >/dev/null 2>&1
-  sleep 0.5
+  sleep 1
   sill debug capture "$DOCK" "$OUT_DIR/radius.png" >"$log" 2>&1 || return 1
   python3 - "$OUT_DIR/radius.png" "$OUT_W" "$PILL_Y" "$PILL_RADIUS" <<'EOF' | tee -a "$log" >&2
 import sys

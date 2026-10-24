@@ -186,6 +186,13 @@ click_bar() { # x y
   surface_click "$BAR" "$1" "$2" >/dev/null 2>&1
 }
 
+escape_key() {
+  case "$COMPOSITOR" in
+    casement) casementctl debug inject "key Escape down" "sleep 30" "key Escape up" "sleep 150" ;;
+    *) sill debug key "$POPUP" Escape ;;
+  esac
+}
+
 close_popup() {
   popup_up || return 0
   click_bar $((BAR_W / 2)) $((BAR_H / 2))
@@ -255,7 +262,10 @@ step_dismiss() {
   click_bar $CC_ITEM
   wait_surface "$POPUP" 20 up || return 1
   sleep 0.3
-  if sill debug key "$POPUP" Escape >>"$log" 2>&1; then
+  # A real Escape on casement, through the seat as a person's: it closes the popup from inside,
+  # and the next click on the item must open it again (a late end of the old popup once closed
+  # the new one at once).
+  if escape_key >>"$log" 2>&1; then
     if wait_surface "$POPUP" 20 down; then escape="Escape closed it"; else
       escape="Escape did not reach it: left open"; close_popup; fi
   else
