@@ -49,6 +49,11 @@ pub struct DebugSeams {
     /// or the router for this daemon only. The desktop's table is read as usual and wins.
     #[arg(long, value_name = "FILE")]
     pub dev_callers: Option<std::path::PathBuf>,
+    /// Name callers by this stand-in `/proc` (`<DIR>/<pid>/cgroup`, `<DIR>/units/<unit>` for a
+    /// unit's main process) instead of the system's and its systemd manager: a jail has neither,
+    /// so a test names intentd here as docket's own harness does (`INTENTD_PROC_ROOT`).
+    #[arg(long, value_name = "DIR")]
+    pub proc_root: Option<std::path::PathBuf>,
 }
 
 /// `--session-dry-run-offers`' words.
@@ -169,12 +174,23 @@ impl DebugSeams {
             Some(path) => dev_callers(path),
             None => env.callers,
         };
+        let proc_root = match &self.proc_root {
+            Some(dir) => {
+                eprintln!(
+                    "sill: callers: named by the stand-in proc root {} (--proc-root)",
+                    dir.display()
+                );
+                dir.clone()
+            }
+            None => env.proc_root,
+        };
         Env {
             ddc,
             idle_times,
             polkit,
             session_actions,
             callers,
+            proc_root,
             ..env
         }
     }
@@ -289,28 +305,26 @@ mod tests {
     }
 
     #[test]
-    fn run_takes_a_dev_callers_file() {
-        let cli = Cli::try_parse_from(["sill", "run", "--dev-callers", "/tmp/rows.toml"])
-            .unwrap_or_else(|e| panic!("{e}"));
-        let Some(Command::Run(args)) = cli.command else {
-            panic!("not run: {:?}", cli.command);
-        };
-        assert_eq!(
-            args.debug.dev_callers.as_deref(),
-            Some(std::path::Path::new("/tmp/rows.toml"))
-        );
-    }
-
-    #[test]
-    fn run_takes_a_fake_ddc_file() {
-        let cli = Cli::try_parse_from(["sill", "run", "--fake-ddc", "/tmp/ddc.json"])
-            .unwrap_or_else(|e| panic!("{e}"));
-        let Some(Command::Run(args)) = cli.command else {
-            panic!("not run: {:?}", cli.command);
-        };
-        assert_eq!(
-            args.debug.fake_ddc.as_deref(),
-            Some(std::path::Path::new("/tmp/ddc.json"))
-        );
+    fn run_takes_its_stand_in_files() {
+        type Pick = fn(&super::DebugSeams) -> Option<&std::path::Path>;
+        let cases: [(&str, &str, Pick); 3] = [
+            ("--dev-callers", "/tmp/rows.toml", |d| {
+                d.dev_callers.as_deref()
+            }),
+            ("--fake-ddc", "/tmp/ddc.json", |d| d.fake_ddc.as_deref()),
+            ("--proc-root", "/tmp/proc", |d| d.proc_root.as_deref()),
+        ];
+        for (flag, value, pick) in cases {
+            let cli = Cli::try_parse_from(["sill", "run", flag, value])
+                .unwrap_or_else(|e| panic!("{flag}: {e}"));
+            let Some(Command::Run(args)) = cli.command else {
+                panic!("{flag}: not run: {:?}", cli.command);
+            };
+            assert_eq!(
+                pick(&args.debug),
+                Some(std::path::Path::new(value)),
+                "{flag}"
+            );
+        }
     }
 }

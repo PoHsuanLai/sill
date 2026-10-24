@@ -72,6 +72,24 @@ as_terminal() {
   exec "$@"
 }
 
+# intentd and the daemon each know the other by its systemd unit: intentd gives the sheet host's
+# role only to the main process of sill.service (the system's callers file, docket
+# dist/intentd-callers.toml, handed over as INTENTD_SYSTEM_CALLERS), and the daemon's provider
+# answers only intentd.service's main process. Each judges the other at its first call, at the
+# start, so each is started through `as_unit UNIT`, which names its own process in the scratch proc
+# root as docket's own harness does (world.rs `place`): its cgroup, and it as the unit's main
+# process. It then execs the program, which keeps the pid. The daemon reads that root
+# (`--proc-root`), intentd too (INTENTD_PROC_ROOT).
+as_unit() {
+  local unit="$1"
+  shift
+  mkdir -p "$PROC_ROOT/$$" "$PROC_ROOT/units"
+  echo "0::/user.slice/user-1000.slice/user@1000.service/app.slice/$unit.service" >"$PROC_ROOT/$$/cgroup"
+  echo "$$" >"$PROC_ROOT/units/$unit.service"
+  exec "$@"
+}
+unit_prefix() { UNIT_PREFIX=(bash -c "$(declare -f as_unit); PROC_ROOT=\$0 as_unit \"\$@\"" "$PROC_ROOT" "$1"); }
+
 # `quire-do ARGS` in the scratch environment, to completion.
 quire() { in_env bash -c "$(declare -f as_terminal); PROC_ROOT=\$0 as_terminal \"\$@\"" "$PROC_ROOT" "$QUIRE_DO" "$@"; }
 
@@ -156,7 +174,10 @@ fresh() {
 
 start_intentd() {
   mkdir -p "$PROC_ROOT"
-  in_env env INTENTD_PROC_ROOT="$PROC_ROOT" "$INTENTD" >"$OUT_DIR/intentd.log" 2>&1 &
+  cp "$DOCKET_DIR/dist/intentd-callers.toml" "$OUT_DIR/intentd-callers.toml" || return 1
+  unit_prefix intentd
+  in_env env INTENTD_PROC_ROOT="$PROC_ROOT" INTENTD_SYSTEM_CALLERS="$OUT_DIR/intentd-callers.toml" \
+    "${UNIT_PREFIX[@]}" "$INTENTD" >"$OUT_DIR/intentd.log" 2>&1 &
   INTENTD_PID=$!
   # intentd owns org.quire.Intents1 once `quire-do apps` answers.
   for _ in $(seq 100); do
@@ -241,7 +262,9 @@ step_allow_from_the_terminal() {
   quire_bg term shell dock.pin --app e2e-term.desktop
   await_sheet 10 >/dev/null || { echo "no sheet appeared" | tee "$log" >&2; return 1; }
   armed
-  # The keyboard is on Allow; the terminal's offer is two buttons back (Don't Allow, then it).
+  # The keyboard is on Allow; the terminal's offer is three buttons back (Don't Allow, Never,
+  # then it: the offer sits above the footer's Never, Don't Allow and Allow).
+  key Tab+shift
   key Tab+shift
   key Tab+shift
   key Enter
@@ -367,7 +390,9 @@ backdrop_seed "$CONFIG" || exit 1
 status=0
 # The stand-in intentd is the router for this daemon only (a debug build's `--dev-callers`).
 dev_caller org.quire.Intents router "$INTENTD" || exit 1
-if start_intentd && launch_daemon; then
+unit_prefix sill
+LAUNCH_PREFIX=("${UNIT_PREFIX[@]}")
+if start_intentd && launch_daemon --proc-root "$PROC_ROOT"; then
   NAME=$(output_name) || exit 1
   SHEET="sill-confirm-$NAME"
   # The daemon names the seat: serving, and the surface exists.

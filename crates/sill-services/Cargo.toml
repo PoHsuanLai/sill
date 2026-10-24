@@ -12,7 +12,9 @@ publish.workspace = true
 # `sill run --dev-callers FILE`: callers named in a person's own rows file are let in at
 # `Proof::Dev` (peephole's `dev-rows`). Off by default; only the sill binary's `debug` feature turns
 # it on, so no shipped build has it (the desktop gate refuses `dev-rows` in any release shape).
-dev-callers = ["peephole-bus/dev-rows"]
+# It also lets `sill run --proc-root DIR` name callers by a stand-in `/proc` (docket's
+# `fixture-callers`), as a jail with no systemd must.
+dev-callers = ["peephole-bus/dev-rows", "docket-dbus/fixture-callers"]
 
 [dependencies]
 anyview-core = { workspace = true }
