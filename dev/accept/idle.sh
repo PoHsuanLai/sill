@@ -4,9 +4,12 @@
 #
 # SAFETY. Nothing here reaches logind, the session bus's org.freedesktop.ScreenSaver, PAM, a
 # backlight or wayland-0:
-# - one private dbus-daemon (dev/private-bus.conf) is both the daemon's system and session bus;
+# - one private dbus-daemon (dev/private-bus.conf) is the daemon's system bus;
 #   examples/logind_standin.rs owns org.freedesktop.login1 there and only RECORDS Suspend,
-#   SetIdleHint and Inhibit (it sends PrepareForSleep and Lock on command);
+#   SetIdleHint and Inhibit (it sends PrepareForSleep and Lock on command). The session bus is
+#   casement's own private one (dev/up.sh), where org.quire.Compositor1 hands the daemon the
+#   shell's connection: idle's watches are the shell's, under no app minimum (casement holds an
+#   app's to 5 s);
 # - the daemon gets its own XDG_RUNTIME_DIR, XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME,
 #   the nested socket as an absolute WAYLAND_DISPLAY (the script refuses wayland-0), and
 #   XDG_CURRENT_DESKTOP=quire so it resolves a sill session (Host::SillSession) and owns idle;
@@ -75,6 +78,8 @@ TIMES="6,0"
 DAEMON_LOG="$OUT_DIR/daemon.log"
 # The daemon resolves a sill session (Host::SillSession) and owns idle only as the sill session's desktop (quire, as desktop-session sets it).
 SESSION_ENV=(XDG_CURRENT_DESKTOP=quire)
+# The session bus: casement's (set by start_compositor), so the daemon reaches org.quire.Compositor1.
+session_bus() { echo "${CASEMENT_BUS:-$BUS}"; }
 IN_ENV_EXTRA=("${SESSION_ENV[@]}")
 
 nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
@@ -179,7 +184,7 @@ start_idle_daemon() {
   backdrop_seed "$CONFIG" || return 1
   printf '[session]\nlock_grace_s = 5\n\n[idle]\ndim_s = 3\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
     >"$CONFIG/sill/settings.toml"
-  IN_ENV_EXTRA=("${SESSION_ENV[@]}" "$@")
+  IN_ENV_EXTRA=("${SESSION_ENV[@]}" DBUS_SESSION_BUS_ADDRESS="$(session_bus)" "$@")
   launch_daemon --idle-times "$TIMES"
   local launched=$?
   IN_ENV_EXTRA=("${SESSION_ENV[@]}")
@@ -368,7 +373,7 @@ step_inhibit_holds() {
   local log="$OUT_DIR/5-inhibit.log" held after locked gone ok=1
   : >"$log"
   mkfifo "$SCRATCH/client.in"
-  "$CLIENT_BIN" "$BUS" <"$SCRATCH/client.in" >"$OUT_DIR/client.log" 2>&1 &
+  "$CLIENT_BIN" "$(session_bus)" <"$SCRATCH/client.in" >"$OUT_DIR/client.log" 2>&1 &
   local client=$!
   exec 4>"$SCRATCH/client.in"
   wake

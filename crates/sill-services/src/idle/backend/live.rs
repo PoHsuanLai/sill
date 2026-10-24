@@ -33,6 +33,8 @@ use super::resolve::{RESOLVE_EVERY_S, resolve};
 use super::screensaver::{Call, Served};
 use super::wl::{Epoch, Heard, Order, Tell, Wire, WlEvent};
 use super::{logind as idle_logind, screensaver, wl};
+use crate::desktop_wl::quire::shell_connection;
+use crate::env::{HandedSocket, WaylandRoute};
 use crate::stream::next_opt;
 
 /// How often logind's `BlockInhibited` is read.
@@ -210,7 +212,14 @@ impl Live {
         if self.held.wire.is_none() {
             self.wire_epoch = Epoch(self.wire_epoch.0 + 1);
             let tell = Tell::new(self.wire_epoch, self.heard.clone());
-            match wl::start(self.setup.display.clone(), tell) {
+            // The shell's own connection where the compositor hands one out: an app's idle
+            // watches are held to the compositor's minimum (casement's is 5 s, so a short watch
+            // cannot time another window's keystrokes); the shell's are not.
+            let route = match shell_connection(&self.setup.session).await {
+                Some(fd) => WaylandRoute::Handed(HandedSocket::new(fd)),
+                None => self.setup.display.clone(),
+            };
+            match wl::start(route, tell) {
                 Ok(wire) => self.held.wire = Some(wire),
                 Err(error) => eprintln!("sill: idle: no thread: {error}"),
             }
