@@ -68,7 +68,7 @@ dependencies = [
 [[package]]
 name = "accesskit_xplat"
 version = "0.2.0"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "accesskit",
  "accesskit_macos",
@@ -292,7 +292,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 [[package]]
 name = "anyrender"
 version = "0.13.0"
-source = "git+https://github.com/PoHsuanLai/anyrender?rev=d4ae3885f89a58351ff7e99cd75d9b7de5865337#d4ae3885f89a58351ff7e99cd75d9b7de5865337"
+source = "git+https://github.com/PoHsuanLai/anyrender?rev=03fcbe4c746d2334d3fb91e63641741f3dacc826#03fcbe4c746d2334d3fb91e63641741f3dacc826"
 dependencies = [
  "kurbo",
  "peniko",
@@ -316,7 +316,7 @@ dependencies = [
 [[package]]
 name = "anyrender_vello_cpu"
 version = "0.17.0"
-source = "git+https://github.com/PoHsuanLai/anyrender?rev=d4ae3885f89a58351ff7e99cd75d9b7de5865337#d4ae3885f89a58351ff7e99cd75d9b7de5865337"
+source = "git+https://github.com/PoHsuanLai/anyrender?rev=03fcbe4c746d2334d3fb91e63641741f3dacc826#03fcbe4c746d2334d3fb91e63641741f3dacc826"
 dependencies = [
  "anyrender",
  "bytemuck",
@@ -333,7 +333,7 @@ dependencies = [
 [[package]]
 name = "anyrender_vello_hybrid"
 version = "0.10.0"
-source = "git+https://github.com/PoHsuanLai/anyrender?rev=d4ae3885f89a58351ff7e99cd75d9b7de5865337#d4ae3885f89a58351ff7e99cd75d9b7de5865337"
+source = "git+https://github.com/PoHsuanLai/anyrender?rev=03fcbe4c746d2334d3fb91e63641741f3dacc826#03fcbe4c746d2334d3fb91e63641741f3dacc826"
 dependencies = [
  "anyrender",
  "debug_timer 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -871,7 +871,7 @@ dependencies = [
 [[package]]
 name = "blitz-dom"
 version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "accesskit",
  "anyrender",
@@ -882,7 +882,7 @@ dependencies = [
  "color",
  "cssparser",
  "cursor-icon",
- "debug_timer 0.1.3 (git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9)",
+ "debug_timer 0.1.3 (git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf)",
  "euclid",
  "html-escape",
  "image",
@@ -915,7 +915,7 @@ dependencies = [
 [[package]]
 name = "blitz-html"
 version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "blitz-dom",
  "blitz-traits",
@@ -939,7 +939,7 @@ dependencies = [
 [[package]]
 name = "blitz-paint"
 version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "anyrender",
  "anyrender_svg",
@@ -960,7 +960,7 @@ dependencies = [
 [[package]]
 name = "blitz-shell"
 version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "accesskit",
  "accesskit_xplat",
@@ -982,7 +982,7 @@ dependencies = [
 [[package]]
 name = "blitz-traits"
 version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "atomic_refcell",
  "bitflags 2.13.2",
@@ -1909,7 +1909,7 @@ checksum = "da220af51a1a335e9a930beaaef53d261e41ea9eecfb3d973a3ddae1a7284b9c"
 [[package]]
 name = "debug_timer"
 version = "0.1.3"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 
 [[package]]
 name = "debug_unsafe"
@@ -2062,8 +2062,7 @@ checksum = "20de015bc89c20f4ffc7b4f849943420308365fa66f991250b5c075261990a21"
 [[package]]
 name = "dioxus-core"
 version = "0.7.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b232228ada232c0adc151e41ebd9ef70cc04683db097fa0dc6015979fa01722"
+source = "git+https://github.com/PoHsuanLai/dioxus?rev=a615fd9f09e272c688a45e366161c576cecf0439#a615fd9f09e272c688a45e366161c576cecf0439"
 dependencies = [
  "anyhow",
  "const_format",
@@ -2097,8 +2096,7 @@ dependencies = [
 [[package]]
 name = "dioxus-core-types"
 version = "0.7.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96007ed6cbad951dfed82d83c581aabd95bc591f351f5666d454ddbe7845b324"
+source = "git+https://github.com/PoHsuanLai/dioxus?rev=a615fd9f09e272c688a45e366161c576cecf0439#a615fd9f09e272c688a45e366161c576cecf0439"
 
 [[package]]
 name = "dioxus-document"
@@ -2187,7 +2185,7 @@ dependencies = [
 [[package]]
 name = "dioxus-native"
 version = "0.7.0"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "android-activity",
  "anyrender",
@@ -2219,7 +2217,7 @@ dependencies = [
 [[package]]
 name = "dioxus-native-dom"
 version = "0.7.0"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "blitz-dom",
  "blitz-traits",
@@ -2577,6 +2575,7 @@ dependencies = [
  "wayland-backend",
  "wayland-client",
  "wayland-protocols",
+ "wayland-scanner",
  "webbrowser",
  "wgpu",
  "wgpu_context",
@@ -3286,8 +3285,7 @@ version = "0.1.0"
 [[package]]
 name = "generational-box"
 version = "0.7.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8b2dc9b873cd1a8adb80aa5dcef9a8205f781a8a313d5ffb867248cb3bcb764"
+source = "git+https://github.com/PoHsuanLai/dioxus?rev=a615fd9f09e272c688a45e366161c576cecf0439#a615fd9f09e272c688a45e366161c576cecf0439"
 dependencies = [
  "parking_lot",
  "tracing",
@@ -3359,7 +3357,7 @@ dependencies = [
 [[package]]
 name = "glifo"
 version = "0.2.0"
-source = "git+https://github.com/PoHsuanLai/vello?rev=84b2c9f7debed7d15f48d0ec9ea8575c16a56938#84b2c9f7debed7d15f48d0ec9ea8575c16a56938"
+source = "git+https://github.com/PoHsuanLai/vello?rev=5c986661c9e943d26dac8e8ea7812895947722b8#5c986661c9e943d26dac8e8ea7812895947722b8"
 dependencies = [
  "bytemuck",
  "foldhash 0.2.0",
@@ -6026,7 +6024,7 @@ dependencies = [
 [[package]]
 name = "pixels_window_renderer"
 version = "0.8.0"
-source = "git+https://github.com/PoHsuanLai/anyrender?rev=d4ae3885f89a58351ff7e99cd75d9b7de5865337#d4ae3885f89a58351ff7e99cd75d9b7de5865337"
+source = "git+https://github.com/PoHsuanLai/anyrender?rev=03fcbe4c746d2334d3fb91e63641741f3dacc826#03fcbe4c746d2334d3fb91e63641741f3dacc826"
 dependencies = [
  "anyrender",
  "debug_timer 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -7834,7 +7832,7 @@ dependencies = [
 [[package]]
 name = "stylo_taffy"
 version = "0.3.0-beta.2"
-source = "git+https://github.com/PoHsuanLai/blitz?rev=0be21979f445965db402ddb79766a549b7b848a9#0be21979f445965db402ddb79766a549b7b848a9"
+source = "git+https://github.com/PoHsuanLai/blitz?rev=41134ff385ef138ed573ee5685308056243de0cf#41134ff385ef138ed573ee5685308056243de0cf"
 dependencies = [
  "bitflags 2.13.2",
  "stylo",
@@ -7867,8 +7865,7 @@ dependencies = [
 [[package]]
 name = "subsecond"
 version = "0.7.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d350d5788fa94d560d92269266a50efc77b036bfca6675e420b64df7b3211f37"
+source = "git+https://github.com/PoHsuanLai/dioxus?rev=a615fd9f09e272c688a45e366161c576cecf0439#a615fd9f09e272c688a45e366161c576cecf0439"
 dependencies = [
  "js-sys",
  "libc",
@@ -7886,8 +7883,7 @@ dependencies = [
 [[package]]
 name = "subsecond-types"
 version = "0.7.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcf32d66269b5fbb8558334e8d22b657b2f7af0dd2ef56c231541099a862e464"
+source = "git+https://github.com/PoHsuanLai/dioxus?rev=a615fd9f09e272c688a45e366161c576cecf0439#a615fd9f09e272c688a45e366161c576cecf0439"
 dependencies = [
  "serde",
 ]
@@ -8720,7 +8716,7 @@ dependencies = [
 [[package]]
 name = "vello_common"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/vello?rev=84b2c9f7debed7d15f48d0ec9ea8575c16a56938#84b2c9f7debed7d15f48d0ec9ea8575c16a56938"
+source = "git+https://github.com/PoHsuanLai/vello?rev=5c986661c9e943d26dac8e8ea7812895947722b8#5c986661c9e943d26dac8e8ea7812895947722b8"
 dependencies = [
  "bytemuck",
  "fearless_simd",
@@ -8750,7 +8746,7 @@ dependencies = [
 [[package]]
 name = "vello_cpu"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/vello?rev=84b2c9f7debed7d15f48d0ec9ea8575c16a56938#84b2c9f7debed7d15f48d0ec9ea8575c16a56938"
+source = "git+https://github.com/PoHsuanLai/vello?rev=5c986661c9e943d26dac8e8ea7812895947722b8#5c986661c9e943d26dac8e8ea7812895947722b8"
 dependencies = [
  "bytemuck",
  "crossbeam-channel",
@@ -8777,7 +8773,7 @@ dependencies = [
 [[package]]
 name = "vello_hybrid"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/vello?rev=84b2c9f7debed7d15f48d0ec9ea8575c16a56938#84b2c9f7debed7d15f48d0ec9ea8575c16a56938"
+source = "git+https://github.com/PoHsuanLai/vello?rev=5c986661c9e943d26dac8e8ea7812895947722b8#5c986661c9e943d26dac8e8ea7812895947722b8"
 dependencies = [
  "bytemuck",
  "glifo 0.2.0",
@@ -8792,7 +8788,7 @@ dependencies = [
 [[package]]
 name = "vello_sparse_shaders"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/vello?rev=84b2c9f7debed7d15f48d0ec9ea8575c16a56938#84b2c9f7debed7d15f48d0ec9ea8575c16a56938"
+source = "git+https://github.com/PoHsuanLai/vello?rev=5c986661c9e943d26dac8e8ea7812895947722b8#5c986661c9e943d26dac8e8ea7812895947722b8"
 dependencies = [
  "wesl",
  "wesl-macros",
@@ -9351,7 +9347,7 @@ dependencies = [
 [[package]]
 name = "wgpu_context"
 version = "0.9.0"
-source = "git+https://github.com/PoHsuanLai/anyrender?rev=d4ae3885f89a58351ff7e99cd75d9b7de5865337#d4ae3885f89a58351ff7e99cd75d9b7de5865337"
+source = "git+https://github.com/PoHsuanLai/anyrender?rev=03fcbe4c746d2334d3fb91e63641741f3dacc826#03fcbe4c746d2334d3fb91e63641741f3dacc826"
 dependencies = [
  "futures-intrusive",
  "wgpu",
