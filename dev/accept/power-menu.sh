@@ -25,9 +25,10 @@
 #      into dev/out/power-menu.png. `close` hides it; `toggle` twice round-trips.
 #   3. Tab moves the keyboard to the next button: the frame differs from the opening's by the
 #      focus ring's move (dev/out/power-menu-tab.png).
-#   4. Space presses the button the keyboard is on: the dry run records `would=LogOut`
-#      (`session.dry_run would=LogOut` in the record file) and the menu closes; nothing else is
-#      recorded. Opened again, Return presses the default button (Shut Down): `would=PowerOff`.
+#   4. Space presses the button the keyboard is on (Cancel, after step 3's Tab: the alert has the
+#      opening's action and Cancel, as the Mac's): the menu closes and nothing is recorded. Opened
+#      again, Return presses the default button (Shut Down): the dry run records exactly
+#      `session.dry_run would=PowerOff`.
 #   5. Escape closes it, recording nothing.
 #   6. 5 s idle after it hides: 0 frames on the power menu surface.
 #
@@ -146,7 +147,7 @@ step_tab() {
 }
 
 # 4. Runs only on a proven dry run, on the menu step 3 left open with the keyboard on the
-# second button (Log Out, the first one after the default).
+# second button (Cancel, the one after the default).
 step_presses_record() {
   local log="$OUT_DIR/press.log"
   : >"$log"
@@ -158,11 +159,10 @@ step_presses_record() {
   wait_surface "$MENU" 5 up || { echo "the menu is not open for Space" >&2; return 1; }
   : >"$RECORD"
   type_keys "$log" Space || return 2
-  for _ in $(seq 30); do grep -q 'would=LogOut' "$RECORD" && break; sleep 0.1; done
   wait_surface "$MENU" 20 down || { echo "Space: the menu stayed up" >&2; return 1; }
-  [ "$(cat "$RECORD")" = "session.dry_run would=LogOut" ] || {
-    echo "the record is not exactly one LogOut: $(cat "$RECORD")" >&2; return 1; }
-  echo "Space recorded 'would=LogOut' and closed the menu" | tee -a "$log" >&2
+  sleep 0.3
+  [ ! -s "$RECORD" ] || { echo "Space on Cancel recorded: $(cat "$RECORD")" >&2; return 1; }
+  echo "Space pressed Cancel: the menu closed, recording nothing" | tee -a "$log" >&2
   : >"$RECORD"
   open_with_keyboard "$log" || return 2
   type_keys "$log" Enter || return 2

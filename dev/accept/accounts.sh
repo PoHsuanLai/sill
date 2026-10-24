@@ -49,7 +49,7 @@ JSON
  {"kind":"password","entry":"secret","presence":"required","prefill":null}],"problem":null}}
 JSON
   cat >"$dir/working.json" <<'JSON'
-{"kind":"working","v":"nextcloud"}
+{"kind":"working","v":{"provider":"nextcloud"}}
 JSON
   cat >"$dir/failed.json" <<'JSON'
 {"kind":"failed","v":{"provider":"nextcloud","fault":"unreachable"}}

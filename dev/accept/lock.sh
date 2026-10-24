@@ -22,8 +22,9 @@
 #   4. Five more refusals (six wrongs): no lockout, so the prompt settles back to the
 #      idle field every time (dev/out/lock-sixwrong-casement.png; the band matches the idle one, no
 #      "Try again at" line), still locked.
-#   5. 5 s idle while locked: 0 commits on the lock surfaces (counted from the daemon's
-#      WAYLAND_DEBUG=client log, since `debug stats` has no lock rows).
+#   5. 5 s idle while locked, after the caret's ten blinking seconds: 0 commits on the lock
+#      surfaces (counted from the daemon's WAYLAND_DEBUG=client log, since `debug stats` has no
+#      lock rows).
 #   6. `sill debug auth accept` right after the six wrongs (nothing to wait for): status unlocked within
 #      the made-up check (250 ms) plus the accepted beat (settle(PersonaHop), 454 ms) plus 500 ms, the lock surface is gone,
 #      the marker is removed, and the session is free (a stand-in locker locks and unlocks).
@@ -289,9 +290,11 @@ step_idle() {
   start=$(now_ms)
   sill lock >"$log" 2>&1
   [ "$(until_phase "$start" "locked" 2000)" -ge 0 ] || { echo "not locked" | tee -a "$log" >&2; return 1; }
-  # Keep the window inside one minute: the clock redraws once a minute.
-  while [ "$(date +%S | sed 's/^0//')" -ge 50 ]; do sleep 1; done
-  sleep 2
+  # The password field's caret blinks for its first ten idle seconds (quire f3bcb531, as the Mac's
+  # does), so the count starts after them. Keep the window inside one minute: the clock redraws
+  # once a minute.
+  while [ "$(date +%S | sed 's/^0//')" -ge 40 ]; do sleep 1; done
+  sleep 11
   from=$(wc -l <"$wlog")
   sleep 5
   to=$(wc -l <"$wlog")

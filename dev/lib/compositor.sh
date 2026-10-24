@@ -214,13 +214,20 @@ casementctl() { casement_run casementctl "$@"; }
 # "POWER PROGRAM". casement asks before a program captures the screen, reads the clipboard, types
 # and so on, so the floor the session starts with allows exactly these (read off
 # accept/clipboard.sh, accept/screenshot.sh, accept/launcher.sh and demo.sh; dev/shot.sh shoots
-# KWin or the host, which casement does not judge). A floor row names a program by its image, and
-# only an image the system owns can be named: a program built under this checkout (the daemon,
-# `secret_source`) is asked like any stranger, whatever the floor says.
+# KWin or the host, which casement does not judge). A floor row names a program by its image.
+# casement's test builds also take a row naming a program built under this checkout
+# (privacy/injected.rs): CASEMENT_FLOOR_BUILT below. The daemon itself is named as the shell by
+# desktop-callers.toml beside the floor instead.
 CASEMENT_FLOOR_ROWS=(
   "screen grim"        # the output shot in screenshot.sh and demo.sh, and demo.sh's recorder
   "clipboard wl-copy"  # clipboard.sh and launcher.sh put made-up text on the selection
   "clipboard wl-paste" # and read it back
+)
+
+# Programs this checkout builds and the power each takes, as "POWER PATH": lock.sh's stand-in
+# locker proves the session is free after an unlock.
+CASEMENT_FLOOR_BUILT=(
+  "lock examples/session_locker"
 )
 
 # Where start_casement puts the floor: inside the script's own output directory, so it goes with
@@ -243,9 +250,36 @@ write_casement_floor() {
       path=$(command -v "$tool" 2>/dev/null) && path=$(readlink -f "$path") || continue
       printf '\n[[rule]]\npower = "%s"\nsubject = { program = "%s" }\nanswer = "allow"\n' "$power" "$path"
     done
+    for row in "${CASEMENT_FLOOR_BUILT[@]}"; do
+      power=${row%% *}
+      path=$(readlink -f "$SILL_OUT/${row#* }" 2>/dev/null) && [ -x "$path" ] || continue
+      printf '\n[[rule]]\npower = "%s"\nsubject = { program = "%s" }\nanswer = "allow"\n' "$power" "$path"
+    done
+    # `shot` is casement's own casementctl: once the daemon is the shell (desktop-callers.toml),
+    # an unnamed capture is put to it as a question, which nobody here answers.
+    path=$(casement_bin casementctl 2>/dev/null) && path=$(readlink -f "$path") \
+      && printf '\n[[rule]]\npower = "screen"\nsubject = { program = "%s" }\nanswer = "allow"\n' "$path"
   } >"$dir/privacy.toml" || return 1
   chmod 600 "$dir/privacy.toml" || return 1
+  write_casement_callers "$dir" || return 1
   echo "$dir"
+}
+
+# The daemons this checkout built, as the shell: the jail has no /etc/quire, so a test casement
+# reads its list of the desktop's own programs from desktop-callers.toml in the injected folder
+# (casement clients/dev_callers.rs). Without it the shell is a stranger, and casement refuses its
+# session lock. Both daemons are named: lock.sh runs the one built without `debug` too.
+write_casement_callers() {
+  local dir="$1" bin path
+  {
+    echo "# The dev session's shell (sill dev/lib/compositor.sh): this checkout's daemons."
+    for bin in "$SILL_BIN" "$SILL_OUT/sill-nodebug"; do
+      [ -x "$bin" ] || continue
+      path=$(readlink -f "$bin") || continue
+      printf '\n[[peer]]\napp = "org.quire.Shell"\nrole = "shell"\nexe = ["%s"]\n' "$path"
+    done
+  } >"$dir/desktop-callers.toml" || return 1
+  chmod 600 "$dir/desktop-callers.toml"
 }
 
 # Starts casement through its own dev/up.sh and sets WL, BUS, CASEMENT_ENV. $1 is a size "WxH"
