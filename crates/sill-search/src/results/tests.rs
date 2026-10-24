@@ -397,16 +397,28 @@ fn uses_under_an_old_app_id_follow_the_renamed_app() {
         last: UnixTime(1_790_000_000),
     };
     let key = |text: &str| ItemKey::of(ProviderKind::Apps, &ItemId(text.to_owned()));
-    let mut index = installed(&["org.quire.Mail", "foot"]);
-    index.apps[1].renamed_from = vec![sill_launcher::AppId("mailo".to_owned())];
+    // `installed` keeps its apps in id order, so the one that claims `mailo` is found by id.
+    let claiming = |ids: &[&str]| {
+        let mut index = installed(ids);
+        for app in &mut index.apps {
+            if app.id.0 == "org.quire.Mail" {
+                app.renamed_from = vec![sill_launcher::AppId("mailo".to_owned())];
+            }
+        }
+        index
+    };
+    let index = claiming(&["org.quire.Mail", "foot"]);
     let own = installed(&["mailo", "org.quire.Mail"]);
-    let mut claims = own.clone();
-    claims.apps[0].renamed_from = vec![sill_launcher::AppId("mailo".to_owned())];
+    let claims = claiming(&["mailo", "org.quire.Mail"]);
     let old = || Frecency {
         entries: [(key("mailo"), at(3)), (key("bar"), at(1))].into(),
     };
     let cases = [
-        ("the old id is moved", index, vec!["apps:bar", "apps:foot"]),
+        (
+            "the old id is moved",
+            index,
+            vec!["apps:bar", "apps:org.quire.Mail"],
+        ),
         ("an installed id stays", own, vec!["apps:bar", "apps:mailo"]),
         (
             "an id that is installed wins the claim",
