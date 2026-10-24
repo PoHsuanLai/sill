@@ -1108,13 +1108,8 @@ mod routed {
             Err(LinkFault::Unavailable)
         }
 
-        async fn search(
-            &self,
-            _: &AppName,
-            _: &str,
-            _: docket_core::Generation,
-        ) -> Result<Vec<docket_core::Hit>, LinkFault> {
-            Err(LinkFault::Unavailable)
+        async fn running(&self, _: &AppName) -> bool {
+            true
         }
 
         async fn preview(&self, _: &AppName, _: &prov::EntityId) -> Result<Preview, LinkFault> {
