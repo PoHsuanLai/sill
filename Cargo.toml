@@ -290,6 +290,7 @@ ds-behaviour = { path = "../quire/crates/ds-behaviour" }
 ds-blitz = { path = "../quire/crates/ds-blitz" }
 ds-core = { path = "../quire/crates/ds-core" }
 ds-core-derive = { path = "../quire/crates/ds-core-derive" }
+ds-extensions = { path = "../quire/crates/ds-extensions" }
 ds-harness = { path = "../quire/crates/ds-harness" }
 ds-intents = { path = "../quire/crates/ds-intents" }
 ds-lint = { path = "../quire/crates/ds-lint" }
