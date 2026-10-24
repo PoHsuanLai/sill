@@ -99,6 +99,10 @@ pub struct App {
     pub bus_names: Vec<String>,
     /// `X-Quire-IntentsApp`: the app's name in its intents manifest; `None` when it declares none.
     pub intents_app: Option<String>,
+    /// `X-Flatpak-RenamedFrom`: the ids this app had before, so what a person stored under one
+    /// (a pin, a launcher history entry) is still theirs; empty when the entry names none.
+    #[serde(default)]
+    pub renamed_from: Vec<AppId>,
     pub terminal: Terminal,
     pub activation: DbusActivation,
     /// `Actions=` in declared order, each with its `[Desktop Action]` group.
@@ -237,6 +241,7 @@ pub(crate) mod tests {
             flatpak: None,
             bus_names: Vec::new(),
             intents_app: None,
+            renamed_from: Vec::new(),
             terminal: Terminal::No,
             activation: DbusActivation::Exec,
             actions: Vec::new(),

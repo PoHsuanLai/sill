@@ -5,7 +5,8 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use sill_launcher::{Frecency, ItemKey, UnixTime};
+use sill_launcher::{AppId, Frecency, ItemId, ItemKey, ProviderKind, UnixTime};
+use sill_model::apps::AppIndex;
 use tokio::sync::watch;
 
 use super::frecency_file::save_frecency;
@@ -42,6 +43,20 @@ impl History {
         let mut guard = self.0.lock().unwrap_or_else(PoisonError::into_inner);
         *guard = seed;
         guard.clone()
+    }
+
+    /// Move the uses of an app that was renamed (`X-Flatpak-RenamedFrom`) to its current id. The
+    /// file follows with the next save, which writes what the history holds then.
+    pub(crate) fn rename_apps(&self, installed: &AppIndex) {
+        let renames = installed.renames();
+        if renames.is_empty() {
+            return;
+        }
+        let mut guard = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        *guard = std::mem::take(&mut *guard).rekeyed(ProviderKind::Apps, |item| {
+            let now = renames.of(&AppId(item.0.clone()));
+            (now.0 != item.0).then_some(ItemId(now.0))
+        });
     }
 
     /// Count one more use of `key` at `now`; the history as it now stands.

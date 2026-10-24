@@ -110,3 +110,54 @@ fn events_reduce_to_the_expected_pins() {
         assert_eq!(step(before, event), want, "{name}");
     }
 }
+
+#[test]
+fn pins_under_an_old_id_become_the_renamed_app() {
+    use crate::apps::{AppIndex, AppsEvent, step as index_step, test_app};
+    let mut mail = test_app("org.quire.Mail", "Mail");
+    mail.renamed_from = vec![id("mailo")];
+    let mut clock = test_app("clock", "Clock");
+    clock.renamed_from = vec![id("old-clock")];
+    let installed = |apps| index_step(AppIndex::default(), AppsEvent::Scanned(apps));
+    let index = installed(vec![
+        mail.clone(),
+        clock,
+        test_app("mailo-legacy", "Legacy"),
+    ]);
+    let cases: Vec<(&str, DockPins, DockPins)> = vec![
+        (
+            "an old id is replaced in place",
+            pins(&["a", "mailo", "b"]),
+            pins(&["a", "org.quire.Mail", "b"]),
+        ),
+        (
+            "old and new collapse to the first one's place",
+            pins(&["mailo", "a", "org.quire.Mail"]),
+            pins(&["org.quire.Mail", "a"]),
+        ),
+        (
+            "new then old collapse to the first one's place",
+            pins(&["org.quire.Mail", "a", "mailo"]),
+            pins(&["org.quire.Mail", "a"]),
+        ),
+        (
+            "two olds of one app collapse",
+            pins(&["old-clock", "clock"]),
+            pins(&["clock"]),
+        ),
+        (
+            "an unknown id stays",
+            pins(&["gone", "a"]),
+            pins(&["gone", "a"]),
+        ),
+    ];
+    for (name, stored, want) in cases {
+        assert_eq!(stored.renamed(&index), want, "{name}");
+    }
+    let itself = installed(vec![mail, test_app("mailo", "Mailo")]);
+    assert_eq!(
+        pins(&["mailo"]).renamed(&itself),
+        pins(&["mailo"]),
+        "an installed id is not renamed away"
+    );
+}

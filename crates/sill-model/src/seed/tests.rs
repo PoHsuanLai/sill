@@ -37,18 +37,23 @@ fn the_desktops_own_apps_come_in_the_macs_order() {
                 ("org.quire.Settings", NO_CATEGORIES, SHOWN),
                 ("foot", TERMINAL, SHOWN),
                 ("org.quire.Anyview", NO_CATEGORIES, SHOWN),
-                ("mailo", NO_CATEGORIES, SHOWN),
+                ("org.quire.Mail", NO_CATEGORIES, SHOWN),
                 ("org.mozilla.firefox", NO_CATEGORIES, SHOWN),
             ]),
-            &["mailo", "org.quire.Anyview", "foot", "org.quire.Settings"],
+            &[
+                "org.quire.Mail",
+                "org.quire.Anyview",
+                "foot",
+                "org.quire.Settings",
+            ],
         ),
         (
             "a missing app leaves a gap, not a hole",
             installed(&[
                 ("org.quire.Settings", NO_CATEGORIES, SHOWN),
-                ("mailo", NO_CATEGORIES, SHOWN),
+                ("org.quire.Mail", NO_CATEGORIES, SHOWN),
             ]),
-            &["mailo", "org.quire.Settings"],
+            &["org.quire.Mail", "org.quire.Settings"],
         ),
         (
             "the first terminal by id",
@@ -58,7 +63,7 @@ fn the_desktops_own_apps_come_in_the_macs_order() {
         (
             "a hidden entry is not pinned",
             installed(&[
-                ("mailo", NO_CATEGORIES, Listing::Hidden),
+                ("org.quire.Mail", NO_CATEGORIES, Listing::Hidden),
                 ("foot", TERMINAL, Listing::Hidden),
                 ("org.quire.Settings", NO_CATEGORIES, SHOWN),
             ]),
@@ -79,12 +84,12 @@ fn the_desktops_own_apps_come_in_the_macs_order() {
 #[test]
 fn the_dock_is_seeded_once_and_only_when_something_is_installed() {
     let some = installed(&[
-        ("mailo", NO_CATEGORIES, SHOWN),
+        ("org.quire.Mail", NO_CATEGORIES, SHOWN),
         ("org.quire.Settings", NO_CATEGORIES, SHOWN),
     ]);
     let seeded = DockPins {
         pinned: vec![
-            AppId("mailo".to_owned()),
+            AppId("org.quire.Mail".to_owned()),
             AppId("org.quire.Settings".to_owned()),
         ],
     };
@@ -106,7 +111,7 @@ fn the_dock_is_seeded_once_and_only_when_something_is_installed() {
 #[test]
 fn the_launchers_recent_row_is_seeded_with_the_first_app_on_top() {
     let index = installed(&[
-        ("mailo", NO_CATEGORIES, SHOWN),
+        ("org.quire.Mail", NO_CATEGORIES, SHOWN),
         ("org.quire.Anyview", NO_CATEGORIES, SHOWN),
         ("org.quire.Settings", NO_CATEGORIES, SHOWN),
     ]);
@@ -117,7 +122,7 @@ fn the_launchers_recent_row_is_seeded_with_the_first_app_on_top() {
     );
     let seeded = first_frecency(Store::Missing, &index, NOW).expect("a fresh account is seeded"); // test-only
     let key = |id: &str| ItemKey::of(ProviderKind::Apps, &ItemId(id.to_owned()));
-    let scores: Vec<u16> = ["mailo", "org.quire.Anyview", "org.quire.Settings"]
+    let scores: Vec<u16> = ["org.quire.Mail", "org.quire.Anyview", "org.quire.Settings"]
         .into_iter()
         .map(|id| seeded.score(&key(id), NOW).0)
         .collect();

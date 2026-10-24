@@ -49,6 +49,8 @@ pub(crate) struct Search {
     arrivals: mpsc::UnboundedSender<Arrival>,
     /// The installed apps, while a fresh account's history waits to start from them.
     pub(super) first_run: Option<watch::Receiver<AppIndex>>,
+    /// The installed apps, whose renames the history follows.
+    pub(super) installed: Option<watch::Receiver<AppIndex>>,
 }
 
 impl Search {
@@ -77,6 +79,7 @@ impl Search {
             tx,
             arrivals,
             first_run: None,
+            installed: None,
         };
         (search, rx)
     }
@@ -100,6 +103,7 @@ pub(crate) async fn run(
             // `search` holds a sender, so this never yields `None`.
             Some(arrival) = arrivals.recv() => search.arrive(arrival),
             Some(installed) = installed(&mut search.first_run) => search.start_history(&installed),
+            index = renamed(&mut search.installed) => search.follow_renames(index),
             () = until(deadline) => search.give_up_waiting(),
         }
     }
@@ -125,7 +129,27 @@ async fn installed(apps: &mut Option<watch::Receiver<AppIndex>>) -> Option<AppIn
     }
 }
 
+/// The installed apps each time they change (and once at the start); never when the history
+/// does not follow them.
+async fn renamed(apps: &mut Option<watch::Receiver<AppIndex>>) -> Option<AppIndex> {
+    match apps {
+        Some(apps) => {
+            apps.changed().await.ok()?;
+            Some(AppIndex::clone(&apps.borrow_and_update()))
+        }
+        None => std::future::pending().await,
+    }
+}
+
 impl Search {
+    /// Make the history's app ids current. `None` is the apps' sender gone: stop following.
+    fn follow_renames(&mut self, index: Option<AppIndex>) {
+        match index {
+            Some(index) => self.history.rename_apps(&index),
+            None => self.installed = None,
+        }
+    }
+
     pub(super) fn command(&mut self, command: SearchCommand) {
         match command {
             SearchCommand::Query(text) => self.query(text, Scope::All),

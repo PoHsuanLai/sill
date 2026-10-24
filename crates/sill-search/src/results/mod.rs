@@ -99,11 +99,13 @@ impl Service for ResultsService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let dir = env.dirs.sill_state();
         let history = History::new(load_frecency(&dir));
-        let first_run = match &deps {
-            Sources::Services(links) if store_of(&dir.join(FRECENCY_FILE)) == Store::Missing => {
-                Some(links.apps.clone())
-            }
-            Sources::Services(_) | Sources::Providers(_) => None,
+        let installed = match &deps {
+            Sources::Services(links) => Installed {
+                first_run: (store_of(&dir.join(FRECENCY_FILE)) == Store::Missing)
+                    .then(|| links.apps.clone()),
+                renames: Some(links.apps.clone()),
+            },
+            Sources::Providers(_) => Installed::default(),
         };
         let (policy, policy_rx) = watch::channel(LauncherPolicy::default());
         let (providers, outlets) = match deps {
@@ -120,13 +122,22 @@ impl Service for ResultsService {
                 Some(dir),
                 outlets,
                 policy,
-                first_run,
+                installed,
                 io,
             )
             .await;
             Ok(())
         }
     }
+}
+
+/// The installed apps, for the history's two ways of following them.
+#[derive(Default)]
+struct Installed {
+    /// While a fresh account's history waits to start from them.
+    first_run: Option<watch::Receiver<AppIndex>>,
+    /// For the history to keep an app's uses when its id is renamed.
+    renames: Option<watch::Receiver<AppIndex>>,
 }
 
 /// Run the search with `history`, saving it under `dir` when there is one.
@@ -136,13 +147,18 @@ async fn runner(
     dir: Option<PathBuf>,
     outlets: Outlets,
     policy: watch::Sender<LauncherPolicy>,
-    first_run: Option<watch::Receiver<AppIndex>>,
+    installed: Installed,
     io: ServiceIo<ResultsService>,
 ) {
     let initial = history.read(Clone::clone);
     let persist = Persist::start(dir, initial);
     let (mut search, arrivals) =
         run::Search::new(providers, history, persist, outlets, policy, io.state);
-    search.first_run = first_run;
+    search.first_run = installed.first_run;
+    search.installed = installed.renames.map(|mut apps| {
+        // What is installed at the start is news too.
+        apps.mark_changed();
+        apps
+    });
     run::run(search, io.commands, arrivals).await;
 }

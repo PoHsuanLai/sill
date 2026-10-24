@@ -61,7 +61,7 @@ fn search_to(
         Some(dir.path().to_path_buf()),
         outlets,
         watch::channel(super::LauncherPolicy::default()).0,
-        None,
+        super::Installed::default(),
         io,
     ));
     (search.state, search.control, history)
@@ -337,6 +337,7 @@ fn installed(ids: &[&str]) -> sill_model::apps::AppIndex {
         flatpak: None,
         bus_names: Vec::new(),
         intents_app: None,
+        renamed_from: Vec::new(),
         terminal: Terminal::No,
         activation: DbusActivation::Exec,
         actions: Vec::new(),
@@ -370,14 +371,56 @@ fn a_fresh_history_starts_from_the_desktops_apps_once() {
     let keys = |history: &History| -> Vec<String> {
         history.read(|f| f.entries.keys().map(|key| key.0.clone()).collect())
     };
-    search.start_history(&installed(&["mailo", "firefox", "org.quire.Settings"]));
-    assert_eq!(keys(&history), ["apps:mailo", "apps:org.quire.Settings"]);
+    search.start_history(&installed(&[
+        "org.quire.Mail",
+        "firefox",
+        "org.quire.Settings",
+    ]));
+    assert_eq!(
+        keys(&history),
+        ["apps:org.quire.Mail", "apps:org.quire.Settings"]
+    );
     search.start_history(&installed(&["org.quire.Anyview"]));
     assert_eq!(
         keys(&history),
-        ["apps:mailo", "apps:org.quire.Settings"],
+        ["apps:org.quire.Mail", "apps:org.quire.Settings"],
         "once counted, a history is never started again"
     );
+}
+
+#[test]
+fn uses_under_an_old_app_id_follow_the_renamed_app() {
+    use sill_launcher::{Frecency, UnixTime, Use};
+
+    let at = |count| Use {
+        count,
+        last: UnixTime(1_790_000_000),
+    };
+    let key = |text: &str| ItemKey::of(ProviderKind::Apps, &ItemId(text.to_owned()));
+    let mut index = installed(&["org.quire.Mail", "foot"]);
+    index.apps[1].renamed_from = vec![sill_launcher::AppId("mailo".to_owned())];
+    let own = installed(&["mailo", "org.quire.Mail"]);
+    let mut claims = own.clone();
+    claims.apps[0].renamed_from = vec![sill_launcher::AppId("mailo".to_owned())];
+    let old = || Frecency {
+        entries: [(key("mailo"), at(3)), (key("bar"), at(1))].into(),
+    };
+    let cases = [
+        ("the old id is moved", index, vec!["apps:bar", "apps:foot"]),
+        ("an installed id stays", own, vec!["apps:bar", "apps:mailo"]),
+        (
+            "an id that is installed wins the claim",
+            claims,
+            vec!["apps:bar", "apps:mailo"],
+        ),
+    ];
+    for (name, index, want) in cases {
+        let history = History::new(old());
+        history.rename_apps(&index);
+        let keys: Vec<String> =
+            history.read(|f| f.entries.keys().map(|key| key.0.clone()).collect());
+        assert_eq!(keys, want, "{name}");
+    }
 }
 
 async fn next<T>(rx: &mut tokio::sync::mpsc::UnboundedReceiver<T>) -> Option<T> {

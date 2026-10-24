@@ -107,3 +107,21 @@ fn every_other_field_round_trips_through_parse_entry() {
     assert_eq!(app.keywords, vec!["edit", "write", "notes"]);
     assert_eq!(app.listing, Listing::Shown);
 }
+
+#[test]
+fn renamed_from_lists_the_old_ids_without_the_suffix() {
+    let found = scan(&fixture_dirs(), &theme(), &IconRoots::default(), &[]);
+    let cases: &[(&str, &[&str])] = &[
+        ("renamed-app", &["mailo", "old-mail"]),
+        ("renamed-empty", &[]),
+        ("rich-app", &[]),
+    ];
+    for (id, want) in cases {
+        let got: Vec<&str> = find(&found, id)
+            .renamed_from
+            .iter()
+            .map(|old| old.0.as_str())
+            .collect();
+        assert_eq!(got, *want, "{id}");
+    }
+}

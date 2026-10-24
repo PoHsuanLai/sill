@@ -1,5 +1,6 @@
 //! The pins task: load once, apply every command, save atomically, and pick up an external
-//! edit through [`crate::debounced`].
+//! edit through [`crate::debounced`]. Pins of an app that was renamed are published under its
+//! current id; the file follows with the next save.
 
 use std::path::{Path, PathBuf};
 
@@ -18,10 +19,11 @@ pub(crate) async fn run(
     dir: PathBuf,
     tx: watch::Sender<DockPins>,
     mut commands: mpsc::UnboundedReceiver<PinEvent>,
-    apps: watch::Receiver<AppIndex>,
+    mut apps: watch::Receiver<AppIndex>,
 ) {
     let tx = Published::new(tx, step);
-    let mut fresh = (store(&dir) == Store::Missing).then_some(apps);
+    follow_renames(&tx, &apps.borrow_and_update());
+    let mut fresh = (store(&dir) == Store::Missing).then(|| apps.clone());
     let mut touched = match Debounced::file(&dir, FILE_NAME) {
         Ok(touched) => Some(touched),
         Err(error) => {
@@ -50,7 +52,13 @@ pub(crate) async fn run(
                     touched = None;
                     continue;
                 }
-                reread(&dir, &tx);
+                reread(&dir, &tx, &apps.borrow());
+            }
+            changed = apps.changed() => {
+                if changed.is_err() {
+                    return;
+                }
+                follow_renames(&tx, &apps.borrow_and_update());
             }
             Some(installed) = installed => {
                 fresh = None;
@@ -79,6 +87,12 @@ fn apply_and_save(dir: &Path, tx: &Published<DockPins, PinEvent>, event: PinEven
 
 /// An external edit settled: re-read and publish only if it actually changed the value (our
 /// own writes trigger the same watch; re-reading them back is a no-op here).
-fn reread(dir: &Path, tx: &Published<DockPins, PinEvent>) {
-    tx.set(load(dir));
+fn reread(dir: &Path, tx: &Published<DockPins, PinEvent>, installed: &AppIndex) {
+    tx.set(load(dir).renamed(installed));
+}
+
+/// The published pins with the ids of renamed apps made current. The file keeps the old ids
+/// until the next save, which writes what is published.
+fn follow_renames(tx: &Published<DockPins, PinEvent>, installed: &AppIndex) {
+    tx.set(tx.borrow().clone().renamed(installed));
 }

@@ -31,6 +31,7 @@ fn app(id: &str) -> App {
         flatpak: None,
         bus_names: Vec::new(),
         intents_app: None,
+        renamed_from: Vec::new(),
         terminal: Terminal::No,
         activation: DbusActivation::Exec,
         actions: Vec::new(),
@@ -84,13 +85,13 @@ async fn a_fresh_dock_starts_with_the_desktops_apps_once_they_are_installed() {
     apps.send_replace(installed(&[
         "org.quire.Settings",
         "firefox",
-        "mailo",
+        "org.quire.Mail",
         "org.quire.Anyview",
     ]));
     assert!(pinned_within(&mut pins, SETTLE, |p| !p.pinned.is_empty()).await);
     assert_eq!(
         ids(&pins.state.borrow()),
-        ["mailo", "org.quire.Anyview", "org.quire.Settings"]
+        ["org.quire.Mail", "org.quire.Anyview", "org.quire.Settings"]
     );
     assert!(
         file.exists(),
@@ -106,7 +107,7 @@ async fn an_emptied_dock_stays_empty() {
     std::fs::write(folder.join("layout.toml"), "version = 1\ndock = []\n")
         .unwrap_or_else(|e| panic!("{e}"));
     let (mut pins, apps, _) = start(&scratch);
-    apps.send_replace(installed(&["mailo", "org.quire.Settings"]));
+    apps.send_replace(installed(&["org.quire.Mail", "org.quire.Settings"]));
     assert!(
         !pinned_within(&mut pins, QUIET, |p| !p.pinned.is_empty()).await,
         "a dock the person emptied is not filled again"
@@ -122,7 +123,7 @@ async fn a_pin_made_before_the_apps_were_known_is_kept() {
         at: PinAt::End,
     });
     assert!(pinned_within(&mut pins, SETTLE, |p| !p.pinned.is_empty()).await);
-    apps.send_replace(installed(&["mailo", "org.quire.Settings"]));
+    apps.send_replace(installed(&["org.quire.Mail", "org.quire.Settings"]));
     assert!(
         !pinned_within(&mut pins, QUIET, |p| ids(p) != ["firefox"]).await,
         "the person's pin stands alone"
@@ -138,7 +139,7 @@ async fn an_old_dock_file_is_carried_over_and_never_seeded_over() {
     std::fs::write(folder.join("dock.json"), old).unwrap_or_else(|e| panic!("{e}"));
     let (mut pins, apps, file) = start(&scratch);
     assert!(pinned_within(&mut pins, SETTLE, |p| ids(p) == ["firefox"]).await);
-    apps.send_replace(installed(&["mailo", "org.quire.Settings"]));
+    apps.send_replace(installed(&["org.quire.Mail", "org.quire.Settings"]));
     assert!(
         !pinned_within(&mut pins, QUIET, |p| ids(p) != ["firefox"]).await,
         "the carried-over dock is not filled with the desktop's apps"
@@ -166,4 +167,56 @@ async fn an_edit_of_layout_toml_reaches_the_dock() {
     )
     .unwrap_or_else(|e| panic!("{e}"));
     assert!(pinned_within(&mut pins, SETTLE, |p| ids(p) == ["btop"]).await);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_pin_under_an_old_id_is_the_renamed_app_and_the_file_follows_the_next_save() {
+    let scratch = TempDir::new("pins-renamed");
+    let folder = scratch.path().join("config/sill");
+    std::fs::create_dir_all(&folder).unwrap_or_else(|e| panic!("{e}"));
+    let row = |app: &str| format!("[[dock]]\nkind = \"quire.dock.app\"\napp = \"{app}\"\n");
+    let stored = format!(
+        "version = 1\n{}{}{}",
+        row("mailo"),
+        row("firefox"),
+        row("org.quire.Mail")
+    );
+    std::fs::write(folder.join("layout.toml"), &stored).unwrap_or_else(|e| panic!("{e}"));
+    let (mut pins, apps, file) = start(&scratch);
+    assert!(
+        pinned_within(&mut pins, SETTLE, |p| ids(p)
+            == ["mailo", "firefox", "org.quire.Mail"])
+        .await
+    );
+    let mut mail = app("org.quire.Mail");
+    mail.renamed_from = vec![AppId("mailo".to_owned())];
+    apps.send_replace(step(
+        AppIndex::default(),
+        AppsEvent::Scanned(vec![app("firefox"), mail]),
+    ));
+    assert!(
+        pinned_within(&mut pins, SETTLE, |p| ids(p)
+            == ["org.quire.Mail", "firefox"])
+        .await,
+        "old and new are one pin, in the old one's place"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&file).unwrap_or_default(),
+        stored,
+        "nothing is rewritten before a save"
+    );
+    let _ = pins.control.send(PinEvent::Pin {
+        app: AppId("foot".to_owned()),
+        at: PinAt::End,
+    });
+    assert!(
+        pinned_within(&mut pins, SETTLE, |p| ids(p)
+            == ["org.quire.Mail", "firefox", "foot"])
+        .await
+    );
+    let saved = std::fs::read_to_string(&file).unwrap_or_default();
+    assert!(
+        !saved.contains("mailo"),
+        "the save wrote the current ids: {saved}"
+    );
 }

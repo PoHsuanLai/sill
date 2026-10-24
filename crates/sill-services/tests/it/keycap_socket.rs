@@ -55,6 +55,7 @@ fn app(id: &str, categories: &[&str]) -> App {
         flatpak: None,
         bus_names: Vec::new(),
         intents_app: None,
+        renamed_from: Vec::new(),
         terminal: Terminal::No,
         activation: DbusActivation::Exec,
         actions: Vec::new(),

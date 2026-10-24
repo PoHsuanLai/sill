@@ -29,6 +29,12 @@ impl ItemKey {
             .find(|kind| key_prefix(*kind) == prefix)
     }
 
+    /// The item id this key was made for by [`ItemKey::of`].
+    pub fn item(&self) -> Option<ItemId> {
+        let (_, item) = self.0.split_once(':')?;
+        Some(ItemId(item.to_owned()))
+    }
+
     /// Whether choosing this key's row is counted: its provider's [`counting`]; a key of no known
     /// provider is counted.
     pub fn counting(&self) -> Counting {
@@ -113,6 +119,32 @@ impl Frecency {
             }
         }
         self
+    }
+
+    /// `self` with the entries of `provider` whose item id `rename` maps moved to the new id.
+    /// Entries that end up under one key are added: the counts sum, the latest use stands.
+    pub fn rekeyed(
+        self,
+        provider: ProviderKind,
+        rename: impl Fn(&ItemId) -> Option<ItemId>,
+    ) -> Frecency {
+        let mut entries: BTreeMap<ItemKey, Use> = BTreeMap::new();
+        for (key, used) in self.entries {
+            let moved = key
+                .item()
+                .filter(|_| key.provider() == Some(provider))
+                .and_then(|item| rename(&item))
+                .map(|item| ItemKey::of(provider, &item));
+            let used = match entries.get(moved.as_ref().unwrap_or(&key)) {
+                Some(seen) => Use {
+                    count: seen.count.saturating_add(used.count),
+                    last: seen.last.max(used.last),
+                },
+                None => used,
+            };
+            entries.insert(moved.unwrap_or(key), used);
+        }
+        Frecency { entries }
     }
 
     /// `key`'s frecency at `now`.
@@ -253,6 +285,34 @@ mod tests {
             Some(MAX_ENTRIES),
             "a file longer than the cap is cut when it is read"
         );
+    }
+
+    #[test]
+    fn rekeying_moves_one_providers_entries_and_adds_the_ones_that_meet() {
+        let at = |count, day| Use {
+            count,
+            last: UnixTime(NOW.0 + day),
+        };
+        let files = ItemKey::of(ProviderKind::Files, &ItemId("old".to_owned()));
+        let history = Frecency {
+            entries: [
+                (key("old"), at(2, 1)),
+                (key("new"), at(3, 5)),
+                (key("same"), at(1, 0)),
+                (files.clone(), at(4, 0)),
+            ]
+            .into(),
+        };
+        let rename = |item: &ItemId| (item.0 == "old").then(|| ItemId("new".to_owned()));
+        let want = Frecency {
+            entries: [
+                (key("new"), at(5, 5)),
+                (key("same"), at(1, 0)),
+                (files, at(4, 0)),
+            ]
+            .into(),
+        };
+        assert_eq!(history.rekeyed(ProviderKind::Apps, rename), want);
     }
 
     fn key(id: &str) -> ItemKey {

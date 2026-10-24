@@ -3,7 +3,7 @@
 use std::borrow::Cow;
 use std::path::Path;
 
-use ds_helpers::{ApplicationEntry, DesktopFile, DesktopGroup, EntryLocale};
+use ds_helpers::{ApplicationEntry, DesktopFile, DesktopGroup, DesktopId, EntryLocale};
 use keycap_protocol::ProfileName;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
@@ -19,6 +19,9 @@ const CURRENT_DESKTOPS: [&str; 1] = ["quire"];
 
 /// The desktop entry key naming the keyboard profile an app wants.
 const KEYBOARD_PROFILE_KEY: &str = "X-Keycap-Profile";
+
+/// The desktop entry key listing the desktop file names an app had before.
+const RENAMED_FROM_KEY: &str = "X-Flatpak-RenamedFrom";
 
 /// One loaded `.desktop` file as an [`App`], its id the entry's desktop id without the suffix
 /// (`kde/foo.desktop` is `kde-foo`, [`ds_helpers::DesktopId`]'s rule); `None` for a
@@ -57,6 +60,7 @@ pub fn parse_entry(
         flatpak: loaded.keys.flatpak.clone(),
         bus_names: identity.bus_names,
         intents_app: identity.intents_app,
+        renamed_from: renamed_from(entry),
         terminal: if entry.is_true("Terminal") {
             Terminal::Yes
         } else {
@@ -87,6 +91,17 @@ fn words(entry: &DesktopGroup, key: &str, locales: &[EntryLocale]) -> String {
         .localized(key, locales)
         .map(Cow::into_owned)
         .unwrap_or_default()
+}
+
+/// `X-Flatpak-RenamedFrom`: each old desktop file name as an id, the `.desktop` suffix dropped as
+/// for the entry's own id; an empty item is no id.
+fn renamed_from(entry: &DesktopGroup) -> Vec<AppId> {
+    entry
+        .list(RENAMED_FROM_KEY)
+        .iter()
+        .filter_map(|name| DesktopId::parse(name.trim()))
+        .map(|id| AppId(id.stem().to_owned()))
+        .collect()
 }
 
 /// `X-Keycap-Profile`, parsed once here. A value that is not a profile name costs only this
