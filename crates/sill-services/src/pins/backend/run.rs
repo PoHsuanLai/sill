@@ -94,5 +94,7 @@ fn reread(dir: &Path, tx: &Published<DockPins, PinEvent>, installed: &AppIndex) 
 /// The published pins with the ids of renamed apps made current. The file keeps the old ids
 /// until the next save, which writes what is published.
 fn follow_renames(tx: &Published<DockPins, PinEvent>, installed: &AppIndex) {
-    tx.set(tx.borrow().clone().renamed(installed));
+    // The borrow ends before the set: the watch's lock is not taken twice.
+    let pins = tx.borrow().clone();
+    tx.set(pins.renamed(installed));
 }
