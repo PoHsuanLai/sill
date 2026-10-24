@@ -635,3 +635,42 @@ Settings > Appearance, "Automatically hide and show the menu bar" (`bar.autohide
 - [ ] **Full screen reveal (needs casement's `reveal` for the top and bottom edges)**: full screen an app. In Always and In Full Screen Only, rest the pointer at the top edge: casement slides the bar in over the app, its content drawn and clickable (open a menu from it); moving away hides it. On a second display showing the desktop, nothing moves. At the bottom edge the dock does the same. On Desktop Only and Never the bar stays up in full screen and the window is sized below it.
 - [ ] **Two displays in full screen**: full screen an app on each display. Rest the pointer at the top edge of one: only that display's bar comes in; the other's stays away. The same for the docks at the bottom edges.
 - [ ] **Reduced motion in full screen**: turn on Reduce motion (Settings > Appearance, or the desktop's own setting). In full screen the bar and dock fade in and out in place instead of sliding; turn it off and they slide again, with no restart.
+
+## Cloud drives in Files (porter ae56db17 S2a, files 7b64cc4, detent 5c18e4d; a real login with the release installed)
+
+The first real mount: the test machines have no `/dev/fuse`. Steps from porter `docs/drive-files.md`
+"The check" (that page says how syncd and porter-mountd fit). The drive is read-only in S2a.
+
+- [ ] **Installed and listening.** `fuse3` is installed (`command -v fusermount3`, `ls /dev/fuse`).
+  `systemctl --user status porter-mountd.socket` is listening and `syncd.service` runs in its unit.
+- [ ] **The drive shows.** In Settings → Accounts, turn on "Show in Files" for an account with a few
+  files, a folder of photos and, for Google, a Doc and a Sheet. `ls ~/Cloud/` lists `OneDrive` or
+  `Google Drive` (the account's label after the name when one provider has two); `ls -la` inside
+  lists sizes and times before anything downloads, and `du -sh ~/.cache/porter/drives/` is about
+  nothing. Files shows the drive in its sidebar with the cloud glyph and the badges on its items.
+- [ ] **On demand.** Open a large video and seek to the middle: it plays from there before the rest
+  has come, and `du` of the cache grows. The pie on the item fills in Files while it downloads.
+- [ ] **Google documents.** A Doc is `Name.gdoc`, a Sheet `Name.gsheet` (`cat` gives `url` and
+  `doc_id`); opening one in Files opens the browser. Save a Copy makes `Name.docx` (or `.xlsx`,
+  `.pptx`, `.png`) beside it and selects it. Two files of one name show as `Name.ext` and
+  `Name 2.ext`; a `/` in a name shows as `／`.
+- [ ] **Read-only.** `touch ~/Cloud/OneDrive/x` says "Read-only file system".
+- [ ] **Offline.** With the network off, opening a file not yet here fails and Files says "This file
+  will download when you're connected."; a file already here opens.
+- [ ] **Keep Downloaded and Remove Download.** Keep Downloaded a folder: everything under it comes
+  down, and a file added on the web later comes down after the next listing. Remove Download a file:
+  the cache shrinks, the file stays listed and comes back when opened. Remove Download inside a kept
+  folder is refused: "This item is kept downloaded with its folder."
+- [ ] **The limit.** Set `storage.cache_limit` (Downloaded Files Limit; bytes, `0` is automatic: a
+  tenth of the disk, at least 1 GiB) below what is cached: the files opened longest ago go first;
+  kept and open ones stay.
+- [ ] **Turning it off.** "Show in Files" off: `mount | grep Cloud` says nothing, also with a terminal
+  sitting in the folder (it goes at once and the terminal's folder reads as gone). On again, then
+  `systemctl --user stop syncd.service`: the mount goes with it. `systemctl --user kill -s KILL
+  syncd.service` and let it start: the stale mount is cleared and the folder comes back.
+- [ ] **A folder that isn't porter's.** Stop syncd, put a file in an empty `~/Cloud/OneDrive`, start
+  it: the drive says "The drive's folder in Cloud already has other files in it. Move them, then try
+  again." and the file is still there.
+- [ ] **syncd's sandbox is whole.** `systemctl --user show syncd.service -p NoNewPrivileges -p
+  PrivateDevices -p ProtectHome` says `yes`, `yes`, `read-only`; `journalctl --user -u
+  porter-mountd` says why each refusal was made.
