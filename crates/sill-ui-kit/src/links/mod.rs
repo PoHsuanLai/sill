@@ -42,7 +42,7 @@ pub use force_quit::{
 };
 pub use hot_corners::{Corner, CornerHit, CornerLink};
 pub use launcher::{
-    CLIPBOARD_TITLE, LauncherAsk, LauncherLink, LauncherOpening, PanelHit, ShownRows,
+    CLIPBOARD_TITLE, LauncherAsk, LauncherLink, LauncherOpening, PanelHit, PanelPlace, ShownRows,
     ShownRowsSection,
 };
 pub use lock::{LockLink, PromptOutput};

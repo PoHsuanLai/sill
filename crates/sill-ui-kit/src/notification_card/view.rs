@@ -22,7 +22,8 @@ use super::actions::card_actions;
 use super::body::rich_body;
 use super::icon::{CardArt, card_art, entry_for};
 use super::labels::{age, age_label, app_label, group_count};
-use super::metrics::{NotificationTokens, icon_size};
+use super::metrics::icon_size;
+use super::use_tokens::shared_tokens;
 use super::{CardPlace, CardPress};
 use crate::hooks::{use_service, use_services};
 use sill_services::AppsService;
@@ -52,7 +53,7 @@ pub(super) fn card(
     now: UnixMs,
     wiring: CardWiring,
 ) -> Element {
-    let side = icon_size(&NotificationTokens::default());
+    let side = icon_size(&shared_tokens());
     let app = use_app_mark(&note.app, IconSize::Px(side));
     let on_press = wiring.on_press;
     let material = material_of(place);

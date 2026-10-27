@@ -22,9 +22,8 @@ use sill_ui_kit::surface::namespace;
 pub const GUTTER_PX: u32 = 8;
 
 /// The dock's layer configuration on `output`.
-pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
+pub fn layer(output: &OutputInfo, settings: &ShellFile, tokens: &DockTokens) -> LayerConfig {
     let dock = &settings.dock;
-    let tokens = DockTokens::default();
     let tile = u32::from(dock.tile_size_px.0);
     let magnified = u32::from(dock.magnified_size_px.0);
     let pad = u32::from(tokens.pad);
@@ -50,7 +49,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
         output: OutputTarget::Output(output.id),
         blur: match reveal {
             Reveal::Fixed => BlurSpec::Region(crate::dock::machine::pill_region(
-                crate::dock::geometry::pill_blur_radius(&tokens),
+                crate::dock::geometry::pill_blur_radius(tokens),
             )),
             _ => BlurSpec::None,
         },
@@ -64,6 +63,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::layer;
+    use crate::dock::tokens::DockTokens;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
     use sill_settings::{AutoHide, DockSettings, ShellFile};
     use sill_ui_kit::harness::fake::output_named as output;
@@ -71,7 +71,11 @@ mod tests {
     #[test]
     fn the_dock_is_134_tall_and_reserves_68_unless_it_hides() {
         // gut 8 + pad 6 + magnified 72 + tile 48 = 134; gut 8 + tile 48 + 2 x pad 6.
-        let config = layer(&output(Some("DP-1")), &ShellFile::default());
+        let config = layer(
+            &output(Some("DP-1")),
+            &ShellFile::default(),
+            &DockTokens::default(),
+        );
         assert_eq!(config.namespace, "sill-dock-DP-1");
         assert_eq!(config.layer, LayerLevel::Top);
         assert_eq!(config.anchor, Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT);
@@ -86,7 +90,7 @@ mod tests {
             },
             ..ShellFile::default()
         };
-        let config = layer(&output(Some("DP-1")), &hiding);
+        let config = layer(&output(Some("DP-1")), &hiding, &DockTokens::default());
         assert_eq!(config.exclusive, ExclusiveZone::Reserve(0));
         assert_eq!(config.blur, BlurSpec::None);
     }
@@ -100,6 +104,10 @@ mod tests {
         after.logical.width *= 2;
         after.logical.height *= 2;
         let file = ShellFile::default();
-        assert_eq!(layer(&before, &file), layer(&after, &file));
+        let tokens = DockTokens::default();
+        assert_eq!(
+            layer(&before, &file, &tokens),
+            layer(&after, &file, &tokens)
+        );
     }
 }

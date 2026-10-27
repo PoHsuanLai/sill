@@ -62,7 +62,9 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, badge: Option<Badge>) -> Eleme
         resolver: use_icon_resolver(),
     };
     let icon = drawn(tile_art(&item.kind, app), sizes, &cx);
-    let rows = Rows::new(&dock, &DockTokens::default());
+    let tokens =
+        try_use_context::<Signal<DockTokens>>().map_or_else(DockTokens::default, |tokens| tokens());
+    let rows = Rows::new(&dock, &tokens);
     let top = px(rows.baseline) - side;
     // How far the plate's top is below the tile's: the label stands above it.
     let rise = (side - f64::from(plate_side(Px(side as f32)).0)) / 2.0;

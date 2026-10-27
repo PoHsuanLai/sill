@@ -15,6 +15,9 @@
 #   4. The file is edited (frame alpha .45, the ink and ring green): every surface changes again from the
 #      first edit (the live text is replaced, not added to).
 #   5. The file is deleted: every surface returns to its baseline (`changed_fraction` under 0.2%).
+#   6. A geometry token is written (`--shell-bar-h`, which the bar's layer reads from its resolved
+#      style): the bar's captured height changes, so the layer was resized and not only repainted;
+#      deleting the file brings the height back.
 #
 # Captures and logs: target/accept-user-style/. Exit 0 only when every step passed.
 #
@@ -114,6 +117,40 @@ step_deleted() {
   expect_styled base same reverted
 }
 
+# The height in pixels of the PNG $1.
+png_height() {
+  python3 - "$1" <<'PY'
+import sys
+from PIL import Image
+print(Image.open(sys.argv[1]).height)
+PY
+}
+
+# Waits up to 20 s for the bar's capture to be $1 pixels tall when $2 is "is", or to be any other
+# height when it is "is-not"; captures into $OUT_DIR/geometry-bar.png.
+wait_bar_height() {
+  local height
+  for _ in $(seq 100); do
+    capture "sill-bar-$NAME" "$OUT_DIR/geometry-bar.png" || { sleep 0.2; continue; }
+    height=$(png_height "$OUT_DIR/geometry-bar.png")
+    if [ "$2" = is ] && [ "$height" = "$1" ]; then return 0; fi
+    if [ "$2" = is-not ] && [ "$height" != "$1" ]; then return 0; fi
+    sleep 0.2
+  done
+  echo "the bar is $height px tall, wanted it ${2/-/ } $1" >&2
+  return 1
+}
+
+step_geometry() {
+  local base
+  capture "sill-bar-$NAME" "$OUT_DIR/geometry-base.png" || return 1
+  base=$(png_height "$OUT_DIR/geometry-base.png")
+  printf '.ds[data-surface=bar] { --shell-bar-h: 40px }\n' >"$CONFIG/sill/style.css"
+  wait_bar_height "$base" is-not || return 1
+  rm -f "$CONFIG/sill/style.css"
+  wait_bar_height "$base" is
+}
+
 cleanup() {
   local result=0
   stop_daemon || result=1
@@ -135,7 +172,7 @@ start_compositor --default kwin || { echo "the headless KWin did not start (see 
 trap cleanup EXIT
 backdrop_seed "$CONFIG" || exit 1
 start_daemon || { cleanup; trap - EXIT; exit 1; }
-run_steps step_baseline step_check_clean step_written step_edited step_deleted
+run_steps step_baseline step_check_clean step_written step_edited step_deleted step_geometry
 status=$STATUS
 cleanup || status=1
 trap - EXIT

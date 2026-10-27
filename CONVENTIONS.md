@@ -159,7 +159,8 @@ remembers.
   the person's style sheet may move. CSS reads it. Rust that computes with it before the first
   layout (a layer surface's size, an exclusive zone, hit rects) holds a small `Copy` struct of the
   tokens (`DockTokens`, `BarTokens`, ...): its `Default` is a named constant at the token's
-  shipped value, its `read` takes `ds_blitz::Resolved::length` of the surface's document, and a
+  shipped value, its `read` takes the resolved length of the surface's element (`use_surface_tokens`, which
+  reads again after a look or style.css change), and a
   test compares each constant with the token's fallback. A size that exists after layout is
   measured (`use_rect`), not stored.
 

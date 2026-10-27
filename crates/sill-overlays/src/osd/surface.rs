@@ -6,6 +6,7 @@ use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
 
 use super::layer::layer;
+use super::tokens::OsdTokens;
 use super::view::osd;
 use sill_ui_kit::links::{Links, OsdLink};
 use sill_ui_kit::surface::{Place, Presence, Surface};
@@ -30,8 +31,10 @@ impl Surface for Osd {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        // The shipped tokens: the surface has no document yet; `osd` follows its margin with the
+        // resolved ones once it is mounted.
+        layer(output, &OsdTokens::default())
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

@@ -11,12 +11,14 @@ pub mod labels;
 pub mod metrics;
 pub mod parts;
 
+mod use_tokens;
 mod view;
 
 pub use body::rich_body;
 pub use labels::{Age, age, age_label, app_label, group_count};
 pub use metrics::{NotificationTokens, icon_size, swipe_metrics};
 pub use parts::{CardPart, part_id};
+pub use use_tokens::use_notification_tokens;
 pub use view::{use_app_mark, wall_now};
 
 use dioxus::prelude::*;

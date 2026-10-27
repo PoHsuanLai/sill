@@ -81,7 +81,9 @@ fn use_icon_source(icon: &TrayIcon, size_px: u16, limit: ChromaLimit) -> IconSou
 #[component]
 fn TrayButton(index: usize, item: TrayItem, origin: ScreenOrigin) -> Element {
     let control = use_control::<TrayService>();
-    let size_px = BarTokens::default().status_box;
+    let tokens =
+        try_use_context::<Signal<BarTokens>>().map_or_else(BarTokens::default, |tokens| tokens());
+    let size_px = tokens.status_box;
     let limit = ChromaLimit::PROPOSED;
     let icon = use_icon_source(&item.icon, size_px, limit);
     let probe = use_rect();

@@ -23,12 +23,14 @@ use super::deck_keys::KeysIn;
 use super::elements::{CardShape, Regions, element_regions};
 use super::io::{Column, use_column};
 use super::keys::banner_key;
-use super::layer::ROOM;
+use super::layer::{ROOM, margin, size};
 use super::stack::stack;
 use super::step::{BannerIn, BannerParams};
-use sill_ui_kit::hooks::{use_control, use_follow_visibility, use_service_part};
+use sill_ui_kit::hooks::{use_control, use_follow_place, use_follow_visibility, use_service_part};
 use sill_ui_kit::links::{BannerLink, KeyWhat, Transient};
-use sill_ui_kit::notification_card::{CardPart, CardPlace, CardPress, NoteCard, part_id, wall_now};
+use sill_ui_kit::notification_card::{
+    CardPart, CardPlace, CardPress, NoteCard, part_id, use_notification_tokens, wall_now,
+};
 use sill_ui_kit::root::SurfaceRoot;
 
 /// The column's stylesheet (lint-clean under `Profile::Strict`, `tests/banners_lint.rs`).
@@ -59,6 +61,8 @@ pub(super) fn banners(output: OutputInfo) -> Element {
 fn ColumnView(output: shell_host::OutputId) -> Element {
     let control = use_control::<NotificationsService>();
     let link = use_context::<BannerLink>();
+    let (resolved, tokens) = use_notification_tokens();
+    use_follow_place(size(&tokens), margin(&tokens));
     let column = use_column(BannerParams::default(), control, link.clone());
     let live = use_service_part::<NotificationsService, _>(|notes| notes.live.clone());
     let shows = use_watch(link.subscribe());
@@ -87,6 +91,7 @@ fn ColumnView(output: shell_host::OutputId) -> Element {
     rsx! {
         div {
             class: "sill-banners",
+            onmounted: move |event| resolved.mounted(event),
             style,
             onkeydown: move |event: KeyboardEvent| {
                 if let Some(input) = banner_key(&event.key()) {

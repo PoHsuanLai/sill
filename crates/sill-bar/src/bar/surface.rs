@@ -6,6 +6,7 @@ use sill_model::desktop::ShellRole;
 use sill_settings::ShellFile;
 
 use super::layer::layer;
+use super::tokens::BarTokens;
 use super::view::bar;
 use sill_ui_kit::links::{ControlCenterLink, Links};
 use sill_ui_kit::surface::{OutputPolicy, Place, Presence, Surface};
@@ -39,7 +40,9 @@ impl Surface for Bar {
     }
 
     fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings.bar.autohide)
+        // The shipped tokens: the surface has no document yet; `bar` follows its layer with the
+        // resolved ones once it is mounted.
+        layer(output, settings.bar.autohide, &BarTokens::default())
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

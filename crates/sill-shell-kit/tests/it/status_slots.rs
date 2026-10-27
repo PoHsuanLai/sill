@@ -13,7 +13,6 @@ use ds::components::controls::button_model::ImagePosition;
 use ds::components::controls::slider_model::SliderLook;
 use ds::motion::detail::stamp::EventStamp;
 use ds::prelude::*;
-use ds::style::tokens::status::StatusMetrics;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_shell_kit::prelude::*;
@@ -43,10 +42,7 @@ fn battery(level: u16, power: BatteryPower) -> BatteryState {
 
 /// The bar's metrics under test: a 26 px box holding an 18 px glyph, so a glyph drawn at its own
 /// written size (16) or at the box would both be caught.
-const METRICS: StatusMetrics = StatusMetrics {
-    box_size: Px(26.0),
-    glyph: Px(18.0),
-};
+const METRICS: &str = "--bar-status-box:26px;--bar-status-glyph:18px;";
 
 // ---- a status glyph in the bar's status item -------------------------------------------
 
@@ -62,7 +58,7 @@ fn Bar() -> Element {
     let status = ITEM();
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Window,
-            div { id: "bar", style: METRICS.style_attr(),
+            div { id: "bar", style: METRICS,
                 MenuBarItem {
                     image: ImagePosition::Only,
                     icon: status,

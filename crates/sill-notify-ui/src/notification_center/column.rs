@@ -13,7 +13,7 @@ use shell_host::OutputId;
 use super::contents::Contents;
 use super::io::{use_center_ctx, use_phase};
 use super::labels::TITLE;
-use sill_ui_kit::notification_card::NotificationTokens;
+use sill_ui_kit::notification_card::use_notification_tokens;
 use sill_ui_kit::panel::{Opening, Phase};
 use sill_ui_kit::root::ClickAway;
 use sill_ui_kit::widgets::provide_widget_wake;
@@ -48,18 +48,21 @@ fn Opened(
     on_hidden: EventHandler<()>,
 ) -> Element {
     let ctx = use_center_ctx();
+    let (resolved, tokens) = use_notification_tokens();
     use_context_provider(|| ctx.clone());
     provide_widget_wake(WakeStamp(opening.0 as u32));
     let (catch, escape) = (ctx.clone(), ctx);
     rsx! {
         ClickAway { onpress: move |()| catch.close() }
-        div { class: "sill-nc-scope",
+        div {
+            class: "sill-nc-scope",
+            onmounted: move |event| resolved.mounted(event),
             SidePanel {
                 label: TITLE.to_owned(),
                 shown,
                 on_hidden,
                 onclose: move |()| escape.close(),
-                width: Px(f32::from(NotificationTokens::default().center_width)),
+                width: Px(f32::from(tokens.center_width)),
                 material: Material::Popover,
                 Contents { output }
             }

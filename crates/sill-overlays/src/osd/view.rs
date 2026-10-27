@@ -13,12 +13,13 @@ use sill_shell_kit::osd::OsdPosition;
 use sill_shell_kit::prelude::*;
 
 use super::io::{times, use_osd};
-use super::layer::CARD_ID;
+use super::layer::{CARD_ID, layer};
 use super::reading::{card_level, level_of, title};
+use super::tokens::OsdTokens;
 use sill_services::{DisplaysService, VolumeService};
-use sill_ui_kit::hooks::use_service;
+use sill_ui_kit::hooks::{use_follow_place, use_service, use_surface_tokens};
 use sill_ui_kit::links::{OsdKind, OsdLink};
-use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::root::{SurfaceRoot, use_root_style};
 
 /// The indicator's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
 pub const OSD_CSS: &str = include_str!("style.css");
@@ -31,6 +32,9 @@ const LOOK: LevelStyle = LevelStyle::Discrete;
 /// The indicator on `output`.
 pub(super) fn osd(output: OutputInfo) -> Element {
     let on = output.name.clone().map(OutputName);
+    let resolved = use_surface_tokens(use_root_style().styles, |length| OsdTokens::read(length));
+    let place = layer(&output, &resolved.get());
+    use_follow_place(place.size, place.margin);
     let link = use_context::<OsdLink>();
     let drawn = use_osd(&link, output.id, times());
     let volume = use_service::<VolumeService>()();
@@ -50,7 +54,7 @@ pub(super) fn osd(output: OutputInfo) -> Element {
             material: Material::Osd,
             chrome: Some(RootChrome::Transparent),
             AppStyle { css: OSD_CSS }
-            div {
+            div { onmounted: move |event| resolved.mounted(event),
                 Osd {
                     shown,
                     label: Some(title(kind, &volume, &displays, on.as_ref())),

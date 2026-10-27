@@ -8,6 +8,7 @@ use sill_settings::ShellFile;
 use super::layer::layer;
 use super::view::banners;
 use sill_ui_kit::links::{BannerLink, Links, Transient};
+use sill_ui_kit::notification_card::NotificationTokens;
 use sill_ui_kit::surface::{FocusLoss, Place, Presence, Surface};
 
 /// The compositor taking the keyboard from the banner column is told on the link, which says which
@@ -39,8 +40,10 @@ impl Surface for Banners {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        // The shipped tokens: the surface has no document yet; `ColumnView` follows its size
+        // and margin with the resolved ones once it is mounted.
+        layer(output, &NotificationTokens::default())
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

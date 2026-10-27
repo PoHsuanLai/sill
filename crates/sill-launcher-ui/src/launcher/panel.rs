@@ -28,7 +28,7 @@ use crate::launcher::hit::ActionsShown;
 use crate::launcher::keys::ActionsMenu;
 use crate::launcher::layer::{
     CARD_ID, CARD_INSET, CARD_RADIUS, MENU_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH, PANEL_WIDTH,
-    SHADOW_SIDE,
+    SHADOW_SIDE, layer,
 };
 use crate::launcher::mode_switch::ModeSwitch;
 use crate::launcher::pane_session::PaneSession;
@@ -38,6 +38,7 @@ use crate::launcher::row_icon::{row_art, row_tile};
 use crate::launcher::row_thumb::use_row_thumbs;
 use crate::launcher::sections_view::{Draw, palette_groups};
 use crate::launcher::session::Session;
+use crate::launcher::tokens::LauncherTokens;
 use crate::launcher::view::View;
 use sill_model::clock::ClockHours;
 use sill_model::companion::{ModeView, mode_view};
@@ -45,10 +46,12 @@ use sill_model::voice::listening_line;
 use sill_search::ResultsService;
 use sill_services::{ClipboardService, CompanionService, VoiceService};
 use sill_ui_kit::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
-use sill_ui_kit::hooks::{use_appearance, use_hours, use_service, use_service_part};
+use sill_ui_kit::hooks::{
+    use_appearance, use_follow_place, use_hours, use_service, use_service_part, use_surface_tokens,
+};
 use sill_ui_kit::links::LauncherLink;
 use sill_ui_kit::look::use_active_look;
-use sill_ui_kit::root::{SurfaceRoot, use_host_scale};
+use sill_ui_kit::root::{SurfaceRoot, use_host_scale, use_root_style};
 
 /// The launcher's stylesheet (lint-clean under `Profile::Strict`, `tests/launcher_lint.rs`).
 pub const LAUNCHER_CSS: &str = include_str!("style.css");
@@ -130,6 +133,9 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
         use_service_part::<VoiceService, _>(|voice| listening_line(&voice.phase, voice.notice));
     let permissions =
         use_service_part::<CompanionService, _>(|companion| mode_view(&companion.mode));
+    let resolved = use_surface_tokens(use_root_style().styles, |length| {
+        LauncherTokens::read(length)
+    });
     let panel = use_panel(output.id, results);
     let root = panel.clone();
     let shown = panel.opening_tracked().map(|opening| {
@@ -152,6 +158,12 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
         publish_rows(&panel.link, shown);
     }
     let link = use_context::<LauncherLink>();
+    // The placement reads the resolved tokens; the catcher takes them from the link, since it
+    // draws nothing and has no token scope of its own.
+    let tokens = resolved.get();
+    link.set_place(tokens.into());
+    let place = layer(&output, &tokens);
+    use_follow_place(place.size, place.margin);
     let foot = use_card_hit(&link, card_key(shown.as_ref(), aside.as_ref()));
     let (width, inset) = match aside {
         Some(_) => (PANEL_ROOM_WIDTH, 0),
@@ -180,6 +192,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                 AppStyle { css: LAUNCHER_CSS }
                 div {
                     class: "sill-launcher-body",
+                    onmounted: move |event| resolved.mounted(event),
                     style: "margin-left:{left}px;width:{width}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
                         {palette(&panel, &shown, foot, &icons, Images { thumb_of: &thumb_of, clip_image: &clip_image }, Beside { aside }, hours)}

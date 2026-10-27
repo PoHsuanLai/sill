@@ -13,7 +13,6 @@ use shell_host::{
     Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::ShellFile;
 
 use super::tokens::OsdTokens;
 use sill_ui_kit::surface::namespace;
@@ -51,7 +50,7 @@ pub fn margin(tokens: &OsdTokens) -> Margin {
 }
 
 /// The indicator's layer configuration on `output`.
-pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
+pub fn layer(output: &OutputInfo, tokens: &OsdTokens) -> LayerConfig {
     LayerConfig {
         namespace: namespace("osd", output),
         layer: LayerLevel::Overlay,
@@ -61,7 +60,7 @@ pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
             height: LayerExtent::Px(CARD_HEIGHT + 2 * ROOM),
         },
         exclusive: ExclusiveZone::Auto,
-        margin: margin(&OsdTokens::default()),
+        margin: margin(tokens),
         keyboard: KeyboardMode::None,
         output: OutputTarget::Output(output.id),
         blur: BlurSpec::Region(RegionSpec::Element {
@@ -80,12 +79,11 @@ mod tests {
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,
     };
-    use sill_settings::ShellFile;
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
     fn the_indicator_floats_over_its_edge_and_takes_nothing() {
-        let config = layer(&output(Some("DP-1")), &ShellFile::default());
+        let config = layer(&output(Some("DP-1")), &OsdTokens::default());
         assert_eq!(config.namespace, "sill-osd-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.exclusive, ExclusiveZone::Auto);

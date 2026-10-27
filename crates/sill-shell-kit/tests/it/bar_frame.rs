@@ -19,7 +19,6 @@ use ds::style::space::presets::PRESETS;
 use ds::style::tokens::colour::ColourToken;
 use ds::style::tokens::easing::EasingToken;
 use ds::style::tokens::hex::Hex;
-use ds::style::tokens::status::StatusMetrics;
 use ds::style::tokens::timing::DurationToken;
 use ds_harness::{Backdrop, Clock, Harness, HarnessConfig, Input, Viewport};
 use image::RgbaImage;
@@ -340,15 +339,12 @@ fn the_frame_ground_draws_frame_inks_and_its_overlays_paper() {
 
 #[allow(non_snake_case)]
 fn StatusItems() -> Element {
-    let large = StatusMetrics {
-        box_size: Px(30.0),
-        glyph: Px(24.0),
-    };
+    let large = "--bar-status-box:30px;--bar-status-glyph:24px;";
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: light(), look: look(0), material: Material::Bar,
             style { {PROBE_CSS} }
             div { class: "bar-fill",
-                div { class: "large", style: large.style_attr(),
+                div { class: "large", style: large,
                     MenuBarItem { image: ImagePosition::Only, icon: Icon::Wifi, label: "Network", onclick: |_| {} }
                 }
                 div { class: "plain",

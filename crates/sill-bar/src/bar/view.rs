@@ -19,6 +19,7 @@ use super::model::BarInput;
 use super::module_item::ModuleItem;
 use super::reveal::{BODY_ID, RevealEvent, STRIP_ID, lifted, mode_on, timing};
 use super::system_item::SystemItem;
+use super::tokens::BarTokens;
 use super::track::{Event, Target};
 use super::tray::Tray;
 use super::workspaces::WorkspaceIndicator;
@@ -27,6 +28,7 @@ use sill_services::TrayService;
 use sill_ui_kit::autohide::{self, Phase};
 use sill_ui_kit::hooks::{
     use_appearance, use_follow_layer, use_full_screen, use_service, use_settings,
+    use_surface_tokens,
 };
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::menu::PopupLook;
@@ -48,13 +50,21 @@ pub(super) fn bar(output: OutputInfo) -> Element {
         system: environment.system,
     };
     let root = use_root_style();
-    let session = use_bar(&output, popup_look);
+    // The maths reads the resolved tokens, the shipped values until the bar mounts; the status
+    // items' raster size reaches `Tray` through a context.
+    let resolved = use_surface_tokens(root.styles, |length| BarTokens::read(length));
+    let tokens = resolved.get();
+    let mut shared = use_context_provider(|| Signal::new(tokens));
+    if *shared.peek() != tokens {
+        shared.set(tokens);
+    }
+    let session = use_bar(&output, popup_look, &tokens);
     let times = timing(environment.settings.appearance.motion_level);
     let mode = mode_on(file.bar.autohide, use_full_screen(output.id)());
     let hide = use_hide(mode, times, session, output.id);
-    use_follow_layer(layer(&output, mode));
+    use_follow_layer(layer(&output, mode, &tokens));
     let state = *hide.machine.read();
-    let lift = lifted(&state, (hide.drawn)(), &times).0;
+    let lift = lifted(&state, (hide.drawn)(), &times, &tokens).0;
     let lifted_style = match lift {
         0 => String::new(),
         up => format!("transform:translateY(-{:.2}px)", f64::from(up) / 100.0),
@@ -82,6 +92,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
             AppStyle { css: BAR_CSS }
             div {
                 class: "sill-bar",
+                onmounted: move |event| resolved.mounted(event),
                 onpointerdown: move |_| outside(Event::OutsidePress),
                 onpointerup: move |_| outside(Event::Release(Target::Outside)),
                 div { class: "sill-bar-group",

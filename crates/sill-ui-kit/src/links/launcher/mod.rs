@@ -9,6 +9,7 @@
 mod debug;
 mod opening;
 mod panel_hit;
+mod panel_place;
 
 use shell_host::{KeyboardFocus, OutputId};
 use sill_launcher::{LauncherMode, Scope};
@@ -19,6 +20,7 @@ use crate::links::{PanelLink, Reveal, Shared};
 pub use debug::{CLIPBOARD_TITLE, ShownRows, ShownRowsSection};
 pub use opening::{LauncherAsk, LauncherOpening};
 pub use panel_hit::PanelHit;
+pub use panel_place::PanelPlace;
 
 /// `shown` with its mode changed in place: the same opening (the serial stays, so the panel does
 /// not remount), a hidden launcher unchanged.
@@ -52,6 +54,8 @@ fn ask(query: String, mode: LauncherMode) -> LauncherAsk {
 pub struct LauncherLink {
     panel: PanelLink<LauncherAsk>,
     hit: Shared<PanelHit>,
+    /// The panel's resolved placement tokens; none until the panel has read them.
+    place: Shared<Option<PanelPlace>>,
     /// The rows the open panel shows, for `sill debug launcher-rows`.
     rows: Shared<Option<ShownRows>>,
 }
@@ -131,6 +135,16 @@ impl LauncherLink {
     /// The panel shows `rows` (`None`: it is hidden).
     pub fn show_rows(&self, rows: Option<ShownRows>) {
         self.rows.set(rows);
+    }
+
+    /// The panel resolved its placement tokens.
+    pub fn set_place(&self, place: PanelPlace) {
+        self.place.set(Some(place));
+    }
+
+    /// A receiver for the catcher to follow the panel's placement.
+    pub fn subscribe_place(&self) -> watch::Receiver<Option<PanelPlace>> {
+        self.place.subscribe()
     }
 
     /// The rows the open panel shows, `None` while no panel is open.

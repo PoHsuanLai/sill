@@ -40,7 +40,7 @@ use sill_ui_kit::app_icons::icon_look;
 use sill_ui_kit::autohide;
 use sill_ui_kit::hooks::{
     use_appearance, use_edge_reveal, use_follow_layer, use_service, use_service_part, use_services,
-    use_settings,
+    use_settings, use_surface_tokens,
 };
 use sill_ui_kit::links::RevealEdge;
 use sill_ui_kit::look::{active_workspace, use_active_look};
@@ -63,9 +63,14 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     )
     .map(|(key, _)| key);
     let appearance = environment.settings.appearance.appearance();
-    // The maths reads the shipped values until the surface hands its document to
-    // `DockTokens::read` (`ds_blitz::Resolved::length`), again on each `Styles` change.
-    let tokens = DockTokens::default();
+    // The maths reads the resolved tokens (a look's, the person's sheet's), the shipped values
+    // until the surface mounts; `use_surface_tokens` reads again after each `Styles` change.
+    let resolved = use_surface_tokens(root.styles, |length| DockTokens::read(length));
+    let tokens = resolved.get();
+    let mut shared = use_context_provider(|| Signal::new(tokens));
+    if *shared.peek() != tokens {
+        shared.set(tokens);
+    }
     let params = DockParams::new(&file.dock, &tokens);
     let world = World {
         toplevels: use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone())(),
@@ -87,7 +92,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         use_callback(move |shown: Shown| feed.call(DockInput::Event(DockEvent::Edge(shown)))),
     );
     let services = use_services();
-    use_follow_layer(layer(&output, &file));
+    use_follow_layer(layer(&output, &file, &tokens));
     let machine = session.machine.read().clone();
     let label = LabelShown(match machine.label {
         Label::Shown { tile } => Some(tile),
@@ -169,6 +174,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                 }
                 div {
                     class: "sill-dock",
+                    onmounted: move |event| resolved.mounted(event),
                     style: surface_style(&shown.pill, width, rows.surface),
                     onmouseenter: move |event| send(PointerInput::Enter(point(&event))),
                     onmousemove: move |event| send(PointerInput::Move(point(&event))),

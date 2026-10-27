@@ -5,7 +5,6 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, Rect,
 };
-use sill_settings::ShellFile;
 
 use crate::launcher::hit::{card_region, panel_input};
 use crate::launcher::preview::PREVIEW_WIDTH_PX;
@@ -68,7 +67,7 @@ pub const MENU_BLUR_RADIUS: i32 = 12;
 /// The panel: Overlay, anchored top only (centred horizontally), keyboard-exclusive, blurred
 /// behind the palette card ([`CARD_ID`]). Its input starts as the whole panel; the panel narrows
 /// it to the card once it has measured one (`hit::PanelHit`).
-pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
+pub fn layer(output: &OutputInfo, tokens: &LauncherTokens) -> LayerConfig {
     LayerConfig {
         namespace: namespace("launcher", output),
         layer: LayerLevel::Overlay,
@@ -79,7 +78,7 @@ pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin {
-            top: panel_top(output.logical.height, &LauncherTokens::default()),
+            top: panel_top(output.logical.height, tokens),
             ..Margin::ZERO
         },
         keyboard: KeyboardMode::Exclusive,
@@ -106,7 +105,6 @@ mod tests {
     use super::{layer, panel_top};
     use crate::launcher::tokens::LauncherTokens;
     use shell_host::{Anchor, BlurSpec, KeyboardMode, LayerExtent, LayerLevel, RegionSpec};
-    use sill_settings::ShellFile;
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
@@ -129,7 +127,7 @@ mod tests {
 
     #[test]
     fn the_panel_is_a_warm_overlay_with_the_keyboard() {
-        let panel = layer(&output(Some("DP-1")), &ShellFile::default());
+        let panel = layer(&output(Some("DP-1")), &LauncherTokens::default());
         assert_eq!(panel.namespace, "sill-launcher-DP-1");
         assert_eq!(panel.layer, LayerLevel::Overlay);
         assert_eq!(panel.anchor, Anchor::TOP);

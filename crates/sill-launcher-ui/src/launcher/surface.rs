@@ -8,6 +8,7 @@ use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::panel::launcher;
+use super::tokens::LauncherTokens;
 use sill_ui_kit::links::{LauncherLink, Links};
 use sill_ui_kit::surface::{ClosesOnFocusLoss, FocusLoss, OutputPolicy, Place, Presence, Surface};
 
@@ -37,8 +38,10 @@ impl Surface for Launcher {
         vec![()]
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, (): ()) -> LayerConfig {
+        // The shipped tokens: the surface has no document yet; `launcher` follows its margin
+        // with the resolved ones once it is mounted.
+        layer(output, &LauncherTokens::default())
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

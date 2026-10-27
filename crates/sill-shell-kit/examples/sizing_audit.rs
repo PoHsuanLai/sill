@@ -16,7 +16,6 @@ use ds::style::icon::plate_tint::PlateTint;
 use ds::style::icon::retint::IconStyle;
 use ds::style::icon::retint::Tint;
 use ds::style::tokens::control_size::ControlSize;
-use ds::style::tokens::status::StatusMetrics;
 use ds_harness::{Harness, Viewport};
 use sill_shell_kit::prelude::*;
 use std::path::PathBuf;
@@ -92,17 +91,14 @@ fn Sheet(theme: Theme) -> Element {
         Theme::Dark => Scheme::Dark,
         _ => Scheme::Light,
     };
-    let metrics = StatusMetrics {
-        box_size: Px(22.0),
-        glyph: Px(16.0),
-    };
+    let metrics = "--bar-status-box:22px;--bar-status-glyph:16px;";
     let row = "display:flex;align-items:center;gap:12px;padding:10px 14px;";
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance { theme, ..Appearance::default() }, material: Material::Window,
             div { style: "display:flex;flex-direction:column;gap:8px;padding:12px;",
                 // The bar: 32 tall as sill's default, a title pill, three status items, the clock.
                 Surface { material: Material::Bar, theme: Some(scheme),
-                    div { style: "display:flex;align-items:center;gap:4px;height:32px;padding:0 8px;{metrics.style_attr()}",
+                    div { style: "display:flex;align-items:center;gap:4px;height:32px;padding:0 8px;{metrics}",
                         MenuBarItem { shown: Shown::Visible, label: "Files", onclick: |_| {} }
                         MenuBarItem { label: "Edit", onclick: |_| {} }
                         span { style: "flex:1" }

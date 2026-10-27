@@ -16,8 +16,8 @@ use sill_ui_kit::autohide::Phase;
 use sill_ui_kit::surface::namespace;
 
 /// The bar's layer configuration on `output`, resting under `mode` (`reveal::mode_on`).
-pub(super) fn layer(output: &OutputInfo, mode: MenuBarHiding) -> LayerConfig {
-    let height = u32::from(BarTokens::default().height);
+pub(super) fn layer(output: &OutputInfo, mode: MenuBarHiding, tokens: &BarTokens) -> LayerConfig {
+    let height = u32::from(tokens.height);
     let phase = rest_phase(mode);
     LayerConfig {
         namespace: namespace("bar", output),
@@ -59,7 +59,11 @@ mod tests {
     #[test]
     fn the_bar_reserves_its_token_height() {
         let height = u32::from(BarTokens::default().height);
-        let config = layer(&output(Some("DP-1")), MenuBarHiding::default());
+        let config = layer(
+            &output(Some("DP-1")),
+            MenuBarHiding::default(),
+            &BarTokens::default(),
+        );
         assert_eq!(config.namespace, "sill-bar-DP-1");
         assert_eq!(config.layer, LayerLevel::Top);
         assert_eq!(config.anchor, Anchor::TOP | Anchor::LEFT | Anchor::RIGHT);
@@ -81,7 +85,7 @@ mod tests {
             (MenuBarHiding::Never, 24, true, true),
         ];
         for (mode, reserved, blurred, whole) in cases {
-            let config = layer(&output(Some("DP-1")), mode);
+            let config = layer(&output(Some("DP-1")), mode, &BarTokens::default());
             assert_eq!(
                 config.exclusive,
                 ExclusiveZone::Reserve(reserved),

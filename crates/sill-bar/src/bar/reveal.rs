@@ -115,13 +115,13 @@ pub(super) fn timing(motion: Motion) -> Timing {
 }
 
 /// How far above its place a hidden bar sits: its own height.
-pub(super) fn slide_distance() -> Cpx {
-    Cpx::px(i32::from(BarTokens::default().height))
+pub(super) fn slide_distance(tokens: &BarTokens) -> Cpx {
+    Cpx::px(i32::from(tokens.height))
 }
 
 /// How far up the bar is drawn at `now`.
-pub(super) fn lifted(state: &BarReveal, now: Stamp, t: &Timing) -> Cpx {
-    autohide::slide_offset(&state.phase, now, t, slide_distance())
+pub(super) fn lifted(state: &BarReveal, now: Stamp, t: &Timing, tokens: &BarTokens) -> Cpx {
+    autohide::slide_offset(&state.phase, now, t, slide_distance(tokens))
 }
 
 /// The input region while the bar is shown by the machine: its content.

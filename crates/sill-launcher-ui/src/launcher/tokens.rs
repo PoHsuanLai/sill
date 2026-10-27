@@ -10,6 +10,7 @@
 use ds::prelude::Px;
 use ds::style::tokens::shell_scale::SHELL_SCALE;
 use sill_shell_kit::tokens::launcher::LauncherToken;
+use sill_ui_kit::links::PanelPlace;
 
 /// `--sill-launcher-top-bar-gap`'s shipped value.
 pub const TOP_BAR_GAP: u16 = 24;
@@ -33,6 +34,26 @@ impl Default for LauncherTokens {
             bar_height: SHELL_SCALE.bar.0,
             top_bar_gap: TOP_BAR_GAP,
             top_centre_bias: TOP_CENTRE_BIAS,
+        }
+    }
+}
+
+impl From<PanelPlace> for LauncherTokens {
+    fn from(place: PanelPlace) -> Self {
+        LauncherTokens {
+            bar_height: place.bar_height,
+            top_bar_gap: place.top_bar_gap,
+            top_centre_bias: place.top_centre_bias,
+        }
+    }
+}
+
+impl From<LauncherTokens> for PanelPlace {
+    fn from(tokens: LauncherTokens) -> Self {
+        PanelPlace {
+            bar_height: tokens.bar_height,
+            top_bar_gap: tokens.top_bar_gap,
+            top_centre_bias: tokens.top_centre_bias,
         }
     }
 }

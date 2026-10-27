@@ -115,7 +115,7 @@ struct Slots {
 
 /// The bar on `output`: its menu session, provided to the titles as context, and the control
 /// center asks it follows.
-pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
+pub(super) fn use_bar(output: &OutputInfo, look: PopupLook, tokens: &BarTokens) -> MenuBar {
     let file = use_settings()();
     let on = output.name.clone().map(OutputName);
     let app = front_app(
@@ -138,15 +138,15 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         surface: try_use_context::<SurfaceHandle>(),
         timing: super::track::timing(),
         look,
-        namespace: layer(output, file.bar.autohide).namespace,
+        namespace: layer(output, file.bar.autohide, tokens).namespace,
         output: output.id,
         actions: use_link::<ActionLink>(),
         settings: use_context::<SettingsFeed>(),
         focus,
         output_name: on,
         bar_width: output.logical.width,
-        cap: height_cap(output.logical.height, &BarTokens::default()),
-        status_box: status_box(output.logical.width, &BarTokens::default()),
+        cap: height_cap(output.logical.height, tokens),
+        status_box: status_box(output.logical.width, tokens),
         center: use_link::<CenterLink>(),
     });
     use_context_provider(|| bar);
