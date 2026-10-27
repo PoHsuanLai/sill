@@ -21,5 +21,5 @@ pub use context::IconContext;
 pub use look::{IconLook, icon_look};
 pub use plan::{Art, theme_art};
 pub use size::{AssetPx, LogicalPx, pick};
-pub use tile::{TileIcons, icon_side, metrics_of};
+pub use tile::{ICON_SIDE, TileIcons};
 pub use use_tile_icons::use_tile_icons;

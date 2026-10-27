@@ -36,8 +36,6 @@ pub fn MenuPopup<Model: MenuModel>(
                 system: look.system,
                 material: Material::Popover,
                 blur: BlurState::Unavailable,
-                tint_alpha: Some(look.tint),
-                stack: Some(look.stack),
                 surface: root.surface,
                 styles: root.styles,
                 custom_styles: root.custom_styles,

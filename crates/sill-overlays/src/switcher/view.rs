@@ -23,12 +23,11 @@ use super::session::{Session, Windows};
 use super::surface::PANEL_ID;
 use super::tiles::{key_of, output_width, tiles};
 use super::watch::ChordWatch;
-use ds_behaviour::switcher::Phase;
+use ds_behaviour::switcher::{Phase, SwitcherParams};
 use sill_services::AppsService;
-use sill_ui_kit::app_icons::{
-    IconContext, LogicalPx, TileIcons, icon_look, icon_side, metrics_of, use_icon_resolver,
-};
-use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
+use sill_shell_kit::switcher::switcher_fit::SwitcherMetrics;
+use sill_ui_kit::app_icons::{ICON_SIDE, IconContext, TileIcons, icon_look, use_icon_resolver};
+use sill_ui_kit::hooks::{use_appearance, use_service};
 use sill_ui_kit::links::SwitcherLink;
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::root::{SurfaceRoot, use_host_scale};
@@ -37,7 +36,6 @@ use sill_ui_kit::root::{SurfaceRoot, use_host_scale};
 pub const SWITCHER_CSS: &str = include_str!("style.css");
 
 pub(super) fn switcher(output: OutputInfo) -> Element {
-    let file = use_settings()();
     let environment = use_appearance()();
     let look = use_active_look(&output);
     let appearance = environment.settings.appearance.appearance();
@@ -45,20 +43,15 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
     let level = resolved.motion;
     let icons = TileIcons {
         cx: IconContext {
-            look: icon_look(
-                &environment.settings.icons,
-                &look,
-                appearance.accent,
-                resolved.scheme,
-            ),
+            look: icon_look(&environment.settings.icons, &look, resolved.scheme),
             scale: use_host_scale(),
             resolver: use_icon_resolver(),
         },
         index: use_service::<AppsService>()(),
-        side: LogicalPx(icon_side(&file.switcher).0),
+        side: ICON_SIDE,
     };
     let link = use_context::<SwitcherLink>();
-    let ctx = use_switcher(&link, output.id, file.switcher.params(), level);
+    let ctx = use_switcher(&link, output.id, SwitcherParams::default(), level);
     let state = (ctx.state)().phase();
     let session = (ctx.session)();
     let row = match (state, &session) {
@@ -66,7 +59,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
         _ => None,
     };
     let host = try_use_context::<SurfaceHandle>();
-    let metrics = metrics_of(&file.switcher);
+    let metrics = SwitcherMetrics::default();
     let width = output_width(output.logical.width);
     rsx! {
         SurfaceRoot {

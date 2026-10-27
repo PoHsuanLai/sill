@@ -225,10 +225,10 @@ fn Sound() -> Element {
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Window,
             div { id: "shared", style: "width: 300px",
-                Slider { label: "Volume", value: Fraction(500), glyph: VOLUME(), onchange: |_| {}, look: SliderLook::Capsule }
+                Slider { label: "Volume", value: Fraction(500), glyph: VOLUME(), onchange: |_| {}, look: SliderLook::Level }
             }
             div { id: "own", style: "width: 300px",
-                Slider { label: "Output", value: Fraction(500), glyph: LevelGlyph::Volume(Muting::Audible), onchange: |_| {}, look: SliderLook::Capsule }
+                Slider { label: "Output", value: Fraction(500), glyph: LevelGlyph::Volume(Muting::Audible), onchange: |_| {}, look: SliderLook::Level }
             }
         }
     }

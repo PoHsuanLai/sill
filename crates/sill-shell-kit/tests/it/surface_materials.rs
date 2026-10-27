@@ -18,7 +18,6 @@ use ds::prelude::*;
 use ds::root::common::Common;
 use ds::style::appearance::blur::BlurState;
 use ds::style::icon::family::PlateFamily;
-use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shape::Corner;
 use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use image::{Rgba, RgbaImage};
@@ -46,23 +45,17 @@ fn at(frame: &RgbaImage, harness: &Harness, selector: &str, dx: f32, dy: f32) ->
     *frame.get_pixel((box_.origin.x.0 + dx) as u32, (box_.origin.y.0 + dy) as u32)
 }
 
-/// No hairline and no shadow: only the shape paints outside the tint.
-fn bare_stack() -> MaterialStack {
-    MaterialStack {
-        hairline_light: Alpha(0),
-        hairline_dark: Alpha(0),
-        shadow_strength: Alpha(0),
-        ..MaterialStack::default()
-    }
-}
+/// No hairline and no shadow, through the material tokens a look sets: only the shape paints
+/// outside the tint.
+const BARE: &str = "--m-hairline-light:0; --m-hairline-dark:0; --m-shadow-strength:0;";
 
 // ---- A squircle corner is not a circle -------------------------------------------------------
 
 #[allow(non_snake_case)]
 fn Corners() -> Element {
     rsx! {
-        Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Window, stack: Some(bare_stack()),
-            div { style: "display:flex; gap:40px; padding:40px; background:#ffffff",
+        Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Window,
+            div { style: "{BARE} display:flex; gap:40px; padding:40px; background:#ffffff",
                 div { class: "squircle", style: "width:240px; height:200px",
                     Surface { material: Material::Dock, theme: Some(Scheme::Dark), radius: Some(Corner::Squircle(Px(40.0))),
                         div { style: "width:240px; height:200px" }

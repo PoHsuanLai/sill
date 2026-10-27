@@ -38,12 +38,6 @@ pub(crate) enum TrayAction {
     OpenMenu,
 }
 
-/// `icons.symbolic_chroma_max` (thousandths of OKLCH chroma, quire's appearance file) as the
-/// chroma test's limit; quire's default when the value is out of the key's range.
-pub(crate) fn chroma_limit(thousandths: u16) -> ChromaLimit {
-    ChromaLimit::try_from(f32::from(thousandths) / 1000.0).unwrap_or_default()
-}
-
 /// The art `art` as quire draws it: a PNG by the chroma test (`ds::style::icon::classify::classify_with` at
 /// `limit`), a theme file by its name, and the window glyph when there is none or its URL is
 /// refused. A PNG the test cannot decode is shown as it is.
@@ -142,14 +136,15 @@ pub(crate) fn scroll_delta(delta: WheelDelta) -> Option<ScrollDelta> {
 #[cfg(test)]
 mod tests {
     use super::{
-        ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, row_image,
-        screen_point, scroll_delta,
+        ItemMenu, ScreenOrigin, TrayAction, icon_source, press_action, row_image, screen_point,
+        scroll_delta,
     };
     use dioxus::html::geometry::WheelDelta;
     use dioxus::prelude::Modifiers;
     use ds::base::press::{PointerButton, Press};
     use ds::components::menus::item::item::MenuImage;
     use ds::prelude::*;
+    use ds::style::icon::classify::ChromaLimit;
     use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId, TrayMenuIcon};
     use sill_services::tray::IconArt;
     use std::path::PathBuf;
@@ -204,8 +199,8 @@ mod tests {
         // A faintly tinted grey (OKLCH chroma about .03) is symbolic at quire's .04 and an image
         // once the key is lowered to .01.
         let tinted = || Some(IconArt::Png(png([120, 110, 100, 255])));
-        assert_eq!(kind(&icon_source(tinted(), chroma_limit(40))), "symbolic");
-        assert_eq!(kind(&icon_source(tinted(), chroma_limit(10))), "image");
+        assert_eq!(kind(&icon_source(tinted(), ChromaLimit(40))), "symbolic");
+        assert_eq!(kind(&icon_source(tinted(), ChromaLimit(10))), "image");
     }
 
     #[test]
@@ -296,18 +291,6 @@ mod tests {
             ),
             (-1277, 208)
         );
-    }
-
-    #[test]
-    fn the_settings_key_is_read_in_thousandths_and_out_of_range_is_the_default() {
-        const CASES: &[(u16, u16)] = &[(40, 40), (10, 10), (200, 200), (201, 40), (1000, 40)];
-        for &(key, want) in CASES {
-            assert_eq!(
-                chroma_limit(key),
-                ds::style::icon::classify::ChromaLimit(want),
-                "{key}"
-            );
-        }
     }
 
     #[test]

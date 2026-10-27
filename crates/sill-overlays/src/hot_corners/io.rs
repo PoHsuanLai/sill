@@ -5,9 +5,8 @@
 
 use dioxus::prelude::*;
 use ds::machine::{MachineRef, use_machine};
-use ds_behaviour::hot_corner::{Corner, CornerIn, CornerOut};
+use ds_behaviour::hot_corner::{Corner, CornerIn, CornerOut, CornerParams};
 use shell_host::OutputId;
-use sill_ui_kit::hooks::use_settings;
 use sill_ui_kit::links::{Corner as WhichCorner, CornerLink};
 
 /// One corner's machine. Cheap to clone: a ref to quire's machine hook.
@@ -16,15 +15,13 @@ pub(super) struct Pointer {
     machine: MachineRef<Corner>,
 }
 
-/// Run `corner` of `output`: the machine on `hot_corners.*`, read at each step (a settings
-/// change applies from the next). Its dwell and re-arm are the machine's own deadlines, run by
+/// Run `corner` of `output`: the machine on quire's fixed corner timing. Its dwell and re-arm are the machine's own deadlines, run by
 /// quire's one timer; a firing goes to the link.
 pub(super) fn use_hot_corner(output: OutputId, corner: WhichCorner) -> Pointer {
     let link = use_context::<CornerLink>();
-    let file = use_settings()();
     let machine = use_machine(
         |_| Corner::default(),
-        file.hot_corners.params(),
+        CornerParams::default(),
         || (),
         move |CornerOut::Fire, _| link.hit(corner, output),
     );

@@ -14,7 +14,6 @@ use super::menus::BarMenu;
 use super::plan::PopupReport;
 use super::track::Event;
 use ds::stack::menu_track::types::MenuTiming;
-use ds::style::icon::classify::ChromaLimit;
 use sill_ui_kit::links::{ActionLink, CenterLink};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::services::Services;
@@ -55,8 +54,6 @@ pub(crate) struct SessionDeps {
     pub services: Services,
     pub surface: Option<SurfaceHandle>,
     pub timing: MenuTiming,
-    /// `icons.symbolic_chroma_max`, which decides how a tray row's icon is drawn.
-    pub chroma: ChromaLimit,
     pub look: PopupLook,
     /// The bar's layer namespace, which names the popup's anchor in `menu_popup`.
     pub namespace: String,

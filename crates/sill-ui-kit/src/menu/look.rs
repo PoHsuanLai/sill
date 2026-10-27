@@ -3,7 +3,6 @@
 //! second settings watch; the opener provides both as root contexts.
 
 use ds::prelude::*;
-use ds::style::material::stack::MaterialStack;
 
 use crate::hooks::use_appearance;
 
@@ -12,9 +11,6 @@ use crate::hooks::use_appearance;
 pub struct PopupLook {
     pub appearance: Appearance,
     pub system: SystemPrefs,
-    pub tint: Alpha,
-    /// The material stack its root hands the menu card.
-    pub stack: MaterialStack,
 }
 
 /// The transparent room, in logical pixels, between the popup surface's edges and the menu
@@ -46,14 +42,13 @@ impl PopupRoom {
     }
 }
 
-/// The look a popup this surface opens is handed: the surface's own appearance, tint
-/// and material stack, read live from the settings and the desktop's appearance.
+/// The look a popup this surface opens is handed: the surface's own appearance, read live from
+/// the settings and the desktop's appearance. The material's tint and stack are stylesheet
+/// tokens, so the popup's root takes them from the same sheet.
 pub fn use_popup_look() -> PopupLook {
     let environment = use_appearance()();
     PopupLook {
         appearance: environment.settings.appearance.appearance(),
         system: environment.system,
-        tint: environment.tint_alpha(),
-        stack: environment.material_stack(),
     }
 }

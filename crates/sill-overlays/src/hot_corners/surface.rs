@@ -30,8 +30,8 @@ impl Surface for HotCorners {
         active_corners(&place.settings.hot_corners)
     }
 
-    fn layer(output: &OutputInfo, settings: &ShellFile, corner: Corner) -> LayerConfig {
-        layer(output, settings, corner)
+    fn layer(output: &OutputInfo, _settings: &ShellFile, corner: Corner) -> LayerConfig {
+        layer(output, corner)
     }
 
     fn root(output: OutputInfo, corner: Corner) -> Element {

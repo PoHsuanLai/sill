@@ -35,7 +35,7 @@ fn Module() -> Element {
     rsx! {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance { motion: MOTION(), ..Appearance::default() }, material: Material::Window,
             div { id: "mac", BatteryRing { state: BatteryState { level: LEVEL(), power: BatteryPower::Charging, low_at: LowAt::default() }, label: "This computer", readout: Readout::Under } }
-            div { id: "keys", Slider { label: "Keyboard Brightness".to_owned(), value: Fraction(500), glyph: LevelGlyph::KeyboardBrightness, look: SliderLook::Capsule } }
+            div { id: "keys", Slider { label: "Keyboard Brightness".to_owned(), value: Fraction(500), glyph: LevelGlyph::KeyboardBrightness, look: SliderLook::Level } }
         }
     }
 }

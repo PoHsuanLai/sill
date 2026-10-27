@@ -9,7 +9,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use sill_settings::{
     APP, BarSettings, ControlCenterSettings, Dnd, DockSettings, Indicators, LauncherSettings,
-    NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile, SwitcherSettings,
+    NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile,
 };
 
 /// The store whose `sill` directory is inside `dir`.
@@ -42,7 +42,6 @@ fn every_domain_round_trips() {
     round_trips::<LauncherSettings>();
     round_trips::<ScrollSettings>();
     round_trips::<ScrollbarSettings>();
-    round_trips::<SwitcherSettings>();
     round_trips::<NotificationsSettings>();
     round_trips::<ControlCenterSettings>();
     round_trips::<ShellFile>();

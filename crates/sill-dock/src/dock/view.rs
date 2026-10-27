@@ -70,7 +70,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         badges: use_service::<BadgesService>()(),
         workspace,
     };
-    let stack = environment.material_stack();
     let items = dock_items(&world.pins, &world.toplevels, &world.index, file.dock.trash);
     let initial = DockState::new(match file.dock.autohide {
         AutoHide::Off => Reveal::Fixed,
@@ -99,7 +98,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     let icons = TileLook(icon_look(
         &environment.settings.icons,
         &look,
-        appearance.accent,
         resolve(appearance, look.theme, environment.system).scheme,
     ));
     let mut tile_look = use_context_provider(|| Signal::new(TileLook::default()));
@@ -134,8 +132,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         look: PopupLook {
             appearance,
             system: environment.system,
-            tint: environment.tint_alpha(),
-            stack,
         },
         remove: Cpx::px(REMOVE_THRESHOLD_PX),
     });
@@ -157,8 +153,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                 radius: Some(pill_corner(&file.dock)),
                 ground: Some(Ground::Paper),
                 blur: BlurState::Available,
-                tint_alpha: Some(environment.tint_alpha()),
-                stack: Some(stack),
                 surface: root.surface,
                 styles: root.styles,
                 custom_styles: root.custom_styles,

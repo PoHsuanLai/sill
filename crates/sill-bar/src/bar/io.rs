@@ -24,17 +24,17 @@ use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
 use super::popup::{BOTTOM, MAX_PX, TOP, placement};
 use super::track::{Event, Target, Track, step};
-use super::tray_input::{chroma_limit, row_image};
+use super::tray_input::row_image;
 use crate::control_center::{PanelCap, height_cap};
 use ds::base::time::stamp::FrameClock;
+use ds::style::icon::classify::ChromaLimit;
 use sill_model::app_menu::{AppMenuCommand, Follower, MenuApp};
 use sill_model::session::SessionCommand;
 use sill_model::tray::TrayCommand;
 use sill_services::{AppMenuService, AppsService, SessionService, TrayService, WindowsService};
 use sill_ui_kit::autohide::Hold;
 use sill_ui_kit::hooks::{
-    use_appearance, use_control, use_link, use_service, use_service_part, use_services,
-    use_settings,
+    use_control, use_link, use_service, use_service_part, use_services, use_settings,
 };
 use sill_ui_kit::links::{ActionLink, CenterLink, ControlCenterLink, Origin};
 use sill_ui_kit::menu::PopupLook;
@@ -136,7 +136,6 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         services: use_services(),
         surface: try_use_context::<SurfaceHandle>(),
         timing: super::track::timing(),
-        chroma: chroma_limit(use_appearance()().settings.icons.symbolic_chroma_max.0),
         look,
         namespace: layer(output, &file, file.bar.autohide).namespace,
         output: output.id,
@@ -457,7 +456,9 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
     {
         return None;
     }
-    let body = body(menu, &deps.state, &|icon| row_image(icon, deps.chroma));
+    let body = body(menu, &deps.state, &|icon| {
+        row_image(icon, ChromaLimit::PROPOSED)
+    });
     Some(PopupView {
         menu,
         placement: placement(rect, menu.side(), deps.bar_width),

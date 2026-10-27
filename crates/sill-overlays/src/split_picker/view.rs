@@ -18,8 +18,8 @@ use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
 
 use super::io::use_picker;
 use super::model::{Step, index_of, moved, other_half};
-use sill_ui_kit::app_icons::{LogicalPx, TileIcons, icon_side, metrics_of, use_tile_icons};
-use sill_ui_kit::hooks::use_settings;
+use sill_shell_kit::switcher::switcher_fit::SwitcherMetrics;
+use sill_ui_kit::app_icons::{ICON_SIDE, TileIcons, use_tile_icons};
 use sill_ui_kit::links::SplitPickerLink;
 use sill_ui_kit::root::SurfaceRoot;
 
@@ -27,12 +27,11 @@ use sill_ui_kit::root::SurfaceRoot;
 pub const SPLIT_PICKER_CSS: &str = include_str!("style.css");
 
 pub(super) fn split_picker(output: OutputInfo) -> Element {
-    let file = use_settings()();
-    let icons = use_tile_icons(&output, LogicalPx(icon_side(&file.switcher).0));
+    let icons = use_tile_icons(&output, ICON_SIDE);
     let link = use_context::<SplitPickerLink>();
     let picker = use_picker(&link, &output);
     let mut selected = use_signal(|| None::<String>);
-    let metrics = metrics_of(&file.switcher);
+    let metrics = SwitcherMetrics::default();
     let offer = picker.shown();
     rsx! {
         SurfaceRoot {

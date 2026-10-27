@@ -15,7 +15,7 @@ use sill_shell_kit::prelude::*;
 use super::modules::use_plate;
 
 /// The control center's level look.
-const LOOK: SliderLook = SliderLook::Mac;
+const LOOK: SliderLook = SliderLook::Level;
 
 /// `glyph` and `title` over the level at `level` (the percentage as the header's value), the
 /// knob carrying `level_glyph` (the sun, or the volume's state, the bar item's source);

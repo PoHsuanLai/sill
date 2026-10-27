@@ -186,8 +186,6 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
             toml::Value::String("monday".to_owned()),
         ),
         ("hot_corners.top_left", toml::Value::Array(Vec::new())),
-        ("hot_corners.dwell_ms", toml::Value::Integer(150)),
-        ("hot_corners.size_px", toml::Value::Integer(2)),
         ("session.lock_grace_s", toml::Value::Integer(5)),
         ("idle.screen_off_ac_min", toml::Value::Integer(15)),
         ("idle.screen_off_battery_min", toml::Value::Integer(15)),

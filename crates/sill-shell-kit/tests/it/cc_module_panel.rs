@@ -37,7 +37,7 @@ fn Sound() -> Element {
                             label: "Volume",
                             value: VALUE(),
                             glyph: LevelGlyph::Volume(Muting::Audible),
-                            onchange: move |next| *VALUE.write() = next, look: SliderLook::Capsule }
+                            onchange: move |next| *VALUE.write() = next, look: SliderLook::Level }
                     }
                 }
             }
@@ -69,8 +69,10 @@ fn a_level_inside_a_panel_on_the_grid_takes_a_press_and_a_drag() {
         "the panel spans both columns inside the grid's padding (10, design/29-SIZING.md)"
     );
     let rail = rect(&harness, ".ds-slider-rail");
+    // The level knob's centre travels the rail less the knob's own width.
+    let knob = rect(&harness, ".ds-slider-thumb").size.width.0;
     let at = |share: f32| Point {
-        x: Px(rail.origin.x.0 + rail.size.width.0 * share),
+        x: Px(rail.origin.x.0 + knob / 2.0 + (rail.size.width.0 - knob) * share),
         y: Px(rail.origin.y.0 + rail.size.height.0 / 2.0),
     };
     harness.send(Input::pointer_down(at(0.3)));

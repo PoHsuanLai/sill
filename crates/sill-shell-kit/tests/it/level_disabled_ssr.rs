@@ -1,4 +1,4 @@
-//! A disabled capsule `Slider` looked exactly like an enabled one at 0 %, so a brightness
+//! A disabled level `Slider` looked exactly like an enabled one at 0 %, so a brightness
 //! level that could not move read as broken. Each state as markup, and the stylesheet rules that
 //! draw the disabled one: the rail and lead glyph at .35, no knob, the not-allowed cursor, no
 //! swell; a `ModulePanel` whose content is disabled dims its header glyph and percentage.
@@ -48,7 +48,7 @@ fn panel(availability: Availability) -> Element {
                 label: "Brightness",
                 value: Fraction(0),
                 glyph: LevelGlyph::Brightness,
-                look: SliderLook::CapsuleKnob,
+                look: SliderLook::Level,
                 availability,
             }
         }
@@ -70,14 +70,14 @@ const CASES: &[Case] = &[
         Availability::Disabled,
     ),
     (
-        "disabled capsule",
+        "disabled volume",
         || {
             rooted(rsx! {
                 Slider {
                     label: "Volume",
                     value: Fraction(0),
                     glyph: LevelGlyph::Volume(Muting::Audible),
-                    availability: Availability::Disabled, look: SliderLook::Capsule }
+                    availability: Availability::Disabled, look: SliderLook::Level }
             })
         },
         Availability::Disabled,
@@ -125,7 +125,7 @@ fn the_stylesheet_draws_the_disabled_level_apart() {
     let css = sill_shell_kit::stylesheet();
     const RULES: &[&str] = &[
         ".ds-slider[*|aria-disabled=true]{ cursor:not-allowed; }",
-        ".ds-slider[*|aria-disabled=true] .ds-slider-icon-lead{ opacity:.35; }",
+        ".ds-slider[*|aria-disabled=true] .ds-slider-rail{ opacity:.35; }",
         ".ds-slider[*|aria-disabled=true] .ds-slider-thumb{ display:none; }",
         ".ds-module-panel[*|aria-disabled=true] .ds-module-panel-trailing{ opacity:.35; }",
     ];

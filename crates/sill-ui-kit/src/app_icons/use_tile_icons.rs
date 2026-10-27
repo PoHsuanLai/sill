@@ -19,12 +19,7 @@ pub fn use_tile_icons(output: &OutputInfo, side: LogicalPx) -> TileIcons {
     let resolved = resolve(appearance, look.theme, environment.system);
     TileIcons {
         cx: IconContext {
-            look: icon_look(
-                &environment.settings.icons,
-                &look,
-                appearance.accent,
-                resolved.scheme,
-            ),
+            look: icon_look(&environment.settings.icons, &look, resolved.scheme),
             scale: use_host_scale(),
             resolver: use_icon_resolver(),
         },

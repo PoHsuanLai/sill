@@ -44,107 +44,6 @@ const RETIRED: &[&str] = &[
     "widgets.world_clocks",
 ];
 
-/// Rows design/22 still has for keys sill turned into constants or style (2026-10-27: Settings
-/// shows only what the OS offers); the rows are quire's to remove, and this list ends when they go.
-const PRUNED: &[&str] = &[
-    "bar.title_padding_px",
-    "bar.open_title_pill_height_px",
-    "bar.status_gap_px",
-    "bar.glyph_size_policy",
-    "bar.item_font_px",
-    "bar.item_font_weight",
-    "bar.item_radius_px",
-    "dock.influence_radius_px",
-    "dock.autohide_delay_ms",
-    "dock.autohide_slide_ms",
-    "dock.autohide_trigger_strip_px",
-    "dock.click_active_app",
-    "dock.magnify_enter_ms",
-    "dock.magnify_leave_ms",
-    "dock.hover_label_warm_ms",
-    "dock.hold_to_menu_ms",
-    "dock.hold_to_menu_move_px",
-    "dock.remove_threshold_px",
-    "dock.spring_load_ms",
-    "dock.context_menu_order",
-    "dock.modifier_clicks",
-    "launcher.top_vertical_fraction",
-    "launcher.field_font_px",
-    "launcher.field_font_weight",
-    "launcher.field_glyph_px",
-    "launcher.row_title_px",
-    "launcher.row_detail_px",
-    "launcher.files_backend",
-    "launcher.files_budget_ms",
-    "launcher.clipboard_cap",
-    "launcher.clipboard_image_max_mb",
-    "launcher.web_engine_url",
-    "scroll.momentum_model",
-    "scroll.momentum_a",
-    "scroll.momentum_b",
-    "scroll.momentum_stop_px_s",
-    "scroll.momentum_start_px_s",
-    "scroll.momentum_cap_px_s",
-    "scroll.velocity_window_ms",
-    "scroll.velocity_held_still_ms",
-    "scroll.rubber_band",
-    "scroll.rubber_band_c",
-    "scroll.rubber_band_linear_divisor",
-    "scroll.rubber_band_edge_min_px",
-    "scroll.rubber_band_snap_rate",
-    "scroll.rubber_band_snap_gain",
-    "scroll.wheel_detent_px",
-    "scroll.wheel_burst_window_ms",
-    "scroll.momentum_boost_threshold_px_s",
-    "scroll.double_scroll_grace_ms",
-    "scrollbar.hide_delay_ms",
-    "scrollbar.fade_duration_ms",
-    "scrollbar.expand_zone_px",
-    "scrollbar.expand_duration_ms",
-    "menus.submenu_delay_ms",
-    "menus.item_height_px",
-    "menus.separator_margin_px",
-    "menus.submenu_triangle_timeout_ms",
-    "menus.first_mouse_window_ms",
-    "menus.font_px",
-    "menus.highlight_radius_px",
-    "menus.tooltip_font_px",
-    "notifications.banner_min_height_px",
-    "notifications.banner_padding_px",
-    "notifications.banner_hold_ms",
-    "notifications.hover_min_remaining_ms",
-    "notifications.close_button_px",
-    "notifications.swipe_dismiss_px",
-    "notifications.swipe_dismiss_velocity_px_s",
-    "notifications.swipe_damping",
-    "notifications.stack_max",
-    "notifications.stack_gap_px",
-    "notifications.group_offset_px",
-    "notifications.server",
-    "notifications.banner_position",
-    "notifications.history_cap",
-    "control_center.grid_columns",
-    "spaces.default_grain",
-    "osd.enabled",
-    "osd.hold_ms",
-    "osd.position",
-    "window.move_threshold_px",
-    "power_menu.default_action",
-    "power_menu.material",
-    "calendar.up_next_days",
-    "calendar.up_next_max",
-    "screenshot.thumbnail_hold_ms",
-    "screenshot.tool",
-    "idle.dim_s",
-    "idle.dim_level_pct",
-    "idle.locked_screen_off_s",
-    "companion.double_tap_ms",
-    "companion.app_wait_ms",
-    "companion.confirm_arm_ms",
-    "launcher.material",
-    "notifications.banner_material",
-];
-
 fn doc_keys() -> Vec<String> {
     let doc = doc();
     let mut keys: Vec<String> = SECTIONS
@@ -173,11 +72,8 @@ fn spec_paths() -> Vec<String> {
 fn every_key_in_catalogue_has_a_spec() {
     let specs = spec_paths();
     let keys = doc_keys();
-    assert!(keys.len() > 100, "only {} keys parsed", keys.len());
-    for key in keys
-        .iter()
-        .filter(|key| !RETIRED.contains(&key.as_str()) && !PRUNED.contains(&key.as_str()))
-    {
+    assert!(keys.len() > 60, "only {} keys parsed", keys.len());
+    for key in keys.iter().filter(|key| !RETIRED.contains(&key.as_str())) {
         assert!(specs.contains(key), "{key}: no KeySpec with that path");
     }
 }

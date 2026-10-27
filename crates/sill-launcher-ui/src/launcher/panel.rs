@@ -5,7 +5,7 @@
 //! sections, the selected row's actions as a quire `Menu{Rich}` hung from that row
 //! (⌘K), and the preview pane beside the results while it is shown. The box
 //! around the root carries the shell type scale (the 22/500 query, 14 and 12 px rows), and the
-//! root hands the card the material stack. A palette mounts with each opening and unmounts when
+//! root's material draws the card. A palette mounts with each opening and unmounts when
 //! the launcher hides. The palette's selection is the session's; Space while browsing, → at the
 //! field's end, the pane's keys and the row chords come from its `claim` (before it reads a
 //! key), Tab, Shift+Tab and ⌘K from its `onkey` (after).
@@ -119,7 +119,6 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
         look: icon_look(
             &environment.settings.icons,
             &look,
-            appearance.accent,
             resolve(appearance, look.theme, environment.system).scheme,
         ),
         scale: use_host_scale(),

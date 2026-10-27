@@ -47,8 +47,6 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     let popup_look = PopupLook {
         appearance: environment.settings.appearance.appearance(),
         system: environment.system,
-        tint: environment.tint_alpha(),
-        stack: environment.material_stack(),
     };
     let root = use_root_style();
     let session = use_bar(&output, popup_look);
@@ -81,8 +79,6 @@ pub(super) fn bar(output: OutputInfo) -> Element {
             look,
             material: Material::Bar,
             blur: BlurState::Available,
-            tint_alpha: Some(popup_look.tint),
-            stack: Some(popup_look.stack),
             surface: root.surface,
             styles: root.styles,
             custom_styles: root.custom_styles,

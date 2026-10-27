@@ -132,7 +132,7 @@ fn Sheet(theme: Theme) -> Element {
                             ModuleTile { glyph: Icon::Wifi, title: "Wi-Fi", status: "Home", value: Check::On, onclick: |_| {}, on_detail: |_| {} }
                             ModuleTile { glyph: Icon::Bluetooth, title: "Bluetooth", status: "Off", value: Check::Off, onclick: |_| {}, on_detail: |_| {} }
                             ModulePanel { glyph: Icon::Sun, title: "Display", trailing: rsx! { "60%" },
-                                Slider { label: "Display", value: Fraction(600), glyph: LevelGlyph::Volume(Muting::Audible), look: SliderLook::Capsule }
+                                Slider { label: "Display", value: Fraction(600), glyph: LevelGlyph::Volume(Muting::Audible), look: SliderLook::Level }
                             }
                         }
                     }

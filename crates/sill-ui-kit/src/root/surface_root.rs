@@ -1,6 +1,6 @@
 //! The root every layer surface's document starts with: quire's `Ds` given the desktop's
-//! appearance, the look of the active workspace on the surface's output, and the tint and
-//! material stack the settings choose. The device scale and the seat's input modality reach it
+//! appearance and the look of the active workspace on the surface's output; the material's tint
+//! and stack are stylesheet tokens. The device scale and the seat's input modality reach it
 //! as `HostSignals` (`mount`). A surface supplies only what is its own: its material, its chrome
 //! and its extent.
 
@@ -36,8 +36,6 @@ pub fn SurfaceRoot(
             chrome,
             extent,
             blur: BlurState::Available,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
             surface: root.surface,
             styles: root.styles,
             custom_styles: root.custom_styles,

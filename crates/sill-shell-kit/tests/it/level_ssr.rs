@@ -1,4 +1,4 @@
-//! The capsule slider, the level indicator and the OSD card as markup (the user's brief of
+//! The level slider, the level indicator and the OSD card as markup (the user's brief of
 //! 2026-09-25): each look and style, each glyph state, read-only and interactive, and the OSD
 //! card shown at either anchor and hidden. Each golden is `tests/snapshots/level/<name>.html`, and every `ds-`
 //! class in it must be styled by the stylesheet.
@@ -52,14 +52,9 @@ fn osd_root(body: Element) -> Element {
 type Case = (&'static str, fn() -> Element);
 
 const CASES: &[Case] = &[
-    ("slider-capsule-volume-40", || {
+    ("slider-level-volume-40", || {
         osd_root(
-            rsx! { Slider { label: "Volume", value: Fraction(400), glyph: HEARD, look: SliderLook::Capsule } },
-        )
-    }),
-    ("slider-capsule-knob-volume-40", || {
-        osd_root(
-            rsx! { Slider { label: "Volume", value: Fraction(400), glyph: HEARD, look: SliderLook::CapsuleKnob } },
+            rsx! { Slider { label: "Volume", value: Fraction(400), glyph: HEARD, look: SliderLook::Level } },
         )
     }),
     ("indicator-discrete-volume-40", || {
@@ -67,9 +62,9 @@ const CASES: &[Case] = &[
             rsx! { LevelIndicator { label: "Volume", value: Fraction(400), glyph: HEARD, style: LevelStyle::Discrete } },
         )
     }),
-    ("slider-capsule-muted", || {
+    ("slider-level-muted", || {
         osd_root(
-            rsx! { Slider { label: "Volume", value: Fraction(400), glyph: LevelGlyph::Volume(Muting::Muted), look: SliderLook::Capsule } },
+            rsx! { Slider { label: "Volume", value: Fraction(400), glyph: LevelGlyph::Volume(Muting::Muted), look: SliderLook::Level } },
         )
     }),
     ("indicator-continuous-brightness-30", || {
@@ -92,11 +87,6 @@ const CASES: &[Case] = &[
             Osd { shown: Shown::Hidden, label: "Sound", level: OsdLevel { value: Fraction(500), glyph: HEARD } }
         })
     }),
-    ("slider-mac-volume-40", || {
-        osd_root(
-            rsx! { Slider { label: "Volume", value: Fraction(400), glyph: HEARD, look: SliderLook::Mac } },
-        )
-    }),
 ];
 
 pub(crate) fn specimens() -> Vec<Specimen> {
@@ -110,7 +100,7 @@ pub(crate) fn specimens() -> Vec<Specimen> {
 
 #[test]
 fn an_indicator_takes_no_input_and_a_slider_does() {
-    let indicator = render(CASES[4].1);
+    let indicator = render(CASES[3].1);
     assert!(indicator.contains("role=\"meter\""), "{indicator}");
     assert!(!indicator.contains("tabindex"), "{indicator}");
     assert!(!indicator.contains("ds-slider-hit"), "{indicator}");
@@ -123,22 +113,16 @@ fn an_indicator_takes_no_input_and_a_slider_does() {
 }
 
 #[test]
-fn the_capsule_draws_its_glyph_twice_and_the_other_looks_once() {
-    let mac = render(CASES.last().expect("the Mac look is last").1);
-    assert_eq!(
-        mac.matches("data-part=\"body\"").count(),
-        1,
-        "in the knob, once"
-    );
-    assert!(
-        mac.contains("class=\"ds-slider-thumb\"><span class=\"ds-slider-icon\">"),
-        "{mac}"
-    );
+fn the_level_slider_draws_its_glyph_once_in_the_knob_and_the_squares_fill_to_the_value() {
+    let slider = render(CASES[0].1);
     let parts = |html: &str| html.matches("data-part=\"body\"").count();
-    assert_eq!(parts(&render(CASES[0].1)), 2, "on the well and in the fill");
-    assert_eq!(parts(&render(CASES[1].1)), 1);
-    assert_eq!(parts(&render(CASES[2].1)), 1);
-    let segments = render(CASES[2].1);
+    assert_eq!(parts(&slider), 1, "in the knob, once");
+    assert!(
+        slider.contains("class=\"ds-slider-thumb\"><span class=\"ds-slider-icon\">"),
+        "{slider}"
+    );
+    let segments = render(CASES[1].1);
+    assert_eq!(parts(&segments), 1);
     assert_eq!(
         segments
             .matches("class=\"ds-level-indicator-segment\"")

@@ -78,7 +78,6 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
             "--dock-gap-px:8px;--dock-pad-px:6px;",
             1,
         ),
-        ("the material stack", "--m-vibrancy:1;", 1),
         ("firefox's count", ">7</span>", 1),
         ("one badge", "class=\"ds-badge\"", 1),
         ("firefox's progress bar", "class=\"ds-dock-progress\"", 1),

@@ -51,7 +51,7 @@ fn work(theme: Theme) -> SpaceLook {
 
 fn level() -> Element {
     rsx! {
-        Slider { label: "Volume", value: Fraction(500), glyph: LevelGlyph::Volume(Muting::Audible), onchange: |_| {}, look: SliderLook::Capsule }
+        Slider { label: "Volume", value: Fraction(500), glyph: LevelGlyph::Volume(Muting::Audible), onchange: |_| {}, look: SliderLook::Level }
     }
 }
 

@@ -22,14 +22,13 @@ use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
-use crate::switcher::SwitcherSettings;
 use crate::voice::VoiceSettings;
 use crate::wallpaper::WallpaperSettings;
 
 /// The directory name under `$XDG_CONFIG_HOME`.
 pub const APP: AppName = AppName("sill");
 
-/// Every shell domain (design/22 §4.4 `ShellFile`, with `switcher` as a table of its own).
+/// Every shell domain (design/22 §4.4 `ShellFile`).
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ShellFile {
@@ -38,7 +37,6 @@ pub struct ShellFile {
     pub launcher: LauncherSettings,
     pub scroll: ScrollSettings,
     pub scrollbar: ScrollbarSettings,
-    pub switcher: SwitcherSettings,
     pub notifications: NotificationsSettings,
     pub control_center: ControlCenterSettings,
     pub display: DisplaySettings,

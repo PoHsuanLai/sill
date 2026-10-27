@@ -13,13 +13,13 @@ pub const SWITCHER_PADDING: Px = Px(16.0);
 /// "`output_w - 64`"): 32 each side.
 pub const SWITCHER_MARGIN: Px = Px(64.0);
 
-/// The switcher's geometry from the settings (`switcher.icon_size_px`, `cell_size_px`,
-/// `cell_gap_px`, `overflow_min_icon_px`; design/22-SETTINGS.md section 3.11).
+/// The switcher's geometry (design/20 section 1.11 plates the icons at 64, so the cell is 80).
+/// Sizes are fixed: the look's stylesheet styles the panel, not a setting.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SwitcherMetrics {
-    /// The icon at full size, 96.
+    /// The icon at full size, 64.
     pub icon: Px,
-    /// The cell at full size, 112: the icon and its inset, the selection's square.
+    /// The cell at full size, 80: the icon and its inset, the selection's square.
     pub cell: Px,
     /// The gap between cells, 8.
     pub gap: Px,
@@ -28,11 +28,11 @@ pub struct SwitcherMetrics {
 }
 
 impl Default for SwitcherMetrics {
-    /// The keys' defaults (design/22 section 3.11, proposed).
+    /// The drawn sizes.
     fn default() -> Self {
         SwitcherMetrics {
-            icon: Px(96.0),
-            cell: Px(112.0),
+            icon: Px(64.0),
+            cell: Px(80.0),
             gap: Px(8.0),
             min_icon: Px(48.0),
         }
@@ -108,14 +108,14 @@ mod tests {
 
     #[test]
     fn a_row_that_fits_keeps_its_full_size_and_does_not_scroll() {
-        // Five cells: 5 x 112 + 4 x 8 = 592, inside 1440 - 64 - 32.
+        // Five cells: 5 x 80 + 4 x 8 = 432, inside 1440 - 64 - 32.
         let five = at(5, 1, Some(1440.0));
         assert_eq!(
             five,
             SwitcherFit {
-                icon: Px(96.0),
-                cell: Px(112.0),
-                view: Px(592.0),
+                icon: Px(64.0),
+                cell: Px(80.0),
+                view: Px(432.0),
                 shift: Px(0.0)
             }
         );
@@ -124,11 +124,11 @@ mod tests {
 
     #[test]
     fn a_row_too_wide_shrinks_its_icons_first() {
-        // Fourteen on 1440: room 1344; (1344 - 13 x 8) / 14 = 88.57, so cells of 88, icons 72.
-        let fourteen = at(14, 1, Some(1440.0));
-        assert_eq!((fourteen.cell, fourteen.icon), (Px(88.0), Px(72.0)));
-        assert_eq!(fourteen.view, Px(14.0 * 88.0 + 13.0 * 8.0));
-        assert_eq!(fourteen.shift, Px(0.0));
+        // Sixteen on 1440: room 1344; (1344 - 15 x 8) / 16 = 76.5, so cells of 76, icons 60.
+        let sixteen = at(16, 1, Some(1440.0));
+        assert_eq!((sixteen.cell, sixteen.icon), (Px(76.0), Px(60.0)));
+        assert_eq!(sixteen.view, Px(16.0 * 76.0 + 15.0 * 8.0));
+        assert_eq!(sixteen.shift, Px(0.0));
     }
 
     #[test]
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn no_apps_and_a_stray_selection_stay_sane() {
-        assert_eq!(at(0, 0, Some(1440.0)).cell, Px(112.0));
+        assert_eq!(at(0, 0, Some(1440.0)).cell, Px(80.0));
         let stray = at(14, 99, Some(800.0));
         assert_eq!(stray.shift, Px(296.0));
     }

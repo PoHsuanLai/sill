@@ -19,7 +19,6 @@ use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
-use crate::switcher::SwitcherSettings;
 use crate::voice::VoiceSettings;
 use crate::wallpaper::WallpaperSettings;
 
@@ -47,7 +46,6 @@ pub fn schemas() -> Vec<Schema> {
         LauncherSettings::schema(),
         ScrollSettings::schema(),
         ScrollbarSettings::schema(),
-        SwitcherSettings::schema(),
         NotificationsSettings::schema(),
         ControlCenterSettings::schema(),
         DisplaySettings::schema(),
@@ -77,6 +75,7 @@ pub fn schema() -> Schema {
         file: FilePath("sill/settings.toml".to_owned()),
         version: 1,
         pages: parts.iter().flat_map(|s| s.pages.clone()).collect(),
+        footnotes: parts.iter().flat_map(|s| s.footnotes.clone()).collect(),
         key: parts.into_iter().flat_map(|s| s.key).collect(),
         foreign: Default::default(),
     }

@@ -8,6 +8,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
+use ds_behaviour::switcher::SwitcherParams;
 use ds_harness::{FocusState, Harness, Input, Viewport};
 use sill_launcher::{AppId, WindowKey};
 use sill_model::ids::{OutputName, WorkspaceKey};
@@ -135,7 +136,7 @@ fn a_chord_shows_the_apps_after_the_delay_with_the_previous_selected() {
     wait(&mut running, 40);
     assert_eq!(panels(&running), 0, "hidden at start");
     ask(&mut running, SwitcherAsk::Chord(Dir::Next));
-    let delay = u64::from(ShellFile::default().switcher.show_delay_ms.0);
+    let delay = u64::try_from(SwitcherParams::default().show_delay.as_millis()).unwrap_or(u64::MAX);
     wait(&mut running, delay - 1);
     assert_eq!(
         panels(&running),

@@ -5,7 +5,6 @@
 use dioxus::prelude::*;
 use ds::components::content::image_source::ImageSize;
 use ds::prelude::*;
-use ds::style::material::stack::MaterialStack;
 use ds_settings::Environment;
 use shell_host::{DragIcon, HostRoot, Size};
 use sill_shell_kit::prelude::*;
@@ -25,8 +24,6 @@ pub struct GhostLook {
     pub appearance: Appearance,
     pub system: SystemPrefs,
     pub look: SpaceLook,
-    pub tint_alpha: Option<Alpha>,
-    pub stack: Option<MaterialStack>,
 }
 
 impl GhostLook {
@@ -36,8 +33,6 @@ impl GhostLook {
             appearance: environment.settings.appearance.appearance(),
             system: environment.system,
             look,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
         }
     }
 }
@@ -85,8 +80,6 @@ fn ghost_root(ghost: Ghost) -> Element {
             material: Material::Toast,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            tint_alpha: look.tint_alpha,
-            stack: look.stack,
             ShotGhost { image: ghost.image, size: ghost.size }
         }
     }

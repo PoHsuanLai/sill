@@ -45,7 +45,6 @@ fn the_bar_shows_what_the_services_hold() {
             2,
         ),
         ("the app name bold", "data-emphasis=\"strong\"", 1),
-        ("the material stack", "--m-vibrancy:1;", 1),
         ("the Bar material", "data-material=\"bar\"", 1),
         ("the root draws the Space", "data-frame=\"tinted\"", 1),
         ("on the frame ground", "data-ground=\"frame\"", 1),

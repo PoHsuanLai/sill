@@ -8,7 +8,6 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::stack::menu_track::types::MenuTiming;
-use ds::style::material::stack::MaterialStack;
 use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use shell_host::{PopupPlacement, Rect as HostRect, Size as HostSize};
 use sill_model::tray::{Check, TrayItemId, TrayMenuEntry, TrayMenuIcon, TrayMenuKind};
@@ -126,8 +125,6 @@ fn document(rows: Vec<TrayMenuEntry>) -> Element {
         look: PopupLook {
             appearance: Appearance::default(),
             system: SystemPrefs::default(),
-            tint: Alpha(800),
-            stack: MaterialStack::default(),
         },
     };
     rsx! {

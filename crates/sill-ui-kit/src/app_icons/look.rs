@@ -1,13 +1,12 @@
-//! The icon style the dock and the launcher draw in: `icons.style` and `icons.monochrome_tint`
-//! (quire's appearance file) read against the active Space, and the scheme the surface paints
+//! The icon style the dock and the launcher draw in: `icons.style` (quire's
+//! appearance file) read against the active Space (Monochrome takes the Space's hue), and the scheme the surface paints
 //! (in the dark, Muted and Monochrome lift a raster into quire's tone band, design/29 §11 F3).
 //! Pure.
 
 use ds::prelude::*;
 use ds::style::icon::retint::IconStyle;
 use ds::style::icon::retint::Tint;
-use ds::style::tokens::accent_table::accent_of;
-use ds_settings::{IconsSettings, MonochromeTint};
+use ds_settings::IconsSettings;
 
 /// The style and the tint every app icon on a surface is drawn in.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -36,17 +35,11 @@ impl Default for IconLook {
     }
 }
 
-/// The look `icons` asks for on a Space drawn as `space` in `scheme`, with the appearance
-/// `accent`.
-pub fn icon_look(
-    icons: &IconsSettings,
-    space: &SpaceLook,
-    accent: Accent,
-    scheme: Scheme,
-) -> IconLook {
+/// The look `icons` asks for on a Space drawn as `space` in `scheme`.
+pub fn icon_look(icons: &IconsSettings, space: &SpaceLook, scheme: Scheme) -> IconLook {
     let style = style_of(icons.style);
     let tint = match style {
-        IconStyle::Monochrome => tint_of(icons.monochrome_tint, space, accent),
+        IconStyle::Monochrome => Tint::space(&space.dots),
         IconStyle::Colour | IconStyle::Muted => Tint::NEUTRAL,
     };
     let scheme = match style {
@@ -69,17 +62,6 @@ fn style_of(style: ds_settings::IconStyle) -> IconStyle {
     }
 }
 
-/// `icons.monochrome_tint`: the Space's hue, the appearance accent the card wears, or none.
-fn tint_of(tint: MonochromeTint, space: &SpaceLook, accent: Accent) -> Tint {
-    match tint {
-        MonochromeTint::Space => Tint::space(&space.dots),
-        MonochromeTint::Accent => {
-            Tint::from_hex(&accent_of(accent, Scheme::Light).fill.css()).unwrap_or(Tint::NEUTRAL)
-        }
-        _ => Tint::NEUTRAL,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{IconLook, icon_look};
@@ -87,12 +69,11 @@ mod tests {
     use ds::style::icon::retint::IconStyle;
     use ds::style::icon::retint::Tint;
     use ds::style::space::presets::default_look;
-    use ds_settings::{IconsSettings, MonochromeTint};
+    use ds_settings::IconsSettings;
 
-    fn icons(style: ds_settings::IconStyle, tint: MonochromeTint) -> IconsSettings {
+    fn icons(style: ds_settings::IconStyle) -> IconsSettings {
         let mut icons = IconsSettings::default();
         icons.style = style;
-        icons.monochrome_tint = tint;
         icons
     }
 
@@ -105,12 +86,7 @@ mod tests {
         use ds_settings::IconStyle as S;
         let work = default_look(0, Grain(35));
         for (style, want) in [(S::Colour, IconStyle::Colour), (S::Muted, IconStyle::Muted)] {
-            let look = icon_look(
-                &icons(style, MonochromeTint::Space),
-                &work,
-                Accent::Red,
-                Scheme::Light,
-            );
+            let look = icon_look(&icons(style), &work, Scheme::Light);
             assert_eq!(
                 look,
                 IconLook {
@@ -122,52 +98,21 @@ mod tests {
         }
     }
 
-    /// Space follows the workspace's preset (Work near 268, Home near 152), Accent the card's
-    /// accent (the appearance accent, on every Space), Neutral none.
+    /// Monochrome follows the workspace's preset: Work near 268, Home near 152.
     #[test]
-    fn monochrome_takes_its_tint_from_the_setting() {
+    fn monochrome_takes_the_spaces_hue() {
         use ds_settings::IconStyle::Monochrome;
         let work = default_look(0, Grain(35));
         let home = default_look(1, Grain(55));
-        let at = |tint, space, accent| {
-            icon_look(&icons(Monochrome, tint), space, accent, Scheme::Light).tint
-        };
-        assert!(hue_near(
-            at(MonochromeTint::Space, &work, Accent::Red),
-            268.0
-        ));
-        assert!(hue_near(
-            at(MonochromeTint::Space, &home, Accent::Red),
-            152.0
-        ));
+        let at = |space| icon_look(&icons(Monochrome), space, Scheme::Light);
+        assert!(hue_near(at(&work).tint, 268.0));
+        assert!(hue_near(at(&home).tint, 152.0));
         assert_ne!(
-            at(MonochromeTint::Space, &work, Accent::Red),
-            at(MonochromeTint::Space, &home, Accent::Red),
+            at(&work).tint,
+            at(&home).tint,
             "a workspace switch changes the tint"
         );
-        // Red's deep member sits near hue 25-30 in OKLCh.
-        assert!(hue_near(
-            at(MonochromeTint::Accent, &work, Accent::Red),
-            28.0
-        ));
-        assert!(hue_near(
-            at(MonochromeTint::Accent, &home, Accent::Red),
-            28.0
-        ));
-        assert_eq!(
-            at(MonochromeTint::Neutral, &work, Accent::Red),
-            Tint::NEUTRAL
-        );
-        assert_eq!(
-            icon_look(
-                &icons(Monochrome, MonochromeTint::Space),
-                &work,
-                Accent::Red,
-                Scheme::Light,
-            )
-            .style,
-            IconStyle::Monochrome
-        );
+        assert_eq!(at(&work).style, IconStyle::Monochrome);
     }
 
     /// Muted and Monochrome keep the surface's scheme (the dark tone band re-keys them);
@@ -182,12 +127,7 @@ mod tests {
             (S::Monochrome, Scheme::Dark),
         ];
         for (style, want) in cases {
-            let look = icon_look(
-                &icons(style, MonochromeTint::Space),
-                &work,
-                Accent::Red,
-                Scheme::Dark,
-            );
+            let look = icon_look(&icons(style), &work, Scheme::Dark);
             assert_eq!(look.scheme, want, "{style:?}");
         }
     }

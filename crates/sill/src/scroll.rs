@@ -24,8 +24,6 @@ const MOMENTUM_CAP_PX_S: host::ScrollScalar = host::ScrollScalar(12_000.0);
 const VELOCITY_WINDOW_MS: host::ScrollMs = host::ScrollMs(80);
 /// How long, in ms, the fingers may rest before the release velocity is zero.
 const VELOCITY_HELD_STILL_MS: host::ScrollMs = host::ScrollMs(50);
-/// The overscroll stretch's shape: bounded, so it never leaves the view.
-const RUBBER_BAND: host::ScrollRubberBand = host::ScrollRubberBand::Bounded;
 /// The bounded stretch's constant `c`, in thousandths.
 const RUBBER_BAND_C: host::ScrollFraction = host::ScrollFraction(550);
 /// The overscroll, in px, under which no stretch is drawn.
@@ -70,7 +68,6 @@ fn scroll(s: &ScrollSettings) -> host::ScrollSettings {
         momentum_cap_px_s: MOMENTUM_CAP_PX_S,
         velocity_window_ms: VELOCITY_WINDOW_MS,
         velocity_held_still_ms: VELOCITY_HELD_STILL_MS,
-        rubber_band: RUBBER_BAND,
         rubber_band_c: RUBBER_BAND_C,
         rubber_band_edge_min_px: RUBBER_BAND_EDGE_MIN_PX,
         rubber_band_snap_rate: RUBBER_BAND_SNAP_RATE,
