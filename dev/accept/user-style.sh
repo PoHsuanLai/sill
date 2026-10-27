@@ -51,18 +51,38 @@ start_daemon() {
   sleep 1
 }
 
+# Shows the OSD again and waits for its first frame: once hidden, its surface is gone, and a new
+# one takes a moment to be presented. The 0.3 s after lets the fade-in finish inside the hold.
+show_osd() {
+  sill debug osd volume 60 >>"$OUT_DIR/osd.log" 2>&1 || return 1
+  for _ in $(seq 30); do
+    capture "$1" "$OUT_DIR/osd-probe.png" && { sleep 0.3; return 0; }
+    sleep 0.1
+  done
+  echo "the OSD was never presented" >&2
+  return 1
+}
+
 # Captures every surface as $OUT_DIR/$1-<surface>.png. The OSD hides 1.5 s after a change, so it
 # is shown again (and given its fade-in) right before its own capture.
 capture_all() {
   local surface
   for surface in "${SURFACES[@]}"; do
     case "$surface" in
-      sill-osd-*)
-        sill debug osd volume 60 >>"$OUT_DIR/osd.log" 2>&1 || return 1
-        sleep 0.5 ;;
+      sill-osd-*) show_osd "$surface" || return 1 ;;
     esac
     capture "$surface" "$OUT_DIR/$1-$surface.png" || { echo "cannot capture $surface" >&2; return 1; }
   done
+}
+
+# expect_all for every surface (reference $1, want $2, tag $3), the OSD shown again first: it
+# hides 1.5 s after a change, so it is not up when the bar's and the dock's polls are done.
+expect_styled() {
+  local SURFACES=("sill-bar-$NAME" "sill-dock-$NAME")
+  expect_all "$1" "$2" "$3" || return 1
+  show_osd "sill-osd-$NAME" || return 1
+  SURFACES=("sill-osd-$NAME")
+  expect_all "$1" "$2" "$3"
 }
 
 step_baseline() { capture_all base; }
@@ -76,7 +96,7 @@ step_check_clean() {
 
 step_written() {
   style_for 0 "rgb(255, 0, 255)" >"$CONFIG/sill/style.css"
-  expect_all base different written || return 1
+  expect_styled base different written || return 1
   printf '.ds { color: red \n}}}\n' >"$OUT_DIR/bad.css"
   if sill style check "$OUT_DIR/bad.css" >"$OUT_DIR/check-bad.log" 2>&1; then
     echo "sill style check accepted a file that is not CSS" >&2; return 1
@@ -86,12 +106,12 @@ step_written() {
 
 step_edited() {
   style_for .45 "rgb(0, 255, 0)" >"$CONFIG/sill/style.css"
-  expect_all written different edited || return 1
+  expect_styled written different edited || return 1
 }
 
 step_deleted() {
   rm -f "$CONFIG/sill/style.css"
-  expect_all base same reverted
+  expect_styled base same reverted
 }
 
 cleanup() {
