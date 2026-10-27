@@ -105,8 +105,10 @@ pub struct SectionPlan {
 
 impl SectionPlan {
     /// The proposed numbers: apps rank as they are and show six (design/06 §11.3's mail cap),
-    /// documents a little under them and five, windows three, the calculator its one answer,
-    /// settings and system three, clipboard three, emoji a grid row of eight, things five, runs
+    /// settings just under them and three, above documents as Spotlight puts System Settings
+    /// above files (a page or setting named like the text beats a file that merely contains
+    /// it), documents a little under them and five, windows three, the calculator its one answer,
+    /// system three, clipboard three, emoji a grid row of eight, things five, runs
     /// three, helpers eight, memory five, the companion's rows three and the web fallback one
     /// row. Top Hit comes from the primary providers only (apps, documents, windows, the
     /// calculator, settings), as Spotlight's does: the secondary ones (system commands,
@@ -128,7 +130,7 @@ impl SectionPlan {
                 rule(K::Files, S::Documents, 850, 5),
                 rule(K::Windows, S::Windows, 900, 3),
                 rule(K::Calculator, S::Calculator, 1000, 1),
-                rule(K::Settings, S::Settings, 700, 3),
+                rule(K::Settings, S::Settings, 950, 3),
                 rule(K::Clipboard, S::Clipboard, 0, 3),
                 rule(K::Emoji, S::Emoji, 0, 8),
                 rule(K::System, S::System, 950, 3),
@@ -141,10 +143,10 @@ impl SectionPlan {
             ],
             order: vec![
                 S::Applications,
+                S::Settings,
                 S::Documents,
                 S::Windows,
                 S::Calculator,
-                S::Settings,
                 S::Clipboard,
                 S::Emoji,
                 S::System,

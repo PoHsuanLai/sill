@@ -16,14 +16,15 @@ use sill_model::results::SearchCommand;
 use sill_model::windows::WlCommand;
 
 #[test]
-fn down_down_enter_runs_the_third_row() {
+fn three_downs_and_enter_run_the_fourth_row() {
     let mut open = open("fi");
     assert_eq!(
         titles(&open.harness),
-        vec!["Firefox", "Files", "Firefox — sill launcher", "Wi-Fi"]
+        vec!["Firefox", "Files", "Wi-Fi", "Firefox — sill launcher"]
     );
-    open.harness.send(Input::key(ShortcutKey::Down));
-    open.harness.send(Input::key(ShortcutKey::Down));
+    for _ in 0..3 {
+        open.harness.send(Input::key(ShortcutKey::Down));
+    }
     open.harness.send(Input::key(ShortcutKey::Enter));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
@@ -32,7 +33,7 @@ fn down_down_enter_runs_the_third_row() {
     assert_eq!(
         sent.ok(),
         Some(WlCommand::Activate(WindowKey(FIREFOX_WINDOW))),
-        "the third row is the Firefox window"
+        "the fourth row is the Firefox window"
     );
     let chosen = open
         .feeds

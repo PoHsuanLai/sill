@@ -46,11 +46,11 @@ fn a_query_groups_under_the_top_hit() {
     let html = open.harness.html();
     assert_eq!(
         headings(&html),
-        vec!["Top Hit", "Applications", "Windows", "Settings"]
+        vec!["Top Hit", "Applications", "Settings", "Windows"]
     );
     assert_eq!(
         titles(&open.harness),
-        vec!["Firefox", "Files", "Firefox — sill launcher", "Wi-Fi"]
+        vec!["Firefox", "Files", "Wi-Fi", "Firefox — sill launcher"]
     );
     assert!(
         html.contains("Web Browser"),

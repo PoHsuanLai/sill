@@ -101,19 +101,17 @@ impl SettingsIndex {
             .collect()
     }
 
-    /// Every key whose path, label or help fuzzy-matches `needle`, with its rank (0.7 match,
-    /// no frecency — a settings key has none of its own — plus the usual prefix boost).
+    /// Every key whose label fuzzy-matches `needle`, with its rank (0.7 match, no frecency — a
+    /// settings key has none of its own — plus the usual prefix boost). The key path is a
+    /// developer's word and the help a sentence whose every word would match, so neither is
+    /// searched.
     pub fn search(&self, needle: &Needle, matcher: &mut Matcher) -> Vec<(&IndexedKey, Score)> {
         let weights = RankWeights::DEFAULT;
         self.keys
             .iter()
             .filter_map(|key| {
-                let candidates = [&key.label, &key.path, &key.help];
-                let best = candidates
-                    .into_iter()
-                    .filter_map(|text| rank_text(needle, text, FrecencyScore(0), &weights, matcher))
-                    .max()?;
-                Some((key, best))
+                let rank = rank_text(needle, &key.label, FrecencyScore(0), &weights, matcher)?;
+                Some((key, rank))
             })
             .collect()
     }
@@ -230,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn search_finds_a_key_by_label_or_path() {
+    fn search_finds_a_key_by_its_label_and_never_by_its_path() {
         let idx = index();
         let mut m = Matcher::new(Config::DEFAULT);
         let by_label = idx.search(&Needle::parse("magnif"), &mut m);
@@ -238,8 +236,7 @@ mod tests {
         assert_eq!(by_label[0].0.path, "dock.magnification");
 
         let by_path = idx.search(&Needle::parse("dock.magnification"), &mut m);
-        assert_eq!(by_path.len(), 1);
-        assert_eq!(by_path[0].0.path, "dock.magnification");
+        assert!(by_path.is_empty(), "a key path is not a person's word");
     }
 
     #[test]

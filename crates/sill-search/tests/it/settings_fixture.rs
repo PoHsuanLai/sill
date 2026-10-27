@@ -91,18 +91,18 @@ fn bluetooth_does_not_deep_link_to_any_file_backed_key() {
 #[test]
 fn both_fixture_schemas_are_discovered() {
     let provider = SettingsProvider::with_dirs(vec![fixture_dir()]);
-    // Every key from both files should be reachable by an exact path search.
-    for (path, page) in [
-        ("appearance.theme", "appearance"),
-        ("appearance.accent", "appearance"),
-        ("dock.magnification", "dock"),
-        ("scroll.natural", "mouse-and-gestures"),
-        ("control_center.modules", "sill"),
+    // A key from each file is found by its label and opens its page.
+    for (label, page) in [
+        ("Theme", "appearance"),
+        ("Accent", "appearance"),
+        ("Magnification", "dock"),
+        ("Natural scrolling", "mouse-and-gestures"),
+        ("Modules", "sill"),
     ] {
-        let targets = query_target(&provider, path);
+        let targets = query_target(&provider, label);
         assert!(
             targets.contains(&SettingsTarget::Page(PageId::new(page))),
-            "expected {path} to open {page}, got {targets:?}"
+            "expected {label} to open {page}, got {targets:?}"
         );
     }
 }

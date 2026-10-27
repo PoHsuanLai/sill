@@ -9,7 +9,7 @@ use crate::rank::Score;
 use crate::subject::Subject;
 use crate::time::UnixTime;
 
-use ProviderKind::{Apps, Calculator, Clipboard, Emoji, Files, System, Web, Windows};
+use ProviderKind::{Apps, Calculator, Clipboard, Emoji, Files, Settings, System, Web, Windows};
 
 const NOW: UnixTime = UnixTime(1_790_000_000);
 
@@ -93,6 +93,20 @@ fn typed_text_is_the_weighted_top_hit_then_sections_in_order() {
             vec![
                 (Section::TopHit, vec!["Firefox"]),
                 (Section::Documents, vec!["firefox.pdf"]),
+            ],
+        ),
+        (
+            "a settings page named like the text beats a file of the same score, and its \
+             section comes before the documents",
+            vec![
+                (Files, "dock-notes.md", 800),
+                (Settings, "Desktop & Dock", 800),
+                (Settings, "Dock size", 700),
+            ],
+            vec![
+                (Section::TopHit, vec!["Desktop & Dock"]),
+                (Section::Settings, vec!["Dock size"]),
+                (Section::Documents, vec!["dock-notes.md"]),
             ],
         ),
         (
