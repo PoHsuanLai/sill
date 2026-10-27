@@ -7,7 +7,7 @@ use sill_model::sync_hold::{Dataset, Hold};
 use zbus::zvariant::OwnedValue;
 
 /// syncd's well-known name.
-pub(crate) const SYNC: &str = porter_dbus::SYNC_BUS;
+pub(crate) const SYNC: &str = porter_dbus::names::SYNC_BUS;
 
 /// What a `NeedsConfirmation` signal says about a dataset.
 #[derive(Debug, Clone, PartialEq, Eq)]

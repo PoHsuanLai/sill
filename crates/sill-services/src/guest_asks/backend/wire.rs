@@ -5,7 +5,7 @@ use porter_client::{GuestAnswer, GuestRow, NodeId};
 use sill_model::guest_asks::{Ask, Computer, Verdict};
 
 /// inferd's well-known name.
-pub(crate) const INFERD: &str = porter_dbus::INFERENCE_BUS;
+pub(crate) const INFERD: &str = porter_dbus::names::INFERENCE_BUS;
 
 /// The question a `GuestAsks` signal carries. A computer without a name is not one the person
 /// can answer, so it says nothing.

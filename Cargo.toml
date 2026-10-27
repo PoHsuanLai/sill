@@ -355,8 +355,6 @@ porter-client = { path = "../porter/crates/porter-client" }
 porter-core = { path = "../porter/crates/porter-core" }
 porter-dbus = { path = "../porter/crates/porter-dbus" }
 porter-infer = { path = "../porter/crates/porter-infer" }
-# prov left porter for its own repo; until anyview pins it there, porter's prov is the same crate.
-prov = { path = "../prov/prov" }
 
 [patch."https://github.com/PoHsuanLai/prov"]
 prov = { path = "../prov/prov" }
