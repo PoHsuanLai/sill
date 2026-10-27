@@ -1,6 +1,6 @@
 //! The dock's smaller pieces (design/10-BEHAVIOUR-dock.md section 10.3.2): the running dot under a
 //! tile, the label above it, and the optional reflective floor inside the pill. The shell lays out the tiles; these read the dock tokens (`--dock-dot`,
-//! `--dock-dot-gap`, `--dock-floor`) its `DockMetrics` writes.
+//! `--dock-dot-gap`, `--dock-floor`): the first two tuned tokens (`DockToken`), the floor the `DockMetrics` switch.
 
 use dioxus::prelude::*;
 use ds::base::vocab::Shown;

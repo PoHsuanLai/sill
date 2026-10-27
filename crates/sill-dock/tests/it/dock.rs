@@ -74,8 +74,8 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
         ("quire's floor in the pill", "class=\"ds-dock-floor\"", 1),
         ("a squircle pill", "data-corner=\"squircle\"", 1),
         (
-            "quire's dock metrics",
-            "--dock-gap-px:8px;--dock-pad-px:6px;",
+            "the tile's size and the floor",
+            "--dock-tile-px:48px;--dock-floor-on:0;",
             1,
         ),
         ("firefox's count", ">7</span>", 1),

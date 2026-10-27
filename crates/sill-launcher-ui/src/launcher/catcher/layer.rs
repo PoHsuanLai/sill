@@ -5,9 +5,9 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, Rect, RegionSpec, RoundedRect,
 };
-use sill_settings::{BarSettings, LauncherSettings};
 
 use crate::launcher::layer::{CARD_INSET, panel_rect};
+use crate::launcher::tokens::LauncherTokens;
 use sill_ui_kit::links::PanelHit;
 use sill_ui_kit::surface::namespace;
 
@@ -15,14 +15,9 @@ use sill_ui_kit::surface::namespace;
 /// card, or the whole panel), so a click on the panel reaches the panel whichever of the two
 /// Overlay surfaces the compositor stacks on top, and a click under a short card reaches the
 /// catcher.
-pub fn input(
-    output: &OutputInfo,
-    bar: &BarSettings,
-    launcher: &LauncherSettings,
-    hit: PanelHit,
-) -> RegionSpec {
+pub fn input(output: &OutputInfo, tokens: &LauncherTokens, hit: PanelHit) -> RegionSpec {
     let (w, h) = (output.logical.width, output.logical.height);
-    let whole = panel_rect(output, bar, launcher);
+    let whole = panel_rect(output, tokens);
     let inset = i32::try_from(CARD_INSET).unwrap_or(0);
     let panel = match hit {
         PanelHit::Whole => whole,
@@ -93,8 +88,8 @@ pub fn layer(output: &OutputInfo) -> LayerConfig {
 mod tests {
     use super::{input, layer};
     use crate::launcher::layer::panel_rect;
+    use crate::launcher::tokens::LauncherTokens;
     use shell_host::{Anchor, BlurSpec, KeyboardMode, Rect, RegionSpec};
-    use sill_settings::{BarSettings, LauncherSettings};
     use sill_ui_kit::harness::fake::output_named as output;
     use sill_ui_kit::links::PanelHit;
 
@@ -114,9 +109,9 @@ mod tests {
 
     #[test]
     fn the_catcher_takes_every_click_but_the_panels() {
-        let (bar, launcher) = (BarSettings::default(), LauncherSettings::default());
+        let tokens = LauncherTokens::default();
         let out = output(Some("DP-1"));
-        let panel = panel_rect(&out, &bar, &launcher);
+        let panel = panel_rect(&out, &tokens);
         assert_eq!(
             panel,
             Rect {
@@ -127,7 +122,7 @@ mod tests {
             },
             "the card's and the pane's room, centred on 1920 x 1080"
         );
-        let RegionSpec::Rects(bands) = input(&out, &bar, &launcher, PanelHit::Whole) else {
+        let RegionSpec::Rects(bands) = input(&out, &tokens, PanelHit::Whole) else {
             panic!("the catcher's region is a set of rects");
         };
         let area: i64 = bands
@@ -147,7 +142,7 @@ mod tests {
         assert!(!inside(440, 202) && !inside(1479, 661) && !inside(960, 400));
         // A 140 px card: the catcher takes everything under it too.
         let card = PanelHit::Card { height: 140 };
-        let RegionSpec::Rects(bands) = input(&out, &bar, &launcher, card) else {
+        let RegionSpec::Rects(bands) = input(&out, &tokens, card) else {
             panic!("the catcher's region is a set of rects");
         };
         let inside = |x: i32, y: i32| {

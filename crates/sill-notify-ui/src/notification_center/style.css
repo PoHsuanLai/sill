@@ -4,7 +4,7 @@
    `GroupHeader`, the cards quire's `NotificationCard`. Everything here is layout and tokens.
    Attribute selectors carry `*|`. */
 
-/* The wrapper carrying `NotificationMetrics`: it fills the root, as quire's panel scope must,
+/* The scope wrapper: it fills the root, as quire's panel scope must,
    and lets presses through to the catcher; the panel takes its own. */
 .sill-nc-scope{ position:absolute; top:0; right:0; bottom:0; left:0; pointer-events:none; }
 

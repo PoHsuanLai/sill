@@ -92,7 +92,7 @@ esac
 OUT_DIR="$SILL_OUT_ROOT/accept-control-center"
 SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
-# The panel's popup: the card (control_center.width_px, 320 by default) plus the transparent
+# The panel's popup: the card (`--cc-width`, 320) plus the transparent
 # shadow room on each side (`SIDE` in crates/sill-bar/src/bar/popup.rs, read from the source so
 # the script follows it) plus the card's own hairline border, a pixel or two a side. A pixel
 # count is not a design value, so the check is a range: [card + 2 * room, + 2 * 4], the 8 being

@@ -158,7 +158,7 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
             .unwrap_or_else(|| panic!("{path} missing"))
     };
     let cases: &[(&str, toml::Value)] = &[
-        ("bar.height_px", toml::Value::Integer(24)),
+        ("bar.battery_low_percent", toml::Value::Integer(20)),
         ("dock.tile_size_px", toml::Value::Integer(48)),
         ("dock.magnification", toml::Value::String("on".to_owned())),
         ("dock.autohide", toml::Value::String("off".to_owned())),
@@ -179,7 +179,6 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
             "display.font_rendering",
             toml::Value::String("auto".to_owned()),
         ),
-        ("osd.margin_px", toml::Value::Integer(24)),
         ("calendar.sources", toml::Value::String("auto".to_owned())),
         (
             "calendar.first_weekday",

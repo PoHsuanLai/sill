@@ -42,6 +42,38 @@ const RETIRED: &[&str] = &[
     "widgets.desktop_cell_px",
     "widgets.desktop_gap_px",
     "widgets.world_clocks",
+    // Settings keeps only what macOS offers (2026-10-27): these sizes are stylesheet tokens
+    // (`--dock-gap`, `--cc-width`, `--bar-status-box`, ...) or constants beside their readers.
+    // design/22 still has their rows; they are quire's to remove.
+    "bar.height_px",
+    "bar.status_icon_box_px",
+    "bar.status_glyph_px",
+    "dock.tile_gap_px",
+    "dock.pill_radius_px",
+    "dock.edge_clamp_px",
+    "dock.running_dot_diameter_px",
+    "dock.separator_height_px",
+    "dock.pill_padding_px",
+    "dock.running_dot_gap_px",
+    "launcher.top_bar_gap_px",
+    "launcher.top_centre_bias_px",
+    "scrollbar.track_thickness_px",
+    "scrollbar.track_thickness_hover_px",
+    "scrollbar.thumb_thickness_px",
+    "scrollbar.thumb_thickness_hover_px",
+    "scrollbar.thumb_min_length_px",
+    "scrollbar.legacy_track_width_px",
+    "scrollbar.other_axis_offset_px",
+    "osd.margin_px",
+    "notifications.position_right_px",
+    "notifications.position_top_gap_px",
+    "notifications.banner_width_px",
+    "notifications.icon_px",
+    "notifications.center_width_px",
+    "control_center.width_px",
+    "control_center.grid_gap_px",
+    "control_center.grid_padding_px",
+    "control_center.bottom_margin_px",
 ];
 
 fn doc_keys() -> Vec<String> {

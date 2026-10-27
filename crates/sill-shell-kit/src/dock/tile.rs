@@ -31,7 +31,7 @@ use ds::style::icon::plate_tint::PlateTint;
 use ds::style::icon::render::{IconPx, IconSize};
 use ds::style::tokens::control_size::ControlSize;
 
-/// The plate's share of the tile's side: all of it. The 6 pt `dock.pill_padding_px` is the only
+/// The plate's share of the tile's side: all of it. The 6 pt `--dock-pad` is the only
 /// margin around it, as on a Mac (a 48 pt icon in a 60 pt pill); design/08 section 2.2's 80.5 %
 /// left 5.5 pt of dead space on each side.
 const PLATE_SHARE: f32 = 1.0;

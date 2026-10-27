@@ -58,11 +58,6 @@ fn the_bar_shows_what_the_services_hold() {
             "aria-label=\"Control Center\"",
             1,
         ),
-        (
-            "their metrics",
-            "--bar-status-box:22px;--bar-status-glyph:16px;",
-            1,
-        ),
         ("no menu open", "aria-expanded=\"true\"", 0),
     ];
     for (name, needle, want) in cases {

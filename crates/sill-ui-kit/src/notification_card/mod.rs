@@ -15,7 +15,7 @@ mod view;
 
 pub use body::rich_body;
 pub use labels::{Age, age, age_label, app_label, group_count};
-pub use metrics::{icon_size, notification_metrics, swipe_metrics};
+pub use metrics::{NotificationTokens, icon_size, swipe_metrics};
 pub use parts::{CardPart, part_id};
 pub use view::{use_app_mark, wall_now};
 

@@ -86,7 +86,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_OUT_ROOT/accept-bar"
 SHOTS="$SILL_SHOTS"
 mkdir -p "$OUT_DIR" "$SHOTS"
-# The bar's height: `bar.height_px`, 24 unless the settings say otherwise.
+# The bar's height: `--shell-bar-h`, 24.
 BAR_H="${BAR_H:-24}"
 BAR_DEMO="$SILL_TARGET/release/examples/bar_demo"
 SINK=

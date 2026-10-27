@@ -14,8 +14,9 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::{NotificationsSettings, ShellFile};
+use sill_settings::ShellFile;
 
+use sill_ui_kit::notification_card::NotificationTokens;
 use sill_ui_kit::surface::namespace;
 
 /// Transparent room around the column for the Toast material's shadow (the OSD's 40).
@@ -24,32 +25,32 @@ pub const ROOM: u32 = 40;
 /// The card corner (design/13 §13.3.6: radius 16), which the regions follow.
 pub const CARD_RADIUS: i32 = 16;
 
-/// The margins that put a card `position_right_px` from the output's right edge and
-/// `position_top_gap_px` from the bar's reserve.
-pub fn margin(n: &NotificationsSettings) -> Margin {
+/// The margins that put a card `--sill-notifications-position-right` from the output's right
+/// edge and `--sill-notifications-position-top-gap` from the bar's reserve.
+pub fn margin(tokens: &NotificationTokens) -> Margin {
     let room = i32::try_from(ROOM).unwrap_or(i32::MAX);
-    let gap = i32::from(n.position_top_gap_px.0) - room;
+    let gap = i32::from(tokens.position_top_gap) - room;
     Margin {
         top: gap,
-        right: i32::from(n.position_right_px.0) - room,
+        right: i32::from(tokens.position_right) - room,
         bottom: gap,
         left: 0,
     }
 }
 
 /// The banner column on `output`.
-pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
-    let n = &settings.notifications;
+pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
+    let tokens = NotificationTokens::default();
     LayerConfig {
         namespace: namespace("banners", output),
         layer: LayerLevel::Overlay,
         anchor: Anchor::TOP | Anchor::RIGHT | Anchor::BOTTOM,
         size: LayerSize {
-            width: LayerExtent::Px(u32::from(n.banner_width_px.0) + 2 * ROOM),
+            width: LayerExtent::Px(u32::from(tokens.banner_width) + 2 * ROOM),
             height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Auto,
-        margin: margin(n),
+        margin: margin(&tokens),
         keyboard: KeyboardMode::None,
         output: OutputTarget::Output(output.id),
         blur: BlurSpec::None,
@@ -60,23 +61,15 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::{ROOM, layer};
-    use ds_settings::Px;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,
     };
-    use sill_settings::{NotificationsSettings, ShellFile};
+    use sill_settings::ShellFile;
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
     fn the_column_hangs_down_the_right_edge_and_takes_nothing_until_a_card_shows() {
-        let n = NotificationsSettings::default();
-        let config = layer(
-            &output(Some("DP-1")),
-            &ShellFile {
-                notifications: n.clone(),
-                ..ShellFile::default()
-            },
-        );
+        let config = layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(config.namespace, "sill-banners-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::TOP | Anchor::RIGHT | Anchor::BOTTOM);
@@ -95,19 +88,5 @@ mod tests {
                 left: 0
             }
         );
-        let wide = NotificationsSettings {
-            banner_width_px: Px(420),
-            position_right_px: Px(40),
-            ..n
-        };
-        let config = layer(
-            &output(Some("DP-1")),
-            &ShellFile {
-                notifications: wide,
-                ..ShellFile::default()
-            },
-        );
-        assert_eq!(config.size.width, LayerExtent::Px(420 + 2 * ROOM));
-        assert_eq!(config.margin.right, 0);
     }
 }

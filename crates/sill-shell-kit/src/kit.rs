@@ -1,8 +1,9 @@
 //! The shell's kit: its metric tokens and paints. Its component sheets are placed in the components section, each after the sheet it follows.
 
 use crate::sheets::SHEETS;
-use crate::tokens::control_center::ControlCenterSize;
+use crate::tokens::control_center::{ControlCenterSize, ControlCenterTuned};
 use crate::tokens::dock::DockToken;
+use crate::tokens::launcher::LauncherToken;
 use crate::tokens::notifications::NotificationToken;
 use crate::tokens::osd::OsdToken;
 use crate::tokens::widgets::WidgetGrid;
@@ -16,7 +17,9 @@ pub static KIT: Kit = Kit {
     rank: KitRank::Shell,
     tokens: &[
         TokenSet::of::<ControlCenterSize>().at(Place::Ladder),
+        TokenSet::of::<ControlCenterTuned>().at(Place::Metrics),
         TokenSet::of::<DockToken>().at(Place::Metrics),
+        TokenSet::of::<LauncherToken>().at(Place::Metrics),
         TokenSet::of::<OsdToken>().at(Place::Metrics),
         TokenSet::of::<NotificationToken>().at(Place::Metrics),
         TokenSet::of::<WidgetGrid>().at(Place::Metrics),

@@ -11,6 +11,7 @@ use sill_settings::DockSettings;
 use crate::dock::geometry::magnify_params;
 use crate::dock::items::{DockItem, ItemKind};
 use crate::dock::layer::GUTTER_PX;
+use crate::dock::tokens::DockTokens;
 
 /// The Trash separator: 1 px wide with 6 px either side (design/10 §10.3.2).
 const SEPARATOR_BLOCK: Cpx = Cpx::px(13);
@@ -62,12 +63,12 @@ pub struct Rows {
 }
 
 impl Rows {
-    /// The rows for `dock`'s sizes.
-    pub fn new(dock: &DockSettings) -> Rows {
+    /// The rows for `dock`'s sizes and the pill's padding token.
+    pub fn new(dock: &DockSettings, tokens: &DockTokens) -> Rows {
         let px = |v: u32| Cpx::px(i32::try_from(v).unwrap_or(i32::MAX / 100));
         let tile = u32::from(dock.tile_size_px.0);
         let magnified = u32::from(dock.magnified_size_px.0);
-        let pad = u32::from(dock.pill_padding_px.0);
+        let pad = u32::from(tokens.pad);
         let surface = GUTTER_PX + pad + magnified + tile;
         let pill_height = tile + 2 * pad;
         Rows {
@@ -114,12 +115,13 @@ pub fn centers(items: &[DockItem], p: &MagnifyParams) -> Vec<Cpx> {
 pub fn frame(
     items: &[DockItem],
     dock: &DockSettings,
+    tokens: &DockTokens,
     output_width_px: i32,
     progress: Permille,
     x: Cpx,
 ) -> Frame {
-    let p = magnify_params(dock, output_width_px);
-    let rows = Rows::new(dock);
+    let p = magnify_params(dock, tokens, output_width_px);
+    let rows = Rows::new(dock, tokens);
     let centers = centers(items, &p);
     let layout = magnify(&centers, x, progress, &p);
     let tiles: Vec<Area> = layout
@@ -177,6 +179,7 @@ mod tests {
     use super::{Rows, frame};
     use crate::dock::items::{DockItem, ItemKind};
     use crate::dock::machine::{TileApp, TileId};
+    use crate::dock::tokens::DockTokens;
     use sill_launcher::AppId;
     use sill_model::units::{Cpx, Permille};
     use sill_settings::DockSettings;
@@ -201,7 +204,7 @@ mod tests {
 
     #[test]
     fn the_rows_are_design_10s_geometry() {
-        let rows = Rows::new(&DockSettings::default());
+        let rows = Rows::new(&DockSettings::default(), &DockTokens::default());
         assert_eq!(rows.surface, Cpx::px(134));
         assert_eq!(rows.baseline, Cpx::px(120), "gut + pad above the bottom");
         assert_eq!(rows.pill_top, Cpx::px(66));
@@ -214,6 +217,7 @@ mod tests {
         let f = frame(
             &items(7, false),
             &DockSettings::default(),
+            &DockTokens::default(),
             1920,
             Permille::ZERO,
             Cpx(0),
@@ -231,6 +235,7 @@ mod tests {
         let f = frame(
             &items(6, true),
             &DockSettings::default(),
+            &DockTokens::default(),
             1920,
             Permille::ZERO,
             Cpx(0),
@@ -247,6 +252,7 @@ mod tests {
         let rest = frame(
             &items(7, false),
             &DockSettings::default(),
+            &DockTokens::default(),
             1920,
             Permille::ZERO,
             Cpx(0),
@@ -255,6 +261,7 @@ mod tests {
         let f = frame(
             &items(7, false),
             &DockSettings::default(),
+            &DockTokens::default(),
             1920,
             Permille::ONE,
             x,
@@ -271,9 +278,23 @@ mod tests {
     fn magnifying_widens_the_plate_keeps_the_baseline_and_slides_the_neighbours_apart() {
         let items = items(6, true);
         let dock = DockSettings::default();
-        let rest = frame(&items, &dock, 1920, Permille::ZERO, Cpx(0));
+        let rest = frame(
+            &items,
+            &dock,
+            &DockTokens::default(),
+            1920,
+            Permille::ZERO,
+            Cpx(0),
+        );
         let under = rest.tiles[6].left.0 + Cpx::px(24).0;
-        let near = frame(&items, &dock, 1920, Permille::ONE, Cpx(under));
+        let near = frame(
+            &items,
+            &dock,
+            &DockTokens::default(),
+            1920,
+            Permille::ONE,
+            Cpx(under),
+        );
         assert!(
             near.pill.width.0 > rest.pill.width.0 + Cpx::px(20).0,
             "the plate widens: {:?} to {:?}",

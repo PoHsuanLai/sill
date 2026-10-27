@@ -1,7 +1,7 @@
 //! The effects end of one indicator: follow the [`OsdLink`], feed the [`step`] machine, wake it
 //! with quire's one timer (`ds::base::time::clock::sleep`, for durations from [`HOLD`], never a literal), map
 //! the surface once the machine shows something, unmap it once quire's `Osd` card says its exit
-//! has settled (`on_hidden`), and move it when the gap changes. Once hidden and
+//! has settled (`on_hidden`). Once hidden and
 //! gone, no task runs and nothing asks for a frame.
 
 use ds::base::time::clock::sleep;
@@ -9,10 +9,8 @@ use std::time::Duration;
 
 use dioxus::core::Task;
 use dioxus::prelude::*;
-use shell_host::{OutputId, SurfaceHandle, use_watch};
-use sill_settings::OsdSettings;
+use shell_host::{OutputId, use_watch};
 
-use super::layer::{anchor, margin};
 use super::step::{OsdHold, OsdInput, OsdTimes, step};
 use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::hooks::{use_map_when_shown, use_unmap_on_hidden};
@@ -79,21 +77,6 @@ async fn wake_loop(mut phase: Signal<OsdHold>, clock: FrameClock, times: CopyVal
         sleep(Duration::from_millis(at.since(clock.now()))).await;
         let next = step(*phase.peek(), OsdInput::Tick(clock.now()), *times.peek());
         phase.set(next);
-    }
-}
-
-/// Move the surface when `osd.margin_px` changes (the size is fixed).
-pub fn use_follow_position(osd: &OsdSettings) {
-    let surface = try_use_context::<SurfaceHandle>();
-    let wanted = osd.margin_px;
-    let mut applied = use_hook(|| CopyValue::new(wanted));
-    if *applied.peek() == wanted {
-        return;
-    }
-    applied.set(wanted);
-    if let Some(surface) = &surface {
-        surface.set_anchor(anchor());
-        surface.set_margin(margin(osd));
     }
 }
 

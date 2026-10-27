@@ -23,6 +23,7 @@ use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
 use super::popup::{BOTTOM, MAX_PX, TOP, placement};
+use super::tokens::BarTokens;
 use super::track::{Event, Target, Track, step};
 use super::tray_input::row_image;
 use crate::control_center::{PanelCap, height_cap};
@@ -137,15 +138,15 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         surface: try_use_context::<SurfaceHandle>(),
         timing: super::track::timing(),
         look,
-        namespace: layer(output, &file, file.bar.autohide).namespace,
+        namespace: layer(output, file.bar.autohide).namespace,
         output: output.id,
         actions: use_link::<ActionLink>(),
         settings: use_context::<SettingsFeed>(),
         focus,
         output_name: on,
         bar_width: output.logical.width,
-        cap: height_cap(output.logical.height, &file.bar, &file.control_center),
-        status_box: status_box(output.logical.width, &file.bar),
+        cap: height_cap(output.logical.height, &BarTokens::default()),
+        status_box: status_box(output.logical.width, &BarTokens::default()),
         center: use_link::<CenterLink>(),
     });
     use_context_provider(|| bar);

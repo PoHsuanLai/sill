@@ -1,14 +1,15 @@
 //! The launcher's two layer surfaces and the panel's vertical position (design/13 §13.5:
-//! `top = max(bar_h + 24, round(0.4 H - 230))`, every number a `launcher.*` key).
+//! `top = max(bar_h + 24, round(0.4 H - 230))`, the gap and the bias are `LauncherTokens`).
 
 use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, Rect,
 };
-use sill_settings::{BarSettings, LauncherSettings, ShellFile};
+use sill_settings::ShellFile;
 
 use crate::launcher::hit::{card_region, panel_input};
 use crate::launcher::preview::PREVIEW_WIDTH_PX;
+use crate::launcher::tokens::LauncherTokens;
 use sill_ui_kit::links::PanelHit;
 use sill_ui_kit::surface::namespace;
 
@@ -37,12 +38,11 @@ pub const SHADOW_BELOW: u32 = 66;
 const TOP_VERTICAL_FRACTION: i64 = 400;
 
 /// The panel's top edge on an output `output_height` tall.
-pub fn panel_top(output_height: i32, bar: &BarSettings, launcher: &LauncherSettings) -> i32 {
-    let below_bar = i32::from(bar.height_px.0) + i32::from(launcher.top_bar_gap_px.0);
+pub fn panel_top(output_height: i32, tokens: &LauncherTokens) -> i32 {
+    let below_bar = i32::from(tokens.bar_height) + i32::from(tokens.top_bar_gap);
     // round(fraction/1000 x H) in integers: add half the divisor before dividing.
     let scaled = (TOP_VERTICAL_FRACTION * i64::from(output_height) + 500).div_euclid(1000);
-    let centred =
-        i32::try_from(scaled).unwrap_or(i32::MAX) - i32::from(launcher.top_centre_bias_px.0);
+    let centred = i32::try_from(scaled).unwrap_or(i32::MAX) - i32::from(tokens.top_centre_bias);
     below_bar.max(centred)
 }
 
@@ -68,7 +68,7 @@ pub const MENU_BLUR_RADIUS: i32 = 12;
 /// The panel: Overlay, anchored top only (centred horizontally), keyboard-exclusive, blurred
 /// behind the palette card ([`CARD_ID`]). Its input starts as the whole panel; the panel narrows
 /// it to the card once it has measured one (`hit::PanelHit`).
-pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
+pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
     LayerConfig {
         namespace: namespace("launcher", output),
         layer: LayerLevel::Overlay,
@@ -79,7 +79,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin {
-            top: panel_top(output.logical.height, &settings.bar, &settings.launcher),
+            top: panel_top(output.logical.height, &LauncherTokens::default()),
             ..Margin::ZERO
         },
         keyboard: KeyboardMode::Exclusive,
@@ -91,11 +91,11 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
 
 /// The panel's rectangle in its output's coordinates (its room, the card and the pane's; the
 /// surface is wider and taller by the shadow's room): centred, [`panel_top`] down.
-pub fn panel_rect(output: &OutputInfo, bar: &BarSettings, launcher: &LauncherSettings) -> Rect {
+pub fn panel_rect(output: &OutputInfo, tokens: &LauncherTokens) -> Rect {
     let width = i32::try_from(PANEL_ROOM_WIDTH).unwrap_or(i32::MAX);
     Rect {
         x: (output.logical.width - width).div_euclid(2),
-        y: panel_top(output.logical.height, bar, launcher),
+        y: panel_top(output.logical.height, tokens),
         width,
         height: i32::try_from(PANEL_HEIGHT).unwrap_or(i32::MAX),
     }
@@ -104,13 +104,14 @@ pub fn panel_rect(output: &OutputInfo, bar: &BarSettings, launcher: &LauncherSet
 #[cfg(test)]
 mod tests {
     use super::{layer, panel_top};
+    use crate::launcher::tokens::LauncherTokens;
     use shell_host::{Anchor, BlurSpec, KeyboardMode, LayerExtent, LayerLevel, RegionSpec};
-    use sill_settings::{BarSettings, LauncherSettings, ShellFile};
+    use sill_settings::ShellFile;
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
     fn the_panel_sits_slightly_above_centre_but_below_the_bar() {
-        let (bar, launcher) = (BarSettings::default(), LauncherSettings::default());
+        let tokens = LauncherTokens::default();
         // max(24 + 24, round(0.4 H - 230)).
         const CASES: &[(i32, i32)] = &[
             (1080, 202),
@@ -122,7 +123,7 @@ mod tests {
             (1082, 203),
         ];
         for &(height, want) in CASES {
-            assert_eq!(panel_top(height, &bar, &launcher), want, "H {height}");
+            assert_eq!(panel_top(height, &tokens), want, "H {height}");
         }
     }
 

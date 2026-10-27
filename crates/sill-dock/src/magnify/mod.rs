@@ -8,11 +8,12 @@ mod zoom;
 pub use layout::{Layout, TileBox, magnify, rest_centers};
 pub use zoom::{sizes, zoom};
 
+use crate::dock::tokens;
 use sill_model::units::Cpx;
 
-/// The geometry the curve and the layout need, from `DockSettings` (`tile_size_px`,
-/// `magnified_size_px`, the influence radius, `tile_gap_px`, `edge_clamp_px`), the pill
-/// padding and the output width.
+/// The geometry the curve and the layout need: `DockSettings` (`tile_size_px`,
+/// `magnified_size_px`), the influence radius, the `DockTokens` (gap, padding, edge clamp) and
+/// the output width.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MagnifyParams {
     /// `T`: a tile at rest.
@@ -38,9 +39,9 @@ impl MagnifyParams {
             tile: Cpx::px(48),
             magnified: Cpx::px(72),
             radius: Cpx::px(72),
-            gap: Cpx::px(8),
-            pad: Cpx::px(6),
-            edge_clamp: Cpx::px(8),
+            gap: Cpx::px(i32::from(tokens::GAP)),
+            pad: Cpx::px(i32::from(tokens::PAD)),
+            edge_clamp: Cpx::px(i32::from(tokens::EDGE_CLAMP)),
             output_width,
         }
     }

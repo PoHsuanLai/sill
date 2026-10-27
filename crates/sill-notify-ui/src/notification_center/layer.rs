@@ -2,7 +2,7 @@
 //! edges anchored, exclusive zone `Auto`, so the compositor keeps it clear of the bar's and the
 //! dock's reserve), keyboard `OnDemand` (design/20 §1.6: Escape closes, arrows move), input
 //! everywhere: the transparent part left of the panel is the click-outside catcher, as the power
-//! menu's scrim is. The panel is a column at the right edge, `notifications.center_width_px`
+//! menu's scrim is. The panel is a column at the right edge, `--notifications-center-width`
 //! wide, sliding in from the right; the blur is the panel's.
 //!
 //! Why a layer and not an xdg popup from the clock (design/20 §1.6 allows either): macOS 11 on

@@ -8,8 +8,9 @@ use ds_settings::{ConfigRoot, Px, Store};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use sill_settings::{
-    APP, BarSettings, ControlCenterSettings, Dnd, DockSettings, Indicators, LauncherSettings,
-    NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile,
+    APP, BarSettings, ControlCenterSettings, Dnd, DockSettings, InMenuBar, Indicators,
+    LauncherSettings, NotificationsSettings, Percent, ScrollSettings, ScrollbarSettings, ShellFile,
+    TrackClick,
 };
 
 /// The store whose `sill` directory is inside `dir`.
@@ -65,8 +66,8 @@ fn a_bad_value_costs_only_its_own_key() {
         ),
         (
             "a negative px is the default and keeps its sibling",
-            "[bar]\nheight_px = -3\nstatus_icon_box_px = 26\n",
-            with(|f| f.bar.status_icon_box_px = Px(26)),
+            "[dock]\ntile_size_px = -3\nmagnified_size_px = 60\n",
+            with(|f| f.dock.magnified_size_px = Px(60)),
         ),
         (
             "a missing table is that table's defaults",
@@ -75,13 +76,13 @@ fn a_bad_value_costs_only_its_own_key() {
         ),
         (
             "a table that is not a table is its defaults",
-            "dock = 7\n[osd]\nmargin_px = 55\n",
-            with(|f| f.osd.margin_px = Px(55)),
+            "dock = 7\n[scrollbar]\ntrack_click_mode = \"jump_to_click\"\n",
+            with(|f| f.scrollbar.track_click_mode = TrackClick::JumpToClick),
         ),
         (
             "a list of unknown modules is the default list",
-            "[control_center]\nmodules = [\"toaster\"]\nwidth_px = 300\n",
-            with(|f| f.control_center.width_px = Px(300)),
+            "[control_center]\nmodules = [\"toaster\"]\nmenu_bar_wifi = \"show\"\n",
+            with(|f| f.control_center.menu_bar_wifi = InMenuBar::Show),
         ),
     ];
     let dir = TempDir::new("lenient");
@@ -109,7 +110,7 @@ fn a_save_is_one_file_and_reads_back() {
     let target = dir.path().join("sill");
     let file = with(|f| {
         f.dock.autohide = sill_settings::AutoHide::On;
-        f.bar.height_px = Px(28);
+        f.bar.battery_low_percent = Percent(30);
         f.bar.autohide = sill_settings::MenuBarHiding::Always;
         f.screenshot.folders = "~/Shots".to_owned();
     });

@@ -14,6 +14,7 @@ use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 use sill_shell_kit::control_center::module_grid::GridColumns;
 use sill_shell_kit::prelude::*;
+use sill_shell_kit::tokens::control_center::CONTROL_CENTER;
 
 use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
 use super::modules::{CcCx, Module, module};
@@ -64,7 +65,7 @@ pub(crate) fn control_center(
         Grid {
             modules: cc.modules.clone(),
             columns: GridColumns::default(),
-            gap: Px(f32::from(cc.grid_gap_px.0)),
+            gap: Px(f32::from(CONTROL_CENTER.gap.0)),
             output: output.clone(),
             on_detail: move |detail: Detail| go.call(PageInput::Open(detail)),
         }
@@ -79,7 +80,7 @@ pub(crate) fn control_center(
         .copied()
         .find_map(|kind| module(kind).detail(opened(), &cx))
         .unwrap_or_else(|| rsx! {});
-    let style = panel_style(cc.width_px.0, cc.grid_padding_px.0, cap);
+    let style = panel_style(cap);
     rsx! {
         div {
             class: "sill-cc",
@@ -137,18 +138,17 @@ pub(crate) fn use_keyboard_home() -> KeyboardHome {
     KeyboardHome(use_signal(|| None))
 }
 
-/// The panel's inline box: `control_center.width_px` wide, `grid_padding_px` inside, scrolling
-/// past the cap.
-pub(crate) fn panel_style(width: u16, padding: u16, cap: Option<PanelCap>) -> String {
-    let cap = cap.map_or(String::new(), |PanelCap(px)| {
-        format!(";max-height:{px}px;overflow-y:auto")
-    });
-    format!("width:{width}px;padding:{padding}px;box-sizing:border-box{cap}")
+/// The panel's inline box: scrolling past the cap. Its width and padding are `--cc-width` and
+/// `--cc-pad` in the sheet.
+pub(crate) fn panel_style(cap: Option<PanelCap>) -> String {
+    cap.map_or(String::new(), |PanelCap(px)| {
+        format!("max-height:{px}px;overflow-y:auto")
+    })
 }
 
-/// The modules on quire's grid (two columns, and `grid_gap_px`), in order: a
+/// The modules on quire's grid (two columns, and the `--cc-gap` between them), in order: a
 /// tile takes a column, a full-width module the row (as [`super::place`] lays them out). The
-/// panel pads the grid and the detail panes alike with `grid_padding_px`,
+/// panel pads the grid and the detail panes alike with `--cc-pad`,
 /// so the grid pads nothing of its own.
 #[component]
 fn Grid(
@@ -175,13 +175,10 @@ mod tests {
 
     #[test]
     fn the_panel_scrolls_past_its_cap() {
+        assert_eq!(panel_style(None), "");
         assert_eq!(
-            panel_style(320, 12, None),
-            "width:320px;padding:12px;box-sizing:border-box"
-        );
-        assert_eq!(
-            panel_style(320, 12, Some(PanelCap(600))),
-            "width:320px;padding:12px;box-sizing:border-box;max-height:600px;overflow-y:auto"
+            panel_style(Some(PanelCap(600))),
+            "max-height:600px;overflow-y:auto"
         );
     }
 

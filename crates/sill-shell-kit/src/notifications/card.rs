@@ -44,7 +44,7 @@ use ds::style::tokens::control_size::ControlSize;
 /// line; `body` (runs and links, clamped) is optional, as are the group's `count` and the
 /// `actions`. `on_open` hears a press on the card, Enter or Space; `on_close` a press on the
 /// close button; `on_link` a press on a link in the body. `icon_size` is the icon's side
-/// (`notifications.icon_px`, 32). `common.id` names the plate, the painted box, for its blur region
+/// (`--notifications-icon`, 28). `common.id` names the plate, the painted box, for its blur region
 /// (`Element("toast-<id>")`); the consumer's classes, data and label go on the card's root. `swipe` turns swipe to dismiss on, with `swipe_metrics` from the
 /// `notifications.swipe_*` keys.
 #[component]

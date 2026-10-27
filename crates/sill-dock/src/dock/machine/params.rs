@@ -1,6 +1,7 @@
 //! The numbers the machine runs on: constants, `dock.*` settings plus quire's motion tokens
 //! (no easing follows the motion level). Built once per settings change, never hard-coded.
 
+use crate::dock::tokens::DockTokens;
 use ds::base::time::stamp::Ms;
 use ds::motion::hover_intent::HoverProfile;
 use ds::style::tokens::delay::TipDelay;
@@ -69,9 +70,9 @@ impl DockParams {
     }
 
     /// The parameters for `dock` settings.
-    pub fn new(dock: &DockSettings) -> DockParams {
+    pub fn new(dock: &DockSettings, tokens: &DockTokens) -> DockParams {
         let curve = |token: EasingToken| token.easing().curve();
-        let pad = i32::from(dock.pill_padding_px.0);
+        let pad = i32::from(tokens.pad);
         let gutter = 8;
         DockParams {
             magnification: dock.magnification,
@@ -87,7 +88,7 @@ impl DockParams {
             slide_ms: autohide::SLIDE_MS,
             slide_distance: Cpx::px(gutter + (i32::from(dock.tile_size_px.0) + 2 * pad) + 8),
             spring_load_ms: SPRING_LOAD,
-            pill_blur_radius: crate::dock::geometry::pill_blur_radius(dock),
+            pill_blur_radius: crate::dock::geometry::pill_blur_radius(tokens),
         }
     }
 }
@@ -95,6 +96,7 @@ impl DockParams {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{DockParams, eased};
+    use crate::dock::tokens::DockTokens;
     use ds::base::time::stamp::Ms;
     use ds::style::tokens::easing::CubicBezier;
     use sill_model::units::{Cpx, Permille};
@@ -102,7 +104,7 @@ pub(crate) mod tests {
 
     /// The design defaults at the standard level: what every machine test runs on.
     pub(crate) fn params() -> DockParams {
-        DockParams::new(&DockSettings::default())
+        DockParams::new(&DockSettings::default(), &DockTokens::default())
     }
 
     #[test]

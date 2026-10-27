@@ -3,9 +3,8 @@
    menu is open: a Regular control, 22 tall at radius 5 (design/29-SIZING.md), centred in the 24
    bar. Inks are the paper names, which the bar's frame ground redirects to `--f-*`. A glyph item
    is the bar's status slot (`--bar-status-w`, design/29-SIZING.md section 5.1: the glyph 7 in from
-   each side) by the box's height; the box and the glyph come from the consumer's settings through
-   `--bar-status-box` and `--bar-status-glyph` (`ds::StatusMetrics`), the fallbacks being the keys'
-   defaults, 22 and 16. */
+   each side) by the box's height; the box and the glyph are `--bar-status-box` and `--bar-status-glyph`, which a look or the
+   person's style sheet may write; the fallbacks are the shipped 22 and 16. */
 
 .ds-menu-bar-item{ font:inherit; display:inline-flex; align-items:center; justify-content:center; gap:var(--s-4); height:var(--shell-bar-item); box-sizing:border-box;
   padding:0 var(--shell-bar-pad); border:0; border-radius:var(--r-shell-bar-item); background:transparent;

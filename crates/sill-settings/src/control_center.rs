@@ -2,7 +2,6 @@
 //! §13.3.7). All Advanced (§5).
 
 use ds_core::word::Word;
-use ds_settings::Px;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
@@ -42,44 +41,6 @@ pub enum ControlCenterModule {
 #[serde(default)]
 #[settings(file = "sill/settings.toml", domain = "control_center", page = Page::Appearance)]
 pub struct ControlCenterSettings {
-    #[settings(
-        label = "Width",
-        help = "How wide the panel is.",
-        section = "Control Center",
-        range = "240..=480",
-        unit = "px",
-        advanced
-    )]
-    pub width_px: Px,
-    #[settings(
-        label = "Tile gap",
-        help = "Space between tiles.",
-        section = "Control Center",
-        range = "0..=32",
-        unit = "px",
-        advanced
-    )]
-    pub grid_gap_px: Px,
-    #[settings(
-        label = "Padding",
-        help = "Space around the tiles.",
-        section = "Control Center",
-        range = "0..=32",
-        unit = "px",
-        advanced
-    )]
-    pub grid_padding_px: Px,
-    /// design/13 §13.3.7: the panel is at most `output_h - bar_h - bottom_margin_px` tall, then
-    /// scrolls.
-    #[settings(
-        label = "Bottom margin",
-        help = "The least space kept above the screen's bottom edge.",
-        section = "Control Center",
-        range = "0..=64",
-        unit = "px",
-        advanced
-    )]
-    pub bottom_margin_px: Px,
     #[settings(
         label = "Modules",
         help = "Which tiles show, and in what order.",
@@ -144,10 +105,6 @@ impl Default for ControlCenterSettings {
             Terminal, Wifi,
         };
         ControlCenterSettings {
-            width_px: Px(320),
-            grid_gap_px: Px(10),
-            grid_padding_px: Px(10),
-            bottom_margin_px: Px(16),
             modules: vec![
                 Wifi,
                 Bluetooth,

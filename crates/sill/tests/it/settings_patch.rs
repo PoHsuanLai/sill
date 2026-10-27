@@ -7,7 +7,7 @@ use ds_settings::{ConfigRoot, Store};
 use prov::UnixSeconds;
 use sill::voice::write_consent;
 use sill_model::voice::VoiceConsent;
-use sill_settings::{APP, Px, ShellFile};
+use sill_settings::{APP, Percent, ShellFile};
 use sill_testkit::TempDir;
 use tokio::sync::watch;
 
@@ -16,7 +16,7 @@ use tokio::sync::watch;
 const EDITED: &str = "\
 # my bar
 [bar]
-height_px = 31   # taller, on purpose
+battery_low_percent = 31   # earlier, on purpose
 mystery = \"kept\"
 
 [dock]
@@ -54,7 +54,7 @@ fn an_edit_of_another_key_survives_the_consent_answer() {
     let after = text(&dir);
     for kept in [
         "# my bar",
-        "height_px = 31   # taller, on purpose",
+        "battery_low_percent = 31   # earlier, on purpose",
         "mystery = \"kept\"",
         "tile_size_px = 200",
     ] {
@@ -63,8 +63,8 @@ fn an_edit_of_another_key_survives_the_consent_answer() {
     assert!(after.contains("declined"), "{after}");
     assert_eq!(rx.borrow().voice.consent, VoiceConsent::Declined);
     assert_eq!(
-        rx.borrow().bar.height_px,
-        Px(31),
+        rx.borrow().bar.battery_low_percent,
+        Percent(31),
         "what is published is what the file says now"
     );
 }
@@ -83,7 +83,7 @@ fn a_second_write_replaces_the_key_in_place() {
     let after = text(&dir);
     assert!(after.contains("# my bar"), "{after}");
     assert!(
-        after.contains("height_px = 31   # taller, on purpose"),
+        after.contains("battery_low_percent = 31   # earlier, on purpose"),
         "{after}"
     );
     assert!(after.contains("tile_size_px = 200"), "{after}");

@@ -1,9 +1,9 @@
-/* The bar (design/20 §1.1, design/13 §13.3.1, design/21 §3 and §5). Every length a design doc
-   marks proposed comes from a `bar.*` settings key and is written inline by the component;
+/* The bar (design/20 §1.1, design/13 §13.3.1, design/21 §3 and §5). Its height is
+   `--shell-bar-h` (quire's `SHELL_SCALE.bar`), the status items' box and glyph are
+   `--bar-status-box` and `--bar-status-glyph` (the `MenuBarItem` sheet's fallbacks, 22 and 16);
    everything here is a token. Attribute selectors carry `*|`. */
 
-/* The box around the Ds root that carries the shell type scale's inputs (quire's
-   `ShellMetrics`), so the root's tuned tokens read the settings. */
+/* The box around the Ds root. */
 .sill-bar-root{ display:block; position:relative; }
 
 /* The bar's content (`bar-body`): slid up out of the surface while the bar hides (an inline
@@ -18,7 +18,7 @@
    the last item its own 8 pt: the clock's text ends 10 pt from the screen's edge (a Mac's 8 to 10). The Ds root under it draws the
    Space gradient at the Bar's tint alpha and cross-fades it on a workspace switch (design/21
    §3 and §5); the strip paints nothing of its own. */
-.sill-bar{ position:relative; display:flex; align-items:center; justify-content:space-between;
+.sill-bar{ position:relative; display:flex; align-items:center; justify-content:space-between; height:var(--shell-bar-h);
   padding:0 var(--s-2) 0 var(--s-8); color:var(--f-ink-soft); transition:color var(--t-big) var(--e-out); }
 
 .sill-bar-group{ position:relative; display:flex; align-items:center; height:100%; gap:var(--s-4); }

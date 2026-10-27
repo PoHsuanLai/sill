@@ -462,8 +462,8 @@ fn on_surface_closed(outputs: &mut Outputs, id: SurfaceId, reason: CloseReason) 
     surfaces.clear(id);
 }
 
-/// A settled `settings.toml`: re-apply every bar's reserved height (only `bar.height_px` can
-/// change it). `spawn_surface` resizes the layer itself; the rest is drawn by the bar's own
+/// A settled `settings.toml`: re-apply every bar's reserved height (the bar's height token
+/// is a constant until a sheet moves it). `spawn_surface` resizes the layer itself; the rest is drawn by the bar's own
 /// component.
 fn resize_bars(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs, file: &ShellFile) {
     for (info, surfaces) in &outputs.outputs {

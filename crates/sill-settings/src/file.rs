@@ -17,7 +17,6 @@ use crate::idle::IdleSettings;
 use crate::keyboard::KeyboardSettings;
 use crate::launcher::LauncherSettings;
 use crate::notifications::NotificationsSettings;
-use crate::osd::OsdSettings;
 use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
@@ -40,7 +39,6 @@ pub struct ShellFile {
     pub notifications: NotificationsSettings,
     pub control_center: ControlCenterSettings,
     pub display: DisplaySettings,
-    pub osd: OsdSettings,
     /// sill's own lock screen.
     pub session: SessionSettings,
     pub calendar: CalendarSettings,

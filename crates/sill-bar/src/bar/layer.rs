@@ -1,5 +1,5 @@
-//! The bar's layer surface (design/20 §1.1): Top, anchored top, left and right, the settings
-//! height, reserving it, no keyboard, blurred and hit-tested whole. Under `bar.autohide` modes
+//! The bar's layer surface (design/20 §1.1): Top, anchored top, left and right, the token
+//! height (`--shell-bar-h`), reserving it, no keyboard, blurred and hit-tested whole. Under `bar.autohide` modes
 //! that hide it on the desktop (`always`, `desktop_only`) it is the same surface at rest hidden:
 //! nothing reserved, no blur, and only the thin strip at the top edge takes the pointer
 //! (`reveal.rs` moves it from there).
@@ -8,15 +8,16 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::{MenuBarHiding, ShellFile};
+use sill_settings::MenuBarHiding;
 
 use super::reveal::{rest_phase, strip_input};
+use super::tokens::BarTokens;
 use sill_ui_kit::autohide::Phase;
 use sill_ui_kit::surface::namespace;
 
 /// The bar's layer configuration on `output`, resting under `mode` (`reveal::mode_on`).
-pub(super) fn layer(output: &OutputInfo, settings: &ShellFile, mode: MenuBarHiding) -> LayerConfig {
-    let height = u32::from(settings.bar.height_px.0);
+pub(super) fn layer(output: &OutputInfo, mode: MenuBarHiding) -> LayerConfig {
+    let height = u32::from(BarTokens::default().height);
     let phase = rest_phase(mode);
     LayerConfig {
         namespace: namespace("bar", output),
@@ -47,35 +48,27 @@ pub(super) fn layer(output: &OutputInfo, settings: &ShellFile, mode: MenuBarHidi
 #[cfg(test)]
 mod tests {
     use super::layer;
-    use ds_settings::Px;
+    use crate::bar::tokens::BarTokens;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputId,
         OutputTarget, RegionSpec,
     };
-    use sill_settings::{BarSettings, MenuBarHiding, ShellFile};
+    use sill_settings::MenuBarHiding;
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
-    fn the_bar_reserves_its_settings_height() {
-        for height in [32, 24] {
-            let settings = ShellFile {
-                bar: BarSettings {
-                    height_px: Px(height),
-                    ..BarSettings::default()
-                },
-                ..ShellFile::default()
-            };
-            let config = layer(&output(Some("DP-1")), &settings, settings.bar.autohide);
-            assert_eq!(config.namespace, "sill-bar-DP-1");
-            assert_eq!(config.layer, LayerLevel::Top);
-            assert_eq!(config.anchor, Anchor::TOP | Anchor::LEFT | Anchor::RIGHT);
-            assert_eq!(config.size.width, LayerExtent::Fill);
-            assert_eq!(config.size.height, LayerExtent::Px(u32::from(height)));
-            assert_eq!(config.exclusive, ExclusiveZone::Reserve(u32::from(height)));
-            assert_eq!(config.keyboard, KeyboardMode::None);
-            assert_eq!(config.output, OutputTarget::Output(OutputId(7)));
-            assert_eq!(config.input, RegionSpec::Whole);
-        }
+    fn the_bar_reserves_its_token_height() {
+        let height = u32::from(BarTokens::default().height);
+        let config = layer(&output(Some("DP-1")), MenuBarHiding::default());
+        assert_eq!(config.namespace, "sill-bar-DP-1");
+        assert_eq!(config.layer, LayerLevel::Top);
+        assert_eq!(config.anchor, Anchor::TOP | Anchor::LEFT | Anchor::RIGHT);
+        assert_eq!(config.size.width, LayerExtent::Fill);
+        assert_eq!(config.size.height, LayerExtent::Px(height));
+        assert_eq!(config.exclusive, ExclusiveZone::Reserve(height));
+        assert_eq!(config.keyboard, KeyboardMode::None);
+        assert_eq!(config.output, OutputTarget::Output(OutputId(7)));
+        assert_eq!(config.input, RegionSpec::Whole);
     }
 
     #[test]
@@ -88,14 +81,7 @@ mod tests {
             (MenuBarHiding::Never, 24, true, true),
         ];
         for (mode, reserved, blurred, whole) in cases {
-            let settings = ShellFile {
-                bar: BarSettings {
-                    autohide: mode,
-                    ..BarSettings::default()
-                },
-                ..ShellFile::default()
-            };
-            let config = layer(&output(Some("DP-1")), &settings, settings.bar.autohide);
+            let config = layer(&output(Some("DP-1")), mode);
             assert_eq!(
                 config.exclusive,
                 ExclusiveZone::Reserve(reserved),

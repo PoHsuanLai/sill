@@ -9,8 +9,8 @@
 //! .. }`. The root paints nothing and gives the card every token (the motion tokens its fade
 //! reads, the frame's `--f-*`, the material's `--m-*`, the stack and tint alpha); the card paints
 //! what a tinted root would on its own box. One root, not a painted root nested in a transparent
-//! one. The card's margin from its edge is `--osd-margin` (`osd.margin_px`,
-//! written by [`crate::tokens::osd::OsdMetrics::style_attr`] on any element around it); a host sizes its
+//! one. The card's margin from its edge is `--osd-margin` (24, a tuned token
+//! of [`crate::tokens::osd::OsdToken`]); a host sizes its
 //! surface to the card, its margins and the material's shadow, anchored to that edge.
 
 use dioxus::prelude::*;

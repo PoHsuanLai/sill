@@ -39,7 +39,7 @@ const PANEL_VIEW: Viewport = Viewport {
     scale_percent: 100,
 };
 
-/// Test-only layout: the bar's height (sill writes it inline from `bar.height_px`), a spacer
+/// Test-only layout: the bar's height (`--shell-bar-h`), a spacer
 /// that gives a popup root the room sill's popup gives it, and an ink swatch.
 const PROBE_CSS: &str = ".bar-fill{display:flex;align-items:center;gap:8px;height:40px;padding-left:200px}\
     .room{height:200px}\

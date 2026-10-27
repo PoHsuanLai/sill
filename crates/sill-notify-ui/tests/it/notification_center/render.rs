@@ -1,5 +1,5 @@
 //! What the notification center draws: nothing while closed; open, quire's `Panel`
-//! `notifications.center_width_px` wide at the right edge and the height of the surface, the
+//! `--notifications-center-width` wide at the right edge and the height of the surface, the
 //! title and Clear All, the history grouped by app (quire's `GroupHeader` over the newest card,
 //! stacked over the rest), the footer when another daemon holds the name, the widgets slot
 //! last; and what its presses send.
@@ -16,6 +16,7 @@ use sill_model::notifications::{
 };
 use sill_notify_ui::notification_center::PANEL_ID;
 use sill_settings::ShellFile;
+use sill_ui_kit::notification_card::NotificationTokens;
 use sill_ui_kit::panel::PANEL_PADDING;
 
 /// A group's toggle ("N more", "Show less") and Clear, in its header.
@@ -35,7 +36,7 @@ fn open_it_is_quires_full_height_panel_at_the_right_edge() {
     let running = opened(two_apps());
     let h = &running.harness;
     let panel = h.rect(".ds-side-panel").expect("the panel is laid out");
-    let width = f32::from(ShellFile::default().notifications.center_width_px.0);
+    let width = f32::from(NotificationTokens::default().center_width);
     assert!((panel.size.width.0 - width).abs() < 0.5, "{panel:?}");
     let right = panel.origin.x.0 + panel.size.width.0;
     assert!(

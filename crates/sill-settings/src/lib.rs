@@ -1,6 +1,6 @@
 //! `$XDG_CONFIG_HOME/sill/settings.toml`: the shell's settings domains (design/22-SETTINGS.md
 //! §3.4-3.8 and §3.11-3.14: bar, dock, launcher, scroll, scrollbar, menus, sound,
-//! notifications, control center, spaces; `display`, `osd`, `power_menu` and `session`; and
+//! notifications, control center, spaces; `display`, `power_menu` and `session`; and
 //! `calendar`, `screenshot` and `hot_corners`; §3.24-3.25: `idle` and `keyboard`; §3.30: `companion`; `voice` and `wallpaper`, which design/22 does not list yet), and their schema (§9,
 //! `#[derive(SettingsSchema)]` with `file = "sill/settings.toml"`), all fields of a [`ShellFile`].
 //!
@@ -22,7 +22,6 @@ pub mod keyboard;
 pub mod launcher;
 pub mod launcher_kinds;
 pub mod notifications;
-pub mod osd;
 pub mod schema;
 pub mod screenshot;
 pub mod scroll;
@@ -52,7 +51,6 @@ pub use keyboard::{KeyboardOverride, KeyboardSettings, RejectedRow, overrides};
 pub use launcher::LauncherSettings;
 pub use launcher_kinds::WebSearch;
 pub use notifications::{Dnd, NotificationsSettings};
-pub use osd::OsdSettings;
 pub use schema::{schema, schemas};
 pub use screenshot::{ScreenshotSettings, ShotThumbnail};
 pub use scroll::{Momentum, NaturalScroll, ScrollSettings, ScrollbarVisibility};

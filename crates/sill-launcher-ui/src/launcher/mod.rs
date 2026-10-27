@@ -39,6 +39,7 @@ pub(crate) mod panel;
 mod picking;
 mod run;
 mod surface;
+pub mod tokens;
 
 pub use activate::{LauncherEffect, LauncherProviders, effect_of};
 pub use catcher::LauncherCatcher;

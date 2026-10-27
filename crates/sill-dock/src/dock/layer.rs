@@ -14,18 +14,20 @@ use shell_host::{
 use sill_settings::{AutoHide, ShellFile};
 
 use crate::dock::machine::Reveal;
+use crate::dock::tokens::DockTokens;
 use sill_ui_kit::surface::namespace;
 
 /// design/10 §10.3.1: the gutter under the pill, the card inset (settled). The pill's own
-/// padding is `dock.pill_padding_px`.
+/// padding is the `--dock-pad` token.
 pub const GUTTER_PX: u32 = 8;
 
 /// The dock's layer configuration on `output`.
 pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
     let dock = &settings.dock;
+    let tokens = DockTokens::default();
     let tile = u32::from(dock.tile_size_px.0);
     let magnified = u32::from(dock.magnified_size_px.0);
-    let pad = u32::from(dock.pill_padding_px.0);
+    let pad = u32::from(tokens.pad);
     let reveal = match dock.autohide {
         AutoHide::Off => Reveal::Fixed,
         AutoHide::On => Reveal::Hidden,
@@ -48,7 +50,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
         output: OutputTarget::Output(output.id),
         blur: match reveal {
             Reveal::Fixed => BlurSpec::Region(crate::dock::machine::pill_region(
-                crate::dock::geometry::pill_blur_radius(dock),
+                crate::dock::geometry::pill_blur_radius(&tokens),
             )),
             _ => BlurSpec::None,
         },

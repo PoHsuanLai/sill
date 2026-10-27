@@ -23,6 +23,7 @@ use crate::dock::frame::Rows;
 use crate::dock::icon::{IconContext, TileSizes, drawn, tile_art};
 use crate::dock::items::{DockItem, ItemKind};
 use crate::dock::machine::{TileApp, TileId};
+use crate::dock::tokens::DockTokens;
 use sill_services::AppsService;
 use sill_ui_kit::app_icons::{IconLook, use_icon_resolver};
 use sill_ui_kit::hooks::{use_section, use_service};
@@ -61,7 +62,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, badge: Option<Badge>) -> Eleme
         resolver: use_icon_resolver(),
     };
     let icon = drawn(tile_art(&item.kind, app), sizes, &cx);
-    let rows = Rows::new(&dock);
+    let rows = Rows::new(&dock, &DockTokens::default());
     let top = px(rows.baseline) - side;
     // How far the plate's top is below the tile's: the label stands above it.
     let rise = (side - f64::from(plate_side(Px(side as f32)).0)) / 2.0;

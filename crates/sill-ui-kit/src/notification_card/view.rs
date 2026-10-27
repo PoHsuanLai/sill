@@ -22,9 +22,9 @@ use super::actions::card_actions;
 use super::body::rich_body;
 use super::icon::{CardArt, card_art, entry_for};
 use super::labels::{age, age_label, app_label, group_count};
-use super::metrics::icon_size;
+use super::metrics::{NotificationTokens, icon_size};
 use super::{CardPlace, CardPress};
-use crate::hooks::{use_section, use_service, use_services};
+use crate::hooks::{use_service, use_services};
 use sill_services::AppsService;
 
 /// Now, as the cards' ages count it.
@@ -52,8 +52,7 @@ pub(super) fn card(
     now: UnixMs,
     wiring: CardWiring,
 ) -> Element {
-    let settings = use_section(|file| &file.notifications)();
-    let side = icon_size(&settings);
+    let side = icon_size(&NotificationTokens::default());
     let app = use_app_mark(&note.app, IconSize::Px(side));
     let on_press = wiring.on_press;
     let material = material_of(place);

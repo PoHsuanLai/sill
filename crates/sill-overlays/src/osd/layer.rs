@@ -4,7 +4,7 @@
 //!
 //! Its exclusive zone is `Auto` (wire 0): it reserves nothing, and the compositor keeps it clear
 //! of what others reserve, so it sits below the bar's reserve without reading its geometry.
-//! `osd.margin_px` is the gap from that reserve to the card, and also from the output's right
+//! `--osd-margin` is the gap from that reserve to the card, and also from the output's right
 //! edge. The surface is the card plus [`ROOM`] on every side for the
 //! Osd material's ambient shadow, so its margin is the gap less that room (negative when the
 //! gap is smaller: the transparent room may overlap the reserve).
@@ -13,8 +13,9 @@ use shell_host::{
     Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::{OsdSettings, ShellFile};
+use sill_settings::ShellFile;
 
+use super::tokens::OsdTokens;
 use sill_ui_kit::surface::namespace;
 
 /// The card's size: quire's `Osd` fixes the width at 296 (a control-center module spanning both
@@ -39,9 +40,9 @@ pub fn anchor() -> Anchor {
     Anchor::TOP | Anchor::RIGHT
 }
 
-/// The margin that puts the card `osd.margin_px` from the bar's reserve and from the right edge.
-pub fn margin(osd: &OsdSettings) -> Margin {
-    let gap = i32::from(osd.margin_px.0) - i32::try_from(ROOM).unwrap_or(i32::MAX);
+/// The margin that puts the card `--osd-margin` from the bar's reserve and from the right edge.
+pub fn margin(tokens: &OsdTokens) -> Margin {
+    let gap = i32::from(tokens.margin) - i32::try_from(ROOM).unwrap_or(i32::MAX);
     Margin {
         top: gap,
         right: gap,
@@ -50,8 +51,7 @@ pub fn margin(osd: &OsdSettings) -> Margin {
 }
 
 /// The indicator's layer configuration on `output`.
-pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
-    let osd = &settings.osd;
+pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
     LayerConfig {
         namespace: namespace("osd", output),
         layer: LayerLevel::Overlay,
@@ -61,7 +61,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
             height: LayerExtent::Px(CARD_HEIGHT + 2 * ROOM),
         },
         exclusive: ExclusiveZone::Auto,
-        margin: margin(osd),
+        margin: margin(&OsdTokens::default()),
         keyboard: KeyboardMode::None,
         output: OutputTarget::Output(output.id),
         blur: BlurSpec::Region(RegionSpec::Element {
@@ -75,12 +75,12 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{CARD_HEIGHT, CARD_WIDTH, ROOM, layer};
-    use ds_settings::Px;
+    use super::{CARD_HEIGHT, CARD_WIDTH, ROOM, anchor, layer, margin};
+    use crate::osd::tokens::OsdTokens;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,
     };
-    use sill_settings::{OsdSettings, ShellFile};
+    use sill_settings::ShellFile;
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
@@ -100,8 +100,8 @@ mod tests {
     }
 
     #[test]
-    fn the_gap_comes_from_the_settings() {
-        let with = |gap| OsdSettings { margin_px: Px(gap) };
+    fn the_gap_comes_from_the_token() {
+        let with = |margin| OsdTokens { margin };
         let cases = [
             (
                 with(24),
@@ -113,14 +113,10 @@ mod tests {
             ),
             (with(40), Margin::ZERO),
         ];
-        for (osd, margin) in cases {
-            let file = ShellFile {
-                osd: osd.clone(),
-                ..ShellFile::default()
-            };
-            let config = layer(&output(Some("DP-1")), &file);
-            assert_eq!(config.anchor, Anchor::TOP | Anchor::RIGHT, "{osd:?}");
-            assert_eq!(config.margin, margin, "{osd:?}");
+        for (tokens, want) in cases {
+            assert_eq!(margin(&tokens), want, "{tokens:?}");
         }
+        assert_eq!(margin(&OsdTokens::default()).top, -16);
+        assert_eq!(anchor(), Anchor::TOP | Anchor::RIGHT);
     }
 }

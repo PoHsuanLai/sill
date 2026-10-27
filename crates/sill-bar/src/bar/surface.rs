@@ -39,7 +39,7 @@ impl Surface for Bar {
     }
 
     fn layer(output: &OutputInfo, settings: &ShellFile, (): ()) -> LayerConfig {
-        layer(output, settings, settings.bar.autohide)
+        layer(output, settings.bar.autohide)
     }
 
     fn root(output: OutputInfo, (): ()) -> Element {

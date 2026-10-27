@@ -14,7 +14,6 @@ use crate::idle::IdleSettings;
 use crate::keyboard::KeyboardSettings;
 use crate::launcher::LauncherSettings;
 use crate::notifications::NotificationsSettings;
-use crate::osd::OsdSettings;
 use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
@@ -49,7 +48,6 @@ pub fn schemas() -> Vec<Schema> {
         NotificationsSettings::schema(),
         ControlCenterSettings::schema(),
         DisplaySettings::schema(),
-        OsdSettings::schema(),
         on_page(
             SessionSettings::schema(),
             POWER_KEYS_ELSEWHERE,

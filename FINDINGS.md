@@ -699,7 +699,7 @@ a source; `assumed` means not yet checked.
 - **G470** After a Clear in the notification center, the widgets slot under the list jumps up
   instead of healing.
 - **G421** `calendar.week_numbers` is inert: neither compact month draws week numbers.
-- The center's tiles are 336 wide (160 pt cells): `notifications.center_width_px` under 360 overflows them.
+- The center's tiles are 336 wide (160 pt cells): `--notifications-center-width` under 360 overflows them.
 - The popup reserves Battery's height when the machine has no battery (harmless, transparent).
 - `ClockRow` carries the day and offset as one string; the reference draws two lines.
 - **Q320** Should the selection present when clipboard history turns on be kept? It is today.
@@ -797,9 +797,10 @@ a source; `assumed` means not yet checked.
 - **Q6002** `Alert` has no disabled button and no arrow keys, so the power menu leaves out an
   action logind refuses instead of drawing it disabled, and Tab replaces the arrows.
 - **Q184** Hot corners have no behaviour section in design/13.
-- design/22 still shows rows for the keys the 2026-10-27 prune made constants (the list is
-  `PRUNED` in `crates/sill-settings/tests/it/keys.rs`) and the old defaults for
-  `control_center.grid_gap_px`/`grid_padding_px`; the rows are quire's to remove.
+- design/22 still shows rows for the keys the 2026-10-27 prune made constants or stylesheet
+  tokens (the list is `RETIRED` in `crates/sill-settings/tests/it/keys.rs`: the pixel keys of
+  `bar`, `dock`, `launcher`, `scrollbar`, `notifications` and `control_center`, now tokens such
+  as `--cc-gap`/`--cc-pad` or constants beside their readers); the rows are quire's to remove.
 - The Harness's `count` misses `[aria-selected="true"] .ds-chord` (an attribute selector with a
   descendant).
 
@@ -1104,7 +1105,7 @@ Mission Control's Spaces bar (lane `spacesbar`, written without a build: nothing
   link. Each output's `sill_overlays::SpacesBar` (Top, anchored top/left/right, 112 px high = `STRIP_PX`, reserves nothing, no keyboard,
   input everywhere, spawned before the menu bar so the bar draws over its top) maps while the bar is up and unmaps when the leave
   has settled. It draws quire's `WorkspacePills` (a pill per Space of the output, the one on show `Selected`) centred, and a
-  toolbar `Button` with the plus glyph at the right edge; the strip is padded by `bar.height_px` so the pills sit under the menu bar.
+  toolbar `Button` with the plus glyph at the right edge; the strip is padded by `--shell-bar-h` so the pills sit under the menu bar.
 - **Names.** `bar_spaces`: desktops are "Desktop N" counted per output in order (as the Mac counts them, full-screen Spaces do
   not take a number); full-screen, Split View and agent Spaces are named by the apps with a window on them (app index name, else
   the app key), joined with " & "; with no known window, "Full Screen", "Split View" or "Agent". The wire carries no Space name, so
@@ -1165,7 +1166,7 @@ and casement's `quire_shell_v1` version 2 (casement-protocols `ea171a1`).
      the link's feed; `spaces_bar::spawn_outbox` follows the feed, sends `SetSpaceTargets` for each output whose cards changed (an
      empty set clears: sent as soon as the bar goes down) and the `CaptureSpace` requests.
   7. *Drop highlight.* `BarDrops::state_of` gives `DropState::Target` to the tile named by `DropTarget` (`SpaceTile::in_drag`).
-- **Surface height and input (record asked for).** The layer surface is `bar.height_px + BAR_EXPANDED_PX` (150) tall
+- **Surface height and input (record asked for).** The layer surface is `--shell-bar-h` plus `BAR_EXPANDED_PX` (150) tall
   (`layer::surface_px`), more than the compositor's 112 px reserve (`STRIP_PX`, kept: casement still keeps 112 free for the collapsed
   bar). The expanded bar therefore lies over the top (about 62 px with a 24 px menu bar) of the windows' layout, as the Mac's does.
   Input is `RegionSpec::Element { id: "spaces-bar" }`, the quire bar's own element (its `Common::id`), so the transparent rest of

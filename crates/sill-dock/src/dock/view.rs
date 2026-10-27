@@ -3,9 +3,9 @@
 //! §10.3.12). The surface is transparent everywhere but the pill and the tiles. The pill is the
 //! `Ds` root itself: a `Material::Dock` root in a box at the pill's rectangle, which draws the
 //! Space gradient at the Dock's tint alpha with the material stack's hairline, highlight and
-//! shadows (quire's tinted frame), its corner a squircle of `dock.pill_radius_px` (the macOS
+//! shadows (quire's tinted frame), its corner a squircle of `--sill-dock-pill-radius` (the macOS
 //! polish pass). The box around the root carries quire's dock metrics
-//! (`DockMetrics`: gap, padding, the running dot), and the root's first child is quire's
+//! (`DockMetrics`: the tile's size and the floor), and the root's first child is quire's
 //! `DockFloor` (off unless `dock.floor` is on). Everything else hangs from the root in a layer
 //! moved back to the surface's origin, so tiles, dots and the hit elements keep surface
 //! coordinates. The root's content is on paper (`Ground::Paper`): the tiles are quire plates,
@@ -34,6 +34,7 @@ use crate::dock::machine::{
 use crate::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::dock::rest_rects::app_rects;
 use crate::dock::tile::{LabelShown, Tile, TileLook, px};
+use crate::dock::tokens::DockTokens;
 use sill_services::{AppsService, BadgesService, PinsService, WindowsService};
 use sill_ui_kit::app_icons::icon_look;
 use sill_ui_kit::autohide;
@@ -62,7 +63,10 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     )
     .map(|(key, _)| key);
     let appearance = environment.settings.appearance.appearance();
-    let params = DockParams::new(&file.dock);
+    // The maths reads the shipped values until the surface hands its document to
+    // `DockTokens::read` (`ds_blitz::Resolved::length`), again on each `Styles` change.
+    let tokens = DockTokens::default();
+    let params = DockParams::new(&file.dock, &tokens);
     let world = World {
         toplevels: use_service_part::<WindowsService, _>(|wl| wl.toplevels.clone())(),
         index: use_service::<AppsService>()(),
@@ -107,11 +111,12 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     let at = (session.drawn)();
     let (progress, x) = displayed(&machine, at, &params);
     let width = output.logical.width;
-    let shown = frame(&items, &file.dock, width, progress, x);
+    let shown = frame(&items, &file.dock, &tokens, width, progress, x);
     let slide = slide_offset(&machine.reveal, at, &params);
     let rest = frame(
         &items,
         &file.dock,
+        &tokens,
         width,
         sill_model::units::Permille::ZERO,
         x,
@@ -137,7 +142,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     });
     let platform = use_platform();
     let send = move |input: PointerInput| feed.call(DockInput::Pointer(input));
-    let rows = Rows::new(&file.dock);
+    let rows = Rows::new(&file.dock, &tokens);
     let strip = strip_area(&rest, &rows, i32::from(autohide::TRIGGER_STRIP_PX), slide);
     rsx! {
         div {
@@ -150,7 +155,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                 system: environment.system,
                 look,
                 material: Material::Dock,
-                radius: Some(pill_corner(&file.dock)),
+                radius: Some(pill_corner(&tokens)),
                 ground: Some(Ground::Paper),
                 blur: BlurState::Available,
                 surface: root.surface,
@@ -182,7 +187,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                     if let Some(sep) = shown.separator {
                         div {
                             class: "sill-dock-separator",
-                            style: separator_style(sep, &rows, file.dock.separator_height_px.0),
+                            style: separator_style(sep, &rows),
                         }
                     }
                     for (item, area) in items.iter().zip(&shown.tiles) {
@@ -224,14 +229,11 @@ fn area_style(area: &Area) -> String {
     )
 }
 
-/// The separator: centred in its gap, vertically centred on the rest tiles.
-fn separator_style(x: Cpx, rows: &Rows, height: u16) -> String {
+/// The separator: centred in its gap, its middle on the rest tiles' middle; its height is
+/// `--sill-dock-separator-height` and the sheet centres it on `top`.
+fn separator_style(x: Cpx, rows: &Rows) -> String {
     let middle = px(rows.pill_top) + px(rows.pill_height) / 2.0;
-    format!(
-        "left:{:.2}px;top:{:.2}px;height:{height}px",
-        px(x) - 0.5,
-        middle - f64::from(height) / 2.0
-    )
+    format!("left:{:.2}px;top:{middle:.2}px", px(x) - 0.5)
 }
 
 /// The auto-hide trigger strip: the bottom `strip_px` of the output across the rest pill

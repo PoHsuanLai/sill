@@ -1,11 +1,17 @@
 //! The control center's grid and cap (design/13 §13.3.7, design/29: width 320, two columns,
 //! gap 10, padding 10, sliders spanning both columns; height fits content, at most
-//! `output_h - bar_h - 16`, then scrolls), pure. Every number is a `control_center.*` or
-//! `bar.*` key. The popup's size is shell-host's content fit, not computed here.
+//! `output_h - bar_h - 16`, then scrolls), pure. The width, gap and padding are `--cc-*` tokens
+//! (`CONTROL_CENTER`), the bar's height is [`BarTokens`] and the margin is
+//! `--sill-cc-bottom-margin`. The popup's size is shell-host's content fit, not computed here.
 
-use sill_settings::{BarSettings, ControlCenterModule, ControlCenterSettings};
+use sill_settings::ControlCenterModule;
 
 use super::modules::{Span, module};
+use crate::bar::tokens::BarTokens;
+
+/// `--sill-cc-bottom-margin`'s shipped value: the least space the panel keeps above the
+/// output's bottom edge.
+pub const BOTTOM_MARGIN: u16 = 16;
 
 /// One module's cell in the grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -66,14 +72,17 @@ pub fn place(modules: &[ControlCenterModule], columns: u16) -> Vec<Placed> {
 }
 
 /// The panel's greatest height on an output `output_height` tall.
-pub fn height_cap(output_height: i32, bar: &BarSettings, cc: &ControlCenterSettings) -> i32 {
-    (output_height - i32::from(bar.height_px.0) - i32::from(cc.bottom_margin_px.0)).max(0)
+pub fn height_cap(output_height: i32, bar: &BarTokens) -> i32 {
+    (output_height - i32::from(bar.height) - i32::from(BOTTOM_MARGIN)).max(0)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Placed, Span, height_cap, place};
-    use sill_settings::{BarSettings, ControlCenterModule, ControlCenterSettings};
+    use super::{BOTTOM_MARGIN, Placed, Span, height_cap, place};
+    use crate::bar::tokens::BarTokens;
+    use ds::style::tokens::token::TokenScope;
+    use sill_settings::{ControlCenterModule, ControlCenterSettings};
+    use sill_shell_kit::tokens::control_center::ControlCenterTuned;
 
     #[test]
     fn the_default_modules_lay_out_in_two_columns() {
@@ -105,8 +114,15 @@ mod tests {
 
     #[test]
     fn the_panel_stops_short_of_the_bottom_edge() {
-        let (bar, cc) = (BarSettings::default(), ControlCenterSettings::default());
         // 1080 - bar 24 - margin 16.
-        assert_eq!(height_cap(1080, &bar, &cc), 1040);
+        assert_eq!(height_cap(1080, &BarTokens::default()), 1040);
+    }
+
+    #[test]
+    fn the_margin_is_the_tokens_default() {
+        assert_eq!(
+            ControlCenterTuned::BottomMargin.fallback(TokenScope::BASE),
+            format!("{BOTTOM_MARGIN}px").as_str()
+        );
     }
 }

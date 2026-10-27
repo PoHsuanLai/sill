@@ -153,8 +153,15 @@ remembers.
   return futures.
 - **Timing comes from tokens and timelines**, never from ad-hoc `sleep`s. Animation state is
   driven by `Timeline`/`Presence`, never by a per-component timer.
-- **Proposed values are settings.** Every value the design docs mark "proposed" is read from a
-  settings key (`design/22-SETTINGS.md`) with that default, never hard-coded.
+- **Only choices are settings.** A settings key (`design/22-SETTINGS.md`) is for what the person
+  chooses, as macOS offers it, or a real behaviour choice. A visual length is a tuned stylesheet
+  token (`sill_shell_kit::tokens`: `--dock-gap`, `--sill-dock-pill-radius`, ...), which a look or
+  the person's style sheet may move. CSS reads it. Rust that computes with it before the first
+  layout (a layer surface's size, an exclusive zone, hit rects) holds a small `Copy` struct of the
+  tokens (`DockTokens`, `BarTokens`, ...): its `Default` is a named constant at the token's
+  shipped value, its `read` takes `ds_blitz::Resolved::length` of the surface's document, and a
+  test compares each constant with the token's fallback. A size that exists after layout is
+  measured (`use_rect`), not stored.
 
 ## 7. Errors and logging
 

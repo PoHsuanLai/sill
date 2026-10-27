@@ -60,8 +60,7 @@ impl BannerPosition {
 /// The pitch a banner that measured nothing heals by: the least banner and the gap.
 const FALLBACK_PITCH: RowPitch = RowPitch(Px(64.0 + 8.0));
 
-/// The banners, newest first. `gap` overrides `--notifications-stack-gap` (the
-/// the stack gap a `NotificationMetrics` around the stack writes).
+/// The banners, newest first. `gap` overrides `--notifications-stack-gap`.
 #[component]
 pub fn BannerStack(
     banners: Vec<Banner>,

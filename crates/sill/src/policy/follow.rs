@@ -83,7 +83,7 @@ mod tests {
         assert_eq!(next(&rt, &mut commands), Some(first), "sent at start");
 
         let mut other = ShellFile::default();
-        other.dock.edge_clamp_px.0 += 1;
+        other.dock.magnified_size_px.0 += 1;
         settings_tx.send_replace(other.clone());
         assert_eq!(
             next(&rt, &mut commands),

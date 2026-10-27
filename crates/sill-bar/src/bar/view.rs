@@ -18,7 +18,6 @@ use super::layer::layer;
 use super::model::BarInput;
 use super::module_item::ModuleItem;
 use super::reveal::{BODY_ID, RevealEvent, STRIP_ID, lifted, mode_on, timing};
-use super::status_item::status_metrics;
 use super::system_item::SystemItem;
 use super::track::{Event, Target};
 use super::tray::Tray;
@@ -53,9 +52,9 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     let times = timing(environment.settings.appearance.motion_level);
     let mode = mode_on(file.bar.autohide, use_full_screen(output.id)());
     let hide = use_hide(mode, times, session, output.id);
-    use_follow_layer(layer(&output, &file, mode));
+    use_follow_layer(layer(&output, mode));
     let state = *hide.machine.read();
-    let lift = lifted(&state, (hide.drawn)(), &times, &file).0;
+    let lift = lifted(&state, (hide.drawn)(), &times).0;
     let lifted_style = match lift {
         0 => String::new(),
         up => format!("transform:translateY(-{:.2}px)", f64::from(up) / 100.0),
@@ -64,8 +63,6 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     let strip_px = autohide::TRIGGER_STRIP_PX;
     let modules = menu_bar_modules(&file.control_center);
     let outside = move |input: Event| session.feed(BarInput::Bar { input, title: None });
-    let strip = format!("height:{}px", file.bar.height_px.0);
-    let status = status_metrics(&file.bar).style_attr();
     rsx! {
         div {
             class: "sill-bar-root",
@@ -85,7 +82,6 @@ pub(super) fn bar(output: OutputInfo) -> Element {
             AppStyle { css: BAR_CSS }
             div {
                 class: "sill-bar",
-                style: strip,
                 onpointerdown: move |_| outside(Event::OutsidePress),
                 onpointerup: move |_| outside(Event::Release(Target::Outside)),
                 div { class: "sill-bar-group",
@@ -95,7 +91,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
                     WorkspaceIndicator { output: output.clone() }
                 }
                 StylesNotice {}
-                div { class: "sill-bar-group sill-bar-status", style: status,
+                div { class: "sill-bar-group sill-bar-status",
                     if !tray.items.is_empty() {
                         Tray { output: output.clone() }
                     }

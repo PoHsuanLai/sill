@@ -2,7 +2,6 @@
 //! are Advanced.
 
 use ds_core::word::Word;
-use ds_settings::Px;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 use sill_model::notifications::{Presentation, Swipe};
@@ -35,57 +34,12 @@ pub struct NotificationsSettings {
     )]
     pub banner_style: Presentation,
     #[settings(
-        label = "Right margin",
-        help = "Space between banners and the screen's right edge.",
-        section = "Banners",
-        range = "0..=64",
-        unit = "px",
-        advanced
-    )]
-    pub position_right_px: Px,
-    #[settings(
-        label = "Top margin",
-        help = "Space between the bar and the first banner.",
-        section = "Banners",
-        range = "0..=64",
-        unit = "px",
-        advanced
-    )]
-    pub position_top_gap_px: Px,
-    #[settings(
-        label = "Banner width",
-        help = "How wide a banner is.",
-        section = "Banners",
-        range = "200..=600",
-        unit = "px",
-        advanced
-    )]
-    pub banner_width_px: Px,
-    #[settings(
-        label = "Icon size",
-        help = "The size of the app icon in a banner.",
-        section = "Banners",
-        range = "16..=64",
-        unit = "px",
-        advanced
-    )]
-    pub icon_px: Px,
-    #[settings(
         label = "Swiping a banner away",
         help = "Keeps it in the notification center, or dismisses it.",
         section = "Swiping",
         advanced
     )]
     pub swipe: Swipe,
-    #[settings(
-        label = "Center width",
-        help = "How wide the notification center is.",
-        section = "History",
-        range = "280..=600",
-        unit = "px",
-        advanced
-    )]
-    pub center_width_px: Px,
 }
 
 impl Default for NotificationsSettings {
@@ -93,12 +47,7 @@ impl Default for NotificationsSettings {
         NotificationsSettings {
             dnd: Dnd::Off,
             banner_style: Presentation::Banner,
-            position_right_px: Px(8),
-            position_top_gap_px: Px(8),
-            banner_width_px: Px(320),
-            icon_px: Px(28),
             swipe: Swipe::KeepInCenter,
-            center_width_px: Px(320),
         }
     }
 }

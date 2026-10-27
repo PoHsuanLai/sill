@@ -39,6 +39,7 @@ sill-search = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
 sill-ui-kit = { workspace = true }
+sill-shell-kit = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
@@ -50,7 +51,6 @@ image = { workspace = true }
 sill-ui-kit = { workspace = true, features = ["harness"] }
 dioxus-ssr = { workspace = true }
 ds-lint = { workspace = true }
-sill-shell-kit = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
 
 [[example]]

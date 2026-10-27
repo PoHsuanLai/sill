@@ -19,6 +19,8 @@ use ds::root::common::Common;
 use ds::style::appearance::blur::BlurState;
 use ds::style::icon::family::PlateFamily;
 use ds::style::tokens::shape::Corner;
+use ds::style::tokens::shell_type::ShellType;
+use ds::style::tokens::token::TokenScope;
 use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use image::{Rgba, RgbaImage};
 use probe::{keep, rect};
@@ -276,9 +278,11 @@ fn text_menu_rows_are_the_shell_menu_row() {
     let rows = harness.count(".ds-menu-item");
     assert_eq!(rows, 2, "{}", harness.html());
     let first = rect(&harness, ".ds-menu-item");
-    let row = ds::style::tokens::shell_type::ShellMetrics::default()
-        .menu
-        .row;
+    let row = Px(ShellType::MenuRow
+        .fallback(TokenScope::BASE)
+        .trim_end_matches("px")
+        .parse()
+        .expect("the menu row token is a plain length"));
     assert_eq!(first.size.height, row);
     let separator = rect(&harness, ".ds-menu-separator");
     assert_eq!(separator.size.height, Px(1.0));

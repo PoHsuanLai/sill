@@ -12,7 +12,6 @@ use std::time::Duration;
 use cc_support::live::{self, Report};
 use cc_support::{count, fake, render, render_dropdown};
 use ds::prelude::*;
-use ds_settings::Px;
 use sill_bar::control_center::{CcPage, Detail};
 use sill_model::bluetooth::Bluetooth;
 use sill_model::wifi::{Radio, Ssid, Wifi, WifiCommand};
@@ -109,20 +108,13 @@ fn modules_follow_the_settings_order() {
 }
 
 #[test]
-fn the_grid_takes_its_gap_from_the_settings() {
+fn the_grid_takes_its_gap_from_the_control_centers_token() {
     let (services, _feeds) = fake::services();
-    let file = ShellFile {
-        control_center: ControlCenterSettings {
-            grid_gap_px: Px(12),
-            ..ControlCenterSettings::default()
-        },
-        ..ShellFile::default()
-    };
-    let html = render(services, file);
+    let html = render(services, ShellFile::default());
     assert_eq!(
         count(
             &html,
-            "style=\"--grid-columns:2;--grid-gap:12px;--grid-padding:0px\""
+            "style=\"--grid-columns:2;--grid-gap:10px;--grid-padding:0px\""
         ),
         1
     );

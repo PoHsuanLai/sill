@@ -131,7 +131,7 @@ pub fn menu_offset(side: MenuSide) -> (i32, i32) {
 /// How the compositor may move a menu that would leave the output: slide and flip, except the
 /// control center: its popup's shadow room reaches past the output's right edge, and past the
 /// bottom when the panel is at its cap, on purpose (the panel itself stays [`EDGE_GAP`] inside
-/// and `control_center.bottom_margin_px` above), and sliding it back would pull the panel in by
+/// and `--sill-cc-bottom-margin` above), and sliding it back would pull the panel in by
 /// the room.
 pub fn adjust(side: MenuSide) -> PopupAdjust {
     match side {

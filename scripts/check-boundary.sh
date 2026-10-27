@@ -91,7 +91,7 @@ EDGES=(
   "sill-ui-kit: companion-wire docket-core ds ds-blitz ds-core ds-harness ds-settings keycap-client porter-core prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-shell-kit"
   "sill-bar: ds ds-blitz ds-settings shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill-dock: ds ds-blitz shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
-  "sill-launcher-ui: almanac-core anyview-core anyview-fs anyview-image anyview-peek anyview-platform companion-wire docket-core ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
+  "sill-launcher-ui: almanac-core anyview-core anyview-fs anyview-image anyview-peek anyview-platform companion-wire docket-core ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill-notify-ui: ds ds-blitz ds-settings shell-host sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill-overlays: ds ds-behaviour ds-settings ds-shell porter-core shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill: ds ds-blitz ds-core ds-extensions ds-lint ds-settings prov shell-host shell-verbs sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-shell-kit sill-ui-kit"

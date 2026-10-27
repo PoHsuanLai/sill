@@ -1,6 +1,7 @@
 //! `dock.*` (design/22 §3.5, §4.1; design/10 §10.6). The Dock page shows the keys §5
-//! lists; the geometry keys are Advanced. Timing is constants in the dock's crates. Pinned apps are placements in `layout.toml`, not
-//! here.
+//! lists; the magnified size is Advanced. Timing is constants in the dock's crates, and the rest of
+//! the geometry (gap, padding, corner, dot, separator) is stylesheet tokens (`DockToken`). Pinned
+//! apps are placements in `layout.toml`, not here.
 
 use ds_settings::Px;
 use ds_settings::schema::Page;
@@ -37,15 +38,6 @@ pub struct DockSettings {
     )]
     pub magnified_size_px: Px,
     #[settings(
-        label = "Icon gap",
-        help = "Space between icons.",
-        section = "Dock",
-        range = "0..=16",
-        unit = "px",
-        advanced
-    )]
-    pub tile_gap_px: Px,
-    #[settings(
         label = "Automatically hide the Dock",
         help = "Shows the Dock when the pointer reaches the bottom.",
         section = "Hiding"
@@ -63,62 +55,6 @@ pub struct DockSettings {
         section = "Behaviour"
     )]
     pub trash: TrashTile,
-    #[settings(
-        label = "Corner radius",
-        help = "How round the Dock's background is.",
-        section = "Dock",
-        range = "0..=48",
-        unit = "px",
-        advanced
-    )]
-    pub pill_radius_px: Px,
-    #[settings(
-        label = "Edge margin",
-        help = "How close the Dock gets to the screen's sides.",
-        section = "Dock",
-        range = "0..=64",
-        unit = "px",
-        advanced
-    )]
-    pub edge_clamp_px: Px,
-    #[settings(
-        label = "Indicator dot",
-        help = "How big the open-app dot is.",
-        section = "Behaviour",
-        range = "2..=12",
-        unit = "px",
-        advanced
-    )]
-    pub running_dot_diameter_px: Px,
-    #[settings(
-        label = "Separator height",
-        help = "The height of the line before Trash.",
-        section = "Behaviour",
-        range = "8..=80",
-        unit = "px",
-        advanced
-    )]
-    pub separator_height_px: Px,
-    /// `dock.pill_padding_px` (the macOS polish pass: 6 on every side of the tiles).
-    #[settings(
-        label = "Dock padding",
-        help = "Space between the icons and the Dock's edge.",
-        section = "Dock",
-        range = "0..=24",
-        unit = "px",
-        advanced
-    )]
-    pub pill_padding_px: Px,
-    /// `dock.running_dot_gap_px`.
-    #[settings(
-        label = "Indicator dot gap",
-        help = "Space from an icon's bottom to its dot.",
-        section = "Behaviour",
-        range = "0..=12",
-        unit = "px",
-        advanced
-    )]
-    pub running_dot_gap_px: Px,
     /// `dock.floor`.
     #[settings(
         label = "Floor",
@@ -135,16 +71,9 @@ impl Default for DockSettings {
             magnification: Magnification::On,
             tile_size_px: Px(48),
             magnified_size_px: Px(72),
-            tile_gap_px: Px(8),
             autohide: AutoHide::Off,
             indicators: Indicators::On,
             trash: TrashTile::On,
-            pill_radius_px: Px(22),
-            edge_clamp_px: Px(8),
-            running_dot_diameter_px: Px(4),
-            separator_height_px: Px(36),
-            pill_padding_px: Px(6),
-            running_dot_gap_px: Px(3),
             floor: DockFloor::Off,
         }
     }

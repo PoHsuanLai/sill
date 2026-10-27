@@ -105,3 +105,18 @@ fn control_center_css(token: ControlCenterSize, _scope: TokenScope) -> CssValue 
     };
     CssValue::computed(size.css())
 }
+
+/// A control center length a look or the person's style sheet may move: a tuned token, its
+/// `input` written by the sheet, the default behind it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Word, Token)]
+#[token(prefix = "", kind = tuned)]
+pub enum ControlCenterTuned {
+    /// `--sill-cc-bottom-margin`: the least space the panel keeps above the output's bottom edge
+    /// (16); past it the panel scrolls.
+    #[token(
+        name = "sill-cc-bottom-margin",
+        input = "--sill-cc-bottom-margin-px",
+        value = "16px"
+    )]
+    BottomMargin,
+}

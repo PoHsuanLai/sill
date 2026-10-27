@@ -11,13 +11,12 @@ use shell_host::{OutputInfo, Visibility};
 use sill_model::ids::OutputName;
 use sill_shell_kit::osd::OsdPosition;
 use sill_shell_kit::prelude::*;
-use sill_shell_kit::tokens::osd::OsdMetrics;
 
-use super::io::{times, use_follow_position, use_osd};
+use super::io::{times, use_osd};
 use super::layer::CARD_ID;
 use super::reading::{card_level, level_of, title};
 use sill_services::{DisplaysService, VolumeService};
-use sill_ui_kit::hooks::{use_service, use_settings};
+use sill_ui_kit::hooks::use_service;
 use sill_ui_kit::links::{OsdKind, OsdLink};
 use sill_ui_kit::root::SurfaceRoot;
 
@@ -31,10 +30,8 @@ const LOOK: LevelStyle = LevelStyle::Discrete;
 
 /// The indicator on `output`.
 pub(super) fn osd(output: OutputInfo) -> Element {
-    let file = use_settings()();
     let on = output.name.clone().map(OutputName);
     let link = use_context::<OsdLink>();
-    use_follow_position(&file.osd);
     let drawn = use_osd(&link, output.id, times());
     let volume = use_service::<VolumeService>()();
     let displays = use_service::<DisplaysService>()();
@@ -54,7 +51,6 @@ pub(super) fn osd(output: OutputInfo) -> Element {
             chrome: Some(RootChrome::Transparent),
             AppStyle { css: OSD_CSS }
             div {
-                style: OsdMetrics { margin: Px(f32::from(file.osd.margin_px.0)) }.style_attr(),
                 Osd {
                     shown,
                     label: Some(title(kind, &volume, &displays, on.as_ref())),

@@ -13,7 +13,7 @@ use super::layer::input;
 use crate::launcher::card::follow_input;
 use crate::launcher::follow::{use_follow_visibility, use_shown};
 use crate::launcher::panel::LAUNCHER_CSS;
-use sill_ui_kit::hooks::use_settings;
+use crate::launcher::tokens::LauncherTokens;
 use sill_ui_kit::links::LauncherLink;
 use sill_ui_kit::root::use_root_style;
 
@@ -22,9 +22,8 @@ pub(super) fn catcher(output: OutputInfo) -> Element {
     let link = use_context::<LauncherLink>();
     let shown = use_shown(&link);
     use_follow_visibility(shown, output.id);
-    let file = use_settings()();
     let hit = use_watch(link.subscribe_hit());
-    follow_input(input(&output, &file.bar, &file.launcher, hit()));
+    follow_input(input(&output, &LauncherTokens::default(), hit()));
     let surface = use_root_style().surface;
     rsx! {
         AppStyle { css: LAUNCHER_CSS }

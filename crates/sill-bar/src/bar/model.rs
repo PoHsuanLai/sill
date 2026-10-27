@@ -5,13 +5,13 @@ use ds::prelude::*;
 use ds::style::tokens::shell_scale::SHELL_SCALE;
 use shell_host::{OutputId, PopupPlacement, SurfaceHandle};
 use sill_model::ids::OutputName;
-use sill_settings::BarSettings;
 use sill_ui_kit::links::FocusLink;
 use sill_ui_kit::settings::SettingsFeed;
 
 use super::content::{BarState, PopupBody};
 use super::menus::BarMenu;
 use super::plan::PopupReport;
+use super::tokens::BarTokens;
 use super::track::Event;
 use ds::stack::menu_track::types::MenuTiming;
 use sill_ui_kit::links::{ActionLink, CenterLink};
@@ -82,10 +82,10 @@ pub(crate) struct SessionDeps {
 /// The last status item's slot, vertically centred in the bar, at its right end: the control
 /// center's title rect when it opens with no pointer event behind it. The slot is quire's
 /// (design/29): `max(--bar-status-w, box)` wide by the box tall.
-pub(super) fn status_box(bar_width: i32, bar: &BarSettings) -> Rect {
-    let side = f32::from(bar.status_icon_box_px.0);
+pub(super) fn status_box(bar_width: i32, bar: &BarTokens) -> Rect {
+    let side = f32::from(bar.status_box);
     let width = side.max(f32::from(SHELL_SCALE.status_width.0));
-    let height = f32::from(bar.height_px.0);
+    let height = f32::from(bar.height);
     Rect {
         origin: Point {
             x: Px(bar_width as f32 - width),

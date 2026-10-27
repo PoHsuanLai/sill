@@ -11,7 +11,7 @@ use sill_services::AppsService;
 
 use super::io::use_bar;
 use super::layer::BAR_ID;
-use sill_ui_kit::hooks::{use_service, use_settings, use_unmap_on_hidden};
+use sill_ui_kit::hooks::{use_service, use_unmap_on_hidden};
 use sill_ui_kit::links::SpacesBarLink;
 use sill_ui_kit::root::SurfaceRoot;
 
@@ -33,7 +33,6 @@ fn SpacesStrip(output: OutputInfo) -> Element {
     let link = use_context::<SpacesBarLink>();
     let bar = use_bar(&link, &output);
     let apps = use_service::<AppsService>();
-    let menu_bar = use_settings()().bar.height_px.0;
     let on_hidden = use_unmap_on_hidden();
     let tiles = use_memo({
         let bar = bar.clone();
@@ -44,7 +43,7 @@ fn SpacesStrip(output: OutputInfo) -> Element {
     let add_drop = bar.add_drop();
     rsx! {
         div {
-            style: "padding-top:{menu_bar}px;",
+            style: "padding-top:var(--shell-bar-h);",
             SpacesBar {
                 label: "Spaces",
                 spaces: tiles(),

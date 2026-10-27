@@ -10,13 +10,14 @@
 //! bar itself (`Edge`): this machine only makes the content drawn and hit-testable, with no slide.
 //! `DesktopOnly` rests fixed on an output showing a full-screen Space ([`mode_on`]).
 
+use super::tokens::BarTokens;
 use ds::base::time::stamp::Stamp;
 use ds::prelude::Motion;
 use ds::style::tokens::easing::EasingToken;
 use shell_host::{BlurSpec, ElementId, RegionSpec};
 use sill_model::desktop::Shown;
 use sill_model::units::Cpx;
-use sill_settings::{MenuBarHiding, ShellFile};
+use sill_settings::MenuBarHiding;
 use sill_ui_kit::autohide::{self, Change, Hold, Input, Phase, Timing, advance};
 
 /// The element the bar's content is drawn in; it slides, and the shown regions follow it.
@@ -114,13 +115,13 @@ pub(super) fn timing(motion: Motion) -> Timing {
 }
 
 /// How far above its place a hidden bar sits: its own height.
-pub(super) fn slide_distance(file: &ShellFile) -> Cpx {
-    Cpx::px(i32::from(file.bar.height_px.0))
+pub(super) fn slide_distance() -> Cpx {
+    Cpx::px(i32::from(BarTokens::default().height))
 }
 
 /// How far up the bar is drawn at `now`.
-pub(super) fn lifted(state: &BarReveal, now: Stamp, t: &Timing, file: &ShellFile) -> Cpx {
-    autohide::slide_offset(&state.phase, now, t, slide_distance(file))
+pub(super) fn lifted(state: &BarReveal, now: Stamp, t: &Timing) -> Cpx {
+    autohide::slide_offset(&state.phase, now, t, slide_distance())
 }
 
 /// The input region while the bar is shown by the machine: its content.

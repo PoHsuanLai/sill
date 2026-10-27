@@ -1,7 +1,7 @@
 /* NotificationCard (design/20 section 1.6, design/13 section 13.3.6). The card is a
    plate in its material, inside a transparent scope of that material, so the plate and its
    group's layers paint the material's tint, edge and drop (the transparent-root card rule in the
-   materials section). Geometry is the `--notifications-*` tokens `NotificationMetrics` writes:
+   materials section). Geometry is the `--notifications-*` tokens (`NotificationToken`):
    320 wide, at least 48 tall, padded 10, the icon 28, the close button 18. Attribute selectors
    carry `*|` (spike S2).
 

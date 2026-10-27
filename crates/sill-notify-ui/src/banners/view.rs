@@ -1,5 +1,5 @@
-//! The banner column: one transparent Toast root as tall as the surface, `NotificationMetrics` (the
-//! `notifications.*` geometry keys) written on a wrapper, holding quire's `BannerStack` of the
+//! The banner column: one transparent Toast root as tall as the surface, the `--notifications-*`
+//! geometry tokens read from the sheet, holding quire's `BannerStack` of the
 //! deck's listed cards, each quire's `NotificationCard` (through [`NoteCard`]) that pauses the hold
 //! under the pointer and swipes away. It follows the notifications service's live banners and the
 //! [`BannerLink`] (only the output the link names shows cards), maps its surface while any card is
@@ -13,7 +13,6 @@ use ds::prelude::*;
 use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
 use sill_model::notifications::{NotificationId, Notifications};
 use sill_services::NotificationsService;
-use sill_settings::NotificationsSettings;
 use sill_shell_kit::notifications::banner_stack::BannerKey;
 use sill_shell_kit::notifications::parts::Hover;
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
@@ -27,11 +26,9 @@ use super::keys::banner_key;
 use super::layer::ROOM;
 use super::stack::stack;
 use super::step::{BannerIn, BannerParams};
-use sill_ui_kit::hooks::{use_control, use_follow_visibility, use_service_part, use_settings};
+use sill_ui_kit::hooks::{use_control, use_follow_visibility, use_service_part};
 use sill_ui_kit::links::{BannerLink, KeyWhat, Transient};
-use sill_ui_kit::notification_card::{
-    CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
-};
+use sill_ui_kit::notification_card::{CardPart, CardPlace, CardPress, NoteCard, part_id, wall_now};
 use sill_ui_kit::root::SurfaceRoot;
 
 /// The column's stylesheet (lint-clean under `Profile::Strict`, `tests/banners_lint.rs`).
@@ -45,7 +42,6 @@ const STACK_MAX: usize = 3;
 
 /// The column on `output`.
 pub(super) fn banners(output: OutputInfo) -> Element {
-    let file = use_settings()();
     rsx! {
         SurfaceRoot {
             output: output.clone(),
@@ -53,14 +49,14 @@ pub(super) fn banners(output: OutputInfo) -> Element {
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
             AppStyle { css: BANNERS_CSS }
-            ColumnView { output: output.id, settings: file.notifications }
+            ColumnView { output: output.id }
         }
     }
 }
 
 /// The cards, inside the root.
 #[component]
-fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> Element {
+fn ColumnView(output: shell_host::OutputId) -> Element {
     let control = use_control::<NotificationsService>();
     let link = use_context::<BannerLink>();
     let column = use_column(BannerParams::default(), control, link.clone());
@@ -87,10 +83,7 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
         .into_iter()
         .filter_map(|entry| banner(column, &notes, entry))
         .collect();
-    let style = format!(
-        "{}--sill-banner-room:{ROOM}px;",
-        notification_metrics(&settings).style_attr()
-    );
+    let style = format!("--sill-banner-room:{ROOM}px;");
     rsx! {
         div {
             class: "sill-banners",

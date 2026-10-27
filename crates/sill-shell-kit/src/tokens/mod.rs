@@ -6,6 +6,7 @@
 pub mod control_center;
 pub mod dock;
 pub mod glow;
+pub mod launcher;
 pub mod notifications;
 pub mod osd;
 pub mod widgets;

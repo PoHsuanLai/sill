@@ -33,10 +33,11 @@ use sill_shell_kit::prelude::*;
 use super::dbusmenu::has_rows;
 use super::menus::{BarMenu, TraySlot};
 use super::title::{shown_of, use_title_pointer};
+use super::tokens::BarTokens;
 use super::tray_input::{
     ItemMenu, ScreenOrigin, TrayAction, icon_source, press_action, scroll_delta,
 };
-use sill_ui_kit::hooks::{use_control, use_service, use_settings};
+use sill_ui_kit::hooks::{use_control, use_service};
 
 /// The element id of the button at `index` (`tray-<n>`, as the module doc says).
 fn popup_element_id(index: usize) -> String {
@@ -80,7 +81,7 @@ fn use_icon_source(icon: &TrayIcon, size_px: u16, limit: ChromaLimit) -> IconSou
 #[component]
 fn TrayButton(index: usize, item: TrayItem, origin: ScreenOrigin) -> Element {
     let control = use_control::<TrayService>();
-    let size_px = use_settings()().bar.status_icon_box_px.0;
+    let size_px = BarTokens::default().status_box;
     let limit = ChromaLimit::PROPOSED;
     let icon = use_icon_source(&item.icon, size_px, limit);
     let probe = use_rect();

@@ -1,6 +1,5 @@
 //! `launcher.*` (design/22 §3.6; design/13 §13.3.9). All Advanced (§5).
 
-use ds_settings::Px;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
@@ -14,25 +13,6 @@ use sill_model::results::CurrencyPolicy;
 #[serde(default)]
 #[settings(file = "sill/settings.toml", domain = "launcher", page = Page::Appearance)]
 pub struct LauncherSettings {
-    /// Panel top = `max(bar_h + top_bar_gap, round(0.4 x H - top_centre_bias))`.
-    #[settings(
-        label = "Gap below the bar",
-        help = "The least space between the bar and the launcher.",
-        section = "Position",
-        range = "0..=200",
-        unit = "px",
-        advanced
-    )]
-    pub top_bar_gap_px: Px,
-    #[settings(
-        label = "Height bias",
-        help = "Moves the launcher up by this much.",
-        section = "Position",
-        range = "0..=1000",
-        unit = "px",
-        advanced
-    )]
-    pub top_centre_bias_px: Px,
     /// `launcher.clipboard_history`.
     #[settings(
         label = "Clipboard history",
@@ -70,8 +50,6 @@ pub struct LauncherSettings {
 impl Default for LauncherSettings {
     fn default() -> Self {
         LauncherSettings {
-            top_bar_gap_px: Px(24),
-            top_centre_bias_px: Px(230),
             clipboard_history: HistoryMode::Memory,
             emoji_skin_tone: SkinTone::Default,
             web_search: WebSearch::On,

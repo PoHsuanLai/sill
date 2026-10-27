@@ -6,7 +6,7 @@
 
 use shell_host as host;
 use sill_settings::{
-    Momentum, NaturalScroll, Px, ScrollSettings, ScrollbarSettings, ScrollbarVisibility, ShellFile,
+    Momentum, NaturalScroll, ScrollSettings, ScrollbarSettings, ScrollbarVisibility, ShellFile,
     TrackClick,
 };
 
@@ -40,6 +40,21 @@ const WHEEL_BURST_WINDOW_MS: host::ScrollMs = host::ScrollMs(300);
 const MOMENTUM_BOOST_THRESHOLD_PX_S: host::ScrollScalar = host::ScrollScalar(350.0);
 /// The grace, in ms, before a second scroll counts as a double scroll.
 const DOUBLE_SCROLL_GRACE_MS: host::ScrollMs = host::ScrollMs(150);
+/// The track's width at rest, in px: a scroll bar's geometry is painted by shell-host on any
+/// surface and no sill document holds it, so it is a constant here (macOS's overlay scroller).
+const SCROLLBAR_TRACK_THICKNESS_PX: host::ScrollPx = host::ScrollPx(12);
+/// The track's width while the pointer is near, in px.
+const SCROLLBAR_TRACK_THICKNESS_HOVER_PX: host::ScrollPx = host::ScrollPx(16);
+/// The thumb's width at rest, in px.
+const SCROLLBAR_THUMB_THICKNESS_PX: host::ScrollPx = host::ScrollPx(8);
+/// The thumb's width while the pointer is near, in px.
+const SCROLLBAR_THUMB_THICKNESS_HOVER_PX: host::ScrollPx = host::ScrollPx(12);
+/// The shortest the thumb gets, in px.
+const SCROLLBAR_THUMB_MIN_LENGTH_PX: host::ScrollPx = host::ScrollPx(18);
+/// The track's width when scroll bars always show, in px.
+const SCROLLBAR_LEGACY_TRACK_WIDTH_PX: host::ScrollPx = host::ScrollPx(15);
+/// How far the vertical track stops short of a horizontal one, in px.
+const SCROLLBAR_OTHER_AXIS_OFFSET_PX: host::ScrollPx = host::ScrollPx(12);
 /// How long, in ms, a scroll bar stays after scrolling stops.
 const SCROLLBAR_HIDE_DELAY_MS: host::ScrollMs = host::ScrollMs(500);
 /// How long, in ms, a scroll bar takes to fade out.
@@ -83,23 +98,19 @@ fn scroll(s: &ScrollSettings) -> host::ScrollSettings {
 
 fn scrollbar(s: &ScrollbarSettings) -> host::ScrollbarSettings {
     host::ScrollbarSettings {
-        track_thickness_px: px(s.track_thickness_px),
-        track_thickness_hover_px: px(s.track_thickness_hover_px),
-        thumb_thickness_px: px(s.thumb_thickness_px),
-        thumb_thickness_hover_px: px(s.thumb_thickness_hover_px),
-        thumb_min_length_px: px(s.thumb_min_length_px),
+        track_thickness_px: SCROLLBAR_TRACK_THICKNESS_PX,
+        track_thickness_hover_px: SCROLLBAR_TRACK_THICKNESS_HOVER_PX,
+        thumb_thickness_px: SCROLLBAR_THUMB_THICKNESS_PX,
+        thumb_thickness_hover_px: SCROLLBAR_THUMB_THICKNESS_HOVER_PX,
+        thumb_min_length_px: SCROLLBAR_THUMB_MIN_LENGTH_PX,
         hide_delay_ms: SCROLLBAR_HIDE_DELAY_MS,
         fade_duration_ms: SCROLLBAR_FADE_DURATION_MS,
         expand_zone_px: SCROLLBAR_EXPAND_ZONE_PX,
         expand_duration_ms: SCROLLBAR_EXPAND_DURATION_MS,
-        legacy_track_width_px: px(s.legacy_track_width_px),
-        other_axis_offset_px: px(s.other_axis_offset_px),
+        legacy_track_width_px: SCROLLBAR_LEGACY_TRACK_WIDTH_PX,
+        other_axis_offset_px: SCROLLBAR_OTHER_AXIS_OFFSET_PX,
         track_click_mode: track_click(s.track_click_mode),
     }
-}
-
-fn px(v: Px) -> host::ScrollPx {
-    host::ScrollPx(v.0)
 }
 
 fn natural_scroll(v: NaturalScroll) -> host::NaturalScroll {
@@ -168,13 +179,5 @@ mod tests {
             mutate(&mut file);
             assert!(holds(&config(&file)));
         }
-    }
-
-    #[test]
-    fn a_changed_size_carries_its_value() {
-        let mut file = ShellFile::default();
-        file.scrollbar.thumb_min_length_px = Px(30);
-        let got = config(&file);
-        assert_eq!(got.scrollbar.thumb_min_length_px, host::ScrollPx(30));
     }
 }

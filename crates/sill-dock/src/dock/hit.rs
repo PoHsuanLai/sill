@@ -74,6 +74,7 @@ mod tests {
     use crate::dock::frame::frame;
     use crate::dock::items::{DockItem, ItemKind};
     use crate::dock::machine::{DropZone, Hit, Point, TileApp, TileId};
+    use crate::dock::tokens::DockTokens;
     use sill_launcher::AppId;
     use sill_model::units::{Cpx, Permille};
     use sill_settings::DockSettings;
@@ -107,6 +108,7 @@ mod tests {
         let f = frame(
             &items,
             &DockSettings::default(),
+            &DockTokens::default(),
             1920,
             Permille::ZERO,
             Cpx(0),
@@ -140,6 +142,7 @@ mod tests {
         let f = frame(
             &items,
             &DockSettings::default(),
+            &DockTokens::default(),
             1920,
             Permille::ZERO,
             Cpx(0),
