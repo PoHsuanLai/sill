@@ -281,7 +281,7 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
 - [ ] Caps Lock on shows the caps mark in the field.
 - [ ] Two requests at once (`pkexec true & pkexec true`): the second shows once the first ends.
 
-### keycap (the Mac keyboard layout)
+### keycap (the Command-key layout)
 
 `cargo test -p sill-services --test it keycap_socket` covers the socket against a fake daemon; these
 need the real daemon on a machine with a Mac keyboard (or a PC keyboard with the Mac layout) and
@@ -306,7 +306,7 @@ sill layer `dist/keycap/keycap.toml` to `~/.config/keycap/keycap.toml` when miss
 - [ ] `sudo pkill -KILL keycap` once: keys keep working, **no notification** appears (systemd
   brings it back in 200 ms; `sill keycap status` is `connected` again).
 - [ ] Make it give up: run `for i in 1 2 3 4 5 6; do sudo pkill -KILL keycap; sleep 0.4; done`.
-  After about 3 s a "Mac keyboard layout stopped" notification appears, the keys work as on a
+  After about 3 s a "Command-key layout stopped" notification appears, the keys work as on a
   standard keyboard, and `sill keycap status` says `failed`. `sill keycap retry` (no password
   asked) brings it back: the notification goes and the layout works again.
 - [ ] `sudo systemctl stop keycap`: nothing is posted (stopped on purpose); `sudo systemctl start
@@ -316,7 +316,7 @@ sill layer `dist/keycap/keycap.toml` to `~/.config/keycap/keycap.toml` when miss
 - [ ] Start another remapper that grabs the same keyboard (`keyd`, or `kmonad`): an "Another keyboard
   program is running" notification names the keyboard; stopping the other program clears it
   within about 30 s, and keycap grabs the keyboard.
-- [ ] Press both Shifts and Esc: a "Mac keyboard layout paused" notification appears and the
+- [ ] Press both Shifts and Esc: a "Command-key layout paused" notification appears and the
   keys work as on a standard keyboard. `sill keycap resume` brings the layout back and the
   notification goes.
 - [ ] Log out and in again: the login screen already has the layout, and after login the terminal

@@ -35,7 +35,7 @@ pub struct Notice {
 pub fn notice_text(attention: &Attention) -> Notice {
     let (summary, body) = match attention {
         Attention::Failed => (
-            "Mac keyboard layout stopped".to_owned(),
+            "Command-key layout stopped".to_owned(),
             "Keys work as on a standard keyboard. Run `sill keycap retry` to try again.".to_owned(),
         ),
         Attention::Conflict { device } => (
@@ -43,7 +43,7 @@ pub fn notice_text(attention: &Attention) -> Notice {
             format!("{device} keeps its own mapping while it runs."),
         ),
         Attention::Paused => (
-            "Mac keyboard layout paused".to_owned(),
+            "Command-key layout paused".to_owned(),
             "Keys work as on a standard keyboard. Run `sill keycap resume` to turn it back on."
                 .to_owned(),
         ),

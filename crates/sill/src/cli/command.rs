@@ -108,7 +108,7 @@ pub enum Command {
         #[command(subcommand)]
         action: IdleAction,
     },
-    /// The Mac keyboard layout: whether keycap runs, restart it, or end its pause.
+    /// The Command-key layout: whether keycap runs, restart it, or end its pause.
     Keycap {
         #[command(subcommand)]
         action: KeycapAction,

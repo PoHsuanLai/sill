@@ -64,7 +64,7 @@ fn each_attention_has_its_words() {
         (
             "failed",
             Attention::Failed,
-            "Mac keyboard layout stopped",
+            "Command-key layout stopped",
             "Keys work as on a standard keyboard. Run `sill keycap retry` to try again.",
         ),
         (
@@ -76,7 +76,7 @@ fn each_attention_has_its_words() {
         (
             "paused",
             Attention::Paused,
-            "Mac keyboard layout paused",
+            "Command-key layout paused",
             "Keys work as on a standard keyboard. Run `sill keycap resume` to turn it back on.",
         ),
     ];
