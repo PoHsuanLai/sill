@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub struct SessionSettings {
     #[settings(
         label = "Require the password after the display turns off",
-        help = "Seconds after sill turns the displays off for idleness (and locks) in which any input opens the lock screen without the password; 0 always asks. Never after a lock you asked for (the Lock shortcut, `loginctl lock-session`, the launcher, the power menu), a lid close, a sleep or a wake from sleep.",
+        help = "Seconds a quick wake skips the password; locking, lid close and sleep always ask.",
         section = "Lock screen",
         range = "0..=60",
         unit = "s",

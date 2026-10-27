@@ -20,7 +20,7 @@ pub struct LauncherSettings {
     #[settings(
         label = "Gap below the bar",
         help = "The least space between the bar and the launcher.",
-        section = "Launcher",
+        section = "Position",
         range = "0..=200",
         unit = "px",
         advanced
@@ -28,8 +28,8 @@ pub struct LauncherSettings {
     pub top_bar_gap_px: Px,
     #[settings(
         label = "Height bias",
-        help = "Subtracted from the launcher's vertical position.",
-        section = "Launcher",
+        help = "Moves the launcher up by this much.",
+        section = "Position",
         range = "0..=1000",
         unit = "px",
         advanced
@@ -37,8 +37,8 @@ pub struct LauncherSettings {
     pub top_centre_bias_px: Px,
     #[settings(
         label = "Vertical position",
-        help = "Where the launcher sits, as a fraction of the screen's height (stored per-mille).",
-        section = "Launcher",
+        help = "Where the launcher sits, as a share of the screen's height.",
+        section = "Position",
         range = "0..=1000",
         advanced
     )]
@@ -46,16 +46,16 @@ pub struct LauncherSettings {
     /// `launcher.material` (§3.1 row, owned by sill).
     #[settings(
         label = "Panel material",
-        help = "The launcher panel's material.",
-        section = "Launcher",
+        help = "The launcher panel's look.",
+        section = "Position",
         advanced
     )]
     pub material: PanelMaterial,
     /// `launcher.field_font_px` (the macOS polish pass: Spotlight's 22 pt query).
     #[settings(
         label = "Search text size",
-        help = "The size of the query in the search field.",
-        section = "Launcher",
+        help = "The size of what you type.",
+        section = "Text",
         range = "12..=40",
         unit = "px",
         advanced
@@ -64,8 +64,8 @@ pub struct LauncherSettings {
     /// `launcher.field_font_weight`.
     #[settings(
         label = "Search text weight",
-        help = "The weight of the query in the search field.",
-        section = "Launcher",
+        help = "The weight of what you type.",
+        section = "Text",
         range = "100..=900",
         advanced
     )]
@@ -73,8 +73,8 @@ pub struct LauncherSettings {
     /// `launcher.field_glyph_px`.
     #[settings(
         label = "Search glyph size",
-        help = "The size of the magnifier beside the query.",
-        section = "Launcher",
+        help = "The size of the magnifier icon.",
+        section = "Text",
         range = "12..=40",
         unit = "px",
         advanced
@@ -84,7 +84,7 @@ pub struct LauncherSettings {
     #[settings(
         label = "Result title size",
         help = "The size of a result's title.",
-        section = "Launcher",
+        section = "Text",
         range = "9..=24",
         unit = "px",
         advanced
@@ -94,7 +94,7 @@ pub struct LauncherSettings {
     #[settings(
         label = "Result detail size",
         help = "The size of a result's detail line.",
-        section = "Launcher",
+        section = "Text",
         range = "9..=20",
         unit = "px",
         advanced
@@ -103,16 +103,16 @@ pub struct LauncherSettings {
     /// `launcher.files_backend`.
     #[settings(
         label = "File search",
-        help = "Where the launcher finds documents: `auto` asks Tracker, else searches your home folder with fd; or name one; `off` searches no files.",
-        section = "Launcher",
+        help = "How the launcher finds documents; off skips files.",
+        section = "Search",
         advanced
     )]
     pub files_backend: FilesChoice,
     /// `launcher.files_budget_ms`.
     #[settings(
         label = "File search time limit",
-        help = "How long one file search may take before the launcher shows what it found so far.",
-        section = "Launcher",
+        help = "How long a search runs before showing what it found.",
+        section = "Search",
         range = "20..=2000",
         unit = "ms",
         advanced
@@ -121,16 +121,16 @@ pub struct LauncherSettings {
     /// `launcher.clipboard_history`.
     #[settings(
         label = "Clipboard history",
-        help = "Keep what you copy so the launcher can find it again. Kept in memory only and forgotten when sill stops; copies a password manager marks are never kept.",
-        section = "Launcher",
+        help = "Keeps copies in memory only; password copies are never kept.",
+        section = "Clipboard",
         advanced
     )]
     pub clipboard_history: HistoryMode,
     /// `launcher.clipboard_cap`.
     #[settings(
         label = "Clipboard history length",
-        help = "How many copied items the history keeps; the oldest goes first.",
-        section = "Launcher",
+        help = "How many copies it keeps; the oldest go first.",
+        section = "Clipboard",
         range = "1..=500",
         advanced
     )]
@@ -138,8 +138,8 @@ pub struct LauncherSettings {
     /// `launcher.clipboard_image_max_mb`.
     #[settings(
         label = "Largest copied image kept",
-        help = "Copied images larger than this are not kept; 0 keeps no images.",
-        section = "Launcher",
+        help = "Bigger images aren't kept; 0 keeps none.",
+        section = "Clipboard",
         range = "0..=64",
         unit = "MB",
         advanced
@@ -148,32 +148,32 @@ pub struct LauncherSettings {
     /// `launcher.emoji_skin_tone`.
     #[settings(
         label = "Emoji skin tone",
-        help = "The skin tone of emoji that have one.",
-        section = "Launcher",
+        help = "Used for emoji that have one.",
+        section = "Search",
         advanced
     )]
     pub emoji_skin_tone: SkinTone,
     /// `launcher.web_search`.
     #[settings(
         label = "Search the web",
-        help = "Offer a web search for what you type, as the launcher's last result.",
-        section = "Launcher",
+        help = "Offers a web search as the last result.",
+        section = "Search",
         advanced
     )]
     pub web_search: WebSearch,
     /// `launcher.web_engine_url`.
     #[settings(
         label = "Web search address",
-        help = "The search engine's address, with {query} where the words go. Only https and http addresses are opened.",
-        section = "Launcher",
+        help = "Use {query} where your words go; web addresses only.",
+        section = "Search",
         advanced
     )]
     pub web_engine_url: String,
     /// `launcher.currency`.
     #[settings(
         label = "Currency conversion",
-        help = "Convert currencies in the launcher's calculator with the European Central Bank's daily rates, fetched once a day; `off` fetches nothing.",
-        section = "Launcher",
+        help = "Converts currencies with daily rates; off fetches nothing.",
+        section = "Search",
         advanced
     )]
     pub currency: CurrencyPolicy,

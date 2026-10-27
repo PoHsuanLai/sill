@@ -25,14 +25,14 @@ pub enum ShotThumbnail {
 pub struct ScreenshotSettings {
     #[settings(
         label = "Show floating thumbnail",
-        help = "After a screenshot, a thumbnail at the bottom right: click to open it, drag it into a document, swipe it away.",
+        help = "Click it to open, drag it into a document, or swipe it away.",
         section = "Screenshots",
         advanced
     )]
     pub thumbnail: ShotThumbnail,
     #[settings(
         label = "Thumbnail stays for",
-        help = "How long the thumbnail stays unless the pointer is on it.",
+        help = "How long it stays unless the pointer is on it.",
         section = "Screenshots",
         range = "1000..=30000",
         unit = "ms",
@@ -42,15 +42,15 @@ pub struct ScreenshotSettings {
     /// `auto`, `off`, or `;`-separated folders (`sill_model::screenshots::parse_folders`).
     #[settings(
         label = "Screenshot folders",
-        help = "Where new screenshots are noticed: `auto` is the Pictures folder and its Screenshots folder, `off` notices none, or folders separated by `;`.",
+        help = "Auto uses your Pictures folders; off watches none; or list folders separated by ;.",
         section = "Screenshots",
         advanced
     )]
     pub folders: String,
     /// `auto`, `off`, or a command line, parsed at load (`sill_model::screenshots::parse_tool`).
     #[settings(
-        label = "Screenshot program",
-        help = "What `sill screenshot` runs: `auto` asks the desktop portal, `off` runs nothing, or a command line run by `/bin/sh -c` with the kind (`area`, `window`, `screen`) as $1 and the folder as $2.",
+        label = "Screenshot tool",
+        help = "Auto uses the system's; off runs nothing; or enter your own command.",
         section = "Screenshots",
         text,
         advanced

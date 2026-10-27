@@ -35,14 +35,14 @@ pub enum OsdPosition {
 pub struct OsdSettings {
     #[settings(
         label = "Show volume and brightness changes",
-        help = "An indicator with the new level when the volume or brightness keys are pressed.",
+        help = "Shows the new level when you press the keys.",
         section = "Indicator",
         advanced
     )]
     pub enabled: OsdEnabled,
     #[settings(
         label = "Indicator stays for",
-        help = "How long the indicator stays after the last change before it fades out.",
+        help = "How long it stays after the last change.",
         section = "Indicator",
         range = "300..=10000",
         unit = "ms",
@@ -51,14 +51,14 @@ pub struct OsdSettings {
     pub hold_ms: Ms,
     #[settings(
         label = "Indicator position",
-        help = "The edge of the display the indicator sits on, centred along it.",
+        help = "Which screen edge it sits on.",
         section = "Indicator",
         advanced
     )]
     pub position: OsdPosition,
     #[settings(
-        label = "Indicator distance from the edge",
-        help = "The gap between the indicator and the bar (top right) or the dock (bottom centre); also its distance from the right edge at the top. The compositor already keeps it clear of the space they reserve.",
+        label = "Distance from the edge",
+        help = "Space from the bar, Dock or right edge.",
         section = "Indicator",
         range = "0..=400",
         unit = "px",

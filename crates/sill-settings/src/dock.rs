@@ -17,23 +17,23 @@ pub use crate::dock_words::{
 #[settings(file = "sill/settings.toml", domain = "dock", page = Page::Dock)]
 pub struct DockSettings {
     #[settings(
-        label = "Magnification",
-        help = "Icons grow as the pointer nears them.",
-        section = "Magnification"
-    )]
-    pub magnification: Magnification,
-    #[settings(
         label = "Size",
-        help = "The size of a dock icon at rest.",
-        section = "Size",
+        help = "How big icons are at rest.",
+        section = "Dock",
         range = "32..=80",
         unit = "px"
     )]
     pub tile_size_px: Px,
     #[settings(
+        label = "Magnification",
+        help = "Icons grow under the pointer.",
+        section = "Dock"
+    )]
+    pub magnification: Magnification,
+    #[settings(
         label = "Magnified size",
-        help = "The size of the icon under the pointer.",
-        section = "Magnification",
+        help = "How big the icon under the pointer gets.",
+        section = "Dock",
         range = "32..=72",
         unit = "px",
         advanced
@@ -42,7 +42,7 @@ pub struct DockSettings {
     #[settings(
         label = "Zoom reach",
         help = "How far from the pointer icons still grow.",
-        section = "Magnification",
+        section = "Dock",
         range = "24..=256",
         unit = "px",
         advanced
@@ -50,22 +50,22 @@ pub struct DockSettings {
     pub influence_radius_px: Px,
     #[settings(
         label = "Icon gap",
-        help = "Space between dock icons.",
-        section = "Size",
+        help = "Space between icons.",
+        section = "Dock",
         range = "0..=16",
         unit = "px",
         advanced
     )]
     pub tile_gap_px: Px,
     #[settings(
-        label = "Automatically hide the dock",
-        help = "Hide the dock until the pointer reaches the screen's bottom edge.",
+        label = "Automatically hide the Dock",
+        help = "Shows the Dock when the pointer reaches the bottom.",
         section = "Hiding"
     )]
     pub autohide: AutoHide,
     #[settings(
         label = "Show delay",
-        help = "How long the pointer rests at the edge before the dock appears.",
+        help = "How long the pointer waits before the Dock appears.",
         section = "Hiding",
         range = "0..=1000",
         unit = "ms"
@@ -73,7 +73,7 @@ pub struct DockSettings {
     pub autohide_delay_ms: Ms,
     #[settings(
         label = "Slide duration",
-        help = "How long the dock takes to slide in or out.",
+        help = "How long the Dock takes to slide.",
         section = "Hiding",
         range = "0..=1500",
         unit = "ms"
@@ -81,7 +81,7 @@ pub struct DockSettings {
     pub autohide_slide_ms: Ms,
     #[settings(
         label = "Edge trigger",
-        help = "The strip at the screen's edge that reveals a hidden dock.",
+        help = "How thick the strip is that reveals a hidden Dock.",
         section = "Hiding",
         range = "1..=16",
         unit = "px",
@@ -90,26 +90,26 @@ pub struct DockSettings {
     pub autohide_trigger_strip_px: Px,
     #[settings(
         label = "Show indicators for open apps",
-        help = "A dot under each app that has a window.",
-        section = "Indicators"
+        help = "A dot under each app with a window.",
+        section = "Behaviour"
     )]
     pub indicators: Indicators,
     #[settings(
         label = "Clicking the active app",
-        help = "Cycle through its windows, or do nothing.",
-        section = "Clicking"
+        help = "Cycles through its windows, or does nothing.",
+        section = "Behaviour"
     )]
     pub click_active_app: ActiveClick,
     #[settings(
         label = "Show Trash",
-        help = "A Trash tile at the end of the dock.",
-        section = "Items"
+        help = "Adds a Trash tile at the end.",
+        section = "Behaviour"
     )]
     pub trash: TrashTile,
     #[settings(
-        label = "Pill radius",
-        help = "The corner radius of the dock's background.",
-        section = "Size",
+        label = "Corner radius",
+        help = "How round the Dock's background is.",
+        section = "Dock",
         range = "0..=48",
         unit = "px",
         advanced
@@ -117,8 +117,8 @@ pub struct DockSettings {
     pub pill_radius_px: Px,
     #[settings(
         label = "Edge margin",
-        help = "How close to the screen's sides the dock may come.",
-        section = "Size",
+        help = "How close the Dock gets to the screen's sides.",
+        section = "Dock",
         range = "0..=64",
         unit = "px",
         advanced
@@ -126,8 +126,8 @@ pub struct DockSettings {
     pub edge_clamp_px: Px,
     #[settings(
         label = "Indicator dot",
-        help = "The diameter of the open-app dot.",
-        section = "Indicators",
+        help = "How big the open-app dot is.",
+        section = "Behaviour",
         range = "2..=12",
         unit = "px",
         advanced
@@ -136,7 +136,7 @@ pub struct DockSettings {
     #[settings(
         label = "Separator height",
         help = "The height of the line before Trash.",
-        section = "Items",
+        section = "Behaviour",
         range = "8..=80",
         unit = "px",
         advanced
@@ -144,8 +144,8 @@ pub struct DockSettings {
     pub separator_height_px: Px,
     #[settings(
         label = "Grow time",
-        help = "How long icons take to grow when the pointer enters the dock.",
-        section = "Magnification",
+        help = "How long icons take to grow.",
+        section = "Dock",
         range = "0..=1000",
         unit = "ms",
         advanced
@@ -153,17 +153,17 @@ pub struct DockSettings {
     pub magnify_enter_ms: Ms,
     #[settings(
         label = "Shrink time",
-        help = "How long icons take to settle when the pointer leaves the dock.",
-        section = "Magnification",
+        help = "How long icons take to shrink back.",
+        section = "Dock",
         range = "0..=1000",
         unit = "ms",
         advanced
     )]
     pub magnify_leave_ms: Ms,
     #[settings(
-        label = "Label warm time",
-        help = "How long after leaving the dock the next label shows at once.",
-        section = "Labels",
+        label = "Quick labels",
+        help = "How long after leaving the Dock labels show at once.",
+        section = "Behaviour",
         range = "0..=2000",
         unit = "ms",
         advanced
@@ -171,8 +171,8 @@ pub struct DockSettings {
     pub hover_label_warm_ms: Ms,
     #[settings(
         label = "Hold for menu",
-        help = "How long a press must hold still to open an icon's menu.",
-        section = "Clicking",
+        help = "How long to press before an icon's menu opens.",
+        section = "Behaviour",
         range = "100..=2000",
         unit = "ms",
         advanced
@@ -180,8 +180,8 @@ pub struct DockSettings {
     pub hold_to_menu_ms: Ms,
     #[settings(
         label = "Hold tolerance",
-        help = "How far a held press may move and still open the menu.",
-        section = "Clicking",
+        help = "How far a press can move and still open the menu.",
+        section = "Behaviour",
         range = "1..=64",
         unit = "px",
         advanced
@@ -189,8 +189,8 @@ pub struct DockSettings {
     pub hold_to_menu_move_px: Px,
     #[settings(
         label = "Remove distance",
-        help = "How far an icon must be dragged out of the dock to remove it.",
-        section = "Items",
+        help = "How far to drag an icon out to remove it.",
+        section = "Behaviour",
         range = "16..=256",
         unit = "px",
         advanced
@@ -198,8 +198,8 @@ pub struct DockSettings {
     pub remove_threshold_px: Px,
     #[settings(
         label = "Spring-loading delay",
-        help = "How long a dragged file rests on an app before the app opens.",
-        section = "Items",
+        help = "How long a dragged file waits on an app before it opens.",
+        section = "Behaviour",
         range = "100..=2000",
         unit = "ms",
         advanced
@@ -207,23 +207,23 @@ pub struct DockSettings {
     pub spring_load_ms: Ms,
     #[settings(
         label = "Menu order",
-        help = "The Mac's order, or the windows first.",
-        section = "Clicking",
+        help = "The usual order, or open windows first.",
+        section = "Behaviour",
         advanced
     )]
     pub context_menu_order: DockMenuOrder,
     #[settings(
         label = "Modifier clicks",
         help = "Ctrl-click shows in Files, Alt-click switches and hides.",
-        section = "Clicking",
+        section = "Behaviour",
         advanced
     )]
     pub modifier_clicks: DockModifierClicks,
     /// `dock.pill_padding_px` (the macOS polish pass: 6 on every side of the tiles).
     #[settings(
         label = "Dock padding",
-        help = "The space between the icons and the dock's edge.",
-        section = "Size",
+        help = "Space between the icons and the Dock's edge.",
+        section = "Dock",
         range = "0..=24",
         unit = "px",
         advanced
@@ -232,8 +232,8 @@ pub struct DockSettings {
     /// `dock.running_dot_gap_px`.
     #[settings(
         label = "Indicator dot gap",
-        help = "From an icon's bottom edge to the centre of its open-app dot.",
-        section = "Indicators",
+        help = "Space from an icon's bottom to its dot.",
+        section = "Behaviour",
         range = "0..=12",
         unit = "px",
         advanced
@@ -242,8 +242,8 @@ pub struct DockSettings {
     /// `dock.floor`.
     #[settings(
         label = "Floor",
-        help = "A soft light band along the dock's floor, under the icons.",
-        section = "Size",
+        help = "A soft light band under the icons.",
+        section = "Dock",
         advanced
     )]
     pub floor: DockFloor,

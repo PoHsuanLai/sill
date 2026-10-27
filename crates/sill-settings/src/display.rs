@@ -25,38 +25,38 @@ pub enum NightWarmthMode {
 pub struct DisplaySettings {
     #[settings(
         label = "Brightness keys adjust",
-        help = "The display under the pointer (else the focused one), or every display at once.",
-        section = "Brightness",
+        help = "The display under the pointer, or every display.",
+        section = "Display",
         advanced
     )]
     pub brightness_keys_target: KeysTarget,
     #[settings(
         label = "Monitor speakers follow the volume",
-        help = "When sound plays through a monitor's HDMI or DisplayPort speakers and the monitor supports DDC/CI, volume changes also set the monitor's own volume and mute.",
-        section = "Sound",
+        help = "Volume changes also set the monitor's own volume when it supports that.",
+        section = "Display",
         advanced
     )]
     pub hardware_volume: HardwareVolume,
     #[settings(
         label = "Night warmth",
-        help = "Hardware: warm external monitors by lowering their own green and blue gains over DDC/CI. Their gains are put back when this is turned off.",
-        section = "Night warmth",
+        help = "Warms external monitors by lowering their blue and green; undone when off.",
+        section = "Display",
         advanced
     )]
     pub night_warmth: NightWarmthMode,
     #[settings(
         label = "Night warmth strength",
-        help = "0 leaves white at 6500 K; 100 warms it to about 2700 K.",
-        section = "Night warmth",
+        help = "0 leaves white alone; 100 warms it the most.",
+        section = "Display",
         range = "0..=100",
         unit = "%",
         advanced
     )]
     pub night_warmth_strength: Percent,
     #[settings(
-        label = "Font rendering for other apps",
-        help = "Auto: greyscale antialiasing, and hinting only below 150 ppi, written to ~/.config/fontconfig/conf.d/50-sill-rendering.conf unless a file of your own already sets them. Off removes sill's file.",
-        section = "Text",
+        label = "Text rendering in other apps",
+        help = "Auto sets smooth text for other apps, unless you've set your own.",
+        section = "Display",
         advanced
     )]
     pub font_rendering: FontRenderingMode,

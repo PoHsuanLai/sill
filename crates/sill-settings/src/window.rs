@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct WindowSettings {
     #[settings(
         label = "Drag distance before a window moves",
-        help = "How far a press on a titlebar must travel before the window starts to move.",
+        help = "How far to drag a titlebar before the window moves.",
         section = "Windows",
         range = "0..=32",
         unit = "px",

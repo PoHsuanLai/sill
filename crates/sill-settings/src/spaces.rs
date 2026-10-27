@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub struct SpacesSettings {
     #[settings(
         label = "Default grain",
-        help = "The grain of a Space that has no look of its own (none by default; every preset takes it).",
+        help = "Grain for Spaces that have no look of their own.",
         section = "Defaults",
         range = "0..=100",
         advanced

@@ -50,14 +50,14 @@ pub enum BannerPosition {
 pub struct NotificationsSettings {
     #[settings(
         label = "Do Not Disturb",
-        help = "No banners and no sounds, except critical ones.",
-        section = "Notifications"
+        help = "No banners or sounds, except critical ones.",
+        section = "Alerts"
     )]
     pub dnd: Dnd,
     #[settings(
         label = "Notification style",
-        help = "Banners leave by themselves; alerts stay until you act.",
-        section = "Notifications"
+        help = "Banners leave on their own; alerts stay until you act.",
+        section = "Alerts"
     )]
     pub banner_style: Presentation,
     #[settings(
@@ -80,7 +80,7 @@ pub struct NotificationsSettings {
     pub position_top_gap_px: Px,
     #[settings(
         label = "Banner width",
-        help = "The width of a banner.",
+        help = "How wide a banner is.",
         section = "Banners",
         range = "200..=600",
         unit = "px",
@@ -107,7 +107,7 @@ pub struct NotificationsSettings {
     pub banner_padding_px: Px,
     #[settings(
         label = "Icon size",
-        help = "The size of an app icon in a banner.",
+        help = "The size of the app icon in a banner.",
         section = "Banners",
         range = "16..=64",
         unit = "px",
@@ -125,7 +125,7 @@ pub struct NotificationsSettings {
     pub banner_hold_ms: Ms,
     #[settings(
         label = "Time after hover",
-        help = "The least time a banner stays after the pointer leaves it.",
+        help = "The least time a banner stays after the pointer leaves.",
         section = "Banners",
         range = "0..=10000",
         unit = "ms",
@@ -143,7 +143,7 @@ pub struct NotificationsSettings {
     pub close_button_px: Px,
     #[settings(
         label = "Swipe distance",
-        help = "How far a banner must be swiped to dismiss it.",
+        help = "How far to swipe to dismiss a banner.",
         section = "Swiping",
         range = "16..=400",
         unit = "px",
@@ -152,7 +152,7 @@ pub struct NotificationsSettings {
     pub swipe_dismiss_px: Px,
     #[settings(
         label = "Swipe speed",
-        help = "A swipe faster than this dismisses at any distance.",
+        help = "A faster swipe dismisses from any distance.",
         section = "Swiping",
         range = "0..=5000",
         unit = "px/s",
@@ -161,7 +161,7 @@ pub struct NotificationsSettings {
     pub swipe_dismiss_velocity_px_s: Scalar,
     #[settings(
         label = "Leftward damping",
-        help = "How much a leftward drag moves the banner (stored per-mille: 250 is 0.25).",
+        help = "How far a leftward drag moves it (250 is 0.25).",
         section = "Swiping",
         range = "0..=1000",
         advanced
@@ -196,44 +196,44 @@ pub struct NotificationsSettings {
     /// `notifications.banner_material` (§3.1 row, owned by sill).
     #[settings(
         label = "Banner material",
-        help = "The banner's toast material, or ink on paper.",
+        help = "The banner's look: toast, or ink on paper.",
         section = "Banners",
         advanced
     )]
     pub banner_material: BannerMaterial,
     #[settings(
-        label = "Serve notifications",
-        help = "Show other apps' notifications. Off leaves them to another notifications app.",
-        section = "Notifications",
+        label = "Show other apps' notifications",
+        help = "Off leaves them to another app.",
+        section = "Alerts",
         advanced
     )]
     pub server: ServerMode,
     #[settings(
         label = "Swiping a banner away",
-        help = "Keep the notification in the notification center, as macOS does, or dismiss it entirely.",
-        section = "Notifications",
+        help = "Keeps it in the notification center, or dismisses it.",
+        section = "Swiping",
         advanced
     )]
     pub swipe: Swipe,
     #[settings(
         label = "Banner position",
-        help = "The corner of the screen banners appear in.",
+        help = "Which screen corner banners appear in.",
         section = "Banners",
         advanced
     )]
     pub banner_position: BannerPosition,
     #[settings(
         label = "Notifications kept",
-        help = "The most notifications the notification center keeps; the oldest go first.",
-        section = "Notification center",
+        help = "The most the notification center keeps; the oldest go first.",
+        section = "History",
         range = "0..=1000",
         advanced
     )]
     pub history_cap: Count,
     #[settings(
-        label = "Notification center width",
-        help = "The width of the notification center's column.",
-        section = "Notification center",
+        label = "Center width",
+        help = "How wide the notification center is.",
+        section = "History",
         range = "280..=600",
         unit = "px",
         advanced

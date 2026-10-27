@@ -18,8 +18,8 @@ pub use sill_model::voice::{HoldToTalk, VoiceConsent};
 pub struct VoiceSettings {
     #[settings(
         label = "Hold ⌘ to talk",
-        help = "`hold_command` listens while the command key is held and asks the assistant what it heard; `off` never listens.",
-        section = "Voice"
+        help = "Listens while ⌘ is held and asks the assistant what it heard.",
+        section = "Opening"
     )]
     pub hold_to_talk: HoldToTalk,
     /// The first-use sheet's answer: written by the sheet, never shown as a control.

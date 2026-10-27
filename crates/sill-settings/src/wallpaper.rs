@@ -15,8 +15,8 @@ pub struct WallpaperSettings {
     /// plain paper colour.
     #[settings(
         label = "Picture",
-        help = "The picture on the desktop. Empty shows the plain desktop colour.",
-        section = "Wallpaper",
+        help = "Empty shows the plain desktop colour.",
+        section = "Desktop",
         control = "picture"
     )]
     pub picture: String,

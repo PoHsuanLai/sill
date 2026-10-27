@@ -15,8 +15,8 @@ use sill_model::idle::IdleLock;
 pub struct IdleSettings {
     #[settings(
         label = "Turn the display off on power after",
-        help = "Minutes without input before the displays go off while on AC power; 0 never.",
-        section = "Idle",
+        help = "Minutes without input; 0 means never.",
+        section = "Display & sleep",
         range = "0..=240",
         unit = "min",
         advanced
@@ -24,8 +24,8 @@ pub struct IdleSettings {
     pub screen_off_ac_min: Mins,
     #[settings(
         label = "Turn the display off on battery after",
-        help = "Minutes without input before the displays go off on battery; 0 never.",
-        section = "Idle",
+        help = "Minutes without input; 0 means never.",
+        section = "Display & sleep",
         range = "0..=240",
         unit = "min",
         advanced
@@ -33,8 +33,8 @@ pub struct IdleSettings {
     pub screen_off_battery_min: Mins,
     #[settings(
         label = "Sleep on power after",
-        help = "Minutes without input before the computer sleeps while on AC power; 0 never.",
-        section = "Idle",
+        help = "Minutes without input; 0 means never.",
+        section = "Display & sleep",
         range = "0..=480",
         unit = "min",
         advanced
@@ -42,8 +42,8 @@ pub struct IdleSettings {
     pub suspend_ac_min: Mins,
     #[settings(
         label = "Sleep on battery after",
-        help = "Minutes without input before the computer sleeps on battery; 0 never.",
-        section = "Idle",
+        help = "Minutes without input; 0 means never.",
+        section = "Display & sleep",
         range = "0..=480",
         unit = "min",
         advanced
@@ -51,8 +51,8 @@ pub struct IdleSettings {
     pub suspend_battery_min: Mins,
     #[settings(
         label = "Dim before the display turns off",
-        help = "Seconds the displays spend dimmed before they turn off, a warning any input cancels; 0 turns them straight off.",
-        section = "Idle",
+        help = "Seconds of dimming as a warning; 0 skips it.",
+        section = "Display & sleep",
         range = "0..=60",
         unit = "s",
         advanced
@@ -60,8 +60,8 @@ pub struct IdleSettings {
     pub dim_s: Secs,
     #[settings(
         label = "Dimmed brightness",
-        help = "How bright the displays stay while dimmed, as a share of their brightness.",
-        section = "Idle",
+        help = "How bright the display stays while dimmed.",
+        section = "Display & sleep",
         range = "10..=90",
         unit = "%",
         advanced
@@ -69,15 +69,15 @@ pub struct IdleSettings {
     pub dim_level_pct: Percent,
     #[settings(
         label = "Lock when the display turns off",
-        help = "`screen_off` locks as the displays go off for idleness (`session.lock_grace_s` still lets a quick wake in); `never` does not (a sleep still locks).",
-        section = "Idle",
+        help = "Locks when idle turns the display off; sleep always locks.",
+        section = "Display & sleep",
         advanced
     )]
     pub lock: IdleLock,
     #[settings(
         label = "Turn the display off on the lock screen after",
-        help = "Seconds without input on the lock screen before the displays go off again; 0 uses the normal screen-off time.",
-        section = "Idle",
+        help = "Seconds without input; 0 uses the normal time.",
+        section = "Display & sleep",
         range = "0..=600",
         unit = "s",
         advanced

@@ -86,14 +86,14 @@ pub struct ScrollSettings {
     pub momentum: Momentum,
     #[settings(
         label = "Momentum model",
-        help = "Which deceleration curve a flick follows.",
+        help = "Which slowdown curve a flick follows.",
         section = "Momentum",
         advanced
     )]
     pub momentum_model: MomentumModel,
     #[settings(
         label = "Drag constant",
-        help = "Mac Mouse Fix's a.",
+        help = "The slowdown curve's first setting.",
         section = "Momentum",
         range = "0..=100",
         advanced
@@ -101,7 +101,7 @@ pub struct ScrollSettings {
     pub momentum_a: Scalar,
     #[settings(
         label = "Drag exponent",
-        help = "Mac Mouse Fix's b.",
+        help = "The slowdown curve's second setting.",
         section = "Momentum",
         range = "0..=2",
         advanced
@@ -118,7 +118,7 @@ pub struct ScrollSettings {
     pub momentum_stop_px_s: Scalar,
     #[settings(
         label = "Start speed",
-        help = "A flick must exceed this speed to glide.",
+        help = "A flick must be faster than this to glide.",
         section = "Momentum",
         range = "0..=2000",
         unit = "px/s",
@@ -136,7 +136,7 @@ pub struct ScrollSettings {
     pub momentum_cap_px_s: Scalar,
     #[settings(
         label = "Velocity window",
-        help = "How much of the gesture's end the release speed is measured over.",
+        help = "How much of a gesture's end sets the release speed.",
         section = "Momentum",
         range = "10..=500",
         unit = "ms",
@@ -145,7 +145,7 @@ pub struct ScrollSettings {
     pub velocity_window_ms: Ms,
     #[settings(
         label = "Held-still time",
-        help = "Fingers still for this long before lifting mean no flick.",
+        help = "Pausing this long before lifting means no flick.",
         section = "Momentum",
         range = "0..=500",
         unit = "ms",
@@ -161,7 +161,7 @@ pub struct ScrollSettings {
     pub rubber_band: RubberBand,
     #[settings(
         label = "Stretch constant",
-        help = "The bounded model's c (stored per-mille: 550 is 0.55).",
+        help = "Stretch setting c (550 is 0.55).",
         section = "Rubber band",
         range = "0..=1000",
         advanced
@@ -169,7 +169,7 @@ pub struct ScrollSettings {
     pub rubber_band_c: Fraction,
     #[settings(
         label = "Linear divisor",
-        help = "The linear model's divisor.",
+        help = "The divisor for the linear style.",
         section = "Rubber band",
         range = "1..=100",
         advanced
@@ -177,7 +177,7 @@ pub struct ScrollSettings {
     pub rubber_band_linear_divisor: Scalar,
     #[settings(
         label = "Stretch threshold",
-        help = "Overscroll smaller than this does not stretch.",
+        help = "Overscroll smaller than this doesn't stretch.",
         section = "Rubber band",
         range = "0..=100",
         unit = "px",
@@ -194,7 +194,7 @@ pub struct ScrollSettings {
     pub rubber_band_snap_rate: Scalar,
     #[settings(
         label = "Snap-back gain",
-        help = "How much of the release speed carries into the snap-back.",
+        help = "How much release speed carries into the snap-back.",
         section = "Rubber band",
         range = "0..=1",
         advanced
@@ -203,7 +203,7 @@ pub struct ScrollSettings {
     #[settings(
         label = "Wheel step",
         help = "How far one wheel notch scrolls.",
-        section = "Wheel",
+        section = "Scrolling",
         range = "20..=200",
         unit = "px",
         advanced
@@ -211,8 +211,8 @@ pub struct ScrollSettings {
     pub wheel_detent_px: Px,
     #[settings(
         label = "Wheel burst window",
-        help = "Notches closer together than this keep one smooth target.",
-        section = "Wheel",
+        help = "Notches closer than this scroll as one.",
+        section = "Scrolling",
         range = "0..=1000",
         unit = "ms",
         advanced
@@ -220,7 +220,7 @@ pub struct ScrollSettings {
     pub wheel_burst_window_ms: Ms,
     #[settings(
         label = "Momentum boost",
-        help = "A same-direction flick faster than this during momentum adds to it.",
+        help = "A faster flick the same way adds to momentum.",
         section = "Momentum",
         range = "0..=5000",
         unit = "px/s",
@@ -229,7 +229,7 @@ pub struct ScrollSettings {
     pub momentum_boost_threshold_px_s: Scalar,
     #[settings(
         label = "Double-scroll grace",
-        help = "How long after a gesture ends a second source is ignored.",
+        help = "How long after a gesture a second source is ignored.",
         section = "Scrolling",
         range = "0..=1000",
         unit = "ms",

@@ -36,28 +36,28 @@ pub struct CalendarSettings {
     /// `sill_model::events::parse_sources`).
     #[settings(
         label = "Calendars",
-        help = "`auto` reads `~/.calendars` (vdirsyncer and khal), `~/.local/share/sill/calendars` and the calendars porter mirrors into `~/.local/share/porter/vdir`; `off` reads none; or `.ics` files and folders separated by `;`.",
+        help = "Auto finds your calendars; off uses none; or list .ics files and folders, separated by ;.",
         section = "Calendar",
         advanced
     )]
     pub sources: String,
     #[settings(
         label = "First day of the week",
-        help = "The first column of the month.",
+        help = "Which day starts each week.",
         section = "Calendar",
         advanced
     )]
     pub first_weekday: FirstWeekday,
     #[settings(
         label = "Week numbers",
-        help = "A column of ISO week numbers beside the month.",
+        help = "Shows week numbers beside the month.",
         section = "Calendar",
         advanced
     )]
     pub week_numbers: WeekNumbers,
     #[settings(
         label = "Up Next looks ahead",
-        help = "How many days ahead the Up Next widget looks for events.",
+        help = "How many days ahead Up Next looks.",
         section = "Calendar",
         range = "1..=31",
         unit = "days",
@@ -66,7 +66,7 @@ pub struct CalendarSettings {
     pub up_next_days: Count,
     #[settings(
         label = "Up Next shows at most",
-        help = "How many events the Up Next widget lists.",
+        help = "How many events Up Next lists.",
         section = "Calendar",
         range = "1..=10",
         advanced

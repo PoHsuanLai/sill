@@ -25,16 +25,16 @@ pub enum PowerMenuDefault {
 #[settings(file = "sill/settings.toml", domain = "power_menu", page = Page::Appearance)]
 pub struct PowerMenuSettings {
     #[settings(
-        label = "Focused button",
-        help = "Which power menu button Return presses when the menu opens.",
-        section = "Power menu",
+        label = "Power menu button",
+        help = "Which button Return presses when it opens.",
+        section = "Menus",
         advanced
     )]
     pub default_action: PowerMenuDefault,
     #[settings(
-        label = "Material",
-        help = "The power menu panel's material.",
-        section = "Power menu",
+        label = "Power menu material",
+        help = "The panel's look.",
+        section = "Menus",
         advanced
     )]
     pub material: PanelMaterial,

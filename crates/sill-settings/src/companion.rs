@@ -54,29 +54,29 @@ pub enum NotifyWhen {
 pub struct CompanionSettings {
     #[settings(
         label = "Press ⌘ twice to ask",
-        help = "`double_tap_command` opens the assistant when the command key is pressed twice; `off` leaves the key alone.",
-        section = "Assistant"
+        help = "Opens the assistant when you press ⌘ twice.",
+        section = "Opening"
     )]
     pub summon: SummonKey,
     #[settings(
         label = "In a text field",
-        help = "Whether a summon in a text field makes the field the prompt (`prompt`) or opens the launcher (`launcher`).",
-        section = "Assistant"
+        help = "Makes the field the prompt, or opens the launcher.",
+        section = "Opening"
     )]
     pub in_field: InField,
     #[settings(
         label = "Double-tap speed",
-        help = "How long the second press of the command key may follow the first.",
-        section = "Assistant",
+        help = "How quickly the second press must follow.",
+        section = "Opening",
         range = "150..=600",
         unit = "ms",
         advanced
     )]
     pub double_tap_ms: Ms,
     #[settings(
-        label = "Time an app has to take a summon",
-        help = "How long the focused app has to take a summon into its own prompt before the launcher opens instead.",
-        section = "Assistant",
+        label = "App response time",
+        help = "How long the app gets to take the request before the launcher opens.",
+        section = "Opening",
         range = "40..=500",
         unit = "ms",
         advanced
@@ -84,14 +84,14 @@ pub struct CompanionSettings {
     pub app_wait_ms: Ms,
     #[settings(
         label = "Notify when it needs you",
-        help = "`needs_you` posts a notification when a task waits for you; `never` does not.",
-        section = "Assistant"
+        help = "Posts a notification when a task is waiting for you.",
+        section = "Alerts"
     )]
     pub notify: NotifyWhen,
     #[settings(
-        label = "Confirmation buttons wait",
-        help = "How long the buttons of a question wait before they take a press. Never less than half a second: the compositor refuses an answer that comes sooner.",
-        section = "Confirmations",
+        label = "Confirmation delay",
+        help = "How long buttons wait before accepting a press; at least half a second.",
+        section = "Alerts",
         range = "500..=1500",
         unit = "ms",
         advanced

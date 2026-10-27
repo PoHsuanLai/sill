@@ -70,7 +70,7 @@ pub struct ScrollbarSettings {
     pub thumb_min_length_px: Px,
     #[settings(
         label = "Hide delay",
-        help = "How long after scrolling stops the thumb starts to fade.",
+        help = "How long after scrolling stops the thumb fades.",
         section = "Scroll bars",
         range = "0..=5000",
         unit = "ms",
@@ -88,7 +88,7 @@ pub struct ScrollbarSettings {
     pub fade_duration_ms: Ms,
     #[settings(
         label = "Expand zone",
-        help = "How near the track edge the pointer widens it.",
+        help = "How near the pointer must be to widen the track.",
         section = "Scroll bars",
         range = "0..=64",
         unit = "px",
@@ -115,7 +115,7 @@ pub struct ScrollbarSettings {
     pub legacy_track_width_px: Px,
     #[settings(
         label = "Corner clearance",
-        help = "How short the vertical track stops when a horizontal one shows.",
+        help = "How far the vertical track stops short of a horizontal one.",
         section = "Scroll bars",
         range = "0..=32",
         unit = "px",
@@ -124,7 +124,7 @@ pub struct ScrollbarSettings {
     pub other_axis_offset_px: Px,
     #[settings(
         label = "Clicking the track",
-        help = "Page toward the click, or jump to it.",
+        help = "Pages toward the click, or jumps to it.",
         section = "Scroll bars",
         advanced
     )]

@@ -46,15 +46,15 @@ pub struct BarSettings {
     /// `bar.autohide`.
     #[settings(
         label = "Automatically hide and show the menu bar",
-        help = "Hide the menu bar until the pointer reaches the top edge of the screen.",
-        section = "Bar"
+        help = "Shows the menu bar when the pointer reaches the top.",
+        section = "Menu bar"
     )]
     pub autohide: MenuBarHiding,
     /// `bar.height_px` (settled 24, design/29 §13 decision 2; quire's `SHELL_SCALE.bar`).
     #[settings(
         label = "Bar height",
-        help = "The top bar's height; windows are placed below it.",
-        section = "Bar",
+        help = "How tall the menu bar is.",
+        section = "Menu bar",
         range = "20..=64",
         unit = "px",
         advanced
@@ -63,8 +63,8 @@ pub struct BarSettings {
     /// `bar.title_padding_px`.
     #[settings(
         label = "Title padding",
-        help = "Horizontal padding inside a bar title.",
-        section = "Bar",
+        help = "Space around each menu title.",
+        section = "Menu bar",
         range = "0..=32",
         unit = "px",
         advanced
@@ -73,8 +73,8 @@ pub struct BarSettings {
     /// `bar.open_title_pill_height_px`.
     #[settings(
         label = "Open title highlight",
-        help = "The height of the pill behind a title whose menu is open.",
-        section = "Bar",
+        help = "How tall the highlight is behind an open menu.",
+        section = "Menu bar",
         range = "16..=48",
         unit = "px",
         advanced
@@ -83,8 +83,8 @@ pub struct BarSettings {
     /// `bar.status_icon_box_px`.
     #[settings(
         label = "Status item box",
-        help = "The box a status item's glyph sits in.",
-        section = "Bar",
+        help = "The box each status icon sits in.",
+        section = "Menu bar",
         range = "16..=32",
         unit = "px",
         advanced
@@ -93,8 +93,8 @@ pub struct BarSettings {
     /// `bar.status_glyph_px`.
     #[settings(
         label = "Status glyph",
-        help = "The size of a status item's glyph.",
-        section = "Bar",
+        help = "How big status icons are.",
+        section = "Menu bar",
         range = "12..=32",
         unit = "px",
         advanced
@@ -104,7 +104,7 @@ pub struct BarSettings {
     #[settings(
         label = "Status gap",
         help = "Space between status items.",
-        section = "Bar",
+        section = "Menu bar",
         range = "0..=16",
         unit = "px",
         advanced
@@ -113,16 +113,16 @@ pub struct BarSettings {
     /// `bar.glyph_size_policy`.
     #[settings(
         label = "Status glyph size",
-        help = "A 16 px glyph in its box, or a glyph that fills the 22 px box.",
-        section = "Bar",
+        help = "A small glyph in its box, or one that fills the box.",
+        section = "Menu bar",
         advanced
     )]
     pub glyph_size_policy: BarGlyphSize,
     /// `bar.item_font_px` (the macOS polish pass: menu bar text 13).
     #[settings(
         label = "Item text size",
-        help = "The size of a bar title's and the clock's text.",
-        section = "Bar",
+        help = "Text size of menu titles and the clock.",
+        section = "Menu bar",
         range = "9..=24",
         unit = "px",
         advanced
@@ -131,8 +131,8 @@ pub struct BarSettings {
     /// `bar.item_font_weight`.
     #[settings(
         label = "Item text weight",
-        help = "The weight of a bar title's and the clock's text; the app name is always bold.",
-        section = "Bar",
+        help = "Weight of titles and the clock; app names stay bold.",
+        section = "Menu bar",
         range = "100..=900",
         advanced
     )]
@@ -140,8 +140,8 @@ pub struct BarSettings {
     /// `bar.item_radius_px`.
     #[settings(
         label = "Item highlight radius",
-        help = "The corner radius of the highlight behind a bar item.",
-        section = "Bar",
+        help = "How round the highlight behind an item is.",
+        section = "Menu bar",
         range = "0..=12",
         unit = "px",
         advanced
@@ -151,8 +151,8 @@ pub struct BarSettings {
     /// battery, the bar's battery fill turns `--battery-low`.
     #[settings(
         label = "Low battery",
-        help = "At or under this charge the battery glyph turns red.",
-        section = "Bar",
+        help = "The battery icon turns red at this charge or lower.",
+        section = "Menu bar",
         range = "5..=50",
         unit = "%",
         advanced

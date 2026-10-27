@@ -39,8 +39,8 @@ pub struct RejectedRow {
 pub struct KeyboardSettings {
     #[settings(
         label = "Per-app profiles",
-        help = "One row per app: the desktop-entry id and the keycap profile its windows use. Beats the profile the app declares and its category; a name keycap does not define uses the default profile.",
-        section = "Profiles",
+        help = "Gives an app its own keyboard profile, over the app's choice. Unknown names use the default.",
+        section = "Apps",
         advanced
     )]
     pub overrides: Vec<KeyboardOverride>,
