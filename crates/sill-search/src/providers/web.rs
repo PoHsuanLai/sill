@@ -1,5 +1,5 @@
 //! "Search the web for …": one row, last, for any typed text while `launcher.web_search` is on,
-//! opening `launcher.web_engine_url` with `{query}` replaced by the percent-encoded text.
+//! opening the search engine's address with `{query}` replaced by the percent-encoded text.
 //! Suggestions from the engine are later and off.
 //!
 //! The row's id is fixed (`web:search`), never the query, so frecency counts the fallback's

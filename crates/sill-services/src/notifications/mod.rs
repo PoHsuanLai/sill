@@ -3,7 +3,7 @@
 //! `$XDG_STATE_HOME/sill/notifications.json`.
 //!
 //! **It never fights another daemon.** The service asks for the name only while the daemon's
-//! policy says `notifications.server = "own"` (the setting's default), with `DoNotQueue` and
+//! policy says `Own` (the daemon always does; no setting), with `DoNotQueue` and
 //! never `ReplaceExisting`: when mako or plasmashell holds it, sill stays passive, reports the
 //! holder (`NameHolder::Other`), and asks again only when the name falls free. Once sill holds
 //! the name it is not offered for replacement, so no other program can take it and read what apps
@@ -16,7 +16,7 @@
 //! replace or close only what it posted. The shell's own notices have no caller and are out of
 //! every app's reach.
 //!
-//! **Where the time goes.** The banner's hold (`notifications.banner_hold_ms`, paused while
+//! **Where the time goes.** The banner's hold (a constant, paused while
 //! hovered) is counted by the banner surface's machine, which says so with
 //! [`NotificationsCommand::BannerTimedOut`]; the sender's `expire_timeout` only decides whether
 //! a banner persists (0). A banner leaving by itself keeps its notification in the history.

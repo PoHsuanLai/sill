@@ -10,7 +10,6 @@ use shell_host::{OutputId, use_watch};
 use sill_model::session::{Session, SessionAction, SessionCommand};
 use sill_services::Control;
 use sill_services::env::ActionReach;
-use sill_settings::PowerMenuDefault;
 use sill_ui_kit::hooks::use_follow_visibility as follow_visibility;
 use sill_ui_kit::services::Services;
 
@@ -32,8 +31,8 @@ pub(super) struct MenuCtx {
     pub menu: Signal<Option<MenuSession>>,
 }
 
-/// The menu on `output`, opening focused per `default`.
-pub(super) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
+/// The menu on `output`, opening focused on Shut Down unless an opening names another action.
+pub(super) fn use_menu(output: OutputId) -> MenuCtx {
     let link = use_context::<PowerMenuLink>();
     let services = use_context::<Services>();
     let control = use_hook(|| {
@@ -58,8 +57,8 @@ pub(super) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
             .as_ref()
             .map_or(Pointer::PassesThrough, |menu| menu.phase.pointer())
     });
-    use_openings(ctx.clone(), shown, output, default);
-    use_offers_arriving(ctx.clone(), default);
+    use_openings(ctx.clone(), shown, output);
+    use_offers_arriving(ctx.clone());
     ctx
 }
 
@@ -74,16 +73,7 @@ fn reach_word(reach: ActionReach) -> &'static str {
 
 /// Start an opening's session on every opening on this output, show a leaving sheet again when
 /// it is opened again, and drop the session once hidden.
-fn use_openings(
-    ctx: MenuCtx,
-    shown: ReadSignal<Reveal<PowerMenuOpening>>,
-    output: OutputId,
-    default: PowerMenuDefault,
-) {
-    let mut wanted = use_hook(|| CopyValue::new(default));
-    if *wanted.peek() != default {
-        wanted.set(default);
-    }
+fn use_openings(ctx: MenuCtx, shown: ReadSignal<Reveal<PowerMenuOpening>>, output: OutputId) {
     let mut menu = ctx.menu;
     use_effect(move || {
         let opening = shown
@@ -94,7 +84,7 @@ fn use_openings(
         let now = *menu.peek();
         match (follow(opening.as_ref(), now), opening) {
             (Follow::Start, Some(opening)) => {
-                let default = initial(opening.preselect, *wanted.peek(), &ctx.offers.peek());
+                let default = initial(opening.preselect, &ctx.offers.peek());
                 menu.set(Some(MenuSession::opened(opening.serial, default)));
                 let _gone_is_inert = ctx.control.send(SessionCommand::Refresh);
                 eprintln!("power_menu.opened default={}", action_label(default));
@@ -115,7 +105,7 @@ fn use_openings(
 /// fresh session can come late): when the offers change under an open menu, say so and, if the
 /// action it is about is not offered, move it to one that is, so the buttons never wait on a
 /// reopen.
-fn use_offers_arriving(ctx: MenuCtx, default: PowerMenuDefault) {
+fn use_offers_arriving(ctx: MenuCtx) {
     let mut menu = ctx.menu;
     use_effect(move || {
         let offers = *ctx.offers.read();
@@ -123,7 +113,7 @@ fn use_offers_arriving(ctx: MenuCtx, default: PowerMenuDefault) {
             return;
         };
         eprintln!("power_menu.offers={}", offered_labels(&offers));
-        let about = initial(Preselect::Action(now.default), default, &offers);
+        let about = initial(Preselect::Action(now.default), &offers);
         if about != now.default && now.phase == SheetExit::Open {
             menu.set(Some(MenuSession {
                 default: about,

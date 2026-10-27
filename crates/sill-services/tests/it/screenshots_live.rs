@@ -1,15 +1,13 @@
 //! The screenshots service against a real inotify watch of a temp folder (never Pictures, never
-//! a real screenshot tool): a file written under a temp name and renamed to `Screenshot_…png` is
-//! `current` within 500 ms with a preview; a `.part` file is nothing; a stand-in tool that copies
-//! the fixture in is `Take`, then the shot. The previews land in a scratch cache inside the temp
-//! folder (never the person's own), removed with it.
+//! the portal): a file written under a temp name and renamed to `Screenshot_…png` is
+//! `current` within 500 ms with a preview; a `.part` file is nothing. The previews land in a
+//! scratch cache inside the temp folder (never the person's own), removed with it.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use sill_model::screenshots::{
-    ShotCommand, ShotFolders, ShotKind, ShotLeave, ShotPolicy, ShotPreview, ShotTool, Shots,
-    Taking, Watching,
+    ShotCommand, ShotFolders, ShotLeave, ShotPolicy, ShotPreview, Shots, Watching,
 };
 use sill_services::env::{Dirs, Env, RecordedChildren};
 use sill_services::screenshots::ScreenshotsService;
@@ -66,7 +64,6 @@ async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not()
     let (mut rx, control) = (shots.state, shots.control);
     let policy = ShotPolicy {
         folders: ShotFolders::At(vec![dir.clone()]),
-        tool: ShotTool::Off,
     };
     control.send(ShotCommand::Configure(policy)).expect("sent"); // test-only
     let watching = until(&mut rx, Duration::from_secs(2), |s| {
@@ -98,45 +95,6 @@ async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not()
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_stand_in_tool_takes_a_screenshot_that_the_watch_sees() {
-    let dir = folder("take");
-    let dirs = Dirs::under(&dir.join("dirs"));
-    let env = Env {
-        dirs: dirs.clone(),
-        ..Env::isolated(&dir)
-    };
-    let shots = spawn::<ScreenshotsService>(&tokio::runtime::Handle::current(), &env, ());
-    let (mut rx, control) = (shots.state, shots.control);
-    let command = format!("sleep 0.2; cp '{FIXTURE}' \"$2/Screenshot_$1.png\"");
-    let policy = ShotPolicy {
-        folders: ShotFolders::At(vec![dir.clone()]),
-        tool: ShotTool::Command(command),
-    };
-    control.send(ShotCommand::Configure(policy)).expect("sent"); // test-only
-    let _ = until(&mut rx, Duration::from_secs(2), |s| {
-        matches!(s.watching, Watching::Folders(_))
-    })
-    .await;
-    control
-        .send(ShotCommand::Take(ShotKind::Screen))
-        .expect("sent"); // test-only
-    let running = until(&mut rx, Duration::from_secs(1), |s| {
-        s.taking == Taking::Running(ShotKind::Screen)
-    })
-    .await;
-    assert!(running.is_some(), "the tool runs");
-    let target = dir.join("Screenshot_screen.png");
-    let seen = until(&mut rx, Duration::from_secs(3), current_is(&target)).await;
-    assert!(seen.is_some(), "the tool's file is current");
-    let idle = until(&mut rx, Duration::from_secs(2), |s| {
-        s.taking == Taking::Idle
-    })
-    .await;
-    assert!(idle.is_some(), "the tool's exit ends the take");
-    let _ = std::fs::remove_dir_all(&dir);
-}
-
-#[tokio::test(flavor = "multi_thread")]
 async fn opening_and_trashing_a_shot_are_recorded_never_run() {
     let dir = folder("leave");
     let children = RecordedChildren::shared();
@@ -149,7 +107,6 @@ async fn opening_and_trashing_a_shot_are_recorded_never_run() {
     let (mut rx, control) = (shots.state, shots.control);
     let policy = ShotPolicy {
         folders: ShotFolders::At(vec![dir.clone()]),
-        tool: ShotTool::Off,
     };
     control.send(ShotCommand::Configure(policy)).expect("sent"); // test-only
     let _ = until(&mut rx, Duration::from_secs(2), |s| {

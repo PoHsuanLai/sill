@@ -15,7 +15,7 @@ use super::ids::{AppKey, NotificationId};
 pub struct Notifications {
     pub server: ServerStatus,
     /// Every notification presenting a banner, newest first. The banner surface shows the first
-    /// `notifications.stack_max` cards (grouped by app) and the rest wait their turn.
+    /// The most cards (grouped by app) and the rest wait their turn.
     pub banners: Vec<LiveBanner>,
 }
 
@@ -37,7 +37,7 @@ pub struct LiveBanner {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BannerLife {
-    /// A banner: `notifications.banner_hold_ms` after it has entered, paused while hovered.
+    /// A banner: its hold after it has entered, paused while hovered.
     #[default]
     Expires,
     /// An alert: urgency critical, `resident`, `expire_timeout == 0`, or the Alert style. Stays
@@ -84,7 +84,7 @@ pub struct AppGroup {
     pub notes: Vec<Notification>,
 }
 
-/// Whether the service tries to own the bus name (`notifications.server`).
+/// Whether the service tries to own the bus name (the daemon always sends `Own`; no setting).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]

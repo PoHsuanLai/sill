@@ -28,7 +28,7 @@ pub fn MenuPopup<Model: MenuModel>(
     let root = RootStyle::popup(surface, use_styles());
     let room = use_context::<PopupRoom>();
     rsx! {
-        PopupFrame { room, style: look.metrics.style_attr(),
+        PopupFrame { room,
             Ds {
                 sheet: Some(sill_shell_kit::stylesheet()),
                 extent: RootExtent::Popup,

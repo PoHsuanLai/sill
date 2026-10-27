@@ -31,7 +31,6 @@ pub mod services;
 pub mod settings;
 pub mod sheet_stage;
 pub mod shell_motion;
-pub mod shell_style;
 pub mod status;
 pub mod surface;
 pub mod widgets;

@@ -1,14 +1,12 @@
-//! Which index `launcher.files_backend` picks on this machine. [`pick`] is pure; [`detect`]
-//! only asks whether each backend exists and runs (a bus name's owner, a program on `PATH`),
-//! never what it holds.
+//! Which index the files provider asks on this machine. [`pick`] is pure; [`detect`] only asks
+//! whether each backend exists and runs (a bus name's owner, a program on `PATH`), never what it
+//! holds.
 //!
-//! `Auto` never starts an indexer: it asks Tracker only while Tracker is running, else it
-//! walks. A backend named in
-//! the setting may start its indexer, because the person chose it.
+//! It never starts an indexer: it asks Tracker only while Tracker is running, else it walks
+//! (`fd`, then `plocate`).
 
 use std::path::Path;
 
-use sill_model::results::FilesChoice;
 use sill_model::units::Presence;
 
 use super::index::IndexKind;
@@ -39,16 +37,12 @@ pub struct Detected {
     pub plocate: Presence,
 }
 
-/// The index `choice` asks on a machine with `detected`, or none. `Auto` asks a running
-/// Tracker, else `fd`, else `plocate`, and never starts an indexer; a
-/// named backend that is missing is none (the setting said which one, and a silent substitute
-/// would surprise) and one that is dormant is asked (and may start); `Walk` is `fd` else
-/// `plocate`.
-pub fn pick(choice: FilesChoice, detected: &Detected) -> Option<IndexKind> {
-    candidates(choice)
-        .iter()
-        .copied()
-        .find(|kind| usable(choice, detected, *kind) == Presence::Present)
+/// The index asked on a machine with `detected`, or none: a running Tracker, else `fd`, else
+/// `plocate`. A dormant Tracker is not asked (a query would start its indexer).
+pub fn pick(detected: &Detected) -> Option<IndexKind> {
+    [IndexKind::Tracker, IndexKind::Fd, IndexKind::Plocate]
+        .into_iter()
+        .find(|kind| usable(detected, *kind) == Presence::Present)
 }
 
 /// What this machine has. Blocking (a bus call, `PATH` lookups): the
@@ -63,32 +57,15 @@ pub fn detect(session: &Bus) -> Detected {
     }
 }
 
-/// The backends `choice` may use, in order of preference.
-fn candidates(choice: FilesChoice) -> &'static [IndexKind] {
-    match choice {
-        FilesChoice::Auto => &[IndexKind::Tracker, IndexKind::Fd, IndexKind::Plocate],
-        FilesChoice::Tracker => &[IndexKind::Tracker],
-        FilesChoice::Walk => &[IndexKind::Fd, IndexKind::Plocate],
-        FilesChoice::Off => &[],
-    }
-}
-
-/// Whether `choice` may ask `kind` on this machine.
-fn usable(choice: FilesChoice, detected: &Detected, kind: IndexKind) -> Presence {
+/// Whether `kind` may be asked on this machine.
+fn usable(detected: &Detected, kind: IndexKind) -> Presence {
     match kind {
-        IndexKind::Tracker => allowed(choice, detected.tracker),
+        IndexKind::Tracker => match detected.tracker {
+            IndexState::Running => Presence::Present,
+            IndexState::Dormant | IndexState::Absent => Presence::Absent,
+        },
         IndexKind::Fd => detected.fd,
         IndexKind::Plocate => detected.plocate,
-    }
-}
-
-/// An indexer in `state` is asked by `Auto` only while running, by its own name while there.
-fn allowed(choice: FilesChoice, state: IndexState) -> Presence {
-    match (choice, state) {
-        (_, IndexState::Running) => Presence::Present,
-        (FilesChoice::Auto, IndexState::Dormant) => Presence::Absent,
-        (_, IndexState::Dormant) => Presence::Present,
-        (_, IndexState::Absent) => Presence::Absent,
     }
 }
 
@@ -97,7 +74,6 @@ mod tests {
     use super::IndexState::{self, Absent, Dormant, Running};
     use super::{Detected, pick};
     use crate::providers::files::index::IndexKind;
-    use sill_model::results::FilesChoice;
     use sill_model::units::Presence::{self, Absent as No, Present as Yes};
 
     fn machine(tracker: IndexState, fd: Presence, plocate: Presence) -> Detected {
@@ -109,29 +85,18 @@ mod tests {
     }
 
     #[test]
-    fn auto_never_starts_an_indexer_and_a_named_backend_is_never_substituted() {
-        use FilesChoice::{Auto, Off, Tracker, Walk};
+    fn it_never_starts_an_indexer_and_walks_when_tracker_is_not_running() {
         let all = machine(Running, Yes, Yes);
-        let cases: Vec<(FilesChoice, Detected, Option<IndexKind>)> = vec![
-            (Auto, all, Some(IndexKind::Tracker)),
-            (Auto, machine(Dormant, Yes, Yes), Some(IndexKind::Fd)),
-            (Auto, machine(Dormant, No, Yes), Some(IndexKind::Plocate)),
-            (Auto, machine(Absent, Yes, Yes), Some(IndexKind::Fd)),
-            (Auto, machine(Dormant, No, No), None),
-            (Auto, machine(Absent, No, No), None),
-            (
-                Tracker,
-                machine(Dormant, Yes, Yes),
-                Some(IndexKind::Tracker),
-            ),
-            (Tracker, machine(Absent, Yes, Yes), None),
-            (Walk, all, Some(IndexKind::Fd)),
-            (Walk, machine(Running, No, Yes), Some(IndexKind::Plocate)),
-            (Walk, machine(Running, No, No), None),
-            (Off, all, None),
+        let cases: Vec<(Detected, Option<IndexKind>)> = vec![
+            (all, Some(IndexKind::Tracker)),
+            (machine(Dormant, Yes, Yes), Some(IndexKind::Fd)),
+            (machine(Dormant, No, Yes), Some(IndexKind::Plocate)),
+            (machine(Absent, Yes, Yes), Some(IndexKind::Fd)),
+            (machine(Dormant, No, No), None),
+            (machine(Absent, No, No), None),
         ];
-        for (choice, detected, want) in cases {
-            assert_eq!(pick(choice, &detected), want, "{choice:?} {detected:?}");
+        for (detected, want) in cases {
+            assert_eq!(pick(&detected), want, "{detected:?}");
         }
     }
 }

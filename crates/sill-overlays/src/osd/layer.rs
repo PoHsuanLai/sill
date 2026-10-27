@@ -1,11 +1,11 @@
 //! The indicator's layer surface (design/20 §1.7): Overlay, at the top right under the bar (as
-//! current macOS) or centred above the dock, per `osd.position`; no keyboard, no input, blurred
+//! current macOS); no keyboard, no input, blurred
 //! behind the card (`Element("osd")`, quire's `Osd` root's `id`).
 //!
 //! Its exclusive zone is `Auto` (wire 0): it reserves nothing, and the compositor keeps it clear
-//! of what others reserve, so at the top it sits below the bar's reserve (and at the bottom above
-//! the dock's) without reading either's geometry. `osd.margin_px` is the gap from that reserve
-//! to the card, and at the top right also from the output's right edge. The surface is the card plus [`ROOM`] on every side for the
+//! of what others reserve, so it sits below the bar's reserve without reading its geometry.
+//! `osd.margin_px` is the gap from that reserve to the card, and also from the output's right
+//! edge. The surface is the card plus [`ROOM`] on every side for the
 //! Osd material's ambient shadow, so its margin is the gap less that room (negative when the
 //! gap is smaller: the transparent room may overlap the reserve).
 
@@ -13,7 +13,7 @@ use shell_host::{
     Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::{OsdPosition, OsdSettings, ShellFile};
+use sill_settings::{OsdSettings, ShellFile};
 
 use sill_ui_kit::surface::namespace;
 
@@ -34,28 +34,18 @@ pub const CARD_RADIUS: i32 = 12;
 /// reaches 28 px beside the card and 40 below it).
 pub const ROOM: u32 = 40;
 
-/// The anchor for `position`.
-pub fn anchor(position: OsdPosition) -> Anchor {
-    match position {
-        OsdPosition::TopRight => Anchor::TOP | Anchor::RIGHT,
-        OsdPosition::BottomCentre => Anchor::BOTTOM,
-    }
+/// The corner the indicator sits in: top right.
+pub fn anchor() -> Anchor {
+    Anchor::TOP | Anchor::RIGHT
 }
 
-/// The margin that puts the card `osd.margin_px` from the edge's reserve (and, at the top right,
-/// from the right edge).
+/// The margin that puts the card `osd.margin_px` from the bar's reserve and from the right edge.
 pub fn margin(osd: &OsdSettings) -> Margin {
     let gap = i32::from(osd.margin_px.0) - i32::try_from(ROOM).unwrap_or(i32::MAX);
-    match osd.position {
-        OsdPosition::BottomCentre => Margin {
-            bottom: gap,
-            ..Margin::ZERO
-        },
-        OsdPosition::TopRight => Margin {
-            top: gap,
-            right: gap,
-            ..Margin::ZERO
-        },
+    Margin {
+        top: gap,
+        right: gap,
+        ..Margin::ZERO
     }
 }
 
@@ -65,7 +55,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
     LayerConfig {
         namespace: namespace("osd", output),
         layer: LayerLevel::Overlay,
-        anchor: anchor(osd.position),
+        anchor: anchor(),
         size: LayerSize {
             width: LayerExtent::Px(CARD_WIDTH + 2 * ROOM),
             height: LayerExtent::Px(CARD_HEIGHT + 2 * ROOM),
@@ -90,7 +80,7 @@ mod tests {
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,
     };
-    use sill_settings::{OsdPosition, OsdSettings, ShellFile};
+    use sill_settings::{OsdSettings, ShellFile};
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
@@ -110,51 +100,26 @@ mod tests {
     }
 
     #[test]
-    fn position_and_gap_come_from_the_settings() {
-        let with = |position, gap| OsdSettings {
-            position,
-            margin_px: Px(gap),
-            ..OsdSettings::default()
-        };
+    fn the_gap_comes_from_the_settings() {
+        let with = |gap| OsdSettings { margin_px: Px(gap) };
         let cases = [
             (
-                with(OsdPosition::BottomCentre, 24),
-                Anchor::BOTTOM,
-                Margin {
-                    bottom: -16,
-                    ..Margin::ZERO
-                },
-            ),
-            (
-                with(OsdPosition::BottomCentre, 120),
-                Anchor::BOTTOM,
-                Margin {
-                    bottom: 80,
-                    ..Margin::ZERO
-                },
-            ),
-            (
-                with(OsdPosition::TopRight, 24),
-                Anchor::TOP | Anchor::RIGHT,
+                with(24),
                 Margin {
                     top: -16,
                     right: -16,
                     ..Margin::ZERO
                 },
             ),
-            (
-                with(OsdPosition::TopRight, 40),
-                Anchor::TOP | Anchor::RIGHT,
-                Margin::ZERO,
-            ),
+            (with(40), Margin::ZERO),
         ];
-        for (osd, anchor, margin) in cases {
+        for (osd, margin) in cases {
             let file = ShellFile {
                 osd: osd.clone(),
                 ..ShellFile::default()
             };
             let config = layer(&output(Some("DP-1")), &file);
-            assert_eq!(config.anchor, anchor, "{osd:?}");
+            assert_eq!(config.anchor, Anchor::TOP | Anchor::RIGHT, "{osd:?}");
             assert_eq!(config.margin, margin, "{osd:?}");
         }
     }

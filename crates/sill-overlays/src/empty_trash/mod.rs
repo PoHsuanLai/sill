@@ -6,7 +6,7 @@
 //! The daemon opens it on `EmptyTrashLink` when the `EmptyTrash` action is asked; Empty Trash
 //! writes a yes on the link and takes the question down, and the daemon empties the Trash. Cancel
 //! only takes it down. Like the other sheets this is a layer surface on a stock compositor, and
-//! like them it answers nothing for `companion.confirm_arm_ms` after it is drawn.
+//! like them it answers nothing for the arming time after it is drawn.
 
 mod io;
 mod surface;

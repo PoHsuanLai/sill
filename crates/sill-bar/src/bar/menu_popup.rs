@@ -42,7 +42,7 @@ pub(crate) const CONTROL_CENTER: &str = "control-center";
 pub(crate) struct PopupLink {
     pub view: watch::Receiver<Option<PopupView>>,
     pub reports: mpsc::UnboundedSender<PopupReport>,
-    /// `menus.submenu_delay_ms` and `menus.submenu_triangle_timeout_ms`, for a menu's submenus.
+    /// The submenu delay and triangle timeout, for a menu's submenus.
     pub timing: MenuTiming,
     /// The bar's output (the Display module's brightness target).
     pub output: Option<OutputName>,
@@ -133,7 +133,7 @@ pub(crate) fn PopupDocument(current: PopupView) -> Element {
     let root = RootStyle::popup(name, styles);
     rsx! {
         AppStyle { css: CONTROL_CENTER_CSS }
-        PopupFrame { room: room(), widest, submenu_room, style: look.metrics.style_attr(),
+        PopupFrame { room: room(), widest, submenu_room,
             Ds {
                 sheet: Some(sill_shell_kit::stylesheet()),
                 extent: RootExtent::Popup,

@@ -37,10 +37,7 @@ pub(super) fn screenshot_thumb(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let look = use_active_look(&output);
-    let params = ThumbParams {
-        hold_ms: u32::from(file.screenshot.thumbnail_hold_ms.0),
-        rest_ms: u32::from(file.notifications.hover_min_remaining_ms.0),
-    };
+    let params = ThumbParams::default();
     let ghost = GhostLook::of(&environment, look);
     rsx! {
         SurfaceRoot {
@@ -53,7 +50,7 @@ pub(super) fn screenshot_thumb(output: OutputInfo) -> Element {
                 output: output.id,
                 params,
                 setting: file.screenshot.thumbnail,
-                metrics: swipe_metrics(&file.notifications),
+                metrics: swipe_metrics(),
                 ghost,
             }
         }

@@ -33,7 +33,7 @@ pub enum Showing {
 /// Which button an opening focuses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Preselect {
-    /// `power_menu.default_action`.
+    /// Shut Down.
     Default,
     /// The chosen action's own button (the launcher's or the system menu's Restart opens on Restart).
     Action(SessionAction),

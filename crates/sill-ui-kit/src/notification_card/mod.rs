@@ -25,8 +25,8 @@ use sill_model::notifications::{ActionKey, Href, Notification, UnixMs};
 use sill_shell_kit::notifications::parts::Hover;
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
 
-/// Where the card is drawn: a banner paints the Toast material (ink on paper under
-/// `notifications.banner_material = "inverse"`); a center row the center's Popover.
+/// Where the card is drawn: a banner paints the Toast material; a center row the
+/// center's Popover.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CardPlace {
     Banner,

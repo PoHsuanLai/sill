@@ -9,7 +9,6 @@ use crate::dock::machine::types::{
 use crate::dock::machine::{DockParams, step};
 use ds::base::time::stamp::Stamp;
 use sill_model::units::Cpx;
-use sill_settings::{ActiveClick, DockModifierClicks};
 
 /// One scripted input sequence: `(ms, input)` pairs.
 type Script = Vec<(u64, DockEvent)>;
@@ -104,9 +103,9 @@ fn clicks_do_what_design_10_3_6_says() {
             activate(ActivateMode::Raise),
         ),
         (
-            "active with two windows cycles",
+            "active with two windows does nothing",
             click(Primary, TileApp::Active { windows: 2 }, None),
-            activate(ActivateMode::Cycle),
+            vec![],
         ),
         (
             "active with one window does nothing",
@@ -186,41 +185,6 @@ fn clicks_do_what_design_10_3_6_says() {
         assert_eq!(got, want, "{name}");
         assert_eq!(dock.press, Press::Up, "{name}");
     }
-}
-
-#[test]
-fn settings_change_what_a_click_does() {
-    let nothing = DockParams {
-        click_active_app: ActiveClick::Nothing,
-        ..params()
-    };
-    assert_eq!(
-        acts(
-            &nothing,
-            &click(
-                Button::Primary,
-                TileApp::Active { windows: 3 },
-                Modifier::None
-            )
-        )
-        .1,
-        vec![]
-    );
-    let plain = DockParams {
-        modifier_clicks: DockModifierClicks::Off,
-        ..params()
-    };
-    assert_eq!(
-        acts(
-            &plain,
-            &click(Button::Primary, TileApp::Inactive, Modifier::Cmd)
-        )
-        .1,
-        vec![DockEffect::Activate {
-            tile: T,
-            mode: ActivateMode::Raise
-        }]
-    );
 }
 
 #[test]

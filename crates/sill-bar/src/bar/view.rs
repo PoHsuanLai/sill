@@ -25,14 +25,13 @@ use super::tray::Tray;
 use super::workspaces::WorkspaceIndicator;
 use crate::control_center::menu_bar_modules;
 use sill_services::TrayService;
-use sill_ui_kit::autohide::Phase;
+use sill_ui_kit::autohide::{self, Phase};
 use sill_ui_kit::hooks::{
     use_appearance, use_follow_layer, use_full_screen, use_service, use_settings,
 };
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::root::{StylesNotice, use_root_style};
-use sill_ui_kit::shell_style::shell_metrics;
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
 pub const BAR_CSS: &str = include_str!("style.css");
@@ -45,17 +44,15 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     let environment = use_appearance()();
     let tray = use_service::<TrayService>()();
     let look = use_active_look(&output);
-    let metrics = shell_metrics(&file);
     let popup_look = PopupLook {
         appearance: environment.settings.appearance.appearance(),
         system: environment.system,
         tint: environment.tint_alpha(),
-        metrics,
         stack: environment.material_stack(),
     };
     let root = use_root_style();
     let session = use_bar(&output, popup_look);
-    let times = timing(&file, environment.settings.appearance.motion_level);
+    let times = timing(environment.settings.appearance.motion_level);
     let mode = mode_on(file.bar.autohide, use_full_screen(output.id)());
     let hide = use_hide(mode, times, session, output.id);
     use_follow_layer(layer(&output, &file, mode));
@@ -66,19 +63,14 @@ pub(super) fn bar(output: OutputInfo) -> Element {
         up => format!("transform:translateY(-{:.2}px)", f64::from(up) / 100.0),
     };
     let strip_up = matches!(state.phase, Phase::Hidden | Phase::Armed { .. });
-    let strip_px = file.dock.autohide_trigger_strip_px.0;
+    let strip_px = autohide::TRIGGER_STRIP_PX;
     let modules = menu_bar_modules(&file.control_center);
     let outside = move |input: Event| session.feed(BarInput::Bar { input, title: None });
     let strip = format!("height:{}px", file.bar.height_px.0);
-    let status = format!(
-        "gap:{}px;{}",
-        file.bar.status_gap_px.0,
-        status_metrics(&file.bar).style_attr()
-    );
+    let status = status_metrics(&file.bar).style_attr();
     rsx! {
         div {
             class: "sill-bar-root",
-            style: metrics.style_attr(),
             onmouseenter: move |_| hide.feed(RevealEvent::Enter),
             onmouseleave: move |_| hide.feed(RevealEvent::Leave),
         div { id: BODY_ID, class: "sill-bar-body", style: lifted_style,
@@ -107,7 +99,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
                     WorkspaceIndicator { output: output.clone() }
                 }
                 StylesNotice {}
-                div { class: "sill-bar-group", style: status,
+                div { class: "sill-bar-group sill-bar-status", style: status,
                     if !tray.items.is_empty() {
                         Tray { output: output.clone() }
                     }

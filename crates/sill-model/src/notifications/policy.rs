@@ -17,13 +17,13 @@ use super::{BannerLife, ServerMode};
 /// Everything the service is told by the daemon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct NotificationsPolicy {
-    /// `notifications.server`.
+    /// Whether to own the bus name (fixed by the daemon).
     pub server: ServerMode,
     /// The focus mode (`notifications.dnd`).
     pub quiet: Quiet,
     /// `notifications.banner_style`.
     pub style: Presentation,
-    /// `notifications.history_cap`.
+    /// The most notifications kept.
     pub history_cap: HistoryCap,
     /// `notifications.swipe`.
     pub swipe: Swipe,
@@ -74,7 +74,7 @@ pub enum Presentation {
 pub struct HistoryCap(pub u16);
 
 impl Default for HistoryCap {
-    /// `notifications.history_cap`'s default.
+    /// The history cap's value.
     fn default() -> Self {
         HistoryCap(100)
     }

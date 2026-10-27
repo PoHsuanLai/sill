@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use super::{ShotId, ShotKind, ShotTool, Watching};
+use super::{ShotId, ShotKind, Watching};
 
 /// Which folders are watched.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -20,7 +20,6 @@ pub enum ShotFolders {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct ShotPolicy {
     pub folders: ShotFolders,
-    pub tool: ShotTool,
 }
 
 /// What the screenshots service can be told.

@@ -1,8 +1,7 @@
 //! Documents and folders under the home directory (Spotlight's "Documents"), from whichever
-//! index `launcher.files_backend` picks ([`choice::pick`]): Tracker 3, or `fd`/`plocate` within
-//! a time budget.
+//! index [`choice::pick`] picks: a running Tracker 3, else `fd`/`plocate` within a time budget.
 //!
-//! Nothing typed asks no index; with the policy's `FilesChoice::Off`, nothing; otherwise one
+//! Nothing typed asks no index; with a zero budget (no policy yet), nothing; otherwise one
 //! [`FileAsk`] with the policy's budget under `$HOME` (none when no index is picked), plus the
 //! files the viewer remembers (`viewed.rs`: they rank with the launcher's frecency, and the ones
 //! the index did not bring are rows of their own), ranked by [`hits::file_items`] and pushed as
@@ -50,7 +49,7 @@ use tokio::sync::watch;
 use crate::clock::{modified_of, unix_now};
 use crate::providers::locked::copy_of;
 
-use sill_model::results::{FilesChoice, LauncherPolicy};
+use sill_model::results::LauncherPolicy;
 use tracker::TrackerIndex;
 
 use sill_services::env::Bus;
@@ -99,7 +98,7 @@ impl Provider for FilesProvider {
             return;
         }
         let policy = self.policy.borrow().clone();
-        if policy.files == FilesChoice::Off {
+        if policy.files_budget.is_zero() {
             return;
         }
         let indexed = self.index_hits(&policy, text, query);
@@ -158,7 +157,7 @@ impl FilesProvider {
         text: &str,
         query: &Query,
     ) -> Option<Vec<FileHit>> {
-        let index = index_for(&self.source, policy.files)?;
+        let index = index_for(&self.source)?;
         let ask = FileAsk {
             text: text.to_owned(),
             under: self.home.clone(),
@@ -203,15 +202,12 @@ fn detected(session: &Bus) -> choice::Detected {
     }
 }
 
-/// The index `source` and `files` name, or none (`Off`, or nothing on this machine fits).
-fn index_for(source: &IndexSource, files: FilesChoice) -> Option<Arc<dyn FileIndex>> {
-    if files == FilesChoice::Off {
-        return None;
-    }
+/// The index `source` names, or none (nothing on this machine fits).
+fn index_for(source: &IndexSource) -> Option<Arc<dyn FileIndex>> {
     match source {
         IndexSource::Given(index) => Some(Arc::clone(index)),
         IndexSource::Detect(session) => {
-            choice::pick(files, &detected(session)).map(|kind| index_of(kind, session))
+            choice::pick(&detected(session)).map(|kind| index_of(kind, session))
         }
     }
 }

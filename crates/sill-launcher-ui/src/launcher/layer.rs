@@ -33,12 +33,14 @@ pub const CARD_INSET: u32 = (PANEL_ROOM_WIDTH - PANEL_WIDTH) / 2;
 pub const SHADOW_SIDE: u32 = 42;
 pub const SHADOW_BELOW: u32 = 66;
 
+/// Where the panel sits, as thousandths of the output's height (before the height bias).
+const TOP_VERTICAL_FRACTION: i64 = 400;
+
 /// The panel's top edge on an output `output_height` tall.
 pub fn panel_top(output_height: i32, bar: &BarSettings, launcher: &LauncherSettings) -> i32 {
     let below_bar = i32::from(bar.height_px.0) + i32::from(launcher.top_bar_gap_px.0);
-    let fraction = i64::from(launcher.top_vertical_fraction.0);
     // round(fraction/1000 x H) in integers: add half the divisor before dividing.
-    let scaled = (fraction * i64::from(output_height) + 500).div_euclid(1000);
+    let scaled = (TOP_VERTICAL_FRACTION * i64::from(output_height) + 500).div_euclid(1000);
     let centred =
         i32::try_from(scaled).unwrap_or(i32::MAX) - i32::from(launcher.top_centre_bias_px.0);
     below_bar.max(centred)

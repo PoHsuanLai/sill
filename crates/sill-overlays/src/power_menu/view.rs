@@ -1,4 +1,4 @@
-//! The power menu's render: one `Ds` root in `power_menu.material` (the active Space's look),
+//! The power menu's render: one `Ds` root in the sheet material (the active Space's look),
 //! as large as the output (`RootExtent::Viewport`), holding quire's `Alert` centred on its `Sheet`
 //! (it dims nothing), as macOS's shut-down dialog: the question about the opening's action, Cancel
 //! (Escape presses it) and that action's button (Return presses it), side by side. An action that
@@ -20,11 +20,9 @@ use super::sheet::{MenuSession, SheetInput};
 use super::surface::PANEL_ID;
 use ds::base::time::clock::sleep;
 use sill_model::session::words::{COUNTDOWN_SECONDS, countdown};
-use sill_ui_kit::hooks::use_settings;
 use sill_ui_kit::links::OpenSerial;
 use sill_ui_kit::root::{ClickAway, SurfaceRoot};
 use sill_ui_kit::sheet_stage::SheetExit;
-use sill_ui_kit::shell_style::material;
 use std::time::Duration;
 
 /// The power menu's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
@@ -32,15 +30,14 @@ pub const POWER_MENU_CSS: &str = include_str!("style.css");
 
 /// The panel on `output`.
 pub(super) fn power_menu(output: OutputInfo) -> Element {
-    let file = use_settings()();
-    let ctx = use_menu(output.id, file.power_menu.default_action);
+    let ctx = use_menu(output.id);
     let menu = (ctx.menu)();
     let offers = (ctx.offers)();
     let left = use_countdown(&ctx);
     rsx! {
         SurfaceRoot {
             output,
-            material: material(file.power_menu.material),
+            material: Material::Sheet,
             extent: RootExtent::Viewport,
             AppStyle { css: POWER_MENU_CSS }
             if let Some(menu) = menu {

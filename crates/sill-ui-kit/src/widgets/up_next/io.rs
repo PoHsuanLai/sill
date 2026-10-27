@@ -7,12 +7,17 @@ use sill_services::{ClockService, EventsService};
 
 use super::provider::{EVENT_ROWS, up_next_entry};
 use super::widget::UpNext;
-use crate::hooks::{use_hours, use_section, use_service};
+use crate::hooks::{use_hours, use_service};
 use crate::widgets::{Feed, WidgetKind, WidgetProvider};
 
 /// The next events, as many as the card's body holds whole.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct UpNextProvider;
+
+/// The most events asked for; the card shows as many as it has room for.
+const UP_NEXT_MAX: usize = 3;
+/// How many days ahead the events are taken from.
+const UP_NEXT_DAYS: u16 = 7;
 
 impl WidgetProvider for UpNextProvider {
     type W = UpNext;
@@ -22,10 +27,9 @@ impl WidgetProvider for UpNextProvider {
         let _minute = use_service::<ClockService>()();
         let hours = use_hours();
         let agenda = use_service::<EventsService>()();
-        let calendar = use_section(|file| &file.calendar)();
         let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
-        let max = usize::from(calendar.up_next_max.0).min(EVENT_ROWS);
-        let days = Days(calendar.up_next_days.0);
+        let max = UP_NEXT_MAX.min(EVENT_ROWS);
+        let days = Days(UP_NEXT_DAYS);
         Feed {
             entry: up_next_entry(&agenda, Timestamp::now(), &zone, days, max, hours),
             onintent: None,

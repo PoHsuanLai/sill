@@ -21,34 +21,27 @@ pub mod idle;
 pub mod keyboard;
 pub mod launcher;
 pub mod launcher_kinds;
-pub mod menus;
 pub mod notifications;
 pub mod osd;
-pub mod power_menu;
 pub mod schema;
 pub mod screenshot;
 pub mod scroll;
 pub mod scrollbar;
 pub mod session;
-pub mod spaces;
 pub mod switcher;
 pub mod voice;
 pub mod wallpaper;
 pub mod widgets;
-pub mod window;
 
-pub use bar::{BarGlyphSize, BarSettings, MenuBarHiding};
+pub use bar::{BarSettings, MenuBarHiding};
 pub use calendar::{CalendarSettings, FirstWeekday, WeekNumbers};
 pub use companion::{
-    CONFIRM_ARM_FLOOR_MS, CompanionSettings, InField, NotifyWhen, SummonKey, confirm_arm,
+    CONFIRM_ARM, CompanionSettings, InField, NotifyWhen, SummonKey, confirm_arm,
     params as companion_params,
 };
-pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
+pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar};
 pub use display::{DisplaySettings, NightWarmthMode};
-pub use dock::{
-    ActiveClick, AutoHide, DockFloor, DockMenuOrder, DockModifierClicks, DockSettings, Indicators,
-    Magnification, TrashTile,
-};
+pub use dock::{AutoHide, DockFloor, DockSettings, Indicators, Magnification, TrashTile};
 pub use file::{APP, ShellFile};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use hot_corners::{
@@ -59,22 +52,16 @@ pub use idle::IdleSettings;
 pub use keyboard::{KeyboardOverride, KeyboardSettings, RejectedRow, overrides};
 pub use launcher::LauncherSettings;
 pub use launcher_kinds::WebSearch;
-pub use menus::MenusSettings;
-pub use notifications::{BannerMaterial, BannerPosition, Dnd, NotificationsSettings};
-pub use osd::{OsdEnabled, OsdPosition, OsdSettings};
-pub use power_menu::{PowerMenuDefault, PowerMenuSettings};
+pub use notifications::{Dnd, NotificationsSettings};
+pub use osd::OsdSettings;
 pub use schema::{schema, schemas};
 pub use screenshot::{ScreenshotSettings, ShotThumbnail};
-pub use scroll::{
-    Momentum, MomentumModel, NaturalScroll, RubberBand, ScrollSettings, ScrollbarVisibility,
-};
+pub use scroll::{Momentum, NaturalScroll, ScrollSettings, ScrollbarVisibility};
 pub use scrollbar::{ScrollbarSettings, TrackClick};
 pub use session::SessionSettings;
-pub use spaces::SpacesSettings;
 pub use switcher::SwitcherSettings;
 pub use voice::{HoldToTalk, VoiceConsent, VoiceSettings, params as voice_params};
 pub use wallpaper::WallpaperSettings;
 pub use widgets::WidgetKind;
-pub use window::WindowSettings;
 
 pub use ds_settings::{Count, Fraction, Mins, Ms, Percent, Px, Scalar, Secs};

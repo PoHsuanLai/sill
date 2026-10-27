@@ -28,10 +28,7 @@ const BASIC: &[&str] = &[
     "dock.magnification",
     "dock.tile_size_px",
     "dock.autohide",
-    "dock.autohide_delay_ms",
-    "dock.autohide_slide_ms",
     "dock.indicators",
-    "dock.click_active_app",
     "dock.trash",
     "scroll.natural",
     "notifications.dnd",
@@ -97,7 +94,7 @@ fn the_power_page_is_idle_and_the_lock_grace() {
             assert_eq!(key.page, Page::Accounts, "{path}");
         }
     }
-    assert_eq!(whole.key.iter().filter(|k| on_power(&k.path.0)).count(), 9);
+    assert_eq!(whole.key.iter().filter(|k| on_power(&k.path.0)).count(), 6);
 }
 
 /// The idle times carry their unit (`Secs` "s", `Mins` "min") and their §3.24 range.
@@ -106,8 +103,6 @@ fn idle_times_are_bounded_in_their_units() {
     use ds_settings::schema::KeyKind;
     const CASES: &[(&str, i64, &str)] = &[
         ("session.lock_grace_s", 60, "s"),
-        ("idle.dim_s", 60, "s"),
-        ("idle.locked_screen_off_s", 600, "s"),
         ("idle.screen_off_ac_min", 240, "min"),
         ("idle.screen_off_battery_min", 240, "min"),
         ("idle.suspend_ac_min", 480, "min"),
@@ -165,19 +160,13 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
     let cases: &[(&str, toml::Value)] = &[
         ("bar.height_px", toml::Value::Integer(24)),
         ("dock.tile_size_px", toml::Value::Integer(48)),
-        ("dock.influence_radius_px", toml::Value::Integer(72)),
         ("dock.magnification", toml::Value::String("on".to_owned())),
         ("dock.autohide", toml::Value::String("off".to_owned())),
         (
             "bar.autohide",
             toml::Value::String("full_screen_only".to_owned()),
         ),
-        ("launcher.top_vertical_fraction", toml::Value::Integer(400)),
         ("scroll.natural", toml::Value::String("natural".to_owned())),
-        ("scroll.momentum_a", toml::Value::Float(30.0)),
-        ("notifications.banner_hold_ms", toml::Value::Integer(5200)),
-        ("spaces.default_grain", toml::Value::Integer(0)),
-        ("menus.first_mouse_window_ms", toml::Value::Integer(100)),
         (
             "display.hardware_volume",
             toml::Value::String("when_monitor_is_output".to_owned()),
@@ -190,18 +179,12 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
             "display.font_rendering",
             toml::Value::String("auto".to_owned()),
         ),
-        ("osd.enabled", toml::Value::String("on".to_owned())),
-        ("osd.hold_ms", toml::Value::Integer(1500)),
-        ("osd.position", toml::Value::String("top_right".to_owned())),
         ("osd.margin_px", toml::Value::Integer(24)),
         ("calendar.sources", toml::Value::String("auto".to_owned())),
         (
             "calendar.first_weekday",
             toml::Value::String("monday".to_owned()),
         ),
-        ("calendar.up_next_days", toml::Value::Integer(7)),
-        ("screenshot.thumbnail_hold_ms", toml::Value::Integer(5200)),
-        ("screenshot.tool", toml::Value::String("auto".to_owned())),
         ("hot_corners.top_left", toml::Value::Array(Vec::new())),
         ("hot_corners.dwell_ms", toml::Value::Integer(150)),
         ("hot_corners.size_px", toml::Value::Integer(2)),
@@ -210,10 +193,7 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ("idle.screen_off_battery_min", toml::Value::Integer(15)),
         ("idle.suspend_ac_min", toml::Value::Integer(30)),
         ("idle.suspend_battery_min", toml::Value::Integer(15)),
-        ("idle.dim_s", toml::Value::Integer(5)),
-        ("idle.dim_level_pct", toml::Value::Integer(50)),
         ("idle.lock", toml::Value::String("screen_off".to_owned())),
-        ("idle.locked_screen_off_s", toml::Value::Integer(60)),
     ];
     for (path, want) in cases {
         assert_eq!(&default_of(path), want, "{path}");

@@ -157,7 +157,7 @@ mod tests {
     }
 
     fn run(inputs: Vec<Input>) -> (Track, Vec<BarEffect>) {
-        let timing = timing(&sill_settings::MenusSettings::default());
+        let timing = timing();
         inputs.into_iter().enumerate().fold(
             (Track::closed(), Vec::new()),
             |(track, mut all), (ms, input)| {

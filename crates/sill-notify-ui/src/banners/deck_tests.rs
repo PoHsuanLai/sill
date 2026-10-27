@@ -6,10 +6,9 @@ use crate::banners::stack::Card;
 use crate::banners::step::{Banner, BannerIn, BannerParams, Deadline, Leave};
 use ds::base::time::stamp::Stamp;
 use sill_model::notifications::{AppKey, BannerLife, NotificationId, NotificationsCommand};
-use sill_settings::NotificationsSettings;
 
 fn p() -> BannerParams {
-    BannerParams::new(&NotificationsSettings::default())
+    BannerParams::default()
 }
 
 fn card(app: &str, ids: &[u32]) -> Card {

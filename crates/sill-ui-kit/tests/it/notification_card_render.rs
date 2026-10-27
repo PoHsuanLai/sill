@@ -12,7 +12,7 @@ use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, Notification, NotificationId, UnixMs,
     parse_body,
 };
-use sill_settings::{BannerMaterial, NotificationsSettings, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::notification_card::{CardPlace, CardPress, NoteCard};
 use sill_ui_kit::settings::SettingsFeed;
 
@@ -128,28 +128,11 @@ fn a_group_shows_its_count_and_two_layers() {
 }
 
 #[test]
-fn a_center_row_is_on_the_popover_material_and_an_inverse_banner_flips_the_scheme() {
+fn a_center_row_is_on_the_popover_material() {
     let html = render(Shown {
         note: note(&[]),
         count: 1,
         place: CardPlace::Center,
     });
     assert!(html.contains("data-material=\"popover\""));
-    let inverse = ShellFile {
-        notifications: NotificationsSettings {
-            banner_material: BannerMaterial::Inverse,
-            ..NotificationsSettings::default()
-        },
-        ..ShellFile::default()
-    };
-    let flipped = render_with(
-        Shown {
-            note: note(&[]),
-            count: 1,
-            place: CardPlace::Banner,
-        },
-        inverse,
-    );
-    let dark = "data-theme=\"dark\"";
-    assert!(flipped.contains(dark), "{flipped}");
 }

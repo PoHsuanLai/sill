@@ -1,5 +1,5 @@
 //! The panel's render (design/13 §13.3.9, design/20 §1.3): a `Ds` root on the active Space's
-//! look in the `launcher.material` material, holding quire's `CommandPalette` embedded in the
+//! look in the sheet material, holding quire's `CommandPalette` embedded in the
 //! surface (no scrim; the card is as tall as its content, its corner a squircle, and it is the
 //! blur and input region; `card.rs` measures it) over the fresh results in the runner's
 //! sections, the selected row's actions as a quire `Menu{Rich}` hung from that row
@@ -45,11 +45,10 @@ use sill_model::voice::listening_line;
 use sill_search::ResultsService;
 use sill_services::{ClipboardService, CompanionService, VoiceService};
 use sill_ui_kit::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
-use sill_ui_kit::hooks::{use_appearance, use_hours, use_service, use_service_part, use_settings};
+use sill_ui_kit::hooks::{use_appearance, use_hours, use_service, use_service_part};
 use sill_ui_kit::links::LauncherLink;
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::root::{SurfaceRoot, use_host_scale};
-use sill_ui_kit::shell_style::{material, shell_metrics};
 
 /// The launcher's stylesheet (lint-clean under `Profile::Strict`, `tests/launcher_lint.rs`).
 pub const LAUNCHER_CSS: &str = include_str!("style.css");
@@ -112,7 +111,6 @@ impl Shown {
 
 /// The panel on `output`.
 pub(crate) fn launcher(output: OutputInfo) -> Element {
-    let file = use_settings()();
     let environment = use_appearance()();
     let hours = use_hours();
     let look = use_active_look(&output);
@@ -172,7 +170,6 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
         div {
             id: "panel",
             class: "sill-launcher",
-            style: shell_metrics(&file).style_attr(),
             onkeydown: move |event| {
                 contacts.heard(&event);
                 root.root_key(&event);
@@ -180,7 +177,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             onmousedown: move |event| contacts.heard(&event),
             SurfaceRoot {
                 output,
-                material: material(file.launcher.material),
+                material: Material::Sheet,
                 AppStyle { css: LAUNCHER_CSS }
                 div {
                     class: "sill-launcher-body",
@@ -468,16 +465,12 @@ pub fn empty_text(query: &str) -> String {
 mod tests {
     use super::{empty_text, measured};
     use ds::prelude::*;
-    use sill_settings::PanelMaterial;
-    use sill_ui_kit::shell_style::material;
 
     #[test]
-    fn words_and_material() {
+    fn empty_text_words() {
         assert_eq!(empty_text("zz"), "Nothing matches \"zz\".");
         assert_eq!(empty_text("zz "), "Nothing matches \"zz\".");
         assert_eq!(empty_text(""), "Nothing to show yet.");
-        assert_eq!(material(PanelMaterial::Sheet), Material::Sheet);
-        assert_eq!(material(PanelMaterial::Popover), Material::Popover);
     }
 
     #[test]

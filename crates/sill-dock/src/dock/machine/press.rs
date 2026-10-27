@@ -1,7 +1,6 @@
 //! Presses, clicks, drags and spring-loading (design/10 §10.3.6-10.3.8, §10.4 "Press").
 
 use ds::base::time::stamp::Stamp;
-use sill_settings::{ActiveClick, DockModifierClicks};
 
 use super::hover::{self, FreezeCause, Hover};
 use super::params::DockParams;
@@ -35,8 +34,6 @@ pub enum ActivateMode {
     Unminimize,
     /// `org.freedesktop.Application.Activate` (running, no toplevel).
     Reopen,
-    /// Activate the next toplevel in MRU order on this workspace.
-    Cycle,
     /// Activate, then minimize the previously active app (Option-click).
     HideCurrent,
     /// Activate, then minimize every other app here (Option-Cmd-click).
@@ -132,7 +129,7 @@ pub(crate) fn step(
             };
             match hit {
                 Hit::Tile { tile: t, app } if t == tile => {
-                    clicked(dock, tile, button, app, modifier, p, out)
+                    clicked(dock, tile, button, app, modifier, out)
                 }
                 _ => dock,
             }
@@ -304,13 +301,8 @@ fn clicked(
     button: Button,
     app: TileApp,
     modifier: Modifier,
-    p: &DockParams,
     out: &mut Vec<DockEffect>,
 ) -> DockState {
-    let modifier = match p.modifier_clicks {
-        DockModifierClicks::AppleMapping => modifier,
-        DockModifierClicks::Off => Modifier::None,
-    };
     match (button, modifier, app) {
         (Button::Middle, _, _) => {
             out.push(DockEffect::Launch {
@@ -337,13 +329,8 @@ fn clicked(
             activate(dock, tile, ActivateMode::Unminimize, out)
         }
         (_, Modifier::None, TileApp::Inactive) => activate(dock, tile, ActivateMode::Raise, out),
-        (_, Modifier::None, TileApp::Active { windows }) => {
-            if windows > 1 && p.click_active_app == ActiveClick::Cycle {
-                activate(dock, tile, ActivateMode::Cycle, out)
-            } else {
-                dock
-            }
-        }
+        // Clicking the active app does nothing.
+        (_, Modifier::None, TileApp::Active { .. }) => dock,
     }
 }
 

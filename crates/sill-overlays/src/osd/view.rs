@@ -29,21 +29,13 @@ pub const OSD_CSS: &str = include_str!("style.css");
 /// look key, and this is the one place.
 const LOOK: LevelStyle = LevelStyle::Discrete;
 
-/// `sill_settings::OsdPosition` as quire's `sill_shell_kit::osd::OsdPosition`.
-fn position_of(position: sill_settings::OsdPosition) -> OsdPosition {
-    match position {
-        sill_settings::OsdPosition::TopRight => OsdPosition::TopRight,
-        sill_settings::OsdPosition::BottomCentre => OsdPosition::BottomCentre,
-    }
-}
-
 /// The indicator on `output`.
 pub(super) fn osd(output: OutputInfo) -> Element {
     let file = use_settings()();
     let on = output.name.clone().map(OutputName);
     let link = use_context::<OsdLink>();
     use_follow_position(&file.osd);
-    let drawn = use_osd(&link, output.id, times(&file.osd));
+    let drawn = use_osd(&link, output.id, times());
     let volume = use_service::<VolumeService>()();
     let displays = use_service::<DisplaysService>()();
     let kind = drawn.change.as_ref().map_or(OsdKind::Volume, |c| c.kind);
@@ -67,7 +59,7 @@ pub(super) fn osd(output: OutputInfo) -> Element {
                     shown,
                     label: Some(title(kind, &volume, &displays, on.as_ref())),
                     level: Some(card_level(kind, level)),
-                    position: position_of(file.osd.position),
+                    position: OsdPosition::TopRight,
                     style: LOOK,
                     common: Common { id: Some(CARD_ID.to_owned()), ..Common::default() },
                     on_hidden: drawn.on_hidden,

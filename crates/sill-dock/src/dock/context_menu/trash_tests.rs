@@ -6,30 +6,24 @@ use super::rows;
 use crate::dock::context_menu::{DockMenuRow, menu_entries};
 use crate::dock::pick::DockPick;
 use sill_launcher::AppId;
-use sill_settings::DockMenuOrder;
 
 fn files() -> AppId {
     AppId("org.kde.dolphin".to_owned())
 }
 
 fn entries(empty_trash: Availability) -> Vec<(String, DockPick, Availability)> {
-    menu_entries(
-        &rows(Some(&files()), empty_trash),
-        None,
-        &[],
-        DockMenuOrder::AppleOrder,
-    )
-    .into_iter()
-    .filter_map(|e| match e {
-        MenuItem::Item {
-            title,
-            value,
-            availability,
-            ..
-        } => Some((title, value, availability)),
-        _ => None,
-    })
-    .collect()
+    menu_entries(&rows(Some(&files()), empty_trash), None, &[])
+        .into_iter()
+        .filter_map(|e| match e {
+            MenuItem::Item {
+                title,
+                value,
+                availability,
+                ..
+            } => Some((title, value, availability)),
+            _ => None,
+        })
+        .collect()
 }
 
 #[test]

@@ -14,7 +14,7 @@ use ds::prelude::*;
 use ds_harness::{FocusState, Harness, Input, Viewport};
 use sill_model::session::{Offer, Session, SessionAction, SessionCommand};
 use sill_overlays::PowerMenu;
-use sill_settings::{PowerMenuDefault, PowerMenuSettings, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{PowerMenuLink, Preselect};
 
@@ -218,18 +218,8 @@ fn the_open_menu_renders() {
     image.save(&path).expect("the picture saves"); // test-only
 }
 
-fn file(default_action: PowerMenuDefault) -> ShellFile {
-    ShellFile {
-        power_menu: PowerMenuSettings {
-            default_action,
-            ..PowerMenuSettings::default()
-        },
-        ..ShellFile::default()
-    }
-}
-
 fn shut_down_default() -> ShellFile {
-    file(PowerMenuDefault::ShutDown)
+    ShellFile::default()
 }
 
 #[test]
@@ -243,9 +233,9 @@ fn it_opens_on_the_default_button_with_the_ring_on_it() {
     assert!(ring_on_primary(&running.harness), "the keyboard is on it");
     assert_eq!(look(&running.harness).as_deref(), Some("present"));
     let suspend = opened(
-        file(PowerMenuDefault::Suspend),
+        shut_down_default(),
         Session::everything(),
-        Preselect::Default,
+        Preselect::Action(SessionAction::Suspend),
     );
     assert_eq!(primary(&suspend.harness).as_deref(), Some("Sleep"));
 }

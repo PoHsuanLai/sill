@@ -8,7 +8,6 @@ use ds::prelude::*;
 use sill_launcher::{AppId, WindowKey};
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
 use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
-use sill_settings::DockMenuOrder;
 use std::path::PathBuf;
 
 const TERM: &str = "foot";
@@ -95,31 +94,25 @@ fn names(entries: &[MenuItem<DockPick>]) -> Vec<String> {
         .collect()
 }
 
-fn menu(item: &DockItem, order: DockMenuOrder, option: OptionHeld) -> Vec<MenuItem<DockPick>> {
-    menu_at_login(item, order, option, Checked::Unchecked)
+fn menu(item: &DockItem, option: OptionHeld) -> Vec<MenuItem<DockPick>> {
+    menu_at_login(item, option, Checked::Unchecked)
 }
 
-fn menu_at_login(
-    item: &DockItem,
-    order: DockMenuOrder,
-    option: OptionHeld,
-    login: Checked,
-) -> Vec<MenuItem<DockPick>> {
+fn menu_at_login(item: &DockItem, option: OptionHeld, login: Checked) -> Vec<MenuItem<DockPick>> {
     let entry = term();
     let all = toplevels();
-    let rows = app::rows(item, Some(&entry), &all, order, option, login);
+    let rows = app::rows(item, Some(&entry), &all, option, login);
     let windows = menu_windows(item, Some(&entry), &all);
-    menu_entries(&rows, item.kind.app_id(), &windows, order)
+    menu_entries(&rows, item.kind.app_id(), &windows)
 }
 
 #[test]
-fn a_running_pinned_app_lists_windows_actions_remove_and_quit() {
+fn a_running_pinned_app_lists_windows_actions_options_and_quit() {
     let item = pinned(TileApp::Active { windows: 2 });
     let rows = app::rows(
         &item,
         Some(&term()),
         &toplevels(),
-        DockMenuOrder::WindowsFirst,
         OptionHeld::Up,
         Checked::Unchecked,
     );
@@ -143,11 +136,18 @@ fn a_running_pinned_app_lists_windows_actions_remove_and_quit() {
             },
             DockMenuRow::Separator,
             DockMenuRow::KeepInDock(Checked::Checked),
+            DockMenuRow::OpenAtLogin {
+                state: Checked::Unchecked,
+                entry: PathBuf::from("/usr/share/applications/foot.desktop"),
+            },
+            DockMenuRow::ShowInFiles,
             DockMenuRow::Separator,
+            DockMenuRow::ShowAllWindows,
+            DockMenuRow::Hide,
             DockMenuRow::Quit,
         ]
     );
-    let entries = menu(&item, DockMenuOrder::WindowsFirst, OptionHeld::Up);
+    let entries = menu(&item, OptionHeld::Up);
     assert_eq!(
         names(&entries),
         [
@@ -156,8 +156,10 @@ fn a_running_pinned_app_lists_windows_actions_remove_and_quit() {
             "--",
             "New Window",
             "--",
-            "Remove from Dock",
+            "Options > [Remove from Dock, Open at Login, Show in Files]",
             "--",
+            "Show All Windows",
+            "Hide",
             "Quit"
         ]
     );
@@ -169,17 +171,19 @@ fn a_running_pinned_app_lists_windows_actions_remove_and_quit() {
         })
         .collect();
     assert_eq!(
-        picks,
-        vec![
+        picks.first_chunk::<3>(),
+        Some(&[
             DockPick::Activate(WindowKey(2)),
             DockPick::Activate(WindowKey(1)),
             DockPick::Action {
                 app: AppId(TERM.to_owned()),
                 action: "new-window".to_owned()
             },
-            DockPick::Unpin(AppId(TERM.to_owned())),
-            DockPick::Quit(vec![WindowKey(2), WindowKey(1)]),
-        ]
+        ])
+    );
+    assert_eq!(
+        picks.last(),
+        Some(&DockPick::Quit(vec![WindowKey(2), WindowKey(1)]))
     );
 }
 
@@ -191,27 +195,26 @@ fn not_running_offers_no_quit_and_a_running_app_can_be_kept() {
         &idle,
         Some(&term()),
         &none,
-        DockMenuOrder::WindowsFirst,
         OptionHeld::Up,
         Checked::Unchecked,
     );
-    assert_eq!(
-        rows.last(),
-        Some(&DockMenuRow::KeepInDock(Checked::Checked))
-    );
+    assert!(rows.contains(&DockMenuRow::KeepInDock(Checked::Checked)));
     assert!(!rows.contains(&DockMenuRow::Quit));
     let running = DockItem {
         kind: ItemKind::Running(AppId(TERM.to_owned())),
         ..pinned(TileApp::Inactive)
     };
-    let entries = menu(&running, DockMenuOrder::WindowsFirst, OptionHeld::Up);
-    assert!(names(&entries).contains(&"Keep in Dock".to_owned()));
+    let entries = menu(&running, OptionHeld::Up);
+    assert!(
+        names(&entries)
+            .contains(&"Options > [Keep in Dock, Open at Login, Show in Files]".to_owned())
+    );
 }
 
 #[test]
-fn apple_order_puts_the_options_in_a_submenu_and_adds_show_all_windows() {
+fn the_options_go_in_a_submenu_and_show_all_windows_is_added() {
     let item = pinned(TileApp::Inactive);
-    let entries = menu(&item, DockMenuOrder::AppleOrder, OptionHeld::Held);
+    let entries = menu(&item, OptionHeld::Held);
     assert_eq!(
         names(&entries),
         [
@@ -231,7 +234,7 @@ fn apple_order_puts_the_options_in_a_submenu_and_adds_show_all_windows() {
         kind: ItemKind::Running(AppId(TERM.to_owned())),
         ..pinned(TileApp::Inactive)
     };
-    let kept = names(&menu(&running, DockMenuOrder::AppleOrder, OptionHeld::Up));
+    let kept = names(&menu(&running, OptionHeld::Up));
     assert!(kept.contains(&"Options > [Keep in Dock, Open at Login, Show in Files]".to_owned()));
 }
 
@@ -239,7 +242,7 @@ fn apple_order_puts_the_options_in_a_submenu_and_adds_show_all_windows() {
 fn open_at_login_is_checked_when_the_folder_says_so_and_a_pick_flips_it() {
     let item = pinned(TileApp::Inactive);
     let login_pick = |login| {
-        let entries = menu_at_login(&item, DockMenuOrder::AppleOrder, OptionHeld::Up, login);
+        let entries = menu_at_login(&item, OptionHeld::Up, login);
         let options = entries.into_iter().find_map(|e| match e {
             MenuItem::Submenu { children, .. } => Some(children),
             _ => None,
@@ -281,7 +284,7 @@ fn open_at_login_is_checked_when_the_folder_says_so_and_a_pick_flips_it() {
 #[test]
 fn show_all_windows_brings_back_the_minimized_ones_and_raises_the_front() {
     let item = pinned(TileApp::Inactive);
-    let entries = menu(&item, DockMenuOrder::AppleOrder, OptionHeld::Up);
+    let entries = menu(&item, OptionHeld::Up);
     let pick = entries.into_iter().find_map(|e| match e {
         MenuItem::Item { title, value, .. } if title == "Show All Windows" => Some(value),
         _ => None,
@@ -293,13 +296,4 @@ fn show_all_windows_brings_back_the_minimized_ones_and_raises_the_front() {
             front: Some(WindowKey(2)),
         })
     );
-}
-
-#[test]
-fn windows_first_has_neither_options_nor_show_all_windows() {
-    let item = pinned(TileApp::Inactive);
-    let listed = names(&menu(&item, DockMenuOrder::WindowsFirst, OptionHeld::Up));
-    let extra = |n: &&String| n.starts_with("Options") || n.as_str() == "Show All Windows";
-    assert!(!listed.iter().any(|n| extra(&n)));
-    assert!(!listed.contains(&"Open at Login".to_owned()));
 }

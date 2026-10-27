@@ -162,9 +162,9 @@ A settled item is deleted, not marked closed.
 - **Clipboard**: `ext_data_control_v1` (else wlr), selection only, never primary. An offer
   carrying a secret hint (`x-kde-passwordManagerHint`, `org.nspasteboard.*Type`) is skipped
   before any of it is read. Reads go through a pipe on the loop (2 s limit), text 1 MiB, images
-  up to `launcher.clipboard_image_max_mb`. Binding the device sends the current selection, which
+  up to 8 MiB (a constant). Binding the device sends the current selection, which
   is kept (Q320). Nothing is written to disk or logged but counts and fault kinds.
-- **Files**: `auto` asks a running Tracker (`org.freedesktop.Tracker3.Miner.Files`, SPARQL over
+- **Files**: the one behaviour asks a running Tracker (`org.freedesktop.Tracker3.Miner.Files`, SPARQL over
   `Endpoint.Query` with a pipe, `GRAPH tracker:FileSystem` and `DISTINCT`), else `fd` (or
   `fdfind`), else `plocate`; it never activates a dormant indexer. Programs run with no shell,
   the text one argument after `--`, killed at the budget. `plocate --limit` counts matches
@@ -445,17 +445,16 @@ A settled item is deleted, not marked closed.
   `ds_settings::SettingsDoc`, and the schema. The daemon reads, saves, watches and publishes the
   file (`sill::daemon::settings`, over `ds_settings::Store`); surfaces receive it through a second
   root context, `SettingsFeed` (`sill-ui-kit`), and read one domain with `use_section`.
-- **One-variant enums cannot be settings** (the derive refuses them): `launcher.material` and
-  `power_menu.material` are `PanelMaterial::{Sheet, Popover}`.
 - **Retired keys**: `control_center.material`, `dock.position`, `session.user_picture`,
   `spaces.lookup_order`, `notifications.banner_entry_direction` and, with step 4a.8, `bar.title_hit_height_px` (a
   bar item's hit box is the item's own), `dock.progress_style`,
   `dock.badge_size_px`, `dock.badge_radius_px`, `dock.progress_ring_diameter_px` and
   `dock.progress_ring_stroke_px` had no reader (quire's `DockTile` draws its own `Badge` and progress
   bar), so the fields are gone and design/22's rows say `RETIRING`; a file that still sets one is
-  told the key is unknown. `dock.hold_to_menu_ms` and `notifications.banner_hold_ms` are read (the
-  dock machine's press, the banner hold) and stay.
-- **`screenshot.tool` is typed at load** (`ShotTool`, stored as its text). `calendar.sources`,
+  told the key is unknown. The 2026-10-27 prune turned the numbers, hold times and looks into
+  constants (Settings shows only what an OS offers); a file that still sets one is told the key is
+  unknown, and the next save keeps it.
+- **The screenshot tool is the portal**: there is no `screenshot.tool` and no `ShotTool`. `calendar.sources`,
   `screenshot.folders` and `widgets.world_clocks` stay text: their
   parse needs `$HOME` (`~/`) or belongs to the reader, and a typed form would rewrite the
   person's text on save.
@@ -515,8 +514,8 @@ A settled item is deleted, not marked closed.
 - **sill owns idle in a sill session**: the dim, displays
   off through `zwlr_output_power_v1`, the lock as the displays go off (not 0.5 s after, so a
   quick wake cannot show the desktop), the lock screen dark again after
-  `idle.locked_screen_off_s`, and idle suspend through logind. Times come from sill's own keys
-  (a screen-off time per power source). Idle is `Off` when nested in another desktop.
+  a fixed 60 s, and idle suspend through logind. The dim (5 s before the display goes off, at 50 %)
+  is fixed; the screen-off and suspend times are sill's own keys (one per power source). Idle is `Off` when nested in another desktop.
 - **Inhibitors**: Wayland idle inhibitors are the compositor's (sill asks
   `get_idle_notification`, which honours them); sill serves `org.freedesktop.ScreenSaver` and
   honours logind's idle inhibitors. While any is held no idle watch is held.
@@ -541,7 +540,7 @@ A settled item is deleted, not marked closed.
   listed card's plate (quire's `NotificationCard` plate is a focusable button: Enter and Space
   press it, Tab walks its action buttons, which activate on Enter) and pauses that card's hold
   only (`Entry::keys`, folded with the pointer so the hold resumes when neither is on it). Up and
-  Down follow the stack as drawn (newest at the top or the bottom, by `banner_position`), the ends
+  Down follow the stack as drawn (newest at the top, the banner position being fixed), the ends
   do not wrap, and the thumbnail is a separate surface they never reach. Escape, Delete and
   Backspace dismiss the card and hand the keyboard to the next older card (else the newer); a
   press, a swipe or the service dropping the holder gives it back instead, as does the last one
@@ -722,10 +721,9 @@ a source; `assumed` means not yet checked.
 - Flake cause: `edit_widgets` tests shared one state file (`sill-ew-sheet-<pid>`), cleared by every
   `start` and written by every Add, so a test starting while another saved read the other's widgets
   and `settle_until` never saw its row count. `scratch_places` now names each file by a counter too.
-- **Three `companion.*` keys have no reader.** `companion.summon` (off must stop the tap and the
-  summon), `companion.notify` (a notification when a task needs the person) and
-  `companion.confirm_arm_ms` (the confirmation sheet's arm time) are in the domain and the schema;
-  nothing reads them. Ends when the tap machine, the notifications service and the confirmation
+- **Two `companion.*` keys have no reader.** `companion.summon` (off must stop the tap and the
+  summon) and `companion.notify` (a notification when a task needs the person) are in the domain
+  and the schema; nothing reads them. (`companion.confirm_arm_ms` is a constant now.) Ends when the tap machine, the notifications service and the confirmation
   sheet each take theirs. `agent.undo.keep_h` is docket's file, not sill's.
 - **quire's companion components are placeholders.** `AnswerCard`, `ContextChips`, `RunRow`,
   `ActivityStrip`, `MemoryTimeline` draw an empty root, and `CommandPalette` has no `mode` or
@@ -790,7 +788,7 @@ a source; `assumed` means not yet checked.
 - **Q456** A harness-level environment pin, so consumers need no `PinnedAppearance` of their own.
 - **Q461** The gallery cannot say what a host refuses; **Q462** it cannot reorder.
 - **Q480** `IdleDim.level` is documented as the kept brightness but drawn as the scrim's
-  opacity; sill passes `100 - idle.dim_level_pct`.
+  opacity; sill passes `100 - 50` (the fixed dim level).
 - **Q570** The inline alert's scrim ignores the container's radius and its panel lets the rows
   show through.
 - **Q6001** The Up Next and Now Playing widgets style their inner words in sill's own CSS (a
@@ -799,9 +797,9 @@ a source; `assumed` means not yet checked.
 - **Q6002** `Alert` has no disabled button and no arrow keys, so the power menu leaves out an
   action logind refuses instead of drawing it disabled, and Tab replaces the arrows.
 - **Q184** Hot corners have no behaviour section in design/13.
-- design/22 still shows the old defaults for `bar.title_padding_px`,
-  `bar.open_title_pill_height_px`, `bar.item_radius_px`, `bar.status_gap_px`,
-  `menus.highlight_radius_px` and `control_center.grid_gap_px`/`grid_padding_px`.
+- design/22 still shows rows for the keys the 2026-10-27 prune made constants (the list is
+  `PRUNED` in `crates/sill-settings/tests/it/keys.rs`) and the old defaults for
+  `control_center.grid_gap_px`/`grid_padding_px`; the rows are quire's to remove.
 - The Harness's `count` misses `[aria-selected="true"] .ds-chord` (an attribute selector with a
   descendant).
 
@@ -1812,6 +1810,5 @@ The line is built by the pure `sill_model::launch::launch_line`.
   (`sill::edge_reveal`), a hide to every output; ends when the note carries the output.
 - **Full screen with `desktop_only` or `never`.** The bar should stay in full screen there; sill has no
   request to tell casement the mode yet (the compositor owner's), so casement still hides it.
-- **The bar reuses the dock's hide numbers** (`dock.autohide_delay_ms`, `dock.autohide_slide_ms`,
-  `dock.autohide_trigger_strip_px`) and does not follow the desktop's own reduce-motion preference, only
+- **The bar reuses the dock's hide numbers** (constants now) and does not follow the desktop's own reduce-motion preference, only
   `appearance.motion_level` (the dock follows neither).

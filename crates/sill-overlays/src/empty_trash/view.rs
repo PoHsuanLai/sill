@@ -11,7 +11,6 @@ use ds::prelude::*;
 use ds::root::common::Common;
 use shell_host::OutputInfo;
 use sill_settings::confirm_arm;
-use sill_ui_kit::hooks::use_section;
 use sill_ui_kit::links::{EmptyTrashLink, EmptyTrashOpening};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle};
@@ -46,7 +45,6 @@ pub(super) fn empty_trash(output: OutputInfo) -> Element {
 #[component]
 fn Question(shown: Shown, stage: Signal<SheetStage<EmptyTrashOpening>>) -> Element {
     let link = use_context::<EmptyTrashLink>();
-    let companion = use_section(|file| &file.companion);
     let buttons = vec![
         AlertButton::new(
             "Cancel",
@@ -76,7 +74,7 @@ fn Question(shown: Shown, stage: Signal<SheetStage<EmptyTrashOpening>>) -> Eleme
             message: Some(TextLine::from(MESSAGE)),
             buttons,
             // A key or click already on its way to the window behind answers nothing.
-            arm_after: Some(confirm_arm(&companion())),
+            arm_after: Some(confirm_arm()),
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
             common: Common { id: Some(PANEL_ID.to_owned()), ..Common::default() },

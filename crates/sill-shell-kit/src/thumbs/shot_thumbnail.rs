@@ -4,7 +4,7 @@
 //! The picture sits letterboxed in a card of the Toast material ([`shot_frame`]), inside a
 //! transparent Toast scope, so the card paints the material wherever its root is (as
 //! `NotificationCard` does). Showing and hiding are the caller's (`shown`), since it owns the
-//! hold (`screenshot.thumbnail_hold_ms`) and knows when a dismissal happened; the card slides in
+//! hold (the thumbnail hold) and knows when a dismissal happened; the card slides in
 //! (`Anim::PanelIn`), slides out to the right (`Anim::PanelOut`) and calls `on_hidden` once that
 //! exit has settled, so the host can unmap the surface. The pointer's arrival and departure go
 //! to `onhover`, so the caller's hold can pause while the card is looked at, and show the

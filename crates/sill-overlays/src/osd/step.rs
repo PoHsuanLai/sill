@@ -1,5 +1,5 @@
 //! One indicator's show and hold (design/20 §1.7): a change
-//! shows it and restarts `osd.hold_ms`; when the hold ends it is hidden. Quire's `Osd` card owns
+//! shows it and restarts the hold; when the hold ends it is hidden. Quire's `Osd` card owns
 //! its own entrance and exit fade from that `shown` and calls `on_hidden` once the exit has
 //! settled, so the surface unmaps then, not when this machine's hold ends. Pure: time is a
 //! [`Stamp`] argument, and the surface wakes the machine at [`OsdHold::wake`].
@@ -7,7 +7,7 @@
 use ds::base::time::stamp::{Ms, Stamp};
 use shell_host::Visibility;
 
-/// How long the indicator holds after the last change, in milliseconds (`osd.hold_ms`).
+/// How long the indicator holds after the last change, in milliseconds (`io::HOLD`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OsdTimes {
     pub hold_ms: Ms,

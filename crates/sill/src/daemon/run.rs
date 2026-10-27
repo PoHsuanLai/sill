@@ -13,7 +13,6 @@ use shell_host::{Host, HostConfig, HostHandle};
 use sill_model::desktop::{DesktopView, MacMods};
 use sill_model::locker::LockPhase;
 use sill_services::env::Dirs;
-use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     ActionLink, BannerLink, CenterLink, ControlCenterLink, CornerLink, DisplayTrialLink, EdgeLink,
     EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, Links, LockLink, OsdLink, Outbox,
@@ -95,7 +94,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     ));
     let handed_by_compositor = handed.is_some();
     let route = super::compositor::host_route(handed);
-    let host = match Host::<ShellMsg>::connect(host_config(&first, &env.dirs, route)) {
+    let host = match Host::<ShellMsg>::connect(host_config(&env.dirs, route)) {
         Ok(host) => host,
         Err(error) => return fatal(&format!("connecting to the compositor: {error}")),
     };
@@ -231,11 +230,14 @@ fn take_door() -> Result<(latchkey::Agent, Door), ExitCode> {
     Ok((agent, Door::from(listening)))
 }
 
-/// The host's configuration: shell-host's, with the first-mouse window from `first`'s settings
-/// and the connection `route` names.
-fn host_config(first: &ShellFile, dirs: &Dirs, route: shell_host::WaylandRoute) -> HostConfig {
+/// How long, in ms, after a window gains focus its first click only focuses it.
+const FIRST_MOUSE_WINDOW_MS: u32 = 100;
+
+/// The host's configuration: shell-host's, with the first-mouse window and the connection
+/// `route` names.
+fn host_config(dirs: &Dirs, route: shell_host::WaylandRoute) -> HostConfig {
     HostConfig {
-        first_mouse_window_ms: shell_host::Ms(u32::from(first.menus.first_mouse_window_ms.0)),
+        first_mouse_window_ms: shell_host::Ms(FIRST_MOUSE_WINDOW_MS),
         route,
         ..sill_ui_kit::root::host_config(dirs)
     }

@@ -10,7 +10,7 @@ pub const TITLE: &str = "Notifications";
 pub const EMPTY: &str = "No Notifications";
 
 /// The footer, when sill is not receiving notifications: another daemon holds the name, or
-/// `notifications.server` is passive.
+/// the service has not been configured yet (passive).
 pub fn server_line(server: &ServerStatus) -> Option<String> {
     match (&server.holder, server.mode) {
         (NameHolder::Other(owner), _) => Some(format!(

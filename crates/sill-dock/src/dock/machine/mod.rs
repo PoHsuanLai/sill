@@ -18,6 +18,7 @@ mod types;
 pub use hover::{FreezeCause, Hover, Moved, displayed};
 pub use label::Label;
 pub use params::DockParams;
+pub(crate) use params::REMOVE_THRESHOLD_PX;
 pub use press::{ActivateMode, DropZone, Instance, Press};
 pub use reveal::{Reveal, exclusive_zone, slide_offset};
 pub(crate) use reveal::{hit_region, pill_region, strip_region};

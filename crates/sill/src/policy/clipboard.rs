@@ -1,5 +1,5 @@
-//! The clipboard service's policy from `launcher.*` (history on or off, its length, the largest
-//! image). The service is passive until the first, which is sent at start and again whenever the
+//! The clipboard service's policy from `launcher.*` (history on or off; its length and the largest
+//! image are constants). The service is passive until the first, which is sent at start and again whenever the
 //! settings change it.
 
 use sill_model::clipboard::{ClipPolicy, ClipboardCommand, EntryCap, ImageCap};
@@ -7,12 +7,18 @@ use sill_settings::{LauncherSettings, ShellFile};
 
 use super::Policy;
 
+/// Most history entries kept.
+const ENTRY_CAP: u16 = 50;
+
+/// The largest image kept, in bytes.
+const IMAGE_MAX_BYTES: u64 = 8 << 20;
+
 /// The clipboard service's policy `l` makes.
 pub fn clip_policy_of(l: &LauncherSettings) -> ClipPolicy {
     ClipPolicy {
         mode: l.clipboard_history,
-        cap: EntryCap(l.clipboard_cap.0),
-        images: ImageCap(u64::from(l.clipboard_image_max_mb.0) << 20),
+        cap: EntryCap(ENTRY_CAP),
+        images: ImageCap(IMAGE_MAX_BYTES),
     }
 }
 
@@ -36,7 +42,7 @@ impl Policy for ClipboardBridge {
 #[cfg(test)]
 mod tests {
     use sill_model::clipboard::{EntryCap, HistoryMode, ImageCap};
-    use sill_settings::{Count, LauncherSettings};
+    use sill_settings::LauncherSettings;
 
     use super::clip_policy_of;
 
@@ -52,13 +58,9 @@ mod tests {
     fn every_setting_reaches_the_clipboard_policy() {
         let l = LauncherSettings {
             clipboard_history: HistoryMode::Off,
-            clipboard_cap: Count(7),
-            clipboard_image_max_mb: Count(0),
             ..LauncherSettings::default()
         };
         let clip = clip_policy_of(&l);
         assert_eq!(clip.mode, HistoryMode::Off);
-        assert_eq!(clip.cap, EntryCap(7));
-        assert_eq!(clip.images, ImageCap(0));
     }
 }

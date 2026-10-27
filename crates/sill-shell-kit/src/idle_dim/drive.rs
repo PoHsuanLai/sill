@@ -2,7 +2,7 @@
 //! (design/26-DETAILS.md section 4.1, "Why Rust tweens") rather than a CSS keyframe, because waking must snap the share to zero on input even mid-fade, and a CSS `animation`
 //! cannot retarget without a restyle. sill's own idle service owns the phase this plays
 //! (dim before screen-off, never real brightness; design/22-SETTINGS.md section 3.24
-//! `idle.dim_s`/`idle.dim_level_pct`; sill FINDINGS "sill idle").
+//! the dim lead and level; sill FINDINGS "sill idle").
 //!
 //! Not built on `Detailed`/`Cue`: those classify an arbitrary state change into
 //! one of the grammar's moments, but this primitive already knows exactly what a phase change

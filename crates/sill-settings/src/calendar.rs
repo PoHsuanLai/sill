@@ -2,7 +2,6 @@
 //! §1.12, which sill moves into the notification center's widgets as macOS 11 does). All Advanced.
 
 use ds_core::word::Word;
-use ds_settings::Count;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
@@ -55,23 +54,6 @@ pub struct CalendarSettings {
         advanced
     )]
     pub week_numbers: WeekNumbers,
-    #[settings(
-        label = "Up Next looks ahead",
-        help = "How many days ahead Up Next looks.",
-        section = "Calendar",
-        range = "1..=31",
-        unit = "days",
-        advanced
-    )]
-    pub up_next_days: Count,
-    #[settings(
-        label = "Up Next shows at most",
-        help = "How many events Up Next lists.",
-        section = "Calendar",
-        range = "1..=10",
-        advanced
-    )]
-    pub up_next_max: Count,
 }
 
 impl Default for CalendarSettings {
@@ -80,8 +62,6 @@ impl Default for CalendarSettings {
             sources: "auto".to_owned(),
             first_weekday: FirstWeekday::Monday,
             week_numbers: WeekNumbers::Hide,
-            up_next_days: Count(7),
-            up_next_max: Count(3),
         }
     }
 }

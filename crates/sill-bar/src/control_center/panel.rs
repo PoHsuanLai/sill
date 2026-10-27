@@ -63,7 +63,7 @@ pub(crate) fn control_center(
     let root = rsx! {
         Grid {
             modules: cc.modules.clone(),
-            columns: GridColumns(cc.grid_columns.0),
+            columns: GridColumns::default(),
             gap: Px(f32::from(cc.grid_gap_px.0)),
             output: output.clone(),
             on_detail: move |detail: Detail| go.call(PageInput::Open(detail)),
@@ -146,7 +146,7 @@ pub(crate) fn panel_style(width: u16, padding: u16, cap: Option<PanelCap>) -> St
     format!("width:{width}px;padding:{padding}px;box-sizing:border-box{cap}")
 }
 
-/// The modules on quire's grid (`control_center.grid_columns` and `grid_gap_px`), in order: a
+/// The modules on quire's grid (two columns, and `grid_gap_px`), in order: a
 /// tile takes a column, a full-width module the row (as [`super::place`] lays them out). The
 /// panel pads the grid and the detail panes alike with `grid_padding_px`,
 /// so the grid pads nothing of its own.

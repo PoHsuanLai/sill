@@ -12,7 +12,7 @@ use ds::base::time::stamp::Stamp;
 use ds::prelude::MenuItem;
 use shell_host::{FrameDrive, Rect, SurfaceHandle};
 use sill_model::badges::Badges;
-use sill_settings::{AutoHide, DockMenuOrder, Magnification};
+use sill_settings::{AutoHide, Magnification};
 use sill_ui_kit::services::Services;
 
 use crate::dock::context_menu::{OptionHeld, app, divider, menu_entries, menu_windows, trash};
@@ -38,12 +38,11 @@ pub(crate) struct SessionDeps {
     pub frame: Frame,
     pub params: DockParams,
     pub world: World,
-    pub order: DockMenuOrder,
     /// `dock.autohide` and `dock.magnification`, which the dock's own menu reads.
     pub autohide: AutoHide,
     pub magnification: Magnification,
     pub look: PopupLook,
-    /// `dock.remove_threshold_px`.
+    /// How far an icon is dragged out of the Dock to remove it.
     pub remove: sill_model::units::Cpx,
 }
 
@@ -290,14 +289,13 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
                 item,
                 entry,
                 toplevels,
-                deps.order,
                 OptionHeld::Up,
                 login_state(item.kind.app_id()),
             ),
             menu_windows(item, entry, toplevels),
         ),
     };
-    let entries = menu_entries(&rows, item.kind.app_id(), &windows, deps.order);
+    let entries = menu_entries(&rows, item.kind.app_id(), &windows);
     let anchor = deps.frame.tiles.get(at).map(|area| tile_anchor(*area));
     show(slots, deps, outward, entries, anchor);
 }
@@ -305,7 +303,7 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
 /// Open the dock's own menu over the pill at `at`.
 fn open_divider_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, at: Point) {
     let rows = divider::rows(deps.autohide, deps.magnification);
-    let entries = menu_entries(&rows, None, &[], deps.order);
+    let entries = menu_entries(&rows, None, &[]);
     let anchor = Some(pill_anchor(deps.frame.pill, at.x));
     show(slots, deps, outward, entries, anchor);
 }

@@ -4,7 +4,7 @@
 //! `Ds` root itself: a `Material::Dock` root in a box at the pill's rectangle, which draws the
 //! Space gradient at the Dock's tint alpha with the material stack's hairline, highlight and
 //! shadows (quire's tinted frame), its corner a squircle of `dock.pill_radius_px` (the macOS
-//! polish pass). The box around the root carries the shell type scale and quire's dock metrics
+//! polish pass). The box around the root carries quire's dock metrics
 //! (`DockMetrics`: gap, padding, the running dot), and the root's first child is quire's
 //! `DockFloor` (off unless `dock.floor` is on). Everything else hangs from the root in a layer
 //! moved back to the surface's origin, so tiles, dots and the hit elements keep surface
@@ -29,13 +29,14 @@ use crate::dock::io::{SessionDeps, World, use_dock};
 use crate::dock::items::dock_items;
 use crate::dock::layer::layer;
 use crate::dock::machine::{
-    DockEvent, DockParams, DockState, Label, Reveal, displayed, slide_offset,
+    DockEvent, DockParams, DockState, Label, REMOVE_THRESHOLD_PX, Reveal, displayed, slide_offset,
 };
 use crate::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::dock::rest_rects::app_rects;
 use crate::dock::tile::{LabelShown, Tile, TileLook, px};
 use sill_services::{AppsService, BadgesService, PinsService, WindowsService};
 use sill_ui_kit::app_icons::icon_look;
+use sill_ui_kit::autohide;
 use sill_ui_kit::hooks::{
     use_appearance, use_edge_reveal, use_follow_layer, use_service, use_service_part, use_services,
     use_settings,
@@ -44,7 +45,6 @@ use sill_ui_kit::links::RevealEdge;
 use sill_ui_kit::look::{active_workspace, use_active_look};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::root::use_root_style;
-use sill_ui_kit::shell_style::shell_metrics;
 
 /// The dock's own stylesheet (lint-clean under `Profile::Strict`, `tests/dock_lint.rs`).
 pub const DOCK_CSS: &str = include_str!("style.css");
@@ -70,7 +70,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         badges: use_service::<BadgesService>()(),
         workspace,
     };
-    let metrics = shell_metrics(&file);
     let stack = environment.material_stack();
     let items = dock_items(&world.pins, &world.toplevels, &world.index, file.dock.trash);
     let initial = DockState::new(match file.dock.autohide {
@@ -130,32 +129,25 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         frame: shown.clone(),
         params,
         world: world.clone(),
-        order: file.dock.context_menu_order,
         autohide: file.dock.autohide,
         magnification: file.dock.magnification,
         look: PopupLook {
             appearance,
             system: environment.system,
             tint: environment.tint_alpha(),
-            metrics,
             stack,
         },
-        remove: Cpx::px(i32::from(file.dock.remove_threshold_px.0)),
+        remove: Cpx::px(REMOVE_THRESHOLD_PX),
     });
     let platform = use_platform();
     let send = move |input: PointerInput| feed.call(DockInput::Pointer(input));
     let rows = Rows::new(&file.dock);
-    let strip = strip_area(
-        &rest,
-        &rows,
-        i32::from(file.dock.autohide_trigger_strip_px.0),
-        slide,
-    );
+    let strip = strip_area(&rest, &rows, i32::from(autohide::TRIGGER_STRIP_PX), slide);
     rsx! {
         div {
             id: "dock-pill",
             class: "sill-dock-pill",
-            style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px);{metrics.style_attr()}{dock_metrics(&file.dock).style_attr()}",
+            style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px);{dock_metrics(&file.dock).style_attr()}",
             Ds {
                 sheet: Some(sill_shell_kit::stylesheet()),
                 appearance,

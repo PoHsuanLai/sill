@@ -135,7 +135,7 @@ step_tab() {
   open_with_keyboard "$log"; status=$?
   [ "$status" = 0 ] || return "$status"
   grep -q "power_menu.opened default=Shut Down" "$OUT_DIR/daemon.log" || {
-    echo "the menu did not open on Shut Down (power_menu.default_action)" >&2; return 1; }
+    echo "the menu did not open on Shut Down (the default)" >&2; return 1; }
   grep 'power_menu.offers=' "$OUT_DIR/daemon.log" | tail -n 1 | tee -a "$log" >&2
   capture "$MENU" "$OUT_DIR/before-tab.png" || { echo "no capture before Tab" >&2; return 1; }
   type_keys "$log" Tab || return 2

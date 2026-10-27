@@ -45,7 +45,7 @@ pub enum TapOut {
     Summon,
 }
 
-/// How long a second tap may follow the first (`companion.double_tap_ms`).
+/// How long a second tap may follow the first .
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TapParams {
     /// The window.

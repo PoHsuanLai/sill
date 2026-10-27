@@ -1,5 +1,5 @@
 //! The screenshot thumbnail in a Blitz harness, on the virtual clock and the fake services: a ready
-//! shot slides in (a pending one waits for its preview) and holds `screenshot.thumbnail_hold_ms`,
+//! shot slides in (a pending one waits for its preview) and holds the thumbnail hold,
 //! then says it was kept and plays out; the pointer on it pauses the hold and leaving it gives the
 //! rest; a click opens it; a swipe right keeps it; Delete trashes it; a drag left or up hands it
 //! nowhere yet and it stays; a newer shot replaces it; `screenshot.thumbnail = "hide"` and
@@ -10,7 +10,6 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_model::screenshots::{Shot, ShotCommand, ShotId, ShotLeave, ShotPreview, Shots};
 use sill_notify_ui::ScreenshotThumb;
@@ -117,16 +116,13 @@ fn one_up(running: &mut Running) {
     running.harness.advance(Duration::from_millis(400));
 }
 
-const HOLD_MS: u64 = 1000;
+/// How long the thumbnail stays (the constant in `screenshot_thumb::step`).
+const HOLD_MS: u64 = 5200;
+/// The least time left after the pointer leaves the card (the same constant).
+const REST_MS: u64 = 1500;
 
 fn file() -> ShellFile {
-    ShellFile {
-        screenshot: ScreenshotSettings {
-            thumbnail_hold_ms: Ms(HOLD_MS as u16),
-            ..ScreenshotSettings::default()
-        },
-        ..ShellFile::default()
-    }
+    ShellFile::default()
 }
 
 fn leave(id: u64, why: ShotLeave) -> Vec<ShotCommand> {
@@ -216,7 +212,7 @@ fn the_pointer_pauses_the_hold_and_leaving_gives_the_rest() {
         x: Px(2.0),
         y: Px(2.0),
     }));
-    let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
+    let rest = REST_MS;
     running.harness.advance(Duration::from_millis(rest - 300));
     assert_eq!(leaving(&running), 0, "the rest after a hover");
     assert_eq!(
@@ -285,7 +281,7 @@ fn a_drag_out_with_no_host_is_refused_the_card_stays_and_the_hold_resumes() {
     );
     assert_eq!((cards(&running), leaving(&running)), (1, 0));
     // Refused, the hold gives the rest after a hover again and then keeps the file.
-    let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
+    let rest = REST_MS;
     assert_eq!(
         until(
             &mut running,

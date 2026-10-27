@@ -13,7 +13,7 @@
 #   2. `sill debug osd volume 60` shows it: a capture with the card's pixels within 200 ms.
 #      Screenshot dev/out/osd-casement.png while it holds.
 #   3. It hides by itself about 1.5 s after the change: the capture fails between the hold
-#      (osd.hold_ms, 1500) and the hold plus the fade (--t-move) plus 400 ms of slack.
+#      (the OSD's constant hold, 1500) and the hold plus the fade (--t-move) plus 400 ms of slack.
 #   4. A change during the fade takes it back: shown again at 1.6 s, it is still up at 2.4 s.
 #   5. 5 s idle after it hides: 0 frames on the OSD surface.
 #

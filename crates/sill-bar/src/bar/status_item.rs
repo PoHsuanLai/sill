@@ -7,22 +7,17 @@ use ds::host::measure::use_rect;
 use ds::prelude::*;
 use ds::root::common::Common;
 use ds::style::tokens::status::StatusMetrics;
-use sill_settings::{BarGlyphSize, BarSettings};
+use sill_settings::BarSettings;
 use sill_shell_kit::prelude::*;
 
 use super::menus::BarMenu;
 use super::title::{shown_of, use_title_pointer};
 
-/// The status items' box and glyph from `bar.status_icon_box_px`, `bar.status_glyph_px` and
-/// `bar.glyph_size_policy`: under `IconSizeBar22` the glyph fills the box.
+/// The status items' box and glyph from `bar.status_icon_box_px` and `bar.status_glyph_px`.
 pub(crate) fn status_metrics(bar: &BarSettings) -> StatusMetrics {
-    let glyph = match bar.glyph_size_policy {
-        BarGlyphSize::StatusIcon16 => bar.status_glyph_px.0,
-        BarGlyphSize::IconSizeBar22 => bar.status_icon_box_px.0,
-    };
     StatusMetrics {
         box_size: Px(f32::from(bar.status_icon_box_px.0)),
-        glyph: Px(f32::from(glyph)),
+        glyph: Px(f32::from(bar.status_glyph_px.0)),
     }
 }
 
@@ -55,29 +50,23 @@ pub(crate) fn StatusIcon(
 mod tests {
     use super::status_metrics;
     use ds::prelude::*;
-    use sill_settings::{BarGlyphSize, BarSettings, Px as KeyPx};
+    use sill_settings::{BarSettings, Px as KeyPx};
 
     #[test]
-    fn the_glyph_policy_picks_the_glyph_or_the_box() {
-        // (box, glyph, policy, the metrics' box and glyph)
-        const CASES: &[(u16, u16, BarGlyphSize, f32, f32)] = &[
-            (22, 16, BarGlyphSize::StatusIcon16, 22.0, 16.0),
-            (22, 16, BarGlyphSize::IconSizeBar22, 22.0, 22.0),
-            (26, 18, BarGlyphSize::StatusIcon16, 26.0, 18.0),
-            (26, 18, BarGlyphSize::IconSizeBar22, 26.0, 26.0),
-        ];
-        for &(size, glyph, policy, want_box, want_glyph) in CASES {
+    fn the_metrics_are_the_box_and_the_glyph() {
+        // (box, glyph)
+        const CASES: &[(u16, u16)] = &[(22, 16), (26, 18)];
+        for &(size, glyph) in CASES {
             let bar = BarSettings {
                 status_icon_box_px: KeyPx(size),
                 status_glyph_px: KeyPx(glyph),
-                glyph_size_policy: policy,
                 ..BarSettings::default()
             };
             let metrics = status_metrics(&bar);
             assert_eq!(
                 (metrics.box_size, metrics.glyph),
-                (Px(want_box), Px(want_glyph)),
-                "{size} {glyph} {policy:?}"
+                (Px(f32::from(size)), Px(f32::from(glyph))),
+                "{size} {glyph}"
             );
         }
         assert_eq!(

@@ -617,9 +617,6 @@ modules = ["focus", "appearance", "wifi", "bluetooth", "sound"]
 menu_bar_wifi = "show"
 menu_bar_sound = "show"
 menu_bar_battery = "hide"
-
-[notifications]
-server = "own"
 EOF
   launch_daemon || return 1
   NAME=$(output_name) || return 1

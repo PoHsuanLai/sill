@@ -2,7 +2,7 @@
 //! One card, a title line over a [`LevelIndicator`], in the Osd material with the
 //! Space gradient at its tint, styled as a control-center module (`--r-tile`, the grid's padding,
 //! design/13 section 13.3.7). It fades in with `Anim::PaletteFade` and fades out with `Anim::OsdOut`, and calls
-//! `on_hidden` when the exit has settled, so the host can unmap the surface. The hold is the caller's: it knows `osd.hold_ms`.
+//! `on_hidden` when the exit has settled, so the host can unmap the surface. The hold is the caller's: it knows the hold (a constant).
 //!
 //! **Where it goes.** Put it directly inside a transparent Osd root:
 //! `Ds { material: Material::Osd, chrome: Some(RootChrome::Transparent), stack, tint_alpha, look,
@@ -34,7 +34,7 @@ pub struct OsdLevel {
     pub glyph: LevelGlyph,
 }
 
-/// Where the card sits (`osd.position`, design/22 section 3.16).
+/// Where the card sits (a fixed choice, design/22 section 3.16).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Word)]
 pub enum OsdPosition {
     /// Top right, under the bar's reserve, as current macOS shows its volume and brightness

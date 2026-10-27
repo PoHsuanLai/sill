@@ -22,8 +22,11 @@ pub(crate) struct Dropped {
     pub x: i32,
 }
 
+/// How far a press must move before a release on another pill reorders.
+pub(crate) const DRAG_THRESHOLD_PX: u16 = 8;
+
 /// The reorder `pressed` then `dropped` asks for: none for a release on the same pill or one
-/// closer than `threshold` px (the drag threshold, `dock.hold_to_menu_move_px`).
+/// closer than `threshold` px.
 pub(crate) fn reorder(pressed: Pressed, dropped: Dropped, threshold: u16) -> Option<WlCommand> {
     let moved = pressed.x.abs_diff(dropped.x);
     if dropped.index == pressed.index || moved < u32::from(threshold) {

@@ -4,7 +4,7 @@
 //! `tests/files_tracker_live.rs` run it in a scratch environment (a scratch `HOME`, a private
 //! bus, a stub opener), never in the person's own.
 //!
-//! Usage: `files_probe --home DIR [--backend auto|tracker|fd|plocate|off] [--query TEXT]
+//! Usage: `files_probe --home DIR [--backend auto|tracker|fd|plocate] [--query TEXT]
 //! [--budget-ms N] [--retry-ms N] [--choose primary|reveal|copy] [--settle-ms N] [--detect]`
 //!
 //! Prints `detect tracker=… fd=… plocate=…` for `--detect`, one `row\t<title>\t<folder>
@@ -20,7 +20,7 @@ use sill_launcher::{
 };
 use sill_model::apps::AppIndex;
 use sill_model::launch::{LaunchCommand, OpenRequest};
-use sill_model::results::{FilesChoice, LauncherPolicy};
+use sill_model::results::LauncherPolicy;
 use sill_search::providers::FilesProvider;
 use sill_search::providers::files::tracker::TrackerIndex;
 use sill_search::providers::files::walk::{WalkIndex, Walker};
@@ -52,7 +52,6 @@ enum Backend {
     Tracker,
     Fd,
     Plocate,
-    Off,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,14 +99,7 @@ async fn run(args: Args) {
 
 /// What the chosen index itself answered, as its kind and a count (no paths): why no row came.
 async fn raw_answer(args: &Args) -> String {
-    let index: Arc<dyn FileIndex> = match args.backend {
-        Backend::Tracker => Arc::new(TrackerIndex { session: session() }),
-        Backend::Fd | Backend::Auto => Arc::new(WalkIndex { walker: Walker::Fd }),
-        Backend::Plocate => Arc::new(WalkIndex {
-            walker: Walker::Plocate,
-        }),
-        Backend::Off => return "off".to_owned(),
-    };
+    let index = index_of(args.backend);
     let ask = FileAsk {
         text: args.query.clone(),
         under: args.home.clone(),
@@ -130,21 +122,25 @@ fn session() -> Bus {
     Bus::session(BusRoute::Usual)
 }
 
+/// The index `backend` names: `auto` is the one the shell picks on this machine.
+fn index_of(backend: Backend) -> Arc<dyn FileIndex> {
+    match backend {
+        Backend::Tracker => Arc::new(TrackerIndex { session: session() }),
+        Backend::Fd | Backend::Auto => Arc::new(WalkIndex { walker: Walker::Fd }),
+        Backend::Plocate => Arc::new(WalkIndex {
+            walker: Walker::Plocate,
+        }),
+    }
+}
+
 fn provider(args: &Args) -> FilesProvider {
-    let (files, source) = match args.backend {
-        Backend::Auto => (FilesChoice::Auto, IndexSource::Detect(session())),
-        Backend::Tracker => (FilesChoice::Tracker, IndexSource::Detect(session())),
-        Backend::Fd => (FilesChoice::Walk, IndexSource::Detect(session())),
-        Backend::Plocate => (
-            FilesChoice::Walk,
-            IndexSource::Given(Arc::new(WalkIndex {
-                walker: Walker::Plocate,
-            })),
-        ),
-        Backend::Off => (FilesChoice::Off, IndexSource::Detect(session())),
+    let source = match args.backend {
+        Backend::Auto => IndexSource::Detect(session()),
+        Backend::Tracker | Backend::Fd | Backend::Plocate => {
+            IndexSource::Given(index_of(args.backend))
+        }
     };
     let policy = LauncherPolicy {
-        files,
         files_budget: args.budget,
         ..LauncherPolicy::default()
     };
@@ -258,7 +254,6 @@ fn backend(name: &str) -> Backend {
         "tracker" => Backend::Tracker,
         "fd" => Backend::Fd,
         "plocate" => Backend::Plocate,
-        "off" => Backend::Off,
         other => usage(&format!("unknown backend {other}")),
     }
 }
@@ -275,7 +270,7 @@ fn choice_of(name: &str) -> Choice {
 fn usage(problem: &str) -> ! {
     eprintln!("files_probe: {problem}");
     eprintln!(
-        "usage: files_probe --home DIR [--backend auto|tracker|fd|plocate|off] \
+        "usage: files_probe --home DIR [--backend auto|tracker|fd|plocate] \
          [--query TEXT] [--budget-ms N] [--retry-ms N] [--choose primary|reveal|copy] \
          [--settle-ms N] [--detect]"
     );

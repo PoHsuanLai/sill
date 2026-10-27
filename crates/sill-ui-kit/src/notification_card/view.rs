@@ -14,7 +14,6 @@ use sill_model::apps::AppIcon;
 use sill_model::notifications::{AppRef, Href, Notification, UnixMs};
 use sill_services::apps::{IconRoots, icon_theme, resolve_icon};
 use sill_services::env::Dirs;
-use sill_settings::BannerMaterial;
 use sill_shell_kit::notifications::parts::{AppMark, Hover};
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
 use sill_shell_kit::prelude::*;
@@ -57,10 +56,10 @@ pub(super) fn card(
     let side = icon_size(&settings);
     let app = use_app_mark(&note.app, IconSize::Px(side));
     let on_press = wiring.on_press;
-    let (material, theme) = material_of(place, settings.banner_material, use_scope().scheme);
-    let swipe_metrics = super::metrics::swipe_metrics(&settings);
+    let material = material_of(place);
+    let swipe_metrics = super::metrics::swipe_metrics();
     rsx! {
-        Surface { material, theme, chrome: RootChrome::Transparent,
+        Surface { material, theme: None, chrome: RootChrome::Transparent,
             NotificationCard {
                 app,
                 age: age_label(age(note.arrived, now)),
@@ -97,21 +96,11 @@ pub fn use_app_mark(app: &AppRef, size: IconSize) -> AppMark {
     }
 }
 
-/// The material a card paints, and the scheme it forces (ink on paper: the one opposite the
-/// enclosing `scheme`).
-fn material_of(
-    place: CardPlace,
-    look: BannerMaterial,
-    scheme: Scheme,
-) -> (Material, Option<Scheme>) {
-    let inverse = match scheme {
-        Scheme::Light => Scheme::Dark,
-        Scheme::Dark => Scheme::Light,
-    };
-    match (place, look) {
-        (CardPlace::Center, _) => (Material::Popover, None),
-        (CardPlace::Banner, BannerMaterial::Toast) => (Material::Toast, None),
-        (CardPlace::Banner, BannerMaterial::Inverse) => (Material::Toast, Some(inverse)),
+/// The material a card paints: a banner the Toast, a center row the center's Popover.
+fn material_of(place: CardPlace) -> Material {
+    match place {
+        CardPlace::Center => Material::Popover,
+        CardPlace::Banner => Material::Toast,
     }
 }
 

@@ -13,19 +13,15 @@ use crate::hot_corners::HotCornerSettings;
 use crate::idle::IdleSettings;
 use crate::keyboard::KeyboardSettings;
 use crate::launcher::LauncherSettings;
-use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
 use crate::osd::OsdSettings;
-use crate::power_menu::PowerMenuSettings;
 use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
-use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
 use crate::voice::VoiceSettings;
 use crate::wallpaper::WallpaperSettings;
-use crate::window::WindowSettings;
 
 /// The keys whose struct sits on another page but which design/22 §5 puts on Power: the lock
 /// grace answers sill's idle service, not the locker (§3.19). The derive gives a whole
@@ -51,15 +47,11 @@ pub fn schemas() -> Vec<Schema> {
         LauncherSettings::schema(),
         ScrollSettings::schema(),
         ScrollbarSettings::schema(),
-        MenusSettings::schema(),
         SwitcherSettings::schema(),
         NotificationsSettings::schema(),
         ControlCenterSettings::schema(),
-        SpacesSettings::schema(),
         DisplaySettings::schema(),
         OsdSettings::schema(),
-        WindowSettings::schema(),
-        PowerMenuSettings::schema(),
         on_page(
             SessionSettings::schema(),
             POWER_KEYS_ELSEWHERE,

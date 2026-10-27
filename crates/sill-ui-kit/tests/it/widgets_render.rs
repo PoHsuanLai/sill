@@ -115,16 +115,12 @@ fn the_card_names_its_kind() {
     }
 }
 
-/// `up_next_max` (default 3) asks for more events than a Medium tile's body has room for at the
+/// The most events asked for (3) asks for more events than a Medium tile's body has room for at the
 /// default 164 px cell. With more qualifying events than fit, no row's rect may reach past the
 /// card's own body rect (two rows at Medium).
 #[test]
 fn up_next_never_clips_a_row_past_the_tiles_body() {
     let file = ShellFile::default();
-    assert_eq!(
-        file.calendar.up_next_max.0, 3,
-        "the default this test relies on"
-    );
     let want = 2;
     {
         let mut running = start(WidgetKind::UpNext, file.clone());

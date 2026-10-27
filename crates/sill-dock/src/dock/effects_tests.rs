@@ -164,14 +164,6 @@ fn every_outward_effect_becomes_its_commands() {
             vec![DockCommand::Wl(WlCommand::Activate(WindowKey(8)))],
         ),
         (
-            "cycle the active app",
-            DockEffect::Activate {
-                tile: t(1),
-                mode: ActivateMode::Cycle,
-            },
-            vec![DockCommand::Wl(WlCommand::Activate(WindowKey(6)))],
-        ),
-        (
             "reopen launches",
             DockEffect::Activate {
                 tile: t(3),

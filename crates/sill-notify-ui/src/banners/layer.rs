@@ -1,6 +1,5 @@
 //! The banners' layer surface (design/20 §1.6, design/13 §13.3.6): Overlay, a column down the
-//! output's right edge (`TOP | RIGHT | BOTTOM`, so a stack of any height fits and
-//! `notifications.banner_position` only moves the cards inside it), exclusive zone `Auto` (clear
+//! output's right edge (`TOP | RIGHT | BOTTOM`, so a stack of any height fits), exclusive zone `Auto` (clear
 //! of the bar's reserve above and the dock's below, as the OSD), no keyboard until `sill focus-latest` asks (the surface then sets `Exclusive`, `io.rs`).
 //!
 //! Input and blur start empty: the surface sets both to its cards' element regions
@@ -26,7 +25,7 @@ pub const ROOM: u32 = 40;
 pub const CARD_RADIUS: i32 = 16;
 
 /// The margins that put a card `position_right_px` from the output's right edge and
-/// `position_top_gap_px` from the bar's reserve (or, at the bottom, from the dock's).
+/// `position_top_gap_px` from the bar's reserve.
 pub fn margin(n: &NotificationsSettings) -> Margin {
     let room = i32::try_from(ROOM).unwrap_or(i32::MAX);
     let gap = i32::from(n.position_top_gap_px.0) - room;

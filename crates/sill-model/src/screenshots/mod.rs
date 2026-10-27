@@ -13,4 +13,4 @@ pub use command::{ShotCommand, ShotEffect, ShotEvent, ShotFolders, ShotLeave, Sh
 pub use model::{Shot, ShotId, ShotPreview, Shots, Taking, Watching};
 pub use names::{ShotName, folders_of, is_screenshot_name, parse_folders, preview_name};
 pub use step::step;
-pub use tool::{CommandLine, ShotKind, ShotTool, parse_tool, save_folder, tool_command};
+pub use tool::{CommandLine, ShotKind, portal_command};

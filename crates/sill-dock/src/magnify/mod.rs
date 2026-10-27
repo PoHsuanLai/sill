@@ -11,7 +11,7 @@ pub use zoom::{sizes, zoom};
 use sill_model::units::Cpx;
 
 /// The geometry the curve and the layout need, from `DockSettings` (`tile_size_px`,
-/// `magnified_size_px`, `influence_radius_px`, `tile_gap_px`, `edge_clamp_px`), the pill
+/// `magnified_size_px`, the influence radius, `tile_gap_px`, `edge_clamp_px`), the pill
 /// padding and the output width.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MagnifyParams {

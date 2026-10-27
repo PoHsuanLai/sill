@@ -1,5 +1,5 @@
 //! The screenshot thumbnail (design/20 §1.13): after a screenshot, quire's `ShotThumbnail` rises in
-//! at the output's bottom right and stays `screenshot.thumbnail_hold_ms` (paused while the pointer
+//! at the output's bottom right and stays the thumbnail hold (paused while the pointer
 //! is on it); a click opens the file (`ShotLeave::Opened`, `xdg-open`), a swipe right keeps it and
 //! dismisses the thumbnail (`Kept`), the hold running out does the same, its Delete action trashes
 //! the file (`Trashed`), and a drag out hands the file to another app as `text/uri-list` through

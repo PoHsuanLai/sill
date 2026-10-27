@@ -4,14 +4,12 @@
 use crate::common;
 
 use common::TempDir;
-use ds_settings::{ConfigRoot, Count, Px, Store};
+use ds_settings::{ConfigRoot, Px, Store};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use sill_model::screenshots::ShotTool;
 use sill_settings::{
     APP, BarSettings, ControlCenterSettings, Dnd, DockSettings, Indicators, LauncherSettings,
-    MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile,
-    SpacesSettings, SwitcherSettings,
+    NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile, SwitcherSettings,
 };
 
 /// The store whose `sill` directory is inside `dir`.
@@ -44,11 +42,9 @@ fn every_domain_round_trips() {
     round_trips::<LauncherSettings>();
     round_trips::<ScrollSettings>();
     round_trips::<ScrollbarSettings>();
-    round_trips::<MenusSettings>();
     round_trips::<SwitcherSettings>();
     round_trips::<NotificationsSettings>();
     round_trips::<ControlCenterSettings>();
-    round_trips::<SpacesSettings>();
     round_trips::<ShellFile>();
 }
 
@@ -70,8 +66,8 @@ fn a_bad_value_costs_only_its_own_key() {
         ),
         (
             "a negative px is the default and keeps its sibling",
-            "[bar]\nheight_px = -3\nstatus_gap_px = 6\n",
-            with(|f| f.bar.status_gap_px = Px(6)),
+            "[bar]\nheight_px = -3\nstatus_icon_box_px = 26\n",
+            with(|f| f.bar.status_icon_box_px = Px(26)),
         ),
         (
             "a missing table is that table's defaults",
@@ -80,8 +76,8 @@ fn a_bad_value_costs_only_its_own_key() {
         ),
         (
             "a table that is not a table is its defaults",
-            "dock = 7\n[spaces]\ndefault_grain = 55\n",
-            with(|f| f.spaces.default_grain = Count(55)),
+            "dock = 7\n[osd]\nmargin_px = 55\n",
+            with(|f| f.osd.margin_px = Px(55)),
         ),
         (
             "a list of unknown modules is the default list",
@@ -116,8 +112,7 @@ fn a_save_is_one_file_and_reads_back() {
         f.dock.autohide = sill_settings::AutoHide::On;
         f.bar.height_px = Px(28);
         f.bar.autohide = sill_settings::MenuBarHiding::Always;
-        f.launcher.web_engine_url = "https://example.org/?q={query}".to_owned();
-        f.screenshot.tool = ShotTool::Command("shoot \"$1\"".to_owned());
+        f.screenshot.folders = "~/Shots".to_owned();
     });
     store(&dir).save(&file).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(load(&dir), file);
@@ -159,7 +154,7 @@ fn a_retired_key_is_reported_unknown() {
     let dir = TempDir::new("retired");
     write(
         &dir,
-        b"[bar]\ntitle_hit_height_px = 24\n[dock]\nposition = \"bottom\"\nprogress_style = \"ring\"\nbadge_size_px = 18\n[session]\nuser_picture = \"auto\"\n\
+        b"[bar]\ntitle_hit_height_px = 24\nglyph_size_policy = \"icon_size_bar22\"\n[dock]\ncontext_menu_order = \"windows_first\"\nposition = \"bottom\"\nprogress_style = \"ring\"\nbadge_size_px = 18\n[session]\nuser_picture = \"auto\"\n\
           [spaces]\nlookup_order = \"by_id_then_index\"\n[control_center]\nmaterial = \"sheet\"\n\
           [notifications]\nbanner_entry_direction = \"from_right\"\n",
     );
@@ -168,35 +163,18 @@ fn a_retired_key_is_reported_unknown() {
     assert_eq!(
         unknown,
         [
+            "bar.glyph_size_policy",
             "bar.title_hit_height_px",
             "control_center.material",
             "dock.badge_size_px",
+            "dock.context_menu_order",
             "dock.position",
             "dock.progress_style",
             "notifications.banner_entry_direction",
             "session.user_picture",
-            "spaces.lookup_order"
+            "spaces"
         ]
     );
-}
-
-/// `screenshot.tool` is parsed at load: `auto` and `off` are words, anything else is the command.
-#[test]
-fn the_screenshot_tool_is_typed_at_load_and_stored_as_its_text() {
-    let dir = TempDir::new("tool");
-    let cases: &[(&str, ShotTool)] = &[
-        ("auto", ShotTool::Portal),
-        (" OFF ", ShotTool::Off),
-        ("", ShotTool::Off),
-        (
-            "grim \"$2/a.png\"",
-            ShotTool::Command("grim \"$2/a.png\"".to_owned()),
-        ),
-    ];
-    for (text, want) in cases {
-        write(&dir, format!("[screenshot]\ntool = {text:?}\n").as_bytes());
-        assert_eq!(load(&dir).screenshot.tool, *want, "{text:?}");
-    }
 }
 
 /// The idle times are `Secs` and `Mins`: plain integers in the file both ways; a negative one is
@@ -207,8 +185,7 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
     let dir = TempDir::new("idle-units");
     let text = "[session]\nlock_grace_s = 12\n\
                 [idle]\nscreen_off_ac_min = 20\nscreen_off_battery_min = 3\n\
-                suspend_ac_min = 0\nsuspend_battery_min = 45\ndim_s = 9\n\
-                locked_screen_off_s = 120\n";
+                suspend_ac_min = 0\nsuspend_battery_min = 45\n";
     write(&dir, text.as_bytes());
     let read = load(&dir);
     let want = with(|f| {
@@ -217,8 +194,6 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
         f.idle.screen_off_battery_min = Mins(3);
         f.idle.suspend_ac_min = Mins(0);
         f.idle.suspend_battery_min = Mins(45);
-        f.idle.dim_s = Secs(9);
-        f.idle.locked_screen_off_s = Secs(120);
     });
     assert_eq!(read, want);
 
@@ -233,8 +208,6 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
         ("idle", "screen_off_battery_min", 3),
         ("idle", "suspend_ac_min", 0),
         ("idle", "suspend_battery_min", 45),
-        ("idle", "dim_s", 9),
-        ("idle", "locked_screen_off_s", 120),
     ];
     for &(table, key, value) in WRITTEN {
         assert_eq!(
@@ -245,12 +218,15 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
     }
     assert_eq!(load(&dir), want, "{written}");
 
-    write(&dir, b"[idle]\ndim_s = -4\nsuspend_ac_min = 50\n");
+    write(
+        &dir,
+        b"[idle]\nscreen_off_ac_min = -4\nsuspend_ac_min = 50\n",
+    );
     let lenient = load(&dir);
     assert_eq!(
-        lenient.idle.dim_s,
-        Secs(5),
-        "a negative seconds is the default"
+        lenient.idle.screen_off_ac_min,
+        Mins(15),
+        "a negative minutes is the default"
     );
     assert_eq!(
         lenient.idle.suspend_ac_min,

@@ -5,12 +5,11 @@
 //! The swipe itself (following the finger, the thresholds, springing back, flying out) is
 //! quire's `NotificationCard { swipe }`: the machine hears only that it went ([`BannerIn::Swiped`]).
 //!
-//! design/13 §13.3.6 says a 5000 ms lifetime; design/22's `notifications.banner_hold_ms` and
-//! design/20 §1.6 (`ToastHold`) say 5200. The key wins.
+//! design/13 §13.3.6 says a 5000 ms lifetime; design/20 §1.6 (`ToastHold`) says
+//! 5200. That wins.
 
 use ds::base::time::stamp::{Ms, Stamp};
 use sill_model::notifications::BannerLife;
-use sill_settings::NotificationsSettings;
 
 /// When a shown banner leaves by itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -112,18 +111,23 @@ pub enum BannerOut {
     Remove,
 }
 
-/// The banner's hold, from `notifications.*`.
+/// How long a banner stays (design/20 §1.6 `ToastHold`).
+const BANNER_HOLD: Ms = Ms(5200);
+/// The least time a banner stays after the pointer leaves it.
+const HOVER_MIN_REMAINING: Ms = Ms(1500);
+
+/// The banner's hold.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BannerParams {
     pub hold_ms: Ms,
     pub hover_min_remaining_ms: Ms,
 }
 
-impl BannerParams {
-    pub fn new(n: &NotificationsSettings) -> BannerParams {
+impl Default for BannerParams {
+    fn default() -> BannerParams {
         BannerParams {
-            hold_ms: Ms::from(n.banner_hold_ms.0),
-            hover_min_remaining_ms: Ms::from(n.hover_min_remaining_ms.0),
+            hold_ms: BANNER_HOLD,
+            hover_min_remaining_ms: HOVER_MIN_REMAINING,
         }
     }
 }

@@ -2,7 +2,6 @@
 
 use sill_model::apps::App;
 use sill_model::windows::{Activity, Toplevels, WindowState};
-use sill_settings::DockMenuOrder;
 
 use super::{Checked, DockMenuRow, Minimized, OptionHeld, menu_windows, sections};
 use crate::dock::items::{DockItem, ItemKind};
@@ -12,7 +11,6 @@ pub fn rows(
     item: &DockItem,
     app: Option<&App>,
     toplevels: &Toplevels,
-    order: DockMenuOrder,
     option: OptionHeld,
     login: Checked,
 ) -> Vec<DockMenuRow> {
@@ -40,20 +38,15 @@ pub fn rows(
         entry: app.path.clone(),
     });
     let in_files = item.kind.app_id().map(|_| DockMenuRow::ShowInFiles);
-    let options: Vec<DockMenuRow> = match order {
-        DockMenuOrder::WindowsFirst => keep.into_iter().collect(),
-        DockMenuOrder::AppleOrder => keep.into_iter().chain(at_login).chain(in_files).collect(),
-    };
+    let options: Vec<DockMenuRow> = keep.into_iter().chain(at_login).chain(in_files).collect();
     let quit = match option {
         OptionHeld::Held => DockMenuRow::ForceQuit,
         OptionHeld::Up => DockMenuRow::Quit,
     };
-    let ending: Vec<DockMenuRow> = match (order, running) {
-        (_, false) => Vec::new(),
-        (DockMenuOrder::WindowsFirst, true) => vec![quit],
-        (DockMenuOrder::AppleOrder, true) => {
-            vec![DockMenuRow::ShowAllWindows, DockMenuRow::Hide, quit]
-        }
+    let ending: Vec<DockMenuRow> = if running {
+        vec![DockMenuRow::ShowAllWindows, DockMenuRow::Hide, quit]
+    } else {
+        Vec::new()
     };
     sections([window_rows.collect(), actions.collect(), options, ending])
 }

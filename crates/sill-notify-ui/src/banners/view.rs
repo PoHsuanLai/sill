@@ -13,7 +13,7 @@ use ds::prelude::*;
 use shell_host::{OutputInfo, SurfaceHandle, Visibility, use_watch};
 use sill_model::notifications::{NotificationId, Notifications};
 use sill_services::NotificationsService;
-use sill_settings::{BannerPosition, NotificationsSettings};
+use sill_settings::NotificationsSettings;
 use sill_shell_kit::notifications::banner_stack::BannerKey;
 use sill_shell_kit::notifications::parts::Hover;
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
@@ -40,6 +40,9 @@ pub const BANNERS_CSS: &str = include_str!("style.css");
 /// The custom properties the column writes on itself, for the stylesheet lint.
 pub const BANNER_VARS: [&str; 1] = ["--sill-banner-room"];
 
+/// The most cards shown at once; the rest wait their turn.
+const STACK_MAX: usize = 3;
+
 /// The column on `output`.
 pub(super) fn banners(output: OutputInfo) -> Element {
     let file = use_settings()();
@@ -60,11 +63,10 @@ pub(super) fn banners(output: OutputInfo) -> Element {
 fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> Element {
     let control = use_control::<NotificationsService>();
     let link = use_context::<BannerLink>();
-    let column = use_column(BannerParams::new(&settings), control, link.clone());
+    let column = use_column(BannerParams::default(), control, link.clone());
     let live = use_service_part::<NotificationsService, _>(|notes| notes.live.clone());
     let shows = use_watch(link.subscribe());
-    let max = usize::from(settings.stack_max.0);
-    use_follow_stack(column, live, shows, output, max);
+    use_follow_stack(column, live, shows, output, STACK_MAX);
     use_map_while_showing(column);
     use_keyboard_asks(column, &link);
     let deck = (column.deck)();
@@ -92,10 +94,9 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
     rsx! {
         div {
             class: "sill-banners",
-            "data-corner": corner_slug(settings.banner_position),
             style,
             onkeydown: move |event: KeyboardEvent| {
-                if let Some(input) = banner_key(&event.key(), settings.banner_position) {
+                if let Some(input) = banner_key(&event.key()) {
                     event.prevent_default();
                     event.stop_propagation();
                     column.keys(input);
@@ -103,7 +104,6 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
             },
             BannerStack {
                 banners,
-                position: position(settings.banner_position),
                 on_hidden: move |key: BannerKey| column.hidden(EntryKey(key.0)),
             }
         }
@@ -152,26 +152,6 @@ fn note_of(
         .banner(id)
         .map(|b| b.note.clone())
         .or_else(|| column.kept(id))
-}
-
-/// quire's word for `notifications.banner_position`.
-fn position(corner: BannerPosition) -> sill_shell_kit::notifications::banner_stack::BannerPosition {
-    match corner {
-        BannerPosition::TopRight => {
-            sill_shell_kit::notifications::banner_stack::BannerPosition::TopRight
-        }
-        BannerPosition::BottomRight => {
-            sill_shell_kit::notifications::banner_stack::BannerPosition::BottomRight
-        }
-    }
-}
-
-/// `data-corner` on the column: the stack stands at its top or its bottom.
-fn corner_slug(corner: BannerPosition) -> &'static str {
-    match corner {
-        BannerPosition::TopRight => "top",
-        BannerPosition::BottomRight => "bottom",
-    }
 }
 
 /// Feed the deck the stack whenever the banners, the link or the cap change.
@@ -234,30 +214,4 @@ fn use_map_while_showing(column: Column) {
         Showing::Cards => Visibility::Shown,
         Showing::Nothing => Visibility::Hidden,
     });
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{corner_slug, position};
-    use sill_settings::BannerPosition;
-
-    #[test]
-    fn the_corner_is_quires_position() {
-        let cases = [
-            (
-                BannerPosition::TopRight,
-                sill_shell_kit::notifications::banner_stack::BannerPosition::TopRight,
-                "top",
-            ),
-            (
-                BannerPosition::BottomRight,
-                sill_shell_kit::notifications::banner_stack::BannerPosition::BottomRight,
-                "bottom",
-            ),
-        ];
-        for (corner, want, slug) in cases {
-            assert_eq!(position(corner), want, "{corner:?}");
-            assert_eq!(corner_slug(corner), slug, "{corner:?}");
-        }
-    }
 }

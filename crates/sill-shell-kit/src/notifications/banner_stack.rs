@@ -35,7 +35,7 @@ pub struct Banner {
     pub card: Element,
 }
 
-/// Where the stack stands (`notifications.banner_position`).
+/// Where the stack stands .
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Word)]
 pub enum BannerPosition {
     /// Under the bar at the right, newest on top; a banner leaving lets the ones below it rise.
@@ -61,7 +61,7 @@ impl BannerPosition {
 const FALLBACK_PITCH: RowPitch = RowPitch(Px(64.0 + 8.0));
 
 /// The banners, newest first. `gap` overrides `--notifications-stack-gap` (the
-/// `notifications.stack_gap_px` a `NotificationMetrics` around the stack writes).
+/// the stack gap a `NotificationMetrics` around the stack writes).
 #[component]
 pub fn BannerStack(
     banners: Vec<Banner>,

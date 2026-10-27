@@ -17,7 +17,7 @@ use dioxus::prelude::*;
 use ds::base::vocab::Percent;
 use ds::root::common::Common;
 
-/// The idle dim overlay. `level` is `idle.dim_level_pct` (10..90); `phase` is the caller's own
+/// The idle dim overlay. `level` is the dim level (10..90); `phase` is the caller's own
 /// request, driven by sill's idle service.
 #[component]
 pub fn IdleDim(level: Percent, phase: IdleDimPhase, #[props(default)] common: Common) -> Element {

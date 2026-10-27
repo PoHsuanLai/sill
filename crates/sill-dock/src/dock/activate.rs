@@ -1,7 +1,6 @@
 //! What a click on a running app asks the compositor for (design/10 §10.3.6):
-//! activate its most recent window (which also unminimizes), cycle through its windows on
-//! this workspace, and the Option-click hides. Pure over the toplevel list, whose order is
-//! most recently activated first.
+//! activate its most recent window (which also unminimizes), and the Option-click hides. Pure
+//! over the toplevel list, whose order is most recently activated first.
 
 use sill_model::ids::WorkspaceKey;
 use sill_model::windows::{Toplevel, Toplevels, WlCommand};
@@ -24,7 +23,6 @@ pub fn activation(
     match mode {
         ActivateMode::Raise | ActivateMode::Unminimize => vec![raise],
         ActivateMode::Reopen => Vec::new(),
-        ActivateMode::Cycle => cycle(mine, workspace).into_iter().collect(),
         ActivateMode::HideCurrent => {
             let front = all.active();
             let hidden = front
@@ -42,16 +40,6 @@ pub fn activation(
                 .map(|w| WlCommand::Minimize(w.key));
             std::iter::once(raise).chain(others).collect()
         }
-    }
-}
-
-/// The next window to show: the least recently used of the app's windows on this workspace,
-/// so repeated clicks visit every window in turn; nothing with one window.
-fn cycle(mine: &[&Toplevel], workspace: Option<WorkspaceKey>) -> Option<WlCommand> {
-    let here: Vec<&&Toplevel> = mine.iter().filter(|w| on(w, workspace)).collect();
-    match here.as_slice() {
-        [_, .., last] => Some(WlCommand::Activate(last.key)),
-        _ => None,
     }
 }
 
@@ -110,7 +98,6 @@ mod tests {
             (ActivateMode::Raise, vec![Activate(k(2))]),
             (ActivateMode::Unminimize, vec![Activate(k(2))]),
             (ActivateMode::Reopen, vec![]),
-            (ActivateMode::Cycle, vec![Activate(k(4))]),
             (
                 ActivateMode::HideCurrent,
                 vec![Activate(k(2)), Minimize(k(1)), Minimize(k(5))],
@@ -123,24 +110,5 @@ mod tests {
         for (mode, want) in cases {
             assert_eq!(activation(mode, &term, &all, ws), want, "{mode:?}");
         }
-    }
-
-    #[test]
-    fn cycling_two_windows_alternates_and_one_window_does_nothing() {
-        let a = window(1, "term", Activity::Active, 1);
-        let b = window(2, "term", Activity::Inactive, 1);
-        let all = Toplevels {
-            windows: vec![a.clone(), b.clone()],
-        };
-        assert_eq!(
-            activation(ActivateMode::Cycle, &[&a, &b], &all, None),
-            vec![WlCommand::Activate(WindowKey(2))]
-        );
-        // After the switch, b is most recent: the next click goes back to a.
-        assert_eq!(
-            activation(ActivateMode::Cycle, &[&b, &a], &all, None),
-            vec![WlCommand::Activate(WindowKey(1))]
-        );
-        assert_eq!(activation(ActivateMode::Cycle, &[&a], &all, None), vec![]);
     }
 }

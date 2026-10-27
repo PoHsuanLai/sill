@@ -2,13 +2,12 @@
 //! (pure, table-tested) and then turned into the ds menu's entries:
 //!
 //! - [`app`]: an app tile's: windows, desktop actions, Options (Keep in Dock, Open at Login, Show
-//!   in Files), Show All Windows, Hide, Quit / Force Quit; order per `dock.context_menu_order`.
+//!   in Files), Show All Windows, Hide, Quit / Force Quit.
 //! - [`trash`]: the Trash tile's: Open and Empty Trash.
 //! - [`divider`]: the dock's own, on its separator or empty background: hiding, magnification and
 //!   Dock Settings.
 //!
-//! `AppleOrder` (the default) is §10.3.7's; `WindowsFirst` (design/22's "plan order") is flat:
-//! windows, desktop actions, Keep in Dock (reading Remove from Dock on a pinned app), Quit.
+//! The app tile's order is §10.3.7's.
 
 use std::path::PathBuf;
 

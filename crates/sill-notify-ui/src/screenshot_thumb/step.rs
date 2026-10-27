@@ -71,13 +71,27 @@ pub enum ThumbState {
     },
 }
 
-/// The machine's numbers, from the settings.
+/// How long the thumbnail stays, in ms.
+const THUMBNAIL_HOLD_MS: u32 = 5200;
+/// The least time left after the pointer leaves the card, in ms (as the banners').
+const HOVER_MIN_REMAINING_MS: u32 = 1500;
+
+/// The machine's numbers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ThumbParams {
-    /// `screenshot.thumbnail_hold_ms`.
+    /// How long the thumbnail stays.
     pub hold_ms: u32,
-    /// What is left after the pointer leaves the card (the banners' `hover_min_remaining_ms`).
+    /// What is left after the pointer leaves the card.
     pub rest_ms: u32,
+}
+
+impl Default for ThumbParams {
+    fn default() -> ThumbParams {
+        ThumbParams {
+            hold_ms: THUMBNAIL_HOLD_MS,
+            rest_ms: HOVER_MIN_REMAINING_MS,
+        }
+    }
 }
 
 /// How a drag out of the card ended (shell-host's `DragOutcome`, as the thumbnail reads it).

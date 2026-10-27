@@ -135,7 +135,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         state,
         services: use_services(),
         surface: try_use_context::<SurfaceHandle>(),
-        timing: super::track::timing(&file.menus),
+        timing: super::track::timing(),
         chroma: chroma_limit(use_appearance()().settings.icons.symbolic_chroma_max.0),
         look,
         namespace: layer(output, &file, file.bar.autohide).namespace,

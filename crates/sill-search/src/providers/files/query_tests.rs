@@ -12,7 +12,7 @@ use super::{
     FakeIndex, FileAnswer, FileAsk, FileHit, FileIndex, FilesProvider, HitLimit, IndexFault,
     IndexSource,
 };
-use sill_model::results::{FilesChoice, LauncherPolicy};
+use sill_model::results::LauncherPolicy;
 
 /// An index that records every ask and answers a fixed answer.
 #[derive(Debug)]
@@ -44,17 +44,16 @@ fn hit(path: &str) -> FileHit {
     }
 }
 
-fn policy(files: FilesChoice) -> LauncherPolicy {
+fn policy() -> LauncherPolicy {
     LauncherPolicy {
-        files,
         files_budget: Duration::from_millis(150),
         ..LauncherPolicy::default()
     }
 }
 
-fn provider(files: FilesChoice, index: Arc<dyn FileIndex>) -> FilesProvider {
+fn provider(index: Arc<dyn FileIndex>) -> FilesProvider {
     FilesProvider {
-        policy: watch::channel(policy(files)).1,
+        policy: watch::channel(policy()).1,
         frecency: Arc::new(Mutex::default()),
         source: IndexSource::Given(index),
         home: PathBuf::from("/home/p"),
@@ -82,7 +81,7 @@ fn one_ask_under_home_within_the_budget_and_its_rows_pushed() {
         hit("/home/p/Documents/m9-report.pdf"),
         hit("/home/p/other.pdf"),
     ]));
-    let files = provider(FilesChoice::Auto, index.clone());
+    let files = provider(index.clone());
     let mut sink = VecSink::default();
     let query = Query::begin("  m9-rep ", &Cancel::new());
     files.query(&query, &mut sink);
@@ -100,28 +99,36 @@ fn one_ask_under_home_within_the_budget_and_its_rows_pushed() {
 }
 
 #[test]
-fn nothing_typed_or_off_asks_no_index() {
-    let cases: &[(&str, FilesChoice, Scope)] = &[
-        ("", FilesChoice::Auto, Scope::All),
-        ("   ", FilesChoice::Walk, Scope::All),
-        ("", FilesChoice::Auto, Scope::Only(ProviderKind::Files)),
-        ("report", FilesChoice::Off, Scope::All),
+fn nothing_typed_asks_no_index() {
+    let cases: &[(&str, Scope)] = &[
+        ("", Scope::All),
+        ("   ", Scope::All),
+        ("", Scope::Only(ProviderKind::Files)),
     ];
-    for &(text, choice, scope) in cases {
+    for &(text, scope) in cases {
         let index = scripted(FileAnswer::Hits(vec![hit("/home/p/report.pdf")]));
         let mut sink = VecSink::default();
         let query = Query {
             scope,
             ..Query::begin(text, &Cancel::new())
         };
-        provider(choice, index.clone()).query(&query, &mut sink);
+        provider(index.clone()).query(&query, &mut sink);
         let asked = index.asks.lock().map(|a| a.len()).unwrap_or_default();
-        assert_eq!(
-            (asked, sink.0.len()),
-            (0, 0),
-            "{text:?} {choice:?} {scope:?}"
-        );
+        assert_eq!((asked, sink.0.len()), (0, 0), "{text:?} {scope:?}");
     }
+}
+
+#[test]
+fn a_zero_budget_before_the_first_policy_asks_no_index() {
+    let index = scripted(FileAnswer::Hits(vec![hit("/home/p/report.pdf")]));
+    let files = FilesProvider {
+        policy: watch::channel(LauncherPolicy::default()).1,
+        ..provider(index.clone())
+    };
+    let mut sink = VecSink::default();
+    files.query(&Query::begin("report", &Cancel::new()), &mut sink);
+    let asked = index.asks.lock().map(|a| a.len()).unwrap_or_default();
+    assert_eq!((asked, sink.0.len()), (0, 0));
 }
 
 #[test]
@@ -137,8 +144,7 @@ fn a_partial_answer_is_pushed_and_an_unavailable_one_is_not() {
     for (answer, want) in cases {
         let mut sink = VecSink::default();
         let label = format!("{answer:?}");
-        provider(FilesChoice::Tracker, scripted(answer))
-            .query(&Query::begin("report", &Cancel::new()), &mut sink);
+        provider(scripted(answer)).query(&Query::begin("report", &Cancel::new()), &mut sink);
         assert_eq!(titles(&sink), want, "{label}");
     }
 }
@@ -152,7 +158,7 @@ fn a_cancelled_query_pushes_nothing() {
         hits: vec![hit("/home/p/report.pdf")],
     });
     let mut sink = VecSink::default();
-    provider(FilesChoice::Auto, index).query(&stale, &mut sink);
+    provider(index).query(&stale, &mut sink);
     assert!(sink.0.is_empty());
 }
 
@@ -162,7 +168,7 @@ fn the_fake_index_keeps_to_home() {
         hits: vec![hit("/home/p/a/report.pdf"), hit("/srv/report.pdf")],
     });
     let mut sink = VecSink::default();
-    provider(FilesChoice::Auto, index).query(&Query::begin("report", &Cancel::new()), &mut sink);
+    provider(index).query(&Query::begin("report", &Cancel::new()), &mut sink);
     let subtitles: Vec<&str> = sink.0[0].iter().map(|i| i.subtitle.as_str()).collect();
     assert_eq!(subtitles, ["~/a"]);
 }
@@ -210,7 +216,7 @@ fn a_file_the_viewer_remembers_is_a_row_the_index_did_not_bring() {
     let files = FilesProvider {
         viewer_store: store,
         home: dir.path().to_path_buf(),
-        ..provider(FilesChoice::Auto, scripted(FileAnswer::Hits(Vec::new())))
+        ..provider(scripted(FileAnswer::Hits(Vec::new())))
     };
     let mut sink = VecSink::default();
     files.query(&Query::begin("novel", &Cancel::new()), &mut sink);
@@ -245,7 +251,7 @@ fn a_viewed_file_outranks_its_namesake_the_index_brought_with_the_same_age() {
         let files = FilesProvider {
             viewer_store: viewer_store(dir.path(), entries),
             home: dir.path().to_path_buf(),
-            ..provider(FilesChoice::Auto, index.clone())
+            ..provider(index.clone())
         };
         let mut sink = VecSink::default();
         files.query(&Query::begin("notes", &Cancel::new()), &mut sink);

@@ -5,7 +5,7 @@
 //! keyed by the send of the trial so a restart starts the sheet over: the headline "Keep these
 //! display settings?", the line "Reverting in N seconds" counting down, and two buttons. Revert
 //! comes first, so it is the default (Return) and the button Escape presses; Keep Changes
-//! follows. The alert answers nothing for `companion.confirm_arm_ms` (`QUESTION_ARM_AFTER` unset) after it mounts. Nothing is styled
+//! follows. The alert answers nothing for the arming time (`QUESTION_ARM_AFTER` unset) after it mounts. Nothing is styled
 //! under `.ds-alert*`, `.ds-sheet*` or `.ds-button*`.
 
 use dioxus::prelude::*;
@@ -15,7 +15,6 @@ use ds::root::common::Common;
 use shell_host::OutputInfo;
 use sill_model::desktop::{KEEP_LABEL, REVERT_LABEL, TRIAL_TITLE, TrialAnswer, countdown_line};
 use sill_settings::confirm_arm;
-use sill_ui_kit::hooks::use_section;
 use sill_ui_kit::links::TrialRun;
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle};
@@ -47,7 +46,6 @@ pub(super) fn display_trial(output: OutputInfo) -> Element {
 fn TrialCard(run: TrialRun, shown: Shown, stage: Signal<SheetStage<TrialRun>>) -> Element {
     let answer = use_answer(run.trial.trial);
     let left = use_left(run.trial.seconds);
-    let companion = use_section(|file| &file.companion);
     let buttons = vec![
         AlertButton::new(
             REVERT_LABEL,
@@ -75,7 +73,7 @@ fn TrialCard(run: TrialRun, shown: Shown, stage: Signal<SheetStage<TrialRun>>) -
             buttons,
             // Escape, or the sheet closing another way, presses Revert (the Cancel button).
             // A key or click already on its way to the window behind answers nothing.
-            arm_after: Some(confirm_arm(&companion())),
+            arm_after: Some(confirm_arm()),
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
             // The sheet carries the blur region's id, so the layer's element region resolves.

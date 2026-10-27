@@ -4,13 +4,13 @@
 //! regions it takes) and the effects the runtime applies (`hide.rs`).
 //!
 //! On the desktop `Always` and `DesktopOnly` start `Hidden`: no exclusive zone, the input region
-//! is a thin strip at the top edge, and the pointer resting there (`dock.autohide_delay_ms`)
+//! is a thin strip at the top edge, and the pointer resting there
 //! slides the bar down over the windows. An open popup holds it shown; after the last one closes
 //! with the pointer off the bar it slides away. In full screen the compositor shows and hides the
 //! bar itself (`Edge`): this machine only makes the content drawn and hit-testable, with no slide.
 //! `DesktopOnly` rests fixed on an output showing a full-screen Space ([`mode_on`]).
 
-use ds::base::time::stamp::{Ms, Stamp};
+use ds::base::time::stamp::Stamp;
 use ds::prelude::Motion;
 use ds::style::tokens::easing::EasingToken;
 use shell_host::{BlurSpec, ElementId, RegionSpec};
@@ -99,14 +99,13 @@ pub(super) enum RevealEffect {
     SetBlur(BlurSpec),
 }
 
-/// The auto-hide numbers: the dock's delay, slide time and curves (`dock.autohide_*`), and no
-/// slide at all when the person asked for reduced motion.
-pub(super) fn timing(file: &ShellFile, motion: Motion) -> Timing {
-    let dock = &file.dock;
+/// The auto-hide numbers: the shared delay, slide time and curves, and no slide at all when the
+/// person asked for reduced motion.
+pub(super) fn timing(motion: Motion) -> Timing {
     Timing {
-        delay: Ms::from(dock.autohide_delay_ms.0),
+        delay: autohide::DELAY,
         slide_ms: match motion {
-            Motion::Standard => u64::from(dock.autohide_slide_ms.0),
+            Motion::Standard => autohide::SLIDE_MS,
             Motion::Reduced => 0,
         },
         ease_out: EasingToken::Out.easing().curve(),

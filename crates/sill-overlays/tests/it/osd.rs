@@ -1,20 +1,20 @@
 //! Quire's `Osd` in a Blitz harness, on the virtual clock: a change fades it in with the live
-//! level and its real title, a new level moves the bar, the hold (`osd.hold_ms`) ends in the
+//! level and its real title, a new level moves the bar, the hold ends in the
 //! fade out and then the hidden look, a change during the fade takes it back, and a faked
 //! change shows its own level without touching the services.
 
 use std::time::{Duration, Instant};
 
 use ds_harness::Harness;
-use ds_settings::Ms;
 use sill_model::units::Percent;
 use sill_model::volume::{Mute, Volume};
 use sill_overlays::Osd;
-use sill_settings::{OsdSettings, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{Level, LevelSource, OsdKind, OsdLink};
 
-const HOLD_MS: u64 = 600;
+/// How long the indicator holds after the last change (the constant in `osd::step`).
+const HOLD_MS: u64 = 1500;
 
 type Running = SurfaceHarness<Osd>;
 
@@ -26,13 +26,7 @@ fn start(file: ShellFile) -> Running {
 }
 
 fn file() -> ShellFile {
-    ShellFile {
-        osd: OsdSettings {
-            hold_ms: Ms(HOLD_MS as u16),
-            ..OsdSettings::default()
-        },
-        ..ShellFile::default()
-    }
+    ShellFile::default()
 }
 
 /// Advance in 20 ms steps for `span`, recording each new look and when it appeared (ms since
@@ -82,7 +76,7 @@ fn a_change_holds_then_fades_then_hides() {
         Some(55),
         "the bar follows the service"
     );
-    let seen = looks_over(&mut running.harness, changed, Duration::from_millis(1500));
+    let seen = looks_over(&mut running.harness, changed, Duration::from_millis(2500));
     let names: Vec<&str> = seen.iter().map(|(_, l)| l.as_str()).collect();
     assert_eq!(
         names,
@@ -123,7 +117,7 @@ fn a_change_during_the_fade_takes_it_back_and_holds_again() {
         Some("present"),
         "the hide is taken back at once, no second entrance"
     );
-    let seen = looks_over(&mut running.harness, again, Duration::from_millis(1400));
+    let seen = looks_over(&mut running.harness, again, Duration::from_millis(2400));
     let names: Vec<&str> = seen.iter().map(|(_, l)| l.as_str()).collect();
     assert_eq!(names, ["present", "leaving", "hidden"], "{seen:?}");
     assert_eq!(seen[1].0, HOLD_MS, "a fresh hold: {seen:?}");

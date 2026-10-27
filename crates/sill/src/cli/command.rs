@@ -131,7 +131,7 @@ pub enum Command {
     /// the same words are also clap's grammar above, which has to agree with it).
     #[command(skip)]
     Verb(shell_verbs::ShellVerb),
-    /// Take a screenshot with `screenshot.tool`; its thumbnail shows at the bottom right.
+    /// Take a screenshot with the portal; its thumbnail shows at the bottom right.
     Screenshot {
         /// `area` is a rectangle you drag out and `window` one window (both the picker); `screen`
         /// is the whole screen, at once.
@@ -146,7 +146,7 @@ pub enum Command {
     NextWindow,
     /// The assistant: summon it, put it away, or pause what it is doing.
     Companion {
-        /// `tap` is one tap of the double-tap key (the second within `companion.double_tap_ms`
+        /// `tap` is one tap of the double-tap key (the second within the double-tap window
         /// summons); `summon` summons now (a double tap already detected); `dismiss` puts the
         /// assistant away; `stop-all` pauses every run in the focused Space.
         #[arg(value_parser = word::<CompanionRequest>())]

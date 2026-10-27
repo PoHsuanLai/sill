@@ -9,13 +9,13 @@
 //! **an inotify watch of the screenshot folders** (`notify`, already a dependency): a new file
 //! whose name reads as a screenshot (`names::is_screenshot_name`), seen when it is closed after
 //! writing or renamed into place, becomes the current `Shot`. `sill screenshot
-//! [area|window|screen]` only runs the tool (`tool::tool_command`); its file arrives through
+//! [area|window|screen]` only runs the portal's screenshot (`tool::portal_command`); its file arrives through
 //! the same watch, so there is one path to test. A clipboard-only screenshot has no file and no
 //! thumbnail, as on macOS.
 //!
 //! The service is passive until the daemon's first [`ShotCommand::Configure`] (from
-//! `screenshot.folders` and `screenshot.tool`): a test or a headless render never watches
-//! `~/Pictures` or runs a tool. Tests configure temp folders and a stand-in tool.
+//! `screenshot.folders`): a test or a headless render never watches `~/Pictures` or runs the
+//! portal. Tests configure temp folders.
 
 mod backend;
 

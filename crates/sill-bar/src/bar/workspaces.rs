@@ -15,9 +15,9 @@ use sill_services::WindowsService;
 use sill_shell_kit::bar::pointer::BarPointer;
 use sill_shell_kit::prelude::*;
 
-use super::reorder::{Dropped, Pressed, reorder};
+use super::reorder::{DRAG_THRESHOLD_PX, Dropped, Pressed, reorder};
 use super::title::pointer_at;
-use sill_ui_kit::hooks::{use_control, use_service_part, use_settings};
+use sill_ui_kit::hooks::{use_control, use_service_part};
 use sill_ui_kit::look::group_for;
 
 /// A pill's label: the workspace's name, or its position.
@@ -33,10 +33,8 @@ fn label(workspace: &Workspace, index: usize) -> String {
 #[component]
 pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
     let workspaces = use_service_part::<WindowsService, _>(|wl| wl.workspaces.clone());
-    let settings = use_settings();
     let wl = use_control::<WindowsService>();
     let mut pressed = use_signal(|| None::<Pressed>);
-    let threshold = settings().dock.hold_to_menu_move_px.0;
     let on = output.name.map(OutputName);
     let Some(group) = group_for(&workspaces().groups, on.as_ref()) else {
         return rsx! {};
@@ -59,7 +57,7 @@ pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
                             move |event: PointerEvent| {
                                 let x = pointer_at(&event).x;
                                 let dropped = Dropped { key: workspace.key, index, x };
-                                let command = pressed.take().and_then(|p| reorder(p, dropped, threshold));
+                                let command = pressed.take().and_then(|p| reorder(p, dropped, DRAG_THRESHOLD_PX));
                                 if let Some(command) = command {
                                     let _ = wl.send(command);
                                 }

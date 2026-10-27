@@ -1,12 +1,10 @@
 //! `screenshot.*`: the floating thumbnail after a screenshot (design/20 §1.13), which folders are
-//! watched for new screenshots, and what `sill screenshot` runs. macOS keeps its screenshot
+//! watched for new screenshots. macOS keeps its screenshot
 //! shortcuts under Keyboard, hence `Page::KeyboardAndShortcuts`. All Advanced.
 
 use ds_core::word::Word;
-use ds_settings::Ms;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
-use sill_model::screenshots::ShotTool;
 
 /// Whether a new screenshot shows its floating thumbnail.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
@@ -30,15 +28,6 @@ pub struct ScreenshotSettings {
         advanced
     )]
     pub thumbnail: ShotThumbnail,
-    #[settings(
-        label = "Thumbnail stays for",
-        help = "How long it stays unless the pointer is on it.",
-        section = "Screenshots",
-        range = "1000..=30000",
-        unit = "ms",
-        advanced
-    )]
-    pub thumbnail_hold_ms: Ms,
     /// `auto`, `off`, or `;`-separated folders (`sill_model::screenshots::parse_folders`).
     #[settings(
         label = "Screenshot folders",
@@ -47,24 +36,13 @@ pub struct ScreenshotSettings {
         advanced
     )]
     pub folders: String,
-    /// `auto`, `off`, or a command line, parsed at load (`sill_model::screenshots::parse_tool`).
-    #[settings(
-        label = "Screenshot tool",
-        help = "Auto uses the system's; off runs nothing; or enter your own command.",
-        section = "Screenshots",
-        text,
-        advanced
-    )]
-    pub tool: ShotTool,
 }
 
 impl Default for ScreenshotSettings {
     fn default() -> Self {
         ScreenshotSettings {
             thumbnail: ShotThumbnail::Show,
-            thumbnail_hold_ms: Ms(5200),
             folders: "auto".to_owned(),
-            tool: ShotTool::Portal,
         }
     }
 }

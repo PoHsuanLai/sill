@@ -1,4 +1,4 @@
-//! The screenshots service's policy from `screenshot.folders` and `screenshot.tool`. Until the
+//! The screenshots service's policy from `screenshot.folders`; the portal takes the shot. Until the
 //! first is sent the service stays passive and watches nothing.
 
 use std::path::{Path, PathBuf};
@@ -8,11 +8,10 @@ use sill_settings::ShellFile;
 
 use super::Policy;
 
-/// The service's policy `file` makes (`parse_folders` against `home`; the tool is parsed at load).
+/// The service's policy `file` makes (`parse_folders` against `home`).
 pub fn policy_of(file: &ShellFile, home: &Path) -> ShotPolicy {
     ShotPolicy {
         folders: parse_folders(&file.screenshot.folders, home),
-        tool: file.screenshot.tool.clone(),
     }
 }
 
@@ -36,7 +35,7 @@ impl Policy for ScreenshotsBridge {
 }
 #[cfg(test)]
 mod tests {
-    use sill_model::screenshots::{ShotFolders, ShotPolicy, ShotTool};
+    use sill_model::screenshots::{ShotFolders, ShotPolicy};
     use sill_settings::ShellFile;
 
     use super::policy_of;
@@ -47,7 +46,6 @@ mod tests {
             policy_of(&ShellFile::default(), std::path::Path::new("/home/p")),
             ShotPolicy {
                 folders: ShotFolders::Auto,
-                tool: ShotTool::Portal,
             }
         );
     }

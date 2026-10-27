@@ -54,8 +54,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   already pass under fake input on a headless KWin through
   `dev/accept/notifications.sh --real-input`; this is the feel with a real mouse and touchpad):
   `sill debug notify "Hi" --body "..." --action default=Open` on a debug build. It posts straight
-  to sill's banners without D-Bus, so sill need not hold `org.freedesktop.Notifications`
-  (`notifications.server = "passive"` leaves the name to the session's own daemon). The card
+  to sill's banners without D-Bus, so sill need not hold `org.freedesktop.Notifications`. The card
   follows a drag 1:1 to the right and damped to the left, springs back under 80 px and flies out
   past it or on a flick; after a click on one card, the next card under the pointer still pauses
   and shows its close button.
@@ -369,7 +368,7 @@ The service, the machines and the launcher's mode are tested on stand-ins and fa
 the real daemons or a real keyboard.
 
 - [ ] **Double tap, route B** (a lone Cmd tap mapped to the unique chord that runs `sill companion
-  tap`; Toshy did this and keycap does not emit that chord yet, so this waits for a sender): tap Cmd twice within `companion.double_tap_ms` with the launcher closed: the launcher opens as a
+  tap`; Toshy did this and keycap does not emit that chord yet, so this waits for a sender): tap Cmd twice within the double-tap window with the launcher closed: the launcher opens as a
   prompt ("Ask the assistant", no rows). Cmd-click and Cmd-drag in a terminal and a browser are
   unharmed (spike T). One tap does nothing; two taps a second apart do nothing.
 - [ ] **Double tap with the launcher open in search**: type `mail` in the launcher, tap Cmd twice: the
@@ -623,7 +622,7 @@ the real daemons or a real keyboard.
 
 ## Hiding the menu bar (lane barhide, not built or run when written; a real casement login)
 
-Settings > Appearance, "Automatically hide and show the menu bar" (`bar.autohide`): Always, On Desktop Only, In Full Screen Only (the default), Never. The slide uses the dock's delay and duration (`dock.autohide_delay_ms`, `dock.autohide_slide_ms`) and the dock's edge strip height.
+Settings > Appearance, "Automatically hide and show the menu bar" (`bar.autohide`): Always, On Desktop Only, In Full Screen Only (the default), Never. The slide uses the dock's delay and duration (the shared delay and slide constants) and the dock's edge strip height.
 
 - [ ] **Always hides it on the desktop**: set Always. The bar slides away; windows now use the full height (maximise one: it reaches the top edge). Rest the pointer at the top edge for about 0.2 s: the bar slides down over the windows. Move the pointer off it: it slides away. Pushing past the edge for a moment and back out before the delay does nothing.
 - [ ] **A menu keeps it**: with the bar down, open an app menu, then a status item's menu, then the Control Centre, one after the other. Each time, move the pointer off the bar into the menu and away from it: the bar stays down. Close the menu with the pointer off the bar: the bar slides away. With the pointer still on the bar when the menu closes, it stays.

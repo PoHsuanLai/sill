@@ -16,7 +16,7 @@
 #   1. Warm: `sill-banners-<out>` exists from the start, hidden (no capture).
 #   2. A notification shows it within 300 ms (a capture with the card's pixels);
 #      dev/out/banners-casement.png.
-#   3. It hides between the hold (notifications.banner_hold_ms, 5200) and the hold plus the exit
+#   3. It hides between the hold (the banner hold, 5200) and the hold plus the exit
 #      (--t-move) plus 400 ms; `status` then says banners 0, kept 1.
 #   4. Hovered once up (`sill debug pointer` on the card) it is still up 6.7 s later, and gone by
 #      1500 ms plus the exit plus 400 ms after `sill debug leave`.
@@ -39,17 +39,15 @@
 #   4. CloseNotification <id> from another connection than the sender's is refused and the card
 #      stays; `sill notifications dismiss-all` then closes it and `gdbus monitor` beside it records
 #      NotificationClosed (<id>, 2).
-#   5. notifications.server = "passive" and `sill reload`: the name is released (holder nobody)
-#      and nothing answers Notify.
-#   6. With another holder started first, mode own reports holder other with that pid, and the
+#   5. With another holder started first, mode own reports holder other with that pid, and the
 #      holder keeps the name; when it leaves, sill takes it.
-#   7. The history file under the scratch XDG_STATE_HOME survives a daemon restart (status kept
+#   6. The history file under the scratch XDG_STATE_HOME survives a daemon restart (status kept
 #      is the same).
 #
 # --real-input [ghost|clear|exit|repro]: real Wayland input for the banners and the notification
 # center, on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh) driven by shell-host's
 # scripts/dev/fake-input.sh: every hover, press, drag and key is a real Wayland event with a real
-# serial and keyboard focus. `notifications.server = "own"`; the daemon is checked to hold
+# serial and keyboard focus. The daemon is checked to hold
 # org.freedesktop.Notifications on the bus before anything is posted. ONE fake-input client
 # serves the whole run (each client is a new input device, and KWin re-announces the seat's
 # pointer for each). The drag and the swipe are only here: debug injection has no drag.
@@ -223,7 +221,7 @@ run_recovering() {
 # --- the banners (default mode) ---
 
 dnd_setting() {
-  printf '[notifications]\nserver = "own"\ndnd = "%s"\n' "$1" >"$CONFIG/sill/settings.toml"
+  printf '[notifications]\ndnd = "%s"\n' "$1" >"$CONFIG/sill/settings.toml"
 }
 
 # The height of the capture $1's drawn part (rows with any opaque pixel), 0 for none.
@@ -415,10 +413,6 @@ step_idle() {
 # Calls the notifications service's method "$@" with gdbus, on the private bus.
 call() { in_env timeout 5 gdbus call --session --dest "$DBUS_NAME" --object-path "$OBJECT" "$@"; }
 
-server_setting() {
-  printf '[notifications]\nserver = "%s"\n' "$1" >"$CONFIG/sill/settings.toml"
-}
-
 # The pid the bus says holds the name, empty when nobody does.
 bus_holder_pid() {
   in_env timeout 5 gdbus call --session --dest org.freedesktop.DBus \
@@ -474,28 +468,13 @@ step_close() {
 }
 
 # 5.
-step_passive() {
-  server_setting passive
-  sill reload >/dev/null || return 1
-  await_status mode passive && await_status holder nobody || return 1
-  if call --method "$DBUS_NAME.Notify" -- accept 0 '' Nobody '' '@as []' '@a{sv} {}' -1 \
-    >"$OUT_DIR/passive.log" 2>&1; then
-    echo "something answered Notify while passive" >&2; return 1
-  fi
-  # Unanswered because nobody holds the name, not because the call was malformed.
-  grep -qE "ServiceUnknown|NameHasNoOwner" "$OUT_DIR/passive.log" || {
-    echo "Notify failed for another reason: $(cat "$OUT_DIR/passive.log")" >&2; return 1; }
-  echo "passive: holder nobody, Notify unanswered ($(tr -d '\n' <"$OUT_DIR/passive.log"))" >&2
-}
-
-# 6.
 step_other_holder() {
   stop_daemon
   "$HOLDER_BIN" "$BUS" >"$OUT_DIR/holder.log" 2>&1 &
   HOLDER=$!
   for _ in $(seq 50); do [ "$(bus_holder_pid)" = "$HOLDER" ] && break; sleep 0.1; done
   [ "$(bus_holder_pid)" = "$HOLDER" ] || { echo "the holder never took the name" >&2; return 1; }
-  server_setting own
+  : >"$CONFIG/sill/settings.toml"
   launch_daemon || return 1
   await_status mode own && await_status holder other && await_status pid "$HOLDER" || return 1
   sleep 1
@@ -506,7 +485,7 @@ step_other_holder() {
   echo "the holder left; sill took the name" >&2
 }
 
-# 7.
+# 6.
 step_history_survives() {
   local base
   base=$(status_field kept)
@@ -1266,7 +1245,7 @@ setup_bus() {
   build "-p sill-testkit --example notifications_holder" || return 1
   start_private_bus || return 1
   echo "private bus $BUS (pid $BUS_PID)" >&2
-  server_setting own
+  : >"$CONFIG/sill/settings.toml"
   launch_daemon
 }
 
@@ -1282,7 +1261,7 @@ setup_real() {
   fi
   KWIN_UP=yes
   [ "$SCALE" = 1 ] || set_scale "$SCALE" || return 1
-  printf '[notifications]\nserver = "own"\n[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
+  printf '[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
     >"$CONFIG/sill/settings.toml"
   seed_checks || { echo "no checks wallpaper" >&2; return 1; }
   launch_daemon || return 1
@@ -1327,7 +1306,7 @@ main() {
       run_recovering recover_banners step_warm step_shows_holds_hides step_hover step_grouping \
         step_dnd step_click step_idle ;;
     bus)
-      run_steps step_owns step_information step_notify_send step_close step_passive \
+      run_steps step_owns step_information step_notify_send step_close \
         step_other_holder step_history_survives ;;
     real)
       # shellcheck disable=SC2046 # one word per step name

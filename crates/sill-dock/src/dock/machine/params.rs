@@ -1,4 +1,4 @@
-//! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
+//! The numbers the machine runs on: constants, `dock.*` settings plus quire's motion tokens
 //! (no easing follows the motion level). Built once per settings change, never hard-coded.
 
 use ds::base::time::stamp::Ms;
@@ -6,10 +6,25 @@ use ds::motion::hover_intent::HoverProfile;
 use ds::style::tokens::delay::TipDelay;
 use ds::style::tokens::easing::{CubicBezier, EasingToken};
 use sill_model::units::Cpx;
-use sill_settings::{ActiveClick, DockModifierClicks, DockSettings, Magnification};
+use sill_settings::{DockSettings, Magnification};
 // `eased` is quire's one curve evaluator, which the dock's magnification shares with the reveal.
-use sill_ui_kit::autohide::Timing;
 pub(super) use sill_ui_kit::autohide::eased;
+use sill_ui_kit::autohide::{self, Timing};
+
+/// How long icons take to grow under the pointer.
+const MAGNIFY_ENTER_MS: u64 = 120;
+/// How long icons take to shrink back.
+const MAGNIFY_LEAVE_MS: u64 = 200;
+/// How long after leaving the Dock labels show at once.
+const HOVER_LABEL_WARM: Ms = Ms(400);
+/// How long to press before an icon's menu opens.
+const HOLD_TO_MENU: Ms = Ms(600);
+/// How far a press can move and still open the menu; also the drag threshold.
+const HOLD_TO_MENU_MOVE_PX: i32 = 8;
+/// How far an icon is dragged out of the Dock to remove it.
+pub(crate) const REMOVE_THRESHOLD_PX: i32 = 64;
+/// How long a dragged file waits on an app before it opens.
+const SPRING_LOAD: Ms = Ms(500);
 
 /// The label's first delay: quire's `HoverProfile::Label` (100 ms; design/30 section 1.2), where
 /// it was 350 ms (`--d-fly`) before the dock followed `DockLabel`.
@@ -21,9 +36,7 @@ fn fly_delay_ms() -> Ms {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DockParams {
     pub magnification: Magnification,
-    /// `dock.magnify_enter_ms`.
     pub enter_ms: u64,
-    /// `dock.magnify_leave_ms`.
     pub leave_ms: u64,
     /// `--e-out`.
     pub ease_out: CubicBezier,
@@ -31,22 +44,14 @@ pub struct DockParams {
     pub ease_exit: CubicBezier,
     /// The label's first delay, [`fly_delay_ms`].
     pub fly_delay_ms: Ms,
-    /// `dock.hover_label_warm_ms`.
     pub warm_ms: Ms,
-    /// `dock.hold_to_menu_ms`.
     pub hold_ms: Ms,
-    /// `dock.hold_to_menu_move_px`, which is also the drag threshold (A6 "live after 8 px
-    /// Manhattan").
+    /// The hold tolerance, which is also the drag threshold (A6 "live after 8 px Manhattan").
     pub drag_threshold: Cpx,
-    pub click_active_app: ActiveClick,
-    pub modifier_clicks: DockModifierClicks,
-    /// `dock.autohide_delay_ms`.
     pub autohide_delay_ms: Ms,
-    /// `dock.autohide_slide_ms`.
     pub slide_ms: u64,
     /// `gut + H_p + 8` (design/10 §10.5.5): how far a hidden dock sits below the edge.
     pub slide_distance: Cpx,
-    /// `dock.spring_load_ms`.
     pub spring_load_ms: Ms,
     /// The blur region's corner radius under the pill's squircle.
     pub pill_blur_radius: i32,
@@ -66,25 +71,22 @@ impl DockParams {
     /// The parameters for `dock` settings.
     pub fn new(dock: &DockSettings) -> DockParams {
         let curve = |token: EasingToken| token.easing().curve();
-        let px = |v: u16| Cpx::px(i32::from(v));
         let pad = i32::from(dock.pill_padding_px.0);
         let gutter = 8;
         DockParams {
             magnification: dock.magnification,
-            enter_ms: u64::from(dock.magnify_enter_ms.0),
-            leave_ms: u64::from(dock.magnify_leave_ms.0),
+            enter_ms: MAGNIFY_ENTER_MS,
+            leave_ms: MAGNIFY_LEAVE_MS,
             ease_out: curve(EasingToken::Out),
             ease_exit: curve(EasingToken::Exit),
             fly_delay_ms: fly_delay_ms(),
-            warm_ms: Ms::from(dock.hover_label_warm_ms.0),
-            hold_ms: Ms::from(dock.hold_to_menu_ms.0),
-            drag_threshold: px(dock.hold_to_menu_move_px.0),
-            click_active_app: dock.click_active_app,
-            modifier_clicks: dock.modifier_clicks,
-            autohide_delay_ms: Ms::from(dock.autohide_delay_ms.0),
-            slide_ms: u64::from(dock.autohide_slide_ms.0),
+            warm_ms: HOVER_LABEL_WARM,
+            hold_ms: HOLD_TO_MENU,
+            drag_threshold: Cpx::px(HOLD_TO_MENU_MOVE_PX),
+            autohide_delay_ms: autohide::DELAY,
+            slide_ms: autohide::SLIDE_MS,
             slide_distance: Cpx::px(gutter + (i32::from(dock.tile_size_px.0) + 2 * pad) + 8),
-            spring_load_ms: Ms::from(dock.spring_load_ms.0),
+            spring_load_ms: SPRING_LOAD,
             pill_blur_radius: crate::dock::geometry::pill_blur_radius(dock),
         }
     }

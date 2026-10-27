@@ -7,9 +7,10 @@ use std::time::Duration;
 
 use ds::prelude::*;
 use sill_model::screenshots::ShotLeave;
-use sill_settings::ShellFile;
 
-use super::{Done, HOLD_MS, Running, commands, file, leave, leaving, one_up, start, until};
+use super::{
+    Done, HOLD_MS, REST_MS, Running, commands, file, leave, leaving, one_up, start, until,
+};
 
 const PICTURE: &str = ".ds-shot-picture";
 const ACTION: &str = ".ds-shot-actions .ds-button";
@@ -79,7 +80,7 @@ fn the_hold_pauses_while_the_keyboard_is_held_and_resumes_when_it_is_lost() {
     running
         .link
         .keyboard_lost(sill_ui_kit::links::Transient::Thumbnail);
-    let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
+    let rest = REST_MS;
     running.harness.advance(Duration::from_millis(rest - 300));
     assert_eq!(leaving(&running), 0, "the rest after the keyboard goes");
     assert_eq!(

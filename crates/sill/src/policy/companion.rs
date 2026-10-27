@@ -1,6 +1,5 @@
-//! The companion service on the settings' side: `companion.double_tap_ms`,
-//! `companion.app_wait_ms` and `companion.in_field` as the typed [`CompanionParams`] its
-//! machines run on ([`sill_settings::companion_params`] holds each to its range), sent now and
+//! The companion service on the settings' side: `companion.in_field` as the typed [`CompanionParams`] its
+//! machines run on, sent now and
 //! whenever the answer changes.
 
 use sill_model::companion::{CompanionCommand, CompanionParams};
@@ -29,7 +28,7 @@ impl Policy for CompanionBridge {
 mod tests {
     use sill_model::companion::{CompanionCommand, CompanionParams, InField};
     use sill_model::units::Ms;
-    use sill_settings::{Ms as KeyMs, ShellFile};
+    use sill_settings::ShellFile;
 
     use super::CompanionBridge;
     use crate::policy::Policy;
@@ -39,13 +38,11 @@ mod tests {
         let defaults = CompanionBridge.of(&ShellFile::default());
         assert_eq!(defaults, CompanionParams::default());
         let mut file = ShellFile::default();
-        file.companion.double_tap_ms = KeyMs(500);
-        file.companion.app_wait_ms = KeyMs(200);
         file.companion.in_field = InField::Launcher;
         let out = CompanionBridge.of(&file);
         assert_eq!(
             (out.tap.window, out.summon.app_wait, out.summon.in_field),
-            (Ms(500), Ms(200), InField::Launcher)
+            (Ms(350), Ms(80), InField::Launcher)
         );
         assert_eq!(CompanionBridge::command(out), CompanionCommand::Params(out));
     }

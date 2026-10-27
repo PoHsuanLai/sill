@@ -90,7 +90,7 @@ mkdir -p "$HOME_DIR/Documents" "$CONFIG/sill"
 cp "$FIXTURES/clip.mkv" "$HOME_DIR/Documents/m9media-clip.mkv"
 cp "$FIXTURES/cover.mp3" "$HOME_DIR/Documents/m9media-cover.mp3"
 cp "$FIXTURES/tone.flac" "$HOME_DIR/Documents/m9media-tone.flac"
-printf '[launcher]\nfiles_backend = "fd"\nweb_search = "on"\n' >"$CONFIG/sill/settings.toml"
+printf '[launcher]\nweb_search = "on"\n' >"$CONFIG/sill/settings.toml"
 start_private_bus || exit 1
 {
   echo "label $LABEL, binary $SILL_BIN"

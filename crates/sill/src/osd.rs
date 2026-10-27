@@ -6,7 +6,7 @@
 //! in the compositor's shortcuts), so a key press always shows. A level another app sets (a player's own slider,
 //! `pactl`, the monitor's buttons) never does: macOS shows its indicator for the keys only, and
 //! following every PipeWire change would flash it whenever an app ramps its stream. `sill debug
-//! osd` shows a made-up change and moves nothing real. `osd.enabled = "off"` silences all three.
+//! osd` shows a made-up change and moves nothing real.
 //!
 //! **Where.** Volume: the output of the active window (the daemon's stand-in for the output under
 //! the pointer), else the first output. Brightness: the outputs the key moved, chosen the way the
@@ -22,7 +22,7 @@ use sill_model::displays::{Displays, KeysTarget};
 use sill_model::ids::OutputName;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
-use sill_settings::{OsdEnabled, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::links::{Level, LevelSource, OsdKind, OsdLink};
 use sill_ui_kit::services::Services;
 
@@ -73,7 +73,7 @@ pub fn fake_level(percent: Percent, mute: Mute) -> Level {
     Level { percent, mute }
 }
 
-/// Show `kind` from `level` on the outputs it belongs to, unless `osd.enabled` is off.
+/// Show `kind` from `level` on the outputs it belongs to.
 fn show(
     link: &OsdLink,
     services: &Services,
@@ -82,9 +82,6 @@ fn show(
     kind: OsdKind,
     level: LevelSource,
 ) {
-    if file.osd.enabled == OsdEnabled::Off {
-        return;
-    }
     let infos: Vec<OutputInfo> = outputs.outputs.iter().map(|(i, _)| i.clone()).collect();
     let focus = services.windows.state.borrow().toplevels.focused_output();
     let keys = crate::policy::displays::policy_from(&file.display).keys_target;

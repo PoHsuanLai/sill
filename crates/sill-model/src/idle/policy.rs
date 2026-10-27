@@ -35,11 +35,11 @@ pub struct IdleTimes {
     pub suspend: PowerPair,
 }
 
-/// How bright a dimmed display stays, in percent of its brightness (`idle.dim_level_pct`).
+/// How bright a dimmed display stays, in percent of its brightness .
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DimLevel(pub u8);
 
-/// The warning before the displays go off: dimmed for `lead` first (`idle.dim_s`; zero: no
+/// The warning before the displays go off: dimmed for `lead` first (zero: no
 /// dim). Drawn as a sill overlay, never by changing a backlight or a monitor's brightness.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DimPlan {
@@ -67,7 +67,7 @@ pub enum IdleLock {
 pub struct LockGrace(pub IdleSecs);
 
 /// How long the lock screen may sit untouched before the displays go off again
-/// (`idle.locked_screen_off_s`; zero: the normal screen-off time).
+/// (zero: the normal screen-off time).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LockedScreenOff(pub IdleSecs);
 

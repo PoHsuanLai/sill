@@ -99,11 +99,11 @@ impl fmt::Debug for ClipImage {
     }
 }
 
-/// Most entries kept (`launcher.clipboard_cap`).
+/// Most entries kept.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct EntryCap(pub u16);
 
-/// The largest image kept, in bytes (`launcher.clipboard_image_max_mb`); a larger one is
+/// The largest image kept, in bytes; a larger one is
 /// skipped. Zero keeps no images.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ImageCap(pub u64);

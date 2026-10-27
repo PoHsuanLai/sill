@@ -20,15 +20,13 @@ pub(crate) const POPUP_SUBMENU_CSS: &str = include_str!("submenu.css");
 /// for the submenus a menu of the root opens beside it: quire places a submenu right of its parent
 /// and falls back to the left, against the box of its overlay, which `submenu.css` widens by this
 /// much on the left. The card stays at the frame's right, so a popup that hangs from its right
-/// edge (a status menu) keeps its card where it is. `style` is written on the frame beside them, for the custom
-/// properties the root's menu reads. The frame provides the seat's `HostSignals` to the root, so
+/// edge (a status menu) keeps its card where it is. The frame provides the seat's `HostSignals` to the root, so
 /// a popup has the same focus ring and scale as a surface.
 #[component]
 pub fn PopupFrame(
     room: PopupRoom,
     #[props(default)] widest: Option<i32>,
     #[props(default)] submenu_room: i32,
-    #[props(default)] style: String,
     children: Element,
 ) -> Element {
     use_host_signals();
@@ -40,7 +38,7 @@ pub fn PopupFrame(
         }
         div {
             class: "sill-popup-frame",
-            style: "{room.style()}{cap};--popup-submenu-room:{submenu_room}px;{style}",
+            style: "{room.style()}{cap};--popup-submenu-room:{submenu_room}px",
             {children}
         }
     }

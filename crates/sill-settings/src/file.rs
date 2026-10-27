@@ -1,7 +1,7 @@
 //! `sill/settings.toml`, whole (design/22 §2): a [`SettingsDoc`] that `ds_settings::Store` reads
 //! leniently (a bad value costs its own key), writes atomically and watches. A key this build
-//! does not know is reported by the load and dropped by the next save; `sill::daemon::settings`
-//! owns the reading, saving and watching.
+//! does not know (a removed setting included) is reported in `Loaded::unknown` and kept in the
+//! file by the next save; `sill::daemon::settings` owns the reading, saving and watching.
 
 use ds_settings::{AppName, FileName, Format, SettingsDoc};
 use serde::{Deserialize, Serialize};
@@ -16,19 +16,15 @@ use crate::hot_corners::HotCornerSettings;
 use crate::idle::IdleSettings;
 use crate::keyboard::KeyboardSettings;
 use crate::launcher::LauncherSettings;
-use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
 use crate::osd::OsdSettings;
-use crate::power_menu::PowerMenuSettings;
 use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
-use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
 use crate::voice::VoiceSettings;
 use crate::wallpaper::WallpaperSettings;
-use crate::window::WindowSettings;
 
 /// The directory name under `$XDG_CONFIG_HOME`.
 pub const APP: AppName = AppName("sill");
@@ -42,15 +38,11 @@ pub struct ShellFile {
     pub launcher: LauncherSettings,
     pub scroll: ScrollSettings,
     pub scrollbar: ScrollbarSettings,
-    pub menus: MenusSettings,
     pub switcher: SwitcherSettings,
     pub notifications: NotificationsSettings,
     pub control_center: ControlCenterSettings,
-    pub spaces: SpacesSettings,
     pub display: DisplaySettings,
     pub osd: OsdSettings,
-    pub window: WindowSettings,
-    pub power_menu: PowerMenuSettings,
     /// sill's own lock screen.
     pub session: SessionSettings,
     pub calendar: CalendarSettings,

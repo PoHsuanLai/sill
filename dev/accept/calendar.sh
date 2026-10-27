@@ -16,8 +16,7 @@
 #   2. The center's Calendar tile is the Medium card (a today column beside the compact month): it
 #      shows the NEXT event of the agenda Up Next reads, one row (quire's `MonthFace.events`: Medium
 #      takes the first, only Large lists several). Then Up Next lists the fixture's next events in
-#      order, as many as the Medium tile's body holds without clipping (two, at the default cell
-#      and `up_next_max`). The colour bars, top to bottom, are the Calendar's work, then Up Next's
+#      order, as many as the Medium tile's body holds without clipping (two, at the default cell). The colour bars, top to bottom, are the Calendar's work, then Up Next's
 #      work and team (quire's label hues
 #      `--c-{red,amber,green,blue,violet}`, picked by the calendar's name as
 #      `widgets::up_next::calendar_hue` picks it); personal's (tomorrow's Dentist) is not today's
@@ -167,9 +166,6 @@ write_settings() {
 [calendar]
 sources = "$CAL/work.ics;$CAL/team.ics;$CAL/personal.ics"
 week_numbers = "$1"
-
-[widgets]
-center = ["calendar", "up_next"]
 TOML
 }
 

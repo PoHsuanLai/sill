@@ -8,14 +8,19 @@ use sill_settings::{LauncherSettings, ShellFile, WebSearch};
 
 use super::Policy;
 
+/// How long one file search may take before its rows are dropped.
+const FILES_BUDGET: Duration = Duration::from_millis(150);
+
+/// The web search the fallback row opens, with `{query}` replaced by the typed text.
+const WEB_SEARCH_URL: &str = "https://duckduckgo.com/?q={query}";
+
 /// The search runner's policy `l` makes.
 pub fn search_policy_of(l: &LauncherSettings) -> LauncherPolicy {
     LauncherPolicy {
-        files: l.files_backend,
-        files_budget: Duration::from_millis(u64::from(l.files_budget_ms.0)),
+        files_budget: FILES_BUDGET,
         web: match l.web_search {
             WebSearch::On => WebPolicy::On {
-                template: l.web_engine_url.clone(),
+                template: WEB_SEARCH_URL.to_owned(),
             },
             WebSearch::Off => WebPolicy::Off,
         },
@@ -46,15 +51,14 @@ mod tests {
     use std::time::Duration;
 
     use sill_launcher::SkinTone;
-    use sill_model::results::{CurrencyPolicy, FilesChoice, WebPolicy};
-    use sill_settings::{LauncherSettings, Ms, WebSearch};
+    use sill_model::results::{CurrencyPolicy, WebPolicy};
+    use sill_settings::{LauncherSettings, WebSearch};
 
     use super::search_policy_of;
 
     #[test]
     fn the_defaults_search_files_and_the_web_with_no_network_for_currency() {
         let search = search_policy_of(&LauncherSettings::default());
-        assert_eq!(search.files, FilesChoice::Auto);
         assert_eq!(search.files_budget, Duration::from_millis(150));
         assert_eq!(
             search.web,
@@ -73,16 +77,12 @@ mod tests {
     #[test]
     fn every_setting_reaches_the_search_policy() {
         let l = LauncherSettings {
-            files_backend: FilesChoice::Walk,
-            files_budget_ms: Ms(400),
             emoji_skin_tone: SkinTone::MediumDark,
             web_search: WebSearch::Off,
             currency: CurrencyPolicy::Ecb,
             ..LauncherSettings::default()
         };
         let search = search_policy_of(&l);
-        assert_eq!(search.files, FilesChoice::Walk);
-        assert_eq!(search.files_budget, Duration::from_millis(400));
         assert_eq!(search.web, WebPolicy::Off);
         assert_eq!(search.emoji_tone, SkinTone::MediumDark);
         assert_eq!(search.currency, CurrencyPolicy::Ecb);

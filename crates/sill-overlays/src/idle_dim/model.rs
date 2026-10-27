@@ -14,7 +14,7 @@ pub struct DimScene {
 }
 
 /// The scrim's opacity for a display kept at `kept` percent of its brightness
-/// (`idle.dim_level_pct`, 10 to 90, held there again here): the rest is covered.
+/// (10 to 90, held there again here): the rest is covered.
 pub fn scrim_of(kept: DimLevel) -> Percent {
     let DimLevel(kept) = kept;
     Percent(100 - kept.clamp(10, 90))

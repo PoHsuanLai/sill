@@ -124,10 +124,8 @@ await_compositor() {
 write_scene() {
   mkdir -p "$CONFIG/sill"
   cat >"$CONFIG/sill/settings.toml" <<'EOF'
-[spaces]
-
 [launcher]
-files_backend = "fd"
+web_search = "on"
 EOF
   cat >"$CONFIG/sill/layout.toml" <<'EOF'
 version = 1

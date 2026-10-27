@@ -6,7 +6,7 @@
 //! headline, the app's name set strong with what it says, and the two buttons. The yes button
 //! comes first, so it is the default (Return); Escape answers what `escape_answer` says (the no
 //! button for a portal question, a dismissal for the compositor's). The alert answers nothing for
-//! `companion.confirm_arm_ms` (`PERMISSION_ARM_AFTER` unset) after it mounts. Nothing is styled under
+//! the arming time (`PERMISSION_ARM_AFTER` unset) after it mounts. Nothing is styled under
 //! `.ds-alert*`, `.ds-sheet*` or `.ds-button*`.
 
 use dioxus::prelude::*;
@@ -19,7 +19,7 @@ use sill_model::capture_pick::{PermissionAsking, PermissionOutcome};
 use sill_services::capture_pick::CaptureService;
 use sill_settings::confirm_arm;
 use sill_ui_kit::app_icons::{LogicalPx, use_tile_icons};
-use sill_ui_kit::hooks::{use_section, use_service_part, use_sheet_output};
+use sill_ui_kit::hooks::{use_service_part, use_sheet_output};
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::sheet_stage::{SheetStage, settle, use_sheet_stage};
 
@@ -60,7 +60,6 @@ fn QuestionCard(
     stage: Signal<SheetStage<PermissionAsking>>,
 ) -> Element {
     let end = use_end(asking.id);
-    let companion = use_section(|file| &file.companion);
     let icons = use_tile_icons(&output, LogicalPx(ICON_PX));
     let said = words(&asking);
     let escape = escape_answer(asking.by);
@@ -110,7 +109,7 @@ fn QuestionCard(
             // (`escape_answer`).
             on_dismiss: Some(EventHandler::new(move |()| end.call(escape))),
             // A key or click already on its way to the window behind answers nothing.
-            arm_after: Some(confirm_arm(&companion())),
+            arm_after: Some(confirm_arm()),
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
             // The sheet carries the blur region's id, so the layer's element region resolves.

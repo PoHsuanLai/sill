@@ -1,25 +1,20 @@
 //! Table tests for the dock's own menu.
 
 use ds::prelude::*;
-use sill_settings::{AutoHide, DockMenuOrder, Magnification};
+use sill_settings::{AutoHide, Magnification};
 
 use super::rows;
 use crate::dock::context_menu::{DockMenuRow, menu_entries};
 use crate::dock::pick::DockPick;
 
 fn listed(autohide: AutoHide, magnification: Magnification) -> Vec<(String, Option<DockPick>)> {
-    menu_entries(
-        &rows(autohide, magnification),
-        None,
-        &[],
-        DockMenuOrder::AppleOrder,
-    )
-    .into_iter()
-    .map(|e| match e {
-        MenuItem::Item { title, value, .. } => (title, Some(value)),
-        _ => ("--".to_owned(), None),
-    })
-    .collect()
+    menu_entries(&rows(autohide, magnification), None, &[])
+        .into_iter()
+        .map(|e| match e {
+            MenuItem::Item { title, value, .. } => (title, Some(value)),
+            _ => ("--".to_owned(), None),
+        })
+        .collect()
 }
 
 #[test]

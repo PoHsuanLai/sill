@@ -2,23 +2,9 @@
 //! §13.3.7). All Advanced (§5).
 
 use ds_core::word::Word;
+use ds_settings::Px;
 use ds_settings::schema::Page;
-use ds_settings::{Count, Px};
 use serde::{Deserialize, Serialize};
-
-/// Which quire material a panel uses. design/22 fixes Sheet for v1, but a one-variant enum
-/// cannot be a settings key (the schema needs at least two words to pick a widget), and
-/// design/20 §1.3 and §1.5 name Popover for the same panels, so both are offered.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum PanelMaterial {
-    /// quire `Material::Sheet` (design/03 §17.3).
-    #[default]
-    Sheet,
-    /// quire `Material::Popover` (design/20 §1.3, §1.5).
-    Popover,
-}
 
 /// Whether a module also shows as its own bar item with its own dropdown (macOS's "Show in Menu
 /// Bar"), beside the control center's own item.
@@ -65,14 +51,6 @@ pub struct ControlCenterSettings {
         advanced
     )]
     pub width_px: Px,
-    #[settings(
-        label = "Columns",
-        help = "Tiles per row.",
-        section = "Control Center",
-        range = "1..=4",
-        advanced
-    )]
-    pub grid_columns: Count,
     #[settings(
         label = "Tile gap",
         help = "Space between tiles.",
@@ -167,7 +145,6 @@ impl Default for ControlCenterSettings {
         };
         ControlCenterSettings {
             width_px: Px(320),
-            grid_columns: Count(2),
             grid_gap_px: Px(10),
             grid_padding_px: Px(10),
             bottom_margin_px: Px(16),

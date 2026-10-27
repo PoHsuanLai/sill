@@ -3,17 +3,17 @@
 //! [`crate::debounced`] (a burst of writes settles into one look at the folders for a name that
 //! `is_screenshot_name`, [`super::folder_watch`]), and publish `Watching`; run each event and
 //! command through `step` and carry out its effects: `MakePreview` on the blocking pool ([`super::preview`]), `Open` (`xdg-open`),
-//! `Trash` (`gio trash`), `RunTool` (`tool_command` into `save_folder`, a child whose exit is
+//! `Trash` (`gio trash`), `RunTool` (`portal_command`, a child whose exit is
 //! `TakeEnded`). Ends when every receiver is gone.
 //!
-//! Passive until the first `Configure`: the policy starts `Off` (no folder, no tool).
+//! Passive until the first `Configure`: the policy starts `Off` (no folder, and a take ends at once).
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use sill_model::screenshots::{
     ShotCommand, ShotEffect, ShotEvent, ShotKind, ShotPolicy, Shots, Watching, folders_of,
-    save_folder, step, tool_command,
+    portal_command, step,
 };
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinSet;
@@ -127,21 +127,16 @@ impl Live {
         }
     }
 
-    /// Run the tool for `kind` and answer `TakeEnded` at its exit (at once when there is none).
+    /// Run the portal's screenshot for `kind` and answer `TakeEnded` at its exit (at once while
+    /// the service is still passive).
     fn run_tool(&self, kind: ShotKind) {
-        let folder = save_folder(&self.folders)
-            .map(Path::to_path_buf)
-            .or_else(|| self.dirs.pictures.clone())
-            .unwrap_or_else(|| self.dirs.home.clone());
-        let tool = self.policy.clone().unwrap_or_default().tool;
         let events = self.events.clone();
-        match tool_command(&tool, kind, &folder) {
-            Some(line) => super::child::run_then(line, move || {
-                let _ = events.send(ShotEvent::TakeEnded);
-            }),
-            None => {
-                let _ = events.send(ShotEvent::TakeEnded);
-            }
+        let ended = move || {
+            let _ = events.send(ShotEvent::TakeEnded);
+        };
+        match self.policy {
+            Some(_) => super::child::run_then(portal_command(kind), ended),
+            None => ended(),
         }
     }
 }

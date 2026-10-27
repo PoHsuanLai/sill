@@ -3,7 +3,7 @@
 use ds::prelude::*;
 use sill_launcher::{AppId, WindowKey};
 use sill_model::windows::{Toplevel, WindowState};
-use sill_settings::{AutoHide, DockMenuOrder, Magnification};
+use sill_settings::{AutoHide, Magnification};
 
 use super::{Checked, DockMenuRow, Minimized};
 use crate::dock::pick::{DockPick, LoginChange};
@@ -23,7 +23,6 @@ pub fn menu_entries(
     rows: &[DockMenuRow],
     app: Option<&AppId>,
     windows: &[&Toplevel],
-    order: DockMenuOrder,
 ) -> Vec<MenuItem<DockPick>> {
     let target = Target {
         app,
@@ -36,13 +35,10 @@ pub fn menu_entries(
     };
     let mut listed = windows.iter();
     let in_options = |row: &&DockMenuRow| {
-        order == DockMenuOrder::AppleOrder
-            && matches!(
-                row,
-                DockMenuRow::KeepInDock(_)
-                    | DockMenuRow::OpenAtLogin { .. }
-                    | DockMenuRow::ShowInFiles
-            )
+        matches!(
+            row,
+            DockMenuRow::KeepInDock(_) | DockMenuRow::OpenAtLogin { .. } | DockMenuRow::ShowInFiles
+        )
     };
     let (options, rest): (Vec<&DockMenuRow>, Vec<&DockMenuRow>) = rows.iter().partition(in_options);
     // The submenu takes the place of its first row.

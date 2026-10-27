@@ -2,10 +2,9 @@
 
 use super::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, step};
 use ds::base::time::stamp::Stamp;
-use sill_settings::NotificationsSettings;
 
 fn p() -> BannerParams {
-    BannerParams::new(&NotificationsSettings::default())
+    BannerParams::default()
 }
 
 fn run(persistence: Persistence, inputs: &[(u64, BannerIn)]) -> (Banner, Vec<BannerOut>) {

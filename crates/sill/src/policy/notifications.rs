@@ -1,23 +1,28 @@
 //! The notifications service's policy, from the settings and the focus mode: sent once at start
 //! (which ends the service's passive start) and again whenever either changes.
 
-use sill_model::notifications::{HistoryCap, NotificationsCommand, NotificationsPolicy, Quiet};
+use sill_model::notifications::{
+    HistoryCap, NotificationsCommand, NotificationsPolicy, Quiet, ServerMode,
+};
 use sill_settings::{FocusMode, NotificationsSettings, ShellFile};
 use tokio::sync::watch;
 use tokio::sync::watch::error::RecvError;
 
 use super::Policy;
 
-/// The policy `n` and `focus` make.
+/// The most notifications the notification center keeps; the oldest go first.
+const HISTORY_CAP: HistoryCap = HistoryCap(100);
+
+/// The policy `n` and `focus` make: the service owns the bus name.
 pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPolicy {
     NotificationsPolicy {
-        server: n.server,
+        server: ServerMode::Own,
         quiet: match focus {
             FocusMode::Off => Quiet::Off,
             FocusMode::DoNotDisturb => Quiet::DoNotDisturb,
         },
         style: n.banner_style,
-        history_cap: HistoryCap(n.history_cap.0),
+        history_cap: HISTORY_CAP,
         swipe: n.swipe,
     }
 }
@@ -52,7 +57,7 @@ mod tests {
     use super::policy_of;
     use sill_model::notifications::Swipe;
     use sill_model::notifications::{HistoryCap, Presentation, Quiet, ServerMode};
-    use sill_settings::{Count, FocusMode, NotificationsSettings};
+    use sill_settings::{FocusMode, NotificationsSettings};
 
     #[test]
     fn the_settings_and_focus_become_the_policy() {
@@ -67,17 +72,13 @@ mod tests {
             "a swipe keeps it, as macOS"
         );
         let n = NotificationsSettings {
-            server: ServerMode::Passive,
             banner_style: Presentation::HistoryOnly,
-            history_cap: Count(7),
             swipe: Swipe::Dismiss,
             ..NotificationsSettings::default()
         };
         let quiet = policy_of(&n, FocusMode::DoNotDisturb);
-        assert_eq!(quiet.server, ServerMode::Passive);
         assert_eq!(quiet.quiet, Quiet::DoNotDisturb);
         assert_eq!(quiet.style, Presentation::HistoryOnly);
-        assert_eq!(quiet.history_cap, HistoryCap(7));
         assert_eq!(quiet.swipe, Swipe::Dismiss);
     }
 

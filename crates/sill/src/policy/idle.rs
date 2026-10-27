@@ -16,9 +16,16 @@ use sill_settings::{Mins, Secs, ShellFile};
 
 use super::Policy;
 
-/// The idle config `file` makes: the four `*_min` keys times 60 (0 is `Never`); the dim lead and level, the lock, the lock
-/// screen's own time and `session.lock_grace_s` in seconds. Each value is held to its key's
-/// range, so a hand-edited file cannot ask for an hour of grace.
+/// Seconds of dimming as a warning before the display turns off.
+const DIM_LEAD: IdleSecs = IdleSecs(5);
+/// How bright the display stays while dimmed, in percent.
+const DIM_LEVEL: DimLevel = DimLevel(50);
+/// Seconds the lock screen may sit untouched before the display turns off again.
+const LOCKED_SCREEN_OFF: IdleSecs = IdleSecs(60);
+
+/// The idle config `file` makes: the four `*_min` keys times 60 (0 is `Never`); the lock and
+/// `session.lock_grace_s` in seconds, and the dim and the lock screen's own time as constants.
+/// Each value is held to its key's range, so a hand-edited file cannot ask for an hour of grace.
 pub fn policy_of(file: &ShellFile) -> IdleConfig {
     let idle = &file.idle;
     let minutes = |count: Mins, max: u16| match count.0.min(max) {
@@ -39,11 +46,11 @@ pub fn policy_of(file: &ShellFile) -> IdleConfig {
     IdleConfig {
         times,
         dim: DimPlan {
-            lead: secs(idle.dim_s, 60),
-            level: DimLevel(idle.dim_level_pct.0.clamp(10, 90)),
+            lead: DIM_LEAD,
+            level: DIM_LEVEL,
         },
         lock: idle.lock,
-        locked_off: LockedScreenOff(secs(idle.locked_screen_off_s, 600)),
+        locked_off: LockedScreenOff(LOCKED_SCREEN_OFF),
         grace: LockGrace(secs(file.session.lock_grace_s, 60)),
     }
 }
@@ -99,7 +106,7 @@ mod tests {
         DimLevel, DimPlan, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace, LockedScreenOff,
         PowerPair, Timeout,
     };
-    use sill_settings::{Mins, Percent, Secs, ShellFile};
+    use sill_settings::{Mins, Secs, ShellFile};
 
     use super::policy_of;
 
@@ -111,10 +118,7 @@ mod tests {
         own.idle.screen_off_battery_min = Mins(2);
         own.idle.suspend_ac_min = Mins(0);
         own.idle.suspend_battery_min = Mins(20);
-        own.idle.dim_s = Secs(0);
-        own.idle.dim_level_pct = Percent(30);
         own.idle.lock = IdleLock::Never;
-        own.idle.locked_screen_off_s = Secs(0);
         own.session.lock_grace_s = Secs(0);
         let after = |s| Timeout::After(IdleSecs(s));
         let cases = [
@@ -154,11 +158,11 @@ mod tests {
                         },
                     },
                     dim: DimPlan {
-                        lead: IdleSecs(0),
-                        level: DimLevel(30),
+                        lead: IdleSecs(5),
+                        level: DimLevel(50),
                     },
                     lock: IdleLock::Never,
-                    locked_off: LockedScreenOff(IdleSecs(0)),
+                    locked_off: LockedScreenOff(IdleSecs(60)),
                     grace: LockGrace(IdleSecs(0)),
                 },
             ),

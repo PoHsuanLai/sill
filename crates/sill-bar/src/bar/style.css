@@ -11,7 +11,7 @@
 .sill-bar-body{ display:block; }
 
 /* The hide trigger (`bar-strip`): a transparent strip along the top edge that takes the pointer
-   while the bar is hidden; its height is `dock.autohide_trigger_strip_px`. */
+   while the bar is hidden; its height is `TRIGGER_STRIP_PX`. */
 .sill-bar-strip{ position:absolute; left:0; top:0; width:100%; }
 
 /* The strip: the layer's full size, title groups at either end. The trailing edge keeps 2 pt, and
@@ -22,6 +22,8 @@
   padding:0 var(--s-2) 0 var(--s-8); color:var(--f-ink-soft); transition:color var(--t-big) var(--e-out); }
 
 .sill-bar-group{ position:relative; display:flex; align-items:center; height:100%; gap:var(--s-4); }
+/* The status items sit flush against each other. */
+.sill-bar-status{ gap:0; }
 
 /* Digits keep their width, so the status items beside the clock do not move each minute. */
 .sill-bar-clock{ display:flex; font-variant-numeric:tabular-nums; }

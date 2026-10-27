@@ -257,7 +257,7 @@ pub enum SoundHint {
     Suppressed,
 }
 
-/// `expire_timeout`. design/13 §13.3.6: the banner's hold is `notifications.banner_hold_ms`
+/// `expire_timeout`. design/13 §13.3.6: the banner's hold is its constant
 /// whatever the sender asks, except that 0 persists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]

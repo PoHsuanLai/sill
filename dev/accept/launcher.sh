@@ -40,7 +40,7 @@
 #
 #   palette: the palette, its preview pane, sections and emoji grid
 #     A scratch HOME holds a PDF, a PNG, a Markdown file and six more `m9-*` documents,
-#     `launcher.files_backend = "fd"`. Every key goes through `sill debug key`, every look
+#     (the provider asks `fd`). Every key goes through `sill debug key`, every look
 #     through `sill debug launcher-rows` and `sill debug capture` of the panel.
 #     1. Open latency: 10 warm `sill launcher open` / `close`, the panel's
 #        `launcher.open_to_frame_ms` p50/p95/max; only the count of openings is asserted, since
@@ -75,7 +75,7 @@
 #     has nothing activatable. examples/file_manager_stub.rs holds org.freedesktop.FileManager1
 #     on it and records ShowItems. examples/files_probe.rs drives FilesProvider as the runner
 #     does and carries out the first row's activation through the real launch service.
-#     1. `files_backend = "fd"`: the provider lists m9-report.pdf under ~/Documents for
+#     1. The `fd` backend: the provider lists m9-report.pdf under ~/Documents for
 #        "m9-rep" and for "M9-REP" (names match without case); the daemon, after `sill launcher
 #        open --query m9-rep`, lists it once in `sill debug launcher-rows`, under Top Hit (a
 #        single match is the Top Hit, never repeated below it) or Documents.
@@ -84,9 +84,7 @@
 #     3. ⌘R reveals it: the running stub file manager records ShowItems with its file:// URI and
 #        the token; with no file manager on the bus, xdg-open opens the folder instead; with the
 #        stub only activatable (a service file on the private bus), the call starts it.
-#     4. `files_backend = "off"`: the provider lists nothing; the daemon, after `sill reload`,
-#        lists no file row in any section, Top Hit included, and no Documents section.
-#     5. Tracker end to end in localsearch's own sandbox (a private bus and a scratch index).
+#     4. Tracker end to end in localsearch's own sandbox (a private bus and a scratch index).
 #
 # --real-input: shell-host's scripts/dev/fake-input.sh drives the headless KWin: every key is a
 # real Wayland key event with a real serial and keyboard focus, reaching the palette's field and
@@ -94,8 +92,7 @@
 # look; no key goes through `sill debug key`. The bus is KWin's private bus, given to
 # the daemon (and the stub file manager, as an argument) only, never to this shell. ONE
 # fake-input client serves the whole run. `wl-copy`/`wl-paste` get KWin's socket by absolute
-# path and only made-up strings, and no clipboard content is printed. `launcher.files_backend =
-# "fd"`.
+# path and only made-up strings, and no clipboard content is printed. The provider asks `fd`.
 #     1. Real typing of a file's name lists it (Top Hit); real Down then Space opens the preview
 #        (and types no space), real Space closes it, real Ctrl+Y (⌘Y) opens it while typing.
 #     2. Real → twice enters the pane (the pane shows after the first); real Tab walks its
@@ -126,13 +123,12 @@
 #
 # Usage: dev/accept/launcher.sh [--only toggle|ui|palette|files]...
 #        dev/accept/launcher.sh --real-input
-#        dev/accept/launcher.sh --self-test   (files step 4's check over a table, no compositor)
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 
 usage() {
-  echo "usage: dev/accept/launcher.sh [--only toggle|ui|palette|files]... | --real-input | --self-test" >&2
+  echo "usage: dev/accept/launcher.sh [--only toggle|ui|palette|files]... | --real-input" >&2
   exit 2
 }
 MODE=keys
@@ -140,7 +136,6 @@ ONLY=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --real-input) MODE=real ;;
-    --self-test) MODE=self ;;
     --only)
       shift
       case "${1:-}" in toggle | ui | palette | files) ONLY+=("$1") ;; *) usage ;; esac ;;
@@ -856,7 +851,7 @@ group_palette() {
   : >"$OUT_DIR/keys.log"
   seed_documents "$HOME_DIR" 3000 pdfs
   mkdir -p "$CONFIG/sill"
-  printf '[launcher]\nfiles_backend = "fd"\nweb_search = "on"\n' >"$CONFIG/sill/settings.toml"
+  printf '[launcher]\nweb_search = "on"\n' >"$CONFIG/sill/settings.toml"
   start_private_bus || { group_end; return 1; }
   launch_daemon || { group_end; return 1; }
   NAME=$(output_name) || { group_end; return 1; }
@@ -922,11 +917,7 @@ EOF
       echo "$type=sill-stub-opener.desktop"
     done
   } >"$CONFIG/mimeapps.list"
-  files_settings fd
-}
-
-files_settings() {
-  printf '[launcher]\nfiles_backend = "%s"\n' "$1" >"$CONFIG/sill/settings.toml"
+  : >"$CONFIG/sill/settings.toml"
 }
 
 # A private bus (dev/private-bus.conf plus one scratch service folder, empty until step 3 puts the
@@ -1072,83 +1063,27 @@ stop_activated_fm() {
   bus_call org.freedesktop.DBus.ReloadConfig >/dev/null 2>&1
 }
 
-files_off() {
-  files_probe --backend off --query m9-rep >"$OUT_DIR/step4.txt" 2>&1
-  if [ "$(count_in $'^row\t' "$OUT_DIR/step4.txt")" = 0 ] && grep -qx 'rows 0' "$OUT_DIR/step4.txt"; then
-    pass 4 "files_backend off: the provider lists nothing"
-  else
-    fail 4 "off still listed: $(tr '\n' '|' <"$OUT_DIR/step4.txt")"
-  fi
-  files_settings off
-  sill reload >/dev/null 2>&1
-  local rows held
-  rows=$(daemon_rows m9-rep)
-  held=$(file_rows <<<"$rows")
-  case "$held" in
-    none) pass 4 "after reload no file row anywhere (Top Hit included), no Documents section" ;;
-    unread) fail 4 "the daemon's rows did not read as JSON: $rows" ;;
-    *) fail 4 "files_backend off, yet the daemon lists: $held" ;;
-  esac
-}
-
-# Where `sill debug launcher-rows` (on stdin) shows a file: "none" when no section is Documents
-# and no row in any section (Top Hit included) is a seeded file's name, "unread" when the
-# rows are not JSON, else each offending section and row.
-file_rows() {
-  python3 -c '
-import json, sys
-FILES = {"m9-report.pdf", "m9-notes.md"}
-try:
-    secs = json.loads(sys.stdin.read())["v"]["sections"]
-except (ValueError, KeyError, TypeError):
-    print("unread")
-    sys.exit(0)
-held = [s["title"] + ": " + r for s in secs for r in s["rows"] if r in FILES]
-held += [s["title"] for s in secs if s["title"] == "Documents"]
-print("; ".join(held) if held else "none")'
-}
-
-# `--self-test`: files step 4's check over a table of rows, no compositor needed. The first case
-# is a file as the Top Hit, which a "no Documents title" check alone passes.
-self_test() {
-  local ok=0 rows want got
-  while IFS='|' read -r rows want; do
-    got=$(file_rows <<<"$rows")
-    case "$got" in none) got=pass ;; *) got=fail ;; esac
-    [ "$got" = "$want" ] || { echo "self-test: $rows: $got, want $want"; ok=1; }
-  done <<'EOF'
-{"v":{"sections":[{"title":"Top Hit","rows":["m9-report.pdf"]},{"title":"Web","rows":["w"]}]}}|fail
-{"v":{"sections":[{"title":"Recent","rows":["m9-notes.md"]}]}}|fail
-{"v":{"sections":[{"title":"Documents","rows":["x"]}]}}|fail
-{"v":{"sections":[{"title":"Top Hit","rows":["Search the web for m9-rep"]}]}}|pass
-not json|fail
-EOF
-  [ "$ok" = 0 ] && echo "self-test: PASS"
-  return "$ok"
-}
-
 files_tracker() {
   if ! command -v localsearch >/dev/null; then
-    pending 5 "no localsearch here: Tracker's sandbox test was not run"
+    pending 4 "no localsearch here: Tracker's sandbox test was not run"
     return
   fi
   if [ -n "${SILL_PREBUILT:-}" ]; then
-    pending 5 "expected skip: cargo does not run in the jail (A7); the Tracker sandbox test is not run under dev/accept.sh"
+    pending 4 "expected skip: cargo does not run in the jail (A7); the Tracker sandbox test is not run under dev/accept.sh"
     return
   fi
   (cd "$SILL_REPO" && cargo test -p sill-search --test it files_tracker_live -- --ignored \
-    --nocapture) >"$OUT_DIR/step5-tracker.txt" 2>&1
-  if grep -q 'test result: ok. 1 passed' "$OUT_DIR/step5-tracker.txt"; then
-    pass 5 "Tracker found m9-report.pdf and 'm9 dir' in localsearch's sandbox"
+    --nocapture) >"$OUT_DIR/step4-tracker.txt" 2>&1
+  if grep -q 'test result: ok. 1 passed' "$OUT_DIR/step4-tracker.txt"; then
+    pass 4 "Tracker found m9-report.pdf and 'm9 dir' in localsearch's sandbox"
   else
-    fail 5 "Tracker's sandbox test (see $OUT_DIR/step5-tracker.txt)"
+    fail 4 "Tracker's sandbox test (see $OUT_DIR/step4-tracker.txt)"
   fi
 }
 
 step_files_listing() { judge files_listing; }
 step_files_open() { judge files_open; }
 step_files_reveal() { judge files_reveal; }
-step_files_off() { judge files_off; }
 step_files_tracker() { judge files_tracker; }
 
 group_files_end() {
@@ -1173,7 +1108,7 @@ group_files() {
   start_bus_with_services || { group_files_end; return 1; }
   seed_files
   launch_daemon || { group_files_end; return 1; }
-  run_steps step_files_listing step_files_open step_files_reveal step_files_off
+  run_steps step_files_listing step_files_open step_files_reveal
   local result=$STATUS
   stop_daemon || result=1
   run_steps step_files_tracker
@@ -1526,7 +1461,7 @@ main_real() {
   echo "$COMPOSITOR at $WL; data-control: $(env WAYLAND_DISPLAY="$WL" wayland-info 2>/dev/null \
     | grep -o "'[a-z_]*data_control_manager_v1'" | tr '\n' ' ')" >&2
   mkdir -p "$CONFIG/sill"
-  printf '[launcher]\nfiles_backend = "fd"\nweb_search = "on"\nclipboard_history = "memory"\n' \
+  printf '[launcher]\nweb_search = "on"\nclipboard_history = "memory"\n' \
     >"$CONFIG/sill/settings.toml"
   launch_daemon || exit 1
   NAME=$(output_name) || exit 1
@@ -1577,7 +1512,6 @@ main_keys() {
 }
 
 case "$MODE" in
-  self) self_test; exit ;;
   real) main_real ;;
   *) main_keys ;;
 esac

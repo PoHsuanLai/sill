@@ -20,14 +20,14 @@ pub enum NotificationToken {
         value = "320px"
     )]
     BannerWidth,
-    /// `--notifications-banner-min-height` (`notifications.banner_min_height_px`, 48).
+    /// `--notifications-banner-min-height` (48).
     #[token(
         name = "notifications-banner-min-height",
         input = "--notifications-banner-min-height-px",
         value = "48px"
     )]
     BannerMinHeight,
-    /// `--notifications-banner-padding` (`notifications.banner_padding_px`, 10).
+    /// `--notifications-banner-padding` (10).
     #[token(
         name = "notifications-banner-padding",
         input = "--notifications-banner-padding-px",
@@ -41,21 +41,21 @@ pub enum NotificationToken {
         value = "28px"
     )]
     Icon,
-    /// `--notifications-close` (`notifications.close_button_px`, 18): the close button's diameter.
+    /// `--notifications-close` (18): the close button's diameter.
     #[token(
         name = "notifications-close",
         input = "--notifications-close-px",
         value = "18px"
     )]
     Close,
-    /// `--notifications-stack-gap` (`notifications.stack_gap_px`, 8): between two banners.
+    /// `--notifications-stack-gap` (8): between two banners.
     #[token(
         name = "notifications-stack-gap",
         input = "--notifications-stack-gap-px",
         value = "8px"
     )]
     StackGap,
-    /// `--notifications-group-offset` (`notifications.group_offset_px`, 4): how far each of a
+    /// `--notifications-group-offset` (4): how far each of a
     /// group's layers shows below the one above it.
     #[token(
         name = "notifications-group-offset",

@@ -6,30 +6,34 @@
 use ds::motion::swipe::{Speed, SwipeMetrics};
 use ds::prelude::*;
 use ds::style::icon::render::IconPx;
+use ds_settings::Fraction;
 use sill_settings::NotificationsSettings;
 use sill_shell_kit::tokens::notifications::NotificationMetrics;
 
-/// The geometry keys as quire's tokens.
+/// The geometry keys as quire's tokens; the rest of the card's sizes are quire's own tokens.
 pub fn notification_metrics(n: &NotificationsSettings) -> NotificationMetrics {
     let px = |value: ds_settings::Px| Px(f32::from(value.0));
     NotificationMetrics {
         banner_width: px(n.banner_width_px),
-        banner_min_height: px(n.banner_min_height_px),
-        banner_padding: px(n.banner_padding_px),
         icon: px(n.icon_px),
-        close: px(n.close_button_px),
-        stack_gap: px(n.stack_gap_px),
-        group_offset: px(n.group_offset_px),
         center_width: px(n.center_width_px),
+        ..NotificationMetrics::default()
     }
 }
 
-/// The swipe keys as quire's swipe thresholds.
-pub fn swipe_metrics(n: &NotificationsSettings) -> SwipeMetrics {
+/// How far a card is swiped to dismiss it, in px.
+const SWIPE_DISMISS_PX: f32 = 80.0;
+/// How fast a swipe dismisses from any distance, in px/s.
+const SWIPE_DISMISS_VELOCITY_PX_S: f32 = 600.0;
+/// How far a leftward drag moves the card, in thousandths (250 is 0.25).
+const SWIPE_DAMPING: Fraction = Fraction(250);
+
+/// quire's swipe thresholds for a card.
+pub fn swipe_metrics() -> SwipeMetrics {
     SwipeMetrics {
-        dismiss: Px(f32::from(n.swipe_dismiss_px.0)),
-        velocity: Speed(n.swipe_dismiss_velocity_px_s.0),
-        damping: n.swipe_damping,
+        dismiss: Px(SWIPE_DISMISS_PX),
+        velocity: Speed(SWIPE_DISMISS_VELOCITY_PX_S),
+        damping: SWIPE_DAMPING,
     }
 }
 
@@ -62,7 +66,6 @@ mod tests {
                     banner_width_px: Px(420),
                     center_width_px: Px(500),
                     icon_px: Px(400),
-                    swipe_dismiss_px: Px(120),
                     ..n
                 },
                 NotificationMetrics {
@@ -71,16 +74,13 @@ mod tests {
                     icon: ds::prelude::Px(400.0),
                     ..NotificationMetrics::default()
                 },
-                SwipeMetrics {
-                    dismiss: ds::prelude::Px(120.0),
-                    ..SwipeMetrics::default()
-                },
+                SwipeMetrics::default(),
                 IconPx(255),
             ),
         ];
         for (settings, metrics, swipe, icon) in cases {
             assert_eq!(notification_metrics(&settings), metrics);
-            assert_eq!(swipe_metrics(&settings), swipe);
+            assert_eq!(swipe_metrics(), swipe);
             assert_eq!(icon_size(&settings), icon);
         }
     }

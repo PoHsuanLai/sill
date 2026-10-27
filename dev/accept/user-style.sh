@@ -5,8 +5,8 @@
 # and the fake DDC; nothing reaches the user's session. The daemon is started once and never
 # restarted: every step below changes the file under it.
 #
-#   1. Baseline: the bar, the dock and the OSD (held up by `osd.hold_ms`) are captured with no
-#      style.css.
+#   1. Baseline: the bar, the dock and the OSD (shown again just before each of its captures:
+#      its hold is a constant 1.5 s) are captured with no style.css.
 #   2. `sill style check` on the style to be written prints its notes and exits 0.
 #   3. style.css is written with a rule per surface (`.ds[data-surface=NAME]` and a token
 #      override: the bar's and the dock's frame alpha to 0, the OSD's ink and shadow ring to magenta). Every
@@ -42,7 +42,6 @@ style_for() {
 
 start_daemon() {
   mkdir -p "$CONFIG/sill"
-  printf '[osd]\nhold_ms = 60000\n' >"$CONFIG/sill/settings.toml"
   launch_daemon || return 1
   DAEMON_PID=$DAEMON
   NAME=$(output_name) || return 1
@@ -52,10 +51,16 @@ start_daemon() {
   sleep 1
 }
 
-# Captures every surface as $OUT_DIR/$1-<surface>.png.
+# Captures every surface as $OUT_DIR/$1-<surface>.png. The OSD hides 1.5 s after a change, so it
+# is shown again (and given its fade-in) right before its own capture.
 capture_all() {
   local surface
   for surface in "${SURFACES[@]}"; do
+    case "$surface" in
+      sill-osd-*)
+        sill debug osd volume 60 >>"$OUT_DIR/osd.log" 2>&1 || return 1
+        sleep 0.5 ;;
+    esac
     capture "$surface" "$OUT_DIR/$1-$surface.png" || { echo "cannot capture $surface" >&2; return 1; }
   done
 }

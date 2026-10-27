@@ -9,7 +9,7 @@ use ds::base::time::stamp::Stamp;
 use ds::prelude::Motion;
 use shell_host::BlurSpec;
 use sill_model::desktop::Shown;
-use sill_settings::{MenuBarHiding, ShellFile};
+use sill_settings::MenuBarHiding;
 use sill_ui_kit::autohide::{Hold, Phase};
 
 /// One scripted input: when, what, and whether a popup is open at that moment.
@@ -19,7 +19,7 @@ use Hold::{Free, Held};
 use RevealEvent::{Edge, Enter, Frame, Leave, MenuClosed, MenuOpened, Tick};
 
 fn run(mode: MenuBarHiding, motion: Motion, script: &Script) -> (BarReveal, Vec<RevealEffect>) {
-    let t = timing(&ShellFile::default(), motion);
+    let t = timing(motion);
     let mut effects = Vec::new();
     let mut state = BarReveal::at_rest(mode);
     for &(ms, event, hold) in script {

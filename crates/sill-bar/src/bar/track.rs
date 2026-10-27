@@ -9,7 +9,6 @@ use ds::prelude::*;
 use ds::stack::menu_track::types::{
     MenuTarget, MenuTiming, MenuTrack, MenuTrackEffect, MenuTrackEvent,
 };
-use sill_settings::MenusSettings;
 
 /// A bar menu: one per title and status item.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,11 +23,16 @@ pub type Target = MenuTarget<MenuId>;
 /// One thing the bar must do.
 pub type Effect = MenuTrackEffect<MenuId>;
 
-/// `menus.submenu_delay_ms` and `menus.submenu_triangle_timeout_ms` as the tracker's timings.
-pub fn timing(menus: &MenusSettings) -> MenuTiming {
+/// How long the pointer rests on a title before its submenu opens.
+const SUBMENU_DELAY: Duration = Duration::from_millis(200);
+/// How long a pointer heading for an open submenu keeps it open.
+const TRIANGLE_TIMEOUT: Duration = Duration::from_millis(300);
+
+/// The tracker's timings.
+pub fn timing() -> MenuTiming {
     MenuTiming {
-        submenu_delay: Duration::from_millis(u64::from(menus.submenu_delay_ms.0)),
-        triangle_timeout: Duration::from_millis(u64::from(menus.submenu_triangle_timeout_ms.0)),
+        submenu_delay: SUBMENU_DELAY,
+        triangle_timeout: TRIANGLE_TIMEOUT,
     }
 }
 

@@ -111,7 +111,8 @@ fn only_the_holders_hold_pauses_and_it_resumes_when_the_keyboard_is_lost() {
         Vec::new(),
         "the rest is not spent yet"
     );
-    running.harness.advance(Duration::from_millis(3000));
+    // The held card kept what was left of its hold, which is at most the whole hold.
+    running.harness.advance(Duration::from_millis(HOLD_MS));
     assert_eq!(
         commands(&mut running),
         timed_out(2),

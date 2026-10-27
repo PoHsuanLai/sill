@@ -4,10 +4,8 @@
 
 use ds::prelude::*;
 use ds::style::material::stack::MaterialStack;
-use ds::style::tokens::shell_type::ShellMetrics;
 
-use crate::hooks::{use_appearance, use_settings};
-use crate::shell_style::shell_metrics;
+use crate::hooks::use_appearance;
 
 /// How a popup's `Ds` root resolves its scheme: the opener's own, handed over.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -15,8 +13,6 @@ pub struct PopupLook {
     pub appearance: Appearance,
     pub system: SystemPrefs,
     pub tint: Alpha,
-    /// The shell type scale, written around the popup's root (its menu's 22 px rows).
-    pub metrics: ShellMetrics,
     /// The material stack its root hands the menu card.
     pub stack: MaterialStack,
 }
@@ -50,16 +46,14 @@ impl PopupRoom {
     }
 }
 
-/// The look a popup this surface opens is handed: the surface's own appearance, tint, type
-/// scale and material stack, read live from the settings and the desktop's appearance.
+/// The look a popup this surface opens is handed: the surface's own appearance, tint
+/// and material stack, read live from the settings and the desktop's appearance.
 pub fn use_popup_look() -> PopupLook {
     let environment = use_appearance()();
-    let metrics = shell_metrics(&use_settings()());
     PopupLook {
         appearance: environment.settings.appearance.appearance(),
         system: environment.system,
         tint: environment.tint_alpha(),
-        metrics,
         stack: environment.material_stack(),
     }
 }

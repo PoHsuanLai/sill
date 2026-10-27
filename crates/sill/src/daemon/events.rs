@@ -263,7 +263,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     follow_full_screen(shell);
     spawn_missing(shell, ctx);
     crate::work_areas::publish(&shell.services, &shell.outputs, &shell.settings.borrow());
-    crate::workspace_looks::publish(&shell.services, &shell.settings.borrow());
+    crate::workspace_looks::publish(&shell.services);
 }
 
 /// Full screen as the settings, the appearance and the desktop now have it: the compositor hears

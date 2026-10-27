@@ -1,7 +1,7 @@
 //! Which cards the stack shows (design/13 §13.3.6 "Stack", "Grouping by app", acceptance 11):
 //! the live banners grouped by app, one card per app showing its newest notification with a
 //! count chip, cards ordered by their newest notification, newest first, at most
-//! `notifications.stack_max` of them; the rest wait until a card leaves.
+//! a fixed number of them; the rest wait until a card leaves.
 
 use sill_model::notifications::{AppKey, BannerLife, LiveBanner, NotificationId};
 

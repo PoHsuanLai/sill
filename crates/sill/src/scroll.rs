@@ -6,9 +6,50 @@
 
 use shell_host as host;
 use sill_settings::{
-    Fraction, Momentum, MomentumModel, Ms, NaturalScroll, Px, RubberBand, Scalar, ScrollSettings,
-    ScrollbarSettings, ScrollbarVisibility, ShellFile, TrackClick,
+    Momentum, NaturalScroll, Px, ScrollSettings, ScrollbarSettings, ScrollbarVisibility, ShellFile,
+    TrackClick,
 };
+
+/// Momentum's drag coefficient `a`.
+const MOMENTUM_A: host::ScrollScalar = host::ScrollScalar(30.0);
+/// Momentum's drag exponent `b`.
+const MOMENTUM_B: host::ScrollScalar = host::ScrollScalar(0.7);
+/// The speed, in px/s, under which momentum stops.
+const MOMENTUM_STOP_PX_S: host::ScrollScalar = host::ScrollScalar(1.0);
+/// The speed, in px/s, a flick must reach to start momentum.
+const MOMENTUM_START_PX_S: host::ScrollScalar = host::ScrollScalar(100.0);
+/// The fastest momentum scroll, in px/s.
+const MOMENTUM_CAP_PX_S: host::ScrollScalar = host::ScrollScalar(12_000.0);
+/// The window, in ms, the release velocity is measured over.
+const VELOCITY_WINDOW_MS: host::ScrollMs = host::ScrollMs(80);
+/// How long, in ms, the fingers may rest before the release velocity is zero.
+const VELOCITY_HELD_STILL_MS: host::ScrollMs = host::ScrollMs(50);
+/// The overscroll stretch's shape: bounded, so it never leaves the view.
+const RUBBER_BAND: host::ScrollRubberBand = host::ScrollRubberBand::Bounded;
+/// The bounded stretch's constant `c`, in thousandths.
+const RUBBER_BAND_C: host::ScrollFraction = host::ScrollFraction(550);
+/// The overscroll, in px, under which no stretch is drawn.
+const RUBBER_BAND_EDGE_MIN_PX: host::ScrollPx = host::ScrollPx(10);
+/// How fast the stretch snaps back.
+const RUBBER_BAND_SNAP_RATE: host::ScrollScalar = host::ScrollScalar(12.5);
+/// How strongly the stretch snaps back.
+const RUBBER_BAND_SNAP_GAIN: host::ScrollScalar = host::ScrollScalar(0.31);
+/// How far one wheel notch scrolls, in px.
+const WHEEL_DETENT_PX: host::ScrollPx = host::ScrollPx(60);
+/// The window, in ms, in which wheel notches count as one burst.
+const WHEEL_BURST_WINDOW_MS: host::ScrollMs = host::ScrollMs(300);
+/// The speed, in px/s, above which momentum is boosted by the next scroll.
+const MOMENTUM_BOOST_THRESHOLD_PX_S: host::ScrollScalar = host::ScrollScalar(350.0);
+/// The grace, in ms, before a second scroll counts as a double scroll.
+const DOUBLE_SCROLL_GRACE_MS: host::ScrollMs = host::ScrollMs(150);
+/// How long, in ms, a scroll bar stays after scrolling stops.
+const SCROLLBAR_HIDE_DELAY_MS: host::ScrollMs = host::ScrollMs(500);
+/// How long, in ms, a scroll bar takes to fade out.
+const SCROLLBAR_FADE_DURATION_MS: host::ScrollMs = host::ScrollMs(240);
+/// How near, in px, the pointer must be for the scroll bar to widen.
+const SCROLLBAR_EXPAND_ZONE_PX: host::ScrollPx = host::ScrollPx(16);
+/// How long, in ms, the scroll bar takes to widen.
+const SCROLLBAR_EXPAND_DURATION_MS: host::ScrollMs = host::ScrollMs(240);
 
 /// `file.scroll` and `file.scrollbar`, as `HostCtx::set_scroll_config` wants them.
 pub fn config(file: &ShellFile) -> host::ScrollConfig {
@@ -22,24 +63,22 @@ fn scroll(s: &ScrollSettings) -> host::ScrollSettings {
     host::ScrollSettings {
         natural: natural_scroll(s.natural),
         momentum: momentum(s.momentum),
-        momentum_model: momentum_model(s.momentum_model),
-        momentum_a: scalar(s.momentum_a),
-        momentum_b: scalar(s.momentum_b),
-        momentum_stop_px_s: scalar(s.momentum_stop_px_s),
-        momentum_start_px_s: scalar(s.momentum_start_px_s),
-        momentum_cap_px_s: scalar(s.momentum_cap_px_s),
-        velocity_window_ms: ms(s.velocity_window_ms),
-        velocity_held_still_ms: ms(s.velocity_held_still_ms),
-        rubber_band: rubber_band(s.rubber_band),
-        rubber_band_c: fraction(s.rubber_band_c),
-        rubber_band_linear_divisor: scalar(s.rubber_band_linear_divisor),
-        rubber_band_edge_min_px: px(s.rubber_band_edge_min_px),
-        rubber_band_snap_rate: scalar(s.rubber_band_snap_rate),
-        rubber_band_snap_gain: scalar(s.rubber_band_snap_gain),
-        wheel_detent_px: px(s.wheel_detent_px),
-        wheel_burst_window_ms: ms(s.wheel_burst_window_ms),
-        momentum_boost_threshold_px_s: scalar(s.momentum_boost_threshold_px_s),
-        double_scroll_grace_ms: ms(s.double_scroll_grace_ms),
+        momentum_a: MOMENTUM_A,
+        momentum_b: MOMENTUM_B,
+        momentum_stop_px_s: MOMENTUM_STOP_PX_S,
+        momentum_start_px_s: MOMENTUM_START_PX_S,
+        momentum_cap_px_s: MOMENTUM_CAP_PX_S,
+        velocity_window_ms: VELOCITY_WINDOW_MS,
+        velocity_held_still_ms: VELOCITY_HELD_STILL_MS,
+        rubber_band: RUBBER_BAND,
+        rubber_band_c: RUBBER_BAND_C,
+        rubber_band_edge_min_px: RUBBER_BAND_EDGE_MIN_PX,
+        rubber_band_snap_rate: RUBBER_BAND_SNAP_RATE,
+        rubber_band_snap_gain: RUBBER_BAND_SNAP_GAIN,
+        wheel_detent_px: WHEEL_DETENT_PX,
+        wheel_burst_window_ms: WHEEL_BURST_WINDOW_MS,
+        momentum_boost_threshold_px_s: MOMENTUM_BOOST_THRESHOLD_PX_S,
+        double_scroll_grace_ms: DOUBLE_SCROLL_GRACE_MS,
         scrollbars: scrollbar_visibility(s.scrollbars),
         ..host::ScrollSettings::default()
     }
@@ -52,10 +91,10 @@ fn scrollbar(s: &ScrollbarSettings) -> host::ScrollbarSettings {
         thumb_thickness_px: px(s.thumb_thickness_px),
         thumb_thickness_hover_px: px(s.thumb_thickness_hover_px),
         thumb_min_length_px: px(s.thumb_min_length_px),
-        hide_delay_ms: ms(s.hide_delay_ms),
-        fade_duration_ms: ms(s.fade_duration_ms),
-        expand_zone_px: px(s.expand_zone_px),
-        expand_duration_ms: ms(s.expand_duration_ms),
+        hide_delay_ms: SCROLLBAR_HIDE_DELAY_MS,
+        fade_duration_ms: SCROLLBAR_FADE_DURATION_MS,
+        expand_zone_px: SCROLLBAR_EXPAND_ZONE_PX,
+        expand_duration_ms: SCROLLBAR_EXPAND_DURATION_MS,
         legacy_track_width_px: px(s.legacy_track_width_px),
         other_axis_offset_px: px(s.other_axis_offset_px),
         track_click_mode: track_click(s.track_click_mode),
@@ -64,18 +103,6 @@ fn scrollbar(s: &ScrollbarSettings) -> host::ScrollbarSettings {
 
 fn px(v: Px) -> host::ScrollPx {
     host::ScrollPx(v.0)
-}
-
-fn ms(v: Ms) -> host::ScrollMs {
-    host::ScrollMs(v.0)
-}
-
-fn fraction(v: Fraction) -> host::ScrollFraction {
-    host::ScrollFraction(v.0)
-}
-
-fn scalar(v: Scalar) -> host::ScrollScalar {
-    host::ScrollScalar(v.0)
 }
 
 fn natural_scroll(v: NaturalScroll) -> host::NaturalScroll {
@@ -89,21 +116,6 @@ fn momentum(v: Momentum) -> host::ScrollMomentum {
     match v {
         Momentum::On => host::ScrollMomentum::On,
         Momentum::Off => host::ScrollMomentum::Off,
-    }
-}
-
-fn momentum_model(v: MomentumModel) -> host::ScrollMomentumModel {
-    match v {
-        MomentumModel::MacMouseFix => host::ScrollMomentumModel::MacMouseFix,
-        MomentumModel::Ios => host::ScrollMomentumModel::Ios,
-    }
-}
-
-fn rubber_band(v: RubberBand) -> host::ScrollRubberBand {
-    match v {
-        RubberBand::Bounded => host::ScrollRubberBand::Bounded,
-        RubberBand::Linear => host::ScrollRubberBand::Linear,
-        RubberBand::Off => host::ScrollRubberBand::Off,
     }
 }
 
@@ -146,18 +158,6 @@ mod tests {
                 |c| c.scroll.momentum == host::ScrollMomentum::Off,
             ),
             (
-                |f| f.scroll.momentum_model = MomentumModel::Ios,
-                |c| c.scroll.momentum_model == host::ScrollMomentumModel::Ios,
-            ),
-            (
-                |f| f.scroll.rubber_band = RubberBand::Linear,
-                |c| c.scroll.rubber_band == host::ScrollRubberBand::Linear,
-            ),
-            (
-                |f| f.scroll.rubber_band = RubberBand::Off,
-                |c| c.scroll.rubber_band == host::ScrollRubberBand::Off,
-            ),
-            (
                 |f| f.scroll.scrollbars = ScrollbarVisibility::Always,
                 |c| c.scroll.scrollbars == host::ScrollbarVisibility::Always,
             ),
@@ -174,12 +174,10 @@ mod tests {
     }
 
     #[test]
-    fn a_changed_number_carries_its_value() {
+    fn a_changed_size_carries_its_value() {
         let mut file = ShellFile::default();
-        file.scroll.wheel_detent_px = Px(53);
-        file.scrollbar.hide_delay_ms = Ms(900);
+        file.scrollbar.thumb_min_length_px = Px(30);
         let got = config(&file);
-        assert_eq!(got.scroll.wheel_detent_px, host::ScrollPx(53));
-        assert_eq!(got.scrollbar.hide_delay_ms, host::ScrollMs(900));
+        assert_eq!(got.scrollbar.thumb_min_length_px, host::ScrollPx(30));
     }
 }

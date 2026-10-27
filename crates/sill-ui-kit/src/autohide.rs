@@ -82,12 +82,19 @@ pub enum Change {
     Tuck,
 }
 
+/// How long the pointer rests at the edge before a hidden bar or Dock slides in.
+pub const DELAY: Ms = Ms(200);
+/// How long a slide takes.
+pub const SLIDE_MS: u64 = 500;
+/// How thick the strip is that reveals a hidden bar or Dock.
+pub const TRIGGER_STRIP_PX: u16 = 4;
+
 /// The numbers the machine runs on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Timing {
-    /// How long the pointer rests before the slide in (`*.autohide_delay_ms`).
+    /// How long the pointer rests before the slide in ([`DELAY`]).
     pub delay: Ms,
-    /// How long a slide takes (`*.autohide_slide_ms`); zero is instant.
+    /// How long a slide takes ([`SLIDE_MS`]); zero is instant.
     pub slide_ms: u64,
     /// The slide in's curve (`--e-out`).
     pub ease_out: CubicBezier,

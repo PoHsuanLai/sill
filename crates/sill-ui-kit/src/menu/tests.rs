@@ -9,7 +9,6 @@ use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::style::kit::{Styles, UserStyle};
 use ds::style::material::stack::MaterialStack;
-use ds::style::tokens::shell_type::ShellMetrics;
 use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use ds_lint::{Exception, LintConfig, Profile, Rule, assert_clean};
 use sill_settings::ShellFile;
@@ -81,7 +80,6 @@ fn provide_popup_contexts() {
         appearance: Appearance::default(),
         system: SystemPrefs::default(),
         tint: Alpha(800),
-        metrics: ShellMetrics::default(),
         stack: MaterialStack::default(),
     });
     use_context_provider(|| ROOM);

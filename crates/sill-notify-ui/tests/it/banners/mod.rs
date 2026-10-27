@@ -1,6 +1,6 @@
 //! The banner column in a Blitz harness, on the virtual clock and the fake services, drawn by
 //! quire's `BannerStack` and `NotificationCard`: a banner slides in and holds for
-//! `notifications.banner_hold_ms`, then says it timed out and plays out; hovering it pauses the
+//! its hold, then says it timed out and plays out; hovering it pauses the
 //! hold; a press on the card invokes `default`; the close button dismisses it; a drag past
 //! quire's threshold swipes it away (`SwipeAway`), a short one springs back; a link in the body
 //! keeps its press; one app's banners group into one card with a count and two layers; a card
@@ -12,14 +12,13 @@ use ds_harness::Input;
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_model::notifications::{
     Action, ActionKey, Activation, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner,
     Notification, NotificationId, Notifications, NotificationsCommand, UnixMs, parse_body,
 };
 use sill_notify_ui::Banners;
-use sill_settings::{NotificationsSettings, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{BannerLink, BannerOutput};
 
@@ -126,16 +125,11 @@ fn live(note: Notification) -> LiveBanner {
         life: BannerLife::Expires,
     }
 }
-const HOLD_MS: u64 = 1000;
+/// How long a banner stays (the constant in `banners::step`).
+const HOLD_MS: u64 = 5200;
 
 fn file() -> ShellFile {
-    ShellFile {
-        notifications: NotificationsSettings {
-            banner_hold_ms: Ms(HOLD_MS as u16),
-            ..NotificationsSettings::default()
-        },
-        ..ShellFile::default()
-    }
+    ShellFile::default()
 }
 
 /// One banner from `mail`, shown and entered.
@@ -255,8 +249,11 @@ fn hovering_opens_the_card_and_pauses_the_hold() {
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(hover(&running).as_deref(), Some("off"));
     assert_eq!(
-        until(&mut running, Duration::from_millis(3000), |r| leaving(r)
-            == 1),
+        until(
+            &mut running,
+            Duration::from_millis(HOLD_MS + 500),
+            |r| leaving(r) == 1
+        ),
         Done::Yes,
         "the hold resumes once the pointer has gone"
     );

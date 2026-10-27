@@ -9,25 +9,7 @@ use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 use sill_launcher::SkinTone;
 
-/// Which file index the files provider asks (`launcher.files_backend`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum FilesChoice {
-    /// Tracker 3 when its miner answers on the session bus, else `fd` (or `plocate`) under the
-    /// home directory.
-    Auto,
-    Tracker,
-    /// `fd`, else `plocate`, under the home directory, within the time budget.
-    #[serde(rename = "fd")]
-    #[word(slug = "fd", label = "Fd")]
-    Walk,
-    /// No file search.
-    #[default]
-    Off,
-}
-
-/// The web fallback row (`launcher.web_search`, `launcher.web_engine_url`).
+/// The web fallback row (`launcher.web_search`).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum WebPolicy {
     #[default]
@@ -51,9 +33,9 @@ pub enum CurrencyPolicy {
 /// The settings-gated providers' policy.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct LauncherPolicy {
-    pub files: FilesChoice,
     /// How long one file search may take before its rows are dropped (the walking backends
-    /// stop there; an index is asked once and waited on at most this long).
+    /// stop there; an index is asked once and waited on at most this long). Zero, the default
+    /// before the first policy arrives, asks no index.
     pub files_budget: Duration,
     pub web: WebPolicy,
     pub emoji_tone: SkinTone,

@@ -26,8 +26,10 @@
 # quiet host. A step that cannot show its condition because the host was too slow (a wake past
 # the grace) skips instead of failing.
 #
-# Times: screen off 6 s, dim 3 s before it at 50 %, lock grace 5 s, the lock screen's own
-# screen-off 4 s; suspend never, except in step 7 (10 s).
+# Times: screen off 6 s (`--idle-times`, the one short-time hook; the settings count minutes),
+# the dim 5 s before it at 50 % (constants, so the dim starts 1 s after a wake), lock grace 5 s,
+# the lock screen's own screen-off 60 s (a constant: step 4 waits a full minute for it);
+# suspend never, except in step 7 (10 s).
 #
 #   1. Idle dims, then turns the displays off and locks with cause idle_screen_off. The dim
 #      surface (`sill-idle-dim-<output>`) is unmapped before the dim (a capture is refused), and
@@ -41,7 +43,7 @@
 #      control, so it cannot be shown here.
 #   2. A wake within the grace: unlocked with no password (the daemon logs "grace NoPassword").
 #   3. Idle again, then a wake after the grace (7 s): still locked ("grace Ask"); accept opens it.
-#   4. `sill lock` (cause action), the lock screen goes dark after 4 s, a wake at once: still
+#   4. `sill lock` (cause action), the lock screen goes dark after 60 s, a wake at once: still
 #      locked, no grace.
 #   5. A ScreenSaver.Inhibit from a test client holds idle for 9 s (> 6 s: no dim, no off, no
 #      lock; `sill idle status` counts it); UnInhibit lets idle lock again; a second inhibit
@@ -182,8 +184,7 @@ start_logind() {
 # environment for its launch only.
 start_idle_daemon() {
   backdrop_seed "$CONFIG" || return 1
-  printf '[session]\nlock_grace_s = 5\n\n[idle]\ndim_s = 3\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
-    >"$CONFIG/sill/settings.toml"
+  printf '[session]\nlock_grace_s = 5\n' >"$CONFIG/sill/settings.toml"
   IN_ENV_EXTRA=("${SESSION_ENV[@]}" DBUS_SESSION_BUS_ADDRESS="$(session_bus)" "$@")
   launch_daemon --idle-times "$TIMES"
   local launched=$?
@@ -294,18 +295,18 @@ else:
     print("NOT-SHOWN")
 EOF
 )
-  echo "dimmed at ${dim} ms (want ~3000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms (the wake call took ${WAKE_SLACK} ms); power-off order: $(echo "$g341" | tr '\n' ' ')" \
+  echo "dimmed at ${dim} ms (want ~1000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms (the wake call took ${WAKE_SLACK} ms); power-off order: $(echo "$g341" | tr '\n' ' ')" \
     | tee -a "$log" >&2
   echo "idle: $(idle_state); lock: $(lock_state)" | tee -a "$log" >&2
   # Functional: idle never fires early, and does fire. The upper bounds are budgets.
   # Functional: it dimmed, turned off and locked. That none came early is a time against a budget:
   # the notifications count from the compositor's own clock, which no host wait here can bound.
   [ "$dim" -ge 0 ] && [ "$off" -ge 0 ] && [ "$locked" -ge 0 ] \
-    && budget_check "never early: dimmed ${dim} ms, displays off ${off} ms after the wake (+ the wake call's ${WAKE_SLACK} ms) against 2000 and 5000 ms" \
-      "$(( dim + WAKE_SLACK >= 2000 && off + WAKE_SLACK >= 5000 ))" \
+    && budget_check "never early: dimmed ${dim} ms, displays off ${off} ms after the wake (+ the wake call's ${WAKE_SLACK} ms) against 800 and 5000 ms" \
+      "$(( dim + WAKE_SLACK >= 800 && off + WAKE_SLACK >= 5000 ))" \
     && [ "$before" = unmapped ] && [ "$after" = unmapped ] && [ "$scrim_ok" = 0 ] \
-    && budget_check "dimmed ${dim} ms, displays off ${off} ms after the wake against 4500 and 8000 ms" \
-      "$(( dim <= 4500 && off <= 8000 ))"
+    && budget_check "dimmed ${dim} ms, displays off ${off} ms after the wake against 3500 and 8000 ms" \
+      "$(( dim <= 3500 && off <= 8000 ))"
 }
 
 # 2.
@@ -355,11 +356,11 @@ step_manual_lock_asks() {
   wake; start=$(now_ms)
   sill lock >>"$log" 2>&1
   locked=$(until_match "$start" lock_state '^locked action$' 3000)
-  off=$(until_match "$start" idle_state ' displays_off ' 8000)
+  off=$(until_match "$start" idle_state ' displays_off ' 90000)
   graces=$(grep -c 'grace ' "$DAEMON_LOG")
   wake; sleep 1.5
   still=$(lock_state)
-  echo "sill lock: locked (action) at ${locked} ms; the lock screen went dark at ${off} ms (4 s); a wake at once: '$still'; grace lines before/after: $graces/$(grep -c 'grace ' "$DAEMON_LOG")" \
+  echo "sill lock: locked (action) at ${locked} ms; the lock screen went dark at ${off} ms (60 s); a wake at once: '$still'; grace lines before/after: $graces/$(grep -c 'grace ' "$DAEMON_LOG")" \
     | tee -a "$log" >&2
   local ok=1
   [ "$locked" -ge 0 ] && [ "$off" -ge 0 ] && [ "$still" = "locked action" ] \

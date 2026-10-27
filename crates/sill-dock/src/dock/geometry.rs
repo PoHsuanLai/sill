@@ -41,13 +41,16 @@ pub fn pill_blur_radius(dock: &DockSettings) -> i32 {
     (f64::from(dock.pill_radius_px.0) * share).round() as i32
 }
 
+/// How far from the pointer icons still grow.
+const INFLUENCE_RADIUS_PX: i32 = 72;
+
 /// `MagnifyParams` for `dock` on an output `output_width_px` wide.
 pub fn magnify_params(dock: &DockSettings, output_width_px: i32) -> MagnifyParams {
     let px = |v: u16| Cpx::px(i32::from(v));
     MagnifyParams {
         tile: px(dock.tile_size_px.0),
         magnified: px(dock.magnified_size_px.0),
-        radius: px(dock.influence_radius_px.0),
+        radius: Cpx::px(INFLUENCE_RADIUS_PX),
         gap: px(dock.tile_gap_px.0),
         pad: px(dock.pill_padding_px.0),
         edge_clamp: px(dock.edge_clamp_px.0),

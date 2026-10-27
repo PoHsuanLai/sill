@@ -12,5 +12,5 @@ mod tests;
 pub use arrange::{Asked, Typed, arranged};
 pub use command::{ResultsEvent, SearchCommand};
 pub use model::Results;
-pub use policy::{CurrencyPolicy, FilesChoice, LauncherPolicy, WebPolicy};
+pub use policy::{CurrencyPolicy, LauncherPolicy, WebPolicy};
 pub use step::step;

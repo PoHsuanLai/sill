@@ -1,5 +1,5 @@
 //! The effects end of the thumbnail: feed [`step`] and carry out what it returns. The hold is
-//! quire's timer (`ds::base::time::clock::sleep`, for `screenshot.thumbnail_hold_ms` or the banners' rest after a
+//! quire's timer (`ds::base::time::clock::sleep`, for the thumbnail hold or the banners' rest after a
 //! hover, never a literal), one at a time and a task of the thumbnail's own scope; `Show` maps
 //! the surface, `Hide` unmaps it, `Leave` tells the service; a drag out is a task of the same
 //! scope awaiting shell-host's outcome. `TakeKeyboard` asks the compositor for the keyboard

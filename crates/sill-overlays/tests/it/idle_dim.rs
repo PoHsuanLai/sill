@@ -1,7 +1,7 @@
 //! The idle dim surface in a `ds_harness::Harness`, driven only by the idle service's published
 //! `Idle.dim` through the
 //! fake services' feed: at rest awake it draws a clear scrim and asks for no frames; a dim fades
-//! in over `--t-idle-dim` to `100 - idle.dim_level_pct`; a wake snaps it out even mid-fade; a
+//! in over `--t-idle-dim` to `100 - the dim level`; a wake snaps it out even mid-fade; a
 //! level edit while dimmed does not animate; Reduced motion shows the level at once. On the
 //! virtual clock with the appearance pinned, and every change ends at 0 frames.
 
@@ -89,7 +89,7 @@ fn awake_at_rest_the_scrim_is_clear_and_draws_no_frames() {
 #[test]
 fn a_dim_fades_in_over_t_idle_dim_to_what_the_display_does_not_keep() {
     let mut run = start(PinnedAppearance::default());
-    // `idle.dim_level_pct` 30: the display keeps 30 %, the scrim covers 70 %.
+    // the dim level 30: the display keeps 30 %, the scrim covers 70 %.
     publish(&mut run, DimShown::Dimmed(DimLevel(30)));
     advance(&mut run, 900);
     let mid = scrim(&run);

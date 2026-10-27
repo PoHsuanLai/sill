@@ -7,17 +7,16 @@
 # (dev/private-bus.conf) as both its session and its system bus, with scratch HOME and XDG
 # directories, a fake DDC fixture and its own XDG_RUNTIME_DIR (the compositor's socket as an
 # absolute WAYLAND_DISPLAY). Never the user's session (wayland-0), never ~/Pictures or the real
-# trash: the scratch config's `screenshot.folders` is a temp folder, and `screenshot.tool` a
-# stand-in that copies the services' fixture PNG there, or "off" for
-# the drag; `xdg-open` and `gio` are stand-ins first on the daemon's PATH that log their
+# trash: the scratch config's `screenshot.folders` is a temp folder, and `gdbus` (the
+# portal's screenshot call) a stand-in that copies the services' fixture PNG there; `xdg-open` and `gio` are stand-ins first on the daemon's PATH that log their
 # arguments; the output shot is grim on the nested socket only (no fallback).
 #
 #   1. `sill-screenshot-thumb-<out>` exists from the start, hidden (no capture).
 #   2. `sill debug screenshot <temp>/Screenshot_a.png` shows it within 500 ms; screenshot
 #      dev/out/screenshot-thumb-casement.png while it holds.
-#   3. It hides after the hold (screenshot.thumbnail_hold_ms, 5200) plus the exit, and the file
+#   3. It hides after the hold (the thumbnail hold, 5200) plus the exit, and the file
 #      is still there.
-#   4. `sill screenshot screen` runs the stand-in, whose file the watch shows.
+#   4. `sill screenshot screen` runs the portal stand-in, whose file the watch shows.
 #   5. `sill debug click` on the card runs the opener with that file.
 #   6. A new shot hovered at 4 s (`sill debug pointer`) is still up at 7 s, and gone 1.5 s plus
 #      the exit after `sill debug leave`.
@@ -103,17 +102,17 @@ nested_shot() {
 stubs() {
   printf '#!/bin/sh\necho "$@" >>"%s"\n' "$OPENED" >"$STUBS/xdg-open"
   printf '#!/bin/sh\necho "$@" >>"%s"\n' "$TRASHED" >"$STUBS/gio"
-  chmod +x "$STUBS/xdg-open" "$STUBS/gio"
+  printf '#!/bin/sh\ncp "%s" "%s/Screenshot_screen_$(date +%%s%%N).png"\n' "$FIXTURE" "$WATCHED" >"$STUBS/gdbus"
+  chmod +x "$STUBS/xdg-open" "$STUBS/gio" "$STUBS/gdbus"
   : >"$OPENED"
   : >"$TRASHED"
 }
 
-# Starts the daemon with the stand-in tool, the stubs first on its PATH and a backdrop wallpaper.
+# Starts the daemon with the stand-in portal, the stubs first on its PATH and a backdrop wallpaper.
 start_nested_daemon() {
   cat >"$CONFIG/sill/settings.toml" <<TOML
 [screenshot]
 folders = "$WATCHED"
-tool = 'cp "$FIXTURE" "\$2/Screenshot_\$1_\$(date +%s%N).png"'
 TOML
   backdrop_seed "$CONFIG" || return 1
   IN_ENV_EXTRA=(PATH="$STUBS:$PATH")
@@ -124,14 +123,13 @@ TOML
   echo "daemon on a private bus and runtime dir $RUNTIME; watching $WATCHED; $THUMB" >&2
 }
 
-# Starts the daemon on the headless KWin with the tool off and the dock on the left.
+# Starts the daemon on the headless KWin with the dock on the left.
 start_real_daemon() {
   cat >"$CONFIG/sill/settings.toml" <<TOML
 [dock]
 position = "left"
 [screenshot]
 folders = "$WATCHED"
-tool = "off"
 TOML
   launch_daemon || return 1
   NAME=$(output_name) || return 1
