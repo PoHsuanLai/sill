@@ -12,8 +12,8 @@ use ds_shell::prelude::{Recovery, WorkingFor};
 use porter_capability::{AbsentReason, CapabilityKind, Toggle};
 use porter_core::consent::{AccountChoice as AskChoice, ConsentAsk, GrantScope, Usage};
 use porter_core::{
-    AccountId, AccountLabel, AppId, AppName, DataClass, EndpointUrl, Isolation, LauncherSession,
-    LimitReason, ProviderId, SecretText,
+    AccountId, AccountLabel, AppId, AppName, DataClass, EndpointUrl, Isolation, LimitReason,
+    ProviderId, SecretText, SessionToken,
 };
 use porter_ids::WebUrl;
 use porter_sheet::{
@@ -543,7 +543,7 @@ fn only_the_banners_output_draws_and_a_finished_add_draws_nothing() {
 
 #[test]
 fn this_session_only_grants_the_session_the_ask_came_from() {
-    let session = LauncherSession::parse("sess-1").unwrap_or_else(|e| panic!("{e}"));
+    let session = SessionToken::parse("sess-1").unwrap_or_else(|e| panic!("{e}"));
     let answer = ConsentAnswer::Allow {
         account: ChoiceKey("home".to_owned()),
         scope: AllowScope::Session,

@@ -27,7 +27,7 @@ use ds_shell::accounts::model::{
 use ds_shell::prelude::{Recovery, WorkingFor};
 use porter_capability::Toggle;
 use porter_core::consent::{AskPurpose, ConsentAsk};
-use porter_core::{AccountId, LauncherSession, ProviderId};
+use porter_core::{AccountId, ProviderId, SessionToken};
 use porter_sheet::{
     Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, ServiceState, SheetView,
 };
@@ -48,7 +48,7 @@ pub(super) struct ConsentProps {
     pub choices: Vec<AccountChoice>,
     pub chosen: Option<ChoiceKey>,
     /// The launcher session the ask was made inside: when present, "This Session Only" is offered.
-    pub session: Option<LauncherSession>,
+    pub session: Option<SessionToken>,
     /// What the answer is for: a use of the account, or the person picking who to continue as.
     pub purpose: Purpose,
 }
@@ -260,7 +260,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                 .iter()
                 .map(|row| ServiceLine {
                     key: ServiceKey(service_key(row.kind)),
-                    name: porter_sheet::words::service_name(row.kind).to_owned(),
+                    name: row.kind.name().to_owned(),
                     offer: match row.state {
                         ServiceState::Offered(shipped) => ServiceOffer::Offered(switch(
                             draft.toggle_of(row.kind).unwrap_or(shipped),

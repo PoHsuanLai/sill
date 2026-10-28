@@ -8,7 +8,7 @@ use ds_shell::accounts::model::{
 };
 use porter_capability::Toggle;
 use porter_core::consent::GrantScope;
-use porter_core::{LauncherSession, SecretText};
+use porter_core::{SecretText, SessionToken};
 use porter_sheet::FieldValue;
 use sill_model::accounts::sheet::{ListKey, SheetAction};
 
@@ -19,7 +19,7 @@ use super::words::service_of;
 /// "This Session Only" grants.
 pub(super) fn consent(
     answer: ConsentAnswer,
-    session: Option<&LauncherSession>,
+    session: Option<&SessionToken>,
 ) -> Option<SheetAction> {
     match answer {
         ConsentAnswer::Allow { scope, .. } => Some(SheetAction::Allow(match scope {
