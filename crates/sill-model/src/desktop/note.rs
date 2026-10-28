@@ -7,7 +7,7 @@
 //! [`super::DesktopView`], not a note.
 
 use casement_protocols::vocab::{
-    Corner, DragOutcome, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown,
+    Corner, DragOutcome, HeldMods, KeyGesture, OverviewMode, OverviewState, ScreenEdge, Shown,
     SplitSide, WindowEntries,
 };
 use porter_core::SpaceId;
@@ -20,7 +20,7 @@ pub enum ShellNote {
     /// The modifiers held while the pointer is over a shell surface (keycap stays the source of
     /// truth for chords; this is the pointer-over-shell view, for hot corners and the Option
     /// variants of the dock and bar).
-    Modifiers(MacMods),
+    Modifiers(HeldMods),
     /// A key gesture the desktop recognised (the companion's summon, the hold overlay).
     Gesture(KeyGesture),
     /// The app switcher.

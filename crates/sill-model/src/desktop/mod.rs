@@ -42,7 +42,7 @@ pub use bar_thumbs::{
 };
 pub use casement_protocols::vocab::{
     Answer, AppLifeKind, AppVisibility, AskId as ConsentId, Attention, Corner, DragOutcome,
-    FullScreenBar, KeyGesture, MacMods, Memory, Motion, OverviewMode, OverviewState, Power,
+    FullScreenBar, HeldMods, KeyGesture, Memory, Motion, OverviewMode, OverviewState, Power,
     ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide, SubjectKind, TrialAnswer,
     TrialId, WindowEntries, WindowEntry, WireCode,
 };

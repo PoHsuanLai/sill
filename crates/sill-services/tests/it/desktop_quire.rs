@@ -10,15 +10,15 @@ use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
 
 use casement_protocols::vocab::{
-    ActorKind, AppLifeKind, Corner, DragOutcome, Emphasis, KeyGesture, MacMods, OverviewMode,
+    ActorKind, AppLifeKind, Corner, DragOutcome, Emphasis, HeldMods, KeyGesture, OverviewMode,
     OverviewState, PlaceTarget, ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide,
     Toggle, TrialAnswer, TrialId, WindowEntries, WindowEntry, WindowStateKind,
 };
 use desktop_client::capture::{CaptureEvent, ShmFormat};
 use desktop_client::fake::FakeDesktop;
 use desktop_client::quire::{
-    AppChange, AppEvent, DisplayTrial as WireTrial, MenuSource, QuireEvent, RevealOutput,
-    ShellEvent, SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent,
+    AppChange, AppEvent, DisplayTrial as WireTrial, MenuSource, RevealOutput, ShellEvent,
+    SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent,
 };
 use desktop_client::toplevel::{ToplevelChange, ToplevelEvent, ToplevelFlags};
 use desktop_client::workspace::{
@@ -65,14 +65,10 @@ fn sk(n: u64) -> SpaceKey {
     SpaceKey::new(n)
 }
 
-fn quire(event: QuireEvent) -> DesktopEvent {
-    DesktopEvent::Quire(event)
-}
-
 fn app(n: u64, id: &str, mru: u32) -> Vec<DesktopEvent> {
-    let change = |change| quire(QuireEvent::App(AppEvent::Changed { key: ak(n), change }));
+    let change = |change| DesktopEvent::App(AppEvent::Changed { key: ak(n), change });
     vec![
-        quire(QuireEvent::App(AppEvent::Opened(ak(n)))),
+        DesktopEvent::App(AppEvent::Opened(ak(n))),
         change(AppChange::Identity {
             id: AppId::new(id),
             proof: ProofKind::Scope,
@@ -81,24 +77,19 @@ fn app(n: u64, id: &str, mru: u32) -> Vec<DesktopEvent> {
         change(AppChange::Life(AppLifeKind::Running)),
         change(AppChange::Menu(MenuSource::none())),
         change(AppChange::Mru(mru)),
-        quire(QuireEvent::App(AppEvent::Done(ak(n)))),
+        DesktopEvent::App(AppEvent::Done(ak(n))),
     ]
 }
 
 fn space(n: u64, id: &str, position: u32, output: &str) -> Vec<DesktopEvent> {
-    let change = |change| {
-        quire(QuireEvent::Space(SpaceEvent::Changed {
-            key: sk(n),
-            change,
-        }))
-    };
+    let change = |change| DesktopEvent::Space(SpaceEvent::Changed { key: sk(n), change });
     vec![
-        quire(QuireEvent::Space(SpaceEvent::Opened(sk(n)))),
+        DesktopEvent::Space(SpaceEvent::Opened(sk(n))),
         change(SpaceChange::Id(WireSpaceId::new(id))),
         change(SpaceChange::Kind(SpaceKind::Desktop)),
         change(SpaceChange::Position(position)),
         change(SpaceChange::Output(OutputName::new(output))),
-        quire(QuireEvent::Space(SpaceEvent::Done(sk(n)))),
+        DesktopEvent::Space(SpaceEvent::Done(sk(n))),
     ]
 }
 
@@ -111,12 +102,7 @@ fn window(
     state: WindowStateKind,
 ) -> Vec<DesktopEvent> {
     let top = |change| DesktopEvent::Toplevel(ToplevelEvent::Changed { key: tk(n), change });
-    let win = |change| {
-        quire(QuireEvent::Window(WindowEvent::Changed {
-            key: tk(n),
-            change,
-        }))
-    };
+    let win = |change| DesktopEvent::Window(WindowEvent::Changed { key: tk(n), change });
     vec![
         DesktopEvent::Toplevel(ToplevelEvent::Opened(tk(n))),
         top(ToplevelChange::Identifier(ToplevelIdentifier::new(
@@ -126,7 +112,7 @@ fn window(
         top(ToplevelChange::Title(format!("{app_id} {n}"))),
         top(ToplevelChange::Flags(ToplevelFlags::of([]))),
         DesktopEvent::Toplevel(ToplevelEvent::Done(tk(n))),
-        quire(QuireEvent::Window(WindowEvent::Opened(tk(n)))),
+        DesktopEvent::Window(WindowEvent::Opened(tk(n))),
         win(WindowChange::App(ak(app))),
         win(WindowChange::State {
             kind: state,
@@ -139,7 +125,7 @@ fn window(
         } else {
             Emphasis::Inactive
         })),
-        quire(QuireEvent::Window(WindowEvent::Done(tk(n)))),
+        DesktopEvent::Window(WindowEvent::Done(tk(n))),
     ]
 }
 
@@ -191,11 +177,11 @@ fn session(config: DesktopConfig) -> FakeDesktop {
             SpacePlace::On(sk(2)),
             WindowStateKind::Minimised,
         ),
-        vec![quire(QuireEvent::Active {
+        vec![DesktopEvent::Active {
             app: Some(ak(1)),
             key: Some(tk(1)),
             actor: ActorKind::User,
-        })],
+        }],
     ];
     events.into_iter().flatten().for_each(|e| desktop.script(e));
     desktop.advance_all();
@@ -542,7 +528,7 @@ fn the_shell_protocols_events_become_notes_in_order() {
     let _settled = arm.sync();
     let say = |arm: &mut QuireArm<FakeDesktop, Vec<ShellNote>>, events: Vec<ShellEvent>| {
         for event in events {
-            arm.desktop_mut().script(quire(QuireEvent::Shell(event)));
+            arm.desktop_mut().script(DesktopEvent::Shell(event));
         }
         arm.desktop_mut().advance_all();
         arm.sync()
@@ -553,7 +539,7 @@ fn the_shell_protocols_events_become_notes_in_order() {
         vec![
             ShellEvent::Modifiers {
                 surface: None,
-                mods: MacMods::OPTION,
+                mods: HeldMods::OPTION,
             },
             ShellEvent::KeyGesture(KeyGesture::Summon),
             ShellEvent::SwitcherApp {
@@ -636,7 +622,7 @@ fn the_shell_protocols_events_become_notes_in_order() {
     assert_eq!(
         arm.sink(),
         &[
-            ShellNote::Modifiers(MacMods::OPTION),
+            ShellNote::Modifiers(HeldMods::OPTION),
             ShellNote::Gesture(KeyGesture::Summon),
             ShellNote::Switcher(SwitcherNote::App {
                 index: 0,
@@ -730,7 +716,7 @@ fn the_compositors_permission_question_and_its_withdrawal_become_notes() {
         )),
         ShellEvent::PermissionWithdraw(ConsentId::new(7)),
     ] {
-        arm.desktop_mut().script(quire(QuireEvent::Shell(event)));
+        arm.desktop_mut().script(DesktopEvent::Shell(event));
     }
     arm.desktop_mut().advance_all();
     let _view = arm.sync();
@@ -759,7 +745,7 @@ fn the_displays_trial_and_its_end_become_notes() {
         ShellEvent::DisplaysTrial(WireTrial::new(TrialId::new(4), 15)),
         ShellEvent::DisplaysTrialEnd(TrialId::new(4)),
     ] {
-        arm.desktop_mut().script(quire(QuireEvent::Shell(event)));
+        arm.desktop_mut().script(DesktopEvent::Shell(event));
     }
     arm.desktop_mut().advance_all();
     let _view = arm.sync();
@@ -1043,10 +1029,10 @@ fn finish_capture_in(desktop: &mut FakeDesktop, id: desktop_client::CaptureId) {
 /// An app's burst with the program the compositor says is behind it, before its `done`.
 fn with_subject(mut burst: Vec<DesktopEvent>, n: u64, subject: &str) -> Vec<DesktopEvent> {
     let done = burst.pop();
-    burst.push(quire(QuireEvent::App(AppEvent::Changed {
+    burst.push(DesktopEvent::App(AppEvent::Changed {
         key: ak(n),
         change: AppChange::Subject(AppSubject::new(subject)),
-    })));
+    }));
     burst.extend(done);
     burst
 }

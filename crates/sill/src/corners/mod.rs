@@ -19,7 +19,7 @@ use shell_host::{HostHandle, OutputId};
 use sill_launcher::activation::Activation;
 use sill_model::actions::Ask;
 use sill_model::companion::CompanionCommand;
-use sill_model::desktop::{MacMods, open_app_expose};
+use sill_model::desktop::{HeldMods, open_app_expose};
 use sill_model::launch::{LaunchCommand, LaunchRequest, OpenRequest};
 use sill_services::ServiceError;
 use sill_settings::ShellFile;
@@ -48,7 +48,7 @@ pub fn spawn_hits(
     links: Links,
     services: Services,
     settings: watch::Receiver<ShellFile>,
-    held: watch::Receiver<MacMods>,
+    held: watch::Receiver<HeldMods>,
     host: HostHandle<ShellMsg>,
 ) {
     let mut hits = links.corners.subscribe();

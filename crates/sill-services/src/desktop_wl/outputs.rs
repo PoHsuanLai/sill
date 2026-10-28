@@ -1,6 +1,6 @@
 //! Output heads from `zwlr-output-management` as the displays service reads them.
 
-use desktop_client::output::{Enabled, Head as WireHead, Outputs, ScaleMilli};
+use desktop_client::output::{Head as WireHead, Outputs, ScaleMilli};
 use sill_model::displays::randr::{Enablement, Head};
 use sill_model::displays::scale::DisplayScale;
 use sill_model::displays::{Millimetres, Mode, Pixels};
@@ -14,9 +14,10 @@ pub fn heads_of(outputs: &Outputs) -> Vec<Head> {
 fn head(wire: &WireHead) -> Head {
     Head {
         name: OutputName(wire.name.as_str().to_owned()),
-        enablement: match wire.enabled {
-            Enabled::On => Enablement::Enabled,
-            Enabled::Off => Enablement::Disabled,
+        enablement: if wire.enabled {
+            Enablement::Enabled
+        } else {
+            Enablement::Disabled
         },
         make: wire.make.clone().unwrap_or_default(),
         model: wire.model.clone().unwrap_or_default(),

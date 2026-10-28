@@ -7,9 +7,7 @@ use std::collections::BTreeSet;
 
 use casement_protocols::vocab::{PlaceTarget, Shown};
 use desktop_client::fake::FakeDesktop;
-use desktop_client::output::{
-    Enabled, HeadChange, ModeChange, OutputEvent, RefreshMilliHz, ScaleMilli,
-};
+use desktop_client::output::{HeadChange, ModeChange, OutputEvent, RefreshMilliHz, ScaleMilli};
 use desktop_client::toplevel::{ToplevelChange, ToplevelEvent, ToplevelFlag, ToplevelFlags};
 use desktop_client::workspace::{
     GroupChange, WorkspaceAbility, WorkspaceChange, WorkspaceEvent, WorkspaceFlag,
@@ -625,7 +623,7 @@ fn one_head(session: &mut Session) {
         head_change(HeadChange::Make("BenQ".to_owned())),
         head_change(HeadChange::Model("MA270U".to_owned())),
         head_change(HeadChange::PhysicalSize(Size::new(597, 336))),
-        head_change(HeadChange::Enabled(Enabled::On)),
+        head_change(HeadChange::Enabled(true)),
         DesktopEvent::Output(OutputEvent::ModeOpened { head, mode: small }),
         mode(small, ModeChange::Size(Size::new(2560, 1440))),
         mode(small, ModeChange::Refresh(RefreshMilliHz::new(59951))),

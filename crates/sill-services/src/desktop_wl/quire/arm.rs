@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 
 use casement_protocols::vocab::ShellRole;
 use desktop_client::capture::CaptureFailure;
-use desktop_client::quire::QuireEvent;
 use desktop_client::{
     CaptureId, Desktop, DesktopCommand as Wire, DesktopEvent, Frame, SurfaceKey, Ticket,
 };
@@ -87,7 +86,7 @@ impl<D: Desktop, S: NoteSink> QuireArm<D, S> {
     /// Hand the notes the compositor sent since the last call to the sink, in order.
     pub fn drain_notes(&mut self) {
         for event in self.desktop.drain_events() {
-            if let DesktopEvent::Quire(QuireEvent::Shell(shell)) = &event
+            if let DesktopEvent::Shell(shell) = &event
                 && let Some(note) = note_of(shell)
             {
                 self.sink.note(note);
