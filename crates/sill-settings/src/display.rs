@@ -23,14 +23,16 @@ pub struct DisplaySettings {
         label = "Monitor speakers follow the volume",
         help = "Volume changes also set the monitor's own volume when it supports that.",
         section = "Display",
-        advanced
+        advanced,
+        note = "Only monitors that accept volume changes."
     )]
     pub hardware_volume: HardwareVolume,
     #[settings(
         label = "Night warmth",
         help = "Warms external monitors by lowering their blue and green; undone when off.",
         section = "Display",
-        advanced
+        advanced,
+        note = "Only external monitors that support it change."
     )]
     pub night_warmth: NightWarmthMode,
     #[settings(
@@ -39,6 +41,7 @@ pub struct DisplaySettings {
         section = "Display",
         range = "0..=100",
         unit = "%",
+        ends = ("Cool", "Warm"),
         advanced
     )]
     pub night_warmth_strength: Percent,

@@ -12,14 +12,18 @@ use sill_model::on_off::OnOff;
 /// The dock's settings.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
-#[settings(file = "sill/settings.toml", domain = "dock", page = Page::Dock)]
+#[settings(
+    file = "sill/settings.toml", domain = "dock", page = Page::Dock,
+    footnote(section = "Hiding", text = "The Dock shows again when the pointer reaches the edge."),
+)]
 pub struct DockSettings {
     #[settings(
         label = "Size",
         help = "How big icons are at rest.",
         section = "Dock",
         range = "32..=80",
-        unit = "px"
+        unit = "px",
+        ends = ("Small", "Large")
     )]
     pub tile_size_px: Px,
     #[settings(
@@ -34,19 +38,22 @@ pub struct DockSettings {
         section = "Dock",
         range = "32..=72",
         unit = "px",
+        ends = ("Small", "Large"),
         advanced
     )]
     pub magnified_size_px: Px,
     #[settings(
         label = "Automatically hide the Dock",
         help = "Shows the Dock when the pointer reaches the bottom.",
-        section = "Hiding"
+        section = "Hiding",
+        note = "The Dock slides away until the pointer reaches the bottom edge."
     )]
     pub autohide: OnOff,
     #[settings(
         label = "Show indicators for open apps",
         help = "A dot under each app with a window.",
-        section = "Behaviour"
+        section = "Behaviour",
+        note = "A small dot shows under apps that are open."
     )]
     pub indicators: OnOff,
     #[settings(

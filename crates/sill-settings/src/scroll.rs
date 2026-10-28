@@ -39,7 +39,8 @@ pub struct ScrollSettings {
     #[settings(
         label = "Natural scrolling",
         help = "Content moves with your fingers.",
-        section = "Scrolling"
+        section = "Scrolling",
+        note = "Content moves the way your fingers move."
     )]
     pub natural: NaturalScroll,
     #[settings(

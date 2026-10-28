@@ -9,7 +9,10 @@ use serde::{Deserialize, Serialize};
 /// The lock screen.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
-#[settings(file = "sill/settings.toml", domain = "session", page = Page::Accounts)]
+#[settings(
+    file = "sill/settings.toml", domain = "session", page = Page::Accounts,
+    footnote(section = "Lock screen", text = "Locking yourself, closing the lid and sleep always ask for the password."),
+)]
 pub struct SessionSettings {
     #[settings(
         label = "Require the password after the display turns off",
@@ -17,7 +20,8 @@ pub struct SessionSettings {
         section = "Lock screen",
         range = "0..=60",
         unit = "s",
-        advanced
+        advanced,
+        note = "Set 0 to always ask for the password."
     )]
     pub lock_grace_s: Secs,
 }

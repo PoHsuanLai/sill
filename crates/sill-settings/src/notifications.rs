@@ -9,25 +9,31 @@ use sill_model::on_off::OnOff;
 /// Notification banners.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
-#[settings(file = "sill/settings.toml", domain = "notifications", page = Page::Notifications)]
+#[settings(
+    file = "sill/settings.toml", domain = "notifications", page = Page::Notifications,
+    footnote(section = "Alerts", text = "Do Not Disturb silences banners and sounds, except critical ones."),
+)]
 pub struct NotificationsSettings {
     #[settings(
         label = "Do Not Disturb",
         help = "No banners or sounds, except critical ones.",
-        section = "Alerts"
+        section = "Alerts",
+        note = "Critical notifications still come through."
     )]
     pub dnd: OnOff,
     #[settings(
         label = "Notification style",
         help = "Banners leave on their own; alerts stay until you act.",
-        section = "Alerts"
+        section = "Alerts",
+        note = "Alerts stay until you answer them."
     )]
     pub banner_style: Presentation,
     #[settings(
         label = "Swiping a banner away",
         help = "Keeps it in the notification center, or dismisses it.",
         section = "Swiping",
-        advanced
+        advanced,
+        note = "Kept notifications wait in the notification center."
     )]
     pub swipe: Swipe,
 }

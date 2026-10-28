@@ -11,7 +11,10 @@ use sill_model::results::CurrencyPolicy;
 /// The launcher panel's placement and rows.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
-#[settings(file = "sill/settings.toml", domain = "launcher", page = Page::Appearance)]
+#[settings(
+    file = "sill/settings.toml", domain = "launcher", page = Page::Appearance,
+    footnote(section = "Clipboard", text = "Copies stay in memory only and are forgotten when you log out. Password copies are never kept."),
+)]
 pub struct LauncherSettings {
     /// `launcher.clipboard_history`.
     #[settings(

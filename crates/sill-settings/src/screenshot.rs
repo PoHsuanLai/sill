@@ -19,7 +19,10 @@ pub enum ShotThumbnail {
 /// Screenshots.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
-#[settings(file = "sill/settings.toml", domain = "screenshot", page = Page::KeyboardAndShortcuts)]
+#[settings(
+    file = "sill/settings.toml", domain = "screenshot", page = Page::KeyboardAndShortcuts,
+    footnote(section = "Screenshots", text = "Auto uses your Pictures folders."),
+)]
 pub struct ScreenshotSettings {
     #[settings(
         label = "Show floating thumbnail",

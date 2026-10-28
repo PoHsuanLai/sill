@@ -19,7 +19,8 @@ pub struct VoiceSettings {
     #[settings(
         label = "Hold ⌘ to talk",
         help = "Listens while ⌘ is held and asks the assistant what it heard.",
-        section = "Opening"
+        section = "Opening",
+        note = "Nothing is heard until you allow the microphone."
     )]
     pub hold_to_talk: HoldToTalk,
     /// The first-use sheet's answer: written by the sheet, never shown as a control.

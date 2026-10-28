@@ -11,7 +11,10 @@ use sill_model::idle::IdleLock;
 /// sill's idle service.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
-#[settings(file = "sill/settings.toml", domain = "idle", page = Page::Power)]
+#[settings(
+    file = "sill/settings.toml", domain = "idle", page = Page::Power,
+    footnote(section = "Display & sleep", text = "Dimming warns you before the display turns off. Any input cancels it."),
+)]
 pub struct IdleSettings {
     #[settings(
         label = "Turn the display off on power after",
@@ -53,7 +56,8 @@ pub struct IdleSettings {
         label = "Lock when the display turns off",
         help = "Locks when idle turns the display off; sleep always locks.",
         section = "Display & sleep",
-        advanced
+        advanced,
+        note = "Waking quickly can still skip the password (see Lock screen)."
     )]
     pub lock: IdleLock,
 }

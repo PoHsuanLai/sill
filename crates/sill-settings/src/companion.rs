@@ -40,12 +40,16 @@ pub enum NotifyWhen {
     Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ds_settings::SettingsSchema,
 )]
 #[serde(default)]
-#[settings(file = "sill/settings.toml", domain = "companion", page = Page::Intelligence)]
+#[settings(
+    file = "sill/settings.toml", domain = "companion", page = Page::Intelligence,
+    footnote(section = "Opening", text = "Press the command key twice to ask, or hold it to talk."),
+)]
 pub struct CompanionSettings {
     #[settings(
         label = "Press ⌘ twice to ask",
         help = "Opens the assistant when you press ⌘ twice.",
-        section = "Opening"
+        section = "Opening",
+        note = "Press the command key twice in a row."
     )]
     pub summon: SummonKey,
     #[settings(
