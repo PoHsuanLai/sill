@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use porter_core::{ProviderId, SecretText};
-use porter_dbus::AccountsSheetProxy;
+use porter_dbus::accounts::AccountsSheetProxy;
 use porter_sheet::{
     Entry, FieldAnswer, FieldKind, FieldSpec, FieldValue, Presence, ProviderRow, SheetInput,
     SheetView, SignInView,

@@ -2,7 +2,7 @@
 //! name an account call it by. The accounts service and the sync-hold service both name accounts,
 //! so neither reaches into the other for this.
 
-use porter_dbus::AccountProxy;
+use porter_dbus::accounts::AccountProxy;
 use sill_model::accounts::AccountKey;
 use zbus::Connection;
 

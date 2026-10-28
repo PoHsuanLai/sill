@@ -387,6 +387,7 @@ shell-verbs = { path = "../casement-protocols/shell-verbs" }
 [patch."https://github.com/PoHsuanLai/porter"]
 porter-client = { path = "../porter/crates/porter-client" }
 porter-core = { path = "../porter/crates/porter-core" }
+porter-callers = { path = "../porter/crates/porter-callers" }
 porter-dbus = { path = "../porter/crates/porter-dbus" }
 porter-infer = { path = "../porter/crates/porter-infer" }
 porter-ids = { path = "../porter/crates/porter-ids" }

@@ -2,7 +2,7 @@
 //! and the call that signs one in again.
 
 use porter_dbus::Details;
-use porter_dbus::names::ACCOUNTS_BUS;
+use porter_dbus::accounts::ACCOUNTS_BUS;
 use sill_model::accounts::{AccountKey, AccountStanding, AccountsEvent, NeedsSignIn, SignInAsk};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;

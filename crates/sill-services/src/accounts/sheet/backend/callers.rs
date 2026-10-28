@@ -4,7 +4,7 @@
 //! (`crate::callers`): a program that merely claimed an unowned name is a stranger.
 
 use peephole_bus::peephole_core::roles;
-use porter_dbus::names::ACCOUNTS_BUS;
+use porter_dbus::accounts::ACCOUNTS_BUS;
 use zbus::fdo;
 use zbus::message::Header;
 use zbus::names::OwnedUniqueName;

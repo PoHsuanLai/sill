@@ -15,7 +15,7 @@
 use std::io::Write;
 use std::pin::Pin;
 
-use porter_dbus::AccountsSheetProxy;
+use porter_dbus::accounts::AccountsSheetProxy;
 use tokio::sync::mpsc;
 use zbus::export::futures_core::Stream;
 use zbus::{Connection, MatchRule, MessageStream};
