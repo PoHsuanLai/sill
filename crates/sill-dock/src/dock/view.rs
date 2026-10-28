@@ -64,8 +64,8 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     .map(|(key, _)| key);
     let appearance = environment.settings.appearance.appearance();
     // The maths reads the resolved tokens (a look's, the person's sheet's), the shipped values
-    // until the surface mounts; `use_surface_tokens` reads again after each `Styles` change.
-    let resolved = use_surface_tokens(root.styles, |length| DockTokens::read(length));
+    // until the surface mounts; `use_surface_tokens` reads again after each frame.
+    let resolved = use_surface_tokens::<DockTokens>();
     let tokens = resolved.get();
     let mut shared = use_context_provider(|| Signal::new(tokens));
     if *shared.peek() != tokens {

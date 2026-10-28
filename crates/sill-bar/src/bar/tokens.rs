@@ -47,6 +47,12 @@ impl BarTokens {
     }
 }
 
+impl sill_ui_kit::hooks::ReadTokens for BarTokens {
+    fn read_tokens(length: &dyn Fn(&str) -> Option<Px>) -> Self {
+        Self::read(length)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{BarTokens, STATUS_BOX};

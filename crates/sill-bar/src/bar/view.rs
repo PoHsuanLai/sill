@@ -52,7 +52,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     let root = use_root_style();
     // The maths reads the resolved tokens, the shipped values until the bar mounts; the status
     // items' raster size reaches `Tray` through a context.
-    let resolved = use_surface_tokens(root.styles, |length| BarTokens::read(length));
+    let resolved = use_surface_tokens::<BarTokens>();
     let tokens = resolved.get();
     let mut shared = use_context_provider(|| Signal::new(tokens));
     if *shared.peek() != tokens {

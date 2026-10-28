@@ -92,6 +92,12 @@ pub fn icon_size(tokens: &NotificationTokens) -> IconPx {
     IconPx(u8::try_from(tokens.icon).unwrap_or(u8::MAX))
 }
 
+impl crate::hooks::ReadTokens for NotificationTokens {
+    fn read_tokens(length: &dyn Fn(&str) -> Option<Px>) -> Self {
+        Self::read(length)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{

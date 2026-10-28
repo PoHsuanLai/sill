@@ -406,7 +406,7 @@ name = "anyview-fs"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=515c104bdb852740d6a10397e0e75f6cd3105d2f)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=ccced9314a43b4349755a1e4cc0b005d58c2b4ba)",
  "rustix",
 ]
 
@@ -463,7 +463,7 @@ dependencies = [
  "docket-provider 0.1.0 (git+https://github.com/PoHsuanLai/docket?rev=01390d02c4e79327dbb00c35819b90f2c8d633ae)",
  "ds-core",
  "ds-extensions",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=515c104bdb852740d6a10397e0e75f6cd3105d2f)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=ccced9314a43b4349755a1e4cc0b005d58c2b4ba)",
  "ds-settings",
  "futures-util",
  "latchkey",
@@ -506,7 +506,7 @@ name = "anyview-store"
 version = "0.1.0-beta.1"
 dependencies = [
  "anyview-core",
- "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=515c104bdb852740d6a10397e0e75f6cd3105d2f)",
+ "ds-helpers 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=ccced9314a43b4349755a1e4cc0b005d58c2b4ba)",
  "log",
  "rustix",
  "serde",
@@ -2723,9 +2723,9 @@ dependencies = [
 [[package]]
 name = "ds-helpers"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=515c104bdb852740d6a10397e0e75f6cd3105d2f#515c104bdb852740d6a10397e0e75f6cd3105d2f"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=ccced9314a43b4349755a1e4cc0b005d58c2b4ba#ccced9314a43b4349755a1e4cc0b005d58c2b4ba"
 dependencies = [
- "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=515c104bdb852740d6a10397e0e75f6cd3105d2f)",
+ "ds-peer 0.1.0 (git+https://github.com/PoHsuanLai/quire.git?rev=ccced9314a43b4349755a1e4cc0b005d58c2b4ba)",
  "rustix",
  "serde",
  "thiserror 2.0.21",
@@ -2768,7 +2768,7 @@ dependencies = [
 [[package]]
 name = "ds-peer"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/quire.git?rev=515c104bdb852740d6a10397e0e75f6cd3105d2f#515c104bdb852740d6a10397e0e75f6cd3105d2f"
+source = "git+https://github.com/PoHsuanLai/quire.git?rev=ccced9314a43b4349755a1e4cc0b005d58c2b4ba#ccced9314a43b4349755a1e4cc0b005d58c2b4ba"
 dependencies = [
  "futures-timer",
  "thiserror 2.0.21",

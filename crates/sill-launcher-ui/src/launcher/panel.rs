@@ -51,7 +51,7 @@ use sill_ui_kit::hooks::{
 };
 use sill_ui_kit::links::LauncherLink;
 use sill_ui_kit::look::use_active_look;
-use sill_ui_kit::root::{SurfaceRoot, use_host_scale, use_root_style};
+use sill_ui_kit::root::{SurfaceRoot, use_host_scale};
 
 /// The launcher's stylesheet (lint-clean under `Profile::Strict`, `tests/launcher_lint.rs`).
 pub const LAUNCHER_CSS: &str = include_str!("style.css");
@@ -133,9 +133,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
         use_service_part::<VoiceService, _>(|voice| listening_line(&voice.phase, voice.notice));
     let permissions =
         use_service_part::<CompanionService, _>(|companion| mode_view(&companion.mode));
-    let resolved = use_surface_tokens(use_root_style().styles, |length| {
-        LauncherTokens::read(length)
-    });
+    let resolved = use_surface_tokens::<LauncherTokens>();
     let panel = use_panel(output.id, results);
     let root = panel.clone();
     let shown = panel.opening_tracked().map(|opening| {

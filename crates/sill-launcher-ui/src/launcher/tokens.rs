@@ -75,6 +75,12 @@ impl LauncherTokens {
     }
 }
 
+impl sill_ui_kit::hooks::ReadTokens for LauncherTokens {
+    fn read_tokens(length: &dyn Fn(&str) -> Option<Px>) -> Self {
+        Self::read(length)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{LauncherTokens, TOP_BAR_GAP, TOP_CENTRE_BIAS};

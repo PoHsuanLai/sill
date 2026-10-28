@@ -19,7 +19,7 @@ use super::tokens::OsdTokens;
 use sill_services::{DisplaysService, VolumeService};
 use sill_ui_kit::hooks::{use_follow_place, use_service, use_surface_tokens};
 use sill_ui_kit::links::{OsdKind, OsdLink};
-use sill_ui_kit::root::{SurfaceRoot, use_root_style};
+use sill_ui_kit::root::SurfaceRoot;
 
 /// The indicator's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
 pub const OSD_CSS: &str = include_str!("style.css");
@@ -32,7 +32,7 @@ const LOOK: LevelStyle = LevelStyle::Discrete;
 /// The indicator on `output`.
 pub(super) fn osd(output: OutputInfo) -> Element {
     let on = output.name.clone().map(OutputName);
-    let resolved = use_surface_tokens(use_root_style().styles, |length| OsdTokens::read(length));
+    let resolved = use_surface_tokens::<OsdTokens>();
     let place = layer(&output, &resolved.get());
     use_follow_place(place.size, place.margin);
     let link = use_context::<OsdLink>();

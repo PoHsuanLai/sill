@@ -36,6 +36,12 @@ impl OsdTokens {
     }
 }
 
+impl sill_ui_kit::hooks::ReadTokens for OsdTokens {
+    fn read_tokens(length: &dyn Fn(&str) -> Option<Px>) -> Self {
+        Self::read(length)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{MARGIN, OsdTokens};

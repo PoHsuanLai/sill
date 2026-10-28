@@ -61,6 +61,12 @@ impl DockTokens {
     }
 }
 
+impl sill_ui_kit::hooks::ReadTokens for DockTokens {
+    fn read_tokens(length: &dyn Fn(&str) -> Option<Px>) -> Self {
+        Self::read(length)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{DockTokens, EDGE_CLAMP, GAP, PAD, PILL_RADIUS};
