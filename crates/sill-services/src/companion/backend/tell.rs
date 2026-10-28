@@ -4,11 +4,9 @@
 //! is, because `Told` carries that recorded turn.
 
 use docket_client::{DbusTransport, Intents};
-use docket_core::{
-    ContextKeep, DraftPart, Keep, MessageDraft, TurnIn, TurnSource, TurnVia, UserTurn,
-};
+use docket_core::{ContextKeep, DraftPart, Keep, MessageDraft, TurnIn, TurnVia, UserTurn};
 use docket_dbus::CompanionProxy;
-use docket_vocab::Origin;
+use docket_vocab::{Caller, Origin};
 use docket_wire::{SessionOpen, SessionOpened};
 use prov::{Address, AgentRef, MessageKind, MessageText, SpaceId, UnixSeconds};
 use zbus::Connection;
@@ -67,7 +65,7 @@ pub(super) async fn tell(
                 id,
                 text: words,
                 at,
-                from: TurnSource::Launcher,
+                from: Caller::launcher(),
                 via: TurnVia::Typed,
                 mode: None,
             };

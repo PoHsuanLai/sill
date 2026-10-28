@@ -1013,8 +1013,9 @@ mod routed {
     use docket_manifest::Latency;
     use docket_permissions_core::{ActionGrantKey, GrantCaller, GrantTarget};
     use docket_router::{AppFault, AppLink, GrantStore, NoLog, Router, Seams};
+    use docket_vocab::CallerRole;
     use docket_vocab::{ClassifyFault, ParamName, Value};
-    use docket_wire::{CallerId, CallerRole, SessionOpen};
+    use docket_wire::{CallerId, SessionOpen};
     use policy_point::Presets;
     use porter_core::consent::{Decision, Grant, Usage};
     use porter_core::{AppId, DataClass, Isolation};

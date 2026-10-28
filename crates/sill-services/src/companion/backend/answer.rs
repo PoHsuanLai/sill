@@ -6,10 +6,10 @@
 
 use companion_wire::{AnswerWire, AskWire, RouteNote};
 use docket_client::{DbusTransport, Intents};
-use docket_core::{TurnIn, TurnSource, UserTurn};
+use docket_core::{TurnIn, UserTurn};
 use docket_dbus::{CompanionAnswerProxy, CompanionProxy, Details, answer_path};
 use docket_permissions_core::Mode;
-use docket_vocab::{CardActionId, Origin, WindowKey};
+use docket_vocab::{Caller, CardActionId, Origin, WindowKey};
 use docket_wire::{SessionOpen, SessionOpened};
 use prov::{AgentRef, SessionId, TaskId, UnixSeconds};
 use sill_launcher::WindowKey as ShellWindow;
@@ -68,7 +68,7 @@ pub(super) async fn ask(
         id,
         text: input.prompt.clone(),
         at,
-        from: TurnSource::Launcher,
+        from: Caller::launcher(),
         via: input.via,
         mode,
     };
