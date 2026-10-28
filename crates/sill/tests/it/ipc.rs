@@ -9,7 +9,7 @@ use sill::ipc::server;
 use sill_ipc::line::{MAX_LINE, read_message, write_message};
 use sill_ipc::request::Request;
 use sill_ipc::response::{FailureKind, Response};
-use sill_ipc::show::{LauncherRequest, ShowRequest};
+use sill_ipc::show::LauncherRequest;
 
 /// A `Listening` on a throwaway socket under a per-test temp directory, so this suite never
 /// touches the real `sill` agent's socket even when it runs alongside a live daemon.
@@ -65,9 +65,9 @@ fn an_over_long_line_answers_failed() {
         // If the dispatcher is reached at all, the over-long line was not refused first.
         let _ = reply.send(Response::Done);
     });
-    let request = Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
+    let request = Request::Launcher(LauncherRequest::Open {
         query: "a".repeat(MAX_LINE),
-    }));
+    });
     let response = round_trip(&agent, &request);
     let Response::Failed(failure) = response else {
         panic!("expected Failed, got {response:?}");

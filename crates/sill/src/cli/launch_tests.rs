@@ -1,5 +1,4 @@
 use clap::Parser;
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_launcher::AppId;
@@ -55,7 +54,7 @@ fn the_flag_and_the_id_are_read_and_the_desktop_ending_is_dropped() {
         assert_eq!(launch.timing, *print, "{args:?}");
         assert_eq!(
             launch_request(&launch),
-            Request::Act(ActRequest::Launch(AppId((*id).to_owned()))),
+            Request::Launch(AppId((*id).to_owned())),
             "{args:?}"
         );
     }

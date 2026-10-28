@@ -10,7 +10,6 @@ use shell_host::{
     CloseReason, HostCtx, HostEvent, KeyboardFocus, LayerOp, PalmrestAction, SurfaceId,
 };
 use sill_bar::Bar;
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_launcher::actions::ActionId;
@@ -76,7 +75,7 @@ pub struct Shell {
 pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<ShellMsg>) {
     match event {
         HostEvent::App(ShellMsg::Ipc {
-            request: Request::Act(ActRequest::Launch(app)),
+            request: Request::Launch(app),
             reply,
         }) => {
             // Answered once the app's process exists, off this thread.

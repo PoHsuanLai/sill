@@ -2,9 +2,8 @@
 //! {status,clear}`.
 
 use clap::Subcommand;
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
-use sill_ipc::show::{LauncherRequest, ShowRequest};
+use sill_ipc::show::LauncherRequest;
 use sill_ipc::status::StatusRequest;
 use sill_launcher::actions::ActionId;
 
@@ -33,13 +32,12 @@ pub enum ClipboardAction {
 
 /// The request `sill launcher ACTION` sends.
 pub fn launcher_request(action: &LauncherAction) -> Request {
-    let show = |request| Request::Show(ShowRequest::Launcher(request));
     match action {
         LauncherAction::Toggle => do_request(ActionId::Launcher),
-        LauncherAction::Open { query } => show(LauncherRequest::Open {
+        LauncherAction::Open { query } => Request::Launcher(LauncherRequest::Open {
             query: query.clone(),
         }),
-        LauncherAction::Close => show(LauncherRequest::Close),
+        LauncherAction::Close => Request::Launcher(LauncherRequest::Close),
     }
 }
 
@@ -47,6 +45,6 @@ pub fn launcher_request(action: &LauncherAction) -> Request {
 pub fn clipboard_request(action: ClipboardAction) -> Request {
     match action {
         ClipboardAction::Status => Request::Status(StatusRequest::Clipboard),
-        ClipboardAction::Clear => Request::Act(ActRequest::ClearClipboard),
+        ClipboardAction::Clear => Request::ClearClipboard,
     }
 }

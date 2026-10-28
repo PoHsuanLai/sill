@@ -6,7 +6,6 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use super::stdout;
-use sill_ipc::act::ActRequest;
 use sill_ipc::error::IpcError;
 use sill_ipc::line::{encode, read_message, write_message};
 use sill_ipc::request::Request;
@@ -45,7 +44,7 @@ pub fn main(request: &Request) -> ExitCode {
 pub fn send(request: &Request) -> Result<Response, ClientError> {
     let agent = latchkey::Agent::new("sill")?;
     let mut stream = match request {
-        Request::Ping | Request::Quit | Request::Act(ActRequest::Launch(_)) => {
+        Request::Ping | Request::Quit | Request::Launch(_) => {
             agent.connect()?.ok_or(ClientError::NotRunning)?
         }
         _ => agent.connect_or_start(|| latchkey::spawn(&["run"]), START_TIMEOUT)?,

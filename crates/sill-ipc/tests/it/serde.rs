@@ -5,7 +5,7 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 use keycap_protocol::{Grab, Keyboard, KeyboardInfo, Mode, Status};
-use sill_ipc::act::{ActRequest, DisplayRequest, LevelRequest, VolumeRequest};
+use sill_ipc::act::{DisplayRequest, LevelRequest, VolumeRequest};
 use sill_ipc::debug::{
     DebugRequest, KeyAction, KeySpec, LauncherRows, Micros, Point, PointerButton, RowsSection,
     SurfaceName, SurfaceStats,
@@ -14,7 +14,7 @@ use sill_ipc::error::IpcError;
 use sill_ipc::line::{MAX_LINE, decode, encode, read_message, write_message};
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
-use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest};
+use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, VoiceRequest};
 use sill_ipc::status::{
     ClipboardStatus, IntentsStatus, LinkStatus, NotificationsStatus, PolkitStatus, StatusReport,
     StatusRequest,
@@ -98,76 +98,76 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"do","v":{"action":"pin-app","subject":{"kind":"app","v":"org.mozilla.firefox"}}}"#,
         ),
         (
-            Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
+            Request::Launcher(LauncherRequest::Open {
                 query: "fire".to_owned(),
-            })),
-            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"open","v":{"query":"fire"}}}}"#,
+            }),
+            r#"{"kind":"launcher","v":{"kind":"open","v":{"query":"fire"}}}"#,
         ),
         (
-            Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
+            Request::Launcher(LauncherRequest::Open {
                 query: String::new(),
-            })),
-            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"open","v":{"query":""}}}}"#,
+            }),
+            r#"{"kind":"launcher","v":{"kind":"open","v":{"query":""}}}"#,
         ),
         (
-            Request::Show(ShowRequest::Launcher(LauncherRequest::Close)),
-            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"close"}}}"#,
+            Request::Launcher(LauncherRequest::Close),
+            r#"{"kind":"launcher","v":{"kind":"close"}}"#,
         ),
         (
-            Request::Show(ShowRequest::Companion(CompanionRequest::Tap)),
-            r#"{"kind":"show","v":{"kind":"companion","v":"tap"}}"#,
+            Request::Companion(CompanionRequest::Tap),
+            r#"{"kind":"companion","v":"tap"}"#,
         ),
         (
-            Request::Show(ShowRequest::Companion(CompanionRequest::Summon)),
-            r#"{"kind":"show","v":{"kind":"companion","v":"summon"}}"#,
+            Request::Companion(CompanionRequest::Summon),
+            r#"{"kind":"companion","v":"summon"}"#,
         ),
         (
-            Request::Show(ShowRequest::Companion(CompanionRequest::Dismiss)),
-            r#"{"kind":"show","v":{"kind":"companion","v":"dismiss"}}"#,
+            Request::Companion(CompanionRequest::Dismiss),
+            r#"{"kind":"companion","v":"dismiss"}"#,
         ),
         (
-            Request::Show(ShowRequest::Companion(CompanionRequest::StopAll)),
-            r#"{"kind":"show","v":{"kind":"companion","v":"stop_all"}}"#,
+            Request::Companion(CompanionRequest::StopAll),
+            r#"{"kind":"companion","v":"stop_all"}"#,
         ),
         (
-            Request::Show(ShowRequest::Voice(VoiceRequest::HoldStart)),
-            r#"{"kind":"show","v":{"kind":"voice","v":"hold_start"}}"#,
+            Request::Voice(VoiceRequest::HoldStart),
+            r#"{"kind":"voice","v":"hold_start"}"#,
         ),
         (
-            Request::Show(ShowRequest::Voice(VoiceRequest::HoldEnd)),
-            r#"{"kind":"show","v":{"kind":"voice","v":"hold_end"}}"#,
+            Request::Voice(VoiceRequest::HoldEnd),
+            r#"{"kind":"voice","v":"hold_end"}"#,
         ),
         (
-            Request::Show(ShowRequest::Voice(VoiceRequest::HoldCancel)),
-            r#"{"kind":"show","v":{"kind":"voice","v":"hold_cancel"}}"#,
+            Request::Voice(VoiceRequest::HoldCancel),
+            r#"{"kind":"voice","v":"hold_cancel"}"#,
         ),
         (
-            Request::Show(ShowRequest::PowerMenu(Reveal::Open)),
-            r#"{"kind":"show","v":{"kind":"power_menu","v":"open"}}"#,
+            Request::PowerMenu(Reveal::Open),
+            r#"{"kind":"power_menu","v":"open"}"#,
         ),
         (
-            Request::Show(ShowRequest::PowerMenu(Reveal::Close)),
-            r#"{"kind":"show","v":{"kind":"power_menu","v":"close"}}"#,
+            Request::PowerMenu(Reveal::Close),
+            r#"{"kind":"power_menu","v":"close"}"#,
         ),
         (
-            Request::Show(ShowRequest::PowerMenu(Reveal::Toggle)),
-            r#"{"kind":"show","v":{"kind":"power_menu","v":"toggle"}}"#,
+            Request::PowerMenu(Reveal::Toggle),
+            r#"{"kind":"power_menu","v":"toggle"}"#,
         ),
         (
-            Request::Show(ShowRequest::ForceQuit(Reveal::Toggle)),
-            r#"{"kind":"show","v":{"kind":"force_quit","v":"toggle"}}"#,
+            Request::ForceQuit(Reveal::Toggle),
+            r#"{"kind":"force_quit","v":"toggle"}"#,
         ),
         (
-            Request::Show(ShowRequest::NotificationCenter(Reveal::Toggle)),
-            r#"{"kind":"show","v":{"kind":"notification_center","v":"toggle"}}"#,
+            Request::NotificationCenter(Reveal::Toggle),
+            r#"{"kind":"notification_center","v":"toggle"}"#,
         ),
         (
-            Request::Show(ShowRequest::NotificationCenter(Reveal::Open)),
-            r#"{"kind":"show","v":{"kind":"notification_center","v":"open"}}"#,
+            Request::NotificationCenter(Reveal::Open),
+            r#"{"kind":"notification_center","v":"open"}"#,
         ),
         (
-            Request::Show(ShowRequest::NotificationCenter(Reveal::Close)),
-            r#"{"kind":"show","v":{"kind":"notification_center","v":"close"}}"#,
+            Request::NotificationCenter(Reveal::Close),
+            r#"{"kind":"notification_center","v":"close"}"#,
         ),
         (
             Request::Status(StatusRequest::Notifications),
@@ -198,62 +198,52 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"status","v":"intents"}"#,
         ),
         (
-            Request::Act(ActRequest::Intents(IntentsAsk::Revoke(
+            Request::Intents(IntentsAsk::Revoke(
                 parse_grant("org.quire.Shell:shell.dock.pin").expect("a grant"), // test-only
+            )),
+            r#"{"kind":"intents","v":{"kind":"revoke","v":{"app":"org.quire.Shell","name":"shell.dock.pin"}}}"#,
+        ),
+        (
+            Request::Intents(IntentsAsk::Resume),
+            r#"{"kind":"intents","v":{"kind":"resume"}}"#,
+        ),
+        (
+            Request::Display(DisplayRequest::Brightness(LevelRequest::Up)),
+            r#"{"kind":"display","v":{"kind":"brightness","v":{"kind":"up"}}}"#,
+        ),
+        (
+            Request::Display(DisplayRequest::Brightness(LevelRequest::Set {
+                percent: 40,
+            })),
+            r#"{"kind":"display","v":{"kind":"brightness","v":{"kind":"set","v":{"percent":40}}}}"#,
+        ),
+        (
+            Request::Display(DisplayRequest::Volume(VolumeRequest::Level(
+                LevelRequest::Down,
             ))),
-            r#"{"kind":"act","v":{"kind":"intents","v":{"kind":"revoke","v":{"app":"org.quire.Shell","name":"shell.dock.pin"}}}}"#,
+            r#"{"kind":"display","v":{"kind":"volume","v":{"kind":"level","v":{"kind":"down"}}}}"#,
         ),
         (
-            Request::Act(ActRequest::Intents(IntentsAsk::Resume)),
-            r#"{"kind":"act","v":{"kind":"intents","v":{"kind":"resume"}}}"#,
+            Request::Display(DisplayRequest::Volume(VolumeRequest::ToggleMute)),
+            r#"{"kind":"display","v":{"kind":"volume","v":{"kind":"toggle_mute"}}}"#,
+        ),
+        (Request::ClearClipboard, r#"{"kind":"clear_clipboard"}"#),
+        (
+            Request::DismissNotifications,
+            r#"{"kind":"dismiss_notifications"}"#,
+        ),
+        (Request::FocusLatest, r#"{"kind":"focus_latest"}"#),
+        (
+            Request::Launch(app("org.mozilla.firefox")),
+            r#"{"kind":"launch","v":"org.mozilla.firefox"}"#,
         ),
         (
-            Request::Act(ActRequest::Display(DisplayRequest::Brightness(
-                LevelRequest::Up,
-            ))),
-            r#"{"kind":"act","v":{"kind":"display","v":{"kind":"brightness","v":{"kind":"up"}}}}"#,
+            Request::Keycap(KeycapAsk::Retry),
+            r#"{"kind":"keycap","v":"retry"}"#,
         ),
         (
-            Request::Act(ActRequest::Display(DisplayRequest::Brightness(
-                LevelRequest::Set { percent: 40 },
-            ))),
-            r#"{"kind":"act","v":{"kind":"display","v":{"kind":"brightness","v":{"kind":"set","v":{"percent":40}}}}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Display(DisplayRequest::Volume(
-                VolumeRequest::Level(LevelRequest::Down),
-            ))),
-            r#"{"kind":"act","v":{"kind":"display","v":{"kind":"volume","v":{"kind":"level","v":{"kind":"down"}}}}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Display(DisplayRequest::Volume(
-                VolumeRequest::ToggleMute,
-            ))),
-            r#"{"kind":"act","v":{"kind":"display","v":{"kind":"volume","v":{"kind":"toggle_mute"}}}}"#,
-        ),
-        (
-            Request::Act(ActRequest::ClearClipboard),
-            r#"{"kind":"act","v":{"kind":"clear_clipboard"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::DismissNotifications),
-            r#"{"kind":"act","v":{"kind":"dismiss_notifications"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::FocusLatest),
-            r#"{"kind":"act","v":{"kind":"focus_latest"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Launch(app("org.mozilla.firefox"))),
-            r#"{"kind":"act","v":{"kind":"launch","v":"org.mozilla.firefox"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Keycap(KeycapAsk::Retry)),
-            r#"{"kind":"act","v":{"kind":"keycap","v":"retry"}}"#,
-        ),
-        (
-            Request::Act(ActRequest::Keycap(KeycapAsk::Resume)),
-            r#"{"kind":"act","v":{"kind":"keycap","v":"resume"}}"#,
+            Request::Keycap(KeycapAsk::Resume),
+            r#"{"kind":"keycap","v":"resume"}"#,
         ),
         (
             Request::Debug(DebugRequest::Stats),
@@ -675,12 +665,12 @@ fn a_malformed_line_is_refused() {
         ("unknown top-level kind", r#"{"kind":"explode"}"#),
         (
             "unknown nested kind",
-            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"explode"}}}"#,
+            r#"{"kind":"launcher","v":{"kind":"explode"}}"#,
         ),
         ("missing payload", r#"{"kind":"show"}"#),
         (
             "payload of the wrong shape",
-            r#"{"kind":"act","v":{"kind":"dock","v":{"kind":"pin","v":{"app":7}}}}"#,
+            r#"{"kind":"dock","v":{"kind":"pin","v":{"app":7}}}"#,
         ),
         (
             "internally tagged, not adjacently",
@@ -721,9 +711,9 @@ fn an_overlong_line_is_refused_before_it_is_parsed() {
 
 #[test]
 fn a_line_just_under_the_limit_is_accepted() {
-    let request = Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
+    let request = Request::Launcher(LauncherRequest::Open {
         query: "a".repeat(MAX_LINE - 80),
-    }));
+    });
     let line = encode(&request).unwrap_or_else(|e| panic!("{e}"));
     assert!(line.len() <= MAX_LINE, "{}", line.len());
     let mut reader = Cursor::new(line.into_bytes());

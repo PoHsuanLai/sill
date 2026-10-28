@@ -2,9 +2,10 @@
 //! connection.
 //!
 //! Pure: no socket, no runtime. The daemon (`sill::ipc`) and the command line (`sill::cli`) own
-//! the stream; this crate owns the words on it. A [`request::Request`] is one of seven groups, each with
-//! its own file: [`show`] opens and closes panels, [`status`] reads a state, [`act`] changes
-//! something, [`debug`] probes. What a status answers is a `sill-model` type, serialised.
+//! the stream; this crate owns the words on it. A [`request::Request`] is one flat enum; the words
+//! some of its variants carry have a file each: [`show`] (panels, the companion), [`act`] (the
+//! display keys), [`status`] (what is read), [`debug`] (probes). What a status answers is a
+//! `sill-model` type, serialised.
 
 pub mod act;
 pub mod debug;

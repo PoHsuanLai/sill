@@ -1,36 +1,10 @@
-//! What a client changes: the brightness and volume keys, the clipboard history, the banners and
-//! the keyboard on the newest transient and keycap. The shell's own actions (lock, a screenshot,
-//! the dock's pins, the switcher's chord, the workspaces) are `Request::Do`.
+//! The words of the keys and chords a client sends: the brightness and volume keys (`Request::Display`),
+//! and the switcher's and the workspaces' words, which the command line turns into actions. The
+//! shell's own actions (lock, a screenshot, the dock's pins, the switcher's chord, the workspaces)
+//! are `Request::Do`.
 
 use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
-use sill_launcher::AppId;
-use sill_model::intents::IntentsAsk;
-use sill_model::keycap::KeycapAsk;
-
-/// A verb that changes something and answers `Done` once it is asked.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum ActRequest {
-    /// The brightness and volume keys (`sill display {brightness,volume} ...`), bound to
-    /// XF86MonBrightness*/XF86Audio* in the compositor's shortcuts.
-    Display(DisplayRequest),
-    /// Forget every clipboard entry now (`sill clipboard clear`).
-    ClearClipboard,
-    /// Dismiss every banner on screen (each sender hears `NotificationClosed`, reason 2).
-    DismissNotifications,
-    /// Give the keyboard to the newest transient card: the screenshot thumbnail or the newest
-    /// banner, whichever appeared last (`sill focus-latest`; bound in the compositor's shortcuts like the
-    /// launcher's). Nothing happens when none is showing.
-    FocusLatest,
-    /// Restart keycap, or end its pause (`sill keycap retry|resume`).
-    Keycap(KeycapAsk),
-    /// Withdraw a standing terminal grant, or let a paused terminal go on (`sill intents revoke|resume`).
-    Intents(IntentsAsk),
-    /// Open an installed app the way a click in the dock does (`sill launch <desktop-id>`):
-    /// answered `Response::Launched` once the app's process exists, or `Failed`.
-    Launch(AppId),
-}
 
 /// A display key, or a slider standing in for one (`sill display ...`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

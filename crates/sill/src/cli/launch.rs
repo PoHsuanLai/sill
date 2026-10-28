@@ -9,7 +9,6 @@ use std::process::ExitCode;
 
 use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgAction, Args};
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::response::{FailureKind, Response};
 use sill_launcher::AppId;
@@ -55,7 +54,7 @@ impl PrintTiming {
 /// shell's app index names apps.
 pub fn launch_request(args: &LaunchArgs) -> Request {
     let id = args.app.strip_suffix(".desktop").unwrap_or(&args.app);
-    Request::Act(ActRequest::Launch(AppId(id.to_owned())))
+    Request::Launch(AppId(id.to_owned()))
 }
 
 /// How a launch ended, as the command line reports it.

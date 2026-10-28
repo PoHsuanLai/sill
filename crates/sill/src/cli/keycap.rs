@@ -1,7 +1,6 @@
 //! `sill keycap status|retry|resume` and its pure mapping to a request.
 
 use clap::Subcommand;
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::status::StatusRequest;
 use sill_model::keycap::KeycapAsk;
@@ -21,7 +20,7 @@ pub enum KeycapAction {
 pub fn keycap_request(action: KeycapAction) -> Request {
     match action {
         KeycapAction::Status => Request::Status(StatusRequest::Keycap),
-        KeycapAction::Retry => Request::Act(ActRequest::Keycap(KeycapAsk::Retry)),
-        KeycapAction::Resume => Request::Act(ActRequest::Keycap(KeycapAsk::Resume)),
+        KeycapAction::Retry => Request::Keycap(KeycapAsk::Retry),
+        KeycapAction::Resume => Request::Keycap(KeycapAsk::Resume),
     }
 }

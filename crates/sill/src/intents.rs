@@ -12,7 +12,7 @@ use std::time::Duration;
 use shell_host::HostHandle;
 use sill_ipc::request::Request;
 use sill_ipc::response::{FailureKind, Response};
-use sill_ipc::show::{LauncherRequest, ShowRequest};
+use sill_ipc::show::LauncherRequest;
 use sill_launcher::actions::ActionId;
 use sill_model::actions::{Ask, Subject, screenshot_action};
 use sill_model::intents::shell::{ShellAction, ShellFault};
@@ -28,9 +28,7 @@ use crate::ipc::server::REPLY_TIMEOUT;
 pub fn request_of(action: ShellAction) -> Request {
     let on_app = |id, app| Request::Do(Ask::on(id, Subject::App(app)));
     match action {
-        ShellAction::LauncherOpen { query } => {
-            Request::Show(ShowRequest::Launcher(LauncherRequest::Open { query }))
-        }
+        ShellAction::LauncherOpen { query } => Request::Launcher(LauncherRequest::Open { query }),
         ShellAction::DockPin { app } => on_app(ActionId::PinApp, app),
         ShellAction::DockUnpin { app } => on_app(ActionId::UnpinApp, app),
         ShellAction::WorkspaceSwitch(Step::Next) => Request::Do(Ask::of(ActionId::NextSpace)),
@@ -96,7 +94,7 @@ fn perform(host: &HostHandle<ShellMsg>, action: ShellAction) -> Result<(), Shell
 mod tests {
     use sill_ipc::request::Request;
     use sill_ipc::response::{Failure, FailureKind, Response};
-    use sill_ipc::show::{LauncherRequest, ShowRequest};
+    use sill_ipc::show::LauncherRequest;
     use sill_launcher::AppId;
     use sill_launcher::actions::ActionId;
     use sill_model::actions::{Ask, Subject};
@@ -114,9 +112,9 @@ mod tests {
                 ShellAction::LauncherOpen {
                     query: "mail".to_owned(),
                 },
-                Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
+                Request::Launcher(LauncherRequest::Open {
                     query: "mail".to_owned(),
-                })),
+                }),
             ),
             (
                 ShellAction::DockPin { app: app() },

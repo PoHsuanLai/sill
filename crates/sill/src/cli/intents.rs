@@ -1,7 +1,6 @@
 //! `sill intents status|revoke|resume` and its pure mapping to a request.
 
 use clap::Subcommand;
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::status::StatusRequest;
 use sill_model::intents::terminal::parse_grant;
@@ -26,9 +25,7 @@ pub enum IntentsAction {
 pub fn intents_request(action: &IntentsAction) -> Request {
     match action {
         IntentsAction::Status => Request::Status(StatusRequest::Intents),
-        IntentsAction::Revoke { grant } => {
-            Request::Act(ActRequest::Intents(IntentsAsk::Revoke(grant.clone())))
-        }
-        IntentsAction::Resume => Request::Act(ActRequest::Intents(IntentsAsk::Resume)),
+        IntentsAction::Revoke { grant } => Request::Intents(IntentsAsk::Revoke(grant.clone())),
+        IntentsAction::Resume => Request::Intents(IntentsAsk::Resume),
     }
 }

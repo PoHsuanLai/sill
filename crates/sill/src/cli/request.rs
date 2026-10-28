@@ -1,9 +1,8 @@
 //! The one pure mapping from a parsed command to the request it sends. Each verb group's file
 //! maps its own verbs; this file only picks the group.
 
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
-use sill_ipc::show::{Reveal, ShowRequest};
+use sill_ipc::show::Reveal;
 use sill_ipc::status::StatusRequest;
 use sill_launcher::actions::ActionId;
 
@@ -26,26 +25,27 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Ping => Request::Ping,
         Command::Quit => Request::Quit,
         Command::Reload => Request::Reload,
-        Command::FocusLatest => Request::Act(ActRequest::FocusLatest),
+        Command::FocusLatest => Request::FocusLatest,
         Command::NextWindow => do_request(ActionId::NextWindow),
         Command::Verb(verb) => do_request(action_of(*verb)),
         Command::Launch(args) => launch_request(args),
         Command::Do(args) => do_action_request(args),
         Command::Launcher { action } => launcher_request(action),
         Command::Dock { action } => dock_request(action),
+        // Where a reveal is an action, it goes as the action: one path per verb.
         Command::PowerMenu { action } => match action {
             Reveal::Open => do_request(ActionId::PowerMenu),
-            Reveal::Toggle | Reveal::Close => Request::Show(ShowRequest::PowerMenu(*action)),
+            Reveal::Toggle | Reveal::Close => Request::PowerMenu(*action),
         },
         Command::ForceQuit { action } => match action {
             Reveal::Toggle => do_request(ActionId::ForceQuitPanel),
-            Reveal::Open | Reveal::Close => Request::Show(ShowRequest::ForceQuit(*action)),
+            Reveal::Open | Reveal::Close => Request::ForceQuit(*action),
         },
         Command::ControlCenter { .. } => do_request(ActionId::ControlCenter),
         Command::Screenshot { kind } => do_request(screenshot_action(*kind)),
-        Command::Companion { action } => Request::Show(ShowRequest::Companion(*action)),
-        Command::Voice { action } => Request::Show(ShowRequest::Voice(*action)),
-        Command::Display { action } => Request::Act(ActRequest::Display(*action)),
+        Command::Companion { action } => Request::Companion(*action),
+        Command::Voice { action } => Request::Voice(*action),
+        Command::Display { action } => Request::Display(*action),
         Command::Notifications { action } => notifications_request(*action),
         Command::Lock { verb } => lock_request(*verb),
         Command::Switcher { action } => do_request(switcher_action(*action)),

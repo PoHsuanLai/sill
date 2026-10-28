@@ -78,7 +78,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | --- | --- |
 | `sill-model` | `units`, `ids`, `attempt`, `vocab` (enums shared with settings), then one dir per service (`battery`, `clock`, ... 31 services, `companion` and `intents` among them: its `sheet/`, `terminal/` and `shell/` sub-dirs are the confirmation queue, the terminal's grants and the shell's own actions; `results` holds search state; `focus` holds the focus mode, which is not a service; `keyboard` holds the pure keyboard-profile choice, which is not a service either, and `keycap` the keycap service's state and its pure decisions: the focus to send, the notice to post, how to read the unit, how long to wait to reconnect). Each service dir: `mod.rs`, `model.rs` (State), `command.rs` (Command, Event, Effect), `step.rs`, `tests.rs`; a sub-concept gets a sub-dir with the same roles. Service dirs never import each other |
 | `sill-settings` | `section` (trait), one file per domain (`bar`, `dock`, ..., 22 domains), `file` (`ShellFile`, `SettingsDoc` impl), `schema`, `keys` (typed enums and unit newtypes that no service shares) |
-| `sill-ipc` | `line` (encode, decode, cap), `error`, `request`, `response`, `show`, `status`, `act`, `debug` (one word file per request group) |
+| `sill-ipc` | `line` (encode, decode, cap), `error`, `request` (the flat `Request`), `response`, `show`, `status`, `act`, `debug` (the words its variants carry, one file per group) |
 | `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `debounced` (a watch that reports a burst of events as one settled touch), then one dir per service (29, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview` (a clipboard image), `providers/<kind>/` (`files/`: `actions` (the shared file actions as a row's), `viewed` (the viewer's history as rows and uses)), `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
 | `sill-shell-kit` | `tokens`, then leaf parts `battery`, `clock`, `emoji`, `month_grid`, `now_playing`, `notifications`, `osd`, `idle_dim`, `dock`, `bar`, `control_center`, `switcher`, `date_picker` < `user_picture`, `thumbs` < `lock` < `widget` (`contract`, `card`, `frame`, `timeline`, `calendar`) < `sheets`, `kit` < `prelude` |
@@ -334,8 +334,8 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Geometry that comes from a stylesheet token (a layer's size and margin, an exclusive zone, hit rects) | `sill_ui_kit::hooks::use_surface_tokens(root.styles)` in the surface's root component, its `mounted` on the `onmounted` of an element inside the `Ds` root, then `XTokens::read(tokens.reader())` (`DockTokens`, `BarTokens`, `LauncherTokens`, `NotificationTokens` via `notification_card::use_notification_tokens`, `OsdTokens`). A token is read from that element's computed style (a look's and the person's `style.css` included), the shipped `Default` before it mounts, and again a frame after the `Styles` signal changes. The layer follows it with `use_follow_layer` (size, exclusive zone, regions: dock, bar) or `use_follow_place` (size and margin only, where the surface's own regions follow its content: launcher panel, banners, OSD); `Surface::layer` still spawns the surface with the shipped values. A part with no `.ds` of its own (the launcher's catcher) gets the panel's through `LauncherLink::set_place`; deeper parts (dock tiles, tray buttons, cards) read the surface's value from a `Signal<XTokens>` context |
 | Carrying an action out | `sill::actions::perform` (the one interpreter: output, activation token, ask first; the pieces are `actions/{panel,launch,app,pref,show_desktop,workspace,next_window,switcher}.rs`) |
 | A surface asking for an action | `sill_ui_kit::links::ActionLink` (`do_it`, `do_to`, `Origin`); the daemon forwards it with `actions::spawn_asks` |
-| IPC words | `sill_ipc::{request, response, show, status, act, debug}` |
-| Answering an IPC request | `sill::ipc::dispatch::<group>` (one fn per domain); `Request::Do` goes to `sill::actions::perform` |
+| IPC words | `sill_ipc::{request, response, show, status, act, debug}` (`Request` is one flat enum; the other files hold the words its variants carry) |
+| Answering an IPC request | `sill::ipc::dispatch::route` (one match over `Request`; `keys` and `debug` hold the two long arms); `Request::Do` goes to `sill::actions::perform` |
 | A command-line verb | `sill::cli::<group>`, mapped in `cli/request.rs`; the verbs casement sends are `shell_verbs::ShellVerb`, mapped to actions in `cli/verbs.rs::action_of` |
 | Launcher matching, ranking, frecency, sections | `sill_launcher` |
 | A launcher result source | `sill_search::providers::<kind>` (`Provider`) |
@@ -573,7 +573,7 @@ Implementors: `DockMenu` (the dock's menus: an app tile's, the Trash tile's, and
 
 | Enum | Home | Why |
 | --- | --- | --- |
-| IPC `Request` `{Ping, Quit, Reload, Do, Show, Status, Act, Debug}`, `Response` | `sill-ipc` | closed wire set; one dispatch fn per domain, and `Do` is every action of the shell |
+| IPC `Request` (flat: `Ping`, `Quit`, `Reload`, `Do`, the panel and companion verbs, `Status`, `Display`, `Keycap`, `Intents`, `Launch`, `Debug`, ...), `Response` | `sill-ipc` | closed wire set; one match in `ipc/dispatch/route.rs`, and `Do` is every action of the shell |
 | `ActionId`, `Effect`, `Subject` | `sill-launcher`, `sill-model` | closed; a new action is a compile error in `def` and in `perform` until it is described and done |
 | `Activation`, `ProviderKind`, `Item` rows | `sill-launcher` | closed; a variant must break the exhaustive `row` match |
 | `BusRoute` `{Usual, Address, Absent}`, `WaylandRoute` `{Environment, Socket}` | `sill_services::env` | route choices, not behaviours |
@@ -762,8 +762,9 @@ app-served menus, window-menu entries, sliders and a search row's own data are n
      `every_verb_the_compositor_sends_parses_and_reaches_its_action` checks. Never rename a
      spelling that casement already binds;
    - intents: its row in `sill::intents::request_of`.
-   - a panel's open and close (as against its toggle) and the launcher's seeded open stay `Request::Show`
-     (`ShowRequest`, a `Reveal`), answered by the same `actions::panel` fns the action uses.
+   - a panel's open and close (as against its toggle) and the launcher's seeded open are their own
+     `Request` variants (`PowerMenu(Reveal)`, `ForceQuit(Reveal)`, `NotificationCenter(Reveal)`,
+     `Launcher(LauncherRequest)`), answered by the same `actions::panel` fns the action uses.
 5. Tests: the table tests of `sill_model::actions` cover the row (label, effect, chord, wire form
    of an `Ask`); add the entrance's row to its table (`cli/tests.rs`, `corners/effect.rs`, the surface's
    `pick.rs`). A pure helper of the arm (a plan) is tested beside it.

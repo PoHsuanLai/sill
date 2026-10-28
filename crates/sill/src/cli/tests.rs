@@ -4,10 +4,10 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use sill_ipc::act::{ActRequest, DisplayRequest, LevelRequest, VolumeRequest};
+use sill_ipc::act::{DisplayRequest, LevelRequest, VolumeRequest};
 use sill_ipc::debug::{DebugRequest, KeyAction, KeySpec, Point, PointerButton, SurfaceName};
 use sill_ipc::request::Request;
-use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, ShowRequest, VoiceRequest};
+use sill_ipc::show::{CompanionRequest, LauncherRequest, Reveal, VoiceRequest};
 use sill_ipc::status::StatusRequest;
 use sill_launcher::actions::ActionId as ShellAction;
 use sill_launcher::settings_target::page;
@@ -35,14 +35,6 @@ fn surface(name: &str) -> SurfaceName {
 
 fn debug(request: DebugRequest) -> Option<Request> {
     Some(Request::Debug(request))
-}
-
-fn show(request: ShowRequest) -> Option<Request> {
-    Some(Request::Show(request))
-}
-
-fn act(request: ActRequest) -> Option<Request> {
-    Some(Request::Act(request))
 }
 
 fn doing(action: ShellAction) -> Option<Request> {
@@ -110,8 +102,8 @@ fn action_of(key: &str, label: &str) -> Action {
 #[test]
 fn every_command_line_sends_its_request() {
     let (click, press, release) = (pointer(click), pointer(press), pointer(release));
-    let brightness = |l| act(ActRequest::Display(DisplayRequest::Brightness(l)));
-    let volume = |v| act(ActRequest::Display(DisplayRequest::Volume(v)));
+    let brightness = |l| Some(Request::Display(DisplayRequest::Brightness(l)));
+    let volume = |v| Some(Request::Display(DisplayRequest::Volume(v)));
     let cases: Vec<(&[&str], Option<Request>)> = vec![
         (&["run"], None),
         (&["auth-check"], None),
@@ -119,16 +111,16 @@ fn every_command_line_sends_its_request() {
         (&["style", "check", "other.css"], None),
         (&["ping"], Some(Request::Ping)),
         (&["reload"], Some(Request::Reload)),
-        (&["focus-latest"], act(ActRequest::FocusLatest)),
+        (&["focus-latest"], Some(Request::FocusLatest)),
         (&["next-window"], doing(ShellAction::NextWindow)),
         (&["dock", "toggle-hide"], doing(ShellAction::ToggleDockHide)),
         (
             &["launch", "org.mozilla.firefox"],
-            act(ActRequest::Launch(AppId("org.mozilla.firefox".to_owned()))),
+            Some(Request::Launch(AppId("org.mozilla.firefox".to_owned()))),
         ),
         (
             &["launch", "foot.desktop", "--print-timing"],
-            act(ActRequest::Launch(AppId("foot".to_owned()))),
+            Some(Request::Launch(AppId("foot".to_owned()))),
         ),
         (&["quit"], Some(Request::Quit)),
         (&["lock"], doing(ShellAction::Lock)),
@@ -149,25 +141,25 @@ fn every_command_line_sends_its_request() {
         (&["keycap", "status"], status(StatusRequest::Keycap)),
         (
             &["keycap", "retry"],
-            act(ActRequest::Keycap(KeycapAsk::Retry)),
+            Some(Request::Keycap(KeycapAsk::Retry)),
         ),
         (
             &["keycap", "resume"],
-            act(ActRequest::Keycap(KeycapAsk::Resume)),
+            Some(Request::Keycap(KeycapAsk::Resume)),
         ),
         (&["intents", "status"], status(StatusRequest::Intents)),
         (
             &["intents", "revoke", "org.quire.Shell:shell.dock.pin"],
-            act(ActRequest::Intents(IntentsAsk::Revoke(
+            Some(Request::Intents(IntentsAsk::Revoke(
                 parse_grant("org.quire.Shell:shell.dock.pin").expect("a grant"), // test-only
             ))),
         ),
         (
             &["intents", "resume"],
-            act(ActRequest::Intents(IntentsAsk::Resume)),
+            Some(Request::Intents(IntentsAsk::Resume)),
         ),
         (&["clipboard", "status"], status(StatusRequest::Clipboard)),
-        (&["clipboard", "clear"], act(ActRequest::ClearClipboard)),
+        (&["clipboard", "clear"], Some(Request::ClearClipboard)),
         (&["screenshot"], doing(ShellAction::ScreenshotArea)),
         (
             &["screenshot", "window"],
@@ -179,48 +171,48 @@ fn every_command_line_sends_its_request() {
         ),
         (
             &["companion", "tap"],
-            show(ShowRequest::Companion(CompanionRequest::Tap)),
+            Some(Request::Companion(CompanionRequest::Tap)),
         ),
         (
             &["companion", "summon"],
-            show(ShowRequest::Companion(CompanionRequest::Summon)),
+            Some(Request::Companion(CompanionRequest::Summon)),
         ),
         (
             &["companion", "dismiss"],
-            show(ShowRequest::Companion(CompanionRequest::Dismiss)),
+            Some(Request::Companion(CompanionRequest::Dismiss)),
         ),
         (
             &["companion", "stop-all"],
-            show(ShowRequest::Companion(CompanionRequest::StopAll)),
+            Some(Request::Companion(CompanionRequest::StopAll)),
         ),
         (
             &["voice", "hold-start"],
-            show(ShowRequest::Voice(VoiceRequest::HoldStart)),
+            Some(Request::Voice(VoiceRequest::HoldStart)),
         ),
         (
             &["voice", "hold-end"],
-            show(ShowRequest::Voice(VoiceRequest::HoldEnd)),
+            Some(Request::Voice(VoiceRequest::HoldEnd)),
         ),
         (
             &["voice", "hold-cancel"],
-            show(ShowRequest::Voice(VoiceRequest::HoldCancel)),
+            Some(Request::Voice(VoiceRequest::HoldCancel)),
         ),
         (&["power-menu", "open"], doing(ShellAction::PowerMenu)),
         (
             &["power-menu", "close"],
-            show(ShowRequest::PowerMenu(Reveal::Close)),
+            Some(Request::PowerMenu(Reveal::Close)),
         ),
         (
             &["power-menu", "toggle"],
-            show(ShowRequest::PowerMenu(Reveal::Toggle)),
+            Some(Request::PowerMenu(Reveal::Toggle)),
         ),
         (
             &["force-quit", "open"],
-            show(ShowRequest::ForceQuit(Reveal::Open)),
+            Some(Request::ForceQuit(Reveal::Open)),
         ),
         (
             &["force-quit", "close"],
-            show(ShowRequest::ForceQuit(Reveal::Close)),
+            Some(Request::ForceQuit(Reveal::Close)),
         ),
         (
             &["force-quit", "toggle"],
@@ -236,15 +228,15 @@ fn every_command_line_sends_its_request() {
         ),
         (
             &["notifications", "open"],
-            show(ShowRequest::NotificationCenter(Reveal::Open)),
+            Some(Request::NotificationCenter(Reveal::Open)),
         ),
         (
             &["notifications", "close"],
-            show(ShowRequest::NotificationCenter(Reveal::Close)),
+            Some(Request::NotificationCenter(Reveal::Close)),
         ),
         (
             &["notifications", "dismiss-all"],
-            act(ActRequest::DismissNotifications),
+            Some(Request::DismissNotifications),
         ),
         (
             &["notifications", "status"],
@@ -253,23 +245,23 @@ fn every_command_line_sends_its_request() {
         (&["launcher", "toggle"], doing(ShellAction::Launcher)),
         (
             &["launcher", "close"],
-            show(ShowRequest::Launcher(LauncherRequest::Close)),
+            Some(Request::Launcher(LauncherRequest::Close)),
         ),
         (
             &["launcher", "open"],
-            show(ShowRequest::Launcher(LauncherRequest::Open {
+            Some(Request::Launcher(LauncherRequest::Open {
                 query: String::new(),
             })),
         ),
         (
             &["launcher", "open", "--query", ""],
-            show(ShowRequest::Launcher(LauncherRequest::Open {
+            Some(Request::Launcher(LauncherRequest::Open {
                 query: String::new(),
             })),
         ),
         (
             &["launcher", "open", "--query", "fire"],
-            show(ShowRequest::Launcher(LauncherRequest::Open {
+            Some(Request::Launcher(LauncherRequest::Open {
                 query: "fire".to_owned(),
             })),
         ),

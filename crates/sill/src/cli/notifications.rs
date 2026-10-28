@@ -2,9 +2,8 @@
 //! banners' command line, and its pure mapping to a request.
 
 use clap::Subcommand;
-use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
-use sill_ipc::show::{Reveal, ShowRequest};
+use sill_ipc::show::Reveal;
 use sill_ipc::status::StatusRequest;
 use sill_launcher::actions::ActionId;
 
@@ -30,13 +29,9 @@ pub enum NotificationsAction {
 pub fn notifications_request(action: NotificationsAction) -> Request {
     match action {
         NotificationsAction::Toggle => do_request(ActionId::NotificationCenter),
-        NotificationsAction::Open => center(Reveal::Open),
-        NotificationsAction::Close => center(Reveal::Close),
-        NotificationsAction::DismissAll => Request::Act(ActRequest::DismissNotifications),
+        NotificationsAction::Open => Request::NotificationCenter(Reveal::Open),
+        NotificationsAction::Close => Request::NotificationCenter(Reveal::Close),
+        NotificationsAction::DismissAll => Request::DismissNotifications,
         NotificationsAction::Status => Request::Status(StatusRequest::Notifications),
     }
-}
-
-fn center(reveal: Reveal) -> Request {
-    Request::Show(ShowRequest::NotificationCenter(reveal))
 }
