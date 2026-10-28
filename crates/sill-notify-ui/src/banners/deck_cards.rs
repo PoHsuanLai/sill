@@ -7,7 +7,7 @@ use ds::base::time::stamp::Stamp;
 
 use super::deck::{Deck, DeckOut, Entry, arrive, feed};
 use super::stack::Card;
-use super::step::{Banner, BannerIn, BannerParams, Persistence, step};
+use super::step::{Banner, BannerIn, BannerParams, step};
 
 /// `deck` following `cards` at `now`.
 pub(super) fn follow(
@@ -51,29 +51,13 @@ fn refresh(e: Entry, card: Card, now: Stamp, p: &BannerParams) -> Entry {
     let banner = match (newer, e.banner) {
         (true, Banner::Shown { .. }) => {
             let entering = Banner::Entering { since: now };
-            step(
-                entering,
-                BannerIn::Entered,
-                now,
-                Persistence::of(card.life),
-                p,
-            )
-            .0
+            step(entering, BannerIn::Entered, now, card.life, p).0
         }
         (_, banner) => banner,
     };
     // A card the keyboard is on keeps its hold paused through a newer notification.
     let banner = match (e.keys_held, banner) {
-        (true, Banner::Shown { .. }) => {
-            step(
-                banner,
-                BannerIn::HoverIn,
-                now,
-                Persistence::of(card.life),
-                p,
-            )
-            .0
-        }
+        (true, Banner::Shown { .. }) => step(banner, BannerIn::HoverIn, now, card.life, p).0,
         (_, banner) => banner,
     };
     Entry { card, banner, ..e }

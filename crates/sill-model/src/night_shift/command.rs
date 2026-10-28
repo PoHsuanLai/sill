@@ -1,6 +1,7 @@
 //! What Night Shift is told, what happens to it, and what it asks the files to do.
 
-use super::{Backend, Manual, MinuteOfDay, NightLight, UnixSeconds, Warmth};
+use super::{Manual, MinuteOfDay, NightLight, UnixSeconds, Warmth};
+use crate::displays::NightWarmthMode;
 
 /// The time, as a decision needs it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,7 +21,7 @@ pub enum NightShiftCommand {
     /// How warm the screen gets.
     SetWarmth(Warmth),
     /// Who warms the screen (the displays' settings changed).
-    Backend(Backend),
+    Backend(NightWarmthMode),
 }
 
 /// One thing that happened.

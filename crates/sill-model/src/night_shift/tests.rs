@@ -1,4 +1,5 @@
 use super::*;
+use crate::displays::NightWarmthMode;
 use crate::displays::ddc::{Controls, DdcDisplay, Endpoint, RgbGain};
 use crate::ids::{DdcId, OutputName};
 
@@ -23,7 +24,7 @@ fn light(schedule: Schedule) -> NightLight {
     }
 }
 
-fn ready(light: NightLight, manual: Option<Manual>, backend: Backend) -> NightShift {
+fn ready(light: NightLight, manual: Option<Manual>, backend: NightWarmthMode) -> NightShift {
     NightShift {
         reached: true,
         light,
@@ -72,7 +73,7 @@ fn a_manual_turn_on_ends_when_the_night_does() {
 
 #[test]
 fn the_switch_turns_the_night_light_on_until_tomorrow_and_off_again() {
-    let scheduled = ready(light(Schedule::Scheduled), None, Backend::Software);
+    let scheduled = ready(light(Schedule::Scheduled), None, NightWarmthMode::Off);
     let (on, effects) = step(
         scheduled,
         NightShiftEvent::Told(NightShiftCommand::TurnOnUntilTomorrow, now(23, 0)),
@@ -114,7 +115,7 @@ fn the_switch_turns_the_night_light_on_until_tomorrow_and_off_again() {
 #[test]
 fn a_manual_turn_on_runs_out_with_the_clock_and_not_before() {
     let (on, _) = step(
-        ready(light(Schedule::Off), None, Backend::Software),
+        ready(light(Schedule::Off), None, NightWarmthMode::Off),
         NightShiftEvent::Told(NightShiftCommand::TurnOnUntilTomorrow, now(22, 0)),
     );
     let (still, effects) = step(on, NightShiftEvent::Tick(now(6, 59)));
@@ -132,7 +133,7 @@ fn a_manual_turn_on_runs_out_with_the_clock_and_not_before() {
 
 #[test]
 fn turning_off_without_a_manual_turn_on_switches_the_light_off() {
-    let always = ready(light(Schedule::Always), None, Backend::Software);
+    let always = ready(light(Schedule::Always), None, NightWarmthMode::Off);
     let (off, effects) = step(
         always,
         NightShiftEvent::Told(NightShiftCommand::TurnOff, now(23, 0)),
@@ -142,7 +143,7 @@ fn turning_off_without_a_manual_turn_on_switches_the_light_off() {
         effects,
         vec![NightShiftEffect::WriteLight(light(Schedule::Off))]
     );
-    let already = ready(light(Schedule::Off), None, Backend::Software);
+    let already = ready(light(Schedule::Off), None, NightWarmthMode::Off);
     let (same, effects) = step(
         already,
         NightShiftEvent::Told(NightShiftCommand::TurnOff, now(23, 0)),
@@ -153,7 +154,7 @@ fn turning_off_without_a_manual_turn_on_switches_the_light_off() {
 #[test]
 fn the_warmth_is_kept_through_a_manual_turn_on() {
     let (on, _) = step(
-        ready(light(Schedule::Scheduled), None, Backend::Software),
+        ready(light(Schedule::Scheduled), None, NightWarmthMode::Off),
         NightShiftEvent::Told(NightShiftCommand::TurnOnUntilTomorrow, now(22, 0)),
     );
     let warmer = Warmth::clamped(2900);
@@ -228,12 +229,15 @@ fn a_change_made_in_settings_ends_the_manual_turn_on() {
 
 #[test]
 fn where_sill_warms_the_monitors_the_software_light_stays_as_it_is() {
-    let scheduled = ready(light(Schedule::Scheduled), None, Backend::Software);
+    let scheduled = ready(light(Schedule::Scheduled), None, NightWarmthMode::Off);
     let (told, effects) = step(
         scheduled,
-        NightShiftEvent::Told(NightShiftCommand::Backend(Backend::Hardware), now(22, 0)),
+        NightShiftEvent::Told(
+            NightShiftCommand::Backend(NightWarmthMode::Hardware),
+            now(22, 0),
+        ),
     );
-    assert_eq!(told.backend, Backend::Hardware);
+    assert_eq!(told.backend, NightWarmthMode::Hardware);
     assert_eq!(told.light, scheduled.light, "the light is not stood down");
     assert_eq!(effects, vec![]);
     let (on, effects) = step(
@@ -258,7 +262,10 @@ fn where_sill_warms_the_monitors_the_software_light_stays_as_it_is() {
         Schedule::Always,
         "an edit in Settings stays"
     );
-    assert_eq!((loaded.backend, effects), (Backend::Hardware, vec![]));
+    assert_eq!(
+        (loaded.backend, effects),
+        (NightWarmthMode::Hardware, vec![])
+    );
 }
 
 fn monitor(bus: u16, connector: Option<&str>, gain: Option<RgbGain>) -> DdcDisplay {
@@ -292,21 +299,21 @@ fn casement_leaves_the_monitors_sill_warms_over_ddc_alone() {
         monitor(7, None, gain),
         monitor(8, Some("DP-1"), gain),
     ];
-    let cases: &[(&str, Backend, &[DdcDisplay], &[&str])] = &[
-        ("software: none", Backend::Software, &monitors, &[]),
+    let cases: &[(&str, NightWarmthMode, &[DdcDisplay], &[&str])] = &[
+        ("software: none", NightWarmthMode::Off, &monitors, &[]),
         (
             "hardware: the connectors with gains, sorted, once each",
-            Backend::Hardware,
+            NightWarmthMode::Hardware,
             &monitors,
             &["DP-1", "HDMI-A-1"],
         ),
         (
             "hardware: a monitor without gains or a connector is not listed",
-            Backend::Hardware,
+            NightWarmthMode::Hardware,
             &monitors[2..4],
             &[],
         ),
-        ("hardware: no monitors", Backend::Hardware, &[], &[]),
+        ("hardware: no monitors", NightWarmthMode::Hardware, &[], &[]),
     ];
     for (name, backend, ddc, want) in cases {
         assert_eq!(skip_outputs(*backend, ddc), names(want), "{name}");
@@ -322,26 +329,26 @@ fn a_monitor_sill_cannot_name_is_left_to_the_software_light() {
         monitor(4, Some("DP-1"), gain),
         monitor(6, None, None),
     ];
-    let cases: &[(&str, Backend, &[DdcDisplay], &[u16])] = &[
+    let cases: &[(&str, NightWarmthMode, &[DdcDisplay], &[u16])] = &[
         (
             "software: nothing to say",
-            Backend::Software,
+            NightWarmthMode::Off,
             &monitors,
             &[],
         ),
         (
             "hardware: those with gains and no connector, by bus",
-            Backend::Hardware,
+            NightWarmthMode::Hardware,
             &monitors,
             &[3, 7],
         ),
         (
             "hardware: all matched",
-            Backend::Hardware,
+            NightWarmthMode::Hardware,
             &monitors[2..3],
             &[],
         ),
-        ("hardware: no monitors", Backend::Hardware, &[], &[]),
+        ("hardware: no monitors", NightWarmthMode::Hardware, &[], &[]),
     ];
     for (name, backend, ddc, want) in cases {
         let want: Vec<DdcId> = want.iter().copied().map(DdcId).collect();
@@ -351,7 +358,7 @@ fn a_monitor_sill_cannot_name_is_left_to_the_software_light() {
 
 #[test]
 fn the_switch_says_what_the_light_is_doing() {
-    let on = |schedule, manual| ready(light(schedule), manual, Backend::Software);
+    let on = |schedule, manual| ready(light(schedule), manual, NightWarmthMode::Off);
     let manual = Manual {
         until: UnixSeconds(1),
         restore: NightLight::default(),

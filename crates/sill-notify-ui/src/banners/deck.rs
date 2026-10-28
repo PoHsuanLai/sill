@@ -17,7 +17,7 @@ use sill_model::notifications::NotificationsCommand;
 use super::commands::leave_commands;
 use super::deck_keys::{KeysIn, keys, release_leavers};
 use super::stack::Card;
-use super::step::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Persistence, step};
+use super::step::{Banner, BannerIn, BannerOut, BannerParams, Deadline, step};
 
 /// One drawn card's identity for its life on screen (a new one per arrival): quire's
 /// `BannerKey`.
@@ -202,7 +202,7 @@ fn apply(
     out: &mut Vec<DeckOut>,
     speak: bool,
 ) -> Entry {
-    let (banner, said) = step(e.banner, input, now, Persistence::of(e.card.life), p);
+    let (banner, said) = step(e.banner, input, now, e.card.life, p);
     for said in said {
         if let (BannerOut::Leave(why), true) = (said, speak) {
             out.extend(leave_commands(&e.card, why).into_iter().map(DeckOut::Send));

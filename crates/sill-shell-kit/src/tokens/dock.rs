@@ -56,24 +56,15 @@ pub enum DockToken {
     SeparatorHeight,
 }
 
-/// Whether the dock draws its reflective floor (`dock.floor`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum DockFloorSetting {
-    /// No floor: the pill alone (the default).
-    #[default]
-    Off,
-    /// A soft light band along the pill's floor, under the tiles.
-    On,
-}
-
 /// What the settings write around the dock: the tile's size (`dock.tile_size_px`) and the floor
 /// (`dock.floor`), as the tokens' inputs on any element around the dock.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DockMetrics {
     /// A tile at rest, 48.
     pub tile: Px,
-    /// The reflective floor, off.
-    pub floor: DockFloorSetting,
+    /// Whether the dock draws its reflective floor: a soft light band along the pill's floor,
+    /// under the tiles. Off by default: the pill alone.
+    pub floor: bool,
 }
 
 impl Default for DockMetrics {
@@ -81,7 +72,7 @@ impl Default for DockMetrics {
     fn default() -> Self {
         DockMetrics {
             tile: Px(48.0),
-            floor: DockFloorSetting::Off,
+            floor: false,
         }
     }
 }
@@ -90,10 +81,7 @@ impl DockMetrics {
     /// Every input, inline: `--dock-tile-px:48px;--dock-floor-on:0;`.
     pub fn style_attr(&self) -> String {
         let tile = format!("{}px", self.tile.0.round().clamp(0.0, 999.0) as u16);
-        let floor = match self.floor {
-            DockFloorSetting::Off => "0",
-            DockFloorSetting::On => "1",
-        };
+        let floor = if self.floor { "1" } else { "0" };
         [
             DockToken::Tile.write(&tile),
             DockFloorToken::Floor.write(floor),
@@ -104,7 +92,7 @@ impl DockMetrics {
 
 #[cfg(test)]
 mod tests {
-    use super::{DockFloorSetting, DockMetrics, DockToken};
+    use super::{DockMetrics, DockToken};
     use ds::style::tokens::token::TokenScope;
 
     #[test]
@@ -117,7 +105,7 @@ mod tests {
     #[test]
     fn the_floor_is_one_inline_switch() {
         let on = DockMetrics {
-            floor: DockFloorSetting::On,
+            floor: true,
             ..DockMetrics::default()
         };
         assert!(on.style_attr().contains("--dock-floor-on:1;"));

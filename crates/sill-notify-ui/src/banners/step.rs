@@ -38,23 +38,6 @@ pub enum Leave {
     Acted,
 }
 
-/// Whether a banner expires (a banner) or persists (an alert).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Persistence {
-    Expires,
-    Persists,
-}
-
-impl Persistence {
-    /// The service's word for it (`LiveBanner::life`).
-    pub fn of(life: BannerLife) -> Persistence {
-        match life {
-            BannerLife::Expires => Persistence::Expires,
-            BannerLife::Persists => Persistence::Persists,
-        }
-    }
-}
-
 /// The banner's phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Banner {
@@ -137,7 +120,7 @@ pub fn step(
     b: Banner,
     input: BannerIn,
     now: Stamp,
-    persistence: Persistence,
+    life: BannerLife,
     p: &BannerParams,
 ) -> (Banner, Vec<BannerOut>) {
     let leave = |why| {
@@ -153,7 +136,7 @@ pub fn step(
         (_, BannerIn::Clicked | BannerIn::Action) => leave(Leave::Acted),
         (_, BannerIn::Close) => leave(Leave::Dismissed),
         (_, BannerIn::Swiped) => leave(Leave::Swiped),
-        (Banner::Entering { .. }, BannerIn::Entered) => hold(persistence, now, p),
+        (Banner::Entering { .. }, BannerIn::Entered) => hold(life, now, p),
         (
             Banner::Shown {
                 deadline: Deadline::At(at),
@@ -172,15 +155,15 @@ pub fn step(
 }
 
 /// A banner that has just come on screen: held for `hold_ms`, or for ever as an alert.
-fn hold(persistence: Persistence, now: Stamp, p: &BannerParams) -> (Banner, Vec<BannerOut>) {
-    match persistence {
-        Persistence::Persists => (
+fn hold(life: BannerLife, now: Stamp, p: &BannerParams) -> (Banner, Vec<BannerOut>) {
+    match life {
+        BannerLife::Persists => (
             Banner::Shown {
                 deadline: Deadline::Never,
             },
             Vec::new(),
         ),
-        Persistence::Expires => at(now.after(p.hold_ms)),
+        BannerLife::Expires => at(now.after(p.hold_ms)),
     }
 }
 

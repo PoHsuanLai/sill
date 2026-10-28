@@ -115,6 +115,10 @@ pub struct MonthGridData {
 
 /// Whether the grid leads each row with its ISO week (`calendar.week_numbers`, design/22
 /// section 3.21).
+///
+/// A word of the widget contract (a month widget's face carries it), so it stays this crate's
+/// own: the setting's `sill_settings::WeekNumbers` maps onto it in the calendar widget, since
+/// this kit cannot name the settings.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 pub enum WeekNumbers {
     /// Seven columns only.

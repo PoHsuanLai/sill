@@ -116,12 +116,13 @@ pub(crate) fn NightShiftRow() -> Element {
 #[cfg(test)]
 mod tests {
     use ds::prelude::*;
-    use sill_model::night_shift::{Backend, Manual, NightLight, NightShift, Schedule, UnixSeconds};
+    use sill_model::displays::NightWarmthMode;
+    use sill_model::night_shift::{Manual, NightLight, NightShift, Schedule, UnixSeconds};
 
     use super::{ClockHours, Face, command_of, face_of};
     use sill_model::night_shift::NightShiftCommand;
 
-    fn ready(schedule: Schedule, manual: Option<Manual>, backend: Backend) -> NightShift {
+    fn ready(schedule: Schedule, manual: Option<Manual>, backend: NightWarmthMode) -> NightShift {
         NightShift {
             reached: true,
             light: NightLight {
@@ -152,22 +153,22 @@ mod tests {
             ("unreachable", NightShift::default(), None),
             (
                 "off",
-                ready(Schedule::Off, None, Backend::Software),
+                ready(Schedule::Off, None, NightWarmthMode::Off),
                 face("Off", Check::Off, false),
             ),
             (
                 "until tomorrow",
-                ready(Schedule::Always, Some(by_hand), Backend::Software),
+                ready(Schedule::Always, Some(by_hand), NightWarmthMode::Off),
                 face("On until tomorrow", Check::On, true),
             ),
             (
                 "all day",
-                ready(Schedule::Always, None, Backend::Software),
+                ready(Schedule::Always, None, NightWarmthMode::Off),
                 face("On", Check::On, true),
             ),
             (
                 "on a schedule",
-                ready(Schedule::Scheduled, None, Backend::Software),
+                ready(Schedule::Scheduled, None, NightWarmthMode::Off),
                 face("Scheduled, 22:00 to 07:00", Check::Off, true),
             ),
         ];

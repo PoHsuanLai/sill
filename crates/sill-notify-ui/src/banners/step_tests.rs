@@ -1,18 +1,19 @@
 //! Table tests for `step.rs`.
 
-use super::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, step};
+use super::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, step};
 use ds::base::time::stamp::Stamp;
+use sill_model::notifications::BannerLife;
 
 fn p() -> BannerParams {
     BannerParams::default()
 }
 
-fn run(persistence: Persistence, inputs: &[(u64, BannerIn)]) -> (Banner, Vec<BannerOut>) {
+fn run(life: BannerLife, inputs: &[(u64, BannerIn)]) -> (Banner, Vec<BannerOut>) {
     let params = p();
     inputs.iter().fold(
         (Banner::Entering { since: Stamp(0) }, Vec::new()),
         |(b, mut all), &(ms, input)| {
-            let (b, out) = step(b, input, Stamp(ms), persistence, &params);
+            let (b, out) = step(b, input, Stamp(ms), life, &params);
             all.extend(out);
             (b, all)
         },
@@ -28,7 +29,7 @@ fn left(b: &Banner) -> Option<Leave> {
 
 #[test]
 fn design_13_acceptance_9_lifetime_and_hover() {
-    use Persistence::{Expires, Persists};
+    use BannerLife::{Expires, Persists};
     let entered = (100, BannerIn::Entered);
     // Leaves at hold (5200 ms after entering), not before.
     assert_eq!(
@@ -75,7 +76,7 @@ fn design_13_acceptance_9_lifetime_and_hover() {
 fn a_long_remainder_is_kept_after_hover() {
     // Hovered at 1000 with 4300 ms left: resumes with 4300, not 1500.
     let (b, _) = run(
-        Persistence::Expires,
+        BannerLife::Expires,
         &[
             (100, BannerIn::Entered),
             (1000, BannerIn::HoverIn),
@@ -102,7 +103,7 @@ fn a_swipe_leaves_from_any_live_phase() {
     ];
     for (name, before) in cases {
         let inputs = [&before[..], &[(500, BannerIn::Swiped)]].concat();
-        let (b, out) = run(Persistence::Expires, &inputs);
+        let (b, out) = run(BannerLife::Expires, &inputs);
         assert_eq!(left(&b), Some(Leave::Swiped), "{name}");
         assert_eq!(out.last(), Some(&BannerOut::Leave(Leave::Swiped)), "{name}");
     }
@@ -116,14 +117,14 @@ fn acting_or_closing_leaves_and_the_exit_removes() {
         (BannerIn::Close, Leave::Dismissed),
     ] {
         let (b, out) = run(
-            Persistence::Expires,
+            BannerLife::Expires,
             &[(100, BannerIn::Entered), (300, input)],
         );
         assert_eq!(left(&b), Some(why), "{input:?}");
         assert_eq!(out.last(), Some(&BannerOut::Leave(why)));
     }
     let (b, out) = run(
-        Persistence::Expires,
+        BannerLife::Expires,
         &[
             (100, BannerIn::Entered),
             (300, BannerIn::Close),

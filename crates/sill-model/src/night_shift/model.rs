@@ -1,6 +1,7 @@
 //! The state types: casement's night light as the shell reads and writes it, the manual
 //! turn-on, and whether the shell can reach casement's file.
 
+use crate::displays::NightWarmthMode;
 use ds_core::word::Word;
 
 /// When casement warms the screen (`night_light.mode`).
@@ -92,17 +93,6 @@ pub struct Manual {
     pub restore: NightLight,
 }
 
-/// Who warms the monitors that answer DDC/CI.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Backend {
-    /// casement, in software, like every other display.
-    #[default]
-    Software,
-    /// sill, over each monitor's own colour gains (`display.night_warmth`); casement is told to
-    /// leave those monitors alone (`night_light.skip_outputs`) and keeps warming the rest.
-    Hardware,
-}
-
 /// What the shell knows of Night Shift.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct NightShift {
@@ -111,5 +101,8 @@ pub struct NightShift {
     pub reached: bool,
     pub light: NightLight,
     pub manual: Option<Manual>,
-    pub backend: Backend,
+    /// Who warms the monitors that answer DDC/CI (`display.night_warmth`): casement in software
+    /// like every other display (`Off`), or sill over each monitor's own colour gains
+    /// (`Hardware`), casement then leaving those monitors alone (`night_light.skip_outputs`).
+    pub backend: NightWarmthMode,
 }

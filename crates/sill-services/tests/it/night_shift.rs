@@ -7,9 +7,10 @@
 use std::time::Duration;
 
 use sill_model::displays::Displays;
+use sill_model::displays::NightWarmthMode;
 use sill_model::displays::ddc::{Controls, DdcDisplay, Endpoint, RgbGain};
 use sill_model::ids::{DdcId, OutputName};
-use sill_model::night_shift::{Backend, NightShift, NightShiftCommand, Schedule, Shown, shown};
+use sill_model::night_shift::{NightShift, NightShiftCommand, Schedule, Shown, shown};
 use sill_services::env::Env;
 use sill_services::night_shift::NightShiftService;
 use sill_services::service::{Handle, spawn};
@@ -162,7 +163,7 @@ async fn where_sill_warms_monitors_casement_is_told_to_leave_them_alone_and_warm
 
     let _ = service
         .control
-        .send(NightShiftCommand::Backend(Backend::Hardware));
+        .send(NightShiftCommand::Backend(NightWarmthMode::Hardware));
     let _ = service.control.send(NightShiftCommand::TurnOnUntilTomorrow);
     let on = until(&mut service, |s| s.manual.is_some()).await;
     assert_eq!(
@@ -198,7 +199,7 @@ async fn where_sill_warms_monitors_casement_is_told_to_leave_them_alone_and_warm
 
     let _ = service
         .control
-        .send(NightShiftCommand::Backend(Backend::Software));
+        .send(NightShiftCommand::Backend(NightWarmthMode::Off));
     let _ = service.control.send(NightShiftCommand::TurnOff);
     until(&mut service, |s| s.manual.is_none()).await;
     assert_eq!(

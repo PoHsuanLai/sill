@@ -7,7 +7,7 @@ use ds::prelude::*;
 use ds::style::tokens::shape::Corner;
 use sill_model::units::Cpx;
 use sill_settings::DockSettings;
-use sill_shell_kit::tokens::dock::{DockFloorSetting, DockMetrics};
+use sill_shell_kit::tokens::dock::DockMetrics;
 
 /// quire's dock tokens from `dock.tile_size_px` and `dock.floor`: written inline around the
 /// dock's root (`DockMetrics::style_attr`), where `DockFloor` reads them. The gap, padding and
@@ -15,11 +15,7 @@ use sill_shell_kit::tokens::dock::{DockFloorSetting, DockMetrics};
 pub fn dock_metrics(dock: &DockSettings) -> DockMetrics {
     DockMetrics {
         tile: Px(f32::from(dock.tile_size_px.0)),
-        floor: if dock.floor.is_on() {
-            DockFloorSetting::On
-        } else {
-            DockFloorSetting::Off
-        },
+        floor: dock.floor.is_on(),
     }
 }
 

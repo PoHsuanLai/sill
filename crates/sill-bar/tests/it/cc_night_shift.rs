@@ -7,8 +7,9 @@ use crate::cc_support;
 
 use cc_support::details::{center, ms, press};
 
+use sill_model::displays::NightWarmthMode;
 use sill_model::night_shift::{
-    Backend, Manual, NightLight, NightShift, NightShiftCommand, Schedule, UnixSeconds, Warmth,
+    Manual, NightLight, NightShift, NightShiftCommand, Schedule, UnixSeconds, Warmth,
 };
 
 const ROW: &str = "#night-shift";
@@ -16,7 +17,7 @@ const SWITCH: &str = "#night-shift .ds-toggle";
 const SLIDER: &str = "#night-shift .ds-slider";
 const RAIL: &str = "#night-shift .ds-slider-track";
 
-fn ready(schedule: Schedule, manual: Option<Manual>, backend: Backend) -> NightShift {
+fn ready(schedule: Schedule, manual: Option<Manual>, backend: NightWarmthMode) -> NightShift {
     NightShift {
         reached: true,
         light: NightLight {
@@ -46,7 +47,7 @@ fn the_switch_asks_for_until_tomorrow_when_off_and_for_off_when_on() {
     let mut running = center(|feeds| {
         feeds
             .night_shift
-            .send_replace(ready(Schedule::Off, None, Backend::Software));
+            .send_replace(ready(Schedule::Off, None, NightWarmthMode::Off));
     });
     assert_eq!(running.harness.count(ROW), 1);
     assert_eq!(
@@ -65,7 +66,7 @@ fn the_switch_asks_for_until_tomorrow_when_off_and_for_off_when_on() {
     running.feeds.night_shift.send_replace(ready(
         Schedule::Always,
         Some(by_hand()),
-        Backend::Software,
+        NightWarmthMode::Off,
     ));
     running.harness.advance(ms(100));
     assert!(running.harness.html().contains("On until tomorrow"));
@@ -87,7 +88,7 @@ fn a_press_on_the_warmth_slider_sets_the_warmth_between_less_and_more_warm() {
     let mut running = center(|feeds| {
         feeds
             .night_shift
-            .send_replace(ready(Schedule::Always, None, Backend::Software));
+            .send_replace(ready(Schedule::Always, None, NightWarmthMode::Off));
     });
     running.harness.advance(ms(100));
     let Some(rail) = running.harness.centre(RAIL) else {

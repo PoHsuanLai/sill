@@ -17,7 +17,7 @@ use super::groups::{Expanded, toggle_group};
 use super::rows::RowAct;
 use sill_ui_kit::hooks::use_control;
 use sill_ui_kit::links::CenterLink;
-use sill_ui_kit::panel::{Phase, PhaseInput, PhaseOut, Wanted, step_phase};
+use sill_ui_kit::panel::{Phase, PhaseInput, PhaseOut, step_phase};
 
 /// The column's phase on one output, and the surface it maps. Clone is cheap.
 #[derive(Clone)]
@@ -46,11 +46,12 @@ pub(super) fn use_phase(output: OutputId) -> CenterPhase {
     let phase = use_signal(Phase::default);
     let follow = surface.clone();
     use_effect(move || {
-        let wanted = match shown.read().open_on(output) {
-            true => Wanted::Here,
-            false => Wanted::NotHere,
+        let input = if shown.read().open_on(output) {
+            PhaseInput::Wanted
+        } else {
+            PhaseInput::NotWanted
         };
-        drive(phase, follow.clone(), PhaseInput::Link(wanted));
+        drive(phase, follow.clone(), input);
     });
     CenterPhase { phase, surface }
 }
