@@ -1,8 +1,9 @@
 //! The state types (data only).
 
+use porter_capability::KindToggle;
 use porter_capability::Toggle;
 use porter_core::AccountId;
-use porter_sheet::{ServiceChoice, SheetView};
+use porter_sheet::SheetView;
 
 use super::draft::{CopyMark, FieldDraft, ListKey, SubmitCount};
 use crate::serve::ServeLink;
@@ -55,7 +56,7 @@ pub struct Draft {
     /// The account the consent alert would use; `None` until one is picked (the first then).
     pub chosen: Option<AccountId>,
     /// The review's switches.
-    pub choices: Vec<ServiceChoice>,
+    pub choices: Vec<KindToggle>,
     /// Whether the link or code on screen has been copied.
     pub copied: CopyMark,
 }

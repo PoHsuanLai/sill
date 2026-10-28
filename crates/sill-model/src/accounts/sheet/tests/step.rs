@@ -1,12 +1,13 @@
 use porter_capability::CapabilityKind;
+use porter_capability::KindToggle;
 use porter_capability::Toggle;
 use porter_core::AccountId;
 use porter_core::SecretText;
 use porter_core::consent::{AccountChoice, ConsentAnswer, ConsentAsk, GrantScope, Usage};
 use porter_core::{AccountLabel, AppId, AppName, DataClass, Isolation};
 use porter_sheet::{
-    FieldAnswer, FieldKind, FieldValue, Review, ServiceChoice, ServiceRow, ServiceState,
-    SheetInput, SheetView, UserCode,
+    FieldAnswer, FieldKind, FieldValue, Review, ServiceRow, ServiceState, SheetInput, SheetView,
+    UserCode,
 };
 
 use super::{form, handle, provider, rows};
@@ -328,11 +329,11 @@ fn what_the_person_does_is_what_accountd_is_told() {
                 Do::Confirm,
             ],
             vec![SheetInput::Confirm(vec![
-                ServiceChoice {
+                KindToggle {
                     kind: CapabilityKind::Mail,
                     toggle: Toggle::On,
                 },
-                ServiceChoice {
+                KindToggle {
                     kind: CapabilityKind::Calendar,
                     toggle: Toggle::Off,
                 },
@@ -343,11 +344,11 @@ fn what_the_person_does_is_what_accountd_is_told() {
             review(),
             vec![Do::Toggle(CapabilityKind::Photos, Toggle::On), Do::Confirm],
             vec![SheetInput::Confirm(vec![
-                ServiceChoice {
+                KindToggle {
                     kind: CapabilityKind::Mail,
                     toggle: Toggle::On,
                 },
-                ServiceChoice {
+                KindToggle {
                     kind: CapabilityKind::Calendar,
                     toggle: Toggle::On,
                 },

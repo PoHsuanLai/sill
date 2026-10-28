@@ -1,13 +1,14 @@
 //! The draft of a sheet: built from the view, and carried across an update that does not change
 //! what the person is typing into.
 
+use porter_capability::KindToggle;
 use porter_capability::Toggle;
 use porter_core::AccountId;
 use porter_core::ProviderId;
 use porter_core::SecretText;
 use porter_sheet::{
-    Entry, FieldAnswer, FieldKind, FieldProblem, FieldSpec, FieldValue, Presence, ServiceChoice,
-    ServiceState, SheetView, form_problem, refit,
+    Entry, FieldAnswer, FieldKind, FieldProblem, FieldSpec, FieldValue, Presence, ServiceState,
+    SheetView, form_problem, refit,
 };
 
 use super::model::Draft;
@@ -167,7 +168,7 @@ pub(super) fn fresh(view: &SheetView) -> Draft {
                 .services
                 .iter()
                 .filter_map(|row| match row.state {
-                    ServiceState::Offered(toggle) => Some(ServiceChoice {
+                    ServiceState::Offered(toggle) => Some(KindToggle {
                         kind: row.kind,
                         toggle,
                     }),
@@ -199,14 +200,14 @@ pub(super) fn chosen_among(draft: &Draft, accounts: &[AccountId]) -> Option<Acco
 
 /// `choices` with `kind` set to `toggle`, when the provider offers that kind.
 pub(super) fn toggled(
-    choices: &[ServiceChoice],
+    choices: &[KindToggle],
     kind: porter_capability::CapabilityKind,
     toggle: Toggle,
-) -> Vec<ServiceChoice> {
+) -> Vec<KindToggle> {
     choices
         .iter()
         .map(|choice| match choice.kind == kind {
-            true => ServiceChoice { kind, toggle },
+            true => KindToggle { kind, toggle },
             false => *choice,
         })
         .collect()
