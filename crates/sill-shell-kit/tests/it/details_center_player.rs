@@ -8,7 +8,7 @@ use ds::components::controls::button_model::{Bezel, IconSwap, ImagePosition};
 use ds::prelude::*;
 use ds::style::tokens::control_size::ControlSize;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{ClassPresence, Clock, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::now_playing::kind::Playback;
 use sill_shell_kit::prelude::*;
 use std::time::Duration;
@@ -172,13 +172,10 @@ fn a_new_track_cross_fades_and_a_restated_one_plays_nothing() {
         1
     );
     assert_eq!(harness.count("#track .ds-track-art [*|data-morph=out]"), 1);
-    assert_eq!(
-        harness.has_class(
-            "#track .ds-track-words [*|data-morph=in]",
-            "a-morph-fade-in"
-        ),
-        ClassPresence::Present
-    );
+    assert!(harness.has_class(
+        "#track .ds-track-words [*|data-morph=in]",
+        "a-morph-fade-in"
+    ));
     assert_eq!(
         harness
             .text_of("#track .ds-track-words [*|data-morph=out] .ds-track-title")

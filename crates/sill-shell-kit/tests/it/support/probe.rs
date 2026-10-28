@@ -13,8 +13,8 @@
 //! | `h.ime_start()`, `ime_update(t, c)`, `ime_commit(t)`, `ime_end()`, `h.paste_html(html, text)` | `h.send(Input::ime_start())`, `Input::ime_update(t, c)`, `Input::ime_commit(t)`, `Input::ime_end()`, `Input::paste(html, text)` |
 //! | `h.file_drag(step)` (returned the answer) | `h.send(Input::FileDrag(step))`, then `h.drop_answer()` |
 //! | `h.pointer_move_with(p, mods)`, `button_down_with`, `button_up_with`, `click_with` | `h.send(Input::Pointer(PointerInput::new(p, action).with_mods(mods)))` |
-//! | `h.is_focused(sel)` | `h.focus_of(sel) == FocusState::Focused` (or `assert_eq!` against it) |
-//! | `h.has_class(sel, c)` | `h.has_class(sel, c) == ClassPresence::Present` |
+//! | `h.is_focused(sel)` | `h.focus_of(sel)` |
+//! | `h.has_class(sel, c)` | `h.has_class(sel, c)` |
 //! | `h.advance(d)`, `h.render()` | unchanged |
 //! | `h.rect`, `text_of`, `attr`, `count`, `ink_of`, `fill_of` | unchanged |
 //! | `ds_blitz::NativeError` | `ds_harness::HarnessError` |

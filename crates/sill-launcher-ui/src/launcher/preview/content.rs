@@ -11,7 +11,7 @@ use companion_wire::{AnswerBody, footer_line};
 use dioxus::prelude::*;
 use ds::components::companion::answer::view::AnswerCard;
 use ds::components::content::image_source::{ImageSize, ImageSource};
-use ds::components::lists::preview::content::{PaneContent, PaneMono};
+use ds::components::lists::preview::content::PaneContent;
 use ds::prelude::*;
 use sill_launcher::{ClipKind, Mime, Preview};
 use sill_model::companion::{Companion, RunFacts, memory_line, run_state_of, waiting_line};
@@ -94,7 +94,7 @@ fn content_of(
         },
         Preview::Text { excerpt } => PaneContent::Text {
             excerpt: excerpt.0.clone(),
-            mono: PaneMono::Proportional,
+            mono: false,
         },
         Preview::App { name, detail, .. } => PaneContent::App {
             icon: icon.unwrap_or(IconSource::Glyph(Icon::Grid)),
@@ -104,7 +104,7 @@ fn content_of(
         Preview::Clipboard(clip) => match (&clip.kind, loads.clip_png) {
             (ClipKind::Text { excerpt, .. }, _) => PaneContent::Text {
                 excerpt: excerpt.0.clone(),
-                mono: PaneMono::Monospace,
+                mono: true,
             },
             (ClipKind::Image { width, height, .. }, Some(bytes)) => PaneContent::Image {
                 src: ImageSource::png(&bytes),

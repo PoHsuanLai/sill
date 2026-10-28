@@ -8,7 +8,7 @@
 //! the row slide out from that offset (the two transforms compose), then the rows below heal.
 
 use dioxus::prelude::*;
-use ds::components::overlays::swipe_glue::{SwipeGlue, SwipeOn, use_swipe_glue};
+use ds::components::overlays::swipe_glue::{SwipeGlue, use_swipe_glue};
 use ds::motion::anim::Anim;
 use ds::motion::swipe::SwipeMetrics;
 use ds::motion::timer::use_motion_timer;
@@ -45,6 +45,6 @@ pub(crate) fn use_card_swipe(swipe: &NotificationSwipe, metrics: SwipeMetrics) -
             None => flight.start(EventHandler::new(move |()| heard.call(()))),
         }
     });
-    let on = heard.map_or(SwipeOn::No, |_| SwipeOn::Yes);
+    let on = heard.is_some();
     use_swipe_glue(on, metrics, on_dismiss)
 }

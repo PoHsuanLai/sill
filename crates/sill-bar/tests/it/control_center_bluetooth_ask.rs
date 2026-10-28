@@ -10,7 +10,7 @@ use cc_support::details::{center, ms, open, press};
 use cc_support::live::Report;
 use ds::prelude::*;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{FocusState, Harness, Input};
+use ds_harness::{Harness, Input};
 use sill_model::bluetooth::{BluetoothCommand, BtPower};
 
 /// The Bluetooth tile: the grid's second module (Wi-Fi, Bluetooth, Focus, ...).
@@ -77,11 +77,7 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
         "over the panel: {stage:?} {panel:?}"
     );
     running.harness.advance(ms(100));
-    assert_eq!(
-        running.harness.focus_of(TURN_OFF),
-        FocusState::Focused,
-        "Return is Turn Off"
-    );
+    assert!(running.harness.focus_of(TURN_OFF), "Return is Turn Off");
     assert_settles_to_zero_frames(&mut running.harness);
 
     // Escape cancels, and the panel keeps the popover open.
@@ -113,7 +109,7 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
     assert_settles_to_zero_frames(&mut running.harness);
 
     // The panel has the keyboard back: Escape now closes the control center.
-    assert_eq!(running.harness.focus_of(".sill-cc"), FocusState::Focused);
+    assert!(running.harness.focus_of(".sill-cc"));
     assert!(running.reports().is_empty());
     running.harness.send(Input::key(ShortcutKey::Escape));
     running.harness.advance(ms(400));

@@ -8,7 +8,7 @@ use ds::components::content::rich_text::{Rich, RichRun};
 use ds::components::content::text_runs::RunTone;
 use ds::prelude::*;
 use ds_harness::harness::settle_until;
-use ds_harness::{Clock, FocusState, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::notifications::parts::{AppMark, CardAction, Hover};
 use sill_shell_kit::prelude::*;
 
@@ -168,7 +168,7 @@ fn under_the_pointer_the_body_opens_and_it_closes_again_when_the_pointer_leaves(
 fn tab_to(harness: &mut Harness, selector: &str, limit: usize) -> bool {
     (0..limit).any(|_| {
         harness.send(Input::key(ShortcutKey::Tab));
-        harness.focus_of(selector) == FocusState::Focused
+        harness.focus_of(selector)
     })
 }
 

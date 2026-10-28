@@ -15,7 +15,7 @@ use ds::components::content::avatar::{
     AvatarFace, AvatarShape, AvatarSize, AvatarTone, person_hue,
 };
 use ds::prelude::*;
-use ds_harness::{Clock, FocusState, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use image::RgbaImage;
 use sill_shell_kit::lock::vocab::LockUser;
 use sill_shell_kit::prelude::*;
@@ -208,9 +208,8 @@ fn typed_into(typed: &str, after: &[ShortcutKey]) -> Harness {
 fn blurred_dots(harness: &mut Harness, field: Rect) -> (Vec<Dot>, Option<f32>) {
     harness.send(Input::key(ShortcutKey::Tab));
     harness.advance(Duration::from_millis(300));
-    assert_eq!(
-        harness.focus_of(".ds-polkit input"),
-        FocusState::Unfocused,
+    assert!(
+        !harness.focus_of(".ds-polkit input"),
         "Tab took the keyboard from the field"
     );
     let shot = harness.render().expect("a frame");

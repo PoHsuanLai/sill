@@ -7,7 +7,7 @@
 
 use super::{advance, opened, two_apps};
 use ds::prelude::*;
-use ds_harness::{FocusState, Harness, Input};
+use ds_harness::{Harness, Input};
 
 fn modality(harness: &Harness) -> Option<String> {
     harness.attr(".ds", "data-modality")
@@ -23,9 +23,8 @@ fn a_key_turns_the_centers_ring_on_and_a_press_turns_it_off() {
     );
     running.harness.send(Input::key(ShortcutKey::Tab));
     advance(&mut running, 20);
-    assert_eq!(
+    assert!(
         running.harness.focus_of(".ds-button"),
-        FocusState::Focused,
         "Tab reaches Clear All"
     );
     assert_eq!(

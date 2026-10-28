@@ -4,7 +4,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_harness::{Clock, FocusState, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::control_center::module_tile_kind::TileSpan;
 use sill_shell_kit::prelude::*;
 use std::time::Duration;
@@ -83,11 +83,7 @@ fn the_keys_toggle_on_the_tile_and_open_on_the_chevron() {
     let mut harness = Harness::new(TileApp, HarnessConfig::new(VIEW).with_clock(Clock::Virtual));
     harness.advance(TICK);
     harness.send(Input::key(ShortcutKey::Tab));
-    assert_eq!(
-        harness.focus_of(".ds-module-tile"),
-        FocusState::Focused,
-        "Tab reaches the tile"
-    );
+    assert!(harness.focus_of(".ds-module-tile"), "Tab reaches the tile");
     harness.send(Input::key(ShortcutKey::Enter));
     harness.advance(TICK);
     assert_eq!(log(&harness), "toggle");
@@ -97,9 +93,8 @@ fn the_keys_toggle_on_the_tile_and_open_on_the_chevron() {
     assert_eq!(state(&harness), "off");
 
     harness.send(Input::key(ShortcutKey::Tab));
-    assert_eq!(
+    assert!(
         harness.focus_of(".ds-module-chevron"),
-        FocusState::Focused,
         "Tab reaches the chevron"
     );
     harness.send(Input::key(ShortcutKey::Enter));

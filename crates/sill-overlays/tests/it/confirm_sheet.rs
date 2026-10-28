@@ -9,7 +9,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{FocusState, Harness, Input, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use shell_host::OutputId;
 use sill_model::intents::sheet::{Pending, Serial, SheetChoice, Sheets};
 use sill_model::intents::{ConfirmId, Intents, IntentsCommand, IntentsLink};
@@ -450,7 +450,7 @@ fn a_key_tap_on_the_hold_button_is_not_a_hold() {
         Some("false")
     );
     // The abandoned hold leaves the keyboard where the person put it, not back on Don't Allow.
-    assert_eq!(running.harness.focus_of(ALLOW), FocusState::Focused);
+    assert!(running.harness.focus_of(ALLOW));
 }
 
 #[test]

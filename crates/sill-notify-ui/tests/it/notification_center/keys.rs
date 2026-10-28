@@ -6,7 +6,7 @@
 
 use super::{advance, commands, opened, ringed, two_apps};
 use ds::prelude::*;
-use ds_harness::{FocusState, Input};
+use ds_harness::Input;
 use sill_model::notifications::{
     ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand,
 };
@@ -14,9 +14,8 @@ use sill_model::notifications::{
 #[test]
 fn the_column_holds_the_keyboard_and_the_arrows_move_the_ring() {
     let mut running = opened(two_apps());
-    assert_eq!(
+    assert!(
         running.harness.focus_of(".sill-nc-column"),
-        FocusState::Focused,
         "focused as it opens"
     );
     assert_eq!(ringed(&running.harness), None);

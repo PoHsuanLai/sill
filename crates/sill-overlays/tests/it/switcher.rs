@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use ds::prelude::*;
 use ds_behaviour::switcher::SwitcherParams;
-use ds_harness::{FocusState, Harness, Input, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use sill_launcher::{AppId, WindowKey};
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
@@ -150,9 +150,8 @@ fn a_chord_shows_the_apps_after_the_delay_with_the_previous_selected() {
         tiles(&running.harness),
         (names(&["Term", "Calc", "Edit"]), Some("Calc".to_owned()))
     );
-    assert_eq!(
+    assert!(
         running.harness.focus_of(".sill-switcher"),
-        FocusState::Focused,
         "the key target has the focus"
     );
     assert_eq!(sent(&mut running), vec![]);
@@ -338,9 +337,8 @@ fn made_up_apps_show_at_once_and_touch_no_window() {
         tiles(&running.harness),
         (names(&["Files", "Mail", "Notes"]), Some("Mail".to_owned()))
     );
-    assert_eq!(
+    assert!(
         running.harness.focus_of(".sill-switcher"),
-        FocusState::Focused,
         "focused at the ask"
     );
     running

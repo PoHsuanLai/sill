@@ -12,7 +12,7 @@ use ds::components::content::avatar::{
 use ds::prelude::*;
 use ds::style::icon::family::PlateFamily;
 use ds_harness::harness::settle_until;
-use ds_harness::{ClassPresence, Clock, FocusState, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use sill_shell_kit::emoji::id::EmojiId;
 use sill_shell_kit::lock::vocab::{LockUser, PromptState};
 use sill_shell_kit::prelude::*;
@@ -125,7 +125,7 @@ fn set_state(harness: &mut Harness, state: PromptState) {
 }
 
 fn shaking(harness: &Harness) -> bool {
-    harness.has_class(".ds-lock-prompt .ds-password-field", "a-shake-x") == ClassPresence::Present
+    harness.has_class(".ds-lock-prompt .ds-password-field", "a-shake-x")
 }
 
 fn dots(harness: &Harness, field: &str) -> Option<String> {
@@ -137,11 +137,7 @@ const LOCK_INPUT: &str = ".ds-lock-prompt .ds-password-field input";
 #[test]
 fn a_wrong_password_shakes_once_and_empties_the_field_after_the_shake() {
     let mut harness = mounted(Lock);
-    assert_eq!(
-        harness.focus_of(LOCK_INPUT),
-        FocusState::Focused,
-        "the field takes the keyboard"
-    );
+    assert!(harness.focus_of(LOCK_INPUT), "the field takes the keyboard");
     type_text(&mut harness, "abc");
     assert_eq!(
         dots(&harness, ".ds-lock-prompt .ds-password-field").as_deref(),
@@ -185,9 +181,8 @@ fn a_wrong_password_shakes_once_and_empties_the_field_after_the_shake() {
         Some(String::new()),
         "the caller heard the field empty"
     );
-    assert_eq!(
+    assert!(
         harness.focus_of(LOCK_INPUT),
-        FocusState::Focused,
         "the caret is back in the field"
     );
 
@@ -294,7 +289,7 @@ fn escape_empties_the_field() {
         harness.within(|| HEARD.peek().last().cloned()),
         Some(String::new())
     );
-    assert_eq!(harness.focus_of(LOCK_INPUT), FocusState::Focused);
+    assert!(harness.focus_of(LOCK_INPUT));
     // And it takes typing again from nothing.
     type_text(&mut harness, "z");
     assert_eq!(
@@ -336,7 +331,7 @@ fn checking_closes_the_field() {
 fn the_polkit_prompt_submits_on_enter_shakes_when_wrong_and_cancels() {
     let mut harness = mounted(Polkit);
     let input = ".ds-polkit .ds-password-field input";
-    if harness.focus_of(input) == FocusState::Unfocused {
+    if !harness.focus_of(input) {
         harness.send(Input::click(harness.centre(input).expect("the field")));
         harness.advance(ms(30));
     }
@@ -348,12 +343,9 @@ fn the_polkit_prompt_submits_on_enter_shakes_when_wrong_and_cancels() {
         vec!["pw".to_owned()]
     );
     set_state(&mut harness, PromptState::Wrong);
-    assert_eq!(
-        harness.has_class(".ds-polkit .ds-password-field", "a-shake-x"),
-        ClassPresence::Present
-    );
+    assert!(harness.has_class(".ds-polkit .ds-password-field", "a-shake-x"));
     settle_until(&mut harness, |h| {
-        h.has_class(".ds-polkit .ds-password-field", "a-shake-x") == ClassPresence::Absent
+        !h.has_class(".ds-polkit .ds-password-field", "a-shake-x")
     });
     assert_eq!(
         dots(&harness, ".ds-polkit .ds-password-field"),
@@ -373,7 +365,7 @@ fn the_polkit_prompt_submits_on_enter_shakes_when_wrong_and_cancels() {
 fn escape_in_the_polkit_field_cancels() {
     let mut harness = mounted(Polkit);
     let input = ".ds-polkit .ds-password-field input";
-    if harness.focus_of(input) == FocusState::Unfocused {
+    if !harness.focus_of(input) {
         harness.send(Input::click(harness.centre(input).expect("the field")));
         harness.advance(ms(30));
     }

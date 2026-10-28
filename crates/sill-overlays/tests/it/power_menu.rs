@@ -11,7 +11,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
-use ds_harness::{FocusState, Harness, Input, Viewport};
+use ds_harness::{Harness, Input, Viewport};
 use sill_model::session::{Offer, Session, SessionAction, SessionCommand};
 use sill_overlays::PowerMenu;
 use sill_settings::ShellFile;
@@ -78,7 +78,7 @@ fn primary(harness: &Harness) -> Option<String> {
 
 /// Whether the keyboard focus is on the default button (quire's focus ring is there).
 fn ring_on_primary(harness: &Harness) -> bool {
-    harness.focus_of(".ds-button[*|data-answers=return]") == FocusState::Focused
+    harness.focus_of(".ds-button[*|data-answers=return]")
 }
 
 /// The sheet's phase: its `data-presence` (`entering`, `present` or `leaving`), `closed` with no
@@ -254,7 +254,7 @@ fn a_launcher_row_opens_on_its_own_button() {
 fn focused(harness: &Harness) -> Option<String> {
     (1..=6)
         .map(nth_button)
-        .find(|button| harness.focus_of(button) == FocusState::Focused)
+        .find(|button| harness.focus_of(button))
         .and_then(|button| harness.text_of(&button))
 }
 

@@ -9,7 +9,7 @@ use crate::support::month_sample;
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds_harness::harness::settle_until;
-use ds_harness::{ClassPresence, Clock, Harness, HarnessConfig, Input, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Input, Viewport};
 use month_sample::{First, SEPTEMBER, sample, shift};
 use sill_shell_kit::month_grid::data::WeekNumbers;
 use sill_shell_kit::month_grid::data::{DayKey, MonthStep};
@@ -70,7 +70,7 @@ fn slide() -> Duration {
 }
 
 fn sliding(harness: &Harness, class: &str) -> bool {
-    harness.has_class(".ds-month-weeks", class) == ClassPresence::Present
+    harness.has_class(".ds-month-weeks", class)
 }
 
 /// Press a step button and watch its slide: present at once, gone only after a full slide.
@@ -108,14 +108,8 @@ fn a_step_slides_the_new_month_in_once() {
         HarnessConfig::new(VIEW).with_clock(Clock::Virtual),
     );
     harness.advance(ms(50));
-    assert_eq!(
-        harness.has_class(".ds-month-weeks", "a-slide-r"),
-        ClassPresence::Absent
-    );
-    assert_eq!(
-        harness.has_class(".ds-month-weeks", "a-slide-l"),
-        ClassPresence::Absent
-    );
+    assert!(!harness.has_class(".ds-month-weeks", "a-slide-r"));
+    assert!(!harness.has_class(".ds-month-weeks", "a-slide-l"));
     assert_eq!(
         harness.text_of(".ds-month-title").as_deref(),
         Some("September 2026")

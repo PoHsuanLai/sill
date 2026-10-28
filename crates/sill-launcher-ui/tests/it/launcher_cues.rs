@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use ds::prelude::*;
 use ds_harness::harness::assert_settles_to_zero_frames;
-use ds_harness::{ClassPresence, Harness, Input};
+use ds_harness::{Harness, Input};
 use launcher_harness::launcher_support::m9;
 use launcher_harness::{
     Open, Press, Seen, await_off_thread, loaded, open, open_looking, settle, watch,
@@ -33,7 +33,7 @@ fn entrance(harness: &Harness) -> Option<String> {
 }
 
 fn fading(harness: &Harness) -> bool {
-    harness.has_class(".ds-preview-media", "a-morph-fade-in") == ClassPresence::Present
+    harness.has_class(".ds-preview-media", "a-morph-fade-in")
 }
 
 fn revealing(harness: &Harness) -> bool {

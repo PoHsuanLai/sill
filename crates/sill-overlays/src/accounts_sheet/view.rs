@@ -68,7 +68,7 @@ fn Card(drawn: Drawn) -> Element {
                 role: "dialog",
                 "aria-label": "{title}",
                 "data-step": step,
-                WindowTitlebar { title: title.clone(), lights: TrafficLights::Hidden }
+                WindowTitlebar { title: title.clone(), lights: Shown::Hidden }
                 div { class: "sill-accounts-body", {body(drawn.step, io)} }
             }
         }

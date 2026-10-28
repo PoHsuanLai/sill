@@ -8,8 +8,8 @@ use crate::cc_support;
 use cc_support::details::{center, figure, ms, open, press};
 use cc_support::fake;
 
+use ds_harness::Harness;
 use ds_harness::harness::assert_settles_to_zero_frames;
-use ds_harness::{ClassPresence, Harness};
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::bluetooth::{BtBattery, BtConnection};
 use sill_model::network::{Connectivity, Link, Network};
@@ -158,9 +158,8 @@ fn a_failed_join_says_so_and_does_not_shake() {
         .send_replace(join(Link::Disconnected, Attempt::Failed(OpStamp(7)), 7));
     let harness = &mut running.harness;
     harness.advance(ms(0));
-    assert_eq!(
-        harness.has_class(&row(1), "a-shake-x"),
-        ClassPresence::Absent,
+    assert!(
+        !harness.has_class(&row(1), "a-shake-x"),
         "only a failed secure entry shakes"
     );
     assert_eq!(

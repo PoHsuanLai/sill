@@ -9,7 +9,7 @@
 use crate::launcher_harness;
 
 use ds::prelude::*;
-use ds_harness::{FocusState, Input};
+use ds_harness::Input;
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{Press, is_open, open, selected_title, settle};
 use sill_launcher::WindowKey;
@@ -45,15 +45,11 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
     );
     open.harness.send(Input::key(ShortcutKey::Escape));
     settle(&mut open.harness, |h| {
-        h.count(".ds-popover") == 0 && h.focus_of("input") == FocusState::Focused
+        h.count(".ds-popover") == 0 && h.focus_of("input")
     });
     assert_eq!(open.harness.count(".ds-popover"), 0, "the menu closed");
     assert!(is_open(&open.link), "the launcher stays");
-    assert_eq!(
-        open.harness.focus_of("input"),
-        FocusState::Focused,
-        "the field has the keyboard"
-    );
+    assert!(open.harness.focus_of("input"), "the field has the keyboard");
     // The palette's entrance (cmdk-in since the polish pass) may still be running when the
     // menu closes; wait for it to settle rather than asserting the phase at once. A remount
     // would restart the query and selection, which the next assertions cover.

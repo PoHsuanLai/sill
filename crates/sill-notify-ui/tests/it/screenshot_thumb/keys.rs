@@ -2,7 +2,7 @@
 //! link asks) gives it the keyboard, pauses the hold, and then Enter and Space open it, Delete
 //! and Backspace trash it, Escape dismisses it and Tab moves between its buttons.
 
-use ds_harness::{FocusState, Input};
+use ds_harness::Input;
 use std::time::Duration;
 
 use ds::prelude::*;
@@ -20,9 +20,8 @@ fn focused(running: &mut Running) {
     one_up(running);
     running.link.ask_keyboard();
     running.harness.advance(Duration::from_millis(200));
-    assert_eq!(
+    assert!(
         running.harness.focus_of(PICTURE),
-        FocusState::Focused,
         "the picture has the keyboard"
     );
 }
@@ -35,11 +34,7 @@ fn modality(running: &Running) -> Option<String> {
 fn it_appears_without_the_keyboard_and_keys_do_nothing_until_it_is_asked_for() {
     let mut running = start(file());
     one_up(&mut running);
-    assert_eq!(
-        running.harness.focus_of(PICTURE),
-        FocusState::Unfocused,
-        "no focus on appear"
-    );
+    assert!(!running.harness.focus_of(PICTURE), "no focus on appear");
     assert_ne!(
         modality(&running).as_deref(),
         Some("keyboard"),
@@ -139,21 +134,16 @@ fn tab_moves_between_the_picture_and_its_button_and_the_card_keys_still_act_ther
     focused(&mut running);
     running.harness.send(Input::key(ShortcutKey::Tab));
     running.harness.advance(Duration::from_millis(40));
-    assert_eq!(
+    assert!(
         running.harness.focus_of(ACTION),
-        FocusState::Focused,
         "Tab reaches the Delete button"
     );
-    assert_eq!(running.harness.focus_of(PICTURE), FocusState::Unfocused);
+    assert!(!running.harness.focus_of(PICTURE));
     running
         .harness
         .send(Input::chord(&[ShortcutKey::Shift], ShortcutKey::Tab));
     running.harness.advance(Duration::from_millis(40));
-    assert_eq!(
-        running.harness.focus_of(PICTURE),
-        FocusState::Focused,
-        "Shift+Tab goes back"
-    );
+    assert!(running.harness.focus_of(PICTURE), "Shift+Tab goes back");
     running.harness.send(Input::key(ShortcutKey::Tab));
     running.harness.send(Input::key(ShortcutKey::Escape));
     running.harness.advance(Duration::from_millis(40));
@@ -172,7 +162,7 @@ fn a_second_ask_brings_the_keyboard_back_to_the_picture() {
     running.harness.advance(Duration::from_millis(40));
     running.link.ask_keyboard();
     running.harness.advance(Duration::from_millis(200));
-    assert_eq!(running.harness.focus_of(PICTURE), FocusState::Focused);
+    assert!(running.harness.focus_of(PICTURE));
 }
 
 #[test]
@@ -183,9 +173,8 @@ fn the_ask_goes_to_the_thumbnail_only_when_it_appeared_after_the_banners() {
     one_up(&mut older_banner);
     older_banner.link.ask_keyboard();
     older_banner.harness.advance(Duration::from_millis(200));
-    assert_eq!(
+    assert!(
         older_banner.harness.focus_of(PICTURE),
-        FocusState::Focused,
         "the thumbnail is newer"
     );
 
@@ -194,9 +183,5 @@ fn the_ask_goes_to_the_thumbnail_only_when_it_appeared_after_the_banners() {
     newer_banner.link.appeared(Transient::Banner);
     newer_banner.link.ask_keyboard();
     newer_banner.harness.advance(Duration::from_millis(200));
-    assert_eq!(
-        newer_banner.harness.focus_of(PICTURE),
-        FocusState::Unfocused,
-        "a banner is newer"
-    );
+    assert!(!newer_banner.harness.focus_of(PICTURE), "a banner is newer");
 }

@@ -6,7 +6,7 @@
 
 use super::{Running, advance, commands_until, fake, note, settle, start, two_apps, until};
 use ds_harness::harness::assert_settles_to_zero_frames;
-use ds_harness::{FocusState, Harness, Input};
+use ds_harness::{Harness, Input};
 use sill_model::notifications::{AppGroup, AppKey, Clear, History, NotificationsCommand};
 use sill_settings::ShellFile;
 
@@ -203,10 +203,7 @@ fn clear_all_fades_every_row_together_then_says_the_list_is_empty() {
     assert_eq!(rows(&running.harness), 0);
     assert_settles_to_zero_frames(&mut running.harness);
     // Clear All went with the history; the column has the keyboard again.
-    assert_eq!(
-        running.harness.focus_of(".sill-nc-column"),
-        FocusState::Focused
-    );
+    assert!(running.harness.focus_of(".sill-nc-column"));
 }
 
 #[test]
@@ -225,9 +222,8 @@ fn a_clear_gives_the_column_the_keyboard_back() {
         .send_modify(|n| n.history = left);
     until(&mut running, |h| rows(h) == 2);
     assert_settles_to_zero_frames(&mut running.harness);
-    assert_eq!(
+    assert!(
         running.harness.focus_of(".sill-nc-column"),
-        FocusState::Focused,
         "Escape reaches the column, not the gone button"
     );
 }
