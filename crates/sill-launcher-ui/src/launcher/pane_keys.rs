@@ -2,7 +2,7 @@
 //! from the palette's field, row chords run from the results
 //! (`action_for_key`), and Enter on the pane's focused control.
 //!
-//! The field keeps the keyboard: the pane's focus is the machine's `PaneFocus::Pane(n)`, drawn by
+//! The field keeps the keyboard: the pane's focus is the machine's `focus: Some(n)`, drawn by
 //! quire's `PreviewPane` as `focused`. Keys reach the machine through quire's key claim:
 //! [`PanelCtx::claim`] hears every key before the palette with the caret's place, and takes Space
 //! while browsing, → at the field's end (not on an emoji cell, where ← and → are the grid's:
@@ -19,9 +19,7 @@ use crate::launcher::entries::RowRef;
 use crate::launcher::events::PanelCtx;
 use crate::launcher::keys::LauncherKey;
 use crate::launcher::pane_session::PaneSession;
-use crate::launcher::preview::keys::{
-    Caret, PaneFocus, PreviewKey, PreviewOut, PreviewState, Previewable, step_preview,
-};
+use crate::launcher::preview::keys::{Caret, PreviewKey, PreviewOut, PreviewState, step_preview};
 use crate::launcher::session::Session;
 use crate::launcher::view::Layout;
 
@@ -92,9 +90,9 @@ impl PanelCtx {
     /// The choice a pick of `item` makes: with the pane's control `n` holding the keyboard,
     /// that control's action; else `choice`.
     pub(crate) fn pane_choice(&self, item: &Item, choice: Choice) -> Choice {
-        let focus = self.current_pane().map(|pane| pane.preview.focus);
+        let focus = self.current_pane().and_then(|pane| pane.preview.focus);
         match (focus, choice) {
-            (Some(PaneFocus::Pane(n)), Choice::Primary) => item
+            (Some(n), Choice::Primary) => item
                 .actions
                 .get(n)
                 .map_or(Choice::Primary, |action| Choice::Action(action.id.clone())),
@@ -125,10 +123,10 @@ impl PanelCtx {
         let selected = self
             .view_of(session, &pane.expanded)
             .row(session.keys.selected);
-        let previewable = match selected.as_ref().map(preview_for) {
-            Some(Preview::None) | None => Previewable::No,
-            Some(_) => Previewable::Yes,
-        };
+        let previewable = !matches!(
+            selected.as_ref().map(preview_for),
+            Some(Preview::None) | None
+        );
         let controls = selected.map_or(0, |item| item.actions.len());
         step_preview(pane.preview, key, previewable, controls)
     }

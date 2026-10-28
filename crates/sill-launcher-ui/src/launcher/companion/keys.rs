@@ -5,6 +5,7 @@
 //! card's primary button), and Tab moves through the card's buttons as it does through any
 //! row's actions. What is new is Escape's two meanings, command-Enter and command-period.
 
+use ds_behaviour::Dir;
 use prov::{RunId, TaskId};
 use sill_launcher::ProviderKind;
 
@@ -111,27 +112,18 @@ pub fn follows_state(filter: Filter) -> bool {
     filter != Filter::Only(ProviderKind::Memory)
 }
 
-/// The filter after `filter` going forward (`Forward`) or back, wrapping within [`RING`]; a
+/// The filter after `filter` going Tab's way (`Next`) or Shift+Tab's, wrapping within [`RING`]; a
 /// filter outside it starts the ring over.
-pub fn companion_filter(filter: Filter, way: Way) -> Filter {
+pub fn companion_filter(filter: Filter, dir: Dir) -> Filter {
     let at = match filter {
         Filter::Only(kind) => RING.iter().position(|k| *k == kind),
         Filter::All => None,
     };
-    let next = match (at, way) {
-        (None, Way::Forward) => 0,
-        (None, Way::Backward) => RING.len() - 1,
-        (Some(at), Way::Forward) => (at + 1) % RING.len(),
-        (Some(at), Way::Backward) => (at + RING.len() - 1) % RING.len(),
+    let next = match (at, dir) {
+        (None, Dir::Next) => 0,
+        (None, Dir::Previous) => RING.len() - 1,
+        (Some(at), Dir::Next) => (at + 1) % RING.len(),
+        (Some(at), Dir::Previous) => (at + RING.len() - 1) % RING.len(),
     };
     Filter::Only(RING[next])
-}
-
-/// Which way Tab goes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Way {
-    /// Tab.
-    Forward,
-    /// Shift+Tab.
-    Backward,
 }

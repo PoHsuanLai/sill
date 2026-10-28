@@ -15,7 +15,7 @@ mod press;
 mod reveal;
 mod types;
 
-pub use hover::{FreezeCause, Hover, Moved, displayed};
+pub use hover::{FreezeCause, Hover, displayed};
 pub use label::Label;
 pub use params::DockParams;
 pub(crate) use params::REMOVE_THRESHOLD_PX;
@@ -23,8 +23,8 @@ pub use press::{ActivateMode, DropZone, Instance, Press};
 pub use reveal::{Reveal, exclusive_zone, slide_offset};
 pub(crate) use reveal::{hit_region, pill_region, strip_region};
 pub use types::{
-    Button, DockEffect, DockEvent, DockKey, DockState, Hit, MenuState, Modifier, Point, Pointer,
-    Spring, TileApp, TileId,
+    Button, DockEffect, DockEvent, DockKey, DockState, Hit, Modifier, Point, Spring, TileApp,
+    TileId,
 };
 
 use ds::base::time::stamp::Stamp;
@@ -64,12 +64,7 @@ fn frames(
     let moving = hover::animating(&dock.hover)
         || reveal::animating(&dock.reveal)
         || matches!(dock.press, Press::Dragging { .. });
-    let pending = matches!(
-        dock.hover,
-        Hover::Tracking {
-            moved: Moved::Pending
-        }
-    );
+    let pending = matches!(dock.hover, Hover::Tracking { pending: true });
     let dock = hover::drawn(dock);
     if moving || pending {
         out.push(DockEffect::Redraw);

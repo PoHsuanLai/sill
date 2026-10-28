@@ -59,16 +59,16 @@ fn SheetCard(view: SheetView, shown: Shown, stage: Signal<SheetStage<SheetView>>
     let send_brief = use_brief_answer(view.id.clone());
     let state = gate.state();
     let mut focus_target = use_signal(|| None::<std::rc::Rc<MountedData>>);
-    let mut landed = use_signal(|| Landed::Not);
+    let mut landed = use_signal(|| false);
     // Once armed, the keyboard lands on the safe button: Allow for a press, Don't Allow when
     // Allow needs a hold, so a stray Return never destroys anything. It lands once: a hold
     // abandoned on the way back to armed leaves the keyboard where the person put it.
     use_effect(move || {
         if matches!(*state.read(), AnswerGate::Armed)
-            && *landed.peek() == Landed::Not
+            && !*landed.peek()
             && let Some(target) = focus_target.peek().clone()
         {
-            landed.set(Landed::Once);
+            landed.set(true);
             focus_soon(target);
         }
     });
@@ -170,13 +170,6 @@ const ALLOW_ID: &str = "confirm-allow";
 const DENY_ID: &str = "confirm-deny";
 const OFFER_ID: &str = "confirm-offer";
 const NEVER_ID: &str = "confirm-never";
-
-/// Whether the keyboard has landed on its button yet.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Landed {
-    Not,
-    Once,
-}
 
 /// Which button the keyboard lands on once armed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

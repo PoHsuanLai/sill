@@ -292,7 +292,7 @@ fn untyped(
     let mut chosen: Vec<(FrecencyScore, usize)> = merged
         .iter()
         .enumerate()
-        .filter(|(_, item)| never_recent(item.provider).is_none())
+        .filter(|(_, item)| !item.provider.never_recent())
         .map(|(at, item)| {
             (
                 frecency.score(&ItemKey::of(item.provider, &item.id), now),
@@ -308,23 +308,6 @@ fn untyped(
         .map(|(_, at)| merged[at].clone())
         .collect();
     vec![(Section::Actions, actions), (Section::Recent, recent)]
-}
-
-/// Why a provider's rows are never Recent: System rows are Actions already, clipboard use is
-/// never counted, and the web row says nothing about what was searched.
-fn never_recent(kind: ProviderKind) -> Option<&'static str> {
-    match kind {
-        ProviderKind::System => Some("already under Actions"),
-        ProviderKind::Clipboard => Some("clipboard use is not counted"),
-        ProviderKind::Companion
-        | ProviderKind::Helpers
-        | ProviderKind::Runs
-        | ProviderKind::Memory => {
-            Some("an answer, a helper, a run and a memory row are not habits")
-        }
-        ProviderKind::Web => Some("the web row is the same row for every search"),
-        _ => None,
-    }
 }
 
 /// Sections the person opened with "Show More".

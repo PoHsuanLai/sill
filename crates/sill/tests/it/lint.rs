@@ -35,8 +35,8 @@ use sill_settings::{OnOff, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
-    DisplayTrialLink, EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, LevelSource,
-    LockLink, OsdKind, OsdLink, PowerMenuLink, Preselect, PromptOutput, SheetLink, SheetOutput,
+    DisplayTrialLink, EmptyTrashLink, EyedropperLink, ForceQuitLink, LauncherLink, LockLink,
+    OsdKind, OsdLink, PowerMenuLink, Preselect, PromptOutput, SheetLink, SheetOutput,
     SpacesBarLink, SplitPickerLink, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::surface::Surface;
@@ -289,7 +289,7 @@ fn osd_states() -> Vec<(&'static str, String)> {
     let hidden = osd.harness.html();
     assert!(hidden.contains("data-shown=\"hidden\""), "{hidden}");
     osd.link
-        .show(OsdKind::Volume, vec![fake::output().id], LevelSource::Live);
+        .show(OsdKind::Volume, vec![fake::output().id], None);
     osd.harness.advance(Duration::from_millis(60));
     let shown = osd.harness.html();
     assert!(shown.contains("data-presence=\"entering\""), "{shown}");

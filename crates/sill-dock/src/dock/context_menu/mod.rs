@@ -33,7 +33,8 @@ pub enum DockMenuRow {
     Window {
         title: String,
         active: Checked,
-        minimized: Minimized,
+        /// Whether the window is minimized (prefixed with the diamond glyph).
+        minimized: bool,
     },
     DesktopAction {
         id: String,
@@ -66,13 +67,6 @@ pub enum DockMenuRow {
 pub enum Checked {
     Checked,
     Unchecked,
-}
-
-/// Whether a listed window is minimized (prefixed with the diamond glyph).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Minimized {
-    Minimized,
-    Normal,
 }
 
 /// Whether Option is held while the menu is open (Quit reads Force Quit).

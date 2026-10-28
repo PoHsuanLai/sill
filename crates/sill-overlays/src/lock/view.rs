@@ -34,23 +34,17 @@ use sill_ui_kit::root::use_root_style;
 /// The lock screen's stylesheet (lint-clean under `Profile::Strict`, `tests/lock_lint.rs`).
 pub const LOCK_CSS: &str = include_str!("style.css");
 
-/// Whether this document belongs to a session lock (fixed for a document's life).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Hosted {
-    Yes,
-    No,
-}
-
 pub(super) fn lock(output: OutputInfo) -> Element {
-    let hosted =
-        use_hook(|| try_consume_context::<LockHandle>().map_or(Hosted::No, |_| Hosted::Yes));
-    match hosted {
-        Hosted::Yes => rsx! {
+    // Whether this document belongs to a session lock (fixed for a document's life).
+    let hosted = use_hook(|| try_consume_context::<LockHandle>().is_some());
+    if hosted {
+        rsx! {
             HostedStage { output }
-        },
-        Hosted::No => rsx! {
+        }
+    } else {
+        rsx! {
             Stage { output, host: HostLock::Holding, caps: CapsLock::Off, on_unlock: None }
-        },
+        }
     }
 }
 

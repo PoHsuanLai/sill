@@ -31,6 +31,7 @@ pub use actions::{ActionLink, ActionSent, Asked, Origin};
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use display_trial::{DisplayTrialLink, TrialAnswered, TrialReply, TrialRun, TrialSerial};
+pub use ds_behaviour::Dir;
 pub use edge::{EdgeFeed, EdgeLink, EdgeState, FullScreens, RevealEdge};
 pub use empty_trash::{
     EmptyTrashAnswered, EmptyTrashLink, EmptyTrashOpening, EmptyTrashShown, EmptyTrashYes,
@@ -47,7 +48,7 @@ pub use launcher::{
 };
 pub use lock::{LockLink, PromptOutput};
 pub use notification_center::{CenterLink, CenterOpening};
-pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, OsdLink};
+pub use osd::{ChangeSerial, Level, OsdChange, OsdKind, OsdLink};
 pub use outbox::{Outbox, Sent};
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, PowerMenuPayload, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, Opening, PanelFocus, PanelLink, Reveal};
@@ -57,7 +58,7 @@ pub use spaces_bar::{SpacesBarFeed, SpacesBarLink, SpacesBarPicked};
 pub use split_picker::{
     OfferSerial, SplitAnswer, SplitAnswered, SplitOffer, SplitPickerLink, SplitReply,
 };
-pub use switcher::{AskSerial, Asks, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};
+pub use switcher::{AskSerial, Asks, SwitcherAsk, SwitcherAsked, SwitcherLink};
 pub use window_menu::{
     MenuSerial, WindowMenuLink, WindowMenuOpening, WindowMenuPick, WindowMenuPicked,
 };

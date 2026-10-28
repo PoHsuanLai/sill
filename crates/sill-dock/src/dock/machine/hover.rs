@@ -7,14 +7,7 @@ use sill_settings::OnOff;
 
 use super::params::DockParams;
 use super::params::eased;
-use super::types::{DockEffect, DockEvent, DockState, Hit, MenuState, Pointer};
-
-/// Whether a pointer move since the last frame still needs drawing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Moved {
-    Pending,
-    Drawn,
-}
+use super::types::{DockEffect, DockEvent, DockState, Hit};
 
 /// Why magnification is frozen at its last frame.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,7 +27,8 @@ pub enum Hover {
         since: Stamp,
     },
     Tracking {
-        moved: Moved,
+        /// Whether a pointer move since the last frame still needs drawing.
+        pending: bool,
     },
     Leaving {
         from: Permille,
@@ -107,9 +101,7 @@ pub(crate) fn animating(hover: &Hover) -> bool {
 pub(crate) fn drawn(dock: DockState) -> DockState {
     match dock.hover {
         Hover::Tracking { .. } => DockState {
-            hover: Hover::Tracking {
-                moved: Moved::Drawn,
-            },
+            hover: Hover::Tracking { pending: false },
             ..dock
         },
         _ => dock,
@@ -139,14 +131,13 @@ pub(crate) fn thaw(dock: DockState, now: Stamp, out: &mut Vec<DockEffect>) -> Do
         return dock;
     };
     out.push(DockEffect::RequestFrames);
-    let hover = match dock.pointer {
-        Pointer::Inside => Hover::Tracking {
-            moved: Moved::Pending,
-        },
-        Pointer::Outside => Hover::Leaving {
+    let hover = if dock.pointer_inside {
+        Hover::Tracking { pending: true }
+    } else {
+        Hover::Leaving {
             from: linear,
             since: now,
-        },
+        }
     };
     DockState { hover, ..dock }
 }
@@ -167,9 +158,9 @@ pub(crate) fn step(
         }
         DockEvent::DndMotion { x, hit } if hit != Hit::Outside => moved(dock, x, now, p, out),
         DockEvent::PointerLeave | DockEvent::DndLeave => left(dock, now, p, out),
-        DockEvent::PointerMove { .. } if dock.pointer == Pointer::Inside => left(dock, now, p, out),
+        DockEvent::PointerMove { .. } if dock.pointer_inside => left(dock, now, p, out),
         DockEvent::Frame => settle(dock, now, p),
-        DockEvent::MenuClosed if dock.menu == MenuState::Closed => match dock.hover {
+        DockEvent::MenuClosed if !dock.menu_open => match dock.hover {
             Hover::Frozen {
                 cause: FreezeCause::Menu,
                 ..
@@ -189,7 +180,7 @@ fn moved(
 ) -> DockState {
     if matches!(dock.hover, Hover::Frozen { .. }) {
         return DockState {
-            pointer: Pointer::Inside,
+            pointer_inside: true,
             ..dock
         };
     }
@@ -203,16 +194,14 @@ fn moved(
             from: linear(&dock.hover, now, p),
             since: now,
         },
-        Hover::Tracking { .. } if changed => Hover::Tracking {
-            moved: Moved::Pending,
-        },
+        Hover::Tracking { .. } if changed => Hover::Tracking { pending: true },
         other => other,
     };
     if hover != dock.hover || changed {
         out.push(DockEffect::RequestFrames);
     }
     DockState {
-        pointer: Pointer::Inside,
+        pointer_inside: true,
         x,
         hover,
         ..dock
@@ -231,7 +220,7 @@ fn left(dock: DockState, now: Stamp, p: &DockParams, out: &mut Vec<DockEffect>) 
         other => other,
     };
     DockState {
-        pointer: Pointer::Outside,
+        pointer_inside: false,
         hover,
         ..dock
     }
@@ -239,9 +228,9 @@ fn left(dock: DockState, now: Stamp, p: &DockParams, out: &mut Vec<DockEffect>) 
 
 fn settle(dock: DockState, now: Stamp, p: &DockParams) -> DockState {
     let hover = match dock.hover {
-        Hover::Entering { .. } if linear(&dock.hover, now, p) == Permille::ONE => Hover::Tracking {
-            moved: Moved::Pending,
-        },
+        Hover::Entering { .. } if linear(&dock.hover, now, p) == Permille::ONE => {
+            Hover::Tracking { pending: true }
+        }
         Hover::Leaving { .. } if linear(&dock.hover, now, p) == Permille::ZERO => Hover::Rest,
         other => other,
     };

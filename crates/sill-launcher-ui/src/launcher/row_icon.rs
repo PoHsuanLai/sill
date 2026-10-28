@@ -5,62 +5,41 @@
 //! times the output scale. An app row's entry is its id; a window row's is the app whose
 //! resolved icon it carries (the windows provider copies it from the matched entry).
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ds::prelude::*;
 use ds::style::icon::url::IconUrl;
 use sill_launcher::{IconRef, Item};
 
 use crate::launcher::entries::glyph;
-use sill_ui_kit::app_icons::{IconContext, LogicalPx, pick, theme_art};
+use sill_ui_kit::app_icons::{IconContext, IconFile, LogicalPx, pick, theme_art};
 
 /// The side the rows draw an icon at.
 const ROW_ICON: LogicalPx = LogicalPx(48);
 
-/// What a row's tile shows, before sizes and styles.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RowArt {
-    /// The row's glyph (its own, else its provider's).
-    Glyph,
-    /// A symbolic icon file, in the text colour.
-    Symbolic(PathBuf),
-    /// A theme (or the entry's own) icon file.
-    Themed(PathBuf),
-}
-
-/// What `item`'s tile shows.
-pub fn row_art(item: &Item) -> RowArt {
+/// The icon file `item`'s tile draws; `None` shows the row's glyph (its own, else its
+/// provider's).
+pub fn row_art(item: &Item) -> Option<IconFile> {
     match &item.icon {
-        IconRef::File(path) if !path.is_absolute() => RowArt::Glyph,
-        IconRef::File(path) if symbolic(path) => RowArt::Symbolic(path.clone()),
-        IconRef::File(path) => RowArt::Themed(path.clone()),
-        IconRef::Glyph(_) | IconRef::None => RowArt::Glyph,
+        IconRef::File(path) => IconFile::of(path),
+        IconRef::Glyph(_) | IconRef::None => None,
     }
 }
 
-fn symbolic(path: &Path) -> bool {
-    path.file_stem()
-        .and_then(|stem| stem.to_str())
-        .is_some_and(|stem| stem.ends_with("-symbolic"))
-}
-
 /// `item`'s tile for `art` in `cx`.
-pub fn row_tile(item: &Item, art: RowArt, cx: &IconContext) -> RowLeading {
+pub fn row_tile(item: &Item, art: Option<IconFile>, cx: &IconContext) -> RowLeading {
+    let fallback = || RowLeading::Icon(glyph(item));
     let px = pick(ROW_ICON, cx.scale);
-    let file = match art {
-        RowArt::Glyph => None,
-        RowArt::Symbolic(path) => {
-            return external(&path).map_or(RowLeading::Icon(glyph(item)), |e| {
-                RowLeading::Source(IconSource::Symbolic(e))
-            });
+    match art {
+        None => fallback(),
+        Some(IconFile::Symbolic(path)) => {
+            external(&path).map_or_else(fallback, |e| RowLeading::Source(IconSource::Symbolic(e)))
         }
-        RowArt::Themed(path) => Some(cx.resolver.path(&theme_art(&path, px, cx.look))),
-    };
-    file.as_deref()
-        .and_then(external)
-        .map_or(RowLeading::Icon(glyph(item)), |e| {
-            RowLeading::Source(IconSource::Image(e))
-        })
+        Some(IconFile::Themed(path)) => {
+            let shown = cx.resolver.path(&theme_art(&path, px, cx.look));
+            external(&shown).map_or_else(fallback, |e| RowLeading::Source(IconSource::Image(e)))
+        }
+    }
 }
 
 fn external(path: &Path) -> Option<ExternalIcon> {
@@ -72,13 +51,13 @@ fn external(path: &Path) -> Option<ExternalIcon> {
 
 #[cfg(test)]
 mod tests {
-    use super::{RowArt, row_art, row_tile};
+    use super::{row_art, row_tile};
     use ds::prelude::*;
     use ds::style::icon::retint::IconStyle;
     use ds::style::icon::retint::Tint;
     use sill_launcher::{IconRef, Item, ItemId, ProviderKind, Score};
     use sill_ui_kit::app_icons::cache::Generation;
-    use sill_ui_kit::app_icons::{IconContext, IconLook, IconResolver};
+    use sill_ui_kit::app_icons::{IconContext, IconFile, IconLook, IconResolver};
     use std::path::PathBuf;
 
     fn row(provider: ProviderKind, id: &str, icon: IconRef) -> Item {
@@ -104,15 +83,15 @@ mod tests {
         let cases = [
             (
                 row(ProviderKind::Apps, term, file("/i/term.svg")),
-                RowArt::Themed("/i/term.svg".into()),
+                Some(IconFile::Themed("/i/term.svg".into())),
             ),
             (
                 row(ProviderKind::Apps, "firefox", file("/i/firefox.svg")),
-                RowArt::Themed("/i/firefox.svg".into()),
+                Some(IconFile::Themed("/i/firefox.svg".into())),
             ),
             (
                 row(ProviderKind::Settings, "x", file("/i/x-symbolic.svg")),
-                RowArt::Symbolic("/i/x-symbolic.svg".into()),
+                Some(IconFile::Symbolic("/i/x-symbolic.svg".into())),
             ),
             (
                 row(
@@ -120,12 +99,9 @@ mod tests {
                     "lock",
                     IconRef::Glyph("lock".to_owned()),
                 ),
-                RowArt::Glyph,
+                None,
             ),
-            (
-                row(ProviderKind::Apps, "firefox", file("rel.svg")),
-                RowArt::Glyph,
-            ),
+            (row(ProviderKind::Apps, "firefox", file("rel.svg")), None),
         ];
         for (item, want) in cases {
             assert_eq!(row_art(&item), want, "{}", item.id.0);
@@ -153,12 +129,12 @@ mod tests {
         };
         let themed = row_tile(
             &item,
-            RowArt::Themed("/i/f.svg".into()),
+            Some(IconFile::Themed("/i/f.svg".into())),
             &cx(IconStyle::Muted, 120),
         );
         assert_eq!(url(themed), "file:///i/f.svg");
         assert_eq!(
-            row_tile(&item, RowArt::Glyph, &cx(IconStyle::Muted, 120)),
+            row_tile(&item, None, &cx(IconStyle::Muted, 120)),
             RowLeading::Icon(Icon::Grid)
         );
     }

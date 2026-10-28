@@ -23,7 +23,7 @@ mod surface;
 mod view;
 
 pub use groups::{Expanded, GroupView, group_views, toggle_group};
-pub use keys::{CenterKey, CenterOut, RowFocus, step_keys};
+pub use keys::{CenterKey, CenterOut, step_keys};
 pub use layer::PANEL_ID;
 pub use surface::NotificationCenter;
 pub use view::NOTIFICATION_CENTER_CSS;

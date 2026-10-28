@@ -3,7 +3,7 @@
 use sill_model::apps::App;
 use sill_model::windows::{Activity, Toplevels, WindowState};
 
-use super::{Checked, DockMenuRow, Minimized, OptionHeld, menu_windows, sections};
+use super::{Checked, DockMenuRow, OptionHeld, menu_windows, sections};
 use crate::dock::items::{DockItem, ItemKind};
 
 /// The rows for the app tile `item`. `login` is what the autostart folder says about the app.
@@ -19,10 +19,7 @@ pub fn rows(
     let window_rows = windows.iter().map(|w| DockMenuRow::Window {
         title: w.title.clone(),
         active: checked(w.activity == Activity::Active),
-        minimized: match w.window {
-            WindowState::Minimized => Minimized::Minimized,
-            WindowState::Normal => Minimized::Normal,
-        },
+        minimized: w.window == WindowState::Minimized,
     });
     let actions =
         app.into_iter()

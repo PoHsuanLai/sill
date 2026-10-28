@@ -22,11 +22,10 @@ use sill_ui_kit::services::Services;
 
 use super::hold::{Hold, Watch, chord_input};
 use super::keys::{Chord, chord_after_keyup, sw_key};
-use super::model::heading;
 use super::session::Session;
 use super::tiles::index_of;
+use ds_behaviour::Dir;
 use ds_behaviour::switcher::{Phase, SwIn, SwKey, SwOut, SwitcherParams};
-use sill_ui_kit::links::Dir;
 use sill_ui_kit::links::{AskSerial, SwitcherAsk, SwitcherLink};
 
 /// One surface's switcher: its machine, its opening, and what it talks to. Copy, so every
@@ -203,7 +202,7 @@ impl SwitcherCtx {
     fn fake(self, session: Session) {
         self.close();
         self.open(session);
-        self.machine.send(SwIn::Chord(heading(Dir::Next)));
+        self.machine.send(SwIn::Chord(Dir::Next));
         let mut state = self.state;
         let armed = state.peek().phase();
         if let Phase::Armed { sel, .. } = armed {

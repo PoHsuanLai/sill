@@ -1,6 +1,6 @@
 //! Table tests for `hover.rs`.
 
-use super::{FreezeCause, Hover, Moved, displayed, freeze, linear};
+use super::{FreezeCause, Hover, displayed, freeze, linear};
 use crate::dock::machine::params::tests::params;
 use crate::dock::machine::types::{DockEffect, DockEvent, DockState, Hit, Point};
 use crate::dock::machine::{DropZone, step};
@@ -74,33 +74,25 @@ fn hover_transitions_follow_the_design_table() {
         (
             "entering completes at 120 ms",
             vec![enter, (120, DockEvent::Frame)],
-            Hover::Tracking {
-                moved: Moved::Drawn,
-            },
+            Hover::Tracking { pending: false },
             vec![DockEffect::Redraw],
         ),
         (
             "tracking with no move stops frames",
             vec![enter, (120, DockEvent::Frame), (136, DockEvent::Frame)],
-            Hover::Tracking {
-                moved: Moved::Drawn,
-            },
+            Hover::Tracking { pending: false },
             vec![DockEffect::StopFrames],
         ),
         (
             "a move while tracking asks for a frame",
             vec![enter, (120, DockEvent::Frame), (130, mv(140))],
-            Hover::Tracking {
-                moved: Moved::Pending,
-            },
+            Hover::Tracking { pending: true },
             vec![DockEffect::RequestFrames],
         ),
         (
             "a move to the same x is nothing",
             vec![enter, (120, DockEvent::Frame), (130, mv(100))],
-            Hover::Tracking {
-                moved: Moved::Drawn,
-            },
+            Hover::Tracking { pending: false },
             vec![],
         ),
         (
@@ -111,9 +103,7 @@ fn hover_transitions_follow_the_design_table() {
                 (130, mv(140)),
                 (136, DockEvent::Frame),
             ],
-            Hover::Tracking {
-                moved: Moved::Drawn,
-            },
+            Hover::Tracking { pending: false },
             vec![DockEffect::Redraw],
         ),
         (
@@ -220,9 +210,7 @@ fn displayed_progress_is_eased_and_zero_when_magnification_is_off() {
 fn a_freeze_holds_the_frame_and_a_thaw_resumes_by_pointer() {
     let p = params();
     let dock = DockState {
-        hover: Hover::Tracking {
-            moved: Moved::Drawn,
-        },
+        hover: Hover::Tracking { pending: false },
         ..DockState::default()
     };
     let frozen = freeze(dock, FreezeCause::Menu, Stamp(10), &p);

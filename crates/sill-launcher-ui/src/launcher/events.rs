@@ -8,6 +8,7 @@ use ds::components::menus::palette::palette_motion::PaletteHandle;
 use ds::components::menus::palette::palette_motion::use_palette_handle;
 use ds::focus::request::{FocusRequest, use_focus_request};
 use ds::prelude::*;
+use ds_behaviour::Dir;
 use shell_host::{OutputId, SurfaceHandle};
 use sill_launcher::{Choice, CompanionAct, ItemKey, LauncherMode};
 use sill_model::results::{Results, SearchCommand};
@@ -16,7 +17,7 @@ use sill_ui_kit::services::Services;
 use crate::launcher::activate::{
     AfterEffect, LauncherEffect, LauncherProviders, effect_of, file_results, with_results,
 };
-use crate::launcher::companion::{Way, ask_input, companion_filter};
+use crate::launcher::companion::{ask_input, companion_filter};
 use crate::launcher::entries::RowRef;
 use crate::launcher::follow::{use_follow_visibility, use_shown};
 use crate::launcher::groups::fresh;
@@ -320,11 +321,11 @@ impl PanelCtx {
                 let filter = if self.in_companion_mode() {
                     // There is no "every provider" in a prompt: Tab goes round the companion's
                     // own rows, the runs and the memory.
-                    let way = match key {
-                        LauncherKey::ShiftTab => Way::Backward,
-                        _ => Way::Forward,
+                    let dir = match key {
+                        LauncherKey::ShiftTab => Dir::Previous,
+                        _ => Dir::Next,
                     };
-                    companion_filter(was, way)
+                    companion_filter(was, dir)
                 } else {
                     next_in_ring(was, &ring, next)
                 };

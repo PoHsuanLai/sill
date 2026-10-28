@@ -18,7 +18,7 @@ use sill_shell_kit::notifications::parts::Hover;
 use sill_shell_kit::notifications::swipe::NotificationSwipe;
 use sill_shell_kit::prelude::*;
 
-use super::deck::{DeckIn, Entry, EntryKey, Showing};
+use super::deck::{DeckIn, Entry, EntryKey};
 use super::deck_keys::KeysIn;
 use super::elements::{CardShape, Regions, element_regions};
 use super::io::{Column, use_column};
@@ -208,8 +208,11 @@ fn use_regions(regions: Regions) {
 /// Map the surface once a card is drawn; unmap it once none is (the stack has played the last
 /// one out and said so).
 fn use_map_while_showing(column: Column) {
-    use_follow_visibility(move || match column.deck.read().showing() {
-        Showing::Cards => Visibility::Shown,
-        Showing::Nothing => Visibility::Hidden,
+    use_follow_visibility(move || {
+        if column.deck.read().showing() {
+            Visibility::Shown
+        } else {
+            Visibility::Hidden
+        }
     });
 }

@@ -7,7 +7,7 @@ use sill_ui_kit::autohide::{self, Change, Hold, Input, advance};
 
 use super::params::DockParams;
 use super::press::Press;
-use super::types::{DockEffect, DockEvent, DockState, Hit, MenuState, Pointer};
+use super::types::{DockEffect, DockEvent, DockState, Hit};
 
 /// The auto-hide phase: `Fixed` is auto-hide off (the shared machine, `sill_ui_kit::autohide`).
 pub use sill_ui_kit::autohide::Phase as Reveal;
@@ -52,7 +52,7 @@ fn input_of(dock: &DockState, event: &DockEvent) -> Option<Input> {
             Some(Input::Inside)
         }
         DockEvent::PointerLeave => Some(Input::Outside),
-        DockEvent::MenuClosed if dock.pointer == Pointer::Outside => Some(Input::Outside),
+        DockEvent::MenuClosed if !dock.pointer_inside => Some(Input::Outside),
         DockEvent::Tick => Some(Input::Tick),
         DockEvent::Frame => Some(Input::Frame),
         DockEvent::Edge(shown) => Some(Input::Edge(shown)),
@@ -68,7 +68,7 @@ pub(crate) fn step(
     p: &DockParams,
     out: &mut Vec<DockEffect>,
 ) -> DockState {
-    let hold = if dock.menu == MenuState::Open || matches!(dock.press, Press::Dragging { .. }) {
+    let hold = if dock.menu_open || matches!(dock.press, Press::Dragging { .. }) {
         Hold::Held
     } else {
         Hold::Free

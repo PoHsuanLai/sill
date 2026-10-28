@@ -24,13 +24,6 @@ pub(super) enum HostLock {
     Ending,
 }
 
-/// Whether the prompt is on this surface's output.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Here {
-    Yes,
-    No,
-}
-
 /// The `data-leaving` word: the surface fades once the password was right.
 fn leaving(phase: &AuthPhase, host: HostLock) -> Option<&'static str> {
     match (phase, host) {
@@ -77,10 +70,8 @@ pub(super) fn LockBody(
     let _minute = use_service::<ClockService>()();
     let link = use_context::<LockLink>();
     let prompt_at = shell_host::use_watch(link.subscribe())();
-    let here = match prompt_at {
-        PromptOutput::On(id) if id == output.id => Here::Yes,
-        PromptOutput::On(_) | PromptOutput::Nowhere => Here::No,
-    };
+    // Whether the prompt is on this surface's output.
+    let here = matches!(prompt_at, PromptOutput::On(id) if id == output.id);
     use_unlock_fade(auth_signal, host, here, on_unlock);
 
     let now = jiff::Zoned::now();
@@ -92,23 +83,22 @@ pub(super) fn LockBody(
         .and_then(|name| backdrop_for(&wallpapers, &name, scheme))
         .filter(|path| path.is_file())
         .and_then(|path| ImageSource::file(&path).ok());
-    let prompt = match here {
-        Here::Yes => {
-            let control = services.auth.control;
-            rsx! {
-                LockPrompt {
-                    user: lock_user(&auth.account),
-                    state: prompt_state(&auth.phase),
-                    caps,
-                    hint: hint_of(&auth),
-                    oninput: move |_: String| {},
-                    onsubmit: move |text: String| {
-                        let _ = control.send(AuthCommand::Submit(Secret::new(text)));
-                    },
-                }
+    let prompt = if here {
+        let control = services.auth.control;
+        rsx! {
+            LockPrompt {
+                user: lock_user(&auth.account),
+                state: prompt_state(&auth.phase),
+                caps,
+                hint: hint_of(&auth),
+                oninput: move |_: String| {},
+                onsubmit: move |text: String| {
+                    let _ = control.send(AuthCommand::Submit(Secret::new(text)));
+                },
             }
         }
-        Here::No => rsx! {},
+    } else {
+        rsx! {}
     };
     let id = output.id;
     rsx! {
@@ -127,34 +117,27 @@ pub(super) fn LockBody(
     }
 }
 
-/// Whether the unlock has been asked for this acceptance.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Unlock {
-    /// Not yet.
-    Waiting,
-    /// Asked; not again until the prompt leaves `Accepted`.
-    Asked,
-}
-
 /// On `Accepted` while the host holds the lock, asks shell-host to unlock at once (quire's
 /// picture accept beat is gone); the others do nothing.
 fn use_unlock_fade(
     auth: ReadSignal<Auth>,
     host: HostLock,
-    here: Here,
+    here: bool,
     on_unlock: Option<Callback<()>>,
 ) {
-    let mut asked = use_hook(|| CopyValue::new(Unlock::Waiting));
+    // Whether the unlock has been asked for this acceptance: not again until the prompt leaves
+    // `Accepted`.
+    let mut asked = use_hook(|| CopyValue::new(false));
     use_effect(use_reactive!(|host, here, on_unlock| {
         let accepted = auth.read().phase == AuthPhase::Accepted;
         match (accepted, host, here, on_unlock) {
-            (true, HostLock::Holding, Here::Yes, Some(unlock)) => {
-                if *asked.peek() == Unlock::Waiting {
-                    asked.set(Unlock::Asked);
+            (true, HostLock::Holding, true, Some(unlock)) => {
+                if !*asked.peek() {
+                    asked.set(true);
                     unlock.call(());
                 }
             }
-            (false, _, _, _) => asked.set(Unlock::Waiting),
+            (false, _, _, _) => asked.set(false),
             _ => {}
         }
     }));

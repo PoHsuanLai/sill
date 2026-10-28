@@ -14,9 +14,8 @@
 use shell_host::{Modifier, Modifiers};
 
 use super::keys::Chord;
-use super::model::heading;
+use ds_behaviour::Dir;
 use ds_behaviour::switcher::{Phase, SwIn, SwKey};
-use sill_ui_kit::links::Dir;
 
 /// Whether an opening follows the modifiers: on a host surface, for the compositor's apps
 /// (`watch.rs`).
@@ -61,8 +60,10 @@ pub fn chord_of(modifiers: &Modifiers) -> Chord {
 pub fn chord_input(state: Phase, hold: Option<Chord>, dir: Dir) -> SwIn {
     match (state, hold, dir) {
         (Phase::Armed { .. }, None | Some(Chord::Held), Dir::Next) => SwIn::Key(SwKey::Tab),
-        (Phase::Armed { .. }, None | Some(Chord::Held), Dir::Prev) => SwIn::Key(SwKey::ShiftTab),
-        _ => SwIn::Chord(heading(dir)),
+        (Phase::Armed { .. }, None | Some(Chord::Held), Dir::Previous) => {
+            SwIn::Key(SwKey::ShiftTab)
+        }
+        _ => SwIn::Chord(dir),
     }
 }
 
@@ -73,9 +74,8 @@ mod tests {
 
     use super::{Hold, Watch, chord_input, chord_of, tick_input};
     use crate::switcher::keys::Chord;
-    use crate::switcher::model::heading;
+    use ds_behaviour::Dir;
     use ds_behaviour::switcher::{Phase, SwIn, SwKey};
-    use sill_ui_kit::links::Dir;
 
     #[test]
     fn alt_or_logo_holds_the_chord() {
@@ -136,7 +136,7 @@ mod tests {
             (
                 armed,
                 Some(Chord::Held),
-                Dir::Prev,
+                Dir::Previous,
                 SwIn::Key(SwKey::ShiftTab),
             ),
             (armed, None, Dir::Next, SwIn::Key(SwKey::Tab)),
@@ -144,19 +144,19 @@ mod tests {
                 armed,
                 Some(Chord::Released),
                 Dir::Next,
-                SwIn::Chord(heading(Dir::Next)),
+                SwIn::Chord(Dir::Next),
             ),
             (
                 Phase::Hidden,
                 Some(Chord::Held),
                 Dir::Next,
-                SwIn::Chord(heading(Dir::Next)),
+                SwIn::Chord(Dir::Next),
             ),
             (
                 Phase::Shown { sel: 1 },
                 Some(Chord::Held),
-                Dir::Prev,
-                SwIn::Chord(heading(Dir::Prev)),
+                Dir::Previous,
+                SwIn::Chord(Dir::Previous),
             ),
         ];
         for (state, hold, dir, want) in cases {

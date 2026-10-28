@@ -29,7 +29,7 @@ pub fn ask(reach: &Reach, ask: SwitcherAsk) -> Response {
 fn ask_of(step: SwitcherStep) -> SwitcherAsk {
     match step {
         SwitcherStep::Next => SwitcherAsk::Chord(Dir::Next),
-        SwitcherStep::Prev => SwitcherAsk::Chord(Dir::Prev),
+        SwitcherStep::Prev => SwitcherAsk::Chord(Dir::Previous),
         SwitcherStep::Cancel => SwitcherAsk::Cancel,
         SwitcherStep::Commit => SwitcherAsk::Commit,
     }
@@ -46,7 +46,7 @@ mod tests {
     fn steps_become_asks() {
         let cases = [
             (SwitcherStep::Next, SwitcherAsk::Chord(Dir::Next)),
-            (SwitcherStep::Prev, SwitcherAsk::Chord(Dir::Prev)),
+            (SwitcherStep::Prev, SwitcherAsk::Chord(Dir::Previous)),
             (SwitcherStep::Cancel, SwitcherAsk::Cancel),
             (SwitcherStep::Commit, SwitcherAsk::Commit),
         ];

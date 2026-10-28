@@ -6,7 +6,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 use std::time::Duration;
 
-use sill_launcher::{Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, SectionPlan};
+use sill_launcher::{Cancel, Choice, ItemKey, Provider, Query, Scope, SectionPlan};
 use sill_model::apps::AppIndex;
 use sill_model::results::{
     Asked, LauncherPolicy, Results, ResultsEvent, SearchCommand, Typed, arranged, step,
@@ -244,7 +244,7 @@ impl Search {
     /// newest generation's rows, so the surface sends `Chosen` before it closes (`Cancel`).
     fn chosen(&self, key: &ItemKey, choice: &Choice) {
         // A clipboard entry's use is never written to disk.
-        if key.counting() == Counting::Counted {
+        if key.counted() {
             let frecency = self.history.record(key.clone(), unix_now());
             self.persist.save(frecency);
         }

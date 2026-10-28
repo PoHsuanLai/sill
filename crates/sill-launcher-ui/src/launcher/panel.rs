@@ -32,7 +32,7 @@ use crate::launcher::layer::{
 };
 use crate::launcher::mode_switch::ModeSwitch;
 use crate::launcher::pane_session::PaneSession;
-use crate::launcher::preview::keys::{Pane, PaneFocus};
+use crate::launcher::preview::keys::Pane;
 use crate::launcher::preview::{LauncherPane, PREVIEW_WIDTH_PX};
 use crate::launcher::row_icon::{row_art, row_tile};
 use crate::launcher::row_thumb::use_row_thumbs;
@@ -242,10 +242,7 @@ fn use_aside(
                     .as_ref()
                     .and_then(|item| icon_source(icons.tile(item))),
                 actions: selected.map(|item| item.actions).unwrap_or_default(),
-                focused: match shown.pane.preview.focus {
-                    PaneFocus::Pane(index) => Some(index),
-                    PaneFocus::Results => None,
-                },
+                focused: shown.pane.preview.focus,
                 shown: ds::prelude::Shown::Visible,
                 serial: shown.session.serial,
                 touch,

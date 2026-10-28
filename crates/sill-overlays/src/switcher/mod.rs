@@ -17,7 +17,6 @@ mod apps;
 mod hold;
 mod io;
 mod keys;
-mod model;
 mod opening;
 mod pointer;
 mod session;

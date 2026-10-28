@@ -9,20 +9,12 @@ use sill_settings::ShotThumbnail;
 
 use super::step::ThumbIn;
 
-/// Whether this output is the one that shows (the banners' `BannerLink`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Here {
-    This,
-    Elsewhere,
-}
-
-/// The machine's input for `shots`, or `None` while the current shot's preview is pending.
-pub fn follow(shots: &Shots, here: Here, setting: ShotThumbnail) -> Option<ThumbIn> {
+/// The machine's input for `shots`, or `None` while the current shot's preview is pending. `here`
+/// is whether this output is the one that shows (the banners' `BannerLink`).
+pub fn follow(shots: &Shots, here: bool, setting: ShotThumbnail) -> Option<ThumbIn> {
     match (here, setting, &shots.current) {
-        (Here::Elsewhere, _, _) | (_, ShotThumbnail::Hide, _) | (_, _, None) => {
-            Some(ThumbIn::Current(None))
-        }
-        (Here::This, ShotThumbnail::Show, Some(shot)) => match shot.preview {
+        (false, _, _) | (_, ShotThumbnail::Hide, _) | (_, _, None) => Some(ThumbIn::Current(None)),
+        (true, ShotThumbnail::Show, Some(shot)) => match shot.preview {
             ShotPreview::Pending => None,
             ShotPreview::Ready(_) | ShotPreview::Original => Some(ThumbIn::Current(Some(shot.id))),
         },
@@ -36,7 +28,7 @@ mod tests {
     use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
     use sill_settings::ShotThumbnail;
 
-    use super::{Here, follow};
+    use super::follow;
     use crate::screenshot_thumb::step::ThumbIn;
 
     fn with(preview: ShotPreview) -> Shots {
@@ -57,35 +49,25 @@ mod tests {
         let cases = [
             (
                 ready.clone(),
-                Here::This,
+                true,
                 show,
                 Some(ThumbIn::Current(Some(ShotId(3)))),
             ),
             (
                 with(ShotPreview::Original),
-                Here::This,
+                true,
                 show,
                 Some(ThumbIn::Current(Some(ShotId(3)))),
             ),
-            (with(ShotPreview::Pending), Here::This, show, None),
-            (
-                ready.clone(),
-                Here::Elsewhere,
-                show,
-                Some(ThumbIn::Current(None)),
-            ),
+            (with(ShotPreview::Pending), true, show, None),
+            (ready.clone(), false, show, Some(ThumbIn::Current(None))),
             (
                 ready,
-                Here::This,
+                true,
                 ShotThumbnail::Hide,
                 Some(ThumbIn::Current(None)),
             ),
-            (
-                Shots::default(),
-                Here::This,
-                show,
-                Some(ThumbIn::Current(None)),
-            ),
+            (Shots::default(), true, show, Some(ThumbIn::Current(None))),
         ];
         for (shots, here, setting, want) in cases {
             assert_eq!(

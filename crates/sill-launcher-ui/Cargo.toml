@@ -30,6 +30,7 @@ dioxus = { workspace = true }
 dirs = { workspace = true }
 docket-core = { workspace = true }
 ds = { workspace = true }
+ds-behaviour = { workspace = true }
 ds-blitz = { workspace = true, features = ["pdf"] }
 jiff = { workspace = true }
 # The name of a file's thumbnail in the freedesktop cache is the MD5 of its address.

@@ -11,7 +11,7 @@ use sill_model::volume::{Mute, Volume};
 use sill_overlays::Osd;
 use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{Level, LevelSource, OsdKind, OsdLink};
+use sill_ui_kit::links::{Level, OsdKind, OsdLink};
 
 /// How long the indicator holds after the last change (the constant in `osd::step`).
 const HOLD_MS: u64 = 1500;
@@ -47,7 +47,7 @@ fn looks_over(harness: &mut Harness, from: Instant, span: Duration) -> Vec<(u64,
 
 /// Show `kind` on the test output from `source`, taken at this instant (the next `advance` runs
 /// the woken surface first); returns when it was asked, on the harness's clock.
-fn show(running: &mut Running, kind: OsdKind, source: LevelSource) -> Instant {
+fn show(running: &mut Running, kind: OsdKind, source: Option<Level>) -> Instant {
     running.link.show(kind, vec![fake::output().id], source);
     running.harness.now()
 }
@@ -57,7 +57,7 @@ fn a_change_holds_then_fades_then_hides() {
     let mut running = start(file());
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(look(&running.harness).as_deref(), Some("hidden"));
-    let changed = show(&mut running, OsdKind::Volume, LevelSource::Live);
+    let changed = show(&mut running, OsdKind::Volume, None);
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(look(&running.harness).as_deref(), Some("entering"));
     assert_eq!(level(&running.harness), Some(40), "the fake sink's level");
@@ -92,7 +92,7 @@ fn a_change_holds_then_fades_then_hides() {
 #[test]
 fn a_change_during_the_fade_takes_it_back_and_holds_again() {
     let mut running = start(file());
-    let shown = show(&mut running, OsdKind::Volume, LevelSource::Live);
+    let shown = show(&mut running, OsdKind::Volume, None);
     running.harness.advance(Duration::from_millis(HOLD_MS - 1));
     assert_eq!(
         look(&running.harness).as_deref(),
@@ -110,7 +110,7 @@ fn a_change_during_the_fade_takes_it_back_and_holds_again() {
         Duration::from_millis(HOLD_MS)
     );
     running.harness.advance(Duration::from_millis(20));
-    let again = show(&mut running, OsdKind::Volume, LevelSource::Live);
+    let again = show(&mut running, OsdKind::Volume, None);
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
         look(&running.harness).as_deref(),
@@ -126,11 +126,9 @@ fn a_change_during_the_fade_takes_it_back_and_holds_again() {
 #[test]
 fn a_faked_change_shows_its_own_level_and_another_outputs_does_not_show() {
     let mut running = start(file());
-    running.link.show(
-        OsdKind::Volume,
-        vec![shell_host::OutputId(99)],
-        LevelSource::Live,
-    );
+    running
+        .link
+        .show(OsdKind::Volume, vec![shell_host::OutputId(99)], None);
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(
         look(&running.harness).as_deref(),
@@ -140,7 +138,7 @@ fn a_faked_change_shows_its_own_level_and_another_outputs_does_not_show() {
     running.link.show(
         OsdKind::Brightness,
         vec![fake::output().id],
-        LevelSource::Fixed(Level {
+        Some(Level {
             percent: Percent(70),
             mute: Mute::Audible,
         }),
@@ -160,7 +158,7 @@ fn a_faked_change_shows_its_own_level_and_another_outputs_does_not_show() {
 #[test]
 fn the_level_is_sixteen_squares() {
     let mut running = start(file());
-    show(&mut running, OsdKind::Volume, LevelSource::Live);
+    show(&mut running, OsdKind::Volume, None);
     running.harness.advance(Duration::from_millis(40));
     let html = running.harness.html();
     let at = html

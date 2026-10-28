@@ -5,8 +5,8 @@ use ds::base::time::stamp::Stamp;
 use super::hover::{self, FreezeCause, Hover};
 use super::params::DockParams;
 use super::types::{
-    Button, DockEffect, DockEvent, DockKey, DockState, Hit, MenuState, Modifier, Point, Spring,
-    TileApp, TileId,
+    Button, DockEffect, DockEvent, DockKey, DockState, Hit, Modifier, Point, Spring, TileApp,
+    TileId,
 };
 
 /// Where a dragged tile would land.
@@ -178,7 +178,7 @@ pub(crate) fn step(
             out,
         ),
         (_, DockEvent::MenuClosed) => DockState {
-            menu: MenuState::Closed,
+            menu_open: false,
             ..dock
         },
         (_, DockEvent::DndMotion { hit, .. }) => DockState {
@@ -248,7 +248,7 @@ fn open_menu(
     out.push(DockEffect::OpenMenu { tile });
     let dock = hover::freeze(dock, FreezeCause::Menu, now, p);
     DockState {
-        menu: MenuState::Open,
+        menu_open: true,
         ..dock
     }
 }
@@ -263,7 +263,7 @@ fn open_divider_menu(
     out.push(DockEffect::OpenDividerMenu { at });
     let dock = hover::freeze(dock, FreezeCause::Menu, now, p);
     DockState {
-        menu: MenuState::Open,
+        menu_open: true,
         ..dock
     }
 }

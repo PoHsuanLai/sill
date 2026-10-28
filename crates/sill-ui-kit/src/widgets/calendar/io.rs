@@ -9,12 +9,11 @@ use dioxus::prelude::*;
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_settings::WeekNumbers;
-use sill_shell_kit::month_grid::data::MonthStep;
 use sill_shell_kit::widget::calendar::MonthWidget;
 use sill_shell_kit::widget::calendar::{MonthEntry, MonthFace, MonthIntent, TodayLine};
 
-use super::grid::{Step, busy_days, month_grid};
-use super::shown::{Shown, grid_data, weekday_name};
+use super::grid::{busy_days, month_grid};
+use super::shown::{Shown, weekday_name};
 use crate::hooks::{use_hours, use_section, use_service};
 use crate::widgets::up_next::today_events;
 use crate::widgets::{CenterWidget, Feed, WidgetProvider};
@@ -50,14 +49,10 @@ impl WidgetProvider for CalendarProvider {
             }),
             events: today_events(&agenda, Timestamp::now(), &zone, hours),
             no_events: "No events today".to_owned(),
-            ..MonthFace::of(grid_data(&grid, today), weeks)
+            ..MonthFace::of(grid, weeks)
         };
         let onintent = EventHandler::new(move |intent: MonthIntent| {
             let MonthIntent::Step(step) = intent;
-            let step = match step {
-                MonthStep::Previous => Step::Previous,
-                MonthStep::Next => Step::Next,
-            };
             shown.set(shown().stepped(today, step));
         });
         Feed {

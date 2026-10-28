@@ -1,6 +1,6 @@
 //! Table tests for `deck.rs` and `deck_cards.rs`.
 
-use super::{Deck, DeckIn, DeckOut, EntryKey, KeyFocus, Showing, advance};
+use super::{Deck, DeckIn, DeckOut, EntryKey, advance};
 use crate::banners::deck_keys::{KeysIn, Neighbour};
 use crate::banners::stack::Card;
 use crate::banners::step::{Banner, BannerIn, BannerParams, Deadline, Leave};
@@ -58,7 +58,7 @@ fn a_card_rises_holds_and_leaves_by_itself() {
     assert_eq!(out, vec![DeckOut::Rise(A)], "rise a frame later");
     assert_eq!(listed(&deck), [A]);
     assert_eq!(deck.next_wake(), Some(Stamp(5300)));
-    assert_eq!(deck.showing(), Showing::Cards);
+    assert!(deck.showing());
     let (deck, out) = run(with(shown(), vec![(5300, DeckIn::Tick)]));
     assert_eq!(
         out[1..],
@@ -72,7 +72,7 @@ fn a_card_rises_holds_and_leaves_by_itself() {
         "no longer listed: the stack plays it out"
     );
     assert_eq!(deck.drawn().len(), 1, "but still drawn");
-    assert_eq!(deck.showing(), Showing::Cards);
+    assert!(deck.showing());
     let (deck, _) = run(with(
         shown(),
         vec![
@@ -81,11 +81,7 @@ fn a_card_rises_holds_and_leaves_by_itself() {
             (5600, DeckIn::Card(A, BannerIn::Left)),
         ],
     ));
-    assert_eq!(
-        deck.showing(),
-        Showing::Nothing,
-        "gone once the stack says its exit played"
-    );
+    assert!(!deck.showing(), "gone once the stack says its exit played");
 }
 
 #[test]
@@ -219,7 +215,7 @@ fn keys(input: KeysIn) -> (u64, DeckIn) {
 fn holder(deck: &Deck) -> Vec<EntryKey> {
     deck.entries
         .iter()
-        .filter(|e| e.keys == KeyFocus::Held)
+        .filter(|e| e.keys_held)
         .map(|e| e.key)
         .collect()
 }

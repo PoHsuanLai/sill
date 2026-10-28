@@ -18,13 +18,6 @@ use sill_ui_kit::links::{ActionLink, CenterLink};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::services::Services;
 
-/// Whether a bar menu waits for the notification center to leave before its popup opens.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Handoff {
-    Idle,
-    Waiting,
-}
-
 /// What the popup shows: one menu's contents, where, and in which appearance.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PopupView {
@@ -44,7 +37,7 @@ pub(crate) enum BarInput {
     },
     /// What the popup reported.
     Popup(PopupReport),
-    /// The notification center a menu closed has had time to leave ([`Handoff`]).
+    /// The notification center a menu closed has had time to leave (the session's `handoff` slot).
     CenterGone,
 }
 

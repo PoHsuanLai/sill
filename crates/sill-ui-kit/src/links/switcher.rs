@@ -3,18 +3,12 @@
 //! asks, and kept so that a second Tab arriving before the surface has read the first is still
 //! a second step. Every output's switcher surface follows it and acts on asks for its own output.
 
+use ds_behaviour::Dir;
 use shell_host::{KeyboardFocus, OutputId};
 use sill_launcher::AppId;
 use tokio::sync::watch;
 
 use super::Shared;
-
-/// Which way a chord or key moves the selection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Dir {
-    Next,
-    Prev,
-}
 
 /// One ask.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

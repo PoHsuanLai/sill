@@ -8,14 +8,15 @@
 
 use dioxus::prelude::{Key, Modifiers};
 
-use crate::launcher::preview::keys::{Caret, Pane, PaneFocus, PreviewKey};
+use crate::launcher::preview::keys::{Caret, Pane, PreviewKey};
 use crate::launcher::view::Layout;
 
 /// Where a key lands: the pane, who has the keyboard, and how the selected line is laid out.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeyPlace {
     pub pane: Pane,
-    pub focus: PaneFocus,
+    /// The pane control that has the keyboard, if any.
+    pub focus: Option<usize>,
     pub layout: Layout,
 }
 
@@ -27,7 +28,7 @@ pub fn pane_key(
     caret: Caret,
     place: KeyPlace,
 ) -> Option<PreviewKey> {
-    let in_pane = matches!(place.focus, PaneFocus::Pane(_));
+    let in_pane = place.focus.is_some();
     let shift = modifiers.contains(Modifiers::SHIFT);
     match (pressed, in_pane, place.layout) {
         (Key::Character(text), ..) if text == " " && modifiers.is_empty() => {
@@ -46,7 +47,7 @@ pub fn pane_key(
 #[cfg(test)]
 mod tests {
     use super::{KeyPlace, pane_key};
-    use crate::launcher::preview::keys::{Caret, Pane, PaneFocus, PreviewKey};
+    use crate::launcher::preview::keys::{Caret, Pane, PreviewKey};
     use crate::launcher::view::Layout;
     use dioxus::prelude::{Key, Modifiers};
 
@@ -57,11 +58,11 @@ mod tests {
             focus,
             layout,
         };
-        let list = place(Pane::Hidden, PaneFocus::Results, Layout::List);
-        let grid = place(Pane::Hidden, PaneFocus::Results, Layout::Grid);
-        let grid_shown = place(Pane::Shown, PaneFocus::Results, Layout::Grid);
-        let grid_in_pane = place(Pane::Shown, PaneFocus::Pane(0), Layout::Grid);
-        let list_in_pane = place(Pane::Shown, PaneFocus::Pane(1), Layout::List);
+        let list = place(Pane::Hidden, None, Layout::List);
+        let grid = place(Pane::Hidden, None, Layout::Grid);
+        let grid_shown = place(Pane::Shown, None, Layout::Grid);
+        let grid_in_pane = place(Pane::Shown, Some(0), Layout::Grid);
+        let list_in_pane = place(Pane::Shown, Some(1), Layout::List);
         let space = Key::Character(" ".to_owned());
         let none = Modifiers::empty();
         let shift = Modifiers::SHIFT;

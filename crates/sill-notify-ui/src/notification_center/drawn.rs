@@ -14,13 +14,6 @@ pub(super) struct Drawn {
     settles: Signal<u64>,
 }
 
-/// Whether any row is drawn.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Rows {
-    Some,
-    None,
-}
-
 /// The rows drawn this render, `listed` among them.
 pub(super) fn use_drawn(listed: &[RowKey]) -> Drawn {
     let mut keys = use_hook(|| CopyValue::new(Vec::<RowKey>::new()));
@@ -32,12 +25,9 @@ pub(super) fn use_drawn(listed: &[RowKey]) -> Drawn {
 
 impl Drawn {
     /// Whether any row is drawn; the caller redraws when a leaving row settles.
-    pub(super) fn rows(&self) -> Rows {
+    pub(super) fn any_rows(&self) -> bool {
         let _redraw = (self.settles)();
-        match self.keys.peek().is_empty() {
-            true => Rows::None,
-            false => Rows::Some,
-        }
+        !self.keys.peek().is_empty()
     }
 
     /// `key`'s exit has settled: it is no longer drawn.

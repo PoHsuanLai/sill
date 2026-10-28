@@ -8,6 +8,7 @@
 
 pub mod cache;
 pub mod context;
+pub mod file;
 pub mod key;
 pub mod look;
 pub mod plan;
@@ -18,6 +19,7 @@ pub mod use_tile_icons;
 
 pub use cache::{IconResolver, use_icon_resolver};
 pub use context::IconContext;
+pub use file::IconFile;
 pub use look::{IconLook, icon_look};
 pub use plan::{Art, theme_art};
 pub use size::{AssetPx, LogicalPx, pick};

@@ -82,22 +82,6 @@ pub enum DockKey {
     Escape,
 }
 
-/// Where the pointer is, and the last x it had inside (Leaving and Frozen keep drawing there).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Pointer {
-    #[default]
-    Outside,
-    Inside,
-}
-
-/// Whether a dock context menu is open.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum MenuState {
-    #[default]
-    Closed,
-    Open,
-}
-
 /// Spring-loading: a drag resting on a running app's tile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Spring {
@@ -112,14 +96,17 @@ pub enum Spring {
 /// The whole dock.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DockState {
-    pub pointer: Pointer,
+    /// Whether the pointer is inside the dock; `x` is the last x it had (Leaving and Frozen keep
+    /// drawing there).
+    pub pointer_inside: bool,
     /// The last pointer x inside the hit region.
     pub x: Cpx,
     pub hover: Hover,
     pub label: Label,
     pub press: Press,
     pub reveal: Reveal,
-    pub menu: MenuState,
+    /// Whether a dock context menu is open.
+    pub menu_open: bool,
     pub spring: Spring,
 }
 

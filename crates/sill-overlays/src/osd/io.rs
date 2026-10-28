@@ -14,7 +14,7 @@ use shell_host::{OutputId, use_watch};
 use super::step::{OsdHold, OsdInput, OsdTimes, step};
 use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::hooks::{use_map_when_shown, use_unmap_on_hidden};
-use sill_ui_kit::links::{OsdChange, OsdLatest, OsdLink};
+use sill_ui_kit::links::{OsdChange, OsdLink};
 
 /// How long the indicator holds after the last change.
 const HOLD: ds::base::time::stamp::Ms = ds::base::time::stamp::Ms(1500);
@@ -38,7 +38,7 @@ pub(crate) fn use_osd(link: &OsdLink, output: OutputId, now_times: OsdTimes) -> 
     let latest = use_watch(link.subscribe());
     let clock = use_hook(FrameClock::started);
     // A surface respawned after a close does not replay the change before it.
-    let mut seen = use_hook(|| CopyValue::new(link.now().serial()));
+    let mut seen = use_hook(|| CopyValue::new(link.now().map(|c| c.serial).unwrap_or_default()));
     let mut shown = use_signal(|| None::<OsdChange>);
     let mut phase = use_signal(OsdHold::default);
     let mut waking = use_hook(|| CopyValue::new(None::<Task>));
@@ -48,8 +48,11 @@ pub(crate) fn use_osd(link: &OsdLink, output: OutputId, now_times: OsdTimes) -> 
         times.set(now_times);
     }
     use_effect(move || {
-        let latest: OsdLatest = latest.read().clone();
-        let Some(change) = latest.fresh_for(*seen.peek(), output).cloned() else {
+        let fresh = latest
+            .read()
+            .clone()
+            .filter(|change| change.is_fresh_for(*seen.peek(), output));
+        let Some(change) = fresh else {
             return;
         };
         seen.set(change.serial);

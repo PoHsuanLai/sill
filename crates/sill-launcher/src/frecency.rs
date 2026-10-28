@@ -17,7 +17,7 @@ pub struct ItemKey(pub String);
 impl ItemKey {
     /// The key for `item` from `provider`.
     pub fn of(provider: ProviderKind, item: &ItemId) -> ItemKey {
-        ItemKey(format!("{}:{}", key_prefix(provider), item.0))
+        ItemKey(format!("{}:{}", provider.slug(), item.0))
     }
 
     /// The provider this key was made for by [`ItemKey::of`], read back from its own prefix
@@ -26,7 +26,7 @@ impl ItemKey {
         let (prefix, _) = self.0.split_once(':')?;
         ProviderKind::ALL
             .into_iter()
-            .find(|kind| key_prefix(*kind) == prefix)
+            .find(|kind| kind.slug() == prefix)
     }
 
     /// The item id this key was made for by [`ItemKey::of`].
@@ -35,30 +35,10 @@ impl ItemKey {
         Some(ItemId(item.to_owned()))
     }
 
-    /// Whether choosing this key's row is counted: its provider's [`counting`]; a key of no known
-    /// provider is counted.
-    pub fn counting(&self) -> Counting {
-        self.provider().map_or(Counting::Counted, counting)
-    }
-}
-
-/// Each provider's prefix in `frecency.json`.
-fn key_prefix(provider: ProviderKind) -> &'static str {
-    match provider {
-        ProviderKind::Apps => "apps",
-        ProviderKind::Windows => "windows",
-        ProviderKind::Calculator => "calculator",
-        ProviderKind::Settings => "settings",
-        ProviderKind::System => "system",
-        ProviderKind::Files => "files",
-        ProviderKind::Clipboard => "clipboard",
-        ProviderKind::Emoji => "emoji",
-        ProviderKind::Web => "web",
-        ProviderKind::Things => "things",
-        ProviderKind::Companion => "companion",
-        ProviderKind::Helpers => "helpers",
-        ProviderKind::Runs => "runs",
-        ProviderKind::Memory => "memory",
+    /// Whether choosing this key's row is counted: its provider's [`ProviderKind::counted`]; a
+    /// key of no known provider is counted.
+    pub fn counted(&self) -> bool {
+        self.provider().is_none_or(ProviderKind::counted)
     }
 }
 
@@ -173,41 +153,6 @@ impl Frecency {
     }
 }
 
-/// Whether choosing a provider's row is counted in `frecency.json`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Counting {
-    Counted,
-    /// Never written to disk: a clipboard entry's key means nothing after the session, and the
-    /// history must leave no trace of its use.
-    NotCounted,
-}
-
-/// Whether `provider`'s rows are counted. The web fallback is counted under its fixed id (never
-/// the query, which is not a row's identity).
-pub fn counting(provider: ProviderKind) -> Counting {
-    match provider {
-        // An answer, a helper, a run and a memory row name something that ends or is forgotten;
-        // choosing one is not a habit to rank by.
-        ProviderKind::Clipboard
-        | ProviderKind::Companion
-        | ProviderKind::Helpers
-        | ProviderKind::Runs
-        | ProviderKind::Memory => Counting::NotCounted,
-        // What a person calculated is in the row's id, and it must not be kept in a file; a
-        // result is not a habit to rank by either.
-        ProviderKind::Calculator => Counting::NotCounted,
-        ProviderKind::Apps
-        | ProviderKind::Windows
-        | ProviderKind::Settings
-        | ProviderKind::System
-        | ProviderKind::Files
-        | ProviderKind::Emoji
-        | ProviderKind::Things
-        | ProviderKind::Web => Counting::Counted,
-    }
-}
-
 /// The weight of a use made `days` ago. Buckets at 4, 14, 31 and 90 days (the plan names the
 /// weights, not the boundaries; these are Firefox's frecency buckets).
 pub fn age_bucket(days: u64) -> u16 {
@@ -231,22 +176,46 @@ mod tests {
 
     #[test]
     fn a_key_knows_its_provider_and_clipboard_keys_are_never_counted() {
-        use super::Counting;
         for kind in ProviderKind::ALL {
             let key = ItemKey::of(kind, &ItemId("a:b".to_owned()));
             assert_eq!(key.provider(), Some(kind), "{key:?}");
         }
         let clip = ItemKey::of(ProviderKind::Clipboard, &ItemId("7".to_owned()));
-        assert_eq!(clip.counting(), Counting::NotCounted);
+        assert!(!clip.counted());
         let sum = ItemKey::of(ProviderKind::Calculator, &ItemId("calc:42".to_owned()));
-        assert_eq!(
-            sum.counting(),
-            Counting::NotCounted,
-            "what was calculated is not kept"
-        );
+        assert!(!sum.counted(), "what was calculated is not kept");
         let app = ItemKey::of(ProviderKind::Apps, &ItemId("foot".to_owned()));
-        assert_eq!(app.counting(), Counting::Counted);
-        assert_eq!(ItemKey("odd".to_owned()).counting(), Counting::Counted);
+        assert!(app.counted());
+        assert!(ItemKey("odd".to_owned()).counted());
+    }
+
+    /// `frecency.json` keeps these words: a key written by an older build must read back.
+    #[test]
+    fn keys_are_written_with_the_providers_fixed_words() {
+        let words = [
+            "apps",
+            "windows",
+            "calculator",
+            "settings",
+            "system",
+            "files",
+            "clipboard",
+            "emoji",
+            "web",
+            "things",
+            "companion",
+            "helpers",
+            "runs",
+            "memory",
+        ];
+        for (kind, word) in ProviderKind::ALL.into_iter().zip(words) {
+            let key = ItemKey::of(kind, &ItemId("x".to_owned()));
+            assert_eq!(key.0, format!("{word}:x"));
+            assert_eq!(
+                serde_json::to_string(&kind).ok(),
+                Some(format!("\"{word}\""))
+            );
+        }
     }
 
     #[test]

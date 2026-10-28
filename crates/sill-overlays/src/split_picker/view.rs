@@ -9,6 +9,7 @@
 use dioxus::prelude::*;
 use ds::focus::soon::focus_soon;
 use ds::prelude::*;
+use ds_behaviour::Dir;
 use shell_host::OutputInfo;
 use sill_launcher::AppId;
 use sill_model::desktop::SplitCard;
@@ -17,7 +18,7 @@ use sill_shell_kit::switcher::app_switcher::AppKey;
 use sill_shell_kit::switcher::app_switcher::SwitcherApp as Tile;
 
 use super::io::use_picker;
-use super::model::{Step, index_of, moved, other_half};
+use super::model::{index_of, moved, other_half};
 use sill_shell_kit::switcher::switcher_fit::SwitcherMetrics;
 use sill_ui_kit::app_icons::{ICON_SIDE, TileIcons, use_tile_icons};
 use sill_ui_kit::links::SplitPickerLink;
@@ -73,8 +74,8 @@ pub(super) fn split_picker(output: OutputInfo) -> Element {
                                             by_key.pick(window);
                                         }
                                     }
-                                    Key::ArrowRight => select(&mut selected, &all, moved(all.len(), at, Step::Forward)),
-                                    Key::ArrowLeft => select(&mut selected, &all, moved(all.len(), at, Step::Back)),
+                                    Key::ArrowRight => select(&mut selected, &all, moved(all.len(), at, Dir::Next)),
+                                    Key::ArrowLeft => select(&mut selected, &all, moved(all.len(), at, Dir::Previous)),
                                     _ => {}
                                 }
                             },

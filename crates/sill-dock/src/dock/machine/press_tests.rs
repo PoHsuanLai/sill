@@ -3,8 +3,7 @@
 use super::{ActivateMode, DropZone, Instance, Press};
 use crate::dock::machine::params::tests::params;
 use crate::dock::machine::types::{
-    Button, DockEffect, DockEvent, DockKey, DockState, Hit, MenuState, Modifier, Point, TileApp,
-    TileId,
+    Button, DockEffect, DockEvent, DockKey, DockState, Hit, Modifier, Point, TileApp, TileId,
 };
 use crate::dock::machine::{DockParams, step};
 use ds::base::time::stamp::Stamp;
@@ -217,9 +216,9 @@ fn menus_open_on_secondary_press_and_on_a_held_press() {
         assert_eq!(acts(&p, &events).1, want, "{name}");
     }
     let (dock, _) = acts(&p, &[(0, press(Button::Secondary, TileApp::Inactive))]);
-    assert_eq!(dock.menu, MenuState::Open);
+    assert!(dock.menu_open);
     let (closed, _) = step(dock, DockEvent::MenuClosed, Stamp(10), &p);
-    assert_eq!(closed.menu, MenuState::Closed);
+    assert!(!closed.menu_open);
 }
 
 #[test]
@@ -232,7 +231,7 @@ fn the_dock_menu_opens_on_a_secondary_press_over_the_pill_only() {
     };
     let (dock, out) = acts(&p, &[(0, on_pill(Button::Secondary, Hit::Pill))]);
     assert_eq!(out, vec![DockEffect::OpenDividerMenu { at: pt(100, 40) }]);
-    assert_eq!(dock.menu, MenuState::Open);
+    assert!(dock.menu_open);
     for (name, event) in [
         ("primary press", on_pill(Button::Primary, Hit::Pill)),
         (

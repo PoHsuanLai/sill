@@ -5,7 +5,7 @@ use sill_model::displays::{Controls, DdcDisplay, Displays, KeysTarget, Level as 
 use sill_model::ids::{DdcId, OutputName};
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
-use sill_ui_kit::links::{Level, LevelSource, OsdKind};
+use sill_ui_kit::links::{Level, OsdKind};
 
 use super::{fake_level, kind_of, osd_outputs};
 
@@ -50,7 +50,7 @@ fn displays() -> Displays {
 type Case<'a> = (
     &'a str,
     OsdKind,
-    LevelSource,
+    Option<Level>,
     KeysTarget,
     Option<&'a str>,
     &'a [u32],
@@ -63,11 +63,11 @@ fn each_change_shows_on_the_outputs_it_moved() {
         output(2, Some("HDMI-A-2")),
         output(3, None),
     ];
-    let fixed = LevelSource::Fixed(Level {
+    let fixed = Some(Level {
         percent: Percent(50),
         mute: Mute::Audible,
     });
-    let live = LevelSource::Live;
+    let live: Option<Level> = None;
     let pointer = KeysTarget::PointerOutput;
     let all = KeysTarget::AllOutputs;
     let cases: &[Case] = &[
@@ -157,7 +157,7 @@ fn an_unnamed_output_still_shows_the_volume() {
     let outputs = [output(7, None)];
     let got = osd_outputs(
         OsdKind::Volume,
-        LevelSource::Live,
+        None,
         KeysTarget::PointerOutput,
         None,
         &outputs,
@@ -166,7 +166,7 @@ fn an_unnamed_output_still_shows_the_volume() {
     assert_eq!(got, vec![OutputId(7)]);
     let none = osd_outputs(
         OsdKind::Volume,
-        LevelSource::Live,
+        None,
         KeysTarget::PointerOutput,
         None,
         &[],

@@ -1,4 +1,5 @@
 use docket_core::Keep;
+use ds_behaviour::Dir;
 use prov::{RunId, SpaceId, TaskId};
 use sill_launcher::{ProviderKind, WindowKey};
 use sill_model::apps::AppIndex;
@@ -152,16 +153,16 @@ fn companion_keys_table() {
 fn tab_visits_the_companions_rows_helpers_runs_and_memory_and_wraps() {
     use ProviderKind::{Companion, Helpers, Memory, Runs};
     let cases = [
-        (Filter::All, Way::Forward, Companion),
-        (Filter::All, Way::Backward, Memory),
-        (Filter::Only(Companion), Way::Forward, Helpers),
-        (Filter::Only(Helpers), Way::Forward, Runs),
-        (Filter::Only(Runs), Way::Forward, Memory),
-        (Filter::Only(Memory), Way::Forward, Companion),
-        (Filter::Only(Companion), Way::Backward, Memory),
-        (Filter::Only(Memory), Way::Backward, Runs),
-        (Filter::Only(Runs), Way::Backward, Helpers),
-        (Filter::Only(ProviderKind::Apps), Way::Forward, Companion),
+        (Filter::All, Dir::Next, Companion),
+        (Filter::All, Dir::Previous, Memory),
+        (Filter::Only(Companion), Dir::Next, Helpers),
+        (Filter::Only(Helpers), Dir::Next, Runs),
+        (Filter::Only(Runs), Dir::Next, Memory),
+        (Filter::Only(Memory), Dir::Next, Companion),
+        (Filter::Only(Companion), Dir::Previous, Memory),
+        (Filter::Only(Memory), Dir::Previous, Runs),
+        (Filter::Only(Runs), Dir::Previous, Helpers),
+        (Filter::Only(ProviderKind::Apps), Dir::Next, Companion),
     ];
     for (from, way, want) in cases {
         assert_eq!(

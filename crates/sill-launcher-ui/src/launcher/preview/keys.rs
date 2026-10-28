@@ -18,16 +18,6 @@ pub enum Pane {
     Shown,
 }
 
-/// Who has the keyboard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum PaneFocus {
-    /// The field and the results (the palette).
-    #[default]
-    Results,
-    /// The pane's controls, at this index in its Tab order.
-    Pane(usize),
-}
-
 /// What the person did last in the field.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum FieldEdit {
@@ -45,18 +35,13 @@ pub enum Caret {
     Inside,
 }
 
-/// Whether the selected row has a preview.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Previewable {
-    Yes,
-    No,
-}
-
 /// The pane's state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct PreviewState {
     pub pane: Pane,
-    pub focus: PaneFocus,
+    /// Who has the keyboard: the pane's control at this index in its Tab order, or (`None`) the
+    /// field and the results (the palette).
+    pub focus: Option<usize>,
     pub edit: FieldEdit,
 }
 
@@ -97,12 +82,12 @@ pub enum PreviewOut {
 pub fn step_preview(
     state: PreviewState,
     key: PreviewKey,
-    previewable: Previewable,
+    previewable: bool,
     controls: usize,
 ) -> (PreviewState, Vec<PreviewOut>) {
     match state.focus {
-        PaneFocus::Pane(at) => in_pane(state, key, at, controls),
-        PaneFocus::Results => in_results(state, key, previewable, controls),
+        Some(at) => in_pane(state, key, at, controls),
+        None => in_results(state, key, previewable, controls),
     }
 }
 
@@ -110,7 +95,7 @@ pub fn step_preview(
 fn in_results(
     state: PreviewState,
     key: PreviewKey,
-    previewable: Previewable,
+    previewable: bool,
     controls: usize,
 ) -> (PreviewState, Vec<PreviewOut>) {
     let pass = (state, vec![PreviewOut::PassToField]);
@@ -121,20 +106,21 @@ fn in_results(
         (PreviewKey::Space | PreviewKey::QuickLook, _, Pane::Shown) => {
             (shown(state, Pane::Hidden), Vec::new())
         }
-        (PreviewKey::Space | PreviewKey::QuickLook, _, Pane::Hidden) => match previewable {
-            Previewable::Yes => (shown(state, Pane::Shown), Vec::new()),
-            // Nothing to look at: a browsing Space is a space after all; ⌘Y does nothing.
-            Previewable::No if key == PreviewKey::Space => pass,
-            Previewable::No => (state, Vec::new()),
-        },
+        (PreviewKey::Space | PreviewKey::QuickLook, _, Pane::Hidden) if previewable => {
+            (shown(state, Pane::Shown), Vec::new())
+        }
+        // Nothing to look at: a browsing Space is a space after all; ⌘Y does nothing.
+        (PreviewKey::Space, _, Pane::Hidden) => pass,
+        (PreviewKey::QuickLook, _, Pane::Hidden) => (state, Vec::new()),
         (PreviewKey::Right(Caret::Inside), _, _) => pass,
         (PreviewKey::Right(Caret::AtEnd) | PreviewKey::CommandRight, _, Pane::Shown) => {
             enter(state, controls)
         }
         (PreviewKey::Right(Caret::AtEnd) | PreviewKey::CommandRight, _, Pane::Hidden) => {
-            match previewable {
-                Previewable::Yes => (shown(state, Pane::Shown), Vec::new()),
-                Previewable::No => pass,
+            if previewable {
+                (shown(state, Pane::Shown), Vec::new())
+            } else {
+                pass
             }
         }
         (PreviewKey::Escape, _, Pane::Shown) => (shown(state, Pane::Hidden), Vec::new()),
@@ -151,13 +137,13 @@ fn in_pane(
     controls: usize,
 ) -> (PreviewState, Vec<PreviewOut>) {
     let back = PreviewState {
-        focus: PaneFocus::Results,
+        focus: None,
         ..state
     };
     let focus = |to: usize| {
         (
             PreviewState {
-                focus: PaneFocus::Pane(to),
+                focus: Some(to),
                 ..state
             },
             vec![PreviewOut::FocusPane(to)],
@@ -200,7 +186,7 @@ fn enter(state: PreviewState, controls: usize) -> (PreviewState, Vec<PreviewOut>
         0 => (state, Vec::new()),
         _ => (
             PreviewState {
-                focus: PaneFocus::Pane(0),
+                focus: Some(0),
                 ..state
             },
             vec![PreviewOut::FocusPane(0)],
@@ -210,12 +196,9 @@ fn enter(state: PreviewState, controls: usize) -> (PreviewState, Vec<PreviewOut>
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        Caret, FieldEdit, Pane, PaneFocus, PreviewKey, PreviewOut, PreviewState, Previewable,
-        step_preview,
-    };
+    use super::{Caret, FieldEdit, Pane, PreviewKey, PreviewOut, PreviewState, step_preview};
 
-    fn run(keys: &[PreviewKey], previewable: Previewable) -> (PreviewState, Vec<PreviewOut>) {
+    fn run(keys: &[PreviewKey], previewable: bool) -> (PreviewState, Vec<PreviewOut>) {
         keys.iter()
             .fold((PreviewState::default(), Vec::new()), |(state, _), key| {
                 step_preview(state, *key, previewable, 3)
@@ -225,69 +208,56 @@ mod tests {
     #[test]
     fn space_is_quick_look_only_while_browsing() {
         use PreviewKey::{Moved, Space, Typed};
-        let (state, out) = run(&[Typed, Space], Previewable::Yes);
+        let (state, out) = run(&[Typed, Space], true);
         assert_eq!(state.pane, Pane::Hidden);
         assert_eq!(out, [PreviewOut::PassToField], "typing: Space is a space");
-        let (state, out) = run(&[Typed, Moved, Space], Previewable::Yes);
+        let (state, out) = run(&[Typed, Moved, Space], true);
         assert_eq!(state.pane, Pane::Shown);
         assert!(out.is_empty());
-        let (state, _) = run(&[Moved, Space, Space], Previewable::Yes);
+        let (state, _) = run(&[Moved, Space, Space], true);
         assert_eq!(state.pane, Pane::Hidden, "Space again closes it");
-        let (state, _) = run(&[Moved, Space], Previewable::No);
+        let (state, _) = run(&[Moved, Space], false);
         assert_eq!(state.pane, Pane::Hidden, "nothing to preview");
-        let (state, _) = run(&[Moved, Typed], Previewable::Yes);
+        let (state, _) = run(&[Moved, Typed], true);
         assert_eq!(state.edit, FieldEdit::Typing);
     }
 
     #[test]
     fn command_y_and_the_right_arrow_open_and_enter_the_pane() {
         use PreviewKey::{CommandRight, QuickLook, Right, Typed};
-        let (state, _) = run(&[Typed, QuickLook], Previewable::Yes);
+        let (state, _) = run(&[Typed, QuickLook], true);
         assert_eq!(state.pane, Pane::Shown, "⌘Y whatever the field is doing");
-        let (state, out) = run(&[Right(Caret::Inside)], Previewable::Yes);
+        let (state, out) = run(&[Right(Caret::Inside)], true);
         assert_eq!(
             (state.pane, out),
             (Pane::Hidden, vec![PreviewOut::PassToField])
         );
-        let (state, _) = run(&[Right(Caret::AtEnd)], Previewable::Yes);
+        let (state, _) = run(&[Right(Caret::AtEnd)], true);
         assert_eq!(state.pane, Pane::Shown);
-        let (state, out) = run(
-            &[Right(Caret::AtEnd), Right(Caret::AtEnd)],
-            Previewable::Yes,
-        );
-        assert_eq!(state.focus, PaneFocus::Pane(0));
+        let (state, out) = run(&[Right(Caret::AtEnd), Right(Caret::AtEnd)], true);
+        assert_eq!(state.focus, Some(0));
         assert_eq!(out, [PreviewOut::FocusPane(0)]);
-        let (state, _) = run(&[CommandRight, CommandRight], Previewable::Yes);
-        assert_eq!(state.focus, PaneFocus::Pane(0));
+        let (state, _) = run(&[CommandRight, CommandRight], true);
+        assert_eq!(state.focus, Some(0));
     }
 
     #[test]
     fn tab_walks_the_pane_and_escape_closes_one_level_at_a_time() {
         use PreviewKey::{CommandRight, Escape, Left, ShiftTab, Tab};
-        let (state, out) = run(
-            &[CommandRight, CommandRight, Tab, Tab, Tab],
-            Previewable::Yes,
-        );
-        assert_eq!(
-            state.focus,
-            PaneFocus::Pane(0),
-            "wraps within the pane's 3 controls"
-        );
+        let (state, out) = run(&[CommandRight, CommandRight, Tab, Tab, Tab], true);
+        assert_eq!(state.focus, Some(0), "wraps within the pane's 3 controls");
         assert_eq!(out, [PreviewOut::FocusPane(0)]);
-        let (state, _) = run(&[CommandRight, CommandRight, ShiftTab], Previewable::Yes);
-        assert_eq!(state.focus, PaneFocus::Pane(2));
-        let (state, out) = run(&[CommandRight, CommandRight, Left], Previewable::Yes);
-        assert_eq!(
-            (state.focus, out),
-            (PaneFocus::Results, vec![PreviewOut::FocusField])
-        );
+        let (state, _) = run(&[CommandRight, CommandRight, ShiftTab], true);
+        assert_eq!(state.focus, Some(2));
+        let (state, out) = run(&[CommandRight, CommandRight, Left], true);
+        assert_eq!((state.focus, out), (None, vec![PreviewOut::FocusField]));
         let steps = [CommandRight, CommandRight, Escape];
-        let (state, out) = run(&steps, Previewable::Yes);
-        assert_eq!((state.pane, state.focus), (Pane::Shown, PaneFocus::Results));
+        let (state, out) = run(&steps, true);
+        assert_eq!((state.pane, state.focus), (Pane::Shown, None));
         assert_eq!(out, [PreviewOut::FocusField]);
-        let (state, out) = run(&[CommandRight, Escape], Previewable::Yes);
+        let (state, out) = run(&[CommandRight, Escape], true);
         assert_eq!((state.pane, out), (Pane::Hidden, vec![]));
-        let (_, out) = run(&[Escape], Previewable::Yes);
+        let (_, out) = run(&[Escape], true);
         assert_eq!(out, [PreviewOut::CloseLauncher]);
     }
 }

@@ -21,15 +21,6 @@ pub struct Level {
     pub mute: Mute,
 }
 
-/// Where a change's level is read from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LevelSource {
-    /// The volume or displays service, as it publishes the new level.
-    Live,
-    /// A made-up reading (`sill debug osd`): nothing real moved.
-    Fixed(Level),
-}
-
 /// Counts changes; each is one more than the last.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct ChangeSerial(pub u64);
@@ -41,7 +32,9 @@ pub struct OsdChange {
     pub kind: OsdKind,
     /// The outputs whose indicator shows it.
     pub outputs: Vec<OutputId>,
-    pub level: LevelSource,
+    /// A made-up reading (`sill debug osd`: nothing real moved), or `None` for the level the
+    /// volume or displays service publishes now.
+    pub level: Option<Level>,
 }
 
 impl OsdChange {
@@ -49,56 +42,33 @@ impl OsdChange {
     pub fn shows_on(&self, output: OutputId) -> bool {
         self.outputs.contains(&output)
     }
-}
 
-/// The latest change, if any has been asked for.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum OsdLatest {
-    #[default]
-    None,
-    Change(OsdChange),
-}
-
-impl OsdLatest {
-    /// The latest change's serial (zero before the first).
-    pub fn serial(&self) -> ChangeSerial {
-        match self {
-            OsdLatest::None => ChangeSerial::default(),
-            OsdLatest::Change(change) => change.serial,
-        }
-    }
-
-    /// The latest change, when it is newer than `seen` and shows on `output`.
-    pub fn fresh_for(&self, seen: ChangeSerial, output: OutputId) -> Option<&OsdChange> {
-        match self {
-            OsdLatest::Change(change) if change.serial > seen && change.shows_on(output) => {
-                Some(change)
-            }
-            _ => None,
-        }
+    /// Whether `output`'s indicator has this change to show: it is newer than `seen`.
+    pub fn is_fresh_for(&self, seen: ChangeSerial, output: OutputId) -> bool {
+        self.serial > seen && self.shows_on(output)
     }
 }
 
 /// `latest` followed by a change of `kind` on `outputs`, one serial on.
 pub fn next(
-    latest: &OsdLatest,
+    latest: Option<&OsdChange>,
     kind: OsdKind,
     outputs: Vec<OutputId>,
-    level: LevelSource,
-) -> OsdLatest {
-    OsdLatest::Change(OsdChange {
-        serial: ChangeSerial(latest.serial().0 + 1),
+    level: Option<Level>,
+) -> OsdChange {
+    OsdChange {
+        serial: ChangeSerial(latest.map_or(0, |change| change.serial.0) + 1),
         kind,
         outputs,
         level,
-    })
+    }
 }
 
 /// The shared channel, a root context of every OSD surface and kept by the daemon. Clone is
 /// cheap.
 #[derive(Debug, Clone, Default)]
 pub struct OsdLink {
-    latest: Shared<OsdLatest>,
+    latest: Shared<Option<OsdChange>>,
 }
 
 impl OsdLink {
@@ -108,21 +78,21 @@ impl OsdLink {
     }
 
     /// Show a change of `kind` on `outputs` (nothing when `outputs` is empty).
-    pub fn show(&self, kind: OsdKind, outputs: Vec<OutputId>, level: LevelSource) {
+    pub fn show(&self, kind: OsdKind, outputs: Vec<OutputId>, level: Option<Level>) {
         if outputs.is_empty() {
             return;
         }
         self.latest
-            .modify(|latest| *latest = next(latest, kind, outputs, level));
+            .modify(|latest| *latest = Some(next(latest.as_ref(), kind, outputs, level)));
     }
 
-    /// The latest change.
-    pub fn now(&self) -> OsdLatest {
+    /// The latest change, if any has been asked for.
+    pub fn now(&self) -> Option<OsdChange> {
         self.latest.now()
     }
 
     /// A receiver for a surface to follow.
-    pub fn subscribe(&self) -> watch::Receiver<OsdLatest> {
+    pub fn subscribe(&self) -> watch::Receiver<Option<OsdChange>> {
         self.latest.subscribe()
     }
 }
@@ -130,7 +100,7 @@ impl OsdLink {
 #[cfg(test)]
 mod tests {
     use super::next;
-    use crate::links::{ChangeSerial, LevelSource, OsdKind, OsdLatest, OsdLink};
+    use crate::links::{ChangeSerial, OsdKind, OsdLink};
     use shell_host::OutputId;
 
     const ONE: OutputId = OutputId(1);
@@ -138,15 +108,10 @@ mod tests {
 
     #[test]
     fn each_change_counts_on_and_names_its_outputs() {
-        let first = next(
-            &OsdLatest::None,
-            OsdKind::Volume,
-            vec![ONE],
-            LevelSource::Live,
-        );
-        assert_eq!(first.serial(), ChangeSerial(1));
-        let second = next(&first, OsdKind::Volume, vec![ONE], LevelSource::Live);
-        assert_eq!(second.serial(), ChangeSerial(2), "the same key again");
+        let first = next(None, OsdKind::Volume, vec![ONE], None);
+        assert_eq!(first.serial, ChangeSerial(1));
+        let second = next(Some(&first), OsdKind::Volume, vec![ONE], None);
+        assert_eq!(second.serial, ChangeSerial(2), "the same key again");
         const CASES: &[(u64, OutputId, bool)] = &[
             (0, ONE, true),
             (1, ONE, true),
@@ -155,22 +120,24 @@ mod tests {
         ];
         for &(seen, output, want) in CASES {
             assert_eq!(
-                second.fresh_for(ChangeSerial(seen), output).is_some(),
+                second.is_fresh_for(ChangeSerial(seen), output),
                 want,
                 "seen {seen} on {output:?}"
             );
         }
-        assert_eq!(OsdLatest::None.fresh_for(ChangeSerial(0), ONE), None);
     }
 
     #[test]
     fn a_change_for_no_output_is_not_sent() {
         let link = OsdLink::new();
         let mut rx = link.subscribe();
-        link.show(OsdKind::Brightness, Vec::new(), LevelSource::Live);
+        link.show(OsdKind::Brightness, Vec::new(), None);
         assert!(!rx.has_changed().unwrap_or(true));
-        link.show(OsdKind::Brightness, vec![ONE, TWO], LevelSource::Live);
+        link.show(OsdKind::Brightness, vec![ONE, TWO], None);
         assert!(rx.has_changed().unwrap_or(false));
-        assert_eq!(rx.borrow_and_update().serial(), ChangeSerial(1));
+        assert_eq!(
+            rx.borrow_and_update().as_ref().map(|change| change.serial),
+            Some(ChangeSerial(1))
+        );
     }
 }

@@ -7,13 +7,6 @@ use sill_ui_kit::sheet_stage::Mapped;
 
 use super::props::{Step, step_of};
 
-/// Whether the banners' output is this one.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Here {
-    Yes,
-    No,
-}
-
 /// One step on screen.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Drawn {
@@ -21,17 +14,17 @@ pub struct Drawn {
     pub step: Step,
 }
 
-/// What `sheets` shows on this output.
-pub fn drawn(sheets: &AccountsSheets, here: Here) -> Option<Drawn> {
-    match here {
-        Here::No => None,
-        Here::Yes => sheets.current().and_then(|sheet| {
-            step_of(sheet).map(|step| Drawn {
-                handle: sheet.handle.clone(),
-                step,
-            })
-        }),
+/// What `sheets` shows on this output, `here` being whether the banners' output is this one.
+pub fn drawn(sheets: &AccountsSheets, here: bool) -> Option<Drawn> {
+    if !here {
+        return None;
     }
+    sheets.current().and_then(|sheet| {
+        step_of(sheet).map(|step| Drawn {
+            handle: sheet.handle.clone(),
+            step,
+        })
+    })
 }
 
 impl Drawn {

@@ -33,7 +33,7 @@ use sill_ui_kit::sheet_stage::{SheetStage, settle};
 
 use super::FORCE_QUIT_CSS;
 use super::io::{use_rows, use_stage};
-use super::model::{Chosen, Confirming};
+use super::model::Chosen;
 use super::step::{In, Out, advance};
 use super::surface::PANEL_ID;
 
@@ -124,15 +124,12 @@ fn PanelCard(
         })
         .collect();
     let empty = items.is_empty();
-    let ready = if chosen.app.is_some() && chosen.confirming == Confirming::No {
+    let ready = if chosen.app.is_some() && chosen.confirming.is_none() {
         Availability::Enabled
     } else {
         Availability::Disabled
     };
-    let asking = match &chosen.confirming {
-        Confirming::App(app) => Some(name_of(app, &icons)),
-        Confirming::No => None,
-    };
+    let asking = chosen.confirming.as_ref().map(|app| name_of(app, &icons));
     rsx! {
         // A sheet dims nothing and catches no click (macOS; design/30): a press away from the
         // panel is this surface's own, so it closes the panel as the scrim did.

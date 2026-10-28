@@ -23,13 +23,13 @@ use sill_model::ids::OutputName;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
 use sill_settings::ShellFile;
-use sill_ui_kit::links::{Level, LevelSource, OsdKind, OsdLink};
+use sill_ui_kit::links::{Level, OsdKind, OsdLink};
 use sill_ui_kit::services::Services;
 
 /// The outputs that show a `kind` change whose level comes from `level`: see the module doc.
 pub fn osd_outputs(
     kind: OsdKind,
-    level: LevelSource,
+    level: Option<Level>,
     keys: KeysTarget,
     focus: Option<&OutputName>,
     outputs: &[OutputInfo],
@@ -50,10 +50,7 @@ pub fn osd_outputs(
             .collect(),
         OsdKind::Brightness => targets(keys, focus, &names)
             .into_iter()
-            .filter(|name| match level {
-                LevelSource::Fixed(_) => true,
-                LevelSource::Live => displays.brightness(&displays.target(name)).is_some(),
-            })
+            .filter(|name| level.is_some() || displays.brightness(&displays.target(name)).is_some())
             .filter_map(id_of)
             .collect(),
     }
@@ -80,7 +77,7 @@ fn show(
     outputs: &Outputs,
     file: &ShellFile,
     kind: OsdKind,
-    level: LevelSource,
+    level: Option<Level>,
 ) {
     let infos: Vec<OutputInfo> = outputs.outputs.iter().map(|(i, _)| i.clone()).collect();
     let focus = services.windows.state.borrow().toplevels.focused_output();
@@ -106,14 +103,7 @@ pub fn after_display(
     response: &Response,
 ) {
     if *response == Response::Done {
-        show(
-            link,
-            services,
-            outputs,
-            file,
-            kind_of(request),
-            LevelSource::Live,
-        );
+        show(link, services, outputs, file, kind_of(request), None);
     }
 }
 
@@ -126,14 +116,7 @@ pub fn fake(
     kind: OsdKind,
     level: Level,
 ) {
-    show(
-        link,
-        services,
-        outputs,
-        file,
-        kind,
-        LevelSource::Fixed(level),
-    );
+    show(link, services, outputs, file, kind, Some(level));
 }
 
 #[cfg(test)]

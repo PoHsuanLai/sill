@@ -16,26 +16,27 @@ use sill_model::units::{Percent, Presence};
 use sill_model::volume::{Mute, Volume};
 use sill_shell_kit::osd::OsdLevel;
 
-use sill_ui_kit::links::{Level, LevelSource, OsdKind};
+use sill_ui_kit::links::{Level, OsdKind};
 
-/// A change's level on one output, if there is one to show.
+/// A change's level on one output, if there is one to show: the `fixed` reading of a made-up
+/// change, else the live one from the services.
 pub fn level_of(
     kind: OsdKind,
-    source: LevelSource,
+    fixed: Option<Level>,
     volume: &Volume,
     displays: &Displays,
     output: Option<&OutputName>,
 ) -> Option<Level> {
-    match (source, kind) {
-        (LevelSource::Fixed(level), _) => Some(level),
-        (LevelSource::Live, OsdKind::Volume) => match volume.presence {
+    match (fixed, kind) {
+        (Some(level), _) => Some(level),
+        (None, OsdKind::Volume) => match volume.presence {
             Presence::Present => Some(Level {
                 percent: volume.level,
                 mute: volume.mute,
             }),
             Presence::Absent => None,
         },
-        (LevelSource::Live, OsdKind::Brightness) => {
+        (None, OsdKind::Brightness) => {
             let percent = displays.brightness(&displays.target(output?))?;
             Some(Level {
                 percent,
@@ -132,7 +133,7 @@ mod tests {
         ids::OutputName,
         units::{Percent, Presence},
     };
-    use sill_ui_kit::links::{Level, LevelSource, OsdKind};
+    use sill_ui_kit::links::{Level, OsdKind};
 
     fn level(percent: u16, mute: Mute) -> Option<Level> {
         Some(Level {
@@ -221,8 +222,8 @@ mod tests {
         };
         let hdmi = OutputName("HDMI-A-2".to_owned());
         let other = OutputName("DP-1".to_owned());
-        let live = LevelSource::Live;
-        let fixed = LevelSource::Fixed(Level {
+        let live: Option<Level> = None;
+        let fixed = Some(Level {
             percent: Percent(70),
             mute: Mute::Audible,
         });

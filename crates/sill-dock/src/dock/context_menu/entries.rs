@@ -5,7 +5,7 @@ use sill_launcher::{AppId, WindowKey};
 use sill_model::windows::{Toplevel, WindowState};
 use sill_settings::OnOff;
 
-use super::{Checked, DockMenuRow, Minimized};
+use super::{Checked, DockMenuRow};
 use crate::dock::pick::{DockPick, LoginChange};
 
 /// What the picks of one menu act on.
@@ -137,9 +137,10 @@ fn row_entry(
             minimized,
         } => {
             let key = listed.next()?.key;
-            let title = match minimized {
-                Minimized::Minimized => format!("◆ {title}"),
-                Minimized::Normal => title.clone(),
+            let title = if *minimized {
+                format!("◆ {title}")
+            } else {
+                title.clone()
             };
             Line::new(title, DockPick::Activate(key)).marked(*active)
         }

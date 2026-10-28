@@ -25,19 +25,12 @@ pub(super) const BODY_ID: &str = "bar-body";
 /// The element at the top edge that takes the pointer while the bar is hidden.
 pub(super) const STRIP_ID: &str = "bar-strip";
 
-/// Where the pointer is.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(super) enum Pointer {
-    #[default]
-    Outside,
-    Inside,
-}
-
 /// The bar's whole hiding state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(super) struct BarReveal {
     pub phase: Phase,
-    pub pointer: Pointer,
+    /// Whether the pointer is inside the bar (or its strip).
+    pub pointer_inside: bool,
 }
 
 impl BarReveal {
@@ -45,7 +38,7 @@ impl BarReveal {
     pub(super) fn at_rest(mode: MenuBarHiding) -> BarReveal {
         BarReveal {
             phase: rest_phase(mode),
-            pointer: Pointer::Outside,
+            pointer_inside: false,
         }
     }
 }
@@ -156,15 +149,15 @@ pub(super) fn step(
     hold: Hold,
     t: &Timing,
 ) -> (BarReveal, Vec<RevealEffect>) {
-    let pointer = match event {
-        RevealEvent::Enter => Pointer::Inside,
-        RevealEvent::Leave => Pointer::Outside,
-        _ => state.pointer,
+    let pointer_inside = match event {
+        RevealEvent::Enter => true,
+        RevealEvent::Leave => false,
+        _ => state.pointer_inside,
     };
     let input = match event {
         RevealEvent::Enter => Some(Input::Inside),
         RevealEvent::Leave => Some(Input::Outside),
-        RevealEvent::MenuClosed if pointer == Pointer::Outside => Some(Input::Outside),
+        RevealEvent::MenuClosed if !pointer_inside => Some(Input::Outside),
         RevealEvent::MenuClosed => None,
         RevealEvent::MenuOpened => Some(Input::Edge(Shown::Shown)),
         RevealEvent::Tick => Some(Input::Tick),
@@ -186,7 +179,13 @@ pub(super) fn step(
             RevealEffect::StopFrames
         });
     }
-    (BarReveal { phase, pointer }, out)
+    (
+        BarReveal {
+            phase,
+            pointer_inside,
+        },
+        out,
+    )
 }
 
 /// What the bar's layer does for `change`.

@@ -1,6 +1,6 @@
 use sill_model::desktop::{ForceQuitRow, Standing};
 
-use super::model::{Chosen, Confirming};
+use super::model::Chosen;
 use super::step::{In, Out, advance};
 
 fn row(app: &str, standing: Standing) -> ForceQuitRow {
@@ -21,14 +21,14 @@ fn rows() -> Vec<ForceQuitRow> {
 fn selected(app: &str) -> Chosen {
     Chosen {
         app: Some(app.to_owned()),
-        confirming: Confirming::No,
+        confirming: None,
     }
 }
 
 fn asking(app: &str) -> Chosen {
     Chosen {
         app: Some(app.to_owned()),
-        confirming: Confirming::App(app.to_owned()),
+        confirming: Some(app.to_owned()),
     }
 }
 
@@ -112,7 +112,7 @@ fn the_panel_selects_asks_confirms_and_leaves() {
             In::Listed,
             Chosen {
                 app: Some("term".to_owned()),
-                confirming: Confirming::No,
+                confirming: None,
             },
             Out::Nothing,
         ),

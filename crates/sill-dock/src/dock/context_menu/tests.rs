@@ -1,6 +1,6 @@
 //! Table tests for the app tile's menu: its rows (`app.rs`) and its entries (`entries.rs`).
 
-use super::{Checked, DockMenuRow, Minimized, OptionHeld, app, menu_entries, menu_windows};
+use super::{Checked, DockMenuRow, OptionHeld, app, menu_entries, menu_windows};
 use crate::dock::items::{DockItem, ItemKind};
 use crate::dock::machine::{TileApp, TileId};
 use crate::dock::pick::{DockPick, LoginChange};
@@ -122,12 +122,12 @@ fn a_running_pinned_app_lists_windows_actions_options_and_quit() {
             DockMenuRow::Window {
                 title: "shell 2".to_owned(),
                 active: Checked::Checked,
-                minimized: Minimized::Normal,
+                minimized: false,
             },
             DockMenuRow::Window {
                 title: "shell 1".to_owned(),
                 active: Checked::Unchecked,
-                minimized: Minimized::Minimized,
+                minimized: true,
             },
             DockMenuRow::Separator,
             DockMenuRow::DesktopAction {

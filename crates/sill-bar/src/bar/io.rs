@@ -18,7 +18,7 @@ use super::content::{AppMenuState, BarState, FrontApp, body, front_app};
 use super::layer::layer;
 use super::menu_popup::{BarPopup, PopupLink, SUBMENU_ROOM};
 use super::menus::{AppTitle, BarMenu};
-use super::model::{BarInput, Handoff, PopupView, SessionDeps, status_box};
+use super::model::{BarInput, PopupView, SessionDeps, status_box};
 use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
@@ -108,7 +108,8 @@ struct Slots {
     open: Signal<Option<BarMenu>>,
     rects: Signal<HashMap<BarMenu, Rect>>,
     link: CopyValue<Link>,
-    handoff: CopyValue<Handoff>,
+    /// Whether a bar menu waits for the notification center to leave before its popup opens.
+    handoff: CopyValue<bool>,
     /// The session's own input, for the handoff's wake-up (set once the callback exists).
     feed: CopyValue<Option<Callback<BarInput>>>,
 }
@@ -214,7 +215,7 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
                 reports: reports_tx,
             })
         }),
-        handoff: use_hook(|| CopyValue::new(Handoff::Idle)),
+        handoff: use_hook(|| CopyValue::new(false)),
         feed: use_hook(|| CopyValue::new(None)),
     };
     refresh(slots, &deps);
@@ -271,8 +272,8 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
         BarInput::Popup(report) => popup_input(report, slots.track.peek().open_menu().copied()),
         BarInput::CenterGone => {
             let mut handoff = slots.handoff;
-            let waiting = handoff.replace(Handoff::Idle);
-            if waiting == Handoff::Waiting
+            let waiting = handoff.replace(false);
+            if waiting
                 && let Some(menu) = slots
                     .track
                     .peek()
@@ -304,7 +305,7 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
             Some(center) => {
                 center.close();
                 let mut handoff = slots.handoff;
-                handoff.set(Handoff::Waiting);
+                handoff.set(true);
                 open.set(Some(menu));
                 if let Some(feed) = *slots.feed.peek() {
                     spawn(async move {
@@ -324,7 +325,7 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
         }
         BarEffect::Hide => {
             let mut handoff = slots.handoff;
-            handoff.set(Handoff::Idle);
+            handoff.set(false);
             if let Some(tx) = link.write().view.take() {
                 tx.send_replace(None);
             }

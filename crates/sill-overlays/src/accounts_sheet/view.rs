@@ -22,7 +22,7 @@ use super::continue_as::ContinueBody;
 use super::events;
 use super::io::{Io, use_io};
 use super::props::{Purpose, Step};
-use super::stage::{Drawn, Here, drawn};
+use super::stage::{Drawn, drawn};
 
 pub(super) fn accounts_sheet(output: OutputInfo) -> Element {
     let shown = use_drawn(output.clone());
@@ -216,14 +216,7 @@ fn body(step: Step, io: Io) -> Element {
 fn use_drawn(output: OutputInfo) -> Memo<Option<Drawn>> {
     let sheets: ReadSignal<AccountsSheets> = use_service::<AccountsSheetService>();
     let placed = use_sheet_output();
-    let shown = use_memo(move || {
-        let here = if placed.read().shows_on(output.id) {
-            Here::Yes
-        } else {
-            Here::No
-        };
-        drawn(&sheets.read(), here)
-    });
+    let shown = use_memo(move || drawn(&sheets.read(), placed.read().shows_on(output.id)));
     use_follow_visibility(move || Drawn::mapped(shown.read().as_ref()).visibility());
     shown
 }

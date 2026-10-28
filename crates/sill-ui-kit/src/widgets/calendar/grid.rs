@@ -1,114 +1,58 @@
 //! The month grid, computed: pure over the month, the first weekday, today and the busy days,
 //! so the widget and quire's `MonthGrid` take the same data.
 
+use std::cmp::Ordering;
+
 use jiff::ToSpan;
 use jiff::civil::{Date, Weekday};
 use jiff::tz::TimeZone;
 use sill_model::events::{CalEvent, EventTime};
 use sill_settings::FirstWeekday;
+use sill_shell_kit::month_grid::data::{
+    DayKey, DayMark, DayPlace, Eventful, IsoWeek, MonthDay, MonthGridData, MonthKey, MonthStep,
+    MonthWeek,
+};
 
-/// A calendar month.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Month {
-    pub year: i16,
-    /// 1-12.
-    pub month: i8,
-}
+use super::shown::{initial, month_title};
 
-impl Month {
-    /// The month `date` is in.
-    pub fn of(date: Date) -> Month {
-        Month {
-            year: date.year(),
-            month: date.month(),
-        }
+/// The month `date` is in.
+pub(super) fn month_of(date: Date) -> MonthKey {
+    MonthKey {
+        year: date.year(),
+        month: date.month(),
     }
 }
 
-/// Previous or next month.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Step {
-    Previous,
-    Next,
-}
-
-/// An ISO 8601 week number, 1-53.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct IsoWeek(pub i8);
-
-/// Whether a cell's day is in the month shown or pads the first or last week.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DayPlace {
-    Before,
-    InMonth,
-    After,
-}
-
-/// Whether a cell is today.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DayMark {
-    Today,
-    Plain,
-}
-
-/// Whether a day has an event.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Eventful {
-    Busy,
-    Free,
-}
-
-/// One cell.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GridDay {
-    pub date: Date,
-    pub place: DayPlace,
-    pub mark: DayMark,
-    pub events: Eventful,
-}
-
-/// One row: its ISO week (the week of its Thursday, whatever the first weekday) and its seven
-/// days.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GridWeek {
-    pub number: IsoWeek,
-    pub days: [GridDay; 7],
-}
-
-/// A month laid out in weeks.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MonthGrid {
-    pub month: Month,
-    /// The column heads, starting at the first weekday.
-    pub weekdays: [Weekday; 7],
-    /// As many rows as the month touches (four to six), padded with the neighbours' days.
-    pub weeks: Vec<GridWeek>,
-}
-
 /// The month after or before `month`.
-pub fn shift_month(month: Month, step: Step) -> Month {
+pub fn shift_month(month: MonthKey, step: MonthStep) -> MonthKey {
     match (step, month.month) {
-        (Step::Next, 12) => Month {
+        (MonthStep::Next, 12) => MonthKey {
             year: month.year.saturating_add(1),
             month: 1,
         },
-        (Step::Next, m) => Month {
+        (MonthStep::Next, m) => MonthKey {
             year: month.year,
             month: m + 1,
         },
-        (Step::Previous, 1) => Month {
+        (MonthStep::Previous, 1) => MonthKey {
             year: month.year.saturating_sub(1),
             month: 12,
         },
-        (Step::Previous, m) => Month {
+        (MonthStep::Previous, m) => MonthKey {
             year: month.year,
             month: m - 1,
         },
     }
 }
 
-/// `month` laid out from `first`, `today` marked, each day in `busy` marked busy.
-pub fn month_grid(month: Month, first: FirstWeekday, today: Date, busy: &[Date]) -> MonthGrid {
+/// `month` laid out from `first`, `today` marked, each day in `busy` marked busy, with its title
+/// and weekday initials in words.
+pub fn month_grid(
+    month: MonthKey,
+    first: FirstWeekday,
+    today: Date,
+    busy: &[Date],
+) -> MonthGridData {
     let head = match first {
         FirstWeekday::Monday => Weekday::Monday,
         FirstWeekday::Sunday => Weekday::Sunday,
@@ -123,52 +67,64 @@ pub fn month_grid(month: Month, first: FirstWeekday, today: Date, busy: &[Date])
         .take_while(|row_start| *row_start <= closing)
         .map(|row_start| week_of(row_start, month, today, busy))
         .collect();
-    MonthGrid {
+    MonthGridData {
         month,
-        weekdays,
+        title: month_title(month, today).into(),
+        heads: weekdays.map(|day| initial(day).into()),
         weeks,
     }
 }
 
 /// The month's first day (a month out of range reads as January 1970's, never a panic).
-fn first_of(month: Month) -> Date {
+fn first_of(month: MonthKey) -> Date {
     Date::new(month.year, month.month, 1).unwrap_or(Date::constant(1970, 1, 1))
 }
 
-/// One row from `start`.
-fn week_of(start: Date, month: Month, today: Date, busy: &[Date]) -> GridWeek {
-    let days: [GridDay; 7] = std::array::from_fn(|i| {
-        let date = start.saturating_add((i as i64).days());
-        GridDay {
-            date,
-            place: match Month::of(date).cmp(&month) {
-                std::cmp::Ordering::Less => DayPlace::Before,
-                std::cmp::Ordering::Equal => DayPlace::InMonth,
-                std::cmp::Ordering::Greater => DayPlace::After,
-            },
-            mark: match date == today {
-                true => DayMark::Today,
-                false => DayMark::Plain,
-            },
-            events: match busy.contains(&date) {
-                true => Eventful::Busy,
-                false => Eventful::Free,
-            },
-        }
-    });
-    let thursday = days
-        .iter()
-        .find(|day| day.date.weekday() == Weekday::Thursday)
-        .map_or(start, |day| day.date);
-    GridWeek {
+/// One row from `start`: its ISO week is the week of its Thursday, whatever the first weekday.
+fn week_of(start: Date, month: MonthKey, today: Date, busy: &[Date]) -> MonthWeek {
+    let dates: [Date; 7] = std::array::from_fn(|i| start.saturating_add((i as i64).days()));
+    let thursday = dates
+        .into_iter()
+        .find(|date| date.weekday() == Weekday::Thursday)
+        .unwrap_or(start);
+    MonthWeek {
         number: IsoWeek(thursday.iso_week_date().week()),
-        days,
+        days: dates.map(|date| day_of(date, month, today, busy)),
+    }
+}
+
+/// One cell.
+fn day_of(date: Date, month: MonthKey, today: Date, busy: &[Date]) -> MonthDay {
+    let place = match month_of(date).cmp(&month) {
+        Ordering::Less => DayPlace::Before,
+        Ordering::Equal => DayPlace::InMonth,
+        Ordering::Greater => DayPlace::After,
+    };
+    let mark = if date == today {
+        DayMark::Today
+    } else {
+        DayMark::Plain
+    };
+    let events = if busy.contains(&date) {
+        Eventful::Busy
+    } else {
+        Eventful::Free
+    };
+    MonthDay {
+        key: DayKey {
+            year: date.year(),
+            month: date.month(),
+            day: date.day(),
+        },
+        place,
+        mark,
+        events,
     }
 }
 
 /// The days of `month` that have at least one event in `zone` (an all-day event marks each of
 /// its days, a timed one each local day it touches), sorted, once each.
-pub fn busy_days(events: &[CalEvent], zone: &TimeZone, month: Month) -> Vec<Date> {
+pub fn busy_days(events: &[CalEvent], zone: &TimeZone, month: MonthKey) -> Vec<Date> {
     let opening = first_of(month);
     let closing = opening.last_of_month();
     let mut days: Vec<Date> = events
@@ -208,19 +164,27 @@ fn local_days(event: &CalEvent, zone: &TimeZone) -> Option<(Date, Date)> {
 
 #[cfg(test)]
 mod tests {
-    use jiff::civil::{Weekday, date};
+    use ds::prelude::*;
+    use jiff::civil::date;
     use sill_settings::FirstWeekday;
+    use sill_shell_kit::month_grid::data::{
+        DayKey, DayMark, DayPlace, Eventful, IsoWeek, MonthKey, MonthStep,
+    };
 
-    use super::{DayMark, DayPlace, Eventful, IsoWeek, Month, Step, month_grid, shift_month};
+    use super::{month_grid, month_of, shift_month};
 
-    const SEPT: Month = Month {
+    const SEPT: MonthKey = MonthKey {
         year: 2026,
         month: 9,
     };
 
+    fn key(year: i16, month: i8, day: i8) -> DayKey {
+        DayKey { year, month, day }
+    }
+
     #[test]
     fn a_month_is_the_one_a_date_is_in() {
-        assert_eq!(Month::of(date(2026, 9, 26)), SEPT);
+        assert_eq!(month_of(date(2026, 9, 26)), SEPT);
     }
 
     #[test]
@@ -228,30 +192,30 @@ mod tests {
         let cases = [
             (
                 SEPT,
-                Step::Next,
-                Month {
+                MonthStep::Next,
+                MonthKey {
                     year: 2026,
                     month: 10,
                 },
             ),
             (
-                Month {
+                MonthKey {
                     year: 2026,
                     month: 12,
                 },
-                Step::Next,
-                Month {
+                MonthStep::Next,
+                MonthKey {
                     year: 2027,
                     month: 1,
                 },
             ),
             (
-                Month {
+                MonthKey {
                     year: 2026,
                     month: 1,
                 },
-                Step::Previous,
-                Month {
+                MonthStep::Previous,
+                MonthKey {
                     year: 2025,
                     month: 12,
                 },
@@ -267,23 +231,29 @@ mod tests {
         let today = date(2026, 9, 26);
         let busy = [date(2026, 9, 28)];
         let monday = month_grid(SEPT, FirstWeekday::Monday, today, &busy);
-        assert_eq!(monday.weekdays[0], Weekday::Monday);
+        let heads: Vec<String> = monday.heads.iter().map(TextLine::plain_text).collect();
+        assert_eq!(heads, ["M", "T", "W", "T", "F", "S", "S"]);
+        assert_eq!(monday.month, SEPT);
+        assert_eq!(monday.title.plain_text(), "September");
         assert_eq!(monday.weeks.len(), 5);
         let first = monday.weeks[0];
         assert_eq!(first.number, IsoWeek(36));
-        assert_eq!(first.days[0].date, date(2026, 8, 31));
+        assert_eq!(first.days[0].key, key(2026, 8, 31));
         assert_eq!(first.days[0].place, DayPlace::Before);
-        assert_eq!(first.days[1].date, date(2026, 9, 1));
+        assert_eq!(first.days[1].key, key(2026, 9, 1));
         assert_eq!(first.days[1].place, DayPlace::InMonth);
         let week = monday.weeks[3];
-        assert_eq!(week.days[5].date, today);
+        assert_eq!(week.days[5].key, key(2026, 9, 26));
         assert_eq!(week.days[5].mark, DayMark::Today);
+        assert_eq!(week.days[4].mark, DayMark::Plain);
         assert_eq!(monday.weeks[4].days[0].events, Eventful::Busy);
+        assert_eq!(monday.weeks[4].days[1].events, Eventful::Free);
         assert_eq!(monday.weeks[4].days[3].place, DayPlace::After);
 
         let sunday = month_grid(SEPT, FirstWeekday::Sunday, today, &[]);
-        assert_eq!(sunday.weekdays[0], Weekday::Sunday);
-        assert_eq!(sunday.weeks[0].days[0].date, date(2026, 8, 30));
+        let heads: Vec<String> = sunday.heads.iter().map(TextLine::plain_text).collect();
+        assert_eq!(heads, ["S", "M", "T", "W", "T", "F", "S"]);
+        assert_eq!(sunday.weeks[0].days[0].key, key(2026, 8, 30));
         assert_eq!(
             sunday.weeks[0].number,
             IsoWeek(36),
@@ -294,7 +264,7 @@ mod tests {
 
     #[test]
     fn a_february_that_fits_four_weeks_has_four() {
-        let feb = Month {
+        let feb = MonthKey {
             year: 2027,
             month: 2,
         };

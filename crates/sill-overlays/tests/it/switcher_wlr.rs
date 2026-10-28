@@ -8,13 +8,14 @@ use desktop_client::toplevel::{ToplevelChange, ToplevelEvent, ToplevelFlag, Topl
 use desktop_client::{
     Desktop, DesktopEvent, Protocol, ProtocolSet, ToplevelIdentifier, ToplevelKey,
 };
+use ds_behaviour::Dir;
 use ds_harness::Viewport;
 use sill_model::windows::Toplevels;
 use sill_overlays::Switcher;
 use sill_services::desktop_wl::project_toplevels;
 use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{Dir, SwitcherAsk, SwitcherLink};
+use sill_ui_kit::links::{SwitcherAsk, SwitcherLink};
 
 fn tk(n: u64) -> ToplevelKey {
     ToplevelKey::new(n)

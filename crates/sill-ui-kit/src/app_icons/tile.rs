@@ -12,7 +12,7 @@ use ds::style::icon::url::IconUrl;
 use sill_launcher::AppId;
 use sill_model::apps::{AppIcon, AppIndex};
 
-use super::{IconContext, LogicalPx, pick, theme_art};
+use super::{IconContext, IconFile, LogicalPx, pick, theme_art};
 
 /// What a surface's tile icons depend on.
 #[derive(Debug, Clone)]
@@ -28,15 +28,19 @@ impl TileIcons {
     pub fn source(&self, app: &AppId) -> IconSource {
         let px = pick(self.side, self.cx.scale);
         let resolver = self.cx.resolver;
-        match self.index.get(app).map(|entry| &entry.icon) {
-            Some(AppIcon::File(path)) if path.is_absolute() && symbolic(path) => self
-                .external(path)
+        let file = match self.index.get(app).map(|entry| &entry.icon) {
+            Some(AppIcon::File(path)) => IconFile::of(path),
+            Some(AppIcon::None) | None => None,
+        };
+        match file {
+            Some(IconFile::Symbolic(path)) => self
+                .external(&path)
                 .map_or_else(window, IconSource::Symbolic),
-            Some(AppIcon::File(path)) if path.is_absolute() => {
-                let file = resolver.path(&theme_art(path, px, self.cx.look));
+            Some(IconFile::Themed(path)) => {
+                let file = resolver.path(&theme_art(&path, px, self.cx.look));
                 self.external(&file).map_or_else(window, IconSource::Image)
             }
-            Some(AppIcon::File(_) | AppIcon::None) | None => window(),
+            None => window(),
         }
     }
 
@@ -50,13 +54,6 @@ impl TileIcons {
 
 fn window() -> IconSource {
     IconSource::Glyph(Icon::Window)
-}
-
-/// Whether a file is a freedesktop `*-symbolic` icon.
-fn symbolic(path: &Path) -> bool {
-    path.file_stem()
-        .and_then(|stem| stem.to_str())
-        .is_some_and(|stem| stem.ends_with("-symbolic"))
 }
 
 /// The icon's side to resolve art at: the switcher's drawn icon, 64 (design/20 section 1.11,

@@ -16,7 +16,7 @@ use sill_shell_kit::notifications::banner_stack::{Banner, BannerKey, BannerPosit
 use sill_shell_kit::prelude::*;
 
 use super::card::ThumbCard;
-use super::follow::{Here, follow};
+use super::follow::follow;
 use super::ghost::GhostLook;
 use super::io::use_thumb;
 use super::keys::thumb_key;
@@ -95,10 +95,7 @@ fn Column(
     let place = use_watch(link.subscribe());
     let mut kept = use_hook(|| CopyValue::new(None::<(ShotId, ThumbPicture)>));
     use_effect(use_reactive!(|setting| {
-        let here = match place.read().shows_on(output) {
-            true => Here::This,
-            false => Here::Elsewhere,
-        };
+        let here = place.read().shows_on(output);
         let shots = shots.read();
         if let Some(input) = follow(&shots, here, setting) {
             if let (ThumbIn::Current(Some(id)), Some(shot)) = (input, &shots.current) {
@@ -166,7 +163,7 @@ mod tests {
     use sill_model::screenshots::ShotId;
 
     use super::row_of;
-    use crate::screenshot_thumb::step::{HoldToken, KeyFocus, Pointer, ThumbExit, ThumbState};
+    use crate::screenshot_thumb::step::{HoldToken, Pointer, ThumbExit, ThumbState};
 
     #[test]
     fn the_row_stays_for_the_cards_own_exit_and_goes_for_a_swipe() {
@@ -179,7 +176,7 @@ mod tests {
                 ThumbState::Shown {
                     id,
                     pointer: Pointer::Dragging,
-                    keys: KeyFocus::Away,
+                    keys_held: false,
                     token,
                 },
                 Some((id, Shown::Visible)),

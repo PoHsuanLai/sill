@@ -16,6 +16,7 @@ use sill_launcher::{Action, ActionId, ActionKeys, IconRef, Item, ItemId, OwnActi
 
 use crate::launcher::action_keys::action_shortcut;
 use crate::launcher::groups::Mix;
+use sill_ui_kit::app_icons::IconFile;
 
 /// What a palette row picks: the row's identity, looked up again when it is chosen so a
 /// batch landing between the key and the pick cannot run another row.
@@ -80,29 +81,39 @@ fn show_actions_key() -> Shortcut {
 /// Only data trails a row: its kind in a mixed group, else nothing.
 pub(crate) fn kind_trail(item: &Item, mix: Mix) -> Accessory {
     match mix {
-        Mix::Mixed => Accessory::Text(kind_note(item.provider).to_owned()),
+        Mix::Mixed => Accessory::Text(face(item.provider).note.to_owned()),
         Mix::Single => Accessory::None,
     }
 }
 
-/// A row's kind, trailing it in a mixed group.
-pub(crate) fn kind_note(kind: ProviderKind) -> &'static str {
-    match kind {
-        ProviderKind::Apps => "Application",
-        ProviderKind::Windows => "Window",
-        ProviderKind::Calculator => "Calculator",
-        ProviderKind::Settings => "Setting",
-        ProviderKind::System => "System",
-        ProviderKind::Files => "Document",
-        ProviderKind::Clipboard => "Clipboard",
-        ProviderKind::Emoji => "Emoji",
-        ProviderKind::Web => "Web",
-        ProviderKind::Things => "Thing",
-        ProviderKind::Companion => "Assistant",
-        ProviderKind::Helpers => "Helper",
-        ProviderKind::Runs => "Run",
-        ProviderKind::Memory => "Memory",
-    }
+/// What a provider's rows say of themselves.
+struct Face {
+    /// The kind, trailing a row in a mixed group.
+    note: &'static str,
+    /// The glyph a row without an icon of its own shows (design/08: `Grid` for applications,
+    /// `Window` for windows).
+    glyph: Icon,
+}
+
+/// `kind`'s face.
+fn face(kind: ProviderKind) -> Face {
+    let (note, glyph) = match kind {
+        ProviderKind::Apps => ("Application", Icon::Grid),
+        ProviderKind::Windows => ("Window", Icon::Window),
+        ProviderKind::Calculator => ("Calculator", Icon::Command),
+        ProviderKind::Settings => ("Setting", Icon::Settings),
+        ProviderKind::System => ("System", Icon::Power),
+        ProviderKind::Files => ("Document", Icon::File),
+        ProviderKind::Clipboard => ("Clipboard", Icon::Clipboard),
+        ProviderKind::Emoji => ("Emoji", Icon::Smile),
+        ProviderKind::Web => ("Web", Icon::Globe),
+        ProviderKind::Things => ("Thing", Icon::Inbox),
+        ProviderKind::Companion => ("Assistant", Icon::Sparkles),
+        ProviderKind::Helpers => ("Helper", Icon::Group),
+        ProviderKind::Runs => ("Run", Icon::Play),
+        ProviderKind::Memory => ("Memory", Icon::Clock),
+    };
+    Face { note, glyph }
 }
 
 /// The row's tile: its resolved icon file, else its glyph.
@@ -118,47 +129,23 @@ pub fn tile(item: &Item) -> RowLeading {
 /// An icon file at the rows' 48 px: `Symbolic` for a `*-symbolic` file, recoloured like a
 /// glyph, `Image` for the rest; none for a relative path.
 fn file_icon(path: &Path) -> Option<IconSource> {
-    let url = IconUrl::file(path).ok()?;
-    let external = ExternalIcon {
-        url,
-        size: IconSize::Tile48,
+    let external = |path: &Path| {
+        Some(ExternalIcon {
+            url: IconUrl::file(path).ok()?,
+            size: IconSize::Tile48,
+        })
     };
-    let symbolic = path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .is_some_and(|stem| stem.ends_with("-symbolic"));
-    Some(if symbolic {
-        IconSource::Symbolic(external)
-    } else {
-        IconSource::Image(external)
+    Some(match IconFile::of(path)? {
+        IconFile::Symbolic(path) => IconSource::Symbolic(external(&path)?),
+        IconFile::Themed(path) => IconSource::Image(external(&path)?),
     })
 }
 
 /// The row's glyph: the quire icon it names, else its provider's.
 pub fn glyph(item: &Item) -> Icon {
     match &item.icon {
-        IconRef::Glyph(name) => named(name).unwrap_or_else(|| provider_glyph(item.provider)),
-        IconRef::File(_) | IconRef::None => provider_glyph(item.provider),
-    }
-}
-
-/// Each provider's glyph (design/08: `Grid` for applications, `Window` for windows).
-pub fn provider_glyph(kind: ProviderKind) -> Icon {
-    match kind {
-        ProviderKind::Apps => Icon::Grid,
-        ProviderKind::Windows => Icon::Window,
-        ProviderKind::Calculator => Icon::Command,
-        ProviderKind::Settings => Icon::Settings,
-        ProviderKind::System => Icon::Power,
-        ProviderKind::Files => Icon::File,
-        ProviderKind::Clipboard => Icon::Clipboard,
-        ProviderKind::Emoji => Icon::Smile,
-        ProviderKind::Web => Icon::Globe,
-        ProviderKind::Things => Icon::Inbox,
-        ProviderKind::Companion => Icon::Sparkles,
-        ProviderKind::Helpers => Icon::Group,
-        ProviderKind::Runs => Icon::Play,
-        ProviderKind::Memory => Icon::Clock,
+        IconRef::Glyph(name) => named(name).unwrap_or_else(|| face(item.provider).glyph),
+        IconRef::File(_) | IconRef::None => face(item.provider).glyph,
     }
 }
 

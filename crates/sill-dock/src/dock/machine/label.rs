@@ -5,7 +5,7 @@ use ds::base::time::stamp::Stamp;
 
 use super::params::DockParams;
 use super::press::Press;
-use super::types::{DockEffect, DockEvent, DockState, Hit, MenuState, TileId};
+use super::types::{DockEffect, DockEvent, DockState, Hit, TileId};
 
 /// The label's phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -36,7 +36,7 @@ pub enum LabelGate {
 
 /// The gate `dock` puts on its labels.
 pub fn gate(dock: &DockState) -> LabelGate {
-    if dock.press != Press::Up || dock.menu == MenuState::Open {
+    if dock.press != Press::Up || dock.menu_open {
         LabelGate::Quiet
     } else {
         LabelGate::Open
@@ -278,7 +278,6 @@ mod tests {
     #[test]
     fn the_gate_is_quiet_from_a_press_and_while_the_menu_is_open() {
         use super::{LabelGate, gate};
-        use crate::dock::machine::types::MenuState;
         let p = params();
         let press = DockEvent::Press {
             button: Button::Primary,
@@ -290,7 +289,7 @@ mod tests {
         };
         let (pressed, _) = step(DockState::default(), press, Stamp(0), &p);
         let menu = DockState {
-            menu: MenuState::Open,
+            menu_open: true,
             ..DockState::default()
         };
         let cases = [

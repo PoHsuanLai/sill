@@ -1,4 +1,4 @@
-use super::{IconContext, TileArt, TileSizes, drawn, tile_art};
+use super::{IconContext, IconFile, TileArt, TileSizes, drawn, tile_art};
 use crate::dock::items::ItemKind;
 use ds::prelude::*;
 use ds::style::icon::render::IconPx;
@@ -46,11 +46,11 @@ fn each_entry_picks_its_art() {
     let cases = [
         (
             Some(file("term", "/i/term.svg")),
-            TileArt::Themed("/i/term.svg".into()),
+            TileArt::File(IconFile::Themed("/i/term.svg".into())),
         ),
         (
             Some(file("term", "/i/term-symbolic.svg")),
-            TileArt::Symbolic("/i/term-symbolic.svg".into()),
+            TileArt::File(IconFile::Symbolic("/i/term-symbolic.svg".into())),
         ),
         (
             Some(file("term", "i/term.svg")),
@@ -64,7 +64,7 @@ fn each_entry_picks_its_art() {
         (
             // A desktop app takes its own file, like any other app.
             Some(file("foot", "/i/term.svg")),
-            TileArt::Themed("/i/term.svg".into()),
+            TileArt::File(IconFile::Themed("/i/term.svg".into())),
         ),
     ];
     for (entry, want) in cases {
@@ -109,17 +109,17 @@ fn theme_symbolic_and_glyph_art_draw_their_word_exactly() {
     let rest = TileSizes::new(48.0, &dock);
     let cases = [
         (
-            TileArt::Themed("/i/firefox.svg".into()),
+            TileArt::File(IconFile::Themed("/i/firefox.svg".into())),
             IconStyle::Colour,
             "image file:///i/firefox.svg Px(IconPx(48))",
         ),
         (
-            TileArt::Themed("/i/firefox.svg".into()),
+            TileArt::File(IconFile::Themed("/i/firefox.svg".into())),
             IconStyle::Monochrome,
             "image file:///i/firefox.svg Px(IconPx(48))",
         ),
         (
-            TileArt::Symbolic("/i/a-symbolic.svg".into()),
+            TileArt::File(IconFile::Symbolic("/i/a-symbolic.svg".into())),
             IconStyle::Monochrome,
             "symbolic file:///i/a-symbolic.svg Px(IconPx(48))",
         ),
@@ -139,7 +139,7 @@ fn theme_symbolic_and_glyph_art_draw_their_word_exactly() {
 fn icons_fill_the_tile_in_whole_pixels() {
     let dock = DockSettings::default();
     let size = |side: f64| match drawn(
-        TileArt::Themed("/i/term.svg".into()),
+        TileArt::File(IconFile::Themed("/i/term.svg".into())),
         TileSizes::new(side, &dock),
         &cx(IconStyle::Colour, 120),
     ) {
@@ -161,7 +161,7 @@ fn without_magnification_the_rest_size_still_shows_the_file() {
     };
     let sizes = TileSizes::new(48.0, &dock);
     let got = drawn(
-        TileArt::Themed("/i/photos.svg".into()),
+        TileArt::File(IconFile::Themed("/i/photos.svg".into())),
         sizes,
         &cx(IconStyle::Colour, 120),
     );

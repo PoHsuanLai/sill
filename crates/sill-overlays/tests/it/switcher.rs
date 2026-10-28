@@ -8,6 +8,7 @@
 use std::time::Duration;
 
 use ds::prelude::*;
+use ds_behaviour::Dir;
 use ds_behaviour::switcher::SwitcherParams;
 use ds_harness::{Harness, Input, Viewport};
 use sill_launcher::{AppId, WindowKey};
@@ -16,7 +17,7 @@ use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState, Wl
 use sill_overlays::Switcher;
 use sill_settings::ShellFile;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{Dir, SwitcherAsk, SwitcherLink};
+use sill_ui_kit::links::{SwitcherAsk, SwitcherLink};
 
 type Running = SurfaceHarness<Switcher>;
 
@@ -207,7 +208,7 @@ fn keys_and_chords_step_and_the_release_activates() {
         .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Char('`')));
     wait(&mut running, 20);
     assert_eq!(tiles(&running.harness).1.as_deref(), Some("Term"));
-    ask(&mut running, SwitcherAsk::Chord(Dir::Prev));
+    ask(&mut running, SwitcherAsk::Chord(Dir::Previous));
     wait(&mut running, 20);
     assert_eq!(tiles(&running.harness).1.as_deref(), Some("Edit"));
     assert_eq!(sent(&mut running), vec![], "stepping touches no window");

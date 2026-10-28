@@ -3,22 +3,13 @@
 //! The entry is found as a window's is (`sill_model::windows::app_for`: the `desktop-entry` hint,
 //! else the app name, whole or by its last labels), then by the entry's own `Name`.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use sill_model::apps::{App, AppIcon, AppIndex};
 use sill_model::notifications::{AppRef, IconRef};
 use sill_model::windows::app_for;
 
-/// The icon a card draws.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CardArt {
-    /// An icon file, in its own colours.
-    Image(PathBuf),
-    /// A `*-symbolic` icon file, in the text colour.
-    Symbolic(PathBuf),
-    /// No icon: quire's bell.
-    Bell,
-}
+use crate::app_icons::IconFile;
 
 /// The desktop entry `app` names, if the index has it.
 pub fn entry_for<'a>(app: &AppRef, index: &'a AppIndex) -> Option<&'a App> {
@@ -32,12 +23,13 @@ pub fn entry_for<'a>(app: &AppRef, index: &'a AppIndex) -> Option<&'a App> {
     })
 }
 
-/// What `app`'s card shows, `entry` being its desktop entry and `lookup` the icon theme.
+/// The icon file `app`'s card draws, `entry` being its desktop entry and `lookup` the icon theme;
+/// `None` draws quire's bell.
 pub fn card_art(
     app: &AppRef,
     entry: Option<&App>,
     lookup: impl Fn(&str) -> Option<PathBuf>,
-) -> CardArt {
+) -> Option<IconFile> {
     let sent = match &app.icon {
         IconRef::File(path) => Some(path.clone()),
         IconRef::Name(name) => lookup(name),
@@ -47,31 +39,13 @@ pub fn card_art(
         AppIcon::File(path) => Some(path.clone()),
         AppIcon::None => None,
     });
-    sent.or(own)
-        .map_or(CardArt::Bell, |path| match symbolic(&path) {
-            Symbolic::Yes => CardArt::Symbolic(path),
-            Symbolic::No => CardArt::Image(path),
-        })
-}
-
-/// Whether an icon file is a symbolic one.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Symbolic {
-    Yes,
-    No,
-}
-
-fn symbolic(path: &Path) -> Symbolic {
-    let stem = path.file_stem().and_then(|stem| stem.to_str());
-    match stem.is_some_and(|stem| stem.ends_with("-symbolic")) {
-        true => Symbolic::Yes,
-        false => Symbolic::No,
-    }
+    sent.or(own).and_then(|path| IconFile::of(&path))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{CardArt, card_art, entry_for};
+    use super::{card_art, entry_for};
+    use crate::app_icons::IconFile;
     use sill_launcher::AppId;
     use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use sill_model::notifications::{AppRef, IconRef};
@@ -150,21 +124,21 @@ mod tests {
         let cases = [
             (
                 app("firefox", None, IconRef::File("/s/own.png".into())),
-                CardArt::Image("/s/own.png".into()),
+                Some(IconFile::Themed("/s/own.png".into())),
             ),
             (
                 app("firefox", None, IconRef::Name("mail-unread".to_owned())),
-                CardArt::Image("/t/mail.svg".into()),
+                Some(IconFile::Themed("/t/mail.svg".into())),
             ),
             (
                 app("firefox", None, IconRef::Name("unknown".to_owned())),
-                CardArt::Image("/i/firefox.svg".into()),
+                Some(IconFile::Themed("/i/firefox.svg".into())),
             ),
             (
                 app("x", None, IconRef::File("/s/bell-symbolic.svg".into())),
-                CardArt::Symbolic("/s/bell-symbolic.svg".into()),
+                Some(IconFile::Symbolic("/s/bell-symbolic.svg".into())),
             ),
-            (app("x", None, IconRef::None), CardArt::Bell),
+            (app("x", None, IconRef::None), None),
         ];
         for (a, want) in cases {
             assert_eq!(art(a.clone()), want, "{a:?}");

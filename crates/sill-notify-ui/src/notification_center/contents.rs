@@ -19,12 +19,12 @@ use ds::prelude::*;
 use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 
-use super::drawn::{Rows, use_drawn};
+use super::drawn::use_drawn;
 use super::group::row_item;
 use super::groups::group_views;
 use super::io::CenterCtx;
 use super::keymap::center_key;
-use super::keys::{CenterOut, RowFocus, step_keys};
+use super::keys::{CenterOut, step_keys};
 use super::labels::{EMPTY, TITLE, server_line};
 use super::layer::PANEL_ID;
 use super::rows::{CenterRow, RowKey, activate, dismiss, rows_of};
@@ -44,7 +44,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
     // The ages count in minutes: the clock's tick redraws them.
     let _minute = use_service::<ClockService>()();
     let now = wall_clock();
-    let mut focus = use_signal(RowFocus::default);
+    let mut focus = use_signal(|| None::<usize>);
     let expanded = ctx.expanded.read().clone();
     let rows = rows_of(&group_views(&history, &expanded));
     let keys = (ctx.clone(), rows.clone());
@@ -90,7 +90,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 }
             }
             div { class: "sill-nc-list",
-                if drawn.rows() == Rows::None {
+                if !drawn.any_rows() {
                     EmptyState { title: EMPTY, icon: Icon::Bell }
                 }
                 List::<RowKey> {

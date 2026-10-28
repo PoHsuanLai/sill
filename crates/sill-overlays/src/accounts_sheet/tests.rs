@@ -31,7 +31,7 @@ use super::events;
 use super::props::{
     ConsentProps, ProvidersProps, Purpose, ReviewProps, SignInProps, Step, step_of,
 };
-use super::stage::{Here, drawn};
+use super::stage::drawn;
 
 fn provider(id: &str) -> ProviderId {
     ProviderId::parse(id).unwrap_or_else(|e| panic!("{e}"))
@@ -537,8 +537,8 @@ fn only_the_banners_output_draws_and_a_finished_add_draws_nothing() {
             },
         ),
     );
-    assert!(drawn(&sheets, Here::Yes).is_some());
-    assert!(drawn(&sheets, Here::No).is_none());
+    assert!(drawn(&sheets, true).is_some());
+    assert!(drawn(&sheets, false).is_none());
 }
 
 #[test]

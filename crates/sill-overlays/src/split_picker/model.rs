@@ -1,6 +1,7 @@
 //! What the picker decides, pure: which output shows an offer, which half of the screen the tiles
 //! fill, and where the selection goes.
 
+use ds_behaviour::Dir;
 use sill_model::desktop::SplitSide;
 
 /// Whether the offer made for the output called `offer_output` (empty when the desktop does not
@@ -17,20 +18,13 @@ pub(super) fn other_half(taken: SplitSide) -> &'static str {
     }
 }
 
-/// Which way an arrow key moves the selection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Step {
-    Back,
-    Forward,
-}
-
-/// The index after `step` from `at` among `len` tiles, wrapping round at either end; 0 for no
+/// The index one step in `dir` from `at` among `len` tiles, wrapping round at either end; 0 for no
 /// tiles.
-pub(super) fn moved(len: usize, at: usize, step: Step) -> usize {
-    match (len, step) {
+pub(super) fn moved(len: usize, at: usize, dir: Dir) -> usize {
+    match (len, dir) {
         (0, _) => 0,
-        (len, Step::Forward) => (at + 1) % len,
-        (len, Step::Back) => (at + len - 1) % len,
+        (len, Dir::Next) => (at + 1) % len,
+        (len, Dir::Previous) => (at + len - 1) % len,
     }
 }
 
@@ -41,9 +35,10 @@ pub(super) fn index_of(windows: &[&str], key: &str) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
+    use ds_behaviour::Dir;
     use sill_model::desktop::SplitSide;
 
-    use super::{Step, index_of, moved, other_half, shows_on};
+    use super::{index_of, moved, other_half, shows_on};
 
     /// (case, the offer's output, this output's name, shows).
     type ShowCase = (&'static str, &'static str, Option<&'static str>, bool);
@@ -68,17 +63,17 @@ mod tests {
     }
 
     /// (case, tiles, at, step, lands on).
-    type MoveCase = (&'static str, usize, usize, Step, usize);
+    type MoveCase = (&'static str, usize, usize, Dir, usize);
 
     #[test]
     fn the_selection_moves_and_wraps() {
         let cases: [MoveCase; 6] = [
-            ("forward", 3, 0, Step::Forward, 1),
-            ("forward off the end wraps", 3, 2, Step::Forward, 0),
-            ("back", 3, 2, Step::Back, 1),
-            ("back off the start wraps", 3, 0, Step::Back, 2),
-            ("one tile stays", 1, 0, Step::Forward, 0),
-            ("no tiles", 0, 0, Step::Back, 0),
+            ("forward", 3, 0, Dir::Next, 1),
+            ("forward off the end wraps", 3, 2, Dir::Next, 0),
+            ("back", 3, 2, Dir::Previous, 1),
+            ("back off the start wraps", 3, 0, Dir::Previous, 2),
+            ("one tile stays", 1, 0, Dir::Next, 0),
+            ("no tiles", 0, 0, Dir::Previous, 0),
         ];
         for (name, len, at, step, want) in cases {
             assert_eq!(moved(len, at, step), want, "{name}");

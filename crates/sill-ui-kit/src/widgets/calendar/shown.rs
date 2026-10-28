@@ -1,13 +1,10 @@
-//! Which month the Calendar widget shows, and the grid as quire's `MonthGrid` takes it: pure, so
-//! the view only reads.
+//! Which month the Calendar widget shows, and the words the grid is titled with: pure, so the
+//! view only reads.
 
 use jiff::civil::{Date, Weekday};
-use sill_shell_kit::month_grid::data::MonthGridData;
-use sill_shell_kit::month_grid::data::MonthWeek;
+use sill_shell_kit::month_grid::data::{MonthKey, MonthStep};
 
-use super::grid::{
-    DayMark, DayPlace, Eventful, GridDay, GridWeek, Month, MonthGrid, Step, shift_month,
-};
+use super::grid::{month_of, shift_month};
 
 /// The month shown, as steps away from the month of the day they were taken on: a turn of the
 /// day brings the widget back to today's month.
@@ -29,78 +26,35 @@ impl Shown {
     }
 
     /// The month shown when today is `today`.
-    pub fn month(self, today: Date) -> Month {
+    pub fn month(self, today: Date) -> MonthKey {
         let offset = match self.on == today {
             true => self.offset,
             false => 0,
         };
-        let step = match offset >= 0 {
-            true => Step::Next,
-            false => Step::Previous,
+        let step = if offset >= 0 {
+            MonthStep::Next
+        } else {
+            MonthStep::Previous
         };
-        (0..offset.unsigned_abs()).fold(Month::of(today), |month, _| shift_month(month, step))
+        (0..offset.unsigned_abs()).fold(month_of(today), |month, _| shift_month(month, step))
     }
 
     /// One step from what is shown on `today`.
-    pub fn stepped(self, today: Date, step: Step) -> Shown {
+    pub fn stepped(self, today: Date, step: MonthStep) -> Shown {
         let base = match self.on == today {
             true => self.offset,
             false => 0,
         };
         let offset = match step {
-            Step::Next => base.saturating_add(1),
-            Step::Previous => base.saturating_sub(1),
+            MonthStep::Next => base.saturating_add(1),
+            MonthStep::Previous => base.saturating_sub(1),
         };
         Shown { on: today, offset }
     }
 }
 
-/// `grid` as quire's `MonthGrid` draws it, field for field, with the title and the weekday
-/// initials in words.
-pub(super) fn grid_data(grid: &MonthGrid, today: Date) -> MonthGridData {
-    MonthGridData {
-        month: sill_shell_kit::month_grid::data::MonthKey {
-            year: grid.month.year,
-            month: grid.month.month,
-        },
-        title: month_title(grid.month, today).into(),
-        heads: grid.weekdays.map(|day| initial(day).into()),
-        weeks: grid.weeks.iter().map(week_data).collect(),
-    }
-}
-
-fn week_data(week: &GridWeek) -> MonthWeek {
-    MonthWeek {
-        number: sill_shell_kit::month_grid::data::IsoWeek(week.number.0),
-        days: week.days.map(day_data),
-    }
-}
-
-fn day_data(day: GridDay) -> sill_shell_kit::month_grid::data::MonthDay {
-    sill_shell_kit::month_grid::data::MonthDay {
-        key: sill_shell_kit::month_grid::data::DayKey {
-            year: day.date.year(),
-            month: day.date.month(),
-            day: day.date.day(),
-        },
-        place: match day.place {
-            DayPlace::Before => sill_shell_kit::month_grid::data::DayPlace::Before,
-            DayPlace::InMonth => sill_shell_kit::month_grid::data::DayPlace::InMonth,
-            DayPlace::After => sill_shell_kit::month_grid::data::DayPlace::After,
-        },
-        mark: match day.mark {
-            DayMark::Today => sill_shell_kit::month_grid::data::DayMark::Today,
-            DayMark::Plain => sill_shell_kit::month_grid::data::DayMark::Plain,
-        },
-        events: match day.events {
-            Eventful::Busy => sill_shell_kit::month_grid::data::Eventful::Busy,
-            Eventful::Free => sill_shell_kit::month_grid::data::Eventful::Free,
-        },
-    }
-}
-
 /// `September 2026`, or `September` in today's year.
-pub(super) fn month_title(month: Month, today: Date) -> String {
+pub(super) fn month_title(month: MonthKey, today: Date) -> String {
     let name = MONTHS[usize::try_from(month.month - 1).unwrap_or(0) % 12];
     match month.year == today.year() {
         true => name.to_owned(),
@@ -149,88 +103,36 @@ pub(super) fn initial(day: Weekday) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use ds::prelude::*;
     use jiff::civil::date;
+    use sill_shell_kit::month_grid::data::{MonthKey, MonthStep};
 
-    use sill_settings::FirstWeekday;
-
-    use super::{Shown, grid_data, month_title, weekday_name};
-    use crate::widgets::calendar::grid::month_grid;
-    use crate::widgets::calendar::grid::{Month, Step};
+    use super::{Shown, month_title, weekday_name};
+    use crate::widgets::calendar::grid::month_of;
 
     #[test]
     fn steps_count_from_today_and_reset_when_the_day_turns() {
         let today = date(2026, 12, 20);
         let shown = Shown::today(today)
-            .stepped(today, Step::Next)
-            .stepped(today, Step::Next);
+            .stepped(today, MonthStep::Next)
+            .stepped(today, MonthStep::Next);
         assert_eq!(
             shown.month(today),
-            Month {
+            MonthKey {
                 year: 2027,
                 month: 2
             }
         );
-        let back = shown.stepped(today, Step::Previous);
+        let back = shown.stepped(today, MonthStep::Previous);
         assert_eq!(
             back.month(today),
-            Month {
+            MonthKey {
                 year: 2027,
                 month: 1
             }
         );
         let tomorrow = date(2026, 12, 21);
-        assert_eq!(shown.month(tomorrow), Month::of(tomorrow));
-        assert_eq!(shown.stepped(tomorrow, Step::Previous).offset, -1);
-    }
-
-    #[test]
-    fn the_grid_maps_to_quires_field_for_field() {
-        let today = date(2026, 9, 26);
-        let busy = [date(2026, 9, 28)];
-        let grid = month_grid(Month::of(today), FirstWeekday::Sunday, today, &busy);
-        let data = grid_data(&grid, today);
-        assert_eq!(
-            data.month,
-            sill_shell_kit::month_grid::data::MonthKey {
-                year: 2026,
-                month: 9
-            }
-        );
-        assert_eq!(data.title.plain_text(), "September");
-        let heads: Vec<String> = data.heads.iter().map(TextLine::plain_text).collect();
-        assert_eq!(heads, ["S", "M", "T", "W", "T", "F", "S"]);
-        assert_eq!(data.weeks.len(), grid.weeks.len());
-        let days: Vec<&sill_shell_kit::month_grid::data::MonthDay> =
-            data.weeks.iter().flat_map(|w| w.days.iter()).collect();
-        let marked: Vec<_> = days
-            .iter()
-            .filter(|d| d.mark == sill_shell_kit::month_grid::data::DayMark::Today)
-            .map(|d| d.key)
-            .collect();
-        assert_eq!(
-            marked,
-            [sill_shell_kit::month_grid::data::DayKey {
-                year: 2026,
-                month: 9,
-                day: 26
-            }]
-        );
-        let busy_days: Vec<_> = days
-            .iter()
-            .filter(|d| d.events == sill_shell_kit::month_grid::data::Eventful::Busy)
-            .map(|d| d.key.day)
-            .collect();
-        assert_eq!(busy_days, [28]);
-        assert_eq!(
-            days[0].place,
-            sill_shell_kit::month_grid::data::DayPlace::Before,
-            "30 August"
-        );
-        assert_eq!(
-            data.weeks[0].number,
-            sill_shell_kit::month_grid::data::IsoWeek(36)
-        );
+        assert_eq!(shown.month(tomorrow), month_of(tomorrow));
+        assert_eq!(shown.stepped(tomorrow, MonthStep::Previous).offset, -1);
     }
 
     #[test]
@@ -249,9 +151,9 @@ mod tests {
     fn titles_name_the_year_only_when_it_is_not_this_one() {
         let today = date(2026, 9, 26);
         let cases = [
-            (Month::of(today), "September"),
+            (month_of(today), "September"),
             (
-                Month {
+                MonthKey {
                     year: 2027,
                     month: 1,
                 },

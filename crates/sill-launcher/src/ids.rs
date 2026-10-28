@@ -57,6 +57,70 @@ impl ProviderKind {
         ProviderKind::Runs,
         ProviderKind::Memory,
     ];
+
+    /// The provider's word in `frecency.json` keys (`apps:org.mozilla.firefox`): the serde name,
+    /// kept for good, since the file outlives the build.
+    pub fn slug(self) -> &'static str {
+        match self {
+            ProviderKind::Apps => "apps",
+            ProviderKind::Windows => "windows",
+            ProviderKind::Calculator => "calculator",
+            ProviderKind::Settings => "settings",
+            ProviderKind::System => "system",
+            ProviderKind::Files => "files",
+            ProviderKind::Clipboard => "clipboard",
+            ProviderKind::Emoji => "emoji",
+            ProviderKind::Web => "web",
+            ProviderKind::Things => "things",
+            ProviderKind::Companion => "companion",
+            ProviderKind::Helpers => "helpers",
+            ProviderKind::Runs => "runs",
+            ProviderKind::Memory => "memory",
+        }
+    }
+
+    /// Whether choosing the provider's rows is counted in `frecency.json`. The web fallback is
+    /// counted under its fixed id (never the query, which is not a row's identity); a clipboard
+    /// entry's key means nothing after the session, and the history must leave no trace of its
+    /// use.
+    pub fn counted(self) -> bool {
+        match self {
+            // An answer, a helper, a run and a memory row name something that ends or is
+            // forgotten; choosing one is not a habit to rank by.
+            ProviderKind::Clipboard
+            | ProviderKind::Companion
+            | ProviderKind::Helpers
+            | ProviderKind::Runs
+            | ProviderKind::Memory => false,
+            // What a person calculated is in the row's id, and it must not be kept in a file; a
+            // result is not a habit to rank by either.
+            ProviderKind::Calculator => false,
+            ProviderKind::Apps
+            | ProviderKind::Windows
+            | ProviderKind::Settings
+            | ProviderKind::System
+            | ProviderKind::Files
+            | ProviderKind::Emoji
+            | ProviderKind::Things
+            | ProviderKind::Web => true,
+        }
+    }
+
+    /// Whether the provider's rows are never Recent: System rows are Actions already, clipboard
+    /// use is never counted, an answer, a helper, a run and a memory row are not habits, and the
+    /// web row says nothing about what was searched.
+    pub fn never_recent(self) -> bool {
+        matches!(
+            self,
+            ProviderKind::System
+                | ProviderKind::Clipboard
+                | ProviderKind::Companion
+                | ProviderKind::Helpers
+                | ProviderKind::Runs
+                | ProviderKind::Memory
+                | ProviderKind::Web
+        )
+    }
 }
 
 /// A desktop entry id without `.desktop`: `org.mozilla.firefox`. The key the dock, the app

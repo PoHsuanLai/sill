@@ -20,11 +20,12 @@ use sill_shell_kit::prelude::*;
 
 use super::actions::card_actions;
 use super::body::rich_body;
-use super::icon::{CardArt, card_art, entry_for};
+use super::icon::{card_art, entry_for};
 use super::labels::{age, age_label, app_label, group_count};
 use super::metrics::icon_size;
 use super::use_tokens::shared_tokens;
 use super::{CardPlace, CardPress};
+use crate::app_icons::IconFile;
 use crate::hooks::{use_service, use_services};
 use sill_services::AppsService;
 
@@ -91,7 +92,7 @@ pub fn use_app_mark(app: &AppRef, size: IconSize) -> AppMark {
         card_art(app, entry, |name| theme_icon(name, &dirs))
     });
     AppMark {
-        icon: icon_source(&art, size),
+        icon: icon_source(art.as_ref(), size),
         name: TextLine::from(app_label(app, entry.map(|e| e.name.as_str()))),
     }
 }
@@ -106,9 +107,14 @@ fn material_of(place: CardPlace) -> Material {
 
 /// The card's art, looked up again only when the sender's app or its entry's icon changes (the
 /// theme lookup reads the icon theme's setting).
-fn use_art(app: &AppRef, entry: Option<&AppIcon>, look: impl FnOnce() -> CardArt) -> CardArt {
+fn use_art(
+    app: &AppRef,
+    entry: Option<&AppIcon>,
+    look: impl FnOnce() -> Option<IconFile>,
+) -> Option<IconFile> {
     let key = (app.clone(), entry.cloned());
-    let mut cached = use_hook(|| CopyValue::new(None::<((AppRef, Option<AppIcon>), CardArt)>));
+    let mut cached =
+        use_hook(|| CopyValue::new(None::<((AppRef, Option<AppIcon>), Option<IconFile>)>));
     if let Some((seen, art)) = cached.peek().as_ref()
         && *seen == key
     {
@@ -131,16 +137,16 @@ fn theme_icon(name: &str, dirs: &Dirs) -> Option<PathBuf> {
 }
 
 /// The card's icon at `size`: the file, else quire's bell.
-fn icon_source(art: &CardArt, size: IconSize) -> IconSource {
+fn icon_source(art: Option<&IconFile>, size: IconSize) -> IconSource {
     let external = |path: &PathBuf| {
         IconUrl::file(path)
             .ok()
             .map(|url| ExternalIcon { url, size })
     };
     let found = match art {
-        CardArt::Image(path) => external(path).map(IconSource::Image),
-        CardArt::Symbolic(path) => external(path).map(IconSource::Symbolic),
-        CardArt::Bell => None,
+        Some(IconFile::Themed(path)) => external(path).map(IconSource::Image),
+        Some(IconFile::Symbolic(path)) => external(path).map(IconSource::Symbolic),
+        None => None,
     };
     found.unwrap_or(IconSource::Glyph(Icon::Bell))
 }

@@ -5,7 +5,7 @@
 
 use ds::base::time::stamp::Stamp;
 
-use super::deck::{Deck, DeckOut, Entry, KeyFocus, Speak, arrive, feed};
+use super::deck::{Deck, DeckOut, Entry, arrive, feed};
 use super::stack::Card;
 use super::step::{Banner, BannerIn, BannerParams, Persistence, step};
 
@@ -30,7 +30,7 @@ pub(super) fn follow(
         .collect();
     entries.extend(
         gone.into_iter()
-            .map(|e| feed(e, BannerIn::Close, now, p, &mut out, Speak::No)),
+            .map(|e| feed(e, BannerIn::Close, now, p, &mut out, false)),
     );
     deck.entries = entries;
     for card in cards {
@@ -63,8 +63,8 @@ fn refresh(e: Entry, card: Card, now: Stamp, p: &BannerParams) -> Entry {
         (_, banner) => banner,
     };
     // A card the keyboard is on keeps its hold paused through a newer notification.
-    let banner = match (e.keys, banner) {
-        (KeyFocus::Held, Banner::Shown { .. }) => {
+    let banner = match (e.keys_held, banner) {
+        (true, Banner::Shown { .. }) => {
             step(
                 banner,
                 BannerIn::HoverIn,

@@ -7,7 +7,7 @@
 
 use ds::base::time::stamp::Stamp;
 
-use super::deck::{Deck, DeckOut, Entry, EntryKey, KeyFocus, Speak, feed};
+use super::deck::{Deck, DeckOut, Entry, EntryKey, feed};
 use super::step::{BannerIn, BannerParams};
 
 /// Which way along the stack, in age: the stack lists cards newest first.
@@ -43,7 +43,7 @@ pub(super) fn keys(
     let held = deck
         .entries
         .iter()
-        .find(|e| e.keys == KeyFocus::Held && !e.leaving())
+        .find(|e| e.keys_held && !e.leaving())
         .map(|e| e.key);
     let next_to = |key: EntryKey, side: Neighbour| {
         let at = listed.iter().position(|k| *k == key)?;
@@ -112,7 +112,7 @@ fn update(
         .entries
         .into_iter()
         .map(|e| match e.key == key {
-            true => feed(e, input, now, p, out, Speak::Yes),
+            true => feed(e, input, now, p, out, true),
             false => e,
         })
         .collect();
@@ -122,7 +122,7 @@ fn update(
 /// A card that has started to leave no longer holds the keyboard; if that leaves nobody holding
 /// it, it goes back.
 pub(super) fn release_leavers(deck: Deck, mut out: Vec<DeckOut>) -> (Deck, Vec<DeckOut>) {
-    let left = |e: &Entry| e.leaving() && e.keys == KeyFocus::Held;
+    let left = |e: &Entry| e.leaving() && e.keys_held;
     if !deck.entries.iter().any(left) {
         return (deck, out);
     }
@@ -131,13 +131,13 @@ pub(super) fn release_leavers(deck: Deck, mut out: Vec<DeckOut>) -> (Deck, Vec<D
         .into_iter()
         .map(|e| match left(&e) {
             true => Entry {
-                keys: KeyFocus::Away,
+                keys_held: false,
                 ..e
             },
             false => e,
         })
         .collect();
-    if !entries.iter().any(|e| e.keys == KeyFocus::Held) {
+    if !entries.iter().any(|e| e.keys_held) {
         out.push(DeckOut::ReleaseKeyboard);
     }
     (Deck { entries, ..deck }, out)

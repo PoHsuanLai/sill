@@ -17,6 +17,7 @@ porter-capability = { workspace = true }
 sill-model = { workspace = true }
 dioxus = { workspace = true }
 ds = { workspace = true }
+ds-behaviour = { workspace = true }
 chordkit = { workspace = true }
 keycap-client = { workspace = true }
 sill-shell-kit = { workspace = true }

@@ -14,7 +14,6 @@ use sill_shell_kit::prelude::*;
 
 use super::groups::Expanded;
 use super::io::CenterCtx;
-use super::keys::RowFocus;
 use super::rows::{CenterRow, RowAct, RowKey, press};
 use sill_ui_kit::notification_card::{CardPlace, CardPress, NoteCard, use_app_mark};
 
@@ -23,10 +22,11 @@ pub(super) fn row_item(
     history: &History,
     expanded: &Expanded,
     (at, row): (usize, &CenterRow),
-    focus: RowFocus,
+    focus: Option<usize>,
     now: UnixMs,
 ) -> Option<ListItem<RowKey>> {
-    let ring = ringed(focus, at);
+    // Whether the keyboard's ring is on this row.
+    let ring = focus == Some(at);
     let group = history
         .groups
         .iter()
@@ -61,7 +61,7 @@ fn opened(expanded: &Expanded, group: &AppGroup) -> Shown {
 
 /// A group's header row.
 #[component]
-fn HeadRow(group: AppGroup, expanded: Shown, ring: Ring) -> Element {
+fn HeadRow(group: AppGroup, expanded: Shown, ring: bool) -> Element {
     let ctx = use_context::<CenterCtx>();
     let app = group.notes.first().map(|note| note.app.clone());
     let mark = use_app_mark(&app.unwrap_or_else(nobody), IconSize::Base);
@@ -90,33 +90,9 @@ fn nobody() -> sill_model::notifications::AppRef {
     }
 }
 
-/// Whether the keyboard's ring is on the row at `at`.
-fn ringed(focus: RowFocus, at: usize) -> Ring {
-    match focus {
-        RowFocus::Row(row) if row == at => Ring::On,
-        RowFocus::Row(_) | RowFocus::None => Ring::Off,
-    }
-}
-
-/// Whether a row carries the keyboard's ring.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Ring {
-    On,
-    Off,
-}
-
-impl Ring {
-    fn attribute(self) -> &'static str {
-        match self {
-            Ring::On => "ring",
-            Ring::Off => "none",
-        }
-    }
-}
-
 /// One card row.
 #[component]
-fn CardRow(note: Notification, row: CenterRow, ring: Ring, now: UnixMs) -> Element {
+fn CardRow(note: Notification, row: CenterRow, ring: bool, now: UnixMs) -> Element {
     let ctx = use_context::<CenterCtx>();
     let stack = row.stack_count();
     let app = note.app.desktop_entry.clone();
@@ -138,8 +114,9 @@ fn CardRow(note: Notification, row: CenterRow, ring: Ring, now: UnixMs) -> Eleme
 
 /// The data the list's owner writes on a row's root: the keyboard's ring, and how many stand
 /// behind a card.
-fn row_data(ring: Ring, stack: Option<usize>) -> Common {
-    let focus = DataName::parse("focus").map(|name| DataAttr::new(name, ring.attribute()));
+fn row_data(ring: bool, stack: Option<usize>) -> Common {
+    let focus = DataName::parse("focus")
+        .map(|name| DataAttr::new(name, if ring { "ring" } else { "none" }));
     let stacked = stack.and_then(|count| {
         DataName::parse("stack")
             .ok()

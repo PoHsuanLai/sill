@@ -3,7 +3,7 @@
 
 use sill_model::desktop::{ForceQuitRow, hung_first};
 
-use super::model::{Chosen, Confirming};
+use super::model::Chosen;
 
 /// What reaches the panel.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,38 +40,38 @@ fn lists(rows: &[ForceQuitRow], app: &str) -> bool {
 pub(super) fn advance(selection: Chosen, input: In, rows: &[ForceQuitRow]) -> (Chosen, Out) {
     match (selection.confirming.clone(), input) {
         (_, In::Listed) => (settled(selection, rows), Out::Nothing),
-        (Confirming::No, In::Select(app)) if lists(rows, &app) => (
+        (None, In::Select(app)) if lists(rows, &app) => (
             Chosen {
                 app: Some(app),
                 ..selection
             },
             Out::Nothing,
         ),
-        (Confirming::No, In::Ask) => match selection.app.clone().filter(|app| lists(rows, app)) {
+        (None, In::Ask) => match selection.app.clone().filter(|app| lists(rows, app)) {
             Some(app) => (
                 Chosen {
-                    confirming: Confirming::App(app),
+                    confirming: Some(app),
                     ..selection
                 },
                 Out::Nothing,
             ),
             None => (selection, Out::Nothing),
         },
-        (Confirming::App(app), In::Confirm) => (
+        (Some(app), In::Confirm) => (
             Chosen {
                 app: None,
-                confirming: Confirming::No,
+                confirming: None,
             },
             Out::Quit(app),
         ),
-        (Confirming::App(_), In::Decline | In::Escape) => (
+        (Some(_), In::Decline | In::Escape) => (
             Chosen {
-                confirming: Confirming::No,
+                confirming: None,
                 ..selection
             },
             Out::Nothing,
         ),
-        (Confirming::No, In::Escape) => (selection, Out::Close),
+        (None, In::Escape) => (selection, Out::Close),
         _ => (selection, Out::Nothing),
     }
 }
@@ -83,9 +83,6 @@ fn settled(selection: Chosen, rows: &[ForceQuitRow]) -> Chosen {
         .app
         .filter(|app| lists(rows, app))
         .or_else(|| hung_first(rows).map(str::to_owned));
-    let confirming = match selection.confirming {
-        Confirming::App(asked) if lists(rows, &asked) => Confirming::App(asked),
-        Confirming::App(_) | Confirming::No => Confirming::No,
-    };
+    let confirming = selection.confirming.filter(|asked| lists(rows, asked));
     Chosen { app, confirming }
 }
