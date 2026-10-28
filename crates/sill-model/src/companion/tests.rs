@@ -209,7 +209,7 @@ fn mail() -> AppName {
     AppName::parse("org.quire.Mail").unwrap_or_else(|e| panic!("{e}"))
 }
 
-fn focus(launcher: LauncherFacts, serves: Serves) -> FocusFacts {
+fn focus(launcher: Option<LauncherMode>, serves: bool) -> FocusFacts {
     FocusFacts {
         window: Some(WindowKey(4)),
         app: Some(mail()),
@@ -224,7 +224,7 @@ fn params() -> CompanionParams {
 
 #[test]
 fn a_tap_pair_summons_and_the_launcher_opens_warmed() {
-    let facts = focus(LauncherFacts::Closed, Serves::No);
+    let facts = focus(None, false);
     let (state, effects) = step(
         Companion::default(),
         CompanionEvent::Tapped(facts.clone()),
@@ -252,7 +252,7 @@ fn a_tap_pair_summons_and_the_launcher_opens_warmed() {
 
 #[test]
 fn a_serving_app_is_asked_with_a_fresh_serial_and_falls_back_when_it_is_silent() {
-    let facts = focus(LauncherFacts::Closed, Serves::Yes);
+    let facts = focus(None, true);
     let (state, effects) = step(
         Companion::default(),
         CompanionEvent::Summoned(facts),
@@ -290,7 +290,7 @@ fn a_serving_app_is_asked_with_a_fresh_serial_and_falls_back_when_it_is_silent()
             summon: Summon::Rest,
             ..state
         },
-        CompanionEvent::Summoned(focus(LauncherFacts::Closed, Serves::Yes)),
+        CompanionEvent::Summoned(focus(None, true)),
         Stamp(2000),
         &params(),
     );
@@ -301,7 +301,7 @@ fn a_serving_app_is_asked_with_a_fresh_serial_and_falls_back_when_it_is_silent()
 fn an_app_that_takes_the_summon_holds_it_until_dismissed() {
     let (state, _) = step(
         Companion::default(),
-        CompanionEvent::Summoned(focus(LauncherFacts::Closed, Serves::Yes)),
+        CompanionEvent::Summoned(focus(None, true)),
         Stamp(0),
         &params(),
     );

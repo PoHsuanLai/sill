@@ -670,14 +670,14 @@ fn confirm_sheet_states() -> Vec<(&'static str, String)> {
 
 /// The consent sheet hidden, then asking.
 fn voice_consent_states() -> Vec<(&'static str, String)> {
-    use sill_model::voice::{ConsentSheet, Voice};
+    use sill_model::voice::Voice;
     let link = SheetLink::new();
     link.set(SheetOutput::On(fake::output().id));
     let mut sheet = SurfaceHarness::<VoiceConsentSheet>::setup(link, ()).start();
     sheet.harness.advance(Duration::from_millis(40));
     let mut states = vec![("hidden", sheet.harness.html())];
     sheet.feeds.voice.send_replace(Voice {
-        sheet: ConsentSheet::Asking,
+        sheet: true,
         ..Voice::default()
     });
     sheet.harness.advance(Duration::from_millis(700));

@@ -1,7 +1,7 @@
 //! The picker's state and its one transition function.
 
 use super::ask::Ask;
-use super::color::{ColorAsking, ColorOutcome, ColorReply, Eyedropper};
+use super::color::{ColorAsking, Rgb8};
 use super::permission::{AskedBy, PermissionAsking, PermissionOutcome};
 use super::plan::Candidates;
 use super::reply::{Picks, Reply, outcome_reply};
@@ -48,7 +48,9 @@ pub struct CapturePicker {
     /// The permission questions waiting for it, in the order they came: from the portal and from
     /// the compositor alike, one sheet at a time.
     pub waiting: Vec<PermissionAsking>,
-    pub eyedropper: Eyedropper,
+    /// True while a surface draws the eyedropper; a colour request cannot be put to the person
+    /// without one.
+    pub eyedropper: bool,
 }
 
 /// What the service is told.
@@ -58,12 +60,12 @@ pub enum CaptureCommand {
     Serve,
     /// The screens that exist now.
     Outputs(Vec<super::plan::OutputCandidate>),
-    /// The person pressed Allow (with their picks) or cancelled.
-    Answer(AskId, Outcome),
-    /// A surface draws the eyedropper (or stopped).
-    Eyedropper(Eyedropper),
-    /// The person clicked a colour with the eyedropper or cancelled.
-    ColorAnswer(AskId, ColorOutcome),
+    /// The person pressed Allow (`Some` picks) or cancelled (`None`).
+    Answer(AskId, Option<Picks>),
+    /// Whether a surface draws the eyedropper now.
+    Eyedropper(bool),
+    /// The person clicked a colour with the eyedropper (`Some`) or cancelled (`None`).
+    ColorAnswer(AskId, Option<Rgb8>),
     /// The person pressed a button of the permission sheet, or it closed.
     PermissionAnswer(AskId, PermissionOutcome),
     /// The compositor asks whether a program may use a power.
@@ -72,23 +74,18 @@ pub enum CaptureCommand {
     ConsentWithdrawn(ConsentId),
 }
 
-/// How the person ended the request.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Outcome {
-    Allow(Picks),
-    Cancel,
-}
-
 /// One thing that happened.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CaptureEvent {
     Link(CaptureLink),
     Candidates(Candidates),
     Opened(Asking),
-    Answered(AskId, Outcome),
-    Eyedropper(Eyedropper),
+    /// The person's picks (`Some`: Allow) or a cancel (`None`).
+    Answered(AskId, Option<Picks>),
+    Eyedropper(bool),
     ColorOpened(ColorAsking),
-    ColorAnswered(AskId, ColorOutcome),
+    /// The colour clicked, or `None` for a cancel.
+    ColorAnswered(AskId, Option<Rgb8>),
     /// A permission question arrived: on screen when the sheet is free, else it waits its turn.
     PermissionOpened(PermissionAsking),
     PermissionAnswered(AskId, PermissionOutcome),
@@ -104,41 +101,27 @@ pub enum CaptureOut {
     /// Return this to the caller of the request.
     Reply(AskId, Reply),
     /// Return this to the caller of the colour request.
-    ColorReply(AskId, ColorReply),
+    ColorReply(AskId, Option<Rgb8>),
     /// Return this to the caller of the permission question.
     PermissionReply(AskId, PermissionOutcome),
     /// Tell the compositor what the person said to its question.
     ConsentReply(ConsentId, Answer),
 }
 
-/// Whether a request may be opened.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Admit {
-    Yes,
-    /// Another request is open.
-    Busy,
-}
-
 /// Whether `Opened` or `ColorOpened` is taken now: one sheet of any kind at a time.
-pub fn admits(state: &CapturePicker) -> Admit {
-    match (&state.asking, &state.color, &state.permission) {
-        (None, None, None) => Admit::Yes,
-        (Some(_), _, _) | (_, Some(_), _) | (_, _, Some(_)) => Admit::Busy,
-    }
+pub fn admits(state: &CapturePicker) -> bool {
+    state.asking.is_none() && state.color.is_none() && state.permission.is_none()
 }
 
 /// Whether a permission question is taken now: on screen when the sheet is free, else it waits
 /// behind the others, up to [`WAITING_MAX`].
-pub fn permission_admits(state: &CapturePicker) -> Admit {
-    match state.waiting.len() < WAITING_MAX {
-        true => Admit::Yes,
-        false => Admit::Busy,
-    }
+pub fn permission_admits(state: &CapturePicker) -> bool {
+    state.waiting.len() < WAITING_MAX
 }
 
 /// `state` with the first waiting question on screen, when nothing else is.
 fn promote(state: CapturePicker) -> CapturePicker {
-    if admits(&state) == Admit::Busy {
+    if !admits(&state) {
         return state;
     }
     let mut waiting = state.waiting.into_iter();
@@ -165,7 +148,7 @@ pub fn holds_consent(state: &CapturePicker, ask: ConsentId) -> bool {
 /// held, and a question that finds the line full is not taken.
 fn queue(state: CapturePicker, asking: PermissionAsking) -> CapturePicker {
     if matches!(asking.by, AskedBy::Compositor(ask) if holds_consent(&state, ask))
-        || permission_admits(&state) == Admit::Busy
+        || !permission_admits(&state)
     {
         return state;
     }
@@ -223,19 +206,17 @@ pub fn step(state: CapturePicker, event: CaptureEvent) -> (CapturePicker, Vec<Ca
             },
             Vec::new(),
         ),
-        CaptureEvent::Opened(asking) => match admits(&state) {
-            Admit::Yes => (
-                CapturePicker {
-                    asking: Some(asking),
-                    ..state
-                },
-                Vec::new(),
-            ),
-            Admit::Busy => (state, Vec::new()),
-        },
-        CaptureEvent::Answered(id, outcome) => match &state.asking {
+        CaptureEvent::Opened(asking) if admits(&state) => (
+            CapturePicker {
+                asking: Some(asking),
+                ..state
+            },
+            Vec::new(),
+        ),
+        CaptureEvent::Opened(_) => (state, Vec::new()),
+        CaptureEvent::Answered(id, picks) => match &state.asking {
             Some(asking) if asking.id == id => {
-                let reply = outcome_reply(&asking.ask, &state.candidates, &outcome);
+                let reply = outcome_reply(&asking.ask, &state.candidates, picks.as_ref());
                 (
                     promote(CapturePicker {
                         asking: None,
@@ -254,12 +235,9 @@ pub fn step(state: CapturePicker, event: CaptureEvent) -> (CapturePicker, Vec<Ca
             Vec::new(),
         ),
         CaptureEvent::ColorOpened(asking) => match (admits(&state), state.eyedropper) {
-            (Admit::Busy, _) => (state, Vec::new()),
-            (Admit::Yes, Eyedropper::Absent) => (
-                state,
-                vec![CaptureOut::ColorReply(asking.id, ColorReply::cancelled())],
-            ),
-            (Admit::Yes, Eyedropper::Present) => (
+            (false, _) => (state, Vec::new()),
+            (true, false) => (state, vec![CaptureOut::ColorReply(asking.id, None)]),
+            (true, true) => (
                 CapturePicker {
                     color: Some(asking),
                     ..state
@@ -267,13 +245,13 @@ pub fn step(state: CapturePicker, event: CaptureEvent) -> (CapturePicker, Vec<Ca
                 Vec::new(),
             ),
         },
-        CaptureEvent::ColorAnswered(id, outcome) => match &state.color {
+        CaptureEvent::ColorAnswered(id, color) => match &state.color {
             Some(asking) if asking.id == id => (
                 promote(CapturePicker {
                     color: None,
                     ..state
                 }),
-                vec![CaptureOut::ColorReply(id, ColorReply::of(outcome))],
+                vec![CaptureOut::ColorReply(id, color)],
             ),
             Some(_) | None => (state, Vec::new()),
         },

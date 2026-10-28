@@ -13,9 +13,8 @@ use sill_launcher::{
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
 use sill_model::companion::{
-    AnswerFacts, BRING_BACK_LABEL, Busy, CHOOSE_MODEL_LABEL, Companion, CompanionLink,
-    TerminalsModel, activity_line, answer_line, cards_of, lacks_model, session_subtitle,
-    session_title,
+    AnswerFacts, BRING_BACK_LABEL, Busy, CHOOSE_MODEL_LABEL, Companion, TerminalsModel,
+    activity_line, answer_line, cards_of, lacks_model, session_subtitle, session_title,
 };
 use sill_model::launch::assistant_model;
 use tokio::sync::watch;
@@ -50,9 +49,9 @@ impl Provider for CompanionProvider {
         }
         let state = self.companion.borrow().clone();
         let alone = query.scope == Scope::Only(ProviderKind::Companion);
-        let items = match state.link {
-            CompanionLink::Passive => Vec::new(),
-            CompanionLink::Ready => rows(&state, query.text.trim(), alone),
+        let items = match state.reached {
+            false => Vec::new(),
+            true => rows(&state, query.text.trim(), alone),
         };
         sink.push(items);
     }
@@ -382,7 +381,7 @@ mod tests {
             AnswerBody::Text { lines: Vec::new() },
         );
         let mut companion = Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             front: Some(task("t-2")),
             journal: vec![
                 entry(5, UndoState::Available),

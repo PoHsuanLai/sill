@@ -9,7 +9,9 @@
 use ds::prelude::*;
 use sill_launcher::SessionAction;
 use sill_launcher::WindowKey;
-use sill_model::app_menu::{AppMenus, MenuApp, OwnGroup, QuitRow, Titles, own_groups, titles};
+use sill_model::app_menu::{
+    AppMenus, MenuApp, OwnGroup, Titles, own_groups, quit_offered_in, titles,
+};
 use sill_model::apps::AppIndex;
 use sill_model::ids::OutputName;
 use sill_model::session::{Offer, Session, words};
@@ -203,7 +205,7 @@ fn app_menu(
             Some(menu_items(&|id| menus.pick(id), rows, icon))
         })
         .unwrap_or_default();
-    let quit = QuitRow::of_titles(menus.map(|menus| &menus.titles));
+    let quit = quit_offered_in(menus.map(|menus| &menus.titles));
     let groups = own_groups(&app.name, &app.windows, quit);
     let shell = groups.into_iter().map(|group| own_rows(app, group));
     let sections = std::iter::once(own)

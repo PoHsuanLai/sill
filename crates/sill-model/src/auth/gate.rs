@@ -21,18 +21,11 @@
 
 use super::{Attempts, Outcome};
 
-/// Whether a secret can be checked now.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Gate {
-    #[default]
-    Open,
-    Checking,
-}
-
 /// The machine's whole state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Checks {
-    pub gate: Gate,
+    /// True while a check runs; a secret can be checked only when it is false (the gate is open).
+    pub checking: bool,
     pub failures: Attempts,
 }
 
@@ -60,24 +53,24 @@ pub enum GateOut {
 
 /// `checks` after `input`.
 pub fn step(checks: Checks, input: GateIn) -> (Checks, Vec<GateOut>) {
-    match (checks.gate, input) {
-        (Gate::Open, GateIn::Submit) => (
+    match (checks.checking, input) {
+        (false, GateIn::Submit) => (
             Checks {
-                gate: Gate::Checking,
+                checking: true,
                 ..checks
             },
             vec![GateOut::Check],
         ),
-        (Gate::Checking, GateIn::Submit) => (checks, vec![GateOut::Busy]),
-        (Gate::Checking, GateIn::Verdict(outcome)) => verdict(checks, &outcome),
-        (Gate::Open | Gate::Checking, GateIn::Reset) => (
+        (true, GateIn::Submit) => (checks, vec![GateOut::Busy]),
+        (true, GateIn::Verdict(outcome)) => verdict(checks, &outcome),
+        (_, GateIn::Reset) => (
             Checks {
-                gate: Gate::Open,
+                checking: false,
                 ..checks
             },
             Vec::new(),
         ),
-        (Gate::Open, GateIn::Verdict(_)) => (checks, Vec::new()),
+        (false, GateIn::Verdict(_)) => (checks, Vec::new()),
     }
 }
 
@@ -87,21 +80,21 @@ fn verdict(checks: Checks, outcome: &Outcome) -> (Checks, Vec<GateOut>) {
         Outcome::Accepted => (Checks::default(), vec![GateOut::Accepted]),
         Outcome::Unavailable(_) => (
             Checks {
-                gate: Gate::Open,
+                checking: false,
                 ..checks
             },
             vec![GateOut::Unavailable],
         ),
         Outcome::Refused => (
             Checks {
-                gate: Gate::Open,
+                checking: false,
                 failures: Attempts(checks.failures.0.saturating_add(1)),
             },
             vec![GateOut::Wrong],
         ),
         Outcome::Expired => (
             Checks {
-                gate: Gate::Open,
+                checking: false,
                 ..checks
             },
             vec![GateOut::Expired],

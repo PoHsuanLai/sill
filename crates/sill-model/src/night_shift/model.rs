@@ -103,19 +103,12 @@ pub enum Backend {
     Hardware,
 }
 
-/// Whether the shell has read casement's settings.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Reach {
-    /// Not read yet, or the file could not be used.
-    #[default]
-    Unavailable,
-    Ready,
-}
-
 /// What the shell knows of Night Shift.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct NightShift {
-    pub reach: Reach,
+    /// True once the shell has read casement's settings; false while they are not read yet or
+    /// the file could not be used.
+    pub reached: bool,
     pub light: NightLight,
     pub manual: Option<Manual>,
     pub backend: Backend,

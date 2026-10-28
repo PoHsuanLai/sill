@@ -28,8 +28,10 @@ pub use follow::{Followers, Following};
 pub use layout::{Node, NodeProps, NodeType, ToggleKind, rows_of};
 pub use listing::{LISTING_MAX, listing};
 pub use model::{AppMenus, Follower, MenuApp, MenuName, ServedMenu};
-pub use own::{OwnGroup, OwnItem, OwnRow, QuitRow, commands as own_commands, own_groups};
-pub use owner::{MenuClient, MenuOwner, MenuTrust, menu_trust};
+pub use own::{
+    OwnGroup, OwnItem, OwnRow, commands as own_commands, own_groups, quit_offered, quit_offered_in,
+};
+pub use owner::{MenuClient, MenuOwner, menu_trust};
 pub use route::{ActionIndex, Identity, ItemKey, Route, effect_of, route_of};
 pub use step::step;
 pub use titles::{TitledMenu, Titles, titles};

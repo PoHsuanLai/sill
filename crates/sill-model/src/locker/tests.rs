@@ -1,27 +1,29 @@
 use LockerEffect::{ReleaseInhibitor, TakeInhibitor};
-use Triggers::{FollowLogind, IgnoreLogind};
 
 use super::{
-    Cause, Hold, Locker, LockerEffect, LockerEvent, Phase, READY_GIVE_UP_MS, Runner, SLEEP_HOLD_MS,
-    Triggers, next_deadline, step,
+    Hold, LockCause, LockPhase, Locker, LockerEffect, LockerEvent, READY_GIVE_UP_MS, SLEEP_HOLD_MS,
+    next_deadline, step,
 };
 use ds_core::time::stamp::{Ms, Stamp};
 
 const T0: Stamp = Stamp(1_000);
 
-fn runs(triggers: Triggers, phase: Phase, hold: Hold) -> Locker {
+const FOLLOW_LOGIND: bool = true;
+const IGNORE_LOGIND: bool = false;
+
+/// An own lock; the give-up deadline is kept in step with a `Locking` phase.
+fn runs(follow_logind: bool, phase: LockPhase, hold: Hold) -> Locker {
     Locker {
-        runner: Runner::Own,
-        triggers,
+        own: true,
+        follow_logind,
         phase,
+        give_up: (phase == LockPhase::Locking).then(|| T0.after(READY_GIVE_UP_MS)),
         hold,
     }
 }
 
-fn locking() -> Phase {
-    Phase::Locking {
-        give_up: T0.after(READY_GIVE_UP_MS),
-    }
+fn locking() -> LockPhase {
+    LockPhase::Locking
 }
 
 fn delaying() -> Hold {
@@ -32,73 +34,73 @@ fn delaying() -> Hold {
 
 #[test]
 fn every_transition() {
-    let own = |phase, hold| runs(FollowLogind, phase, hold);
-    let guest = |phase, hold| runs(IgnoreLogind, phase, hold);
+    let own = |phase, hold| runs(FOLLOW_LOGIND, phase, hold);
+    let guest = |phase, hold| runs(IGNORE_LOGIND, phase, hold);
     let off = Locker::default();
     #[rustfmt::skip]
     let cases: Vec<(&str, Locker, LockerEvent, Locker, Vec<LockerEffect>)> = vec![
         // Configuring: the inhibitor is taken only for our own lock in our own session.
-        ("own session arms", off, LockerEvent::Configured(Runner::Own, FollowLogind),
-            own(Phase::Unlocked, Hold::Armed), vec![TakeInhibitor]),
-        ("guest never arms", off, LockerEvent::Configured(Runner::Own, IgnoreLogind),
-            guest(Phase::Unlocked, Hold::Released), vec![]),
-        ("reconfigure keeps the hold", own(Phase::Unlocked, Hold::Armed),
-            LockerEvent::Configured(Runner::Own, FollowLogind),
-            own(Phase::Unlocked, Hold::Armed), vec![]),
-        ("turning off releases", own(Phase::Unlocked, Hold::Armed),
-            LockerEvent::Configured(Runner::Off, FollowLogind),
-            Locker { runner: Runner::Off, triggers: FollowLogind, ..Locker::default() },
+        ("own session arms", off, LockerEvent::Configured { own: true, follow_logind: true },
+            own(LockPhase::Unlocked, Hold::Armed), vec![TakeInhibitor]),
+        ("guest never arms", off, LockerEvent::Configured { own: true, follow_logind: false },
+            guest(LockPhase::Unlocked, Hold::Released), vec![]),
+        ("reconfigure keeps the hold", own(LockPhase::Unlocked, Hold::Armed),
+            LockerEvent::Configured { own: true, follow_logind: true },
+            own(LockPhase::Unlocked, Hold::Armed), vec![]),
+        ("turning off releases", own(LockPhase::Unlocked, Hold::Armed),
+            LockerEvent::Configured { own: false, follow_logind: true },
+            Locker { follow_logind: true, ..Locker::default() },
             vec![ReleaseInhibitor]),
         // Asking.
-        ("action starts a lock", own(Phase::Unlocked, Hold::Armed),
-            LockerEvent::Requested(Cause::Action, T0), own(locking(), Hold::Armed), vec![]),
-        ("logind lock starts one in our session", own(Phase::Unlocked, Hold::Armed),
-            LockerEvent::Requested(Cause::Logind, T0), own(locking(), Hold::Armed), vec![]),
-        ("logind lock is not a guest's", guest(Phase::Unlocked, Hold::Released),
-            LockerEvent::Requested(Cause::Logind, T0), guest(Phase::Unlocked, Hold::Released), vec![]),
-        ("a guest still locks on its own action", guest(Phase::Unlocked, Hold::Released),
-            LockerEvent::Requested(Cause::Action, T0), guest(locking(), Hold::Released), vec![]),
+        ("action starts a lock", own(LockPhase::Unlocked, Hold::Armed),
+            LockerEvent::Requested(LockCause::Action, T0), own(locking(), Hold::Armed), vec![]),
+        ("logind lock starts one in our session", own(LockPhase::Unlocked, Hold::Armed),
+            LockerEvent::Requested(LockCause::Logind, T0), own(locking(), Hold::Armed), vec![]),
+        ("logind lock is not a guest's", guest(LockPhase::Unlocked, Hold::Released),
+            LockerEvent::Requested(LockCause::Logind, T0), guest(LockPhase::Unlocked, Hold::Released), vec![]),
+        ("a guest still locks on its own action", guest(LockPhase::Unlocked, Hold::Released),
+            LockerEvent::Requested(LockCause::Action, T0), guest(locking(), Hold::Released), vec![]),
         ("never a second lock while locking", own(locking(), Hold::Armed),
-            LockerEvent::Requested(Cause::Action, T0), own(locking(), Hold::Armed), vec![]),
-        ("never a second lock while locked", own(Phase::Locked, Hold::Armed),
-            LockerEvent::Requested(Cause::Logind, T0), own(Phase::Locked, Hold::Armed), vec![]),
-        ("off does nothing", off, LockerEvent::Requested(Cause::Action, T0), off, vec![]),
+            LockerEvent::Requested(LockCause::Action, T0), own(locking(), Hold::Armed), vec![]),
+        ("never a second lock while locked", own(LockPhase::Locked, Hold::Armed),
+            LockerEvent::Requested(LockCause::Logind, T0), own(LockPhase::Locked, Hold::Armed), vec![]),
+        ("off does nothing", off, LockerEvent::Requested(LockCause::Action, T0), off, vec![]),
         // Reports and exits.
         ("report locks", own(locking(), Hold::Armed), LockerEvent::Reported,
-            own(Phase::Locked, Hold::Armed), vec![]),
-        ("report while unlocked is stale", own(Phase::Unlocked, Hold::Armed), LockerEvent::Reported,
-            own(Phase::Unlocked, Hold::Armed), vec![]),
-        ("exit unlocks", own(Phase::Locked, Hold::Armed), LockerEvent::Exited,
-            own(Phase::Unlocked, Hold::Armed), vec![]),
+            own(LockPhase::Locked, Hold::Armed), vec![]),
+        ("report while unlocked is stale", own(LockPhase::Unlocked, Hold::Armed), LockerEvent::Reported,
+            own(LockPhase::Unlocked, Hold::Armed), vec![]),
+        ("exit unlocks", own(LockPhase::Locked, Hold::Armed), LockerEvent::Exited,
+            own(LockPhase::Unlocked, Hold::Armed), vec![]),
         // Sleep.
-        ("sleep starts a lock and delays", own(Phase::Unlocked, Hold::Armed),
+        ("sleep starts a lock and delays", own(LockPhase::Unlocked, Hold::Armed),
             LockerEvent::SleepStarting(T0), own(locking(), delaying()), vec![]),
-        ("sleep while locked lets go at once", own(Phase::Locked, Hold::Armed),
-            LockerEvent::SleepStarting(T0), own(Phase::Locked, Hold::Released), vec![ReleaseInhibitor]),
+        ("sleep while locked lets go at once", own(LockPhase::Locked, Hold::Armed),
+            LockerEvent::SleepStarting(T0), own(LockPhase::Locked, Hold::Released), vec![ReleaseInhibitor]),
         ("sleep while locking waits for the report", own(locking(), Hold::Armed),
             LockerEvent::SleepStarting(T0), own(locking(), delaying()), vec![]),
-        ("sleep without an inhibitor still locks", own(Phase::Unlocked, Hold::Released),
+        ("sleep without an inhibitor still locks", own(LockPhase::Unlocked, Hold::Released),
             LockerEvent::SleepStarting(T0), own(locking(), Hold::Released), vec![]),
-        ("sleep is not a guest's", guest(Phase::Unlocked, Hold::Released),
-            LockerEvent::SleepStarting(T0), guest(Phase::Unlocked, Hold::Released), vec![]),
+        ("sleep is not a guest's", guest(LockPhase::Unlocked, Hold::Released),
+            LockerEvent::SleepStarting(T0), guest(LockPhase::Unlocked, Hold::Released), vec![]),
         ("the report releases the sleep", own(locking(), delaying()), LockerEvent::Reported,
-            own(Phase::Locked, Hold::Released), vec![ReleaseInhibitor]),
+            own(LockPhase::Locked, Hold::Released), vec![ReleaseInhibitor]),
         ("the lock ending releases the sleep", own(locking(), delaying()), LockerEvent::Exited,
-            own(Phase::Unlocked, Hold::Released), vec![ReleaseInhibitor]),
+            own(LockPhase::Unlocked, Hold::Released), vec![ReleaseInhibitor]),
         ("the hold runs out", own(locking(), delaying()),
             LockerEvent::Tick(T0.after(SLEEP_HOLD_MS)), own(locking(), Hold::Released),
             vec![ReleaseInhibitor]),
         ("before the hold runs out", own(locking(), delaying()),
             LockerEvent::Tick(T0.after(Ms(SLEEP_HOLD_MS.0 - 1))), own(locking(), delaying()), vec![]),
-        ("waking re-arms", own(Phase::Locked, Hold::Released), LockerEvent::Woke,
-            own(Phase::Locked, Hold::Armed), vec![TakeInhibitor]),
-        ("waking while armed keeps it", own(Phase::Locked, Hold::Armed), LockerEvent::Woke,
-            own(Phase::Locked, Hold::Armed), vec![]),
-        ("a refused inhibitor", own(Phase::Unlocked, Hold::Armed), LockerEvent::InhibitorRefused,
-            own(Phase::Unlocked, Hold::Released), vec![]),
+        ("waking re-arms", own(LockPhase::Locked, Hold::Released), LockerEvent::Woke,
+            own(LockPhase::Locked, Hold::Armed), vec![TakeInhibitor]),
+        ("waking while armed keeps it", own(LockPhase::Locked, Hold::Armed), LockerEvent::Woke,
+            own(LockPhase::Locked, Hold::Armed), vec![]),
+        ("a refused inhibitor", own(LockPhase::Unlocked, Hold::Armed), LockerEvent::InhibitorRefused,
+            own(LockPhase::Unlocked, Hold::Released), vec![]),
         // A silent lock is taken as locked.
         ("give up waiting for the report", own(locking(), Hold::Armed),
-            LockerEvent::Tick(T0.after(READY_GIVE_UP_MS)), own(Phase::Locked, Hold::Armed), vec![]),
+            LockerEvent::Tick(T0.after(READY_GIVE_UP_MS)), own(LockPhase::Locked, Hold::Armed), vec![]),
     ];
     for (name, before, event, want, effects) in cases {
         assert_eq!(step(before, event), (want, effects), "{name}");
@@ -108,17 +110,17 @@ fn every_transition() {
 #[test]
 fn deadlines_are_the_earliest_pending() {
     let cases = [
-        (runs(FollowLogind, Phase::Unlocked, Hold::Armed), None),
+        (runs(FOLLOW_LOGIND, LockPhase::Unlocked, Hold::Armed), None),
         (
-            runs(FollowLogind, locking(), Hold::Armed),
+            runs(FOLLOW_LOGIND, locking(), Hold::Armed),
             Some(T0.after(READY_GIVE_UP_MS)),
         ),
         (
-            runs(FollowLogind, locking(), delaying()),
+            runs(FOLLOW_LOGIND, locking(), delaying()),
             Some(T0.after(SLEEP_HOLD_MS)),
         ),
         (
-            runs(FollowLogind, Phase::Locked, delaying()),
+            runs(FOLLOW_LOGIND, LockPhase::Locked, delaying()),
             Some(T0.after(SLEEP_HOLD_MS)),
         ),
     ];
@@ -130,9 +132,12 @@ fn deadlines_are_the_earliest_pending() {
 #[test]
 fn a_whole_sleep_in_order() {
     let events = [
-        LockerEvent::Configured(Runner::Own, FollowLogind),
+        LockerEvent::Configured {
+            own: true,
+            follow_logind: true,
+        },
         LockerEvent::SleepStarting(T0),
-        LockerEvent::Requested(Cause::Logind, T0.after(Ms(10))),
+        LockerEvent::Requested(LockCause::Logind, T0.after(Ms(10))),
         LockerEvent::Reported,
         LockerEvent::Woke,
         LockerEvent::Exited,
@@ -149,5 +154,5 @@ fn a_whole_sleep_in_order() {
         effects,
         vec![TakeInhibitor, ReleaseInhibitor, TakeInhibitor]
     );
-    assert_eq!(last, runs(FollowLogind, Phase::Unlocked, Hold::Armed));
+    assert_eq!(last, runs(FOLLOW_LOGIND, LockPhase::Unlocked, Hold::Armed));
 }

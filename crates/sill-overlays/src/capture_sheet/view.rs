@@ -24,7 +24,7 @@ use ds::prelude::*;
 use ds::root::common::Common;
 use shell_host::OutputInfo;
 use sill_model::capture_pick::{
-    Asking, Outcome, Picks, Plurality, Pointer, Source, Tab, can_allow, plan, toggle,
+    Asking, Picks, Plurality, Pointer, Source, Tab, can_allow, plan, toggle,
 };
 use sill_services::capture_pick::CaptureService;
 
@@ -88,7 +88,7 @@ fn SheetCard(asking: Asking, shown: Shown, stage: Signal<SheetStage<Asking>>) ->
             let now = plan(&ask, &candidates.peek());
             let current = picks.peek().clone();
             if can_allow(&now, &current) {
-                end.call(Outcome::Allow(current));
+                end.call(Some(current));
             }
         }
     });
@@ -159,7 +159,7 @@ fn SheetCard(asking: Asking, shown: Shown, stage: Signal<SheetStage<Asking>>) ->
     rsx! {
         Sheet {
             label: title.clone(),
-            onclose: move |()| end.call(Outcome::Cancel),
+            onclose: move |()| end.call(None),
             shown: Some(shown),
             on_hidden: move |()| settle(stage),
             attach: Attach::Centre,
@@ -174,7 +174,7 @@ fn SheetCard(asking: Asking, shown: Shown, stage: Signal<SheetStage<Asking>>) ->
                 onmounted: move |event: MountedEvent| focus_soon(event.data()),
                 onkeydown: move |event: KeyboardEvent| {
                     if event.key() == Key::Escape {
-                        end.call(Outcome::Cancel);
+                        end.call(None);
                     }
                 },
                 div { class: "sill-capture-title", "{title}" }
@@ -220,7 +220,7 @@ fn SheetCard(asking: Asking, shown: Shown, stage: Signal<SheetStage<Asking>>) ->
                     Button {
                         label: "Cancel",
                         answers: Answers::Escape,
-                        onclick: move |_| end.call(Outcome::Cancel),
+                        onclick: move |_| end.call(None),
                         common: Common { id: Some(CANCEL_ID.to_owned()), ..Common::default() },
                     }
                     Button {

@@ -13,6 +13,6 @@ pub use identity::pick_identity;
 pub use machine::{Completion, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, step};
 pub use model::Polkit;
 pub use types::{
-    ActionId, AgentPolicy, AuthRequest, Cookie, Echo, FAKE_SECRET, Gid, Identity, LastTry,
-    PromptPhase, PromptView, Registration, Uid,
+    ActionId, AuthRequest, Cookie, Echo, FAKE_SECRET, Gid, Identity, LastTry, PromptPhase,
+    PromptView, Registration, Uid,
 };

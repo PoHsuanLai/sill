@@ -17,8 +17,7 @@ use logind_zbus::manager::PrepareForSleepStream;
 use sill_model::auth::AuthCommand;
 use sill_model::idle::{
     Idle, IdleCommand, IdleConfig, IdleEffect, IdleEvent, IdleMode, IdleState, InhibitMsg,
-    Inhibitors, LockSeen, LockView, LogindIdle, inhibit_step, inhibition, power_source, step,
-    ticket,
+    Inhibitors, LockSeen, LogindIdle, inhibit_step, inhibition, power_source, step, ticket,
 };
 use sill_model::locker::{Lock, LockPhase, LockerCommand};
 use sill_model::untrusted::for_log;
@@ -403,12 +402,12 @@ fn resolved(config: IdleConfig, reach: &Reach) -> sill_model::idle::IdlePolicy {
 
 /// The lock as idle reads it: `Locking` counts as locked.
 fn seen_of(lock: &Lock) -> LockSeen {
-    let view = match lock.phase {
-        LockPhase::Unlocked => LockView::Unlocked,
-        LockPhase::Locking | LockPhase::Locked => LockView::Locked,
+    let locked = match lock.phase {
+        LockPhase::Unlocked => false,
+        LockPhase::Locking | LockPhase::Locked => true,
     };
     LockSeen {
-        view,
+        locked,
         cause: lock.cause,
     }
 }

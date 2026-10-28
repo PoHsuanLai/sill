@@ -3,8 +3,8 @@ use super::{
 };
 use crate::auth::{PamNote, UserName};
 use crate::polkit_agent::{
-    ActionId, AgentPolicy, AuthRequest, Cookie, Echo, HelperLine, Identity, LastTry, PromptPhase,
-    Registration, Uid,
+    ActionId, AuthRequest, Cookie, Echo, HelperLine, Identity, LastTry, PromptPhase, Registration,
+    Uid,
 };
 
 fn cookie(n: u32) -> Cookie {
@@ -51,7 +51,7 @@ fn complete(n: u32, completion: Completion) -> PolkitEffect {
 
 fn registered() -> PolkitState {
     PolkitState {
-        policy: AgentPolicy::Own,
+        own_agent: true,
         registration: Registration::Registered,
         queue: Vec::new(),
     }
@@ -86,10 +86,7 @@ fn registration_follows_the_policy() {
         (
             "own registers",
             PolkitState::default(),
-            vec![
-                PolkitEvent::Policy(AgentPolicy::Own),
-                PolkitEvent::Registered,
-            ],
+            vec![PolkitEvent::Policy(true), PolkitEvent::Registered],
             Registration::Registered,
             vec![PolkitEffect::Register],
         ),
@@ -97,7 +94,7 @@ fn registration_follows_the_policy() {
             "a refusal is kept",
             PolkitState::default(),
             vec![
-                PolkitEvent::Policy(AgentPolicy::Own),
+                PolkitEvent::Policy(true),
                 PolkitEvent::RegisterFailed("already an agent".to_owned()),
             ],
             Registration::Refused("already an agent".to_owned()),
@@ -106,7 +103,7 @@ fn registration_follows_the_policy() {
         (
             "off unregisters and cancels what waits",
             registered(),
-            vec![begin(1), PolkitEvent::Policy(AgentPolicy::Off)],
+            vec![begin(1), PolkitEvent::Policy(false)],
             Registration::Passive,
             vec![
                 start(1),

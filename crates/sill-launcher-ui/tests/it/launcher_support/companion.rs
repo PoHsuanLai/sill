@@ -6,8 +6,7 @@ use docket_core::{ContextKeep, Keep, Reveal};
 use docket_vocab::{ActionRef, Args, CallRequest, CardActionId, LabelText, Origin, TargetValue};
 use prov::{ActionName, AppName, Effect, TaskId};
 use sill_model::companion::{
-    AnswerFacts, Busy, Companion, CompanionLink, HelpersModel, HelpersMsg, LauncherOrigin, Summon,
-    update_helpers,
+    AnswerFacts, Busy, Companion, HelpersModel, HelpersMsg, LauncherOrigin, Summon, update_helpers,
 };
 
 pub fn task(id: &str) -> TaskId {
@@ -84,7 +83,7 @@ pub fn thinking() -> AnswerFacts {
 pub fn companion(answers: Vec<AnswerFacts>, summon: Summon) -> Companion {
     let front = answers.last().map(|a| a.wire.task.clone());
     Companion {
-        link: CompanionLink::Ready,
+        reached: true,
         summon,
         front,
         answers: answers
@@ -157,7 +156,7 @@ pub fn helpers(more: Vec<HelpersMsg>) -> Companion {
             update_helpers(model, msg).0
         });
     Companion {
-        link: CompanionLink::Ready,
+        reached: true,
         summon: fresh(),
         helpers,
         ..Companion::default()

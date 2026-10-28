@@ -1,8 +1,7 @@
 use super::{DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen, step};
 use crate::idle::{
     DimLevel, DimPlan, DimShown, GraceCase, IdleLock, IdleMode, IdlePhase, IdlePolicy, IdleSecs,
-    IdleTimes, LockGrace, LockView, LockedScreenOff, OffReason, PowerPair, SleepSince, Threshold,
-    Timeout, WakeDelay,
+    IdleTimes, LockGrace, LockedScreenOff, OffReason, PowerPair, Threshold, Timeout, WakeDelay,
 };
 use crate::locker::LockCause;
 use ds_core::time::stamp::Stamp;
@@ -33,7 +32,7 @@ fn own() -> IdlePolicy {
 
 fn idle_locked() -> LockSeen {
     LockSeen {
-        view: LockView::Locked,
+        locked: true,
         cause: Some(LockCause::IdleScreenOff),
     }
 }
@@ -88,7 +87,7 @@ fn dim_then_off_locks_first_and_a_quick_wake_earns_the_grace() {
                 cause: Some(LockCause::IdleScreenOff),
                 grace: LockGrace(IdleSecs(5)),
                 woke: WakeDelay(3_000),
-                sleep: SleepSince::NoSleep,
+                slept: false,
             }),
         ]
     );
@@ -146,7 +145,7 @@ fn a_sleep_after_the_idle_lock_marks_the_case() {
     assert!(
         graces
             .iter()
-            .all(|e| matches!(e, IdleEffect::Grace(case) if case.sleep == SleepSince::Slept)),
+            .all(|e| matches!(e, IdleEffect::Grace(case) if case.slept)),
         "{graces:?}"
     );
 }

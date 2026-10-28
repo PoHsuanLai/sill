@@ -28,7 +28,7 @@ pub fn step(
     params: &CompanionParams,
 ) -> (Companion, Vec<CompanionEffect>) {
     match event {
-        CompanionEvent::Link(link) => (Companion { link, ..state }, Vec::new()),
+        CompanionEvent::Reached(reached) => (Companion { reached, ..state }, Vec::new()),
         CompanionEvent::Tapped(facts) => {
             let (tap, taps) = state.tap.step(TapIn::Tap, at, &params.tap, &());
             let state = Companion { tap, ..state };
@@ -257,7 +257,7 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
             ..state
         },
         // The machines' events are handled by `step`.
-        CompanionEvent::Link(_)
+        CompanionEvent::Reached(_)
         | CompanionEvent::Tapped(_)
         | CompanionEvent::Summoned(_)
         | CompanionEvent::AppAnswered(..)

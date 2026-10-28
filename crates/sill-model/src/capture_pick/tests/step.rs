@@ -20,7 +20,7 @@ fn serving() -> CapturePicker {
 #[test]
 fn a_second_request_is_refused_while_one_is_open() {
     let (state, _) = step(serving(), CaptureEvent::Opened(open(1, 3)));
-    assert_eq!(admits(&state), Admit::Busy);
+    assert!(!admits(&state));
     let (again, out) = step(state.clone(), CaptureEvent::Opened(open(2, 1)));
     assert_eq!(again, state);
     assert!(out.is_empty());
@@ -31,11 +31,8 @@ fn allow_answers_with_the_pick_and_frees_the_sheet() {
     let (state, _) = step(serving(), CaptureEvent::Opened(open(1, 2)));
     let plan = plan(&state.asking.as_ref().expect("open").ask, &state.candidates); // test-only
     let picks = toggle(&plan, Plurality::One, Picks::start(&plan), window("w-2"));
-    let (state, out) = step(
-        state,
-        CaptureEvent::Answered(AskId(1), Outcome::Allow(picks)),
-    );
-    assert_eq!(admits(&state), Admit::Yes);
+    let (state, out) = step(state, CaptureEvent::Answered(AskId(1), Some(picks)));
+    assert!(admits(&state));
     let [CaptureOut::Reply(id, reply)] = out.as_slice() else {
         panic!("{out:?}")
     };
@@ -46,13 +43,10 @@ fn allow_answers_with_the_pick_and_frees_the_sheet() {
 #[test]
 fn cancel_answers_empty_and_a_stale_answer_is_ignored() {
     let (state, _) = step(serving(), CaptureEvent::Opened(open(5, 3)));
-    let (same, out) = step(
-        state.clone(),
-        CaptureEvent::Answered(AskId(4), Outcome::Cancel),
-    );
+    let (same, out) = step(state.clone(), CaptureEvent::Answered(AskId(4), None));
     assert_eq!(same, state);
     assert!(out.is_empty());
-    let (state, out) = step(state, CaptureEvent::Answered(AskId(5), Outcome::Cancel));
+    let (state, out) = step(state, CaptureEvent::Answered(AskId(5), None));
     assert_eq!(out, vec![CaptureOut::Reply(AskId(5), Reply::cancelled())]);
     assert!(state.asking.is_none());
 }

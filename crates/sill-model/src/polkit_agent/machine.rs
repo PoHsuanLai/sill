@@ -21,9 +21,7 @@
 //! - A cookie nobody holds changes nothing.
 
 use super::helper::HelperLine;
-use super::{
-    AgentPolicy, AuthRequest, Cookie, Echo, LastTry, Polkit, PromptPhase, PromptView, Registration,
-};
+use super::{AuthRequest, Cookie, Echo, LastTry, Polkit, PromptPhase, PromptView, Registration};
 use crate::auth::{PamNote, UserName};
 
 /// How many helper runs one request gets (libpolkit-agent's clients: three).
@@ -53,7 +51,9 @@ pub struct Pending {
 /// The whole state.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct PolkitState {
-    pub policy: AgentPolicy,
+    /// True when the service is the session's agent (registers and answers); false when it
+    /// unregisters or never registers (tests).
+    pub own_agent: bool,
     pub registration: Registration,
     /// The first is on screen.
     pub queue: Vec<Pending>,
@@ -62,7 +62,7 @@ pub struct PolkitState {
 /// One thing the live side learnt.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PolkitEvent {
-    Policy(AgentPolicy),
+    Policy(bool),
     Registered,
     RegisterFailed(String),
     BusGone,
@@ -112,7 +112,7 @@ pub enum PolkitEffect {
 /// `state` after `event`.
 pub fn step(state: PolkitState, event: PolkitEvent) -> (PolkitState, Vec<PolkitEffect>) {
     match event {
-        PolkitEvent::Policy(policy) => on_policy(state, policy),
+        PolkitEvent::Policy(own) => on_policy(state, own),
         PolkitEvent::Registered => on_registered(state),
         PolkitEvent::RegisterFailed(message) => (
             PolkitState {
@@ -161,13 +161,16 @@ pub fn polkit_of(state: &PolkitState) -> Polkit {
     }
 }
 
-fn on_policy(state: PolkitState, policy: AgentPolicy) -> (PolkitState, Vec<PolkitEffect>) {
-    let state = PolkitState { policy, ..state };
-    match (policy, &state.registration) {
-        (AgentPolicy::Own, Registration::Registered) => (state, Vec::new()),
-        (AgentPolicy::Own, _) => (state, vec![PolkitEffect::Register]),
-        (AgentPolicy::Off, Registration::Registered) => unregister(state),
-        (AgentPolicy::Off, _) => (
+fn on_policy(state: PolkitState, own: bool) -> (PolkitState, Vec<PolkitEffect>) {
+    let state = PolkitState {
+        own_agent: own,
+        ..state
+    };
+    match (own, &state.registration) {
+        (true, Registration::Registered) => (state, Vec::new()),
+        (true, _) => (state, vec![PolkitEffect::Register]),
+        (false, Registration::Registered) => unregister(state),
+        (false, _) => (
             PolkitState {
                 registration: Registration::Passive,
                 ..state
@@ -182,10 +185,10 @@ fn on_registered(state: PolkitState) -> (PolkitState, Vec<PolkitEffect>) {
         registration: Registration::Registered,
         ..state
     };
-    match state.policy {
-        AgentPolicy::Own => (state, Vec::new()),
+    match state.own_agent {
+        true => (state, Vec::new()),
         // Turned off while the registration was on its way.
-        AgentPolicy::Off => unregister(state),
+        false => unregister(state),
     }
 }
 
@@ -209,7 +212,7 @@ fn unregister(state: PolkitState) -> (PolkitState, Vec<PolkitEffect>) {
         .chain(cancels)
         .collect();
     let state = PolkitState {
-        policy: state.policy,
+        own_agent: state.own_agent,
         registration: Registration::Passive,
         queue: Vec::new(),
     };

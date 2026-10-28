@@ -30,37 +30,6 @@ pub enum LockPhase {
     Locked,
 }
 
-/// Who carries out a lock, once the setting is resolved.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Runner {
-    /// Nothing locks.
-    #[default]
-    Off,
-    /// sill's own lock screen.
-    Own,
-}
-
-/// Whether logind's `Lock` and `PrepareForSleep` start a lock, or only sill's own Lock does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Triggers {
-    /// A sill session: logind's signals are ours to act on.
-    FollowLogind,
-    /// Another desktop owns this logind session (sill nested during development): its signals are not ours.
-    #[default]
-    IgnoreLogind,
-}
-
-/// Why a lock was asked for.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Cause {
-    /// sill's Lock: the launcher row, the power menu, `sill lock`.
-    Action,
-    /// logind's `Lock` signal for this session (`loginctl lock-session`, Super+Escape).
-    Logind,
-    /// sill's own idle service turned the displays off.
-    Idle,
-}
-
 /// The sleep delay inhibitor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Hold {
@@ -76,32 +45,16 @@ pub enum Hold {
 /// The locker service's whole state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Locker {
-    pub runner: Runner,
-    pub triggers: Triggers,
-    pub phase: Phase,
+    /// True when sill's own lock screen does the locking; false and nothing locks.
+    pub own: bool,
+    /// True when logind's `Lock` and `PrepareForSleep` start a lock (a sill session); false when
+    /// another desktop owns this logind session and only sill's own Lock does.
+    pub follow_logind: bool,
+    pub phase: LockPhase,
+    /// When a lock that has not said locked is taken as locked anyway; set exactly while
+    /// `phase` is `Locking`.
+    pub give_up: Option<Stamp>,
     pub hold: Hold,
-}
-
-/// [`LockPhase`] with the deadline the machine needs while locking.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Phase {
-    #[default]
-    Unlocked,
-    Locking {
-        give_up: Stamp,
-    },
-    Locked,
-}
-
-impl Phase {
-    /// The published form.
-    pub fn public(self) -> LockPhase {
-        match self {
-            Phase::Unlocked => LockPhase::Unlocked,
-            Phase::Locking { .. } => LockPhase::Locking,
-            Phase::Locked => LockPhase::Locked,
-        }
-    }
 }
 
 /// What the lock screen is doing.

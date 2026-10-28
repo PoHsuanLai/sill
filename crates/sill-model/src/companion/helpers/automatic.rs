@@ -32,15 +32,6 @@ impl Automatic {
     }
 }
 
-/// How sending the pool came out.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PoolWritten {
-    /// The pool is kept.
-    Saved,
-    /// It could not be kept.
-    NotSaved,
-}
-
 /// Start choosing, on the card of a helper that exists (a helper not made yet has no pool).
 pub(super) fn start(model: HelpersModel) -> HelpersModel {
     match model.open {
@@ -98,11 +89,12 @@ pub(super) fn confirm(model: HelpersModel) -> (HelpersModel, Vec<HelpersCommand>
     (model, vec![command])
 }
 
-/// The pool was sent: Automatic closes with a sentence about how it came out.
-pub(super) fn written(model: HelpersModel, written: PoolWritten) -> HelpersModel {
-    let sentence = match written {
-        PoolWritten::Saved => words::AUTOMATIC_ON,
-        PoolWritten::NotSaved => words::AUTOMATIC_NOT_SAVED,
+/// The pool was sent: Automatic closes with a sentence about how it came out (`saved`: the pool
+/// is kept).
+pub(super) fn written(model: HelpersModel, saved: bool) -> HelpersModel {
+    let sentence = match saved {
+        true => words::AUTOMATIC_ON,
+        false => words::AUTOMATIC_NOT_SAVED,
     };
     HelpersModel {
         automatic: Automatic::Off,

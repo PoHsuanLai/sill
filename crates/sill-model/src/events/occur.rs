@@ -8,7 +8,7 @@ use jiff::{Timestamp, ToSpan};
 
 use super::ics::{IcsEnd, IcsEvent, IcsTime};
 use super::rule::RuleEnd;
-use super::rule_expand::{Bounds, Until};
+use super::rule_expand::Bounds;
 use super::{EventTime, Window};
 
 /// When each occurrence happens, less its day.
@@ -91,9 +91,9 @@ impl Shape {
     }
 
     /// Whether the occurrence on `day` is past `end`'s `UNTIL`.
-    pub fn past_until(&self, day: Date, end: &RuleEnd, viewer: &TimeZone) -> Until {
+    pub fn past_until(&self, day: Date, end: &RuleEnd, viewer: &TimeZone) -> bool {
         let RuleEnd::Until(until) = end else {
-            return Until::Before;
+            return false;
         };
         let past = match (self, until) {
             (Shape::Days { .. }, until) => Some(day > civil_of(until, viewer).0.day()),
@@ -102,10 +102,7 @@ impl Shape {
                 .zip(resolve(until, viewer))
                 .map(|(start, until)| start > until),
         };
-        match past {
-            Some(true) => Until::Past,
-            Some(false) | None => Until::Before,
-        }
+        past == Some(true)
     }
 }
 

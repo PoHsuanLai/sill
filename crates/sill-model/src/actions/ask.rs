@@ -91,7 +91,7 @@ impl Ask {
     /// wrong thing to act on.
     pub fn refusal(&self) -> Option<String> {
         let action = def(self.action);
-        let needs = action.effect.needs();
+        let needs = action.needs;
         if self.subject.fits(needs) {
             return None;
         }

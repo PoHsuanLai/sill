@@ -9,7 +9,7 @@ use std::time::Duration;
 use ds::prelude::*;
 use ds_harness::{Harness, Input, Viewport};
 use image::{Rgba, RgbaImage};
-use sill_model::capture_pick::{AskId, CaptureCommand, ColorOutcome, EyedropIn, Rgb8};
+use sill_model::capture_pick::{AskId, CaptureCommand, EyedropIn, Rgb8};
 use sill_model::desktop::{OutputPicture, OutputShot};
 use sill_overlays::ColorSampler;
 use sill_ui_kit::harness::SurfaceHarness;
@@ -145,7 +145,7 @@ fn a_click_answers_with_the_pixel_under_the_pointer_and_hides_the_surface() {
         answers(&mut running),
         vec![CaptureCommand::ColorAnswer(
             AskId(1),
-            ColorOutcome::Picked(Rgb8 {
+            Some(Rgb8 {
                 red: 10,
                 green: 5,
                 blue: 7
@@ -168,7 +168,7 @@ fn escape_cancels_and_the_question_ending_takes_the_surface_away() {
     running.harness.advance(Duration::from_millis(100));
     assert_eq!(
         answers(&mut running),
-        vec![CaptureCommand::ColorAnswer(AskId(1), ColorOutcome::Cancel)]
+        vec![CaptureCommand::ColorAnswer(AskId(1), None)]
     );
     assert_eq!(on_screen(&running.harness), 0);
 

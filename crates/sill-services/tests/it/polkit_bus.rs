@@ -198,9 +198,7 @@ fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
 
         // (1) Own registers for the session at AGENT_PATH.
         control
-            .send(PolkitCommand::Policy(
-                sill_model::polkit_agent::AgentPolicy::Own,
-            ))
+            .send(PolkitCommand::Policy(true))
             .unwrap_or_else(|e| panic!("{e}"));
         until(&mut rx, "registered", |p| {
             p.registration == Registration::Registered
@@ -279,9 +277,7 @@ fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
 
         // (5) Off unregisters.
         control
-            .send(PolkitCommand::Policy(
-                sill_model::polkit_agent::AgentPolicy::Off,
-            ))
+            .send(PolkitCommand::Policy(false))
             .unwrap_or_else(|e| panic!("{e}"));
         until(&mut rx, "passive", |p| {
             p.registration == Registration::Passive

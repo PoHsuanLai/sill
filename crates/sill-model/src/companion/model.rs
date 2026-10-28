@@ -20,16 +20,6 @@ use super::summon::Summon;
 use super::tap::Tap;
 use super::terminals::TerminalsModel;
 
-/// Whether the service reaches the companion's bus names.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum CompanionLink {
-    /// Not on the bus yet: the shell's seat at intentd has not claimed its names.
-    #[default]
-    Passive,
-    /// Connected as the shell.
-    Ready,
-}
-
 /// One answer, as the companion has it, with the words that asked for it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AnswerFacts {
@@ -139,8 +129,9 @@ impl<T> Default for Lookup<T> {
 /// Everything the companion service publishes.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Companion {
-    /// Whether the companion's bus is reached.
-    pub link: CompanionLink,
+    /// True once the service is connected as the shell; false while it is not on the bus yet (the
+    /// shell's seat at intentd has not claimed its names).
+    pub reached: bool,
     /// The double tap.
     pub tap: Tap,
     /// Where a summon is.

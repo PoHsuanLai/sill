@@ -8,8 +8,8 @@ use ds_core::time::stamp::Stamp;
 use prov::{SessionId, TaskId};
 
 use super::{
-    Companion, CompanionEffect, CompanionEvent, CompanionParams, FROM_NEXT_STEP, Knowing,
-    LOCKED_HELP, ModeLock, ModeMsg, mode_view, step,
+    Companion, CompanionEffect, CompanionEvent, CompanionParams, FROM_NEXT_STEP, LOCKED_HELP,
+    ModeMsg, mode_view, step,
 };
 
 fn session(id: &str) -> SessionId {
@@ -66,8 +66,8 @@ fn answer(phase: AnswerPhase, lines: usize) -> CompanionEvent {
 /// What the box shows and carries after the events, and the effects the last one asked for.
 struct Seen {
     mode: Mode,
-    knowing: Knowing,
-    lock: ModeLock,
+    known: bool,
+    locked: bool,
     note: Option<&'static str>,
     help: Option<&'static str>,
     turn: Option<Mode>,
@@ -83,8 +83,8 @@ fn run(events: Vec<CompanionEvent>) -> Seen {
     let view = mode_view(&state.mode);
     Seen {
         mode: view.mode,
-        knowing: state.mode.knowing,
-        lock: view.lock,
+        known: state.mode.known,
+        locked: view.locked,
         note: view.note,
         help: view.help,
         turn: state.mode.turn_mode(),
@@ -104,7 +104,7 @@ struct Case {
     name: &'static str,
     events: Vec<CompanionEvent>,
     mode: Mode,
-    knowing: Knowing,
+    known: bool,
     turn: Option<Mode>,
     effects: Vec<CompanionEffect>,
     note: Option<&'static str>,
@@ -118,7 +118,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
             name: "nothing opened: Auto as a placeholder and no mode on a turn",
             events: vec![],
             mode: Mode::Auto,
-            knowing: Knowing::Assumed,
+            known: false,
             turn: None,
             effects: vec![],
             note: None,
@@ -127,7 +127,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
             name: "a session opened in Manual shows Manual and carries it",
             events: vec![opened("s-1", Mode::Manual)],
             mode: Mode::Manual,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Manual),
             effects: vec![],
             note: None,
@@ -141,7 +141,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
                 opened("s-2", Mode::Auto),
             ],
             mode: Mode::Manual,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Manual),
             effects: vec![],
             note: None,
@@ -150,7 +150,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
             name: "ModeChanged on the session moves the box",
             events: vec![opened("s-1", Mode::Auto), changed("s-1", Mode::Manual)],
             mode: Mode::Manual,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Manual),
             effects: vec![],
             note: None,
@@ -159,7 +159,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
             name: "ModeChanged on another session is not this conversation's",
             events: vec![opened("s-1", Mode::Auto), changed("s-9", Mode::Manual)],
             mode: Mode::Auto,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Auto),
             effects: vec![],
             note: None,
@@ -168,7 +168,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
             name: "a switch asks the router and waits for its word",
             events: vec![opened("s-1", Mode::Auto), switch(Mode::Manual)],
             mode: Mode::Auto,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Auto),
             effects: set_mode("s-1", Mode::Manual),
             note: None,
@@ -177,7 +177,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
             name: "the key flips to the other mode",
             events: vec![opened("s-1", Mode::Manual), flip],
             mode: Mode::Manual,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Manual),
             effects: set_mode("s-1", Mode::Auto),
             note: None,
@@ -186,7 +186,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
             name: "a switch to the mode it is in asks nothing",
             events: vec![opened("s-1", Mode::Auto), switch(Mode::Auto)],
             mode: Mode::Auto,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Auto),
             effects: vec![],
             note: None,
@@ -195,7 +195,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
             name: "a switch before any session waits for the first turn",
             events: vec![switch(Mode::Manual)],
             mode: Mode::Manual,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Manual),
             effects: vec![],
             note: None,
@@ -208,7 +208,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
                 CompanionEvent::Mode(ModeMsg::NotApplied(Mode::Manual)),
             ],
             mode: Mode::Manual,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Manual),
             effects: vec![],
             note: None,
@@ -222,7 +222,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
                 switch(Mode::Manual),
             ],
             mode: Mode::Auto,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Auto),
             effects: set_mode("s-1", Mode::Manual),
             note: Some(FROM_NEXT_STEP),
@@ -238,7 +238,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
                 answer(AnswerPhase::Streaming, 1),
             ],
             mode: Mode::Manual,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Manual),
             effects: vec![],
             note: Some(FROM_NEXT_STEP),
@@ -254,7 +254,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
                 answer(AnswerPhase::Thinking, 2),
             ],
             mode: Mode::Manual,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Manual),
             effects: vec![],
             note: None,
@@ -269,7 +269,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
                 answer(AnswerPhase::Done, 1),
             ],
             mode: Mode::Auto,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Auto),
             effects: vec![],
             note: None,
@@ -283,7 +283,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
                 switch(Mode::Manual),
             ],
             mode: Mode::Auto,
-            knowing: Knowing::Known,
+            known: true,
             turn: Some(Mode::Auto),
             effects: set_mode("s-1", Mode::Manual),
             note: None,
@@ -292,7 +292,7 @@ fn the_box_follows_the_router_and_asks_it_for_a_switch() {
     for case in cases {
         let seen = run(case.events);
         assert_eq!(seen.mode, case.mode, "{}: mode", case.name);
-        assert_eq!(seen.knowing, case.knowing, "{}: knowing", case.name);
+        assert_eq!(seen.known, case.known, "{}: known", case.name);
         assert_eq!(seen.turn, case.turn, "{}: the turn's mode", case.name);
         assert_eq!(seen.effects, case.effects, "{}: effects", case.name);
         assert_eq!(seen.note, case.note, "{}: note", case.name);
@@ -309,7 +309,7 @@ fn a_locked_conversation_shows_manual_and_cannot_switch() {
     ];
     let seen = run(locked);
     assert_eq!(seen.mode, Mode::Manual);
-    assert_eq!(seen.lock, ModeLock::Locked);
+    assert!(seen.locked);
     assert_eq!(seen.help, Some(LOCKED_HELP));
     assert_eq!(seen.note, None, "the refused switch leaves no note");
     assert_eq!(seen.effects, Vec::new(), "a locked switch asks nothing");

@@ -13,7 +13,7 @@ use shell_host::HostHandle;
 use sill_ipc::response::Response;
 use sill_ipc::show::CompanionRequest;
 use sill_launcher_ui::Launcher;
-use sill_model::companion::{CompanionCommand, FocusInput, LauncherFacts, SummonOut};
+use sill_model::companion::{CompanionCommand, FocusInput, SummonOut};
 use sill_model::windows::intents_app_for;
 use sill_services::Control;
 use sill_ui_kit::links::{LauncherLink, Reveal};
@@ -35,8 +35,8 @@ pub fn focus_of(services: &Services, launcher: &LauncherLink) -> FocusInput {
         window: active.map(|window| window.key),
         app: active.and_then(|window| intents_app_for(&window.app_id, &apps)),
         launcher: match launcher.now() {
-            Reveal::Revealed(opening) => LauncherFacts::Open(opening.mode),
-            Reveal::Hidden { .. } => LauncherFacts::Closed,
+            Reveal::Revealed(opening) => Some(opening.mode),
+            Reveal::Hidden { .. } => None,
         },
     }
 }

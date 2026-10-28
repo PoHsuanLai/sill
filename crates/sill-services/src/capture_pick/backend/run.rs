@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
-    Admit, AskId, AskedBy, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut,
-    CapturePicker, ColorAsking, ColorReply, OutputCandidate, PermissionAsking, PermissionOutcome,
-    Reply, admits, consent_ask, holds_consent, permission_admits, step, windows_of,
+    AskId, AskedBy, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut, CapturePicker,
+    ColorAsking, OutputCandidate, PermissionAsking, PermissionOutcome, Reply, Rgb8, admits,
+    consent_ask, holds_consent, permission_admits, step, windows_of,
 };
 use sill_model::desktop::{Answer, Consent, ConsentId, DesktopCommand, DesktopView};
 use sill_model::displays::Displays;
@@ -128,7 +128,7 @@ struct Live {
     /// Who waits for each open request's answer.
     waiters: HashMap<AskId, oneshot::Sender<fdo::Result<Reply>>>,
     /// Who waits for each open colour request's answer.
-    color_waiters: HashMap<AskId, oneshot::Sender<fdo::Result<ColorReply>>>,
+    color_waiters: HashMap<AskId, oneshot::Sender<fdo::Result<Option<Rgb8>>>>,
     /// Who waits for each open permission question's answer.
     permission_waiters: HashMap<AskId, oneshot::Sender<fdo::Result<PermissionOutcome>>>,
     next: u64,
@@ -201,7 +201,7 @@ impl Live {
     /// The compositor's question: on the sheet, or waiting its turn. When the line is full the
     /// compositor is told at once that nothing was answered, which it never remembers.
     fn consent(&mut self, consent: &Consent) {
-        let full = permission_admits(&self.state) == Admit::Busy;
+        let full = !permission_admits(&self.state);
         if full && !holds_consent(&self.state, consent.ask) {
             self.tell_compositor(consent.ask, Answer::Dismissed);
             return;
@@ -294,58 +294,49 @@ impl Live {
 
     fn permission_call(&mut self, call: PermissionCall) {
         let PermissionCall { ask, answer } = call;
-        match permission_admits(&self.state) {
-            Admit::Busy => {
-                let _ = answer.send(Err(fdo::Error::LimitsExceeded(
-                    "too many questions are waiting".to_owned(),
-                )));
-            }
-            Admit::Yes => {
-                self.next += 1;
-                let id = AskId(self.next);
-                self.permission_waiters.insert(id, answer);
-                let by = AskedBy::Portal;
-                self.feed(CaptureEvent::PermissionOpened(PermissionAsking {
-                    id,
-                    ask,
-                    by,
-                }));
-            }
+        if !permission_admits(&self.state) {
+            let _ = answer.send(Err(fdo::Error::LimitsExceeded(
+                "too many questions are waiting".to_owned(),
+            )));
+            return;
         }
+        self.next += 1;
+        let id = AskId(self.next);
+        self.permission_waiters.insert(id, answer);
+        let by = AskedBy::Portal;
+        self.feed(CaptureEvent::PermissionOpened(PermissionAsking {
+            id,
+            ask,
+            by,
+        }));
     }
 
     fn color_call(&mut self, call: ColorCall) {
         let ColorCall { ask, answer } = call;
-        match admits(&self.state) {
-            Admit::Busy => {
-                let _ = answer.send(Err(fdo::Error::LimitsExceeded(
-                    "a question is already open".to_owned(),
-                )));
-            }
-            Admit::Yes => {
-                self.next += 1;
-                let id = AskId(self.next);
-                self.color_waiters.insert(id, answer);
-                self.feed(CaptureEvent::ColorOpened(ColorAsking { id, ask }));
-            }
+        if !admits(&self.state) {
+            let _ = answer.send(Err(fdo::Error::LimitsExceeded(
+                "a question is already open".to_owned(),
+            )));
+            return;
         }
+        self.next += 1;
+        let id = AskId(self.next);
+        self.color_waiters.insert(id, answer);
+        self.feed(CaptureEvent::ColorOpened(ColorAsking { id, ask }));
     }
 
     fn sources_call(&mut self, call: SourceCall) {
         let SourceCall { ask, answer } = call;
-        match admits(&self.state) {
-            Admit::Busy => {
-                let _ = answer.send(Err(fdo::Error::LimitsExceeded(
-                    "a sharing question is already open".to_owned(),
-                )));
-            }
-            Admit::Yes => {
-                self.next += 1;
-                let id = AskId(self.next);
-                self.waiters.insert(id, answer);
-                self.feed(CaptureEvent::Opened(Asking { id, ask }));
-            }
+        if !admits(&self.state) {
+            let _ = answer.send(Err(fdo::Error::LimitsExceeded(
+                "a sharing question is already open".to_owned(),
+            )));
+            return;
         }
+        self.next += 1;
+        let id = AskId(self.next);
+        self.waiters.insert(id, answer);
+        self.feed(CaptureEvent::Opened(Asking { id, ask }));
     }
 
     /// The caller left the bus or was replaced: nobody waits any more.

@@ -14,8 +14,8 @@ use sill_launcher::{
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
 };
 use sill_model::companion::{
-    Companion, CompanionCommand, CompanionLink, HelpersModel, LookupPhase, ProgramLabels,
-    memory_line, waiting_line,
+    Companion, CompanionCommand, HelpersModel, LookupPhase, ProgramLabels, memory_line,
+    waiting_line,
 };
 use sill_services::control::Control;
 use tokio::sync::watch;
@@ -36,7 +36,7 @@ impl Provider for MemoryProvider {
 
     fn query(&self, query: &Query, sink: &mut dyn ResultSink) {
         let alone = query.scope == Scope::Only(ProviderKind::Memory);
-        let ready = matches!(self.companion.borrow().link, CompanionLink::Ready);
+        let ready = self.companion.borrow().reached;
         let entries = if alone && ready && !query.is_cancelled() {
             self.timeline(query)
         } else {
@@ -240,7 +240,7 @@ mod tests {
 
     fn provider(rows: Vec<TimelineEntry>) -> MemoryProvider {
         let (state_tx, state_rx) = watch::channel(Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             ..Companion::default()
         });
         let (control, mut commands) = Control::channel();
@@ -309,7 +309,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn a_failed_timeline_is_asked_once_for_the_query_and_not_again() {
         let (state_tx, state_rx) = watch::channel(Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             ..Companion::default()
         });
         let (control, mut commands) = Control::channel();

@@ -15,7 +15,8 @@ use sill_ipc::response::{FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_launcher::actions::ActionId;
 use sill_model::actions::{Ask, Subject, screenshot_action};
-use sill_model::intents::shell::{ShellAction, ShellFault, WorkspaceStep};
+use sill_model::intents::shell::{ShellAction, ShellFault};
+use sill_model::windows::Step;
 use sill_services::ShellCall;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -32,12 +33,8 @@ pub fn request_of(action: ShellAction) -> Request {
         }
         ShellAction::DockPin { app } => on_app(ActionId::PinApp, app),
         ShellAction::DockUnpin { app } => on_app(ActionId::UnpinApp, app),
-        ShellAction::WorkspaceSwitch(WorkspaceStep::Next) => {
-            Request::Do(Ask::of(ActionId::NextSpace))
-        }
-        ShellAction::WorkspaceSwitch(WorkspaceStep::Prev) => {
-            Request::Do(Ask::of(ActionId::PreviousSpace))
-        }
+        ShellAction::WorkspaceSwitch(Step::Next) => Request::Do(Ask::of(ActionId::NextSpace)),
+        ShellAction::WorkspaceSwitch(Step::Prev) => Request::Do(Ask::of(ActionId::PreviousSpace)),
         ShellAction::Lock => Request::Do(Ask::of(ActionId::Lock)),
         ShellAction::Screenshot(kind) => Request::Do(Ask::of(screenshot_action(kind))),
     }
@@ -103,8 +100,9 @@ mod tests {
     use sill_launcher::AppId;
     use sill_launcher::actions::ActionId;
     use sill_model::actions::{Ask, Subject};
-    use sill_model::intents::shell::{ShellAction, ShellFault, WorkspaceStep};
+    use sill_model::intents::shell::{ShellAction, ShellFault};
     use sill_model::screenshots::ShotKind;
+    use sill_model::windows::Step;
 
     use super::{request_of, result_of};
 
@@ -129,11 +127,11 @@ mod tests {
                 Request::Do(Ask::on(ActionId::UnpinApp, Subject::App(app()))),
             ),
             (
-                ShellAction::WorkspaceSwitch(WorkspaceStep::Next),
+                ShellAction::WorkspaceSwitch(Step::Next),
                 Request::Do(Ask::of(ActionId::NextSpace)),
             ),
             (
-                ShellAction::WorkspaceSwitch(WorkspaceStep::Prev),
+                ShellAction::WorkspaceSwitch(Step::Prev),
                 Request::Do(Ask::of(ActionId::PreviousSpace)),
             ),
             (ShellAction::Lock, Request::Do(Ask::of(ActionId::Lock))),

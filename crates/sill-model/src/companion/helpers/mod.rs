@@ -18,7 +18,7 @@ mod update;
 mod words;
 
 pub use apps::offered_apps;
-pub use automatic::{Automatic, PoolWritten};
+pub use automatic::Automatic;
 pub use draft::{Draft, Reach};
 pub use handover::{BRING_BACK, HandoverShown, IN_TERMINAL, OPEN_IN_TERMINAL, handover_of};
 pub use model::{HelpersModel, Open, Removal};

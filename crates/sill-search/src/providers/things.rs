@@ -15,7 +15,7 @@ use sill_launcher::{
     Activation, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink, Score,
     Subject,
 };
-use sill_model::companion::{Companion, CompanionCommand, CompanionLink, LookupPhase, Opener};
+use sill_model::companion::{Companion, CompanionCommand, LookupPhase, Opener};
 use sill_services::control::Control;
 use tokio::sync::watch;
 
@@ -37,7 +37,7 @@ impl Provider for ThingsProvider {
 
     fn query(&self, query: &Query, sink: &mut dyn ResultSink) {
         let text = query.text.trim();
-        let ready = matches!(self.companion.borrow().link, CompanionLink::Ready);
+        let ready = self.companion.borrow().reached;
         let hits = if text.is_empty() || !ready || query.is_cancelled() {
             Vec::new()
         } else {
@@ -183,7 +183,7 @@ mod tests {
     /// for the generation it was asked.
     fn service(found: Vec<Hit>) -> ThingsProvider {
         let (state_tx, state_rx) = watch::channel(Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             openers: mail_opens_threads(),
             ..Companion::default()
         });
@@ -241,7 +241,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn nothing_typed_asks_nothing() {
         let (state_tx, state_rx) = watch::channel(Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             ..Companion::default()
         });
         let (control, mut commands) = Control::channel();
@@ -274,7 +274,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn a_thing_whose_app_declares_no_open_action_has_no_enter_action() {
         let (_state_tx, state_rx) = watch::channel(Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             ..Companion::default()
         });
         let (control, _commands) = Control::channel();
@@ -292,7 +292,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn a_newer_ask_replaces_the_one_a_provider_waits_on() {
         let (state_tx, state_rx) = watch::channel(Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             ..Companion::default()
         });
         let (control, mut commands) = Control::channel();

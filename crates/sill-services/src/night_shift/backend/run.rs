@@ -11,7 +11,7 @@ use std::time::Duration;
 use sill_model::displays::Displays;
 use sill_model::ids::DdcId;
 use sill_model::night_shift::{
-    MinuteOfDay, NightShift, NightShiftCommand, NightShiftEffect, NightShiftEvent, Now, Reach,
+    MinuteOfDay, NightShift, NightShiftCommand, NightShiftEffect, NightShiftEvent, Now,
     UnixSeconds, skip_outputs, step, unmatched,
 };
 use tokio::sync::watch;
@@ -168,7 +168,7 @@ impl Live {
     /// Make casement's `skip_outputs` list the monitors sill warms, once the shell has said who
     /// warms them and casement's settings are readable.
     fn sync_skip(&mut self) {
-        if self.heard == Heard::Not || self.current.reach != Reach::Ready {
+        if self.heard == Heard::Not || !self.current.reached {
             return;
         }
         let (skip, lost) = {

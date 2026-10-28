@@ -26,7 +26,7 @@ mod step;
 mod tests;
 
 pub use ask::{Ask, AskError, Kinds, Plurality, Pointer, Remembered};
-pub use color::{ColorAsk, ColorAsking, ColorOutcome, ColorReply, Eyedropper, Rgb8};
+pub use color::{ColorAsk, ColorAsking, Rgb8, color_wire};
 pub use consent::consent_ask;
 pub use eyedrop::{
     CELL, EyedropIn, EyedropOut, Frozen, GRID, Loupe, SIDE, ShotPixel, colour_at, eyedrop_step,
@@ -37,6 +37,6 @@ pub use permission::{AskedBy, PermissionAsk, PermissionAsking, PermissionOutcome
 pub use plan::{Candidates, Choice, OutputCandidate, Plan, Source, Tab, WindowCandidate, plan};
 pub use reply::{Picks, Reply, can_allow, reply, toggle};
 pub use step::{
-    Admit, AskId, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut, CapturePicker,
-    Outcome, WAITING_MAX, admits, holds_consent, permission_admits, step,
+    AskId, Asking, CaptureCommand, CaptureEvent, CaptureLink, CaptureOut, CapturePicker,
+    WAITING_MAX, admits, holds_consent, permission_admits, step,
 };

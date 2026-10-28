@@ -3,7 +3,7 @@
 
 use sill_model::capture_pick::CaptureCommand;
 use sill_model::locker::LockerCommand;
-use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
+use sill_model::polkit_agent::PolkitCommand;
 use sill_services::env::Env;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
@@ -47,7 +47,7 @@ pub(crate) fn follow_settings(
     let _ = services
         .polkit_agent
         .control
-        .send(PolkitCommand::Policy(AgentPolicy::Own));
+        .send(PolkitCommand::Policy(true));
     // sill's own idle follows `idle.*` and `session.lock_grace_s`, and is `Off` anywhere but a
     // sill session.
     let idle = IdleBridge {

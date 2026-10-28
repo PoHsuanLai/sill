@@ -11,5 +11,5 @@ pub use model::{
     ClipContent, ClipEntry, ClipImage, ClipPolicy, ClipProtocol, ClipState, ClipStatus, ClipText,
     Clipboard, EntryCap, HistoryMode, ImageCap,
 };
-pub use offer::{ImagesKept, MimePick, OfferVerdict, SECRET_HINTS, offer_verdict};
+pub use offer::{ImagesKept, MimePick, SECRET_HINTS, offer_verdict};
 pub use step::step;

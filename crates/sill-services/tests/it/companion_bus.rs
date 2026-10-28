@@ -22,8 +22,8 @@ use ds_core::vocab::MemoryVerb;
 use prov::{Actor, InputProof, Label, RunId, SpaceId, UnixSeconds};
 use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
 use sill_model::companion::{
-    AskInput, CompanionCommand, CompanionParams, LauncherFacts, LookupPhase, SightState, Summon,
-    SummonOut, SummonParams,
+    AskInput, CompanionCommand, CompanionParams, LookupPhase, SightState, Summon, SummonOut,
+    SummonParams,
 };
 use sill_model::units::Ms;
 use zbus::zvariant::ObjectPath;
@@ -38,7 +38,7 @@ use companion_support::{app, entry, fast, focus, hit, json, run_path, task, time
 async fn two_taps_with_no_serving_app_open_the_launcher_in_companion_mode() {
     let mut desk = desk_or_return!();
     desk.send(CompanionCommand::Params(fast()));
-    let input = focus(None, LauncherFacts::Closed);
+    let input = focus(None, None);
     desk.send(CompanionCommand::Tap(input.clone()));
     desk.send(CompanionCommand::Tap(input));
     assert_eq!(
@@ -92,7 +92,7 @@ async fn a_serving_app_takes_the_summon_and_the_launcher_stays_shut() {
     }));
     desk.send(CompanionCommand::Summon(focus(
         Some("org.quire.Mail"),
-        LauncherFacts::Closed,
+        None,
     )));
     let serial = desk
         .state(|c| match &c.summon {
@@ -134,7 +134,7 @@ async fn summon_falls_back_to_launcher_after_app_wait() {
     desk.send(CompanionCommand::Params(fast()));
     desk.send(CompanionCommand::Summon(focus(
         Some("org.quire.Mail"),
-        LauncherFacts::Closed,
+        None,
     )));
     assert_eq!(
         desk.next_summon().await,

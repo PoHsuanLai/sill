@@ -12,9 +12,7 @@ use std::sync::Arc;
 use docket_wire::VoiceIntent;
 use prov::{SpaceId, UnixSeconds};
 use sill_model::companion::CompanionCommand;
-use sill_model::voice::{
-    ConsentAnswer, Voice, VoiceConsent, VoiceEffect, VoiceEvent, VoiceLink, step,
-};
+use sill_model::voice::{ConsentAnswer, Voice, VoiceConsent, VoiceEffect, VoiceEvent, step};
 use tokio::net::UnixStream;
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
@@ -157,7 +155,7 @@ impl Live {
             .clone()
             .map(|connection| self.callers.peers_on(connection));
         let (Some(connection), Some(peers)) = (connection, self.peers.clone()) else {
-            return self.feed(VoiceEvent::Link(VoiceLink::Passive));
+            return self.feed(VoiceEvent::Reached(false));
         };
         match signals::subscribe(&connection).await {
             Ok(stream) => {
@@ -166,11 +164,11 @@ impl Live {
                     self.inbound.clone(),
                     peers,
                 )));
-                self.feed(VoiceEvent::Link(VoiceLink::Ready));
+                self.feed(VoiceEvent::Reached(true));
             }
             Err(error) => {
                 eprintln!("sill: voice: cannot watch for the end of an utterance: {error}");
-                self.feed(VoiceEvent::Link(VoiceLink::Passive));
+                self.feed(VoiceEvent::Reached(false));
             }
         }
     }

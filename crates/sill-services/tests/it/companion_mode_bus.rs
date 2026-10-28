@@ -14,7 +14,7 @@ use docket_core::{ContextKeep, Keep};
 use docket_dbus::{COMPANION_BUS, INTENTS_BUS};
 use docket_permissions_core::Mode;
 use prov::SpaceId;
-use sill_model::companion::{AskInput, CompanionCommand, Knowing, ModeLock, ModeMsg, mode_view};
+use sill_model::companion::{AskInput, CompanionCommand, ModeMsg, mode_view};
 use zbus::Connection;
 
 struct Bench {
@@ -92,7 +92,7 @@ async fn a_switch_reaches_the_router_and_the_next_turn_carries_it() {
     bench.ask();
     let opened = bench
         .desk
-        .state(|c| (c.mode.knowing == Knowing::Known).then(|| c.mode.clone()))
+        .state(|c| c.mode.known.then(|| c.mode.clone()))
         .await;
     assert_eq!(opened.mode, Mode::Auto, "the session opened in Auto");
     let first = bench.desk.log_starting("turn ").await;
@@ -125,15 +125,12 @@ async fn a_switch_reaches_the_router_and_the_next_turn_carries_it() {
 async fn a_refused_switch_locks_the_box_in_manual() {
     let Some(bench) = bench().await else { return };
     bench.ask();
-    bench
-        .desk
-        .state(|c| (c.mode.knowing == Knowing::Known).then_some(()))
-        .await;
+    bench.desk.state(|c| c.mode.known.then_some(())).await;
     *bench.answer.lock().unwrap_or_else(|e| panic!("{e}")) = SwitchAnswer::Locked;
     bench.mode(ModeMsg::Flip);
     let locked = bench
         .desk
-        .state(|c| (c.mode.lock == ModeLock::Locked).then(|| mode_view(&c.mode)))
+        .state(|c| c.mode.locked.then(|| mode_view(&c.mode)))
         .await;
     assert_eq!(locked.mode, Mode::Manual);
     bench.mode(ModeMsg::Flip);
@@ -158,10 +155,7 @@ async fn a_refused_switch_locks_the_box_in_manual() {
 async fn a_probe_switches_any_conversation_and_only_a_change_of_the_boxs_own_reaches_it() {
     let Some(bench) = bench().await else { return };
     bench.ask();
-    bench
-        .desk
-        .state(|c| (c.mode.knowing == Knowing::Known).then_some(()))
-        .await;
+    bench.desk.state(|c| c.mode.known.then_some(())).await;
     let probe = |session: &str, mode| CompanionCommand::SessionMode {
         session: prov::SessionId::parse(session).unwrap_or_else(|e| panic!("{e}")),
         mode,
@@ -179,8 +173,8 @@ async fn a_probe_switches_any_conversation_and_only_a_change_of_the_boxs_own_rea
         .await;
     let unmoved = bench.desk.state(|c| Some(mode_view(&c.mode))).await;
     assert_eq!(
-        (unmoved.mode, unmoved.lock),
-        (Mode::Auto, ModeLock::Free),
+        (unmoved.mode, unmoved.locked),
+        (Mode::Auto, false),
         "a refusal for another conversation says nothing of the box's"
     );
     // The box's own conversation, done: the change reaches the box.

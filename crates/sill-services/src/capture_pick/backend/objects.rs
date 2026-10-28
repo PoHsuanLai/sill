@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use peephole_bus::peephole_core::roles;
 use sill_model::capture_pick::{
-    Ask, ColorAsk, ColorReply, PermissionAsk, PermissionOutcome, Remembered, Reply,
+    Ask, ColorAsk, PermissionAsk, PermissionOutcome, Remembered, Reply, Rgb8, color_wire,
 };
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use zbus::fdo;
@@ -47,7 +47,7 @@ pub(super) struct SourceCall {
 #[derive(Debug)]
 pub(super) struct ColorCall {
     pub ask: ColorAsk,
-    pub answer: oneshot::Sender<fdo::Result<ColorReply>>,
+    pub answer: oneshot::Sender<fdo::Result<Option<Rgb8>>>,
 }
 
 /// A permission question, and where its answer goes.
@@ -120,7 +120,7 @@ impl PickerObject {
             .send(Call::Color(ColorCall { ask, answer }))
             .map_err(|_| stopped())?;
         let reply = answered.await.map_err(|_| stopped())??;
-        Ok(reply.wire())
+        Ok(color_wire(reply))
     }
 
     /// A yes-or-no question about an app, as the portal's Access backend asks it: the answer is

@@ -24,7 +24,7 @@ use shell_host::{HostCtx, HostHandle};
 use sill_ipc::response::{FailureKind, Response};
 use sill_ipc::show::Reveal;
 use sill_launcher::{AppId, Route, Scope, SessionAction};
-use sill_model::actions::{Ask, DesktopStep, Effect, Subject, Way, def};
+use sill_model::actions::{Ask, DesktopStep, Effect, Subject, def};
 use sill_model::launch::{LaunchCommand, LaunchRequest, SETTINGS_BUS_NAME, SettingsOpen};
 use sill_model::locker::LockerCommand;
 use sill_model::screenshots::{ShotCommand, ShotKind};
@@ -43,7 +43,7 @@ pub fn perform(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, ask: Ask, origin: Ori
     let Ask { action, subject } = ask;
     match def(action).effect {
         Effect::Session(action) => session(reach, action, origin),
-        Effect::Panel(panel) => panel::show(reach, panel, reveal_of(panel.way()), origin.output),
+        Effect::Panel(panel) => panel::show(reach, panel, reveal_of(panel.opens()), origin.output),
         Effect::Find(kind) => panel::launcher_in(reach, Scope::Only(kind), origin.output),
         Effect::Switcher(step) => switcher::chord(reach, step),
         Effect::Shot(kind) => screenshot(reach, kind),
@@ -57,11 +57,11 @@ pub fn perform(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, ask: Ask, origin: Ori
     }
 }
 
-/// How a panel action changes its panel, in the words of the wire.
-fn reveal_of(way: Way) -> Reveal {
-    match way {
-        Way::Toggle => Reveal::Toggle,
-        Way::Open => Reveal::Open,
+/// How a panel action changes its panel, in the words of the wire: `opens` when it only opens it.
+fn reveal_of(opens: bool) -> Reveal {
+    match opens {
+        false => Reveal::Toggle,
+        true => Reveal::Open,
     }
 }
 

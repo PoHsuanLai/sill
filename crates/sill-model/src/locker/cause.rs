@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{Cause, LockPhase, LockerEvent};
+use super::{LockPhase, LockerEvent};
 
 /// What started the current lock.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -46,11 +46,9 @@ pub fn cause_after(
 /// The cause a machine event carries if it starts a lock.
 pub fn cause_of(event: &LockerEvent) -> Option<LockCause> {
     match event {
-        LockerEvent::Requested(Cause::Action, _) => Some(LockCause::Action),
-        LockerEvent::Requested(Cause::Logind, _) => Some(LockCause::Logind),
-        LockerEvent::Requested(Cause::Idle, _) => Some(LockCause::IdleScreenOff),
+        LockerEvent::Requested(cause, _) => Some(*cause),
         LockerEvent::SleepStarting(_) => Some(LockCause::Sleep),
-        LockerEvent::Configured(..)
+        LockerEvent::Configured { .. }
         | LockerEvent::Woke
         | LockerEvent::Reported
         | LockerEvent::Exited

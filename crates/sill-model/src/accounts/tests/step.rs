@@ -1,11 +1,9 @@
 use super::needing;
-use crate::accounts::{
-    AccountKey, AccountsEffect as Fx, AccountsEvent as Ev, AccountsLink, AccountsState, step,
-};
+use crate::accounts::{AccountKey, AccountsEffect as Fx, AccountsEvent as Ev, AccountsState, step};
 
 fn known(keys: &[&str]) -> AccountsState {
     AccountsState {
-        link: AccountsLink::Present,
+        present: true,
         needing: keys.iter().map(|key| needing(key, key)).collect(),
     }
 }
@@ -113,10 +111,10 @@ fn events_move_the_list_and_call_for_effects() {
 #[test]
 fn accountd_leaving_keeps_what_the_person_was_told_and_its_return_follows_the_bus() {
     let (gone, effects) = step(known(&["a"]), Ev::Gone);
-    assert_eq!(gone.link, AccountsLink::Absent);
+    assert!(!gone.present);
     assert_eq!(keys(&gone), vec!["a"]);
     assert!(effects.is_empty());
     let (back, effects) = step(gone, Ev::Found);
-    assert_eq!(back.link, AccountsLink::Present);
+    assert!(back.present);
     assert!(effects.is_empty());
 }

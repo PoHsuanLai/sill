@@ -12,7 +12,7 @@ use ds::focus::soon::focus_soon;
 use ds::prelude::*;
 use ds::root::common::Common;
 use shell_host::OutputInfo;
-use sill_model::voice::{ConsentAnswer, ConsentSheet, VoiceCommand};
+use sill_model::voice::{ConsentAnswer, VoiceCommand};
 use sill_services::VoiceService;
 
 use super::VOICE_CONSENT_CSS;
@@ -104,13 +104,7 @@ fn use_stage(output: OutputInfo) -> Signal<SheetStage<Asked>> {
     let sheet = use_service_part::<VoiceService, _>(|voice| voice.sheet);
     let shows = use_sheet_output();
     use_sheet_stage(super::surface::PRESET, move || {
-        let asking = match shows.read().shows_on(output.id) {
-            true => sheet(),
-            false => ConsentSheet::Closed,
-        };
-        match asking {
-            ConsentSheet::Asking => Some(Asked),
-            ConsentSheet::Closed => None,
-        }
+        let asking = shows.read().shows_on(output.id) && sheet();
+        asking.then_some(Asked)
     })
 }

@@ -20,10 +20,9 @@ use prov::{
     ActionName, Actor, AppName, Effect, EntityId, EntityKey, EntityKind, Label, Labelled, SpaceId,
     TaskId, UnixSeconds,
 };
-use sill_launcher::WindowKey;
+use sill_launcher::{LauncherMode, WindowKey};
 use sill_model::companion::{
-    Companion, CompanionCommand, CompanionLink, CompanionParams, FocusInput, LauncherFacts,
-    SummonOut, SummonParams, TapParams,
+    Companion, CompanionCommand, CompanionParams, FocusInput, SummonOut, SummonParams, TapParams,
 };
 use sill_model::launch::LaunchCommand;
 use sill_model::units::Ms;
@@ -163,8 +162,7 @@ impl Desk {
     /// The shell takes its seat; the service follows.
     pub async fn seated(&mut self) {
         self.seat.publish(self.shell.clone());
-        self.state(|c| matches!(c.link, CompanionLink::Ready).then_some(()))
-            .await;
+        self.state(|c| c.reached.then_some(())).await;
     }
 
     /// The service's state, once `ready` says yes to it.
@@ -206,7 +204,7 @@ impl Desk {
     }
 }
 
-pub fn focus(app_name: Option<&str>, launcher: LauncherFacts) -> FocusInput {
+pub fn focus(app_name: Option<&str>, launcher: Option<LauncherMode>) -> FocusInput {
     FocusInput {
         window: Some(WindowKey(4)),
         app: app_name.map(app),

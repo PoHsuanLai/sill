@@ -9,8 +9,9 @@ use docket_vocab::{ChoiceId, LabelText, ParamName, UndoToken, Value};
 use ds_core::word::Word;
 use sill_launcher::AppId;
 
-use super::action::{ShellAction, WorkspaceStep};
+use super::action::ShellAction;
 use crate::screenshots::ShotKind;
+use crate::windows::Step;
 
 /// The action `invocation` asks for. A name the shell does not declare is `Unsupported`; a
 /// parameter that is missing, of the wrong type or outside its options is `NeedsParam` or `Failed`
@@ -35,8 +36,8 @@ pub fn outcome_of(action: &ShellAction) -> Outcome {
         ShellAction::LauncherOpen { .. } => "Opened the launcher",
         ShellAction::DockPin { .. } => "Kept the app in the dock",
         ShellAction::DockUnpin { .. } => "Took the app out of the dock",
-        ShellAction::WorkspaceSwitch(WorkspaceStep::Next) => "Switched to the next workspace",
-        ShellAction::WorkspaceSwitch(WorkspaceStep::Prev) => "Switched to the previous workspace",
+        ShellAction::WorkspaceSwitch(Step::Next) => "Switched to the next workspace",
+        ShellAction::WorkspaceSwitch(Step::Prev) => "Switched to the previous workspace",
         ShellAction::Lock => "Locked the screen",
         ShellAction::Screenshot(_) => "Took a screenshot",
     };
@@ -131,8 +132,8 @@ fn app(invocation: &Invocation) -> Result<AppId, AppRefusal> {
     }
 }
 
-fn step(invocation: &Invocation) -> Result<WorkspaceStep, AppRefusal> {
-    choice(invocation, "direction", Some(WorkspaceStep::Next))
+fn step(invocation: &Invocation) -> Result<Step, AppRefusal> {
+    choice(invocation, "direction", Some(Step::Next))
 }
 
 fn kind(invocation: &Invocation) -> Result<ShotKind, AppRefusal> {

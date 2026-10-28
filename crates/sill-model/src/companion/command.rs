@@ -15,9 +15,9 @@ use std::collections::BTreeSet;
 
 use super::helpers::{HelpersCommand, HelpersMsg};
 use super::mode::ModeMsg;
-use super::model::{CompanionLink, Opener, RunFacts};
+use super::model::{Opener, RunFacts};
 use super::sight::SightState;
-use super::summon::{FocusFacts, LauncherFacts, SummonOut, SummonParams};
+use super::summon::{FocusFacts, SummonOut, SummonParams};
 use super::tap::TapParams;
 use super::terminals::{TerminalsCommand, TerminalsMsg};
 
@@ -39,8 +39,8 @@ pub struct FocusInput {
     pub window: Option<WindowKey>,
     /// Its app, if it has a bus name.
     pub app: Option<AppName>,
-    /// The panel.
-    pub launcher: LauncherFacts,
+    /// The panel's mode while it is showing; `None` when it is not.
+    pub launcher: Option<LauncherMode>,
 }
 
 /// A prompt the person sent from the launcher.
@@ -150,7 +150,7 @@ pub enum CompanionCommand {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompanionEvent {
     /// The service's place on the bus changed.
-    Link(CompanionLink),
+    Reached(bool),
     /// The double-tap key was tapped, with what was focused.
     Tapped(FocusFacts),
     /// A summon arrived, with what was focused.

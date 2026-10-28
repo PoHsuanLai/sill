@@ -208,8 +208,8 @@ fn tag_at(at: &str) -> Option<(Piece, usize)> {
     }
     let inner = &at[inner_start..end];
     let (closing, inner) = match inner.strip_prefix('/') {
-        Some(rest) => (Closing::Close, rest),
-        None => (Closing::Open, inner),
+        Some(rest) => (true, rest),
+        None => (false, inner),
     };
     if !inner
         .chars()
@@ -227,14 +227,8 @@ fn tag_at(at: &str) -> Option<(Piece, usize)> {
     Some((piece_of(&name, attributes, closing), end + 1))
 }
 
-/// Whether a tag opens or closes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Closing {
-    Open,
-    Close,
-}
-
-fn piece_of(name: &str, attributes: &str, closing: Closing) -> Piece {
+/// `closing`: the tag closes (`</b>`) rather than opens.
+fn piece_of(name: &str, attributes: &str, closing: bool) -> Piece {
     let styling = match name {
         "b" => Some(TagName::Bold),
         "i" => Some(TagName::Italic),
@@ -243,18 +237,14 @@ fn piece_of(name: &str, attributes: &str, closing: Closing) -> Piece {
         _ => None,
     };
     match (styling, closing, name) {
-        (Some(tag), Closing::Close, _) => Piece::Close(tag),
-        (Some(TagName::Link), Closing::Open, _) => {
-            Piece::Open(match attribute(attributes, "href") {
-                Some(href) => Tag::Link(link_target(&href)),
-                None => Tag::Styling(TagName::Link),
-            })
-        }
-        (Some(tag), Closing::Open, _) => Piece::Open(Tag::Styling(tag)),
-        (None, Closing::Open, "br") => Piece::Stands("\n".to_owned()),
-        (None, Closing::Open, "img") => {
-            Piece::Stands(attribute(attributes, "alt").unwrap_or_default())
-        }
+        (Some(tag), true, _) => Piece::Close(tag),
+        (Some(TagName::Link), false, _) => Piece::Open(match attribute(attributes, "href") {
+            Some(href) => Tag::Link(link_target(&href)),
+            None => Tag::Styling(TagName::Link),
+        }),
+        (Some(tag), false, _) => Piece::Open(Tag::Styling(tag)),
+        (None, false, "br") => Piece::Stands("\n".to_owned()),
+        (None, false, "img") => Piece::Stands(attribute(attributes, "alt").unwrap_or_default()),
         (None, _, _) => Piece::Dropped,
     }
 }

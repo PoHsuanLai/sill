@@ -8,7 +8,7 @@ use super::{
     CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, ProfileSource, UserOverrides,
     choose, focused, wanted,
 };
-use super::{Grip, ShellFocus, ShellKeys, under_shell};
+use super::{ShellFocus, ShellKeys, under_shell};
 use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, step};
 use crate::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 
@@ -347,7 +347,7 @@ fn the_shell_holding_the_keyboard_is_keymap_aware_over_any_window() {
     let menu = 11;
     type Step = (
         &'static str,
-        Option<(u64, Grip)>,
+        Option<(u64, bool)>,
         &'static str,
         &'static str,
     );
@@ -356,37 +356,37 @@ fn the_shell_holding_the_keyboard_is_keymap_aware_over_any_window() {
         ("firefox alone", None, "plain", "default"),
         (
             "the launcher opens over it",
-            Some((launcher, Grip::Gained)),
+            Some((launcher, true)),
             "plain",
             "keymap-aware",
         ),
         (
             "a menu takes over before the launcher lets go",
-            Some((menu, Grip::Gained)),
+            Some((menu, true)),
             "plain",
             "keymap-aware",
         ),
         (
             "the launcher lets go, the menu still has it",
-            Some((launcher, Grip::Lost)),
+            Some((launcher, false)),
             "plain",
             "keymap-aware",
         ),
         (
             "the menu lets go: the window's own profile again",
-            Some((menu, Grip::Lost)),
+            Some((menu, false)),
             "plain",
             "default",
         ),
         (
             "over a terminal it opens keymap-aware too",
-            Some((launcher, Grip::Gained)),
+            Some((launcher, true)),
             "foot",
             "keymap-aware",
         ),
         (
             "and closes back to the terminal's profile",
-            Some((launcher, Grip::Lost)),
+            Some((launcher, false)),
             "foot",
             "terminal",
         ),
@@ -408,9 +408,9 @@ fn the_shell_holding_the_keyboard_is_keymap_aware_over_any_window() {
 
 #[test]
 fn a_surface_that_closes_holding_the_keyboard_lets_go_of_it() {
-    let held = ShellKeys::default().after(7, Grip::Gained);
+    let held = ShellKeys::default().after(7, true);
     assert_eq!(held.focus(), ShellFocus::Held);
     assert_eq!(held.closed(7).focus(), ShellFocus::Elsewhere);
-    let other = ShellKeys::default().after(7, Grip::Gained).closed(8);
+    let other = ShellKeys::default().after(7, true).closed(8);
     assert_eq!(other.focus(), ShellFocus::Held, "another surface's close");
 }

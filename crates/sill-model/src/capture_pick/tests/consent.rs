@@ -174,7 +174,7 @@ fn the_answer_the_compositor_hears_follows_the_button() {
             vec![CaptureOut::ConsentReply(ConsentId::new(1), want)],
             "{outcome:?}"
         );
-        assert_eq!(admits(&state), Admit::Yes);
+        assert!(admits(&state));
     }
 }
 

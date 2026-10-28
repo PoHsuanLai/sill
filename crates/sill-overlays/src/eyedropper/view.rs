@@ -12,7 +12,7 @@ use dioxus::prelude::*;
 use ds::focus::soon::focus_soon;
 use ds::prelude::*;
 use shell_host::OutputInfo;
-use sill_model::capture_pick::{AskId, ColorOutcome, loupe_at, pick_at};
+use sill_model::capture_pick::{AskId, Rgb8, loupe_at, pick_at};
 use sill_model::desktop::OutputShot;
 use sill_ui_kit::links::EyedropperLink;
 use sill_ui_kit::root::SurfaceRoot;
@@ -28,7 +28,7 @@ pub(super) fn color_sampler(output: OutputInfo) -> Element {
     let sampler = use_sampler(&link, &output);
     let ended = use_callback({
         let sampler = sampler.clone();
-        move |(id, outcome): (AskId, ColorOutcome)| sampler.answer(id, outcome)
+        move |(id, color): (AskId, Option<Rgb8>)| sampler.answer(id, color)
     });
     let up = sampler.shown().zip(surface_of(&output));
     rsx! {
@@ -57,7 +57,7 @@ fn Dropper(
     id: AskId,
     shot: OutputShot,
     surface: (u32, u32),
-    ended: Callback<(AskId, ColorOutcome)>,
+    ended: Callback<(AskId, Option<Rgb8>)>,
 ) -> Element {
     // Encoded once per question: the picture is large and never changes while it is up.
     let source = use_hook({
@@ -73,17 +73,17 @@ fn Dropper(
             onmounted: move |event: MountedEvent| focus_soon(event.data()),
             onkeydown: move |event: KeyboardEvent| {
                 if event.key() == Key::Escape {
-                    ended.call((id, ColorOutcome::Cancel));
+                    ended.call((id, None));
                 }
             },
             onpointermove: move |event: PointerEvent| pointer.set(Some(at_of(&event))),
             onpointerleave: move |_| pointer.set(None),
             onpointerdown: move |event: PointerEvent| match event.trigger_button() {
-                Some(MouseButton::Secondary) => ended.call((id, ColorOutcome::Cancel)),
+                Some(MouseButton::Secondary) => ended.call((id, None)),
                 Some(MouseButton::Primary) | None => {
                     let picked = pick_at(&shot, surface, at_of(&event));
                     if let Some(colour) = picked {
-                        ended.call((id, ColorOutcome::Picked(colour)));
+                        ended.call((id, Some(colour)));
                     }
                 }
                 Some(_) => {}

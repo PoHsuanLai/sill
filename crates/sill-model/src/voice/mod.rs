@@ -14,8 +14,8 @@ mod words;
 
 pub use command::{VoiceCommand, VoiceEffect, VoiceEvent};
 pub use model::{
-    AskScope, ConsentAnswer, ConsentSheet, Heard, HoldToTalk, Notice, Phase, Then, Voice,
-    VoiceConsent, VoiceLink, VoiceParams, Words,
+    AskScope, ConsentAnswer, Heard, HoldToTalk, Notice, Phase, Then, Voice, VoiceConsent,
+    VoiceParams, Words,
 };
 pub use step::step;
 pub use voice_wire::{CancelCause, VoiceTrigger};

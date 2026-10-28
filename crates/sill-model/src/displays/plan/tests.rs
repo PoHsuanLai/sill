@@ -1,5 +1,5 @@
 use super::{
-    BrightnessAction, Originals, Probe, brightness_actions, probe_needed, set_brightness_action,
+    BrightnessAction, Originals, brightness_actions, probe_needed, set_brightness_action,
     warmth_writes,
 };
 use crate::displays::Displays;
@@ -216,11 +216,11 @@ fn a_monitor_missing_from_the_probe_is_probed_for_again() {
         ..desk.clone()
     };
     let cases = [
-        ("every monitor answers", &desk, Probe::Done),
-        ("DP-1 did not answer", &one_missing, Probe::Needed),
-        ("nothing known", &nothing, Probe::Needed),
-        ("only the laptop panel", &panel_only, Probe::Done),
-        ("no outputs list, monitors known", &unlisted, Probe::Done),
+        ("every monitor answers", &desk, false),
+        ("DP-1 did not answer", &one_missing, true),
+        ("nothing known", &nothing, true),
+        ("only the laptop panel", &panel_only, false),
+        ("no outputs list, monitors known", &unlisted, false),
     ];
     for (case, displays, want) in cases {
         assert_eq!(probe_needed(displays), want, "{case}");

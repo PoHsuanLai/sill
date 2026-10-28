@@ -4,9 +4,7 @@
 
 use std::sync::Arc;
 
-use sill_model::app_menu::{
-    AppMenuEvent, MenuApp, MenuClient, MenuName, MenuTrust, ServedMenu, rows_of,
-};
+use sill_model::app_menu::{AppMenuEvent, MenuApp, MenuClient, MenuName, ServedMenu, rows_of};
 use sill_model::windows::WindowModel;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::watch;
@@ -60,7 +58,7 @@ async fn session(
     // The program the compositor reports for the app's windows, as of now: an owner is trusted
     // against it when there is one.
     let client = MenuClient::new(app, windows.borrow().subjects.of(&app.0));
-    if menu_shown(peers, &owner, &client).await == MenuTrust::Hidden {
+    if !menu_shown(peers, &owner, &client).await {
         return;
     }
     let Ok(Ok(proxy)) = within(

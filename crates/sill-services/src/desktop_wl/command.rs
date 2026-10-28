@@ -6,7 +6,7 @@ use desktop_client::toplevel::ToplevelFlag;
 use desktop_client::workspace::WorkspaceAbility;
 use desktop_client::{DesktopCommand as Wire, DesktopState};
 use porter_core::SpaceId;
-use sill_model::desktop::{DesktopBackend, DesktopCommand, Supports, supports};
+use sill_model::desktop::{DesktopBackend, DesktopCommand, supports};
 use sill_model::windows::WlCommand;
 
 use super::ids::{space_id, toplevel_key, wire_workspace_key};
@@ -55,7 +55,7 @@ pub fn desktop_of(command: &WlCommand, state: &DesktopState) -> Option<DesktopCo
 /// The wire requests that carry `command`, in order. Activating a minimised window restores
 /// it first; showing a Space is the workspace request and the commit that applies it.
 pub fn wire_of(command: &DesktopCommand, state: &DesktopState) -> Result<Vec<Wire>, Refusal> {
-    if supports(DesktopBackend::Wlr, command) == Supports::No {
+    if !supports(DesktopBackend::Wlr, command) {
         return Err(Refusal::Unsupported);
     }
     match command {

@@ -17,7 +17,7 @@ use sill_launcher::actions::ActionId;
 use sill_model::actions::Ask;
 use sill_model::desktop::{DesktopCommand, HeldMods};
 use sill_model::displays::DisplaysCommand;
-use sill_model::keyboard::{Grip, ShellKeys};
+use sill_model::keyboard::ShellKeys;
 use sill_model::keycap::KeycapCommand;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{Asked, BannerOutput, Links};
@@ -308,8 +308,8 @@ fn tell_keycap_the_holders(shell: &mut Shell, event: &HostEvent<ShellMsg>) {
         HostEvent::KeyboardFocus { id, focus } => keys.after(
             id.0,
             match focus {
-                KeyboardFocus::Gained => Grip::Gained,
-                KeyboardFocus::Lost => Grip::Lost,
+                KeyboardFocus::Gained => true,
+                KeyboardFocus::Lost => false,
             },
         ),
         HostEvent::SurfaceClosed { id, .. } => keys.closed(id.0),

@@ -54,11 +54,7 @@ pub(crate) async fn run(
             Some(event) = events.recv() => live.run_event(event).await,
         }
     }
-    live.feed(
-        PolkitEvent::Policy(sill_model::polkit_agent::AgentPolicy::Off),
-        None,
-    )
-    .await;
+    live.feed(PolkitEvent::Policy(false), None).await;
     live.replies.clear();
 }
 
@@ -100,7 +96,7 @@ impl Live {
 
     async fn command(&mut self, command: PolkitCommand) {
         match command {
-            PolkitCommand::Policy(policy) => self.feed(PolkitEvent::Policy(policy), None).await,
+            PolkitCommand::Policy(own) => self.feed(PolkitEvent::Policy(own), None).await,
             PolkitCommand::Answer { cookie, secret } => {
                 self.feed(PolkitEvent::Answered(cookie), Some(secret)).await;
             }

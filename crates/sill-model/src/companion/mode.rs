@@ -28,26 +28,6 @@ pub const FROM_NEXT_STEP: &str = "From the next step";
 /// The help shown when an administrator holds every conversation in Manual.
 pub const LOCKED_HELP: &str = "Your administrator keeps conversations in Manual.";
 
-/// Whether the router has told the shell the conversation's mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Knowing {
-    /// Nothing opened yet: the box shows Auto as a placeholder and sends no mode with a turn.
-    #[default]
-    Assumed,
-    /// The router said it, or the person chose it: a turn carries it.
-    Known,
-}
-
-/// Whether the person may switch.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum ModeLock {
-    /// The switch works.
-    #[default]
-    Free,
-    /// An administrator holds every conversation in Manual.
-    Locked,
-}
-
 /// What the box says under the switch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ModeNote {
@@ -67,12 +47,13 @@ pub enum ModeNote {
 pub struct ConversationMode {
     /// The mode it is in.
     pub mode: Mode,
-    /// Whether `mode` is the router's word.
-    pub knowing: Knowing,
+    /// True once the router has told the mode, or the person chose it: a turn carries it. False
+    /// before anything opened: the box shows Auto as a placeholder and sends no mode with a turn.
+    pub known: bool,
     /// The session the mode switches: the newest one the box opened.
     pub session: Option<SessionId>,
-    /// Whether the switch works.
-    pub lock: ModeLock,
+    /// True when an administrator holds every conversation in Manual: the switch does not work.
+    pub locked: bool,
     /// What waits on the next step.
     pub note: ModeNote,
 }
@@ -81,9 +62,9 @@ impl Default for ConversationMode {
     fn default() -> ConversationMode {
         ConversationMode {
             mode: Mode::Auto,
-            knowing: Knowing::Assumed,
+            known: false,
             session: None,
-            lock: ModeLock::Free,
+            locked: false,
             note: ModeNote::Quiet,
         }
     }
@@ -92,10 +73,7 @@ impl Default for ConversationMode {
 impl ConversationMode {
     /// The mode a turn from the box carries: none until the router has told one.
     pub fn turn_mode(&self) -> Option<Mode> {
-        match self.knowing {
-            Knowing::Assumed => None,
-            Knowing::Known => Some(self.mode),
-        }
+        self.known.then_some(self.mode)
     }
 }
 
@@ -131,8 +109,8 @@ pub enum ModeMsg {
 pub struct ModeView {
     /// The selected side.
     pub mode: Mode,
-    /// Whether the switch works.
-    pub lock: ModeLock,
+    /// True when the switch does not work.
+    pub locked: bool,
     /// The quiet note under it.
     pub note: Option<&'static str>,
     /// The help that says why the switch does not work.
@@ -143,15 +121,12 @@ pub struct ModeView {
 pub fn mode_view(conversation: &ConversationMode) -> ModeView {
     ModeView {
         mode: conversation.mode,
-        lock: conversation.lock,
+        locked: conversation.locked,
         note: match conversation.note {
             ModeNote::Quiet => None,
             ModeNote::FromNextStep { .. } => Some(FROM_NEXT_STEP),
         },
-        help: match conversation.lock {
-            ModeLock::Free => None,
-            ModeLock::Locked => Some(LOCKED_HELP),
-        },
+        help: conversation.locked.then_some(LOCKED_HELP),
     }
 }
 
@@ -176,13 +151,13 @@ pub fn update(state: Companion, msg: ModeMsg) -> (Companion, Vec<CompanionEffect
     let current = state.mode.clone();
     match msg {
         ModeMsg::Opened { session, mode } => {
-            let mode = match current.knowing {
-                Knowing::Assumed => mode,
-                Knowing::Known => current.mode,
+            let mode = match current.known {
+                false => mode,
+                true => current.mode,
             };
             let next = ConversationMode {
                 mode,
-                knowing: Knowing::Known,
+                known: true,
                 session: Some(session),
                 ..current
             };
@@ -192,7 +167,7 @@ pub fn update(state: Companion, msg: ModeMsg) -> (Companion, Vec<CompanionEffect
             true => {
                 let next = ConversationMode {
                     mode,
-                    knowing: Knowing::Known,
+                    known: true,
                     ..current
                 };
                 (moded(state, next), Vec::new())
@@ -207,8 +182,8 @@ pub fn update(state: Companion, msg: ModeMsg) -> (Companion, Vec<CompanionEffect
         ModeMsg::Locked => {
             let next = ConversationMode {
                 mode: Mode::Manual,
-                knowing: Knowing::Known,
-                lock: ModeLock::Locked,
+                known: true,
+                locked: true,
                 note: ModeNote::Quiet,
                 ..current
             };
@@ -217,7 +192,7 @@ pub fn update(state: Companion, msg: ModeMsg) -> (Companion, Vec<CompanionEffect
         ModeMsg::NotApplied(mode) => {
             let next = ConversationMode {
                 mode,
-                knowing: Knowing::Known,
+                known: true,
                 note: ModeNote::Quiet,
                 ..current
             };
@@ -230,14 +205,14 @@ pub fn update(state: Companion, msg: ModeMsg) -> (Companion, Vec<CompanionEffect
 /// without one the choice waits for the first turn.
 fn switch(state: Companion, mode: Mode) -> (Companion, Vec<CompanionEffect>) {
     let current = state.mode.clone();
-    if current.lock == ModeLock::Locked || current.mode == mode {
+    if current.locked || current.mode == mode {
         return (state, Vec::new());
     }
     match current.session.clone() {
         None => {
             let next = ConversationMode {
                 mode,
-                knowing: Knowing::Known,
+                known: true,
                 ..current
             };
             (moded(state, next), Vec::new())

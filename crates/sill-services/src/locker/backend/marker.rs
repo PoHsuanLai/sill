@@ -11,7 +11,7 @@
 
 use std::path::{Path, PathBuf};
 
-use sill_model::locker::{LockPhase, LockerMode};
+use sill_model::locker::{Host, LockPhase};
 
 /// Whether the marker file exists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -56,11 +56,12 @@ pub fn marker_path(runtime_dir: &Path) -> PathBuf {
     runtime_dir.join("sill").join("locked")
 }
 
-/// `LockNow` exactly when `mode` is `Own` and the marker is `Present`; `Off` never locks.
-pub fn restore_on_start(mode: &LockerMode, marker: LockMarker) -> Restore {
+/// `LockNow` exactly when sill's own lock runs (`mode` is `Some`) and the marker is `Present`;
+/// no mode never locks.
+pub fn restore_on_start(mode: Option<Host>, marker: LockMarker) -> Restore {
     match (mode, marker) {
-        (LockerMode::Own { .. }, LockMarker::Present) => Restore::LockNow,
-        (LockerMode::Own { .. }, LockMarker::Absent) | (LockerMode::Off, _) => Restore::Nothing,
+        (Some(_), LockMarker::Present) => Restore::LockNow,
+        (Some(_), LockMarker::Absent) | (None, _) => Restore::Nothing,
     }
 }
 
@@ -69,9 +70,8 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::{LockMarker, MarkerChange, Restore, marker_change, marker_path, restore_on_start};
+    use sill_model::locker::Host;
     use sill_model::locker::LockPhase::{Locked, Locking, Unlocked};
-    use sill_model::locker::LockerMode;
-    use sill_model::locker::Triggers;
 
     #[test]
     fn the_marker_is_written_when_a_lock_is_asked_for_and_removed_when_it_ends() {
@@ -92,16 +92,14 @@ mod tests {
 
     #[test]
     fn a_marker_relocks_only_the_own_lock() {
-        let own = LockerMode::Own {
-            triggers: Triggers::FollowLogind,
-        };
+        let own = Some(Host::SillSession);
         let cases = [
-            (own.clone(), LockMarker::Present, Restore::LockNow),
+            (own, LockMarker::Present, Restore::LockNow),
             (own, LockMarker::Absent, Restore::Nothing),
-            (LockerMode::Off, LockMarker::Present, Restore::Nothing),
+            (None, LockMarker::Present, Restore::Nothing),
         ];
         for (mode, marker, want) in cases {
-            assert_eq!(restore_on_start(&mode, marker), want, "{mode:?} {marker:?}");
+            assert_eq!(restore_on_start(mode, marker), want, "{mode:?} {marker:?}");
         }
         assert_eq!(
             marker_path(Path::new("/run/user/1000")),

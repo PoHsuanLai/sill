@@ -116,16 +116,14 @@ pub(crate) fn NightShiftRow() -> Element {
 #[cfg(test)]
 mod tests {
     use ds::prelude::*;
-    use sill_model::night_shift::{
-        Backend, Manual, NightLight, NightShift, Reach, Schedule, UnixSeconds,
-    };
+    use sill_model::night_shift::{Backend, Manual, NightLight, NightShift, Schedule, UnixSeconds};
 
     use super::{ClockHours, Face, command_of, face_of};
     use sill_model::night_shift::NightShiftCommand;
 
     fn ready(schedule: Schedule, manual: Option<Manual>, backend: Backend) -> NightShift {
         NightShift {
-            reach: Reach::Ready,
+            reached: true,
             light: NightLight {
                 schedule,
                 ..NightLight::default()

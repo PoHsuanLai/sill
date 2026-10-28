@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use porter_client::{Accounts, DbusTransport};
 use porter_infer::{ModelRef, Slot};
 use prov::HelperId;
-use sill_model::companion::{HelpersMsg, PoolWritten};
+use sill_model::companion::HelpersMsg;
 use zbus::Connection;
 
 /// The pool of `helper`, kept; says whether it was.
@@ -21,10 +21,10 @@ pub(super) async fn keep(
     let models: Vec<ModelRef> = pool.iter().cloned().collect();
     let accounts = Accounts::over(DbusTransport::over(connection.clone()));
     let written = match accounts.set_helper_pool(Slot::Text, helper, &models).await {
-        Ok(()) => PoolWritten::Saved,
+        Ok(()) => true,
         Err(why) => {
             eprintln!("sill: companion: helpers: the models Automatic may use for {helper}: {why}");
-            PoolWritten::NotSaved
+            false
         }
     };
     HelpersMsg::PoolWritten(written)

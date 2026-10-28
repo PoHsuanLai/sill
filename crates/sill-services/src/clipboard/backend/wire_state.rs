@@ -12,7 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use sill_launcher::UnixTime;
 use sill_model::clipboard::{
-    ClipContent, ClipEvent, ImageCap, ImagesKept, MimePick, OfferVerdict, Skipped, offer_verdict,
+    ClipContent, ClipEvent, ImageCap, ImagesKept, MimePick, Skipped, offer_verdict,
 };
 use smithay_client_toolkit::reexports::calloop::{LoopHandle, LoopSignal};
 use wayland_client::backend::ObjectId;
@@ -108,9 +108,8 @@ impl WireState {
             ImageCap(_) => ImagesKept::Kept,
         };
         match offer_verdict(&types, kept) {
-            OfferVerdict::Secret => self.tell.say(ClipEvent::Skipped(Skipped::Secret)),
-            OfferVerdict::Nothing => self.tell.say(ClipEvent::Skipped(Skipped::NoKnownType)),
-            OfferVerdict::Read(pick) => self.start_read(&offer, pick),
+            Err(skipped) => self.tell.say(ClipEvent::Skipped(skipped)),
+            Ok(pick) => self.start_read(&offer, pick),
         }
         offer.destroy();
     }

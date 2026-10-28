@@ -13,7 +13,7 @@ use sill_model::displays::font::font_rendering_for;
 use sill_model::displays::hw_volume::follow;
 use sill_model::displays::output::{DisplayOutput, describe, max_density};
 use sill_model::displays::plan::{
-    BrightnessAction, Originals, Probe, brightness_actions, probe_needed, set_brightness_action,
+    BrightnessAction, Originals, brightness_actions, probe_needed, set_brightness_action,
     warmth_writes,
 };
 use sill_model::displays::policy::DisplayPolicy;
@@ -261,8 +261,8 @@ impl Service {
         }
         if let Some(ddc) = &self.ddc {
             let job = match probe_needed(&self.tx.borrow()) {
-                Probe::Needed => DdcJob::Probe,
-                Probe::Done => DdcJob::Reread(Feature::Brightness),
+                true => DdcJob::Probe,
+                false => DdcJob::Reread(Feature::Brightness),
             };
             let _ = ddc.jobs.send(job);
         }

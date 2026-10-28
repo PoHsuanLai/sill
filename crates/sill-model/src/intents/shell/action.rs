@@ -1,17 +1,9 @@
 //! The closed set of things the shell does when asked as `org.quire.Shell`.
 
-use ds_core::word::Word;
-
 use sill_launcher::AppId;
 
 use crate::screenshots::ShotKind;
-
-/// A direction in the workspaces.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Word)]
-pub enum WorkspaceStep {
-    Next,
-    Prev,
-}
+use crate::windows::Step;
 
 /// One action of `org.quire.Shell`, its parameters parsed.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,7 +15,7 @@ pub enum ShellAction {
     /// `shell.dock.unpin`: stop keeping `app`.
     DockUnpin { app: AppId },
     /// `shell.workspace.switch`: one workspace over.
-    WorkspaceSwitch(WorkspaceStep),
+    WorkspaceSwitch(Step),
     /// `shell.lock`: lock the screen now.
     Lock,
     /// `shell.screenshot`: take one with the person's screenshot tool.

@@ -9,9 +9,7 @@ use std::time::Duration;
 use sill_model::displays::Displays;
 use sill_model::displays::ddc::{Controls, DdcDisplay, Endpoint, RgbGain};
 use sill_model::ids::{DdcId, OutputName};
-use sill_model::night_shift::{
-    Backend, NightShift, NightShiftCommand, Reach, Schedule, Shown, shown,
-};
+use sill_model::night_shift::{Backend, NightShift, NightShiftCommand, Schedule, Shown, shown};
 use sill_services::env::Env;
 use sill_services::night_shift::NightShiftService;
 use sill_services::service::{Handle, spawn};
@@ -107,7 +105,7 @@ async fn the_switch_warms_until_tomorrow_and_off_puts_casement_back() {
     let scratch = TempDir::new("night-shift-switch");
     let (settings, manual) = files(&scratch);
     let mut service = start(&scratch);
-    let ready = until(&mut service, |s| s.reach == Reach::Ready).await;
+    let ready = until(&mut service, |s| s.reached).await;
     assert_eq!(shown(&ready), Shown::Off);
 
     let _ = service.control.send(NightShiftCommand::TurnOnUntilTomorrow);
@@ -139,10 +137,7 @@ async fn a_turn_on_that_ran_out_while_sill_was_away_is_ended_at_start() {
     )
     .unwrap_or_else(|e| panic!("{e}"));
     let mut service = start(&scratch);
-    let back = until(&mut service, |s| {
-        s.reach == Reach::Ready && s.manual.is_none()
-    })
-    .await;
+    let back = until(&mut service, |s| s.reached && s.manual.is_none()).await;
     assert_eq!(back.light.schedule, Schedule::Scheduled);
     assert_eq!(mode_in(&settings), "scheduled");
     assert!(!manual.exists());
@@ -158,7 +153,7 @@ async fn where_sill_warms_monitors_casement_is_told_to_leave_them_alone_and_warm
         .unwrap_or_else(|e| panic!("{e}"));
     let (monitors, displays) = watch::channel(with_monitors(vec![monitor(5, "DP-1")]));
     let mut service = start_following(&scratch, displays);
-    until(&mut service, |s| s.reach == Reach::Ready).await;
+    until(&mut service, |s| s.reached).await;
     assert_eq!(
         skip_in(&settings),
         Vec::<String>::new(),

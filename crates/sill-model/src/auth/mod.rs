@@ -8,7 +8,7 @@ pub mod protocol;
 mod types;
 
 pub use command::{AuthCommand, FakeVerdict};
-pub use gate::{Checks, Gate, GateIn, GateOut};
+pub use gate::{Checks, GateIn, GateOut};
 pub use model::{Auth, AuthPhase};
 pub use types::{
     Account, Attempt, Attempts, AuthFault, AvatarSource, Outcome, PamNote, PamService, RealName,

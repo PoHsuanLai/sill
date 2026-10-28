@@ -2,7 +2,6 @@
 
 use super::ask::{Ask, Plurality, Pointer};
 use super::plan::{Candidates, Plan, Source, Tab, plan};
-use super::step::Outcome;
 
 /// The person's picks so far.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,10 +92,11 @@ pub fn reply(plan: &Plan, picks: &Picks) -> Reply {
     }
 }
 
-/// The reply to how the person ended a request, against what exists now.
-pub(super) fn outcome_reply(ask: &Ask, candidates: &Candidates, outcome: &Outcome) -> Reply {
-    match outcome {
-        Outcome::Cancel => Reply::cancelled(),
-        Outcome::Allow(picks) => reply(&plan(ask, candidates), picks),
+/// The reply to how the person ended a request (`Some` picks: Allow; `None`: cancelled), against
+/// what exists now.
+pub(super) fn outcome_reply(ask: &Ask, candidates: &Candidates, picks: Option<&Picks>) -> Reply {
+    match picks {
+        None => Reply::cancelled(),
+        Some(picks) => reply(&plan(ask, candidates), picks),
     }
 }

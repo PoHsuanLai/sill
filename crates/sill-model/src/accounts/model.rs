@@ -42,21 +42,13 @@ pub enum SignInAsk {
     Login,
 }
 
-/// Whether accountd is on the bus. Its absence is a state: a machine without it has nothing to
-/// sign in to, and a notice already shown stays until the account is seen to be well again.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum AccountsLink {
-    /// Not on the bus, or not yet heard from.
-    #[default]
-    Absent,
-    /// accountd answers.
-    Present,
-}
-
 /// What is known of the accounts, published by the service.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AccountsState {
-    pub link: AccountsLink,
+    /// True while accountd is on the bus and answers; false when it is not, or not yet heard
+    /// from. Its absence is a state: a machine without it has nothing to sign in to, and a
+    /// notice already shown stays until the account is seen to be well again.
+    pub present: bool,
     /// The accounts that need signing in again, in the order they were found.
     pub needing: Vec<NeedsSignIn>,
 }

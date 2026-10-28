@@ -1,15 +1,20 @@
 //! What the locker service hears and what it can be told.
 
-use super::{Cause, LockerMode, Runner, Triggers};
+use super::{Host, LockCause};
 use ds_core::time::stamp::Stamp;
 
 /// One thing the live side learnt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LockerEvent {
     /// The mode resolved.
-    Configured(Runner, Triggers),
+    Configured {
+        /// Sill's own lock screen does the locking.
+        own: bool,
+        /// logind's `Lock` and `PrepareForSleep` start a lock.
+        follow_logind: bool,
+    },
     /// A lock was asked for.
-    Requested(Cause, Stamp),
+    Requested(LockCause, Stamp),
     /// logind's `PrepareForSleep(true)`.
     SleepStarting(Stamp),
     /// logind's `PrepareForSleep(false)`.
@@ -53,8 +58,9 @@ pub enum ShellLockEvent {
 pub enum LockerCommand {
     /// Resolve the mode against this session (at start).
     Configure,
-    /// An already resolved mode (tests).
-    Use(LockerMode),
+    /// An already resolved mode: sill's own lock screen for this kind of session, or `None` to
+    /// never lock (tests).
+    Use(Option<Host>),
     /// Lock now (sill's own Lock action).
     Lock,
     /// What happened to the shell's own lock.

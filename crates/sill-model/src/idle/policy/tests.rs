@@ -1,5 +1,5 @@
 use super::{
-    DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
+    DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace,
     LockedScreenOff, OffReason, PowerPair, PowerSource, Threshold, Timeout, Watch, power_source,
     resolve_mode, watches,
 };
@@ -89,16 +89,17 @@ fn the_watches_follow_power_lock_and_never() {
     };
     let no_dim = policy(times, 0, 0);
     let long_dim = policy(times, 300, 0);
-    use LockView::{Locked, Unlocked};
+    const LOCKED: bool = true;
+    const UNLOCKED: bool = false;
     use PowerSource::{Ac, Battery};
     use Threshold::{Dim, LockedScreenOff as LockedOff, ScreenOff, Suspend};
-    let cases: Vec<(&str, IdlePolicy, PowerSource, LockView, Vec<Watch>)> = vec![
-        ("off holds nothing", off, Ac, Unlocked, vec![]),
+    let cases: Vec<(&str, IdlePolicy, PowerSource, bool, Vec<Watch>)> = vec![
+        ("off holds nothing", off, Ac, UNLOCKED, vec![]),
         (
             "on AC",
             own,
             Ac,
-            Unlocked,
+            UNLOCKED,
             vec![
                 watch(Dim, 895),
                 watch(ScreenOff, 900),
@@ -109,35 +110,35 @@ fn the_watches_follow_power_lock_and_never() {
             "on battery, suspend never",
             own,
             Battery,
-            Unlocked,
+            UNLOCKED,
             vec![watch(Dim, 115), watch(ScreenOff, 120)],
         ),
         (
             "locked: the lock screen's own time",
             own,
             Ac,
-            Locked,
+            LOCKED,
             vec![watch(Dim, 55), watch(LockedOff, 60), watch(Suspend, 1_800)],
         ),
         (
             "no dim",
             no_dim,
             Ac,
-            Unlocked,
+            UNLOCKED,
             vec![watch(ScreenOff, 900), watch(Suspend, 1_800)],
         ),
         (
             "locked with 0: the normal time",
             no_dim,
             Ac,
-            Locked,
+            LOCKED,
             vec![watch(LockedOff, 900), watch(Suspend, 1_800)],
         ),
         (
             "a dim longer than the screen-off time starts at 1 s",
             long_dim,
             Battery,
-            Unlocked,
+            UNLOCKED,
             vec![watch(Dim, 1), watch(ScreenOff, 120)],
         ),
     ];

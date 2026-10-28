@@ -1,5 +1,6 @@
 //! Workspaces per group, and their one reducer.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 use super::{Activity, Pinning, WorkspaceCaps};
@@ -94,12 +95,12 @@ fn activate_in(group: WorkspaceGroup, key: WorkspaceKey) -> WorkspaceGroup {
     }
 }
 
-/// Which way `sill workspace` steps.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Which way `sill workspace` steps, and the `direction` choice of `shell.workspace.switch`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum Step {
-    Prev,
     Next,
+    Prev,
 }
 
 impl Workspaces {

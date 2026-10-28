@@ -12,26 +12,6 @@ use sill_launcher::{LauncherMode, WindowKey};
 
 use crate::units::Ms;
 
-/// What the panel is doing when the summon arrives.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum LauncherFacts {
-    /// Not showing.
-    #[default]
-    Closed,
-    /// Showing in this mode.
-    Open(LauncherMode),
-}
-
-/// Whether the focused app owns a companion client on the bus.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Serves {
-    /// It answers `IntentProvider1.Summon`.
-    Yes,
-    /// It does not.
-    #[default]
-    No,
-}
-
 /// What a summon finds when it arrives.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FocusFacts {
@@ -39,10 +19,11 @@ pub struct FocusFacts {
     pub window: Option<WindowKey>,
     /// Its app, when it has a bus name.
     pub app: Option<AppName>,
-    /// The panel.
-    pub launcher: LauncherFacts,
-    /// Whether the app serves the companion.
-    pub serves_companion: Serves,
+    /// The panel's mode while it is showing; `None` when it is not.
+    pub launcher: Option<LauncherMode>,
+    /// True when the app owns a companion client on the bus (it answers
+    /// `IntentProvider1.Summon`).
+    pub serves_companion: bool,
 }
 
 /// Where the launcher's companion mode came from, which decides how Escape leaves it.
@@ -272,20 +253,18 @@ fn summoned(
         serves_companion,
     } = facts;
     match (launcher, app, serves_companion, params.in_field) {
-        (LauncherFacts::Open(LauncherMode::Search), _, _, _) => (
+        (Some(LauncherMode::Search), _, _, _) => (
             Summon::InLauncher {
                 origin: LauncherOrigin::FromSearch,
             },
             vec![SummonOut::SwitchLauncher(LauncherMode::Companion)],
         ),
         // The launcher is already in companion mode and nothing here opened it: close it.
-        (LauncherFacts::Open(LauncherMode::Companion), _, _, _) => {
-            (Summon::Rest, vec![SummonOut::CloseLauncher])
-        }
-        (LauncherFacts::Closed, Some(app), Serves::Yes, InField::Prompt) => {
+        (Some(LauncherMode::Companion), _, _, _) => (Summon::Rest, vec![SummonOut::CloseLauncher]),
+        (None, Some(app), true, InField::Prompt) => {
             ask(app, window, at, params, cx, Fallback::Launcher)
         }
-        (LauncherFacts::Closed, _, _, _) => (
+        (None, _, _, _) => (
             Summon::InLauncher {
                 origin: LauncherOrigin::Fresh { window },
             },
@@ -353,7 +332,7 @@ mod tests {
         AppName::parse(name).unwrap_or_else(|e| panic!("{e}"))
     }
 
-    fn facts(launcher: LauncherFacts, app_name: Option<&str>, serves: Serves) -> FocusFacts {
+    fn facts(launcher: Option<LauncherMode>, app_name: Option<&str>, serves: bool) -> FocusFacts {
         FocusFacts {
             window: Some(WindowKey(7)),
             app: app_name.map(app),
@@ -412,11 +391,7 @@ mod tests {
             (
                 "rest, search open: the palette becomes the prompt",
                 Summon::Rest,
-                SummonIn::Summon(facts(
-                    LauncherFacts::Open(LauncherMode::Search),
-                    mail,
-                    Serves::Yes,
-                )),
+                SummonIn::Summon(facts(Some(LauncherMode::Search), mail, true)),
                 100,
                 from_search.clone(),
                 vec![SummonOut::SwitchLauncher(LauncherMode::Companion)],
@@ -424,11 +399,7 @@ mod tests {
             (
                 "rest, companion open and not ours: close it",
                 Summon::Rest,
-                SummonIn::Summon(facts(
-                    LauncherFacts::Open(LauncherMode::Companion),
-                    None,
-                    Serves::No,
-                )),
+                SummonIn::Summon(facts(Some(LauncherMode::Companion), None, false)),
                 100,
                 Summon::Rest,
                 vec![SummonOut::CloseLauncher],
@@ -436,7 +407,7 @@ mod tests {
             (
                 "rest, a serving app in a field: ask it",
                 Summon::Rest,
-                SummonIn::Summon(facts(LauncherFacts::Closed, mail, Serves::Yes)),
+                SummonIn::Summon(facts(None, mail, true)),
                 100,
                 asking(Fallback::Launcher),
                 vec![ask_mail.clone()],
@@ -444,7 +415,7 @@ mod tests {
             (
                 "rest, an app that does not serve: the launcher",
                 Summon::Rest,
-                SummonIn::Summon(facts(LauncherFacts::Closed, mail, Serves::No)),
+                SummonIn::Summon(facts(None, mail, false)),
                 100,
                 fresh(),
                 vec![open_companion()],
@@ -452,7 +423,7 @@ mod tests {
             (
                 "rest, nothing focused: the launcher",
                 Summon::Rest,
-                SummonIn::Summon(facts(LauncherFacts::Closed, None, Serves::No)),
+                SummonIn::Summon(facts(None, None, false)),
                 100,
                 fresh(),
                 vec![open_companion()],
@@ -524,7 +495,7 @@ mod tests {
             (
                 "in the app, summoned again: ask it to restore",
                 in_app(),
-                SummonIn::Summon(facts(LauncherFacts::Closed, mail, Serves::Yes)),
+                SummonIn::Summon(facts(None, mail, true)),
                 500,
                 Summon::AskingApp {
                     app: app("org.quire.Mail"),
@@ -587,11 +558,7 @@ mod tests {
             ..SummonParams::default()
         };
         let (state, out) = Summon::Rest.step(
-            SummonIn::Summon(facts(
-                LauncherFacts::Closed,
-                Some("org.quire.Mail"),
-                Serves::Yes,
-            )),
+            SummonIn::Summon(facts(None, Some("org.quire.Mail"), true)),
             Stamp(0),
             &params,
             &SummonCx::default(),

@@ -14,7 +14,6 @@
 use shell_host::HostHandle;
 use sill_model::ids::OutputName;
 use sill_model::intents::sheet::sheet_view;
-use sill_model::voice::ConsentSheet;
 use sill_ui_kit::links::{Links, SheetOutput};
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::OutputPolicy;
@@ -52,8 +51,8 @@ impl Asking {
     pub fn now(services: &Services, links: &Links) -> Asking {
         let capture = services.capture.state.borrow();
         let consent = match services.voice.state.borrow().sheet {
-            ConsentSheet::Asking => Asking::Something,
-            ConsentSheet::Closed => Asking::Nothing,
+            true => Asking::Something,
+            false => Asking::Nothing,
         };
         let intents = Asking::of(sheet_view(&services.intents.state.borrow().sheets));
         let polkit = Asking::of(services.polkit_agent.state.borrow().current.as_ref());

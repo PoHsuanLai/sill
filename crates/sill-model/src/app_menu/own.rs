@@ -50,31 +50,20 @@ pub struct OwnRow {
 /// Rows with no rule between them.
 pub type OwnGroup = Vec<OwnRow>;
 
-/// Whether the shell offers Quit, or the app's own menu has its own.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QuitRow {
-    Offered,
-    LeftToApp,
+/// Whether the shell offers Quit: Quit is the app's own when its menu has an app menu, and the
+/// shell offers it otherwise.
+pub fn quit_offered(served: Option<&ServedMenu>) -> bool {
+    quit_offered_in(served.map(titles).as_ref())
 }
 
-impl QuitRow {
-    /// Quit is the app's own when its menu has an app menu; the shell offers it otherwise.
-    pub fn of(served: Option<&ServedMenu>) -> QuitRow {
-        QuitRow::of_titles(served.map(titles).as_ref())
-    }
-
-    /// As [`QuitRow::of`], for titles already made.
-    pub fn of_titles(made: Option<&Titles>) -> QuitRow {
-        match made.and_then(|made| made.app.as_ref()) {
-            Some(_) => QuitRow::LeftToApp,
-            None => QuitRow::Offered,
-        }
-    }
+/// As [`quit_offered`], for titles already made.
+pub fn quit_offered_in(made: Option<&Titles>) -> bool {
+    made.and_then(|made| made.app.as_ref()).is_none()
 }
 
 /// The shell's own groups for the app called `name` with `windows`: its windows, then Minimise (the
-/// first window), Hide, Hide Others and Show All, then Quit.
-pub fn own_groups(name: &str, windows: &[(WindowKey, String)], quit: QuitRow) -> Vec<OwnGroup> {
+/// first window), Hide, Hide Others and Show All, then Quit when `offer_quit`.
+pub fn own_groups(name: &str, windows: &[(WindowKey, String)], offer_quit: bool) -> Vec<OwnGroup> {
     let row = |item, label: String| OwnRow { item, label };
     let raise: OwnGroup = windows
         .iter()
@@ -91,9 +80,9 @@ pub fn own_groups(name: &str, windows: &[(WindowKey, String)], quit: QuitRow) ->
             row(OwnItem::ShowAll, "Show All".to_owned()),
         ])
         .collect();
-    let quit = match quit {
-        QuitRow::Offered => vec![row(OwnItem::Quit, format!("Quit {name}"))],
-        QuitRow::LeftToApp => Vec::new(),
+    let quit = match offer_quit {
+        true => vec![row(OwnItem::Quit, format!("Quit {name}"))],
+        false => Vec::new(),
     };
     [raise, hide, quit]
         .into_iter()

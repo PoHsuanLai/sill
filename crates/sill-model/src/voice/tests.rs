@@ -7,7 +7,7 @@ use super::*;
 
 fn ready() -> Voice {
     Voice {
-        link: VoiceLink::Ready,
+        reached: true,
         ..Voice::default()
     }
 }
@@ -251,11 +251,11 @@ fn a_refusal_names_itself_and_consent_opens_the_sheet() {
         assert_eq!(state.phase, Phase::Idle, "{refusal:?}");
         match refusal {
             VoiceRefusal::NeedsConsent => {
-                assert_eq!(state.sheet, ConsentSheet::Asking);
+                assert!(state.sheet);
                 assert_eq!(state.notice, Notice::None);
             }
             other => {
-                assert_eq!(state.sheet, ConsentSheet::Closed);
+                assert!(!state.sheet);
                 assert_eq!(state.notice, Notice::Refused(other));
                 assert!(!notice_line(state.notice).is_empty(), "{other:?}");
             }
@@ -275,7 +275,7 @@ fn an_answered_sheet_closes_when_the_settings_say_so() {
     );
     let unchanged = VoiceParams::default();
     let (still, _) = step(asking.clone(), told(VoiceCommand::Params(unchanged)));
-    assert_eq!(still.sheet, ConsentSheet::Asking);
+    assert!(still.sheet);
     for consent in [
         VoiceConsent::Given(prov::UnixSeconds(9)),
         VoiceConsent::Declined,
@@ -285,7 +285,7 @@ fn an_answered_sheet_closes_when_the_settings_say_so() {
             ..unchanged
         };
         let (closed, _) = step(asking.clone(), told(VoiceCommand::Params(params)));
-        assert_eq!(closed.sheet, ConsentSheet::Closed, "{consent:?}");
+        assert!(!closed.sheet, "{consent:?}");
     }
 }
 
@@ -297,7 +297,7 @@ fn an_answer_closes_the_sheet_and_is_recorded_once() {
     );
     for answer in [ConsentAnswer::Allow, ConsentAnswer::NotNow] {
         let (closed, effects) = step(asking.clone(), told(VoiceCommand::Answer(answer)));
-        assert_eq!(closed.sheet, ConsentSheet::Closed, "{answer:?}");
+        assert!(!closed.sheet, "{answer:?}");
         assert_eq!(effects, vec![VoiceEffect::Record(answer)], "{answer:?}");
         let (_, again) = step(closed, told(VoiceCommand::Answer(answer)));
         assert!(again.is_empty(), "{answer:?}: a second answer has no sheet");

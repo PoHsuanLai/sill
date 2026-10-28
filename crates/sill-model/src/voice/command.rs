@@ -2,7 +2,7 @@
 
 use voice_wire::{CancelCause, UtteranceEnd, VoiceEvent as Frame, VoiceRefusal, VoiceTrigger};
 
-use super::model::{AskScope, ConsentAnswer, VoiceLink, VoiceParams};
+use super::model::{AskScope, ConsentAnswer, VoiceParams};
 use crate::companion::AskInput;
 
 /// What the daemon and the surfaces tell the service.
@@ -33,7 +33,7 @@ pub enum VoiceEvent {
     /// The service was told something.
     Told(VoiceCommand),
     /// The shell's seat was taken or given up.
-    Link(VoiceLink),
+    Reached(bool),
     /// `Begin` returned: the utterance exists.
     Began,
     /// `voiced` refused `Begin`.

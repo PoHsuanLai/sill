@@ -87,15 +87,28 @@ remembers.
   coordinates several values, or makes a decision, is a free function or belongs to the type
   that owns the decision. If half a struct's methods never touch half its fields, it is two
   types.
-- **No `bool`** in a struct field, a parameter, a settings key or a message. Use a two-variant
-  enum whose names say what they mean (`Presence::{Present, Absent}`): `send(true)` tells the
-  reader nothing, `send(Confirm::Yes)` tells them everything. Predicates may return `bool`.
-- **Newtype every unit and identifier** (`Px`, `Permille`, `Ms`, `AppId`, `OutputId`). Never
-  pass a bare `u32` that means pixels. A newtype costs nothing at runtime and makes an
-  argument-order mistake a compile error.
-- **No strings where a closed set exists.** Closed vocabularies are enums implementing `Word`
-  (`ALL`, `slug`, `label`, `parse`). Never hand-write `slug()`/`parse()`/`ALL`. *Because:*
-  there were 112 hand-written `slug`s.
+- **Plain Rust first** (owner, 2026-10-28; replaces "no bools, typed enums everywhere").
+  - **`bool` is fine** for fields, return values, locals and private functions. Use an enum
+    instead only when a public function would read as `f(true, false)`, a third state is
+    realistic, or the value is written to disk or the bus where a named word reads better
+    (`Presence`, `Mute`: settings and snapshot words keep their spelling).
+  - **Two-way outcomes are `Result` or `Option`**, not a two-arm enum. "Absent or one real
+    thing" is `Option<T>`; "done or refused" is `Result<T, Reason>`.
+  - **Newtypes only when they hold a rule:** parsed or validated (an app name, a URL), a unit
+    (`Px`, `Permille`, `Ms`), or an id that must not be mixed with another (`AppId`,
+    `OutputId`). Otherwise plain `String`, `u32`.
+  - **Enums for closed sets the code branches on.** Closed vocabularies that are stored or
+    parsed implement `Word` (`ALL`, `slug`, `label`, `parse`); never hand-write
+    `slug()`/`parse()`/`ALL`. A set that grows (apps, providers, phrases) is data: a string id
+    or a shipped file, not a variant list.
+  - **One fact, one type, owned by the lowest crate that needs it.** An upper crate never
+    declares a copy to map into (`X`/`XKind`/`XWire`/`XState`, `Phase` + `LockPhase` with a
+    `public()`). A field-less view of an enum is a method; a subset enum reuses the larger one.
+  - **A per-variant property used in more than one place is a row** (a table or a method on
+    the type), never a second `match` in another file.
+  - **Behaviour that differs by case is a trait with default methods.** Generics by default;
+    `Box<dyn Trait>` when the implementation is picked from configuration at run time.
+  - **A single-variant enum is not a type**: use a unit struct, a `const`, or nothing.
 - **Parse at the boundary, once.** Settings strings, D-Bus values, file contents, device bytes
   and CLI arguments become typed values where they enter, and the rest of the program needs no
   defensive checks. A service never parses a settings string. A validation function that

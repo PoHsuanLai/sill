@@ -6,17 +6,14 @@ use prov::SpaceId;
 use voice_wire::{CancelCause, UtteranceEnd, VoiceEvent as Frame, VoiceRefusal};
 
 use super::command::{VoiceCommand, VoiceEffect, VoiceEvent};
-use super::model::{
-    AskScope, ConsentSheet, Heard, HoldToTalk, Notice, Phase, Then, Voice, VoiceConsent, VoiceLink,
-    Words,
-};
+use super::model::{AskScope, Heard, HoldToTalk, Notice, Phase, Then, Voice, VoiceConsent, Words};
 use crate::companion::AskInput;
 
 /// `state` after `event`, and what the outside must do.
 pub fn step(state: Voice, event: VoiceEvent) -> (Voice, Vec<VoiceEffect>) {
     match event {
         VoiceEvent::Told(command) => told(state, command),
-        VoiceEvent::Link(link) => (Voice { link, ..state }, Vec::new()),
+        VoiceEvent::Reached(reached) => (Voice { reached, ..state }, Vec::new()),
         VoiceEvent::Began => began(state),
         VoiceEvent::Refused(refusal) => refused(state, refusal),
         VoiceEvent::Unreachable => idle(state, Notice::Unreachable),
@@ -49,7 +46,7 @@ fn told(state: Voice, command: VoiceCommand) -> (Voice, Vec<VoiceEffect>) {
         VoiceCommand::Params(params) => {
             let sheet = match params.consent {
                 VoiceConsent::NotAsked => state.sheet,
-                VoiceConsent::Given(_) | VoiceConsent::Declined => ConsentSheet::Closed,
+                VoiceConsent::Given(_) | VoiceConsent::Declined => false,
             };
             (
                 Voice {
@@ -64,14 +61,14 @@ fn told(state: Voice, command: VoiceCommand) -> (Voice, Vec<VoiceEffect>) {
         VoiceCommand::Stop => stop(state),
         VoiceCommand::Cancel(cause) => cancel(state, cause),
         VoiceCommand::Answer(answer) => match state.sheet {
-            ConsentSheet::Asking => (
+            true => (
                 Voice {
-                    sheet: ConsentSheet::Closed,
+                    sheet: false,
                     ..state
                 },
                 vec![VoiceEffect::Record(answer)],
             ),
-            ConsentSheet::Closed => (state, Vec::new()),
+            false => (state, Vec::new()),
         },
         VoiceCommand::Dismiss => (
             Voice {
@@ -90,8 +87,8 @@ fn start(
 ) -> (Voice, Vec<VoiceEffect>) {
     let allowed = matches!(state.params.hold_to_talk, HoldToTalk::HoldCommand)
         && !matches!(state.params.consent, VoiceConsent::Declined);
-    match (&state.phase, state.link, allowed) {
-        (Phase::Idle, VoiceLink::Ready, true) => (
+    match (&state.phase, state.reached, allowed) {
+        (Phase::Idle, true, true) => (
             Voice {
                 phase: Phase::Opening(Then::Listen),
                 scope,
@@ -100,7 +97,7 @@ fn start(
             },
             vec![VoiceEffect::Begin(trigger)],
         ),
-        (Phase::Idle, VoiceLink::Passive, true) => idle(state, Notice::Unreachable),
+        (Phase::Idle, false, true) => idle(state, Notice::Unreachable),
         _ => (state, Vec::new()),
     }
 }
@@ -163,7 +160,7 @@ fn refused(state: Voice, refusal: VoiceRefusal) -> (Voice, Vec<VoiceEffect>) {
         VoiceRefusal::NeedsConsent => (
             Voice {
                 phase: Phase::Idle,
-                sheet: ConsentSheet::Asking,
+                sheet: true,
                 ..state
             },
             Vec::new(),

@@ -60,19 +60,11 @@ impl MenuClient {
     }
 }
 
-/// Whether the owner's menu is the window's.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MenuTrust {
-    /// The owner is the window's program: its menu is read and shown.
-    Shown,
-    /// It is not, or cannot be shown to be: the app has no menu in the bar, and an agent is
-    /// refused it.
-    Hidden,
-}
-
-/// Whether `owner` is the program of `client`.
-pub fn menu_trust(owner: &MenuOwner, client: &MenuClient) -> MenuTrust {
-    let same = match (&client.reported, owner) {
+/// Whether `owner` is the program of `client`: when it is, the owner's menu is read and shown;
+/// when it is not, or cannot be shown to be, the app has no menu in the bar and an agent is
+/// refused it.
+pub fn menu_trust(owner: &MenuOwner, client: &MenuClient) -> bool {
+    match (&client.reported, owner) {
         (_, MenuOwner::Unknown) => false,
         // A service's standing carries no image, so it is known by its app key either way.
         (_, MenuOwner::Service { app }) => *app == client.key,
@@ -80,9 +72,5 @@ pub fn menu_trust(owner: &MenuOwner, client: &MenuClient) -> MenuTrust {
         (Some(subject), MenuOwner::Program { exe, .. }) => exe == subject,
         (None, MenuOwner::Sandboxed { app }) => *app == client.key,
         (None, MenuOwner::Program { scope_app, .. }) => scope_app.as_ref() == Some(&client.key),
-    };
-    match same {
-        true => MenuTrust::Shown,
-        false => MenuTrust::Hidden,
     }
 }

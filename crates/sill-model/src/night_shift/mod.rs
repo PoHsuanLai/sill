@@ -15,7 +15,7 @@ mod tests;
 
 pub use command::{NightShiftCommand, NightShiftEffect, NightShiftEvent, Now};
 pub use model::{
-    Backend, Manual, MinuteOfDay, NightLight, NightShift, Reach, Schedule, UnixSeconds, Warmth,
+    Backend, Manual, MinuteOfDay, NightLight, NightShift, Schedule, UnixSeconds, Warmth,
 };
 pub use shown::{Shown, shown, warmth_at, warmth_fraction};
 pub use skip::{skip_outputs, unmatched};

@@ -44,32 +44,26 @@ fn time_of(content: &ContentLine, value: &str) -> Result<IcsTime, ValueError> {
     if is_date {
         return parse_date(value).map(IcsTime::Date);
     }
+    // `utc`: the date-time ended in `Z`.
     let (civil, utc) = match value.strip_suffix(['Z', 'z']) {
-        Some(civil) => (civil, Utc::Yes),
-        None => (value, Utc::No),
+        Some(civil) => (civil, true),
+        None => (value, false),
     };
     let at = parse_date_time(civil)?;
     match (utc, content.param("TZID")) {
-        (Utc::Yes, _) => at
+        (true, _) => at
             .to_zoned(TimeZone::UTC)
             .map(|zoned| IcsTime::Utc(zoned.timestamp()))
             .map_err(|error| ValueError::Zone {
                 value: value.to_owned(),
                 error: error.to_string(),
             }),
-        (Utc::No, Some(zone)) => Ok(IcsTime::Zoned {
+        (false, Some(zone)) => Ok(IcsTime::Zoned {
             at,
             zone: zone.to_owned(),
         }),
-        (Utc::No, None) => Ok(IcsTime::Floating(at)),
+        (false, None) => Ok(IcsTime::Floating(at)),
     }
-}
-
-/// Whether a date-time ended in `Z`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Utc {
-    Yes,
-    No,
 }
 
 /// `20260927`.

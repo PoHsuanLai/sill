@@ -20,9 +20,9 @@ use ds_core::vocab::MemoryVerb;
 use prov::{SessionId, TaskId, UnixSeconds};
 use sill_launcher::{Generation, RunControl};
 use sill_model::companion::{
-    Busy, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionLink,
-    CompanionParams, HelpersCommand, HelpersMsg, ModeMsg, SummonOut, TerminalsCommand, card_call,
-    going_runs, promote_card, step, unresolved_handles, wake,
+    Busy, Companion, CompanionCommand, CompanionEffect, CompanionEvent, CompanionParams,
+    HelpersCommand, HelpersMsg, ModeMsg, SummonOut, TerminalsCommand, card_call, going_runs,
+    promote_card, step, unresolved_handles, wake,
 };
 use sill_model::launch::{LaunchCommand, SettingsOpen, assistant_model};
 use tokio::sync::{mpsc, watch};
@@ -450,9 +450,9 @@ impl Live {
         }
         self.connection = connection.clone();
         match connection {
-            None => self.feed(CompanionEvent::Link(CompanionLink::Passive)),
+            None => self.feed(CompanionEvent::Reached(false)),
             Some(connection) => {
-                self.feed(CompanionEvent::Link(CompanionLink::Ready));
+                self.feed(CompanionEvent::Reached(true));
                 self.watch(&connection);
             }
         }

@@ -5,7 +5,7 @@
 use docket_dbus::{IntentProviderProxy, PROVIDER_PATH};
 use docket_wire::{SummonAnswer, SummonOrigin, SummonSerial};
 use prov::AppName;
-use sill_model::companion::{CompanionEvent, FocusFacts, FocusInput, Serves};
+use sill_model::companion::{CompanionEvent, FocusFacts, FocusInput};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use zbus::Connection;
 
@@ -55,13 +55,13 @@ pub(super) async fn run(
 }
 
 /// Whether `app` owns its name on the bus `connection` is on.
-async fn serves(connection: Option<&Connection>, app: Option<&AppName>) -> Serves {
+async fn serves(connection: Option<&Connection>, app: Option<&AppName>) -> bool {
     let (Some(connection), Some(app)) = (connection, app) else {
-        return Serves::No;
+        return false;
     };
     match name_state(connection, app.as_str()).await {
-        Ok(NameState::Owned) => Serves::Yes,
-        Ok(NameState::Activatable | NameState::Missing) | Err(_) => Serves::No,
+        Ok(NameState::Owned) => true,
+        Ok(NameState::Activatable | NameState::Missing) | Err(_) => false,
     }
 }
 

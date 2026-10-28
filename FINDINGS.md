@@ -1301,7 +1301,7 @@ compositor older than version 4 nothing is sent and the bar behaves as before.
 - **Served.** `org.quire.Shell1.PickColor(app_label: s) -> (color: a(ddd))` on the same object as
   `PickCaptureSource` (`sill_services::capture_pick`), with the same caller check (only the owner of
   `org.freedesktop.impl.portal.desktop.quire`; anyone else is `AccessDenied`). The array is empty on
-  cancel, else one `(red, green, blue)` in 0..1 sRGB (`sill_model::capture_pick::ColorReply::wire`,
+  cancel, else one `(red, green, blue)` in 0..1 sRGB (`sill_model::capture_pick::color_wire`,
   an 8-bit pixel over 255). One question at a time of either kind: a second call while a colour or a
   sources question is open is `LimitsExceeded`; the caller leaving the bus clears it
   (`CaptureEvent::CallerGone`).

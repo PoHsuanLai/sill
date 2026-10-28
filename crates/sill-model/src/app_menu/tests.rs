@@ -6,9 +6,9 @@ use sill_launcher::WindowKey;
 
 use super::{
     ActionIndex, AppMenuEvent, AppMenus, Follower, Followers, Following, Identity, ItemKey,
-    MenuApp, MenuClient, MenuName, MenuOwner, MenuTrust, Node, NodeProps, NodeType, OwnItem,
-    QuitRow, Route, ServedMenu, ToggleKind, effect_of, listing, menu_trust, own_commands,
-    own_groups, route_of, rows_of, step, titles,
+    MenuApp, MenuClient, MenuName, MenuOwner, Node, NodeProps, NodeType, OwnItem, Route,
+    ServedMenu, ToggleKind, effect_of, listing, menu_trust, own_commands, own_groups, route_of,
+    rows_of, step, titles,
 };
 use crate::ids::OutputName;
 use crate::tray::{Check, Chord, MenuCommand, TrayMenuEntry, TrayMenuIcon, TrayMenuKind};
@@ -260,14 +260,14 @@ fn the_own_groups_hold_windows_then_hiding_then_quit() {
         .map(str::to_owned)
         .to_vec();
     assert_eq!(
-        labels(QuitRow::Offered),
+        labels(true),
         [
             vec!["~".to_owned()],
             hide.clone(),
             vec!["Quit Foot".to_owned()]
         ]
     );
-    assert_eq!(labels(QuitRow::LeftToApp), [vec!["~".to_owned()], hide]);
+    assert_eq!(labels(false), [vec!["~".to_owned()], hide]);
 }
 
 fn name(text: &str) -> AppName {
@@ -426,11 +426,7 @@ fn an_item_key_reads_back_what_a_listing_wrote() {
 
 #[test]
 fn the_listing_has_one_line_per_row_with_the_id_first() {
-    let own = own_groups(
-        "Notes",
-        &[(WindowKey(4), "Inbox".to_owned())],
-        QuitRow::LeftToApp,
-    );
+    let own = own_groups("Notes", &[(WindowKey(4), "Inbox".to_owned())], false);
     let text = listing("Notes", &own, Some(&served()));
     let want = "\
 Notes
@@ -547,7 +543,8 @@ fn a_menu_is_shown_only_when_its_owner_is_the_windows_program() {
     let service = |app: &str| MenuOwner::Service {
         app: app.to_owned(),
     };
-    use MenuTrust::{Hidden, Shown};
+    const SHOWN: bool = true;
+    const HIDDEN: bool = false;
     // `(case, owner, the window's client, trusted)`
     let cases = [
         // No subject reported: the app key is what is compared.
@@ -555,86 +552,86 @@ fn a_menu_is_shown_only_when_its_owner_is_the_windows_program() {
             "a sandbox that is the app",
             sandboxed("dev.notes"),
             client(None),
-            Shown,
+            SHOWN,
         ),
         (
             "a sandbox that is another app",
             sandboxed("dev.other"),
             client(None),
-            Hidden,
+            HIDDEN,
         ),
         (
             "a program launched as the app",
             program("/usr/bin/notes", Some("dev.notes")),
             client(None),
-            Shown,
+            SHOWN,
         ),
         (
             "a program launched as another app",
             program("/usr/bin/notes", Some("dev.other")),
             client(None),
-            Hidden,
+            HIDDEN,
         ),
         (
             "a program with no launcher name",
             program("/usr/bin/notes", None),
             client(None),
-            Hidden,
+            HIDDEN,
         ),
         (
             "a service that is the app",
             service("dev.notes"),
             client(None),
-            Shown,
+            SHOWN,
         ),
         (
             "a service that is another app",
             service("org.quire.Settings"),
             client(None),
-            Hidden,
+            HIDDEN,
         ),
         (
             "an owner nobody can name",
             MenuOwner::Unknown,
             client(None),
-            Hidden,
+            HIDDEN,
         ),
         // Once the compositor reports the client's subject, the subject decides, not the key.
         (
             "the image that is the window's",
             program("/usr/bin/notes", None),
             client(Some("/usr/bin/notes")),
-            Shown,
+            SHOWN,
         ),
         (
             "another image under the app's scope name",
             program("/usr/bin/evil", Some("dev.notes")),
             client(Some("/usr/bin/notes")),
-            Hidden,
+            HIDDEN,
         ),
         (
             "the sandbox that is the window's",
             sandboxed("dev.notes"),
             client(Some("dev.notes")),
-            Shown,
+            SHOWN,
         ),
         (
             "another sandbox",
             sandboxed("dev.other"),
             client(Some("dev.notes")),
-            Hidden,
+            HIDDEN,
         ),
         (
             "a service is known by its key",
             service("dev.notes"),
             client(Some("/usr/bin/notes")),
-            Shown,
+            SHOWN,
         ),
         (
             "an unknown owner stays hidden",
             MenuOwner::Unknown,
             client(Some("/usr/bin/notes")),
-            Hidden,
+            HIDDEN,
         ),
     ];
     for (name, owner, client, want) in cases {

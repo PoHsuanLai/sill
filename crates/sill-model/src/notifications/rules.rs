@@ -35,15 +35,15 @@ pub(super) fn post(state: NotesState, note: Notification, policy: &Notifications
         state.last_id = id;
     }
     let mut effects = Vec::new();
-    let had_kept = replaced.as_ref().is_some_and(|r| r.kept == Where::Kept);
+    let had_kept = replaced == Some(true);
     let kept = match note.hints.transience {
         Transience::Kept => {
             state.history = cap(keep(state.history, note.clone()), policy.history_cap);
-            Where::Kept
+            true
         }
-        Transience::Transient => Where::Elsewhere,
+        Transience::Transient => false,
     };
-    if had_kept || kept == Where::Kept {
+    if had_kept || kept {
         effects.push(NotificationsEffect::SaveHistory);
     }
     if let Presented::Banner(life) = presented(&note, policy) {
@@ -139,13 +139,11 @@ pub(super) fn close(state: NotesState, id: NotificationId, reason: CloseReason) 
     let (state, removed) = remove_everywhere(state, id);
     let effects = match removed {
         None => Vec::new(),
-        Some(Removed { kept: Where::Kept }) => vec![
+        Some(true) => vec![
             NotificationsEffect::Closed { id, reason },
             NotificationsEffect::SaveHistory,
         ],
-        Some(Removed {
-            kept: Where::Elsewhere,
-        }) => vec![NotificationsEffect::Closed { id, reason }],
+        Some(false) => vec![NotificationsEffect::Closed { id, reason }],
     };
     (state, effects)
 }
@@ -253,22 +251,9 @@ pub(super) fn load(
     (state, Vec::new())
 }
 
-/// Where a removed notification was.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Where {
-    /// In the history (maybe on a banner too).
-    Kept,
-    /// Only on a banner.
-    Elsewhere,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Removed {
-    kept: Where,
-}
-
-/// `id` taken off the banners and out of the history; `None` when neither held it.
-fn remove_everywhere(mut state: NotesState, id: NotificationId) -> (NotesState, Option<Removed>) {
+/// `id` taken off the banners and out of the history; `None` when neither held it, else whether
+/// it was in the history (`true`, maybe on a banner too) or only on a banner (`false`).
+fn remove_everywhere(mut state: NotesState, id: NotificationId) -> (NotesState, Option<bool>) {
     let on_banner = state.live.banner(id).is_some();
     state.live.banners.retain(|banner| banner.note.id != id);
     let kept = state.history.find(id).is_some();
@@ -276,10 +261,8 @@ fn remove_everywhere(mut state: NotesState, id: NotificationId) -> (NotesState, 
         state.history = without(state.history, id);
     }
     let removed = match (kept, on_banner) {
-        (true, _) => Some(Removed { kept: Where::Kept }),
-        (false, true) => Some(Removed {
-            kept: Where::Elsewhere,
-        }),
+        (true, _) => Some(true),
+        (false, true) => Some(false),
         (false, false) => None,
     };
     (state, removed)

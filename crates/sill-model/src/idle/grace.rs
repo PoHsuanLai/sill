@@ -20,14 +20,6 @@ use crate::locker::LockCause;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct WakeDelay(pub u64);
 
-/// Whether logind's `PrepareForSleep(true)` came since the displays went off.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum SleepSince {
-    #[default]
-    NoSleep,
-    Slept,
-}
-
 /// Everything the rule reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GraceCase {
@@ -35,7 +27,8 @@ pub struct GraceCase {
     pub cause: Option<LockCause>,
     pub grace: LockGrace,
     pub woke: WakeDelay,
-    pub sleep: SleepSince,
+    /// True when logind's `PrepareForSleep(true)` came since the displays went off.
+    pub slept: bool,
 }
 
 /// The rule's answer.
@@ -51,8 +44,8 @@ pub enum GraceVerdict {
 pub fn grace_verdict(case: &GraceCase) -> GraceVerdict {
     let LockGrace(IdleSecs(grace_s)) = case.grace;
     let within = case.woke.0 < u64::from(grace_s) * 1_000;
-    match (case.cause, case.sleep, within) {
-        (Some(LockCause::IdleScreenOff), SleepSince::NoSleep, true) => GraceVerdict::NoPassword,
+    match (case.cause, case.slept, within) {
+        (Some(LockCause::IdleScreenOff), false, true) => GraceVerdict::NoPassword,
         (
             Some(
                 LockCause::IdleScreenOff
@@ -62,8 +55,8 @@ pub fn grace_verdict(case: &GraceCase) -> GraceVerdict {
                 | LockCause::Restored,
             )
             | None,
-            SleepSince::NoSleep | SleepSince::Slept,
-            true | false,
+            _,
+            _,
         ) => GraceVerdict::Ask,
     }
 }

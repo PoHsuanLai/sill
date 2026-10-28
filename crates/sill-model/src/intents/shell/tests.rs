@@ -8,8 +8,9 @@ use docket_core::{UndoFault, Undoable};
 use docket_vocab::UndoToken;
 use sill_launcher::AppId;
 
-use super::{ShellAction, WorkspaceStep, action_of, outcome_of, undo_of};
+use super::{ShellAction, action_of, outcome_of, undo_of};
 use crate::screenshots::ShotKind;
+use crate::windows::Step;
 
 fn invocation(action: &str, args: &[(&str, Value)]) -> Invocation {
     Invocation {
@@ -58,11 +59,11 @@ fn each_declared_action_reads_into_its_shell_action() {
         ),
         (
             invocation("shell.workspace.switch", &[]),
-            Ok(ShellAction::WorkspaceSwitch(WorkspaceStep::Next)),
+            Ok(ShellAction::WorkspaceSwitch(Step::Next)),
         ),
         (
             invocation("shell.workspace.switch", &[("direction", choice("prev"))]),
-            Ok(ShellAction::WorkspaceSwitch(WorkspaceStep::Prev)),
+            Ok(ShellAction::WorkspaceSwitch(Step::Prev)),
         ),
         (invocation("shell.lock", &[]), Ok(ShellAction::Lock)),
         (
@@ -131,8 +132,8 @@ fn a_parameter_of_the_wrong_kind_or_outside_its_options_is_refused_by_name() {
 fn every_action_says_what_it_did() {
     for action in [
         ShellAction::LauncherOpen { query: "x".into() },
-        ShellAction::WorkspaceSwitch(WorkspaceStep::Next),
-        ShellAction::WorkspaceSwitch(WorkspaceStep::Prev),
+        ShellAction::WorkspaceSwitch(Step::Next),
+        ShellAction::WorkspaceSwitch(Step::Prev),
         ShellAction::Lock,
         ShellAction::DockPin {
             app: AppId("a.desktop".into()),
@@ -184,7 +185,7 @@ fn a_pin_and_an_unpin_undo_each_other_and_nothing_else_does() {
         ShellAction::LauncherOpen {
             query: String::new(),
         },
-        ShellAction::WorkspaceSwitch(WorkspaceStep::Prev),
+        ShellAction::WorkspaceSwitch(Step::Prev),
         ShellAction::Screenshot(ShotKind::Area),
     ] {
         assert_eq!(outcome_of(&action).undo, Undoable::No, "{action:?}");

@@ -49,7 +49,7 @@ fn ticks_toggle_and_confirming_sends_the_pool_for_that_helper_only() {
             pool: [claude()].into_iter().collect()
         }]
     );
-    let (model, _) = update(model, HelpersMsg::PoolWritten(PoolWritten::Saved));
+    let (model, _) = update(model, HelpersMsg::PoolWritten(true));
     assert_eq!(model.automatic, Automatic::Off);
     assert_eq!(
         model.notice.as_deref(),
@@ -78,7 +78,7 @@ fn a_pool_that_could_not_be_kept_is_said_and_cancel_and_closing_the_card_give_it
             HelpersMsg::StartAutomatic,
         )
         .0,
-        HelpersMsg::PoolWritten(PoolWritten::NotSaved),
+        HelpersMsg::PoolWritten(false),
     );
     assert_eq!(
         model.notice.as_deref(),

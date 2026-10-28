@@ -7,7 +7,6 @@ use companion_wire::{HelperCardView, HelperForm, HelperReply, HelpersView};
 use porter_infer::ModelRef;
 use prov::{AppName, HelperId};
 
-use super::automatic::PoolWritten;
 use super::models::ModelGroup;
 use super::routines::{RoutinesCommand, RoutinesMsg};
 
@@ -109,8 +108,8 @@ pub enum HelpersMsg {
     CancelAutomatic,
     /// The person confirms the models ticked for Automatic.
     ConfirmAutomatic,
-    /// What became of keeping the models Automatic may use.
-    PoolWritten(PoolWritten),
+    /// What became of keeping the models Automatic may use: true when the pool is kept.
+    PoolWritten(bool),
     /// Something about the routines.
     Routines(RoutinesMsg),
 }

@@ -2,25 +2,25 @@
 //! compared with the program of the focused window.
 
 use peephole_bus::peephole_core::Standing;
-use sill_model::app_menu::{MenuClient, MenuOwner, MenuTrust, menu_trust};
+use sill_model::app_menu::{MenuClient, MenuOwner, menu_trust};
 use sill_model::untrusted::for_log;
 use zbus::names::OwnedUniqueName;
 
 use super::Peers;
 
 /// Whether the menu served by `owner` (the unique name that owns the app's menu name) is the
-/// menu of `client`'s program. An owner that cannot be identified is not shown.
+/// menu of `client`'s program. An owner that cannot be identified is not shown (`false`).
 pub(crate) async fn menu_shown(
     peers: &Peers,
     owner: &OwnedUniqueName,
     client: &MenuClient,
-) -> MenuTrust {
+) -> bool {
     let who = match peers.who(owner.as_str()).await {
         Ok(standing) => owner_of(&standing),
         Err(_) => MenuOwner::Unknown,
     };
     let trust = menu_trust(&who, client);
-    if trust == MenuTrust::Hidden {
+    if !trust {
         eprintln!(
             "sill: callers: the owner of the menu name of {} is not that app, so its menu is not shown",
             for_log(&client.key)

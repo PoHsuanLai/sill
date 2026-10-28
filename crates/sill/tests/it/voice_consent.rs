@@ -9,9 +9,7 @@ use sill::policy::Policy;
 use sill::policy::voice::VoiceBridge;
 use sill::voice::write_consent;
 use sill_launcher::WindowKey;
-use sill_model::voice::{
-    AskScope, ConsentAnswer, ConsentSheet, Notice, Phase, VoiceCommand, VoiceParams,
-};
+use sill_model::voice::{AskScope, ConsentAnswer, Notice, Phase, VoiceCommand, VoiceParams};
 use sill_settings::{APP, ShellFile};
 use sill_testkit::TempDir;
 use tokio::sync::watch;
@@ -40,8 +38,7 @@ fn begins(desk: &Desk) -> usize {
 async fn answered(desk: &mut Desk, answer: ConsentAnswer, dir: &TempDir) -> toml::Table {
     desk.seated().await;
     desk.send(start());
-    desk.state(|v| matches!(v.sheet, ConsentSheet::Asking).then_some(()))
-        .await;
+    desk.state(|v| v.sheet.then_some(())).await;
     desk.send(VoiceCommand::Answer(answer));
     let consent = tokio::time::timeout(std::time::Duration::from_secs(60), desk.consents.recv())
         .await
@@ -107,5 +104,5 @@ async fn not_now_writes_declined_and_the_next_hold_never_calls_begin() {
         2,
         "sill itself did not begin while voice was declined"
     );
-    assert_eq!(desk.voice.state.borrow().sheet, ConsentSheet::Closed);
+    assert!(!desk.voice.state.borrow().sheet);
 }

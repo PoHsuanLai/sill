@@ -13,7 +13,9 @@ fn every_action_has_a_label_an_effect_and_a_chord_where_one_stands_for_it() {
         let action = def(id);
         assert_eq!(action.id, id);
         assert!(!action.label.trim().is_empty(), "{id:?}");
-        assert_eq!(action.confirm, action.effect.confirm(), "{id:?}");
+        if !matches!(action.effect, Effect::Session(_) | Effect::EmptyTrash) {
+            assert_eq!(action.confirm, Confirm::Now, "{id:?}");
+        }
     }
     let chords: Vec<ActionId> = ActionId::ALL
         .iter()
@@ -121,7 +123,7 @@ fn an_action_is_refused_what_it_cannot_act_on() {
             .as_deref(),
         Some("Keep in Dock needs an app.")
     );
-    assert_eq!(def(ActionId::Lock).effect.needs(), Needs::Nothing);
+    assert_eq!(def(ActionId::Lock).needs, Needs::Nothing);
 }
 
 #[test]
@@ -175,16 +177,15 @@ fn every_action_is_written_as_its_slug_on_the_wire() {
 
 #[test]
 fn only_the_power_menu_opens_where_the_rest_flip() {
-    use super::Way;
     for panel in [
         Panel::Launcher,
         Panel::ForceQuit,
         Panel::NotificationCenter,
         Panel::ControlCenter,
     ] {
-        assert_eq!(panel.way(), Way::Toggle, "{panel:?}");
+        assert!(!panel.opens(), "{panel:?}");
     }
-    assert_eq!(Panel::PowerMenu.way(), Way::Open);
+    assert!(Panel::PowerMenu.opens());
 }
 
 #[test]

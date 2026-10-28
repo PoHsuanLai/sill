@@ -11,8 +11,6 @@ mod tests;
 
 pub use cause::{LockCause, cause_after, cause_of};
 pub use command::{LockerCommand, LockerEffect, LockerEvent, ShellLockEvent};
-pub use mode::{Host, LockerMode};
-pub use model::{
-    Cause, Hold, Lock, LockPhase, Locker, Phase, READY_GIVE_UP_MS, Runner, SLEEP_HOLD_MS, Triggers,
-};
+pub use mode::Host;
+pub use model::{Hold, Lock, LockPhase, Locker, READY_GIVE_UP_MS, SLEEP_HOLD_MS};
 pub use step::{next_deadline, step};

@@ -5,7 +5,7 @@
 
 use dioxus::prelude::*;
 use shell_host::{OutputInfo, Visibility, use_watch};
-use sill_model::capture_pick::{AskId, CaptureCommand, ColorOutcome};
+use sill_model::capture_pick::{AskId, CaptureCommand, Rgb8};
 use sill_model::desktop::OutputShot;
 use sill_services::Control;
 use sill_services::capture_pick::CaptureService;
@@ -44,10 +44,10 @@ impl Sampler {
         shown_on(&self.feed.read(), self.name.as_deref(), answered)
     }
 
-    /// End question `id` with `outcome` and stop drawing it.
-    pub(super) fn answer(&self, id: AskId, outcome: ColorOutcome) {
+    /// End question `id` with the colour picked (`None`: cancelled) and stop drawing it.
+    pub(super) fn answer(&self, id: AskId, color: Option<Rgb8>) {
         // The service may be gone; nobody is left to ask the person then.
-        let _ = self.control.send(CaptureCommand::ColorAnswer(id, outcome));
+        let _ = self.control.send(CaptureCommand::ColorAnswer(id, color));
         let mut answered = self.answered;
         answered.set(Some(id));
     }

@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use porter_dbus::{ManagerProxy, refusal_of};
 use porter_wire::Refusal;
 use sill_model::accounts::{
-    AccountKey, AccountsCommand, AccountsEffect, AccountsEvent, AccountsLink, AccountsState,
-    NeedsSignIn, account_of, shown_for, step,
+    AccountKey, AccountsCommand, AccountsEffect, AccountsEvent, AccountsState, NeedsSignIn,
+    account_of, shown_for, step,
 };
 use sill_model::notifications::{NotificationsCommand, Said};
 use tokio::runtime::Handle;
@@ -246,15 +246,15 @@ impl Live {
 
     /// Watch each account that needs signing in again while accountd is there, and no other.
     fn follow(&mut self) {
-        let wanted: Vec<&AccountKey> = match self.machine.state().link {
-            AccountsLink::Present => self
+        let wanted: Vec<&AccountKey> = match self.machine.state().present {
+            true => self
                 .machine
                 .state()
                 .needing
                 .iter()
                 .map(|n| &n.account)
                 .collect(),
-            AccountsLink::Absent => Vec::new(),
+            false => Vec::new(),
         };
         self.watches.retain(|account, watch| {
             let keep = wanted.contains(&account);

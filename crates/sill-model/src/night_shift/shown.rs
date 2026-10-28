@@ -1,6 +1,6 @@
 //! What Night Shift looks like to the person, and the warmth slider's scale. Pure.
 
-use super::{MinuteOfDay, NightShift, Reach, Schedule, Warmth};
+use super::{MinuteOfDay, NightShift, Schedule, Warmth};
 
 /// What the Night Shift switch says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,18 +22,18 @@ pub enum Shown {
 /// The switch's state for `night_shift`.
 pub fn shown(night_shift: &NightShift) -> Shown {
     match (
-        night_shift.reach,
+        night_shift.reached,
         night_shift.manual,
         night_shift.light.schedule,
     ) {
-        (Reach::Unavailable, _, _) => Shown::Unavailable,
-        (Reach::Ready, Some(_), _) => Shown::OnUntilTomorrow,
-        (Reach::Ready, None, Schedule::Always) => Shown::On,
-        (Reach::Ready, None, Schedule::Scheduled) => Shown::Scheduled {
+        (false, _, _) => Shown::Unavailable,
+        (true, Some(_), _) => Shown::OnUntilTomorrow,
+        (true, None, Schedule::Always) => Shown::On,
+        (true, None, Schedule::Scheduled) => Shown::Scheduled {
             from: night_shift.light.from,
             to: night_shift.light.to,
         },
-        (Reach::Ready, None, Schedule::Off) => Shown::Off,
+        (true, None, Schedule::Off) => Shown::Off,
     }
 }
 

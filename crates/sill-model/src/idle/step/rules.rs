@@ -1,9 +1,9 @@
 //! The machine's rules, one function per event (the module doc of `reduce.rs` lists them).
 
-use super::super::grace::{GraceCase, SleepSince, WakeDelay};
+use super::super::grace::{GraceCase, WakeDelay};
 use super::super::inhibit::Inhibition;
 use super::super::model::{DimShown, IdlePhase};
-use super::super::policy::{IdleLock, IdleMode, IdlePolicy, LockView, Threshold, Watch, watches};
+use super::super::policy::{IdleLock, IdleMode, IdlePolicy, Threshold, Watch, watches};
 use super::{DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen};
 use ds_core::time::stamp::Stamp;
 
@@ -20,7 +20,7 @@ pub(super) fn step(state: IdleState, event: IdleEvent) -> Step {
         (IdleMode::Own, IdleEvent::Resumed(now)) => resumed(state, now),
         (IdleMode::Own, IdleEvent::SleepStarting(_)) => (
             IdleState {
-                sleep: SleepSince::Slept,
+                slept: true,
                 ..state
             },
             Vec::new(),
@@ -102,7 +102,7 @@ fn undim(state: &IdleState) -> Vec<IdleEffect> {
 fn wanted(state: &IdleState) -> Vec<Watch> {
     match state.inhibition {
         Inhibition::Held => Vec::new(),
-        Inhibition::Free => watches(&state.policy, state.power, state.lock.view),
+        Inhibition::Free => watches(&state.policy, state.power, state.lock.locked),
     }
 }
 
@@ -153,13 +153,13 @@ fn lock_seen(state: IdleState, seen: LockSeen) -> Step {
 
 /// Unlocked: the idle lock's instant and the sleep mark belong to a lock that is gone.
 fn forget_if_unlocked(state: IdleState) -> IdleState {
-    match state.lock.view {
-        LockView::Unlocked => IdleState {
+    match state.lock.locked {
+        false => IdleState {
             idle_locked_at: None,
-            sleep: SleepSince::NoSleep,
+            slept: false,
             ..state
         },
-        LockView::Locked => state,
+        true => state,
     }
 }
 
@@ -178,9 +178,9 @@ fn idled(state: IdleState, stage: Threshold, now: Stamp) -> Step {
         }
         (Threshold::ScreenOff, IdlePhase::Active | IdlePhase::Dimmed) => screen_off(state, now),
         (Threshold::LockedScreenOff, IdlePhase::Active | IdlePhase::Dimmed) => {
-            match state.lock.view {
-                LockView::Locked => displays_off(state, Vec::new()),
-                LockView::Unlocked => (state, Vec::new()),
+            match state.lock.locked {
+                true => displays_off(state, Vec::new()),
+                false => (state, Vec::new()),
             }
         }
         (Threshold::Suspend, IdlePhase::Active | IdlePhase::Dimmed | IdlePhase::DisplaysOff) => (
@@ -202,18 +202,16 @@ fn idled(state: IdleState, stage: Threshold, now: Stamp) -> Step {
 /// The idle screen-off: lock first (only an unlocked session, only with `AtScreenOff`), then
 /// the displays.
 fn screen_off(state: IdleState, now: Stamp) -> Step {
-    match (state.policy.lock, state.lock.view) {
-        (IdleLock::AtScreenOff, LockView::Unlocked) => displays_off(
+    match (state.policy.lock, state.lock.locked) {
+        (IdleLock::AtScreenOff, false) => displays_off(
             IdleState {
                 idle_locked_at: Some(now),
-                sleep: SleepSince::NoSleep,
+                slept: false,
                 ..state
             },
             vec![IdleEffect::Lock],
         ),
-        (IdleLock::AtScreenOff, LockView::Locked) | (IdleLock::Never, _) => {
-            displays_off(state, Vec::new())
-        }
+        (IdleLock::AtScreenOff, true) | (IdleLock::Never, _) => displays_off(state, Vec::new()),
     }
 }
 
@@ -242,12 +240,12 @@ fn resumed(state: IdleState, now: Stamp) -> Step {
     if !was_off {
         return (state, effects);
     }
-    if let (Some(at), LockView::Locked) = (state.idle_locked_at, state.lock.view) {
+    if let (Some(at), true) = (state.idle_locked_at, state.lock.locked) {
         effects.push(IdleEffect::Grace(GraceCase {
             cause: state.lock.cause,
             grace: state.policy.grace,
             woke: WakeDelay(now.since(at)),
-            sleep: state.sleep,
+            slept: state.slept,
         }));
     }
     (state, effects)

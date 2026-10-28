@@ -25,12 +25,12 @@ impl ContentLine {
 
 /// `text` split at its first `:` outside a quoted parameter value; `None` without one.
 pub(super) fn split_line(text: &str) -> Option<ContentLine> {
-    let mut quoted = Quote::Out;
+    // `quoted`: inside a quoted parameter value.
+    let mut quoted = false;
     let colon = text.char_indices().find_map(|(at, c)| {
         match (c, quoted) {
-            ('"', Quote::Out) => quoted = Quote::In,
-            ('"', Quote::In) => quoted = Quote::Out,
-            (':', Quote::Out) => return Some(at),
+            ('"', _) => quoted = !quoted,
+            (':', false) => return Some(at),
             _ => {}
         }
         None
@@ -52,23 +52,16 @@ pub(super) fn split_line(text: &str) -> Option<ContentLine> {
     })
 }
 
-/// Inside or outside a quoted parameter value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Quote {
-    In,
-    Out,
-}
-
 /// `NAME;A=1;B="x;y"` at its `;`s outside quotes.
 fn split_params(head: &str) -> Vec<&str> {
     let mut parts = Vec::new();
-    let mut quoted = Quote::Out;
+    // `quoted`: inside a quoted parameter value.
+    let mut quoted = false;
     let mut from = 0;
     for (at, c) in head.char_indices() {
         match (c, quoted) {
-            ('"', Quote::Out) => quoted = Quote::In,
-            ('"', Quote::In) => quoted = Quote::Out,
-            (';', Quote::Out) => {
+            ('"', _) => quoted = !quoted,
+            (';', false) => {
                 parts.push(&head[from..at]);
                 from = at + 1;
             }

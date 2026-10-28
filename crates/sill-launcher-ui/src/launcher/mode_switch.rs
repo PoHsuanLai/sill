@@ -11,7 +11,7 @@ use ds::components::controls::segmented::Tracking;
 use ds::prelude::*;
 use ds::style::tokens::control_size::ControlSize;
 use sill_launcher::{ActionKeys, OwnAction};
-use sill_model::companion::{ModeLock, ModeView, SWITCH_NAME, TIP_NAME, mode_label};
+use sill_model::companion::{ModeView, SWITCH_NAME, TIP_NAME, mode_label};
 
 use crate::launcher::action_keys::action_shortcut;
 
@@ -21,9 +21,9 @@ const MODES: [Mode; 2] = [Mode::Auto, Mode::Manual];
 /// The switch for the conversation's mode, with its note or help beside it.
 #[component]
 pub(crate) fn ModeSwitch(view: ModeView, onswitch: EventHandler<Mode>) -> Element {
-    let availability = match view.lock {
-        ModeLock::Free => Availability::Enabled,
-        ModeLock::Locked => Availability::Disabled,
+    let availability = match view.locked {
+        false => Availability::Enabled,
+        true => Availability::Disabled,
     };
     let shortcut = action_shortcut(&ActionKeys::own(OwnAction::SwitchMode));
     let line = view.note.or(view.help);

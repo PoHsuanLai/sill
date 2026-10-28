@@ -149,13 +149,6 @@ pub enum Threshold {
     Suspend,
 }
 
-/// Whether the session is locked, as the watches need it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LockView {
-    Unlocked,
-    Locked,
-}
-
 /// Who owns idle here: `Own` only in a sill session; else `Off` with the reason (a guest
 /// session: another desktop's, never touched).
 pub fn resolve_mode(host: Host) -> IdleMode {
@@ -177,18 +170,18 @@ pub fn power_source(battery: &Battery) -> PowerSource {
     }
 }
 
-/// The notifications to hold for `policy` on `power` while the session is `lock`: none when the
+/// The notifications to hold for `policy` on `power` while the session is locked (`locked`): none when the
 /// mode is `Off`; `Dim` and `ScreenOff` (or `LockedScreenOff` while locked, when set), and
 /// `Suspend`, each only when its time is not `Never`; a dim lead longer than the screen-off time
 /// dims from the start of idleness (after zero seconds is never asked: at least one second).
-pub fn watches(policy: &IdlePolicy, power: PowerSource, lock: LockView) -> Vec<Watch> {
+pub fn watches(policy: &IdlePolicy, power: PowerSource, locked: bool) -> Vec<Watch> {
     match policy.mode {
         IdleMode::Off(_) => return Vec::new(),
         IdleMode::Own => {}
     }
-    let off = match lock {
-        LockView::Unlocked => (Threshold::ScreenOff, policy.times.screen_off.on(power)),
-        LockView::Locked => (Threshold::LockedScreenOff, locked_off(policy, power)),
+    let off = match locked {
+        false => (Threshold::ScreenOff, policy.times.screen_off.on(power)),
+        true => (Threshold::LockedScreenOff, locked_off(policy, power)),
     };
     let dim = match (policy.dim.lead, off.1) {
         (IdleSecs(0), _) | (_, Timeout::Never) => None,

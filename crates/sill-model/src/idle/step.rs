@@ -15,15 +15,15 @@
 //! - `Resumed` (real input): `Undim` if dimmed; if the displays were off, `Displays(On)`,
 //!   `IdleHint(Active)` and, when this idle lock is still in place, `Grace(case)` with the case
 //!   [`super::grace_verdict`] reads (the live side mints the ticket; `Ask` sends nothing).
-//! - `SleepStarting`: marks `SleepSince::Slept` for the lock in place. `Woke`: `Displays(On)`,
+//! - `SleepStarting`: marks `slept` for the lock in place. `Woke`: `Displays(On)`,
 //!   phase `Active`, the watches held again.
 //! - `Lock` seen `Unlocked`: the kept instant and the sleep mark are forgotten.
 //! - Every event while the mode is `Off` changes nothing and emits nothing (the passive start).
 
-use super::grace::{GraceCase, SleepSince};
+use super::grace::GraceCase;
 use super::inhibit::Inhibition;
 use super::policy::{
-    DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
+    DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace,
     LockedScreenOff, PowerPair, PowerSource, Threshold, Timeout, Watch,
 };
 use super::{DimShown, IdlePhase};
@@ -41,7 +41,8 @@ pub struct IdleState {
     pub lock: LockSeen,
     /// When this idle path locked, while that lock is in place.
     pub idle_locked_at: Option<Stamp>,
-    pub sleep: SleepSince,
+    /// True when a sleep began since this idle path locked.
+    pub slept: bool,
     /// The notifications held now.
     pub held: Vec<Watch>,
 }
@@ -56,7 +57,7 @@ impl Default for IdleState {
             dim: DimShown::Clear,
             lock: LockSeen::UNLOCKED,
             idle_locked_at: None,
-            sleep: SleepSince::NoSleep,
+            slept: false,
             held: Vec::new(),
         }
     }
@@ -87,13 +88,14 @@ pub const PASSIVE: IdlePolicy = IdlePolicy {
 /// The lock as idle sees it (from the locker's published `Lock`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LockSeen {
-    pub view: LockView,
+    /// True while the session is locked (`Locking` counts).
+    pub locked: bool,
     pub cause: Option<LockCause>,
 }
 
 impl LockSeen {
     pub const UNLOCKED: LockSeen = LockSeen {
-        view: LockView::Unlocked,
+        locked: false,
         cause: None,
     };
 }

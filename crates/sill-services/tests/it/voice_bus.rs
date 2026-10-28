@@ -13,7 +13,7 @@ use prov::{SpaceId, UnixSeconds};
 use sill_launcher::WindowKey;
 use sill_model::companion::CompanionCommand;
 use sill_model::voice::{
-    AskScope, ConsentAnswer, ConsentSheet, Notice, Phase, VoiceCommand, VoiceConsent, VoiceParams,
+    AskScope, ConsentAnswer, Notice, Phase, VoiceCommand, VoiceConsent, VoiceParams,
     listening_line, notice_line,
 };
 use voice_wire::{
@@ -153,8 +153,7 @@ async fn needs_consent_opens_the_sheet_and_each_answer_is_the_consent_to_write()
         let mut desk = desk_or_return!(BeginAnswer::Refuse(VoiceRefusal::NeedsConsent));
         desk.seated().await;
         desk.send(start());
-        desk.state(|v| matches!(v.sheet, ConsentSheet::Asking).then_some(()))
-            .await;
+        desk.state(|v| v.sheet.then_some(())).await;
         assert_eq!(desk.voice.state.borrow().notice, Notice::None, "{answer:?}");
         desk.send(VoiceCommand::Answer(answer));
         let consent =
@@ -175,8 +174,7 @@ async fn needs_consent_opens_the_sheet_and_each_answer_is_the_consent_to_write()
             }
             (consent, want) => assert_eq!(consent, want),
         }
-        desk.state(|v| matches!(v.sheet, ConsentSheet::Closed).then_some(()))
-            .await;
+        desk.state(|v| (!v.sheet).then_some(())).await;
     }
 }
 
@@ -228,7 +226,7 @@ async fn a_missing_microphone_is_said_plainly() {
         line_of(&desk).as_deref(),
         Some("No microphone is available.")
     );
-    assert_eq!(desk.voice.state.borrow().sheet, ConsentSheet::Closed);
+    assert!(!desk.voice.state.borrow().sheet);
     desk.send(VoiceCommand::Dismiss);
     desk.state(|v| matches!(v.notice, Notice::None).then_some(()))
         .await;

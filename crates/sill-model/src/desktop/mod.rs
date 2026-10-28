@@ -46,7 +46,7 @@ pub use casement_protocols::vocab::{
     ProofKind, ScreenEdge, ShellRole, Shown, SpaceKind, SplitSide, SubjectKind, TrialAnswer,
     TrialId, WindowEntries, WindowEntry, WireCode,
 };
-pub use command::{DesktopCommand, Supports, supports};
+pub use command::{DesktopCommand, supports};
 pub use consent::{Consent, ConsentSubject, SUBJECT_MAX_CHARS};
 pub use force_quit::{ForceQuitRow, Standing, force_quit_rows, hung_first};
 pub use model::{ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView};

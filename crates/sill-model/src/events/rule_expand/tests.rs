@@ -1,6 +1,6 @@
 use jiff::civil::{Date, date};
 
-use super::{Bounds, Until, expand, plan, unsupported_parts};
+use super::{Bounds, expand, plan, unsupported_parts};
 use crate::events::parse_rule;
 
 fn bounds(from: Date, to: Date) -> Bounds {
@@ -18,7 +18,7 @@ fn days(rule: &str, first: Date) -> Vec<Date> {
         &pattern,
         first,
         bounds(date(2026, 1, 1), date(2027, 3, 1)),
-        |_| Until::Before,
+        |_| false,
     )
 }
 
@@ -92,7 +92,7 @@ fn a_leap_day_repeats_only_in_leap_years() {
         &pattern,
         date(2024, 2, 29),
         bounds(date(2024, 1, 1), date(2029, 1, 1)),
-        |_| Until::Before,
+        |_| false,
     );
     assert_eq!(got, vec![date(2024, 2, 29), date(2028, 2, 29)]);
 }
@@ -105,7 +105,7 @@ fn until_and_count_stop_and_early_days_still_count() {
         &pattern,
         date(2026, 9, 1),
         bounds(date(2026, 9, 4), date(2026, 12, 1)),
-        |_| Until::Before,
+        |_| false,
     );
     assert_eq!(got, vec![date(2026, 9, 4), date(2026, 9, 5)]);
     let rule = parse_rule("FREQ=DAILY").unwrap_or_else(|| panic!("rule"));
@@ -114,10 +114,7 @@ fn until_and_count_stop_and_early_days_still_count() {
         &pattern,
         date(2026, 9, 1),
         bounds(date(2026, 9, 1), date(2026, 12, 1)),
-        |day| match day > date(2026, 9, 3) {
-            true => Until::Past,
-            false => Until::Before,
-        },
+        |day| day > date(2026, 9, 3),
     );
     assert_eq!(
         got,

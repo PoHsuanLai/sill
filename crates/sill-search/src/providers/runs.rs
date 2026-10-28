@@ -10,7 +10,7 @@ use sill_launcher::{
     Action, ActionId, ActionKeys, Activation, Choice, CompanionAct, IconRef, Item, ItemId,
     Provider, ProviderKind, Query, ResultSink, RunControl, Scope, Score, Subject,
 };
-use sill_model::companion::{Companion, CompanionLink, RunFacts, run_controls, run_state_of};
+use sill_model::companion::{Companion, RunFacts, run_controls, run_state_of};
 use tokio::sync::watch;
 
 /// Rows from cuad's runs.
@@ -30,9 +30,9 @@ impl Provider for RunsProvider {
         }
         let state = self.companion.borrow().clone();
         let alone = query.scope == Scope::Only(ProviderKind::Runs);
-        let items = match state.link {
-            CompanionLink::Passive => Vec::new(),
-            CompanionLink::Ready => rows(&state, alone),
+        let items = match state.reached {
+            false => Vec::new(),
+            true => rows(&state, alone),
         };
         sink.push(items);
     }
@@ -146,7 +146,7 @@ mod tests {
             },
         ];
         Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             runs: runs.into_iter().map(|r| (r.run.clone(), r)).collect(),
             ..Companion::default()
         }

@@ -11,5 +11,5 @@ mod tests;
 
 pub use choose::{choose, focused, wanted};
 pub use model::{CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, UserOverrides};
-pub use shell::{Grip, ShellFocus, ShellKeys, under_shell};
+pub use shell::{ShellFocus, ShellKeys, under_shell};
 pub use source::{ProfileSource, keymap_aware_profile};

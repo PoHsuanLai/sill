@@ -113,7 +113,7 @@ fn a_question_takes_the_sheet_and_its_answer_frees_it() {
     );
     assert_eq!(open.permission.as_ref().map(|a| a.id), Some(AskId(1)));
     // The sheet is taken: a sharing or colour request is refused at once.
-    assert_eq!(admits(&open), Admit::Busy);
+    assert!(!admits(&open));
     let sources = Asking {
         id: AskId(3),
         ask: Ask::from_wire("Meet", 1, 0, &[1]).expect("a valid ask"), // test-only
@@ -138,7 +138,7 @@ fn a_question_takes_the_sheet_and_its_answer_frees_it() {
             PermissionOutcome::Deny
         )]
     );
-    assert_eq!(admits(&freed), Admit::Yes);
+    assert!(admits(&freed));
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn the_line_is_capped() {
         state = step(state, CaptureEvent::PermissionOpened(asking(id))).0;
     }
     assert_eq!(state.waiting.len(), WAITING_MAX);
-    assert_eq!(permission_admits(&state), Admit::Busy);
+    assert!(!permission_admits(&state));
 }
 
 #[test]
@@ -186,7 +186,7 @@ fn a_sharing_request_that_ends_lets_the_waiting_question_up() {
     let (state, _) = step(state, CaptureEvent::PermissionOpened(asking(2)));
     assert_eq!(state.permission, None);
     assert_eq!(state.waiting.len(), 1);
-    let (state, _) = step(state, CaptureEvent::Answered(AskId(1), Outcome::Cancel));
+    let (state, _) = step(state, CaptureEvent::Answered(AskId(1), None));
     assert_eq!(state.permission.as_ref().map(|a| a.id), Some(AskId(2)));
     assert!(state.waiting.is_empty());
 }

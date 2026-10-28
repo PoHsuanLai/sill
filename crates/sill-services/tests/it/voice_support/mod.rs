@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use sill_model::companion::CompanionCommand;
-use sill_model::voice::{Voice, VoiceCommand, VoiceConsent, VoiceLink};
+use sill_model::voice::{Voice, VoiceCommand, VoiceConsent};
 use sill_services::env::{BusRoute, Buses, Env};
 use sill_services::seat::{SeatPublisher, seat};
 use sill_services::service::{Handle, spawn};
@@ -401,8 +401,7 @@ impl Desk {
     /// The shell takes its seat; the service subscribes and says it is ready.
     pub async fn seated(&mut self) {
         self.seat.publish(self.shell.clone());
-        self.state(|v| matches!(v.link, VoiceLink::Ready).then_some(()))
-            .await;
+        self.state(|v| v.reached.then_some(())).await;
     }
 
     pub fn send(&self, command: VoiceCommand) {

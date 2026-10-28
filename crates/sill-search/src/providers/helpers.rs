@@ -14,7 +14,7 @@ use sill_launcher::{
     HelperFacts, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink, Scope, Score,
     Subject,
 };
-use sill_model::companion::{Companion, CompanionLink, controls_of};
+use sill_model::companion::{Companion, controls_of};
 use tokio::sync::watch;
 
 /// The id of the row that starts a new helper.
@@ -37,9 +37,9 @@ impl Provider for HelpersProvider {
         }
         let state = self.companion.borrow().clone();
         let alone = query.scope == Scope::Only(ProviderKind::Helpers);
-        let items = match (state.link, alone) {
-            (CompanionLink::Ready, true) => rows(&state.helpers.lines),
-            (CompanionLink::Ready, false) | (CompanionLink::Passive, _) => Vec::new(),
+        let items = match (state.reached, alone) {
+            (true, true) => rows(&state.helpers.lines),
+            (true, false) | (false, _) => Vec::new(),
         };
         sink.push(items);
     }
@@ -152,7 +152,7 @@ mod tests {
             told: Vec::new(),
         };
         Companion {
-            link: CompanionLink::Ready,
+            reached: true,
             helpers: update_helpers(HelpersModel::default(), HelpersMsg::Listed(view)).0,
             ..Companion::default()
         }

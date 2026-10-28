@@ -62,16 +62,6 @@ pub struct VoiceParams {
     pub consent: VoiceConsent,
 }
 
-/// Whether the service reaches the bus as the shell.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum VoiceLink {
-    /// The shell's seat is not held yet: nothing can begin.
-    #[default]
-    Passive,
-    /// Connected as the shell.
-    Ready,
-}
-
 /// What was focused when the hold began: the question is asked over it.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AskScope {
@@ -148,21 +138,12 @@ pub enum Notice {
     Broken,
 }
 
-/// Whether the first-use consent sheet is up.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum ConsentSheet {
-    /// Not showing.
-    #[default]
-    Closed,
-    /// Asking Allow or Not Now.
-    Asking,
-}
-
 /// Everything the voice service publishes.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Voice {
-    /// Whether the bus is reached.
-    pub link: VoiceLink,
+    /// True once the service reaches the bus as the shell; false while the shell's seat is not
+    /// held yet and nothing can begin.
+    pub reached: bool,
     /// What the settings say.
     pub params: VoiceParams,
     /// Where the hold stands.
@@ -171,6 +152,6 @@ pub struct Voice {
     pub scope: AskScope,
     /// What the person is told.
     pub notice: Notice,
-    /// The consent sheet.
-    pub sheet: ConsentSheet,
+    /// True while the first-use consent sheet is up, asking Allow or Not Now.
+    pub sheet: bool,
 }

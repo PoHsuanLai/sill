@@ -25,7 +25,7 @@ fn light(schedule: Schedule) -> NightLight {
 
 fn ready(light: NightLight, manual: Option<Manual>, backend: Backend) -> NightShift {
     NightShift {
-        reach: Reach::Ready,
+        reached: true,
         light,
         manual,
         backend,
@@ -178,7 +178,7 @@ fn the_warmth_is_kept_through_a_manual_turn_on() {
 #[test]
 fn nothing_is_written_while_casements_settings_are_out_of_reach() {
     let lost = NightShift::default();
-    assert_eq!(lost.reach, Reach::Unavailable);
+    assert!(!lost.reached);
     for command in [
         NightShiftCommand::TurnOnUntilTomorrow,
         NightShiftCommand::TurnOff,
@@ -195,9 +195,9 @@ fn nothing_is_written_while_casements_settings_are_out_of_reach() {
             manual: None,
         },
     );
-    assert_eq!(ready_again.reach, Reach::Ready);
+    assert!(ready_again.reached);
     let (gone, _) = step(ready_again, NightShiftEvent::Unreachable);
-    assert_eq!(gone.reach, Reach::Unavailable);
+    assert!(!gone.reached);
 }
 
 #[test]

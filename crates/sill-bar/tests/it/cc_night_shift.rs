@@ -8,8 +8,7 @@ use crate::cc_support;
 use cc_support::details::{center, ms, press};
 
 use sill_model::night_shift::{
-    Backend, Manual, NightLight, NightShift, NightShiftCommand, Reach, Schedule, UnixSeconds,
-    Warmth,
+    Backend, Manual, NightLight, NightShift, NightShiftCommand, Schedule, UnixSeconds, Warmth,
 };
 
 const ROW: &str = "#night-shift";
@@ -19,7 +18,7 @@ const RAIL: &str = "#night-shift .ds-slider-track";
 
 fn ready(schedule: Schedule, manual: Option<Manual>, backend: Backend) -> NightShift {
     NightShift {
-        reach: Reach::Ready,
+        reached: true,
         light: NightLight {
             schedule,
             ..NightLight::default()

@@ -9,7 +9,7 @@ use std::time::Duration;
 use ds::prelude::*;
 use ds_harness::{Harness, Input, Viewport};
 use shell_host::OutputId;
-use sill_model::voice::{ConsentAnswer, ConsentSheet, Voice, VoiceCommand};
+use sill_model::voice::{ConsentAnswer, Voice, VoiceCommand};
 use sill_overlays::VoiceConsentSheet;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{SheetLink, SheetOutput};
@@ -33,7 +33,7 @@ fn start(on: OutputId) -> Running {
         .start()
 }
 
-fn asking(running: &mut Running, sheet: ConsentSheet) {
+fn asking(running: &mut Running, sheet: bool) {
     running.feeds.voice.send_replace(Voice {
         sheet,
         ..Voice::default()
@@ -52,7 +52,7 @@ fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
 fn up() -> Running {
     let mut running = start(fake::output().id);
     running.harness.advance(Duration::from_millis(40));
-    asking(&mut running, ConsentSheet::Asking);
+    asking(&mut running, true);
     settle(&mut running.harness, |h| h.count(".sill-consent") == 1);
     running.harness.advance(Duration::from_millis(700));
     running
@@ -78,7 +78,7 @@ fn until_the_service_asks_it_draws_nothing() {
 fn a_question_for_another_output_draws_nothing_here() {
     let mut running = start(OutputId(99));
     running.harness.advance(Duration::from_millis(40));
-    asking(&mut running, ConsentSheet::Asking);
+    asking(&mut running, true);
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.harness.count(".sill-consent"), 0);
 }
@@ -132,7 +132,7 @@ fn escape_is_not_now() {
 #[test]
 fn the_sheet_leaves_once_the_service_stops_asking() {
     let mut running = up();
-    asking(&mut running, ConsentSheet::Closed);
+    asking(&mut running, false);
     settle(&mut running.harness, |h| h.count(".ds-sheet") == 0);
     assert_eq!(running.harness.count(".sill-consent"), 0);
 }

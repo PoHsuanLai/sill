@@ -21,13 +21,6 @@ pub enum ShellFocus {
     Held,
 }
 
-/// A surface of the shell gaining or losing the keyboard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Grip {
-    Gained,
-    Lost,
-}
-
 /// Which of the shell's surfaces hold the keyboard, by the host's surface number.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ShellKeys {
@@ -35,11 +28,11 @@ pub struct ShellKeys {
 }
 
 impl ShellKeys {
-    /// These holders after `surface` `grip`ped the keyboard.
-    pub fn after(mut self, surface: u64, grip: Grip) -> ShellKeys {
-        match grip {
-            Grip::Gained => self.holders.insert(surface),
-            Grip::Lost => self.holders.remove(&surface),
+    /// These holders after `surface` gained the keyboard (`gained`) or lost it.
+    pub fn after(mut self, surface: u64, gained: bool) -> ShellKeys {
+        match gained {
+            true => self.holders.insert(surface),
+            false => self.holders.remove(&surface),
         };
         self
     }
@@ -47,7 +40,7 @@ impl ShellKeys {
     /// These holders after `surface` closed: a surface that goes away holding the keyboard may
     /// never say it lost it.
     pub fn closed(self, surface: u64) -> ShellKeys {
-        self.after(surface, Grip::Lost)
+        self.after(surface, false)
     }
 
     /// Whether any surface of the shell holds the keyboard.

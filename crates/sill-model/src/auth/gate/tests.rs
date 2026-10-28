@@ -1,4 +1,4 @@
-use super::{Checks, Gate, GateIn, GateOut, step};
+use super::{Checks, GateIn, GateOut, step};
 use crate::auth::{Attempts, AuthFault, Outcome};
 
 /// One case: a name, the start, the inputs, the end, and everything said on the way.
@@ -18,9 +18,9 @@ fn wrong() -> [GateIn; 2] {
     [GateIn::Submit, GateIn::Verdict(Outcome::Refused)]
 }
 
-fn at(gate: Gate, failures: u32) -> Checks {
+fn at(checking: bool, failures: u32) -> Checks {
     Checks {
-        gate,
+        checking,
         failures: Attempts(failures),
     }
 }
@@ -37,14 +37,14 @@ fn the_rules_in_the_module_doc() {
             "a submit checks",
             open,
             vec![GateIn::Submit],
-            at(Gate::Checking, 0),
+            at(true, 0),
             vec![GateOut::Check],
         ),
         (
             "a second submit while checking is busy",
             open,
             vec![GateIn::Submit, GateIn::Submit],
-            at(Gate::Checking, 0),
+            at(true, 0),
             vec![GateOut::Check, GateOut::Busy],
         ),
         (
@@ -70,14 +70,14 @@ fn the_rules_in_the_module_doc() {
             "twenty wrong never wait: the gate reopens after each (no lockout, F862)",
             open,
             twenty_wrong,
-            at(Gate::Open, 20),
+            at(false, 20),
             twenty_said,
         ),
         (
             "the twenty-first submit is checked at once",
-            at(Gate::Open, 20),
+            at(false, 20),
             vec![GateIn::Submit],
-            at(Gate::Checking, 20),
+            at(true, 20),
             vec![GateOut::Check],
         ),
         (
@@ -92,16 +92,16 @@ fn the_rules_in_the_module_doc() {
         ),
         (
             "an expired password reopens, counts nothing and does not unlock",
-            at(Gate::Open, 2),
+            at(false, 2),
             vec![GateIn::Submit, GateIn::Verdict(Outcome::Expired)],
-            at(Gate::Open, 2),
+            at(false, 2),
             vec![GateOut::Check, GateOut::Expired],
         ),
         (
             "reset reopens a check and keeps the count",
-            at(Gate::Checking, 3),
+            at(true, 3),
             vec![GateIn::Reset],
-            at(Gate::Open, 3),
+            at(false, 3),
             vec![],
         ),
         (

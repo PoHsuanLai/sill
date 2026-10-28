@@ -8,13 +8,6 @@ use serde::{Deserialize, Serialize};
 
 use super::ppi::Ppi;
 
-/// How glyph edges are smoothed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Antialias {
-    Greyscale,
-}
-
 /// How glyph outlines are fitted to the pixel grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -25,10 +18,10 @@ pub enum Hinting {
     Slight,
 }
 
-/// The rendering defaults.
+/// The rendering defaults: glyph edges are always smoothed in greyscale, so only the hinting
+/// varies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FontRendering {
-    pub antialias: Antialias,
     pub hinting: Hinting,
 }
 
@@ -38,7 +31,6 @@ pub const HIGH_DENSITY: Ppi = Ppi(150);
 /// The defaults for the densest display (the one whose text a person reads closest).
 pub fn font_rendering_for(max: Ppi) -> FontRendering {
     FontRendering {
-        antialias: Antialias::Greyscale,
         hinting: if max >= HIGH_DENSITY {
             Hinting::None
         } else {
@@ -60,7 +52,6 @@ pub fn snippet(rendering: FontRendering) -> String {
         Hinting::None => ("false", "hintnone"),
         Hinting::Slight => ("true", "hintslight"),
     };
-    let Antialias::Greyscale = rendering.antialias;
     format!(
         r#"<?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">

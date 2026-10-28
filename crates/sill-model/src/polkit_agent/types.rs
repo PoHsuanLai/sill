@@ -110,15 +110,5 @@ pub enum Registration {
     Refused(String),
 }
 
-/// Whether the service is the session's agent.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum AgentPolicy {
-    /// Register and answer.
-    Own,
-    /// Unregister, or never register (tests).
-    #[default]
-    Off,
-}
-
 /// The secret a `FakeRequest`'s stand-in helper accepts (debug builds only).
 pub const FAKE_SECRET: &str = "sill-fake";

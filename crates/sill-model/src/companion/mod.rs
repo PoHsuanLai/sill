@@ -53,21 +53,19 @@ pub use helpers::{
     ADD_MODEL, AUTOMATIC_HELP, Asked, Automatic, BRING_BACK, CEILINGS, Draft, GONE, HandoverShown,
     HelpersCommand, HelpersModel, HelpersMsg, IN_TERMINAL, LOOKING_FOR_MODELS, MISSED_SKIPPED,
     ModelGroup, ModelList, ModelOffer, NO_MODELS, NO_ROUTINES, OPEN_IN_TERMINAL, Open,
-    PROPOSAL_ACCEPT, PROPOSAL_DECLINE, PROPOSAL_TITLE, PROPOSAL_WHY_LEAD, PoolWritten, REPEATS,
-    Reach, Removal, Repeat, RoutineDraft, RoutineRemoval, RoutinesCommand, RoutinesModel,
-    RoutinesMsg, SHARED_WITH_HELPER, Sheet, SignInButton, Takes, WAITING_BADGE, app_label,
-    badge_of, ceiling_label, controls_of, handover_of, job_answer, job_prompt, job_words,
-    kind_line, last_run_line, login_line, model_groups, model_hint, model_line, needs_sign_in_line,
+    PROPOSAL_ACCEPT, PROPOSAL_DECLINE, PROPOSAL_TITLE, PROPOSAL_WHY_LEAD, REPEATS, Reach, Removal,
+    Repeat, RoutineDraft, RoutineRemoval, RoutinesCommand, RoutinesModel, RoutinesMsg,
+    SHARED_WITH_HELPER, Sheet, SignInButton, Takes, WAITING_BADGE, app_label, badge_of,
+    ceiling_label, controls_of, handover_of, job_answer, job_prompt, job_words, kind_line,
+    last_run_line, login_line, model_groups, model_hint, model_line, needs_sign_in_line,
     offered_apps, offers_sign_out, proposal_what, proposal_when, proposal_why, remove_question,
     remove_routine_question, repeat_label, sign_in_buttons, state_label, update as update_helpers,
 };
 pub use mode::{
-    ConversationMode, FROM_NEXT_STEP, Knowing, LOCKED_HELP, ModeLock, ModeMsg, ModeNote, ModeView,
-    SWITCH_NAME, TIP_NAME, mode_label, mode_view, other_mode, update as update_mode,
+    ConversationMode, FROM_NEXT_STEP, LOCKED_HELP, ModeMsg, ModeNote, ModeView, SWITCH_NAME,
+    TIP_NAME, mode_label, mode_view, other_mode, update as update_mode,
 };
-pub use model::{
-    AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, Opener, RunFacts,
-};
+pub use model::{AnswerFacts, Busy, Companion, Lookup, LookupPhase, Opener, RunFacts};
 pub use no_model::{CHOOSE_MODEL_LABEL, NO_MODEL_LINE, lacks_model};
 pub use presence::presence_of;
 pub use program_labels::ProgramLabels;
@@ -77,8 +75,8 @@ pub use run_state::{RunState, going_runs, run_controls, run_state_of};
 pub use sight::{NoteText, SightState};
 pub use step::{step, wake};
 pub use summon::{
-    Fallback, FocusFacts, InField, LauncherFacts, LauncherOrigin, Serves, Summon, SummonCx,
-    SummonIn, SummonOut, SummonParams,
+    Fallback, FocusFacts, InField, LauncherOrigin, Summon, SummonCx, SummonIn, SummonOut,
+    SummonParams,
 };
 pub use tap::{Tap, TapIn, TapOut, TapParams};
 pub use terminals::{

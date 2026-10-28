@@ -1,7 +1,7 @@
 //! Reading an app's menu on demand.
 
 use sill_model::app_menu::{
-    MenuApp, MenuClient, MenuName, MenuTrust, QuitRow, ServedMenu, listing, own_groups, rows_of,
+    MenuApp, MenuClient, MenuName, ServedMenu, listing, own_groups, quit_offered, rows_of,
 };
 use zbus::fdo::DBusProxy;
 use zbus::names::{BusName, OwnedUniqueName};
@@ -41,7 +41,7 @@ impl<T: Transport> MenuAgent<T> {
             .filter(|w| w.app_id == target.app.0)
             .map(|w| (w.key, w.title.clone()))
             .collect();
-        let own = own_groups(&target.app.0, &windows, QuitRow::of(menu));
+        let own = own_groups(&target.app.0, &windows, quit_offered(menu));
         Ok(MenuListed {
             text: listing(&target.app.0, &own, menu),
             app: target.app,
@@ -59,7 +59,7 @@ impl<T: Transport> MenuAgent<T> {
             return Ok(None);
         };
         let client = MenuClient::new(app, self.links.toplevels.borrow().subjects.of(&app.0));
-        if menu_shown(&self.peers, &owner, &client).await == MenuTrust::Hidden {
+        if !menu_shown(&self.peers, &owner, &client).await {
             return Ok(None);
         }
         let nodes = read_layout(&self.connection, owner.as_str())

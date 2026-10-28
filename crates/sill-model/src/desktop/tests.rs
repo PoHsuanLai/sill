@@ -3,7 +3,7 @@
 use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, Toggle, WindowEntry};
 use porter_core::SpaceId;
 
-use super::{DesktopBackend, DesktopCommand, GlobalOffer, Supports, supports};
+use super::{DesktopBackend, DesktopCommand, GlobalOffer, supports};
 
 #[test]
 fn a_repeated_global_keeps_its_highest_version() {
@@ -36,15 +36,16 @@ fn each_backend_carries_what_its_protocols_can() {
             },
         ),
     ];
-    use Supports::{No, Yes};
+    const YES: bool = true;
+    const NO: bool = false;
     // Rows: activate, close, minimise, unminimise, place, to space, switch space, target.
-    let table: &[(DesktopBackend, [Supports; 8])] = &[
+    let table: &[(DesktopBackend, [bool; 8])] = &[
         (
             DesktopBackend::Quire,
-            [Yes, Yes, Yes, Yes, Yes, Yes, Yes, Yes],
+            [YES, YES, YES, YES, YES, YES, YES, YES],
         ),
-        (DesktopBackend::Wlr, [Yes, Yes, Yes, Yes, No, No, Yes, No]),
-        (DesktopBackend::Bare, [No, No, No, No, No, No, No, No]),
+        (DesktopBackend::Wlr, [YES, YES, YES, YES, NO, NO, YES, NO]),
+        (DesktopBackend::Bare, [NO, NO, NO, NO, NO, NO, NO, NO]),
     ];
     for (backend, row) in table {
         for ((name, command), want) in commands.iter().zip(row) {
@@ -107,8 +108,8 @@ fn what_only_the_desktops_own_compositor_can_do_is_quire_only() {
         },
     ];
     for command in &commands {
-        assert_eq!(supports(DesktopBackend::Quire, command), Supports::Yes);
-        assert_eq!(supports(DesktopBackend::Wlr, command), Supports::No);
-        assert_eq!(supports(DesktopBackend::Bare, command), Supports::No);
+        assert!(supports(DesktopBackend::Quire, command));
+        assert!(!supports(DesktopBackend::Wlr, command));
+        assert!(!supports(DesktopBackend::Bare, command));
     }
 }

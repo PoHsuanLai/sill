@@ -13,7 +13,7 @@ mod window_plan;
 #[cfg(test)]
 mod window_tests;
 
-pub use action::{ShellAction, ShellFault, WorkspaceStep};
+pub use action::{ShellAction, ShellFault};
 pub use invocation::{action_of, outcome_of, undo_of};
 pub use listing::LISTING_MAX;
 pub use menu::{MenuAsk, menu_ask_of};

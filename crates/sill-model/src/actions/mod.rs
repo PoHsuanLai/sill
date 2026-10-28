@@ -12,6 +12,7 @@ mod tests;
 
 pub use ask::{Ask, Needs, Start, Subject};
 use chordkit::StandardAction;
+use ds_core::word::Word;
 pub use intent::intent_of;
 use sill_launcher::actions::ActionId;
 use sill_launcher::{Confirm, ProviderKind, SessionAction};
@@ -25,12 +26,30 @@ pub struct ActionDef {
     pub id: ActionId,
     /// What a menu row or a launcher row calls it, in the Mac's words.
     pub label: &'static str,
-    /// Whether choosing it asks first (the power menu) or happens at once.
+    /// Whether choosing it asks first (a power action that ends the apps, erasing the Trash) or
+    /// happens at once.
     pub confirm: Confirm,
+    /// What the action needs to be told to do it.
+    pub needs: Needs,
     /// The standard action whose chord does it, where it has one.
     pub chord: Option<StandardAction>,
     /// What carrying it out comes to.
     pub effect: Effect,
+}
+
+impl ActionDef {
+    /// This row, told what it needs to act on.
+    fn needing(self, needs: Needs) -> ActionDef {
+        ActionDef { needs, ..self }
+    }
+
+    /// This row, asking first.
+    fn asking(self) -> ActionDef {
+        ActionDef {
+            confirm: Confirm::Ask,
+            ..self
+        }
+    }
 }
 
 /// What carrying an action out comes to: a closed set, matched once in the daemon.
@@ -38,7 +57,7 @@ pub struct ActionDef {
 pub enum Effect {
     /// A power action, by the session service.
     Session(SessionAction),
-    /// Show, hide or flip a panel: the way its action opens it is [`Panel::way`].
+    /// Show, hide or flip a panel: whether its action only opens it is [`Panel::opens`].
     Panel(Panel),
     /// The launcher, opened on one kind of result alone.
     Find(ProviderKind),
@@ -73,26 +92,18 @@ pub enum Panel {
 }
 
 impl Panel {
-    /// How the panel's action opens it. The power menu opens and stays up until Escape or a
-    /// button, as the Mac's does; every other panel flips.
-    pub fn way(self) -> Way {
+    /// True when the panel's action opens it and leaves it open (the power menu stays up until
+    /// Escape or a button, as the Mac's does); false when the action flips it, open when closed
+    /// and closed when open (every other panel).
+    pub fn opens(self) -> bool {
         match self {
-            Panel::PowerMenu => Way::Open,
+            Panel::PowerMenu => true,
             Panel::Launcher
             | Panel::ForceQuit
             | Panel::NotificationCenter
-            | Panel::ControlCenter => Way::Toggle,
+            | Panel::ControlCenter => false,
         }
     }
-}
-
-/// How an action changes a panel.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Way {
-    /// Open when closed, close when open.
-    Toggle,
-    /// Open, or stay open.
-    Open,
 }
 
 /// One step of the app switcher.
@@ -137,211 +148,180 @@ pub enum Pref {
     Focus,
 }
 
-impl Effect {
-    /// What the action needs to be told to do it.
-    pub fn needs(self) -> Needs {
-        match self {
-            Effect::Settings => Needs::Place,
-            Effect::App(AppVerb::Hide | AppVerb::Quit) => Needs::Windows,
-            Effect::App(
-                AppVerb::Open
-                | AppVerb::ShowInFiles
-                | AppVerb::ForceQuit
-                | AppVerb::Pin
-                | AppVerb::Unpin,
-            ) => Needs::App,
-            Effect::Session(_)
-            | Effect::Panel(_)
-            | Effect::Find(_)
-            | Effect::Switcher(_)
-            | Effect::Shot(_)
-            | Effect::Desktop(_)
-            | Effect::Pref(_)
-            | Effect::EmptyTrash
-            | Effect::InputSource
-            | Effect::Reload => Needs::Nothing,
-        }
-    }
-
-    /// Whether choosing it asks first: a power action that ends the apps, and erasing the Trash.
-    pub fn confirm(self) -> Confirm {
-        match self {
-            Effect::Session(action) => action.confirm(),
-            Effect::EmptyTrash => Confirm::Ask,
-            Effect::Panel(_)
-            | Effect::Find(_)
-            | Effect::Switcher(_)
-            | Effect::Shot(_)
-            | Effect::Desktop(_)
-            | Effect::Settings
-            | Effect::App(_)
-            | Effect::Pref(_)
-            | Effect::InputSource
-            | Effect::Reload => Confirm::Now,
-        }
-    }
-}
-
 /// The action that takes a screenshot of `kind`.
 pub fn screenshot_action(kind: ShotKind) -> ActionId {
-    match kind {
-        ShotKind::Area => ActionId::ScreenshotArea,
-        ShotKind::Window => ActionId::ScreenshotWindow,
-        ShotKind::Screen => ActionId::ScreenshotScreen,
-    }
+    action_with(Effect::Shot(kind))
 }
 
 /// The action that opens `panel`.
 pub fn panel_action(panel: Panel) -> ActionId {
-    match panel {
-        Panel::Launcher => ActionId::Launcher,
-        Panel::PowerMenu => ActionId::PowerMenu,
-        Panel::ForceQuit => ActionId::ForceQuitPanel,
-        Panel::NotificationCenter => ActionId::NotificationCenter,
-        Panel::ControlCenter => ActionId::ControlCenter,
-    }
+    action_with(Effect::Panel(panel))
+}
+
+/// The action whose row carries `effect`.
+fn action_with(effect: Effect) -> ActionId {
+    ActionId::ALL
+        .iter()
+        .copied()
+        .find(|id| def(*id).effect == effect)
+        // A test holds that every shot kind and panel has a row.
+        .expect("every shot kind and panel has an action")
 }
 
 /// What `id` is. Every action is a row here: the match has no wildcard, so a new `ActionId` is
 /// a compile error until it is described.
 pub fn def(id: ActionId) -> ActionDef {
     use ActionId as A;
-    let (label, chord, effect) = match id {
-        A::Lock => (
+    let row = |label, chord, effect| ActionDef {
+        id,
+        label,
+        confirm: Confirm::Now,
+        needs: Needs::Nothing,
+        chord,
+        effect,
+    };
+    let session = |label, chord, action: SessionAction| ActionDef {
+        confirm: action.confirm(),
+        ..row(label, chord, Effect::Session(action))
+    };
+    match id {
+        A::Lock => session(
             "Lock Screen",
             Some(StandardAction::LockScreen),
-            Effect::Session(SessionAction::Lock),
+            SessionAction::Lock,
         ),
-        A::LogOut => (
+        A::LogOut => session(
             "Log Out",
             Some(StandardAction::LogOut),
-            Effect::Session(SessionAction::LogOut),
+            SessionAction::LogOut,
         ),
-        A::Restart => ("Restart", None, Effect::Session(SessionAction::Restart)),
-        A::ShutDown => ("Shut Down", None, Effect::Session(SessionAction::PowerOff)),
-        A::Sleep => ("Sleep", None, Effect::Session(SessionAction::Suspend)),
-        A::Launcher => (
+        A::Restart => session("Restart", None, SessionAction::Restart),
+        A::ShutDown => session("Shut Down", None, SessionAction::PowerOff),
+        A::Sleep => session("Sleep", None, SessionAction::Suspend),
+        A::Launcher => row(
             "Launcher",
             Some(StandardAction::Launcher),
             Effect::Panel(Panel::Launcher),
         ),
-        A::EmojiAndSymbols => (
+        A::EmojiAndSymbols => row(
             "Emoji & Symbols",
             Some(StandardAction::EmojiAndSymbols),
             Effect::Find(ProviderKind::Emoji),
         ),
-        A::NextInputSource => (
+        A::NextInputSource => row(
             "Next Input Source",
             Some(StandardAction::NextInputSource),
             Effect::InputSource,
         ),
-        A::PowerMenu => ("Power Menu", None, Effect::Panel(Panel::PowerMenu)),
-        A::ForceQuitPanel => (
+        A::PowerMenu => row("Power Menu", None, Effect::Panel(Panel::PowerMenu)),
+        A::ForceQuitPanel => row(
             "Force Quit Applications…",
             Some(StandardAction::ForceQuit),
             Effect::Panel(Panel::ForceQuit),
         ),
-        A::NotificationCenter => (
+        A::NotificationCenter => row(
             "Notification Center",
             None,
             Effect::Panel(Panel::NotificationCenter),
         ),
-        A::ControlCenter => ("Control Center", None, Effect::Panel(Panel::ControlCenter)),
-        A::ScreenshotArea => (
+        A::ControlCenter => row("Control Center", None, Effect::Panel(Panel::ControlCenter)),
+        A::ScreenshotArea => row(
             "Capture Selected Portion",
             Some(StandardAction::ScreenshotSelection),
             Effect::Shot(ShotKind::Area),
         ),
-        A::ScreenshotWindow => (
+        A::ScreenshotWindow => row(
             "Capture Selected Window",
             None,
             Effect::Shot(ShotKind::Window),
         ),
-        A::ScreenshotScreen => (
+        A::ScreenshotScreen => row(
             "Capture Entire Screen",
             Some(StandardAction::ScreenshotScreen),
             Effect::Shot(ShotKind::Screen),
         ),
-        A::ShowDesktop => (
+        A::ShowDesktop => row(
             "Show Desktop",
             None,
             Effect::Desktop(DesktopStep::ShowDesktop),
         ),
-        A::MissionControl => (
+        A::MissionControl => row(
             "Mission Control",
             Some(StandardAction::MissionControl),
             Effect::Desktop(DesktopStep::MissionControl),
         ),
-        A::NextSpace => (
+        A::NextSpace => row(
             "Move Right a Space",
             Some(StandardAction::SpaceRight),
             Effect::Desktop(DesktopStep::Space(Step::Next)),
         ),
-        A::PreviousSpace => (
+        A::PreviousSpace => row(
             "Move Left a Space",
             Some(StandardAction::SpaceLeft),
             Effect::Desktop(DesktopStep::Space(Step::Prev)),
         ),
-        A::NextWindow => (
+        A::NextWindow => row(
             "Next Window",
             Some(StandardAction::NextWindow),
             Effect::Desktop(DesktopStep::NextWindow),
         ),
-        A::SwitcherNext => (
+        A::SwitcherNext => row(
             "Next App",
             Some(StandardAction::NextApp),
             Effect::Switcher(SwitcherStep::Next),
         ),
-        A::SwitcherPrev => (
+        A::SwitcherPrev => row(
             "Previous App",
             Some(StandardAction::PreviousApp),
             Effect::Switcher(SwitcherStep::Prev),
         ),
-        A::SwitcherCommit => ("Choose App", None, Effect::Switcher(SwitcherStep::Commit)),
-        A::SwitcherCancel => (
+        A::SwitcherCommit => row("Choose App", None, Effect::Switcher(SwitcherStep::Commit)),
+        A::SwitcherCancel => row(
             "Cancel App Switcher",
             None,
             Effect::Switcher(SwitcherStep::Cancel),
         ),
-        A::OpenSettings => (
+        A::OpenSettings => row(
             "System Settings…",
             Some(StandardAction::Settings),
             Effect::Settings,
-        ),
-        A::OpenApp => ("Open", None, Effect::App(AppVerb::Open)),
-        A::ShowInFiles => ("Show in Files", None, Effect::App(AppVerb::ShowInFiles)),
-        A::HideApp => (
+        )
+        .needing(Needs::Place),
+        A::OpenApp => row("Open", None, Effect::App(AppVerb::Open)).needing(Needs::App),
+        A::ShowInFiles => {
+            row("Show in Files", None, Effect::App(AppVerb::ShowInFiles)).needing(Needs::App)
+        }
+        A::HideApp => row(
             "Hide",
             Some(StandardAction::Hide),
             Effect::App(AppVerb::Hide),
-        ),
-        A::QuitApp => (
+        )
+        .needing(Needs::Windows),
+        A::QuitApp => row(
             "Quit",
             Some(StandardAction::Quit),
             Effect::App(AppVerb::Quit),
-        ),
-        A::ForceQuitApp => ("Force Quit", None, Effect::App(AppVerb::ForceQuit)),
-        A::PinApp => ("Keep in Dock", None, Effect::App(AppVerb::Pin)),
-        A::UnpinApp => ("Remove from Dock", None, Effect::App(AppVerb::Unpin)),
-        A::ToggleDockHide => (
+        )
+        .needing(Needs::Windows),
+        A::ForceQuitApp => {
+            row("Force Quit", None, Effect::App(AppVerb::ForceQuit)).needing(Needs::App)
+        }
+        A::PinApp => row("Keep in Dock", None, Effect::App(AppVerb::Pin)).needing(Needs::App),
+        A::UnpinApp => {
+            row("Remove from Dock", None, Effect::App(AppVerb::Unpin)).needing(Needs::App)
+        }
+        A::ToggleDockHide => row(
             "Turn Dock Hiding On or Off",
             Some(StandardAction::ToggleDock),
             Effect::Pref(Pref::DockAutoHide),
         ),
-        A::ToggleDockMagnification => (
+        A::ToggleDockMagnification => row(
             "Turn Dock Magnification On or Off",
             None,
             Effect::Pref(Pref::DockMagnification),
         ),
-        A::EmptyTrash => ("Empty Trash", None, Effect::EmptyTrash),
-        A::ToggleFocus => ("Do Not Disturb", None, Effect::Pref(Pref::Focus)),
-        A::Reload => ("Reload Settings", None, Effect::Reload),
-    };
-    ActionDef {
-        id,
-        label,
-        confirm: effect.confirm(),
-        chord,
-        effect,
+        A::EmptyTrash => row("Empty Trash", None, Effect::EmptyTrash).asking(),
+        A::ToggleFocus => row("Do Not Disturb", None, Effect::Pref(Pref::Focus)),
+        A::Reload => row("Reload Settings", None, Effect::Reload),
     }
 }

@@ -31,13 +31,6 @@ pub(super) struct Bounds {
     pub stop_after: Date,
 }
 
-/// Whether an occurrence is past the rule's `UNTIL`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Until {
-    Before,
-    Past,
-}
-
 /// The most periods one expansion walks: a daily rule over 270 years.
 const MOST_PERIODS: i32 = 100_000;
 
@@ -124,13 +117,13 @@ fn unfit(pattern: &Pattern) -> Vec<String> {
 }
 
 /// Every day `pattern` puts an occurrence on, starting at `first` (always the first, as
-/// `DTSTART` is), within `bounds`, until `past` says the rule's `UNTIL` is passed or its
+/// `DTSTART` is), within `bounds`, until `past` says (true) the rule's `UNTIL` is passed or its
 /// `COUNT` is spent.
 pub(super) fn expand(
     pattern: &Pattern,
     first: Date,
     bounds: Bounds,
-    past: impl Fn(Date) -> Until,
+    past: impl Fn(Date) -> bool,
 ) -> Vec<Date> {
     let limit = match pattern.end {
         RuleEnd::Count(n) => n,
@@ -147,7 +140,7 @@ pub(super) fn expand(
             break;
         }
         for day in candidates.into_iter().filter(|day| *day > first) {
-            if made >= limit || day > bounds.stop_after || past(day) == Until::Past {
+            if made >= limit || day > bounds.stop_after || past(day) {
                 return days;
             }
             made += 1;

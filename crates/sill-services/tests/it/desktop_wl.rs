@@ -19,9 +19,7 @@ use desktop_client::{
 };
 use sill_launcher::WindowKey;
 use sill_model::apps::AppIndex;
-use sill_model::desktop::{
-    DesktopBackend, DesktopCommand, GlobalOffer, SpacePlaceView, Supports, supports,
-};
+use sill_model::desktop::{DesktopBackend, DesktopCommand, GlobalOffer, SpacePlaceView, supports};
 use sill_model::displays::randr::Enablement;
 use sill_model::displays::scale::DisplayScale;
 use sill_model::ids::{OutputName, WorkspaceKey};
@@ -544,8 +542,8 @@ fn what_sill_says_a_backend_supports_is_what_the_wire_client_accepts() {
                 .try_for_each(|request| session.desktop.send(request).map(drop))
         });
         match supports(DesktopBackend::Wlr, command) {
-            Supports::Yes => assert_eq!(sent, Ok(Ok(())), "{command:?} is offered and sent"),
-            Supports::No => assert_eq!(sent, Err(Refusal::Unsupported), "{command:?} is refused"),
+            true => assert_eq!(sent, Ok(Ok(())), "{command:?} is offered and sent"),
+            false => assert_eq!(sent, Err(Refusal::Unsupported), "{command:?} is refused"),
         }
     }
 }

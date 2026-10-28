@@ -150,31 +150,18 @@ pub enum DesktopCommand {
     SetMotion(Motion),
 }
 
-/// Whether a backend can carry a command.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Supports {
-    /// The backend carries it.
-    Yes,
-    /// The backend cannot; a surface leaves the control out.
-    No,
-}
-
-/// Whether `backend` can carry `command`.
+/// Whether `backend` can carry `command`; when it cannot, a surface leaves the control out.
 ///
 /// Quire carries every command (the shell ones only on a connection that holds the shell role;
 /// the arm refuses them otherwise). Wlr cannot place a window or move it between Spaces (no
 /// standard protocol does), cannot hide or quit an app, and cannot take a minimise target on the
 /// connection the arm runs on: the protocol needs the dock's own `wl_surface`, which lives on
 /// the shell host's connection. Bare has no windows to carry anything.
-pub fn supports(backend: DesktopBackend, command: &DesktopCommand) -> Supports {
-    let carried = match backend {
+pub fn supports(backend: DesktopBackend, command: &DesktopCommand) -> bool {
+    match backend {
         DesktopBackend::Quire => true,
         DesktopBackend::Wlr => wlr_carries(command),
         DesktopBackend::Bare => false,
-    };
-    match carried {
-        true => Supports::Yes,
-        false => Supports::No,
     }
 }
 

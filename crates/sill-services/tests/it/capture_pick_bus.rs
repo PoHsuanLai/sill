@@ -13,8 +13,7 @@ use casement_protocols::vocab::{
 };
 use sill_model::apps::AppIndex;
 use sill_model::capture_pick::{
-    CaptureCommand, CaptureLink, CapturePicker, ColorOutcome, Eyedropper, Outcome, Picks,
-    Plurality, Rgb8, Source, plan, toggle,
+    CaptureCommand, CaptureLink, CapturePicker, Picks, Plurality, Rgb8, Source, plan, toggle,
 };
 use sill_model::desktop::{DesktopCommand, DesktopView, SpacePlaceView, WindowView};
 use sill_model::displays::Displays;
@@ -163,7 +162,7 @@ async fn transom_asks_the_person_picks_and_the_answer_comes_back() {
     );
     let _ = service
         .control
-        .send(CaptureCommand::Answer(id, Outcome::Allow(picks)));
+        .send(CaptureCommand::Answer(id, Some(picks)));
     let answer = first
         .await
         .unwrap_or_else(|e| panic!("{e}"))
@@ -264,13 +263,9 @@ async fn a_colour_request_is_cancelled_at_once_while_nothing_draws_the_eyedroppe
 /// service reads its commands and the bus calls on two channels and takes whichever is ready, so
 /// a call made straight after the command can be handled first and cancelled at once.
 async fn draw_eyedropper(service: &mut sill_services::service::Handle<CaptureService>) {
-    let _ = service
-        .control
-        .send(CaptureCommand::Eyedropper(Eyedropper::Present));
+    let _ = service.control.send(CaptureCommand::Eyedropper(true));
     assert!(
-        wait_for(&mut service.state, |s: &CapturePicker| s.eyedropper
-            == Eyedropper::Present)
-        .await,
+        wait_for(&mut service.state, |s: &CapturePicker| s.eyedropper).await,
         "the eyedropper was not taken in"
     );
 }
@@ -312,7 +307,7 @@ async fn a_colour_is_asked_one_at_a_time_and_the_click_comes_back_as_floats() {
         .unwrap_or_else(|| panic!("open"));
     let _ = service.control.send(CaptureCommand::ColorAnswer(
         id,
-        ColorOutcome::Picked(Rgb8 {
+        Some(Rgb8 {
             red: 255,
             green: 0,
             blue: 51,

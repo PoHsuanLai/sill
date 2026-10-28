@@ -5,9 +5,7 @@
 //! the link; a question nobody can point into (no picture could be made) is cancelled.
 
 use shell_host::HostHandle;
-use sill_model::capture_pick::{
-    CaptureCommand, CapturePicker, ColorOutcome, EyedropIn, EyedropOut, Eyedropper,
-};
+use sill_model::capture_pick::{CaptureCommand, CapturePicker, EyedropIn, EyedropOut};
 use sill_model::desktop::{DesktopCommand, OutputPicture, ShellNote};
 use sill_services::Control;
 use sill_ui_kit::links::{EyedropperLink, Links};
@@ -35,11 +33,8 @@ pub fn asked_of(picker: &CapturePicker) -> EyedropIn {
 }
 
 /// Whether an eyedropper is drawn, given how many surfaces exist.
-pub fn presence_of(surfaces: u32) -> Eyedropper {
-    match surfaces {
-        0 => Eyedropper::Absent,
-        _ => Eyedropper::Present,
-    }
+pub fn presence_of(surfaces: u32) -> bool {
+    surfaces > 0
 }
 
 /// The request for the compositor that `out` asks for, if it asks for one.
@@ -55,7 +50,7 @@ pub fn desktop_command(out: &EyedropOut) -> Option<DesktopCommand> {
 /// The command for the capture service that `out` asks for, if it asks for one.
 pub fn capture_command(out: &EyedropOut) -> Option<CaptureCommand> {
     match out {
-        EyedropOut::Cancel(id) => Some(CaptureCommand::ColorAnswer(*id, ColorOutcome::Cancel)),
+        EyedropOut::Cancel(id) => Some(CaptureCommand::ColorAnswer(*id, None)),
         EyedropOut::Capture(_) => None,
     }
 }
@@ -101,7 +96,7 @@ pub fn spawn_follower(rt: &Handle, links: &Links, services: &Services, host: Hos
     let mut picker = services.capture.state.clone();
     let mut feed = link.subscribe();
     rt.spawn(async move {
-        let mut told = Eyedropper::Absent;
+        let mut told = false;
         loop {
             let asked = asked_of(&picker.borrow_and_update());
             for out in link.take(asked) {
@@ -133,8 +128,8 @@ pub fn spawn_follower(rt: &Handle, links: &Links, services: &Services, host: Hos
 #[cfg(test)]
 mod tests {
     use sill_model::capture_pick::{
-        AskId, Candidates, CaptureCommand, CapturePicker, ColorAsk, ColorAsking, ColorOutcome,
-        EyedropIn, EyedropOut, Eyedropper, OutputCandidate,
+        AskId, Candidates, CaptureCommand, CapturePicker, ColorAsk, ColorAsking, EyedropIn,
+        EyedropOut, OutputCandidate,
     };
     use sill_model::desktop::{DesktopCommand, OutputPicture, ShellNote};
     use sill_services::Control;
@@ -176,8 +171,8 @@ mod tests {
             ..picker_asking()
         };
         assert_eq!(asked_of(&sharing_only), EyedropIn::Asked(None));
-        assert_eq!(presence_of(0), Eyedropper::Absent);
-        assert_eq!(presence_of(2), Eyedropper::Present);
+        assert!(!presence_of(0));
+        assert!(presence_of(2));
     }
 
     #[test]
@@ -202,7 +197,7 @@ mod tests {
         apply_note(&link, &capture, failed("eDP-1"));
         assert_eq!(
             sent.try_recv().ok(),
-            Some(CaptureCommand::ColorAnswer(AskId(4), ColorOutcome::Cancel))
+            Some(CaptureCommand::ColorAnswer(AskId(4), None))
         );
         assert!(sent.try_recv().is_err(), "once");
     }
@@ -225,7 +220,7 @@ mod tests {
         }
         assert_eq!(
             sent.try_recv().ok(),
-            Some(CaptureCommand::ColorAnswer(AskId(4), ColorOutcome::Cancel))
+            Some(CaptureCommand::ColorAnswer(AskId(4), None))
         );
     }
 }

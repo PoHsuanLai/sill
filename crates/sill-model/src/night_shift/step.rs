@@ -2,7 +2,7 @@
 
 use super::{
     Manual, MinuteOfDay, NightLight, NightShift, NightShiftCommand, NightShiftEffect,
-    NightShiftEvent, Now, Reach, Schedule, UnixSeconds,
+    NightShiftEvent, Now, Schedule, UnixSeconds,
 };
 
 /// When a turn-on made at `now` ends: the next time the clock reads `to` (the end of the night),
@@ -20,7 +20,7 @@ pub fn step(state: NightShift, event: NightShiftEvent) -> (NightShift, Vec<Night
         NightShiftEvent::Loaded { light, manual } => loaded(state, light, manual),
         NightShiftEvent::Unreachable => (
             NightShift {
-                reach: Reach::Unavailable,
+                reached: false,
                 ..state
             },
             Vec::new(),
@@ -46,7 +46,7 @@ fn loaded(
         effects.push(NightShiftEffect::WriteManual(None));
     }
     let next = NightShift {
-        reach: Reach::Ready,
+        reached: true,
         light,
         manual: kept,
         backend: state.backend,
@@ -62,7 +62,7 @@ fn told(
     if let NightShiftCommand::Backend(backend) = command {
         return (NightShift { backend, ..state }, Vec::new());
     }
-    let reachable = state.reach == Reach::Ready;
+    let reachable = state.reached;
     match (command, reachable) {
         (_, false) => (state, Vec::new()),
         (NightShiftCommand::TurnOnUntilTomorrow, true) => turned_on(state, now),

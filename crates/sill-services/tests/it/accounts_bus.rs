@@ -10,7 +10,7 @@ pub(crate) mod accounts_support;
 use std::time::Duration;
 
 use accounts_support::{ACCOUNT, FakeAccountd, Listing};
-use sill_model::accounts::{AccountKey, AccountsLink, AccountsState, shown_for, sign_in_key};
+use sill_model::accounts::{AccountKey, AccountsState, shown_for, sign_in_key};
 use sill_model::notifications::{
     ActionKey, Activation, CloseReason, NotesState, NotificationId, NotificationsCommand,
     NotificationsPolicy, Said, ServerMode,
@@ -104,7 +104,7 @@ async fn notice_gone(shell: &mut Shell) -> bool {
 
 async fn needing(shell: &mut Shell, count: usize) -> bool {
     wait_for(&mut shell.accounts.state, |s: &AccountsState| {
-        s.link == AccountsLink::Present && s.needing.len() == count
+        s.present && s.needing.len() == count
     })
     .await
 }
@@ -227,7 +227,7 @@ async fn a_refusal_past_the_backoff_waits_for_the_name_to_change() {
     let first = FakeAccountd::start(&bus, "ok", Listing::Refusing(5, vec![])).await;
     let mut shell = shell(&bus).await;
     tokio::time::sleep(Duration::from_secs(3)).await;
-    assert_eq!(shell.accounts.state.borrow().link, AccountsLink::Absent);
+    assert!(!shell.accounts.state.borrow().present);
     drop(first);
     let _second = FakeAccountd::start(
         &bus,

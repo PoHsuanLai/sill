@@ -2480,6 +2480,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "docket-context"
+version = "0.1.0"
+dependencies = [
+ "action-review",
+ "almanac-core",
+ "companion-model",
+ "docket-core",
+ "docket-manifest",
+ "docket-permissions-core",
+ "docket-session",
+ "docket-skills",
+ "docket-vocab",
+ "docket-wire",
+ "futures-channel",
+ "futures-util",
+ "policy-point",
+ "porter-core",
+ "porter-ids",
+ "prov",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "docket-core"
 version = "0.1.0"
 dependencies = [
@@ -2529,6 +2552,7 @@ dependencies = [
  "almanac-core",
  "bulkhead",
  "docket-checkpoint",
+ "docket-context",
  "docket-core",
  "docket-manifest",
  "docket-permissions-core",
@@ -2617,6 +2641,7 @@ dependencies = [
  "bulkhead",
  "companion-model",
  "docket-checkpoint",
+ "docket-context",
  "docket-core",
  "docket-gate-wire",
  "docket-manifest",
@@ -2625,7 +2650,6 @@ dependencies = [
  "docket-skills",
  "docket-vocab",
  "docket-wire",
- "futures-channel",
  "futures-util",
  "genai-names",
  "model-provider",

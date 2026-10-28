@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{ActionId, AgentPolicy, Cookie};
+use super::{ActionId, Cookie};
 use crate::auth::Secret;
 
 /// A request made up by `sill debug polkit`: shown like a real one, answered by an in-process
@@ -17,8 +17,9 @@ pub struct FakeRequest {
 /// What the agent service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PolkitCommand {
-    /// Be the agent or not (the daemon sends `Own` at start).
-    Policy(AgentPolicy),
+    /// Be the agent (`true`: register and answer) or not (`false`: unregister, or never
+    /// register). The daemon sends `true` at start.
+    Policy(bool),
     /// The person's answer to the current request's prompt.
     Answer { cookie: Cookie, secret: Secret },
     /// The person cancelled the request (Cancel, Escape): polkitd hears `Cancelled`.
