@@ -7,7 +7,7 @@ use ds::motion::hover_intent::HoverProfile;
 use ds::style::tokens::delay::TipDelay;
 use ds::style::tokens::easing::{CubicBezier, EasingToken};
 use sill_model::units::Cpx;
-use sill_settings::{DockSettings, Magnification};
+use sill_settings::{DockSettings, OnOff};
 // `eased` is quire's one curve evaluator, which the dock's magnification shares with the reveal.
 pub(super) use sill_ui_kit::autohide::eased;
 use sill_ui_kit::autohide::{self, Timing};
@@ -36,7 +36,7 @@ fn fly_delay_ms() -> Ms {
 /// Every parameter [`super::step`] reads.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DockParams {
-    pub magnification: Magnification,
+    pub magnification: OnOff,
     pub enter_ms: u64,
     pub leave_ms: u64,
     /// `--e-out`.

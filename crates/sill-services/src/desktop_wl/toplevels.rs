@@ -49,16 +49,18 @@ fn window(toplevel: &WireToplevel, state: &DesktopState) -> Toplevel {
 }
 
 fn activity(flags: &ToplevelFlags) -> Activity {
-    match flags.contains(ToplevelFlag::Activated) {
-        true => Activity::Active,
-        false => Activity::Inactive,
+    if flags.contains(ToplevelFlag::Activated) {
+        Activity::Active
+    } else {
+        Activity::Inactive
     }
 }
 
 fn window_state(flags: &ToplevelFlags) -> WindowState {
-    match flags.contains(ToplevelFlag::Minimized) {
-        true => WindowState::Minimized,
-        false => WindowState::Normal,
+    if flags.contains(ToplevelFlag::Minimized) {
+        WindowState::Minimized
+    } else {
+        WindowState::Normal
     }
 }
 

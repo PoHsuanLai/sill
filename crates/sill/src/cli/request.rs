@@ -4,19 +4,19 @@
 use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 use sill_ipc::show::{Reveal, ShowRequest};
+use sill_ipc::status::StatusRequest;
 use sill_launcher::actions::ActionId;
 
 use super::Command;
 use super::action::do_action_request;
 use super::debug::debug_request;
-use super::desktop::{control_center_request, dock_request};
-use super::display::display_request;
+use super::desktop::dock_request;
 use super::intents::intents_request;
 use super::keycap::keycap_request;
 use super::launch::launch_request;
 use super::launcher::{clipboard_request, launcher_request};
 use super::notifications::notifications_request;
-use super::session::{idle_request, lock_request, polkit_request};
+use super::session::lock_request;
 use super::verbs::{action_of, do_request, screenshot_action, switcher_action, workspace_action};
 
 /// The request `command` sends; `None` for `run`, `style` and `auth-check`, which are not requests.
@@ -41,17 +41,17 @@ pub fn request(command: &Command) -> Option<Request> {
             Reveal::Toggle => do_request(ActionId::ForceQuitPanel),
             Reveal::Open | Reveal::Close => Request::Show(ShowRequest::ForceQuit(*action)),
         },
-        Command::ControlCenter { action } => control_center_request(*action),
+        Command::ControlCenter { .. } => do_request(ActionId::ControlCenter),
         Command::Screenshot { kind } => do_request(screenshot_action(*kind)),
         Command::Companion { action } => Request::Show(ShowRequest::Companion(*action)),
         Command::Voice { action } => Request::Show(ShowRequest::Voice(*action)),
-        Command::Display { action } => display_request(action),
+        Command::Display { action } => Request::Act(ActRequest::Display(*action)),
         Command::Notifications { action } => notifications_request(*action),
         Command::Lock { verb } => lock_request(*verb),
         Command::Switcher { action } => do_request(switcher_action(*action)),
         Command::Workspace { action } => do_request(workspace_action(*action)),
-        Command::Polkit { action } => polkit_request(*action),
-        Command::Idle { action } => idle_request(*action),
+        Command::Polkit { .. } => Request::Status(StatusRequest::Polkit),
+        Command::Idle { .. } => Request::Status(StatusRequest::Idle),
         Command::Keycap { action } => keycap_request(*action),
         Command::Intents { action } => intents_request(action),
         Command::Clipboard { action } => clipboard_request(*action),

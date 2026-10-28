@@ -6,7 +6,7 @@ use crate::displays::Displays;
 use crate::displays::brightness::{Backlight, BacklightKind, BacklightName, LevelChange};
 use crate::displays::ddc::{Controls, DdcDisplay, Endpoint, Feature, Level, RgbGain, Write};
 use crate::displays::output::describe;
-use crate::displays::policy::{KeysTarget, NightWarmth};
+use crate::displays::policy::KeysTarget;
 use crate::displays::randr::Head;
 use crate::ids::{DdcId, OutputName};
 use crate::units::Percent;
@@ -230,11 +230,7 @@ fn a_monitor_missing_from_the_probe_is_probed_for_again() {
 #[test]
 fn warmth_scales_the_gains_and_off_restores_them() {
     let displays = desk();
-    let (originals, writes) = warmth_writes(
-        &displays,
-        &Originals::new(),
-        NightWarmth::Hardware(Percent(100)),
-    );
+    let (originals, writes) = warmth_writes(&displays, &Originals::new(), Some(Percent(100)));
     assert_eq!(originals.get(&DdcId(5)), Some(&gain(100, 100, 100)));
     assert_eq!(originals.len(), 1, "only displays with gains");
     let write = |feature, value| Write {
@@ -256,13 +252,13 @@ fn warmth_scales_the_gains_and_off_restores_them() {
         ],
         ..displays.clone()
     };
-    let (kept, again) = warmth_writes(&warm, &originals, NightWarmth::Hardware(Percent(100)));
+    let (kept, again) = warmth_writes(&warm, &originals, Some(Percent(100)));
     assert_eq!(
         kept, originals,
         "originals are not re-read from warmed gains"
     );
     assert_eq!(again, vec![], "already warm");
-    let (cleared, restore) = warmth_writes(&warm, &originals, NightWarmth::Off);
+    let (cleared, restore) = warmth_writes(&warm, &originals, None);
     assert_eq!(cleared, Originals::new());
     assert_eq!(
         restore,
@@ -271,6 +267,6 @@ fn warmth_scales_the_gains_and_off_restores_them() {
             write(Feature::BlueGain, 100)
         ]
     );
-    let (_, nothing) = warmth_writes(&displays, &Originals::new(), NightWarmth::Off);
+    let (_, nothing) = warmth_writes(&displays, &Originals::new(), None);
     assert_eq!(nothing, vec![], "off with nothing changed writes nothing");
 }

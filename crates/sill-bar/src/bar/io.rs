@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use dioxus::prelude::*;
 use shell_host::{HostRoot, OutputId, OutputInfo, PopupAnchor, PopupConfig, SurfaceHandle};
 use sill_model::ids::OutputName;
-use sill_settings::FocusMode;
+use sill_settings::OnOff;
 use sill_ui_kit::links::FocusLink;
 use sill_ui_kit::settings::SettingsFeed;
 use tokio::sync::{mpsc, watch};
@@ -131,7 +131,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook, tokens: &BarTokens) 
         session: use_service::<SessionService>()(),
     };
     use_menu_follow(output, state.app.as_ref());
-    let focus = use_link::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
+    let focus = use_link::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(OnOff::Off));
     let bar = use_menu_session(SessionDeps {
         state,
         services: use_services(),

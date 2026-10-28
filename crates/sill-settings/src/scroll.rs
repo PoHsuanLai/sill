@@ -6,6 +6,7 @@
 use ds_core::word::Word;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
+use sill_model::on_off::OnOff;
 
 /// `scroll.natural`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
@@ -16,16 +17,6 @@ pub enum NaturalScroll {
     #[default]
     Natural,
     Traditional,
-}
-
-/// `scroll.momentum`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum Momentum {
-    #[default]
-    On,
-    Off,
 }
 
 /// `scroll.scrollbars`.
@@ -57,7 +48,7 @@ pub struct ScrollSettings {
         section = "Momentum",
         advanced
     )]
-    pub momentum: Momentum,
+    pub momentum: OnOff,
     /// `scroll.scrollbars`: listed in §3.8's table, but its dotted path is `scroll.`.
     #[settings(
         label = "Show scroll bars",
@@ -72,7 +63,7 @@ impl Default for ScrollSettings {
     fn default() -> Self {
         ScrollSettings {
             natural: NaturalScroll::Natural,
-            momentum: Momentum::On,
+            momentum: OnOff::On,
             scrollbars: ScrollbarVisibility::WhenScrolling,
         }
     }

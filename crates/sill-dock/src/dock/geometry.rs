@@ -6,7 +6,7 @@ use crate::magnify::MagnifyParams;
 use ds::prelude::*;
 use ds::style::tokens::shape::Corner;
 use sill_model::units::Cpx;
-use sill_settings::{DockFloor, DockSettings};
+use sill_settings::DockSettings;
 use sill_shell_kit::tokens::dock::{DockFloorSetting, DockMetrics};
 
 /// quire's dock tokens from `dock.tile_size_px` and `dock.floor`: written inline around the
@@ -15,9 +15,10 @@ use sill_shell_kit::tokens::dock::{DockFloorSetting, DockMetrics};
 pub fn dock_metrics(dock: &DockSettings) -> DockMetrics {
     DockMetrics {
         tile: Px(f32::from(dock.tile_size_px.0)),
-        floor: match dock.floor {
-            DockFloor::Off => DockFloorSetting::Off,
-            DockFloor::On => DockFloorSetting::On,
+        floor: if dock.floor.is_on() {
+            DockFloorSetting::On
+        } else {
+            DockFloorSetting::Off
         },
     }
 }

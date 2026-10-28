@@ -1,22 +1,20 @@
-//! The displays service's policy: the `display.*` settings translated into the service's
-//! [`DisplayPolicy`] (sill-services may not see sill-settings, which brings dioxus).
+//! The displays service's policy: the `display.*` settings as the service's [`DisplayPolicy`]
+//! (sill-services may not see sill-settings, which brings dioxus).
 
-use sill_model::displays::{DisplayPolicy, DisplaysCommand, NightWarmth};
+use sill_model::displays::{DisplayPolicy, DisplaysCommand};
 
 use super::Policy;
-use sill_settings::{DisplaySettings, NightWarmthMode, ShellFile};
+use sill_settings::{DisplaySettings, ShellFile};
 
 /// `display.*` as the service's policy.
 pub fn policy_from(settings: &DisplaySettings) -> DisplayPolicy {
     DisplayPolicy {
         keys_target: settings.brightness_keys_target,
         hardware_volume: settings.hardware_volume,
-        night_warmth: match settings.night_warmth {
-            NightWarmthMode::Off => NightWarmth::Off,
-            NightWarmthMode::Hardware => NightWarmth::Hardware(sill_model::units::Percent(
-                u16::from(settings.night_warmth_strength.0),
-            )),
-        },
+        night_warmth: settings.night_warmth,
+        night_warmth_strength: sill_model::units::Percent(u16::from(
+            settings.night_warmth_strength.0,
+        )),
         font_rendering: settings.font_rendering,
     }
 }
@@ -41,10 +39,10 @@ impl Policy for DisplaysBridge {
 #[cfg(test)]
 mod tests {
     use sill_model::displays::{
-        DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth,
+        DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmthMode,
     };
     use sill_model::units::Percent;
-    use sill_settings::{DisplaySettings, NightWarmthMode};
+    use sill_settings::DisplaySettings;
 
     use super::policy_from;
 
@@ -70,7 +68,8 @@ mod tests {
             DisplayPolicy {
                 keys_target: KeysTarget::AllOutputs,
                 hardware_volume: HardwareVolume::Off,
-                night_warmth: NightWarmth::Hardware(Percent(30)),
+                night_warmth: NightWarmthMode::Hardware,
+                night_warmth_strength: Percent(30),
                 font_rendering: FontRenderingMode::Off,
             }
         );

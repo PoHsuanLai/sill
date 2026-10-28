@@ -6,7 +6,7 @@
 
 use shell_host as host;
 use sill_settings::{
-    Momentum, NaturalScroll, ScrollSettings, ScrollbarSettings, ScrollbarVisibility, ShellFile,
+    NaturalScroll, OnOff, ScrollSettings, ScrollbarSettings, ScrollbarVisibility, ShellFile,
     TrackClick,
 };
 
@@ -120,10 +120,10 @@ fn natural_scroll(v: NaturalScroll) -> host::NaturalScroll {
     }
 }
 
-fn momentum(v: Momentum) -> host::ScrollMomentum {
+fn momentum(v: OnOff) -> host::ScrollMomentum {
     match v {
-        Momentum::On => host::ScrollMomentum::On,
-        Momentum::Off => host::ScrollMomentum::Off,
+        OnOff::On => host::ScrollMomentum::On,
+        OnOff::Off => host::ScrollMomentum::Off,
     }
 }
 
@@ -162,7 +162,7 @@ mod tests {
                 |c| c.scroll.natural == host::NaturalScroll::Traditional,
             ),
             (
-                |f| f.scroll.momentum = Momentum::Off,
+                |f| f.scroll.momentum = OnOff::Off,
                 |c| c.scroll.momentum == host::ScrollMomentum::Off,
             ),
             (

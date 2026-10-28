@@ -2,9 +2,10 @@
 //! (which ends the service's passive start) and again whenever either changes.
 
 use sill_model::notifications::{
-    HistoryCap, NotificationsCommand, NotificationsPolicy, Quiet, ServerMode,
+    HistoryCap, NotificationsCommand, NotificationsPolicy, ServerMode,
 };
-use sill_settings::{FocusMode, NotificationsSettings, ShellFile};
+use sill_model::on_off::OnOff;
+use sill_settings::{NotificationsSettings, ShellFile};
 use tokio::sync::watch;
 use tokio::sync::watch::error::RecvError;
 
@@ -13,14 +14,11 @@ use super::Policy;
 /// The most notifications the notification center keeps; the oldest go first.
 const HISTORY_CAP: HistoryCap = HistoryCap(100);
 
-/// The policy `n` and `focus` make: the service owns the bus name.
-pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPolicy {
+/// The policy `n` and Do Not Disturb `focus` make: the service owns the bus name.
+pub fn policy_of(n: &NotificationsSettings, focus: OnOff) -> NotificationsPolicy {
     NotificationsPolicy {
         server: ServerMode::Own,
-        quiet: match focus {
-            FocusMode::Off => Quiet::Off,
-            FocusMode::DoNotDisturb => Quiet::DoNotDisturb,
-        },
+        quiet: focus,
         style: n.banner_style,
         history_cap: HISTORY_CAP,
         swipe: n.swipe,
@@ -32,7 +30,7 @@ pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPo
 /// the control center sets it, before the file round-trips.
 #[derive(Debug)]
 pub struct NotificationsBridge {
-    pub focus: watch::Receiver<FocusMode>,
+    pub focus: watch::Receiver<OnOff>,
 }
 
 impl Policy for NotificationsBridge {
@@ -56,14 +54,15 @@ impl Policy for NotificationsBridge {
 mod tests {
     use super::policy_of;
     use sill_model::notifications::Swipe;
-    use sill_model::notifications::{HistoryCap, Presentation, Quiet, ServerMode};
-    use sill_settings::{FocusMode, NotificationsSettings};
+    use sill_model::notifications::{HistoryCap, Presentation, ServerMode};
+    use sill_model::on_off::OnOff;
+    use sill_settings::NotificationsSettings;
 
     #[test]
     fn the_settings_and_focus_become_the_policy() {
-        let defaults = policy_of(&NotificationsSettings::default(), FocusMode::Off);
+        let defaults = policy_of(&NotificationsSettings::default(), OnOff::Off);
         assert_eq!(defaults.server, ServerMode::Own, "own by default");
-        assert_eq!(defaults.quiet, Quiet::Off);
+        assert_eq!(defaults.quiet, OnOff::Off);
         assert_eq!(defaults.style, Presentation::Banner);
         assert_eq!(defaults.history_cap, HistoryCap(100));
         assert_eq!(
@@ -76,8 +75,8 @@ mod tests {
             swipe: Swipe::Dismiss,
             ..NotificationsSettings::default()
         };
-        let quiet = policy_of(&n, FocusMode::DoNotDisturb);
-        assert_eq!(quiet.quiet, Quiet::DoNotDisturb);
+        let quiet = policy_of(&n, OnOff::On);
+        assert_eq!(quiet.quiet, OnOff::On);
         assert_eq!(quiet.style, Presentation::HistoryOnly);
         assert_eq!(quiet.swipe, Swipe::Dismiss);
     }
@@ -91,7 +90,7 @@ mod tests {
 
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
         let (settings_tx, settings) = watch::channel(ShellFile::default());
-        let (focus_tx, focus) = watch::channel(FocusMode::Off);
+        let (focus_tx, focus) = watch::channel(OnOff::Off);
         let (control, mut commands) = Control::channel();
         crate::policy::follow(
             rt.handle(),
@@ -109,13 +108,13 @@ mod tests {
         };
         let first = next(&mut commands);
         assert!(
-            matches!(&first, Some(NotificationsCommand::Policy(p)) if p.quiet == Quiet::Off),
+            matches!(&first, Some(NotificationsCommand::Policy(p)) if p.quiet == OnOff::Off),
             "{first:?}"
         );
-        let _ = focus_tx.send(FocusMode::DoNotDisturb);
+        let _ = focus_tx.send(OnOff::On);
         let second = next(&mut commands);
         assert!(
-            matches!(&second, Some(NotificationsCommand::Policy(p)) if p.quiet == Quiet::DoNotDisturb),
+            matches!(&second, Some(NotificationsCommand::Policy(p)) if p.quiet == OnOff::On),
             "{second:?}"
         );
         drop(settings_tx);

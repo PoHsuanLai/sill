@@ -3,7 +3,7 @@
 
 use dioxus::prelude::{ReadSignal, use_context};
 use shell_host::use_watch;
-use sill_settings::FocusMode;
+use sill_settings::OnOff;
 
 use crate::links::FocusLink;
 
@@ -11,6 +11,6 @@ use crate::links::FocusLink;
 ///
 /// # Panics
 /// When the surface's `Root` was built without `.context(FocusLink)`: a daemon wiring bug.
-pub fn use_focus_mode() -> ReadSignal<FocusMode> {
+pub fn use_focus_mode() -> ReadSignal<OnOff> {
     use_watch(use_context::<FocusLink>().mode())
 }

@@ -35,6 +35,7 @@ pub mod network;
 pub mod night_shift;
 pub mod notifications;
 pub mod now_playing;
+pub mod on_off;
 pub mod osd;
 pub mod pins;
 pub mod polkit_agent;

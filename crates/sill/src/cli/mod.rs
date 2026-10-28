@@ -13,7 +13,6 @@ pub mod client;
 mod command;
 mod debug;
 mod desktop;
-mod display;
 mod intents;
 mod keycap;
 pub mod launch;

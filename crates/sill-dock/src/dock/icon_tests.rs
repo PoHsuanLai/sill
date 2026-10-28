@@ -6,7 +6,7 @@ use ds::style::icon::retint::IconStyle;
 use ds::style::icon::retint::Tint;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIcon, DbusActivation, Listing, Terminal};
-use sill_settings::{DockSettings, Magnification};
+use sill_settings::{DockSettings, OnOff};
 use sill_ui_kit::app_icons::cache::Generation;
 use sill_ui_kit::app_icons::{IconLook, IconResolver};
 use std::path::PathBuf;
@@ -156,7 +156,7 @@ fn icons_fill_the_tile_in_whole_pixels() {
 #[test]
 fn without_magnification_the_rest_size_still_shows_the_file() {
     let dock = DockSettings {
-        magnification: Magnification::Off,
+        magnification: OnOff::Off,
         ..DockSettings::default()
     };
     let sizes = TileSizes::new(48.0, &dock);

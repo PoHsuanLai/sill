@@ -2,21 +2,10 @@
 //! rendering for other apps, colour management). All Advanced for now (design/22 §5 has no
 //! Displays page yet). There is no scale key: the compositor owns a display's scale.
 
-use ds_core::word::Word;
 use ds_settings::Percent;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
-use sill_model::displays::{FontRenderingMode, HardwareVolume, KeysTarget};
-
-/// `display.night_warmth`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum NightWarmthMode {
-    #[default]
-    Off,
-    Hardware,
-}
+use sill_model::displays::{FontRenderingMode, HardwareVolume, KeysTarget, NightWarmthMode};
 
 /// Displays.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]

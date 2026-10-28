@@ -14,7 +14,7 @@ use ds::prelude::*;
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_bar::control_center::{CcPage, ControlCenter};
 use sill_model::ids::OutputName;
-use sill_settings::{FocusMode, ShellFile};
+use sill_settings::{OnOff, ShellFile};
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::links::FocusLink;
 use sill_ui_kit::menu::{PopupFrame, PopupRoom};
@@ -97,9 +97,9 @@ pub struct Running {
     pub feeds: fake::Feeds,
     /// The Focus mode the panel reads (Off at the start), and the modes its tile asked for.
     #[allow(dead_code, reason = "held so the focus link's channel stays open")]
-    pub focus: watch::Sender<FocusMode>,
+    pub focus: watch::Sender<OnOff>,
     #[allow(dead_code, reason = "held so the focus link's channel stays open")]
-    pub focus_sets: mpsc::UnboundedReceiver<FocusMode>,
+    pub focus_sets: mpsc::UnboundedReceiver<OnOff>,
     reports: Arc<Mutex<Vec<Report>>>,
 }
 
@@ -123,7 +123,7 @@ pub fn start(services: Services, feeds: fake::Feeds) -> Running {
 /// [`start`] on an output at `scale_percent` (200: the user's 4K monitor at scale 2).
 pub fn start_at(services: Services, feeds: fake::Feeds, scale_percent: u16) -> Running {
     let reports = Arc::new(Mutex::new(Vec::new()));
-    let (focus, mode) = watch::channel(FocusMode::Off);
+    let (focus, mode) = watch::channel(OnOff::Off);
     let (set, focus_sets) = mpsc::unbounded_channel();
     WORLD.with(|w| {
         *w.borrow_mut() = Some(World {

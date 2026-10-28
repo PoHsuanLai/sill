@@ -48,7 +48,7 @@ pub use model::{
 pub use notices::{Notices, shown_with_action};
 pub use origin::app_entry;
 pub use policy::{
-    Chime, HistoryCap, NotificationsPolicy, Presentation, Presented, Quiet, Swipe, chime, presented,
+    Chime, HistoryCap, NotificationsPolicy, Presentation, Presented, Swipe, chime, presented,
 };
 pub use rate::{Allowance, Rate};
 pub use rules::holds;

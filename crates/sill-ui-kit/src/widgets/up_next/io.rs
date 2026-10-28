@@ -8,7 +8,7 @@ use sill_services::{ClockService, EventsService};
 use super::provider::{EVENT_ROWS, up_next_entry};
 use super::widget::UpNext;
 use crate::hooks::{use_hours, use_service};
-use crate::widgets::{Feed, WidgetKind, WidgetProvider};
+use crate::widgets::{CenterWidget, Feed, WidgetProvider};
 
 /// The next events, as many as the card's body holds whole.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -21,7 +21,7 @@ const UP_NEXT_DAYS: u16 = 7;
 
 impl WidgetProvider for UpNextProvider {
     type W = UpNext;
-    const KIND: WidgetKind = WidgetKind::UpNext;
+    const KIND: CenterWidget = CenterWidget::UpNext;
 
     fn use_feed() -> Feed<UpNext> {
         let _minute = use_service::<ClockService>()();

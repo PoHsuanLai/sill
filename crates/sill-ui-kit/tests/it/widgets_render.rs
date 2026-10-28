@@ -9,18 +9,18 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
-use sill_settings::{ShellFile, WidgetKind};
+use sill_settings::ShellFile;
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
-use sill_ui_kit::widgets::{Widget, widgets_css};
+use sill_ui_kit::widgets::{CenterWidget, Widget, widgets_css};
 
 /// What the harness's root provides.
 #[derive(Clone)]
 struct World {
     services: Services,
     settings: SettingsFeed,
-    kind: WidgetKind,
+    kind: CenterWidget,
 }
 
 thread_local! {
@@ -57,7 +57,7 @@ struct Running {
     feeds: fake::Feeds,
 }
 
-fn start(kind: WidgetKind, file: ShellFile) -> Running {
+fn start(kind: CenterWidget, file: ShellFile) -> Running {
     let (services, feeds) = fake::services();
     WORLD.with(|w| {
         *w.borrow_mut() = Some(World {
@@ -73,7 +73,7 @@ fn start(kind: WidgetKind, file: ShellFile) -> Running {
 
 #[test]
 fn in_the_center_the_frame_is_quires_tile_with_no_header_row() {
-    let running = start(WidgetKind::Calendar, ShellFile::default());
+    let running = start(CenterWidget::Calendar, ShellFile::default());
     let h = &running.harness;
     assert_eq!(h.count(".ds-widget#widget-calendar"), 1);
     assert_eq!(
@@ -100,8 +100,8 @@ fn in_the_center_the_frame_is_quires_tile_with_no_header_row() {
 #[test]
 fn the_card_names_its_kind() {
     let cases = [
-        (WidgetKind::Calendar, "quire.month"),
-        (WidgetKind::UpNext, "sill.up-next"),
+        (CenterWidget::Calendar, "quire.month"),
+        (CenterWidget::UpNext, "sill.up-next"),
     ];
     for (kind, name) in cases {
         let running = start(kind, ShellFile::default());
@@ -123,7 +123,7 @@ fn up_next_never_clips_a_row_past_the_tiles_body() {
     let file = ShellFile::default();
     let want = 2;
     {
-        let mut running = start(WidgetKind::UpNext, file.clone());
+        let mut running = start(CenterWidget::UpNext, file.clone());
         let at = jiff::Timestamp::now();
         let hour = |h: i64| at.checked_add(jiff::ToSpan::hours(h)).unwrap_or(at);
         let event = |uid: &str, hours_ahead: i64| sill_model::events::CalEvent {

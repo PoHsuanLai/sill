@@ -2573,6 +2573,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "docket-gate"
+version = "0.1.0"
+dependencies = [
+ "action-review",
+ "bulkhead",
+ "docket-context",
+ "docket-core",
+ "docket-manifest",
+ "docket-permissions-core",
+ "docket-session",
+ "docket-vocab",
+ "docket-wire",
+ "genai-names",
+ "model-provider",
+ "policy-point",
+ "porter-capability",
+ "porter-core",
+ "porter-ids",
+ "prov",
+ "serde_json",
+ "toml",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "docket-gate-wire"
 version = "0.1.0"
 dependencies = [
@@ -2638,11 +2664,11 @@ version = "0.1.0"
 dependencies = [
  "action-review",
  "almanac-core",
- "bulkhead",
  "companion-model",
  "docket-checkpoint",
  "docket-context",
  "docket-core",
+ "docket-gate",
  "docket-gate-wire",
  "docket-manifest",
  "docket-permissions-core",
@@ -2651,19 +2677,13 @@ dependencies = [
  "docket-vocab",
  "docket-wire",
  "futures-util",
- "genai-names",
- "model-provider",
  "policy-point",
- "porter-capability",
  "porter-core",
  "porter-ids",
  "prov",
- "serde",
  "serde_json",
  "thiserror 2.0.21",
- "toml",
  "tracing",
- "url",
 ]
 
 [[package]]
@@ -7599,6 +7619,7 @@ dependencies = [
 name = "sill-ipc"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "ds-core",
  "keycap-protocol",
  "serde",

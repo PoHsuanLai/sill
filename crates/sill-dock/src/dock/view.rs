@@ -20,7 +20,7 @@ use shell_host::OutputInfo;
 use sill_model::desktop::Shown;
 use sill_model::ids::OutputName;
 use sill_model::units::Cpx;
-use sill_settings::AutoHide;
+use sill_settings::OnOff;
 use sill_shell_kit::prelude::*;
 
 use crate::dock::frame::{Area, Frame, Rows, frame};
@@ -81,8 +81,8 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     };
     let items = dock_items(&world.pins, &world.toplevels, &world.index, file.dock.trash);
     let initial = DockState::new(match file.dock.autohide {
-        AutoHide::Off => Reveal::Fixed,
-        AutoHide::On => Reveal::Hidden,
+        OnOff::Off => Reveal::Fixed,
+        OnOff::On => Reveal::Hidden,
     });
     let session = use_dock(initial);
     let feed = session.feed;
@@ -205,7 +205,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                             badge: item.kind.app_id().and_then(|id| world.badges.apps.get(id)).copied(),
                         }
                     }
-                    if file.dock.autohide == AutoHide::On {
+                    if file.dock.autohide == OnOff::On {
                         div { id: "dock-strip", class: "sill-dock-hit", style: area_style(&strip) }
                     }
                 }

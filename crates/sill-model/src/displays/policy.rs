@@ -31,14 +31,15 @@ pub enum HardwareVolume {
     WhenMonitorIsOutput,
 }
 
-/// Night warmth through the displays' own RGB gains.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum NightWarmth {
+/// `display.night_warmth`: night warmth through the displays' own RGB gains.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
+#[serde(rename_all = "snake_case")]
+#[word(case = snake)]
+pub enum NightWarmthMode {
     #[default]
     Off,
-    /// Warm every DDC display by this strength (0 = neutral, 100 = warmest).
-    Hardware(Percent),
+    /// Warm every DDC display by `night_warmth_strength`.
+    Hardware,
 }
 
 /// Whether sill writes its fontconfig snippet for apps that are not sill's.
@@ -56,7 +57,9 @@ pub enum FontRenderingMode {
 pub struct DisplayPolicy {
     pub keys_target: KeysTarget,
     pub hardware_volume: HardwareVolume,
-    pub night_warmth: NightWarmth,
+    pub night_warmth: NightWarmthMode,
+    /// How far `Hardware` warms: 0 is neutral, 100 the warmest.
+    pub night_warmth_strength: Percent,
     pub font_rendering: FontRenderingMode,
 }
 
@@ -65,8 +68,19 @@ impl Default for DisplayPolicy {
         DisplayPolicy {
             keys_target: KeysTarget::PointerOutput,
             hardware_volume: HardwareVolume::WhenMonitorIsOutput,
-            night_warmth: NightWarmth::Off,
+            night_warmth: NightWarmthMode::Off,
+            night_warmth_strength: Percent(50),
             font_rendering: FontRenderingMode::Auto,
+        }
+    }
+}
+
+impl DisplayPolicy {
+    /// The strength to warm the DDC displays to, or `None` when sill leaves them alone.
+    pub fn warmth(&self) -> Option<Percent> {
+        match self.night_warmth {
+            NightWarmthMode::Hardware => Some(self.night_warmth_strength),
+            NightWarmthMode::Off => None,
         }
     }
 }

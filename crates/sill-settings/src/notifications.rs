@@ -1,20 +1,10 @@
 //! `notifications.*` (design/22 §3.12; design/13 §13.3.6). Do Not Disturb and the banner style are on the Notifications page (§5); the rest
 //! are Advanced.
 
-use ds_core::word::Word;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 use sill_model::notifications::{Presentation, Swipe};
-
-/// `notifications.dnd`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum Dnd {
-    On,
-    #[default]
-    Off,
-}
+use sill_model::on_off::OnOff;
 
 /// Notification banners.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
@@ -26,7 +16,7 @@ pub struct NotificationsSettings {
         help = "No banners or sounds, except critical ones.",
         section = "Alerts"
     )]
-    pub dnd: Dnd,
+    pub dnd: OnOff,
     #[settings(
         label = "Notification style",
         help = "Banners leave on their own; alerts stay until you act.",
@@ -45,7 +35,7 @@ pub struct NotificationsSettings {
 impl Default for NotificationsSettings {
     fn default() -> Self {
         NotificationsSettings {
-            dnd: Dnd::Off,
+            dnd: OnOff::Off,
             banner_style: Presentation::Banner,
             swipe: Swipe::KeepInCenter,
         }

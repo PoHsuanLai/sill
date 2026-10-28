@@ -12,7 +12,7 @@ use ds::base::time::stamp::Stamp;
 use ds::prelude::MenuItem;
 use shell_host::{FrameDrive, Rect, SurfaceHandle};
 use sill_model::badges::Badges;
-use sill_settings::{AutoHide, Magnification};
+use sill_settings::OnOff;
 use sill_ui_kit::services::Services;
 
 use crate::dock::context_menu::{OptionHeld, app, divider, menu_entries, menu_windows, trash};
@@ -39,8 +39,8 @@ pub(crate) struct SessionDeps {
     pub params: DockParams,
     pub world: World,
     /// `dock.autohide` and `dock.magnification`, which the dock's own menu reads.
-    pub autohide: AutoHide,
-    pub magnification: Magnification,
+    pub autohide: OnOff,
+    pub magnification: OnOff,
     pub look: PopupLook,
     /// How far an icon is dragged out of the Dock to remove it.
     pub remove: sill_model::units::Cpx,

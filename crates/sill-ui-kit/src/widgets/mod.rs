@@ -5,13 +5,14 @@
 //! entries from its services ([`Widget`] picks the provider for a kind, [`with_provider`]).
 
 mod card;
+mod kind;
 mod wake;
 
 pub mod calendar;
 pub mod up_next;
 
 pub use card::{Card, Feed, OnProvider, Widget, WidgetProvider, card, with_provider};
-pub use sill_settings::WidgetKind;
+pub use kind::CenterWidget;
 pub use sill_shell_kit::prelude::WidgetSize;
 pub use wake::{provide_widget_wake, use_widget_wake};
 

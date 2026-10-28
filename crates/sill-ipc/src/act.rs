@@ -32,34 +32,42 @@ pub enum ActRequest {
     Launch(AppId),
 }
 
-/// A display key, or a slider standing in for one.
+/// A display key, or a slider standing in for one (`sill display ...`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "cli", derive(clap::Subcommand))]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum DisplayRequest {
-    /// The display under the pointer (else the focused one), or every display, per
-    /// `display.brightness_keys_target`: a backlight through logind, a monitor over DDC/CI.
+    /// The display under the pointer (or every display, per `display.brightness_keys_target`):
+    /// a backlight through logind, a monitor over DDC/CI.
+    #[cfg_attr(feature = "cli", command(subcommand))]
     Brightness(LevelRequest),
-    /// The default sink's volume, and a monitor's own speakers when they are the sink and
-    /// `display.hardware_volume` says so.
+    /// The output volume (and a monitor's own speakers, per `display.hardware_volume`).
+    #[cfg_attr(feature = "cli", command(subcommand))]
     Volume(VolumeRequest),
 }
 
 /// A level's change: one key press either way, or an absolute percentage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "cli", derive(clap::Subcommand))]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum LevelRequest {
+    /// One key press brighter or louder.
     Up,
+    /// One key press dimmer or quieter.
     Down,
-    /// 0-100; more is taken as 100.
+    /// Straight to PERCENT (0-100).
     Set {
+        #[cfg_attr(feature = "cli", arg(value_parser = clap::value_parser!(u8).range(0..=100)))]
         percent: u8,
     },
 }
 
 /// A volume change: a level change, or the mute key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "cli", derive(clap::Subcommand))]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum VolumeRequest {
+    #[cfg_attr(feature = "cli", command(flatten))]
     Level(LevelRequest),
     Mute,
     Unmute,

@@ -36,7 +36,7 @@ pub use identity::IdentityKey;
 pub use levels::{OutputLevel, wire_of};
 pub use model::{Displays, FOLLOW_EVERY_MS, Following};
 pub use output::DisplayOutput;
-pub use policy::{DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth};
+pub use policy::{DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmthMode};
 pub use ppi::Ppi;
 pub use scale::DisplayScale;
 pub use step::step;

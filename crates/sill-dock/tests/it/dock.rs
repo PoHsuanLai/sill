@@ -11,7 +11,7 @@ use sill_launcher::AppId;
 use sill_model::badges::Badges;
 use sill_model::pins::DockPins;
 use sill_model::windows::Toplevels;
-use sill_settings::{AutoHide, ShellFile, TrashTile};
+use sill_settings::{OnOff, ShellFile};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::hooks::PinnedAppearance;
 
@@ -135,8 +135,8 @@ fn fed_values_replace_the_defaults() {
 #[test]
 fn settings_drop_the_trash_and_add_the_strip() {
     let mut file = ShellFile::default();
-    file.dock.trash = TrashTile::Off;
-    file.dock.autohide = AutoHide::On;
+    file.dock.trash = OnOff::Off;
+    file.dock.autohide = OnOff::On;
     let html = start(file).harness.html();
     assert_eq!(
         labels(&html),

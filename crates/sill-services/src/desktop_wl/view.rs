@@ -5,26 +5,22 @@ use casement_protocols::vocab::{
     AppLifeKind, AppVisibility, Attention, Emphasis, LeaseState, Modality, PlacementMark,
     ProofKind, Responsiveness, SensitivityLevel, Shown, SpaceKind, WindowRole, WindowStateKind,
 };
-use desktop_client::toplevel::{Toplevel as WireToplevel, ToplevelFlag};
+use desktop_client::toplevel::Toplevel as WireToplevel;
 use desktop_client::workspace::WorkspaceFlag;
 use desktop_client::{DesktopState, ToplevelKey};
 use sill_model::desktop::{
     ActiveView, AppView, DesktopView, SpacePlaceView, SpaceView, WindowView,
 };
-use sill_model::windows::Toplevels;
+use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 
-use super::ids::{space_id, toplevel_key};
+use super::ids::space_id;
 use super::workspaces::{group_of, ordered};
 
 /// The view of `state`, windows in the recency order of `recency` (the projected
-/// [`Toplevels`], most recently activated first).
+/// [`Toplevels`], most recently activated first): each window is its [`Toplevel`] in the
+/// desktop's vocabulary, so the wire's flags are read once, in `toplevels`.
 pub fn desktop_view(state: &DesktopState, recency: &Toplevels) -> DesktopView {
-    let windows: Vec<WindowView> = recency
-        .windows
-        .iter()
-        .filter_map(|w| state.toplevels.get(toplevel_key(w.key)))
-        .map(window)
-        .collect();
+    let windows: Vec<WindowView> = recency.windows.iter().map(window).collect();
     DesktopView {
         apps: apps(&windows),
         active: active(&windows),
@@ -46,9 +42,9 @@ fn made_up(key: ToplevelKey) -> String {
     format!("toplevel-{}", key.get())
 }
 
-fn window(toplevel: &WireToplevel) -> WindowView {
+fn window(toplevel: &Toplevel) -> WindowView {
     WindowView {
-        identifier: identifier(toplevel),
+        identifier: toplevel.identifier.clone(),
         app: toplevel.app_id.clone(),
         title: toplevel.title.clone(),
         state: window_state(toplevel),
@@ -56,10 +52,10 @@ fn window(toplevel: &WireToplevel) -> WindowView {
         output: toplevel
             .outputs
             .first()
-            .map(|o| o.as_str().to_owned())
+            .map(|o| o.0.clone())
             .unwrap_or_default(),
-        emphasis: emphasis(toplevel),
-        placement: placement(toplevel),
+        emphasis: emphasis(toplevel.activity),
+        placement: placement(toplevel.sizing),
         role: WindowRole::Document,
         modality: Modality::None,
         geometry: None,
@@ -69,35 +65,29 @@ fn window(toplevel: &WireToplevel) -> WindowView {
     }
 }
 
-fn window_state(toplevel: &WireToplevel) -> WindowStateKind {
-    let has = |flag| toplevel.flags.contains(flag);
-    if has(ToplevelFlag::Minimized) {
-        WindowStateKind::Minimised
-    } else if has(ToplevelFlag::Fullscreen) {
-        WindowStateKind::FullScreen
-    } else if has(ToplevelFlag::Maximized) {
-        WindowStateKind::Filled
-    } else {
-        WindowStateKind::Floating
+/// The casement vocabulary's one word for minimised, full screen, filled or floating.
+fn window_state(toplevel: &Toplevel) -> WindowStateKind {
+    match (toplevel.window, toplevel.sizing) {
+        (WindowState::Minimized, _) => WindowStateKind::Minimised,
+        (WindowState::Normal, Sizing::Fullscreen) => WindowStateKind::FullScreen,
+        (WindowState::Normal, Sizing::Maximized) => WindowStateKind::Filled,
+        (WindowState::Normal, Sizing::Floating) => WindowStateKind::Floating,
     }
 }
 
-fn emphasis(toplevel: &WireToplevel) -> Emphasis {
-    if toplevel.flags.contains(ToplevelFlag::Activated) {
-        Emphasis::Key
-    } else {
-        Emphasis::Inactive
+/// Only the key window is ever `Key`: the standard protocols know no main window.
+fn emphasis(activity: Activity) -> Emphasis {
+    match activity {
+        Activity::Active => Emphasis::Key,
+        Activity::Inactive => Emphasis::Inactive,
     }
 }
 
-fn placement(toplevel: &WireToplevel) -> PlacementMark {
-    let has = |flag| toplevel.flags.contains(flag);
-    if has(ToplevelFlag::Fullscreen) {
-        PlacementMark::FullScreen
-    } else if has(ToplevelFlag::Maximized) {
-        PlacementMark::Fill
-    } else {
-        PlacementMark::Free
+fn placement(sizing: Sizing) -> PlacementMark {
+    match sizing {
+        Sizing::Fullscreen => PlacementMark::FullScreen,
+        Sizing::Maximized => PlacementMark::Fill,
+        Sizing::Floating => PlacementMark::Free,
     }
 }
 

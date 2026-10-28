@@ -1,13 +1,13 @@
 //! Table tests for the dock's own menu.
 
 use ds::prelude::*;
-use sill_settings::{AutoHide, Magnification};
+use sill_settings::OnOff;
 
 use super::rows;
 use crate::dock::context_menu::{DockMenuRow, menu_entries};
 use crate::dock::pick::DockPick;
 
-fn listed(autohide: AutoHide, magnification: Magnification) -> Vec<(String, Option<DockPick>)> {
+fn listed(autohide: OnOff, magnification: OnOff) -> Vec<(String, Option<DockPick>)> {
     menu_entries(&rows(autohide, magnification), None, &[])
         .into_iter()
         .map(|e| match e {
@@ -20,10 +20,10 @@ fn listed(autohide: AutoHide, magnification: Magnification) -> Vec<(String, Opti
 #[test]
 fn the_rows_are_hiding_magnification_a_rule_and_dock_settings() {
     assert_eq!(
-        rows(AutoHide::Off, Magnification::On),
+        rows(OnOff::Off, OnOff::On),
         [
-            DockMenuRow::Hiding(AutoHide::Off),
-            DockMenuRow::Magnifying(Magnification::On),
+            DockMenuRow::Hiding(OnOff::Off),
+            DockMenuRow::Magnifying(OnOff::On),
             DockMenuRow::Separator,
             DockMenuRow::DockSettings,
         ]
@@ -34,14 +34,14 @@ fn the_rows_are_hiding_magnification_a_rule_and_dock_settings() {
 fn the_toggles_read_by_the_state_they_will_set_and_dock_settings_opens_the_page() {
     let cases = [
         (
-            AutoHide::Off,
-            Magnification::On,
+            OnOff::Off,
+            OnOff::On,
             "Turn Hiding On",
             "Turn Magnification Off",
         ),
         (
-            AutoHide::On,
-            Magnification::Off,
+            OnOff::On,
+            OnOff::Off,
             "Turn Hiding Off",
             "Turn Magnification On",
         ),

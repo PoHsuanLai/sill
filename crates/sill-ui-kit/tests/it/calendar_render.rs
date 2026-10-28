@@ -25,7 +25,7 @@ use sill_settings::ShellFile;
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
-use sill_ui_kit::widgets::{Widget, WidgetKind, widgets_css};
+use sill_ui_kit::widgets::{CenterWidget, Widget, widgets_css};
 
 /// Today's number, on the accent disc.
 const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
@@ -60,15 +60,15 @@ fn app() -> Element {
         Ds { sheet: Some(sill_shell_kit::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
             AppStyle { css: css }
             match world.kind {
-                Kind::Calendar => rsx! { {widget(WidgetKind::Calendar)} },
-                Kind::UpNext => rsx! { {widget(WidgetKind::UpNext)} },
+                Kind::Calendar => rsx! { {widget(CenterWidget::Calendar)} },
+                Kind::UpNext => rsx! { {widget(CenterWidget::UpNext)} },
             }
         }
     }
 }
 
 /// `kind` at its one size.
-fn widget(kind: WidgetKind) -> Element {
+fn widget(kind: CenterWidget) -> Element {
     rsx! { Widget { kind } }
 }
 

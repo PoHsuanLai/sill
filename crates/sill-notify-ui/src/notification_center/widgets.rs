@@ -4,10 +4,10 @@
 //! (`widgets_css`).
 
 use dioxus::prelude::*;
-use sill_ui_kit::widgets::{Widget, WidgetKind};
+use sill_ui_kit::widgets::{CenterWidget, Widget};
 
 /// The widgets under the history, in this order.
-const CENTER: [WidgetKind; 2] = [WidgetKind::Calendar, WidgetKind::UpNext];
+const CENTER: [CenterWidget; 2] = [CenterWidget::Calendar, CenterWidget::UpNext];
 
 /// The widgets under the history.
 #[component]

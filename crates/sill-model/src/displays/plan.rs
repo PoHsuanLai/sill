@@ -8,7 +8,7 @@ use super::brightness::{
     BacklightName, BrightnessTarget, LevelChange, backlight_value, stepped, targets, value_of,
 };
 use super::ddc::{Feature, Level, RgbGain, Write};
-use super::policy::{KeysTarget, NightWarmth};
+use super::policy::KeysTarget;
 use super::warmth::{scaled, warmth_gains};
 use crate::ids::{DdcId, OutputName};
 use crate::units::Percent;
@@ -103,22 +103,22 @@ pub fn probe_needed(displays: &Displays) -> bool {
 pub type Originals = BTreeMap<DdcId, RgbGain>;
 
 /// The writes that bring every DDC display with RGB gains to `warmth`, and the originals to
-/// keep: `Hardware` scales each display's own gains (remembered the first time) by the warmth
-/// multipliers; `Off` puts back every gain sill changed and forgets them.
+/// keep: `Some` scales each display's own gains (remembered the first time) by the warmth
+/// multipliers; `None` puts back every gain sill changed and forgets them.
 pub fn warmth_writes(
     displays: &Displays,
     originals: &Originals,
-    warmth: NightWarmth,
+    warmth: Option<Percent>,
 ) -> (Originals, Vec<Write>) {
     match warmth {
-        NightWarmth::Off => {
+        None => {
             let writes = originals
                 .iter()
                 .flat_map(|(id, original)| gain_writes(displays, *id, *original))
                 .collect();
             (Originals::new(), writes)
         }
-        NightWarmth::Hardware(strength) => warm(displays, originals, strength),
+        Some(strength) => warm(displays, originals, strength),
     }
 }
 

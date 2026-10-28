@@ -7,7 +7,7 @@
 //! any other edit, the feed settles, and the mode follows. So the file stays the one truth, and a
 //! hand edit and a toggle cannot disagree.
 
-use sill_settings::FocusMode;
+use sill_settings::OnOff;
 use tokio::sync::{mpsc, watch};
 
 /// Whether a set reached the focus task.
@@ -22,30 +22,30 @@ pub enum Delivery {
 /// never a Dioxus signal.
 #[derive(Debug, Clone)]
 pub struct FocusLink {
-    mode: watch::Receiver<FocusMode>,
-    set: mpsc::UnboundedSender<FocusMode>,
+    mode: watch::Receiver<OnOff>,
+    set: mpsc::UnboundedSender<OnOff>,
 }
 
 impl FocusLink {
     /// A link from its halves (the task's, or a test's).
-    pub fn new(mode: watch::Receiver<FocusMode>, set: mpsc::UnboundedSender<FocusMode>) -> Self {
+    pub fn new(mode: watch::Receiver<OnOff>, set: mpsc::UnboundedSender<OnOff>) -> Self {
         FocusLink { mode, set }
     }
 
     /// A link fixed at `mode` whose sets go nowhere, for a headless render or a test.
-    pub fn fixed(mode: FocusMode) -> FocusLink {
+    pub fn fixed(mode: OnOff) -> FocusLink {
         let (_tx, rx) = watch::channel(mode);
         let (set, _commands) = mpsc::unbounded_channel();
         FocusLink { mode: rx, set }
     }
 
     /// A receiver of the mode in effect.
-    pub fn mode(&self) -> watch::Receiver<FocusMode> {
+    pub fn mode(&self) -> watch::Receiver<OnOff> {
         self.mode.clone()
     }
 
     /// Ask for `mode`: stored in `settings.toml`, published once the file settles.
-    pub fn set(&self, mode: FocusMode) -> Delivery {
+    pub fn set(&self, mode: OnOff) -> Delivery {
         match self.set.send(mode) {
             Ok(()) => Delivery::Queued,
             Err(_) => Delivery::Gone,
@@ -55,31 +55,31 @@ impl FocusLink {
 
 #[cfg(test)]
 mod tests {
-    use sill_settings::FocusMode;
+    use sill_settings::OnOff;
     use tokio::sync::{mpsc, watch};
 
     use super::{Delivery, FocusLink};
 
     #[test]
     fn a_set_reaches_the_task_and_a_stopped_task_is_gone() {
-        let (_mode_tx, mode) = watch::channel(FocusMode::Off);
+        let (_mode_tx, mode) = watch::channel(OnOff::Off);
         let (set, mut commands) = mpsc::unbounded_channel();
         let link = FocusLink::new(mode, set);
-        assert_eq!(link.set(FocusMode::DoNotDisturb), Delivery::Queued);
-        assert_eq!(commands.try_recv().ok(), Some(FocusMode::DoNotDisturb));
+        assert_eq!(link.set(OnOff::On), Delivery::Queued);
+        assert_eq!(commands.try_recv().ok(), Some(OnOff::On));
         drop(commands);
-        assert_eq!(link.set(FocusMode::Off), Delivery::Gone);
+        assert_eq!(link.set(OnOff::Off), Delivery::Gone);
     }
 
     #[test]
     fn a_fixed_link_holds_its_mode_and_takes_sets_quietly() {
-        let link = FocusLink::fixed(FocusMode::DoNotDisturb);
-        assert_eq!(*link.mode().borrow(), FocusMode::DoNotDisturb);
+        let link = FocusLink::fixed(OnOff::On);
+        assert_eq!(*link.mode().borrow(), OnOff::On);
         assert_eq!(
-            link.set(FocusMode::Off),
+            link.set(OnOff::Off),
             Delivery::Gone,
             "no task to carry it out"
         );
-        assert_eq!(*link.mode().borrow(), FocusMode::DoNotDisturb);
+        assert_eq!(*link.mode().borrow(), OnOff::On);
     }
 }

@@ -10,7 +10,7 @@ use sill_launcher::AppId;
 use sill_model::apps::AppIndex;
 use sill_model::pins::DockPins;
 use sill_model::windows::{Activity, AppMatch, Toplevel, Toplevels, WindowState, app_of};
-use sill_settings::TrashTile;
+use sill_settings::OnOff;
 
 use crate::dock::machine::{TileApp, TileId};
 
@@ -57,7 +57,7 @@ pub fn dock_items(
     pins: &DockPins,
     toplevels: &Toplevels,
     index: &AppIndex,
-    trash: TrashTile,
+    trash: OnOff,
 ) -> Vec<DockItem> {
     let groups = running_groups(toplevels, index);
     let pinned = pins.pinned.iter().map(|id| {
@@ -73,8 +73,8 @@ pub fn dock_items(
         .filter(|(group, _)| group.app_id().is_none_or(|id| !pins.pinned.contains(id)))
         .map(|(group, windows)| item(group.clone(), windows));
     let trash = match trash {
-        TrashTile::On => Some(item(ItemKind::Trash, &[])),
-        TrashTile::Off => None,
+        OnOff::On => Some(item(ItemKind::Trash, &[])),
+        OnOff::Off => None,
     };
     pinned.chain(running).chain(trash).collect()
 }
@@ -163,7 +163,7 @@ mod tests {
     use sill_model::ids::OutputName;
     use sill_model::pins::DockPins;
     use sill_model::windows::{Activity, Sizing, Toplevel, Toplevels, WindowState};
-    use sill_settings::TrashTile;
+    use sill_settings::OnOff;
     use std::path::PathBuf;
 
     fn app(id: &str) -> App {
@@ -249,7 +249,7 @@ mod tests {
             &pins(&["org.gnome.Nautilus", "foot"]),
             &toplevels,
             &index(),
-            TrashTile::On,
+            OnOff::On,
         );
         assert_eq!(
             shape(&items),
@@ -273,12 +273,12 @@ mod tests {
                 WindowState::Minimized,
             )],
         };
-        let items = dock_items(&pins(&[]), &toplevels, &index(), TrashTile::Off);
+        let items = dock_items(&pins(&[]), &toplevels, &index(), OnOff::Off);
         assert_eq!(
             shape(&items),
             vec![("run firefox".to_owned(), TileApp::AllMinimized)]
         );
-        assert!(dock_items(&pins(&[]), &Toplevels::default(), &index(), TrashTile::Off).is_empty());
+        assert!(dock_items(&pins(&[]), &Toplevels::default(), &index(), OnOff::Off).is_empty());
     }
 
     #[test]
@@ -290,7 +290,7 @@ mod tests {
                 windows: vec![term.clone()],
             },
             &index(),
-            TrashTile::On,
+            OnOff::On,
         );
         let after = dock_items(
             &pins(&[]),
@@ -301,7 +301,7 @@ mod tests {
                 ],
             },
             &index(),
-            TrashTile::On,
+            OnOff::On,
         );
         assert_eq!(before[0].kind, after[1].kind, "firefox came first");
         assert_eq!(before[0].tile, after[1].tile);
@@ -310,7 +310,7 @@ mod tests {
             &pins(&["foot"]),
             &Toplevels::default(),
             &index(),
-            TrashTile::Off,
+            OnOff::Off,
         );
         assert_eq!(
             pinned[0].tile, before[0].tile,

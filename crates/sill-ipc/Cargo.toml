@@ -9,6 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+clap = { workspace = true, optional = true }
 ds-core = { workspace = true }
 sill-launcher = { workspace = true }
 sill-model = { workspace = true }
@@ -19,6 +20,10 @@ thiserror = { workspace = true }
 [dev-dependencies]
 sill-testkit = { workspace = true }
 keycap-protocol = { workspace = true }
+
+[features]
+# The command line parses straight into the request types (`sill` turns this on).
+cli = ["dep:clap"]
 
 [lints]
 workspace = true

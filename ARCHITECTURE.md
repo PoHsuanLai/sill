@@ -40,7 +40,7 @@ listed except where noted.
 | 0 | `sill-shell-kit` | The shell-only parts over `ds`, moved here from quire's `ds-shell` (2026-10-07): bar, dock, control center, lock, switcher, OSD, idle dim, notifications, thumbnails, battery, clock, now playing, user picture, emoji, month grid, date picker, the widget contract and its two widgets (calendar, up next), with the shell's tokens (`tokens/`), sheets (`sheets.rs`), `KIT`, `kits()` and `stylesheet()` (the whole shell stylesheet: quire's plus these) and their SSR goldens and behaviour tests | none of ours; quire's `ds`, `ds-core`, `ds-shell` (its `KIT` and sheets). Dev: `ds-blitz`, `ds-harness`, `ds-lint`, `ds-settings` |
 | 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service, and the shell's actions (`actions/`: `ActionDef`, `Effect`, `Ask`) | `sill-launcher`, `chordkit` (`StandardAction`), `keycap-protocol`, `ds-core` (`Stamp`, `Machine`), `docket-core`, `companion-model`, `cua-action`, `docket-manifest`, `docket-permissions-core`, `docket-vocab`, `docket-wire`, `almanac-core`, `companion-wire`, `cua-bus`, `prov`, `porter-core`, `porter-capability`, `porter-ids`, `porter-sheet` (the accounts sheet's `SheetView`/`SheetInput`, serde data), `porter-infer` (`ModelRef`, `ServedBy`: serde data a helper's model is named by), `casement-protocols` (`vocab` only: the desktop views' enums), `ds-helpers` (no features: `match_app` and `AppKeys`, the one matcher of a window to its desktop entry); serde, jiff, thiserror |
 | 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
-| 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
+| 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror; clap (optional, `cli`: the request types are the command line's grammar) |
 | 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`), `ds-settings` (`SettingsWriter`, for Night Shift's edits to casement's file), `docket-core`, `companion-model`, `cua-action`, `docket-manifest`, `docket-permissions-core`, `docket-vocab`, `docket-wire`, `docket-dbus`, `docket-client`, `docket-provider`, `companion-wire`, `cua-bus`, `cua-dbus`, `almanac-core`, `almanac-dbus`, `prov`, `porter-core`, `porter-ids`, `porter-sheet`, `porter-tailnet`, `porter-tailscale`, `porter-wire`, `porter-infer` (`Slot` and `ModelRef`, to keep a helper's pool), `porter-dbus` (who owns a bus name: caller identity; accountd's `Manager` and `Account` proxies), `porter-client` (`dbus` and `infer` features only: the typed guest calls and change stream for the guest-asks service; the places and engines a helper's model is picked from), `voice-dbus`, `anyview-core`, `anyview-platform` (the viewer's D-Bus request, for the launch service), `casement-protocols` (`vocab`), `desktop-client` (`client` feature: the wire behind `desktop_wl` and the native displays route); tokio, zbus, rustix, libpulse, notify, nonstick, ddc, image, toml |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/` (the files provider reads the viewer's history and takes the shared file actions), clip images | `sill-services`, `sill-model`, `sill-launcher`, `anyview-core`, `anyview-store`, `ds-core`, `docket-core`, `companion-model`, `cua-action`, `docket-manifest`, `docket-permissions-core`, `docket-vocab`, `almanac-core`, `companion-wire`, `prov`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
 | 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, hooks, `look`, `panel`, `shell_style`, `sheet_stage` (the enter / shown / leaving-with-exit stage of a sheet), `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-shell-kit`, `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `companion-wire`, `docket-core`, `cua-action`, `docket-manifest`, `docket-permissions-core`, `docket-vocab`, `porter-core`, `porter-capability`, `prov`, `ds-core`, `ds`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
@@ -182,9 +182,9 @@ code into `tests.rs`. Exceptions and renames:
 
 | From | To |
 | --- | --- |
-| `sill-settings/src/{bar,calendar,control_center,display,dock,hot_corners,idle,keyboard,launcher,notifications,screenshot,scroll,scrollbar,session,switcher,widgets}.rs` | stay; keys with no reader deleted; `flatten extra` and `version` deleted |
-| `dock_words.rs`, `launcher_kinds.rs`, enums a service reads | `sill-model/src/vocab/` or the service dir; the settings field uses that type |
-| `focus.rs` (`FocusMode`) | `sill-model/src/focus/` |
+| `sill-settings/src/{bar,calendar,control_center,display,dock,hot_corners,idle,keyboard,launcher,notifications,screenshot,scroll,scrollbar,session,switcher}.rs` | stay; keys with no reader deleted; `flatten extra` and `version` deleted |
+| `dock_words.rs`, `launcher_kinds.rs`, enums a service reads | `OnOff` for the `on`/`off` keys (`sill-model/src/on_off.rs`); an enum a service reads (`NightWarmthMode`) is in `sill-model` and the settings field uses that type |
+| `focus.rs` (`FocusMode`) | deleted: Do Not Disturb is `notifications.dnd`, an `OnOff` |
 | `focus_link.rs` | `sill-ui-kit/src/links/focus.rs` (the link) and `sill/src/daemon/settings/focus.rs` (the task that writes the file) |
 | `watch.rs`, `file.rs` `load`/`save`/`try_load`/`unknown_keys` | `sill/src/daemon/settings/{watch,store}.rs` over `ds_settings::Store`; `file.rs` keeps `ShellFile` and `impl SettingsDoc` |
 | `feed.rs` (`SettingsFeed`) | `sill-ui-kit/src/settings.rs` |
@@ -534,7 +534,7 @@ Bluetooth, Focus, Display, Keyboard, Sound, Now Playing, Appearance, Battery.
 ```rust
 pub trait WidgetProvider: Clone + PartialEq + Default + 'static {
     type W: sill_shell_kit::prelude::Widget;        // a value: `Widget: Default`
-    const KIND: WidgetKind;
+    const KIND: CenterWidget;
     fn use_feed() -> Feed<Self::W>;           // reads the services; one hook, one shape
 }
 pub struct Feed<W: sill_shell_kit::prelude::Widget> {
@@ -542,12 +542,12 @@ pub struct Feed<W: sill_shell_kit::prelude::Widget> {
     pub onintent: Option<EventHandler<W::Intent>>,         // the card's controls; none without any
 }
 #[component] pub fn Card<P: WidgetProvider>(provider: P) -> Element;  // a WidgetCard tile, `SIZE` (Medium)
-pub fn with_provider<A: OnProvider>(kind: WidgetKind, action: A) -> A::Out;  // the only match on the kind
-pub fn card(kind: WidgetKind) -> Element;             // `with_provider(kind, ..)`
+pub fn with_provider<A: OnProvider>(kind: CenterWidget, action: A) -> A::Out;  // the only match on the kind
+pub fn card(kind: CenterWidget) -> Element;             // `with_provider(kind, ..)`
 ```
 
 Widgets live only in the notification center: `CenterWidgets` draws the fixed list
-`[Calendar, UpNext]`, each a Medium tile; nothing is placed, picked or edited. `WidgetKind`
+`[Calendar, UpNext]`, each a Medium tile; nothing is placed, picked or edited. `CenterWidget`
 derives quire's `Word`: `ALL` and the slug (the element id `widget-<slug>`) come from the
 derive. A provider is a `Default` unit struct (`CalendarProvider`), passed to `Card` only to
 name the type. Calendar's `use_feed` keeps the shown month in a signal and returns the
@@ -579,7 +579,7 @@ Implementors: `DockMenu` (the dock's menus: an app tile's, the Trash tile's, and
 | `BusRoute` `{Usual, Address, Absent}`, `WaylandRoute` `{Environment, Socket}` | `sill_services::env` | route choices, not behaviours |
 | `Reveal<O>` `{Hidden{last}, Revealed(O)}` | `sill-ui-kit::links` | a link's value |
 | `Start`, `OutputRank`, `Insertion` | `sill-ui-kit::surface` | closed |
-| `ControlCenterModule`, `WidgetKind`, `ProviderKind` | settings and launcher | matched once, in `module` and `card` and `row` |
+| `ControlCenterModule`, `CenterWidget`, `ProviderKind` | settings and launcher | matched once, in `module` and `card` and `row` |
 | service `Command`, `Event`, `Effect` | `sill-model` | closed sets stepped by `match` |
 
 ---
@@ -694,7 +694,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 ### Add a widget
 
 1. The `sill_shell_kit::prelude::Widget` (`sill-shell-kit`'s `widget/<kind>/{mod, model, view, style.css}`),
-   then a `WidgetKind` variant in `sill-settings/src/widgets.rs`.
+   then a `CenterWidget` variant in `sill-ui-kit/src/widgets/kind.rs`.
 2. `sill-ui-kit/src/widgets/<kind>/{mod,io,tests}.rs` (+ `style.css` if it has one):
    `impl WidgetProvider` (`use_feed` over services) on a unit struct in `io.rs`.
 3. The one arm in `widgets/card.rs::with_provider`, and the kind in `CENTER`
@@ -716,8 +716,12 @@ Each ends with its tests. Name the concept once and use it in every file name be
 
 1. The design/22 row in quire first (with `RETIRING` when removing one).
 2. `sill-settings/src/<domain>.rs`: a field of a typed value: a `Word` enum, a `ds-settings`
-   unit newtype, or a two-variant enum (no `bool`); the default is the design's. A string that
-   names a closed set is an enum parsed at load; a shared enum lives in `sill-model`.
+   unit newtype, or `OnOff` for a key stored as `on`/`off` (`sill_model::on_off`, re-exported
+   by `sill-settings`); a two-state key whose words differ (`show`/`hide`, `natural`/
+   `traditional`) is a named enum. A `bool` is a field of a runtime struct, not a stored word.
+   The default is the design's, set in the struct's `Default`. A string that
+   names a closed set is an enum parsed at load; a shared enum lives in `sill-model`, and the
+   settings field uses that type, never a copy.
    A list of tables is a `Vec<Row>` with `#[derive(SettingsRow)]` on the row (quire design/22
    §9.1); the file keeps the person's text, a function in the domain file turns the rows into
    typed values once per load and names each row it dropped, and a malformed row costs only

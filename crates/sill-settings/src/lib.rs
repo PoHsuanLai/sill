@@ -13,14 +13,11 @@ pub mod companion;
 pub mod control_center;
 pub mod display;
 pub mod dock;
-mod dock_words;
 pub mod file;
-pub mod focus;
 pub mod hot_corners;
 pub mod idle;
 pub mod keyboard;
 pub mod launcher;
-pub mod launcher_kinds;
 pub mod notifications;
 pub mod schema;
 pub mod screenshot;
@@ -29,7 +26,6 @@ pub mod scrollbar;
 pub mod session;
 pub mod voice;
 pub mod wallpaper;
-pub mod widgets;
 
 pub use bar::{BarSettings, MenuBarHiding};
 pub use calendar::{CalendarSettings, FirstWeekday, WeekNumbers};
@@ -38,10 +34,9 @@ pub use companion::{
     params as companion_params,
 };
 pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar};
-pub use display::{DisplaySettings, NightWarmthMode};
-pub use dock::{AutoHide, DockFloor, DockSettings, Indicators, Magnification, TrashTile};
+pub use display::DisplaySettings;
+pub use dock::DockSettings;
 pub use file::{APP, ShellFile};
-pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use hot_corners::{
     CornerAction, CornerBinding, CornerBindings, CornerDo, CornerKey, CornerKeys,
     HotCornerSettings, OpenItem,
@@ -49,15 +44,16 @@ pub use hot_corners::{
 pub use idle::IdleSettings;
 pub use keyboard::{KeyboardOverride, KeyboardSettings, RejectedRow, overrides};
 pub use launcher::LauncherSettings;
-pub use launcher_kinds::WebSearch;
-pub use notifications::{Dnd, NotificationsSettings};
+pub use notifications::NotificationsSettings;
 pub use schema::{schema, schemas};
 pub use screenshot::{ScreenshotSettings, ShotThumbnail};
-pub use scroll::{Momentum, NaturalScroll, ScrollSettings, ScrollbarVisibility};
+pub use scroll::{NaturalScroll, ScrollSettings, ScrollbarVisibility};
 pub use scrollbar::{ScrollbarSettings, TrackClick};
 pub use session::SessionSettings;
 pub use voice::{HoldToTalk, VoiceConsent, VoiceSettings, params as voice_params};
 pub use wallpaper::WallpaperSettings;
-pub use widgets::WidgetKind;
+
+pub use sill_model::displays::NightWarmthMode;
+pub use sill_model::on_off::OnOff;
 
 pub use ds_settings::{Count, Fraction, Mins, Ms, Percent, Px, Scalar, Secs};

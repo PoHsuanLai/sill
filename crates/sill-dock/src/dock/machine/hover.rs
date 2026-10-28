@@ -3,7 +3,7 @@
 
 use ds::base::time::stamp::Stamp;
 use sill_model::units::{Cpx, Permille};
-use sill_settings::Magnification;
+use sill_settings::OnOff;
 
 use super::params::DockParams;
 use super::params::eased;
@@ -83,7 +83,7 @@ fn per_mille(elapsed: u64, total: u64) -> u32 {
 /// The eased progress and pointer x to draw at `now` (design/10 §10.5.4); zero progress when
 /// magnification is off.
 pub fn displayed(dock: &DockState, now: Stamp, p: &DockParams) -> (Permille, Cpx) {
-    if p.magnification == Magnification::Off {
+    if p.magnification == OnOff::Off {
         return (Permille::ZERO, dock.x);
     }
     let lin = linear(&dock.hover, now, p);

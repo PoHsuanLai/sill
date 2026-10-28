@@ -322,14 +322,30 @@ fn every_command_line_sends_its_request() {
             brightness(LevelRequest::Up),
         ),
         (
+            &["display", "brightness", "down"],
+            brightness(LevelRequest::Down),
+        ),
+        (
             &["display", "brightness", "set", "40"],
             brightness(LevelRequest::Set { percent: 40 }),
+        ),
+        (
+            &["display", "volume", "up"],
+            volume(VolumeRequest::Level(LevelRequest::Up)),
         ),
         (
             &["display", "volume", "down"],
             volume(VolumeRequest::Level(LevelRequest::Down)),
         ),
+        (
+            &["display", "volume", "set", "0"],
+            volume(VolumeRequest::Level(LevelRequest::Set { percent: 0 })),
+        ),
         (&["display", "volume", "mute"], volume(VolumeRequest::Mute)),
+        (
+            &["display", "volume", "unmute"],
+            volume(VolumeRequest::Unmute),
+        ),
         (
             &["display", "volume", "toggle-mute"],
             volume(VolumeRequest::ToggleMute),
@@ -583,6 +599,13 @@ fn a_malformed_command_line_is_refused() {
         &["power-menu"],
         &["force-quit"],
         &["control-center", "open"],
+        &["control-center"],
+        &["idle"],
+        &["display"],
+        &["display", "brightness"],
+        &["display", "brightness", "set", "101"],
+        &["display", "brightness", "set", "-1"],
+        &["display", "volume", "louder"],
         &["dock", "pin"],
         &["do"],
         &["do", "reboot"],

@@ -13,7 +13,7 @@ use sill_launcher::{
 };
 use tokio::sync::watch;
 
-use sill_model::results::{LauncherPolicy, WebPolicy};
+use sill_model::results::LauncherPolicy;
 
 /// The fallback row's id.
 pub const WEB_ROW_ID: &str = "web:search";
@@ -59,7 +59,7 @@ impl Provider for WebProvider {
         if query.is_cancelled() {
             return;
         }
-        let WebPolicy::On { template } = self.policy.borrow().web.clone() else {
+        let Some(template) = self.policy.borrow().web.clone() else {
             return;
         };
         let text = query.text.trim();

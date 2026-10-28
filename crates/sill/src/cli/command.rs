@@ -3,20 +3,19 @@
 
 use clap::Subcommand;
 use ds_core::word::Word;
-use sill_ipc::act::{SwitcherRequest, WorkspaceRequest};
+use sill_ipc::act::{DisplayRequest, SwitcherRequest, WorkspaceRequest};
 use sill_ipc::show::{CompanionRequest, Reveal, VoiceRequest};
 use sill_model::screenshots::ShotKind;
 
 use super::action::DoArgs;
 use super::debug::DebugAction;
-use super::desktop::{ControlCenterAction, DockAction};
-use super::display::DisplayAction;
+use super::desktop::DockAction;
 use super::intents::IntentsAction;
 use super::keycap::KeycapAction;
 use super::launch::LaunchArgs;
 use super::launcher::{ClipboardAction, LauncherAction};
 use super::notifications::NotificationsAction;
-use super::session::{IdleAction, LockVerb, PolkitAction};
+use super::session::LockVerb;
 use super::style::StyleAction;
 use super::word::word;
 
@@ -53,7 +52,7 @@ pub enum Command {
     /// The brightness and volume keys.
     Display {
         #[command(subcommand)]
-        action: DisplayAction,
+        action: DisplayRequest,
     },
     /// Show or hide the power menu (Log Out, Restart, Shut Down, Suspend).
     PowerMenu {
@@ -69,8 +68,9 @@ pub enum Command {
     },
     /// Open or close the control center.
     ControlCenter {
-        #[command(subcommand)]
-        action: ControlCenterAction,
+        /// What to do: `toggle` opens it when closed and closes it when open.
+        #[arg(value_parser = ["toggle"])]
+        verb: String,
     },
     /// The notification center and the banners.
     Notifications {
@@ -100,13 +100,15 @@ pub enum Command {
     },
     /// sill's own polkit agent.
     Polkit {
-        #[command(subcommand)]
-        action: PolkitAction,
+        /// What to do: `status` says whether sill's agent is registered and what it shows.
+        #[arg(value_parser = ["status"])]
+        verb: String,
     },
     /// sill's own idle: the dim, the displays off, the lock at screen off and the idle suspend.
     Idle {
-        #[command(subcommand)]
-        action: IdleAction,
+        /// What to do: `status` says who owns idle, where it has got to, and what holds it off.
+        #[arg(value_parser = ["status"])]
+        verb: String,
     },
     /// The Command-key layout: whether keycap runs, restart it, or end its pause.
     Keycap {

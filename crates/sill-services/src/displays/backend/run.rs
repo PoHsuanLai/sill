@@ -298,7 +298,7 @@ impl Service {
     fn apply_warmth(&mut self) {
         let Some(policy) = &self.policy else { return };
         let (originals, writes) =
-            warmth_writes(&self.tx.borrow(), &self.originals, policy.night_warmth);
+            warmth_writes(&self.tx.borrow(), &self.originals, policy.warmth());
         self.originals = originals;
         for write in writes {
             self.write(write);

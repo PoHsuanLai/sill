@@ -60,7 +60,7 @@ mod settings_publish_tests {
     fn a_watched_settings_event_publishes_its_file() {
         let (tx, rx) = watch::channel(ShellFile::default());
         let mut changed = ShellFile::default();
-        changed.notifications.dnd = sill_settings::Dnd::On;
+        changed.notifications.dnd = sill_settings::OnOff::On;
         let event = HostEvent::App(ShellMsg::Settings(Box::new(changed.clone())));
         publish_watched(&tx, &event);
         assert_eq!(rx.borrow().clone(), changed);
@@ -93,7 +93,7 @@ mod settings_publish_tests {
         let (settings_tx, settings_rx) = watch::channel(ShellFile::default());
 
         let mut changed = ShellFile::default();
-        changed.notifications.dnd = sill_settings::Dnd::On;
+        changed.notifications.dnd = sill_settings::OnOff::On;
         store.save(&changed).unwrap_or_else(|e| panic!("{e}"));
 
         let loaded = tokio::time::timeout(Duration::from_secs(2), shell_watch.changed())

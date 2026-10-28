@@ -3,9 +3,9 @@
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
-use crate::launcher_kinds::WebSearch;
 use sill_launcher::SkinTone;
 use sill_model::clipboard::HistoryMode;
+use sill_model::on_off::OnOff;
 use sill_model::results::CurrencyPolicy;
 
 /// The launcher panel's placement and rows.
@@ -36,7 +36,7 @@ pub struct LauncherSettings {
         section = "Search",
         advanced
     )]
-    pub web_search: WebSearch,
+    pub web_search: OnOff,
     /// `launcher.currency`.
     #[settings(
         label = "Currency conversion",
@@ -52,7 +52,7 @@ impl Default for LauncherSettings {
         LauncherSettings {
             clipboard_history: HistoryMode::Memory,
             emoji_skin_tone: SkinTone::Default,
-            web_search: WebSearch::On,
+            web_search: OnOff::On,
             currency: CurrencyPolicy::Off,
         }
     }

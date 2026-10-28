@@ -4,11 +4,12 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::common::Common;
-use sill_settings::WidgetKind;
 use sill_shell_kit::prelude::*;
 use sill_shell_kit::widget::timeline::Timeline;
 
-use super::{SIZE, calendar::CalendarProvider, up_next::UpNextProvider, use_widget_wake};
+use super::{
+    CenterWidget, SIZE, calendar::CalendarProvider, up_next::UpNextProvider, use_widget_wake,
+};
 
 /// What a provider hands the card: the entry now, and where the widget's controls go (none for
 /// a widget without any).
@@ -29,7 +30,7 @@ impl<W: sill_shell_kit::prelude::Widget> std::fmt::Debug for Feed<W> {
 /// that reads its services into a [`Feed`].
 pub trait WidgetProvider: Clone + PartialEq + Default + 'static {
     type W: sill_shell_kit::prelude::Widget;
-    const KIND: WidgetKind;
+    const KIND: CenterWidget;
     fn use_feed() -> Feed<Self::W>;
 }
 
@@ -58,10 +59,10 @@ pub trait OnProvider {
 }
 
 /// `action` on `kind`'s provider: the only match on the kind.
-pub fn with_provider<A: OnProvider>(kind: WidgetKind, action: A) -> A::Out {
+pub fn with_provider<A: OnProvider>(kind: CenterWidget, action: A) -> A::Out {
     match kind {
-        WidgetKind::Calendar => action.on::<CalendarProvider>(),
-        WidgetKind::UpNext => action.on::<UpNextProvider>(),
+        CenterWidget::Calendar => action.on::<CalendarProvider>(),
+        CenterWidget::UpNext => action.on::<UpNextProvider>(),
     }
 }
 
@@ -75,13 +76,13 @@ impl OnProvider for CardOf {
 }
 
 /// `kind`'s card.
-pub fn card(kind: WidgetKind) -> Element {
+pub fn card(kind: CenterWidget) -> Element {
     with_provider(kind, CardOf)
 }
 
 /// One widget of `kind` on quire's card in the notification center: the kind's provider feeds
 /// the card.
 #[component]
-pub fn Widget(kind: WidgetKind) -> Element {
+pub fn Widget(kind: CenterWidget) -> Element {
     card(kind)
 }

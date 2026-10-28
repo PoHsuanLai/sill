@@ -9,15 +9,6 @@ use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 use sill_launcher::SkinTone;
 
-/// The web fallback row (`launcher.web_search`).
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum WebPolicy {
-    #[default]
-    Off,
-    /// Offer "Search the web for …" opening `template` with `{query}` replaced.
-    On { template: String },
-}
-
 /// Currency conversion in the calculator (`launcher.currency`). Off: no rates are fetched and
 /// currency units are not offered.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
@@ -37,7 +28,9 @@ pub struct LauncherPolicy {
     /// stop there; an index is asked once and waited on at most this long). Zero, the default
     /// before the first policy arrives, asks no index.
     pub files_budget: Duration,
-    pub web: WebPolicy,
+    /// The web fallback row (`launcher.web_search`): the URL it opens with `{query}` replaced,
+    /// or `None` for no row.
+    pub web: Option<String>,
     pub emoji_tone: SkinTone,
     pub currency: CurrencyPolicy,
 }

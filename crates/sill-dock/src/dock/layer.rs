@@ -11,7 +11,7 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget,
 };
-use sill_settings::{AutoHide, ShellFile};
+use sill_settings::{OnOff, ShellFile};
 
 use crate::dock::machine::Reveal;
 use crate::dock::tokens::DockTokens;
@@ -28,8 +28,8 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile, tokens: &DockTokens) -> 
     let magnified = u32::from(dock.magnified_size_px.0);
     let pad = u32::from(tokens.pad);
     let reveal = match dock.autohide {
-        AutoHide::Off => Reveal::Fixed,
-        AutoHide::On => Reveal::Hidden,
+        OnOff::Off => Reveal::Fixed,
+        OnOff::On => Reveal::Hidden,
     };
     let reserve = GUTTER_PX + tile + 2 * pad;
     LayerConfig {
@@ -65,7 +65,7 @@ mod tests {
     use super::layer;
     use crate::dock::tokens::DockTokens;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
-    use sill_settings::{AutoHide, DockSettings, ShellFile};
+    use sill_settings::{DockSettings, OnOff, ShellFile};
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
@@ -85,7 +85,7 @@ mod tests {
         assert!(matches!(config.blur, BlurSpec::Region(_)));
         let hiding = ShellFile {
             dock: DockSettings {
-                autohide: AutoHide::On,
+                autohide: OnOff::On,
                 ..DockSettings::default()
             },
             ..ShellFile::default()

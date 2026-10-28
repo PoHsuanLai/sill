@@ -31,7 +31,7 @@ use sill_overlays::{
     ForceQuit, HotCorners, IdleDim, LOCK, Osd, PermissionSheet, PolkitPrompt, PowerMenu, SpacesBar,
     SplitPicker, Switcher, VoiceConsentSheet, Wallpaper,
 };
-use sill_settings::{AutoHide, ShellFile};
+use sill_settings::{OnOff, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
@@ -250,7 +250,7 @@ fn dock_states() -> Vec<(&'static str, String)> {
         dock.harness.html()
     };
     let mut hiding = ShellFile::default();
-    hiding.dock.autohide = AutoHide::On;
+    hiding.dock.autohide = OnOff::On;
     let fixed = draw(ShellFile::default());
     let hidden = draw(hiding);
     assert!(hidden.contains("id=\"dock-strip\""), "{hidden}");
