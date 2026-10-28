@@ -249,7 +249,7 @@ shell-verbs = { path = "../casement-protocols/shell-verbs" }
 # NetworkManager and BlueZ zbus proxies, shared with detent; zbus runs on tokio here.
 airwaves-nm = { git = "https://github.com/PoHsuanLai/airwaves", tag = "v0.1.0", default-features = false, features = ["tokio"] }
 airwaves-bluez = { git = "https://github.com/PoHsuanLai/airwaves", tag = "v0.1.0", default-features = false, features = ["tokio"] }
-peephole-bus = { git = "https://github.com/PoHsuanLai/peephole", tag = "v0.1.9", default-features = false, features = ["tokio", "desktop"] }
+peephole-bus = { git = "https://github.com/PoHsuanLai/peephole", tag = "v0.1.11", default-features = false, features = ["tokio", "desktop"] }
 prov = { path = "../prov/prov" }
 porter-core = { path = "../porter/crates/porter-core" }
 porter-ids = { path = "../porter/crates/porter-ids" }
