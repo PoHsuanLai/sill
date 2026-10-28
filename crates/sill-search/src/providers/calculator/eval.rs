@@ -165,7 +165,8 @@ mod tests {
             per_euro: BTreeMap::from([("USD".to_owned(), 1.1), ("EUR".to_owned(), 1.0)]),
             day: None,
         };
-        let outcome = evaluate("10 usd to eur", Duration::from_millis(50), Some(&rates));
+        // A generous budget: the test is about the rates, and a loaded gate machine timed out at 50 ms.
+        let outcome = evaluate("10 usd to eur", Duration::from_secs(5), Some(&rates));
         let EvalOutcome::Value(value) = outcome else {
             panic!("expected a conversion, got {outcome:?}");
         };
