@@ -1002,6 +1002,7 @@ async fn the_shells_own_rows_do_what_the_table_calls_cheap() {
 
 mod routed {
     use super::*;
+    use docket_core::LinkFault;
     use docket_core::{
         ActionGrantKey, AppRefusal, CallRefusal, CallerId, CallerRole, ClassifyFault,
         ConfirmAnswer, GrantCaller, GrantScope as ConsentScope, GrantTarget, Invocation, Latency,
@@ -1011,7 +1012,7 @@ mod routed {
         FakeMemory, FixedClock, MemoryGrants, RecordingSink, ScriptedConfirmer, ScriptedReader,
         ScriptedReviewer, ScriptedWriter,
     };
-    use docket_router::{AppFault, AppLink, GrantStore, LinkFault, NoLog, Router, Seams};
+    use docket_router::{AppFault, AppLink, GrantStore, NoLog, Router, Seams};
     use policy_point::Presets;
     use porter_core::consent::{Decision, Grant, Usage};
     use porter_core::{AppId, DataClass, Isolation};

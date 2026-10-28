@@ -1,12 +1,12 @@
 //! Taking the bus: one connection, the names in the order that keeps intentd's trust check true.
 
-use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 
 use docket_dbus::callers::{Identity, intentd_only};
 use docket_dbus::{CONFIRM_BUS, CONFIRM_PATH};
+use docket_provider::ServeError;
 use sill_model::screenshots::Shots;
 use sill_model::serve::ClaimError;
 use tokio::sync::mpsc::UnboundedSender;
@@ -50,7 +50,7 @@ pub(super) async fn take(
             windows: menus,
             shots,
         };
-        docket_client::serve_on_with(
+        docket_provider::serve_on_with(
             connection,
             provider,
             ShellContext { app },
@@ -83,14 +83,12 @@ fn intentd_at(connection: &Connection, proc_root: &Path) -> Identity {
     Identity::on(connection.clone(), intentd_only(), fixture)
 }
 
-/// docket's `serve_on_with` reports a name that is taken only as text (docket's "<name> is taken",
-/// or zbus's "already taken" passed through), so this is the one place that reads it; everything sill claims itself says it with a type
-/// ([`serve::take_name`]).
-fn docket_trouble(error: impl Display) -> ClaimError {
-    let text = error.to_string();
-    if text.contains("taken") {
-        ClaimError::NameTaken(text)
-    } else {
-        ClaimError::Refused(text)
+/// docket's `serve_on_with` says a taken name with a type, as everything sill claims itself does
+/// ([`serve::take_name`]); a bus that refused the name is taken too.
+fn docket_trouble(error: ServeError) -> ClaimError {
+    match error {
+        ServeError::Taken(name) => ClaimError::NameTaken(name),
+        ServeError::Bus(zbus::Error::NameTaken) => ClaimError::NameTaken(CONFIRM_BUS.to_owned()),
+        other => ClaimError::Refused(other.to_string()),
     }
 }

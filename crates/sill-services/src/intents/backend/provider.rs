@@ -5,13 +5,14 @@
 
 use std::time::Duration;
 
-use docket_client::{ContextSource, DbusTransport, IntentProvider, SummonTarget};
+use docket_client::DbusTransport;
 use docket_core::{
     ActivationToken, AppRefusal, CallClass, ContextScope, ContextSnapshot, EntityRef, FailText,
     Here, Hit, Invocation, Manifest, Outcome, Preview, Selection, SuggestAsk, SummonAnswer,
     SummonOrigin, SummonSerial, TextTarget, UndoFault, UndoToken, ValidManifest, Visible,
     WindowPrivacy, validate,
 };
+use docket_provider::{ContextSource, IntentProvider, SummonTarget};
 use porter_core::Count;
 use prov::{Actor, EntityId, Label, Labelled};
 use sill_model::intents::shell::{

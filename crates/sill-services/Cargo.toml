@@ -28,6 +28,7 @@ keycap-protocol = { workspace = true }
 docket-core = { workspace = true }
 docket-dbus = { workspace = true }
 docket-client = { workspace = true }
+docket-provider = { workspace = true }
 companion-wire = { workspace = true }
 voice-wire = { workspace = true }
 voice-dbus = { workspace = true }

@@ -139,6 +139,8 @@ pub(super) fn limit_of(reason: LimitReason) -> Limitation {
         LimitReason::PickerOnly => Limitation::PickerOnly,
         LimitReason::AppFolderOnly => Limitation::AppFolderOnly,
         LimitReason::ProviderOffersNone => Limitation::ProviderOffersNone,
+        // A limit this sheet has no line for yet reads as the provider not offering it.
+        _ => Limitation::ProviderOffersNone,
     }
 }
 
@@ -150,6 +152,8 @@ pub(super) fn absence_of(reason: AbsentReason) -> Limitation {
         AbsentReason::UnverifiedBuild => Limitation::UnverifiedBuild,
         AbsentReason::TurnedOff => Limitation::TurnedOff,
         AbsentReason::NotOnServer => Limitation::NotOnServer,
+        // An absence this sheet has no line for yet reads as the provider not offering it.
+        _ => Limitation::ProviderOffersNone,
     }
 }
 

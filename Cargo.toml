@@ -213,11 +213,13 @@ keycap-protocol = { path = "../keycap/crates/keycap-protocol" }
 keycap-client = { path = "../keycap/crates/keycap-client" }
 # intentd's wire: the vocabulary of a confirmation (`ConfirmRequest`, `ConfirmAnswer`), the
 # manifest and the invocation, as plain serde data (porter, almanac and stoker types only: no
-# runtime), and the bus names. `docket-client` serves sill's `IntentProvider1` for `org.quire.Shell`
-# and `docket-dbus` has the `Confirm1` and `Control` proxies; MIT OR Apache-2.0, sibling checkouts.
+# runtime), and the bus names. `docket-provider` serves sill's `IntentProvider1` for
+# `org.quire.Shell`, `docket-client` calls intentd, and `docket-dbus` has the `Confirm1` and
+# `Control` proxies; MIT OR Apache-2.0, sibling checkouts.
 docket-core = { path = "../docket/crates/docket-core" }
 docket-dbus = { path = "../docket/crates/docket-dbus" }
 docket-client = { path = "../docket/crates/docket-client", features = ["dbus"] }
+docket-provider = { path = "../docket/crates/docket-provider", features = ["dbus"] }
 # The desktop's private protocols: sill-model takes only the pure vocabulary (`vocab`, serde and
 # thiserror, no Wayland), for the views of apps, windows and Spaces; MIT OR Apache-2.0, a sibling
 # checkout.
