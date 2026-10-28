@@ -1,6 +1,6 @@
 //! The terminal's transition.
 
-use docket_core::ActionRef;
+use docket_vocab::ActionRef;
 
 use super::model::{Breaker, ControlReach, Terminal};
 

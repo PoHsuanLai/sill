@@ -2,7 +2,7 @@
 //! prompt of its own, the focused app's prompt when it serves the companion and answers within
 //! `app_wait`. A pure machine; the service carries each [`SummonOut`] out.
 
-use docket_core::{SummonAnswer, SummonSerial};
+use docket_wire::{SummonAnswer, SummonSerial};
 use ds_core::machine::{Elapsed, Machine};
 use ds_core::time::stamp::Stamp;
 use ds_core::word::Word;

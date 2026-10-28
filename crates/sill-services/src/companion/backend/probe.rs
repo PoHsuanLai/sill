@@ -2,8 +2,8 @@
 //! its bus name (the companion client of an app is its provider on that name), and whether the
 //! app takes the summon it is asked.
 
-use docket_core::{SummonAnswer, SummonOrigin, SummonSerial};
 use docket_dbus::{IntentProviderProxy, PROVIDER_PATH};
+use docket_wire::{SummonAnswer, SummonOrigin, SummonSerial};
 use prov::AppName;
 use sill_model::companion::{CompanionEvent, FocusFacts, FocusInput, Serves};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};

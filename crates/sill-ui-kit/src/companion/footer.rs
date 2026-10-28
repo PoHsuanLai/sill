@@ -1,14 +1,15 @@
 //! Every card's footer: which model served it, what it drew on, what the prompt carried.
 
 use companion_wire::FooterWire;
-use docket_core::{ContextKeep, EntityRef, Keep};
+use docket_core::{ContextKeep, Keep};
+use docket_vocab::EntityRef;
 use ds::components::companion::answer::footer::{
     CardFooter, ServedByView, ServedPlace, ServedPlaceKind, SourceChip, SourceKey,
 };
 use ds::components::companion::{ChipKind, ContextChip, Removal};
 use ds::components::content::icon_source::IconSource;
 use ds::prelude::Icon;
-use porter_core::Locality;
+use porter_capability::Locality;
 
 /// The footer of a card.
 pub fn footer_view(footer: &FooterWire) -> CardFooter {
@@ -92,7 +93,7 @@ fn place_of(locality: &Locality, account: &str) -> ServedPlace {
 mod tests {
     use super::place_of;
     use ds::components::companion::answer::footer::ServedPlaceKind;
-    use porter_core::{Locality, Region};
+    use porter_capability::{Locality, Region};
 
     #[test]
     fn a_model_ran_on_this_computer_on_the_network_or_at_a_provider() {

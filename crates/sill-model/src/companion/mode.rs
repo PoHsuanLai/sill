@@ -10,7 +10,7 @@
 //! effect from the next step, which the box says while a step is running. Pure.
 
 use companion_wire::AnswerPhase;
-use docket_core::Mode;
+use docket_permissions_core::Mode;
 use prov::SessionId;
 
 use super::command::CompanionEffect;

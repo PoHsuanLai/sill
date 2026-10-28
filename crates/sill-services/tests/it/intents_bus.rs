@@ -9,12 +9,13 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use docket_core::{
-    ActionRef, Anchor, AskReason, ConfirmAnswer, ConfirmDetail, ConfirmEnd, ConfirmId,
-    ConfirmOffer, ConfirmParts, ConfirmRequest, Gesture, GrantScope, LabelText, LimitLevel,
-    LimitNote, NeverOffer, Seconds, SheetLimits, StandingGrantId, TaintNote, UndoOffer,
+    Anchor, ConfirmAnswer, ConfirmDetail, ConfirmEnd, ConfirmId, ConfirmOffer, ConfirmParts,
+    ConfirmRequest, Gesture, GrantScope, NeverOffer, SheetLimits, TaintNote,
 };
 use docket_dbus::{CONFIRM_BUS, ConfirmProxy, INTENTS_BUS};
-use porter_core::Count;
+use docket_permissions_core::{AskReason, LimitLevel, LimitNote, StandingGrantId, UndoOffer};
+use docket_vocab::{ActionRef, LabelText, Seconds};
+use porter_ids::Count;
 use prov::{ActionName, Actor, AppName, Effect, InputProof, SpaceId};
 use sill_launcher::WindowKey;
 use sill_model::ids::{OutputName, WorkspaceKey};
@@ -658,21 +659,21 @@ fn invocation_with(action: &str, args: &[(&str, &str)]) -> String {
     let args = args
         .iter()
         .map(|(name, value)| {
-            let name = docket_core::ParamName::parse(name).unwrap_or_else(|e| panic!("{e}"));
+            let name = docket_vocab::ParamName::parse(name).unwrap_or_else(|e| panic!("{e}"));
             let value = prov::Labelled {
-                value: docket_core::Value::Text((*value).to_owned()),
+                value: docket_vocab::Value::Text((*value).to_owned()),
                 label: prov::Label::trusted_user(),
             };
             (name, value)
         })
         .collect();
     let call = docket_core::Invocation {
-        call: docket_core::CallId(1),
+        call: docket_vocab::CallId(1),
         action: ActionName::parse(action).unwrap_or_else(|e| panic!("{e}")),
-        target: docket_core::TargetValue::Nothing,
+        target: docket_vocab::TargetValue::Nothing,
         args,
         actor: Actor::Cli,
-        origin: docket_core::Origin::Launcher,
+        origin: docket_vocab::Origin::Launcher,
         space: SpaceId::parse("desktop").unwrap_or_else(|e| panic!("{e}")),
     };
     serde_json::to_string(&call).unwrap_or_else(|e| panic!("{e}"))
@@ -846,7 +847,7 @@ async fn the_window_list_is_the_compositors_windows_labelled_untrusted() {
             .sources
             .contains(&prov::Source::App(app("org.quire.Shell")))
     );
-    let docket_core::Value::Text(text) = listed.value else {
+    let docket_vocab::Value::Text(text) = listed.value else {
         panic!("text");
     };
     assert_eq!(
@@ -865,8 +866,8 @@ async fn the_window_list_is_the_compositors_windows_labelled_untrusted() {
         .map(|a| a.result.clone());
     assert!(matches!(
         declared,
-        Some(docket_core::ResultShape::Value {
-            trust: docket_core::TitleTrust::ThirdParty(_),
+        Some(docket_manifest::ResultShape::Value {
+            trust: docket_manifest::TitleTrust::ThirdParty(_),
             ..
         })
     ));
@@ -953,7 +954,7 @@ async fn a_screenshot_answers_with_the_path_the_watch_saw() {
     let value = outcome.value.map(|v| v.value);
     assert_eq!(
         value,
-        Some(docket_core::Value::Text(
+        Some(docket_vocab::Value::Text(
             "/home/p/Pictures/Screenshot_2026-10-06_10-00-00.png".into()
         ))
     );

@@ -13,8 +13,9 @@ use companion_support::stand_ins::{
 };
 use companion_support::{Desk, json, task, wire};
 use companion_wire::{AnswerBody, AnswerPhase, AnswerWire};
-use docket_core::{ContextKeep, Handle, Keep, Reveal};
+use docket_core::{ContextKeep, Keep, Reveal};
 use docket_dbus::{COMPANION_BUS, INTENTS_BUS, answer_path};
+use docket_vocab::Handle;
 use prov::SpaceId;
 use sill_model::companion::{AskInput, CompanionCommand, answer_line};
 use zbus::Connection;

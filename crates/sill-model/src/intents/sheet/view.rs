@@ -4,9 +4,9 @@
 //! formatted them, and the notes are the router's reasons and what the session read.
 
 use docket_core::{
-    ConfirmDetail, ConfirmId, ConfirmOffer, ConfirmRequest, Gesture, LimitNote, NeverOffer,
-    StandingGrantId, TaintNote, UndoOffer,
+    ConfirmDetail, ConfirmId, ConfirmOffer, ConfirmRequest, Gesture, NeverOffer, TaintNote,
 };
+use docket_permissions_core::{LimitNote, StandingGrantId, UndoOffer};
 use prov::Effect;
 
 use super::brief::BriefView;

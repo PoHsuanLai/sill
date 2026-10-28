@@ -2,8 +2,8 @@
 //! The time is checked by docket's own reading of a schedule, so a sheet never offers one the
 //! companion would refuse.
 
+use companion_model::{routine::Missed, routine::Schedule};
 use companion_wire::{RoutineForm, WhenForm};
-use docket_core::routine::{Missed, Schedule};
 use prov::HelperId;
 
 /// The most steps one run takes when the person has not said.

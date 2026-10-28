@@ -5,10 +5,11 @@
 
 use docket_client::{DbusTransport, Intents};
 use docket_core::{
-    ContextKeep, DraftPart, Keep, MessageDraft, Origin, SessionOpen, SessionOpened, TurnIn,
-    TurnSource, TurnVia, UserTurn,
+    ContextKeep, DraftPart, Keep, MessageDraft, TurnIn, TurnSource, TurnVia, UserTurn,
 };
 use docket_dbus::CompanionProxy;
+use docket_vocab::Origin;
+use docket_wire::{SessionOpen, SessionOpened};
 use prov::{Address, AgentRef, MessageKind, MessageText, SpaceId, UnixSeconds};
 use zbus::Connection;
 

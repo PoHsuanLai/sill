@@ -1,6 +1,6 @@
 //! The small marks: an effect, a run's state and where it acts.
 
-use docket_core::RunMode;
+use cua_action::RunMode;
 use ds::components::companion::run_row::model::{RunPlace, RunState as RunStateView};
 use ds_core::vocab::EffectMark;
 use prov::Effect;

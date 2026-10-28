@@ -5,8 +5,10 @@
 use std::sync::{Arc, Mutex};
 
 use almanac_core::{FactView, TimelineEntry, TimelinePage};
-use docket_core::{Displayed, Hit, Mode, SessionOpened, SummonAnswer, UndoEntry, UndoFault};
+use docket_core::{Hit, UndoEntry, UndoFault};
 use docket_dbus::{IntentsError, answer_path};
+use docket_permissions_core::Mode;
+use docket_wire::{Displayed, SessionOpened, SummonAnswer};
 use prov::{DataClass, Label, SessionId, Source, SpaceId};
 use zbus::fdo;
 use zbus::message::Header;
@@ -15,9 +17,8 @@ use zbus::zvariant::{ObjectPath, OwnedObjectPath};
 use zbus::{Connection, interface};
 
 use super::{Details, Log, json, task};
-use docket_core::{
-    CallRefusal, Delivery, Follow, Outcome, Preview, SendRefusal, Undoable, ValidManifest,
-};
+use docket_core::{CallRefusal, Delivery, Follow, Outcome, Preview, SendRefusal, Undoable};
+use docket_manifest::ValidManifest;
 use prov::{Crossing, MessageId, ThreadId};
 
 // ---- intentd ----

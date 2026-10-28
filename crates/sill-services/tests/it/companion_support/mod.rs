@@ -13,8 +13,9 @@ use almanac_core::{
     EntryBody, EventRef, KindTag, ReplicaId, Seq, ThingView, TimelineEntry, UndoRef, UserText,
 };
 use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, FooterWire};
-use docket_core::{ContextKeep, EntityRef, Hit, Keep, UndoEntry, UndoId, UndoState};
-use porter_core::Count;
+use docket_core::{ContextKeep, Hit, Keep, UndoEntry, UndoState};
+use docket_vocab::{EntityRef, UndoId};
+use porter_ids::Count;
 use prov::{
     ActionName, Actor, AppName, Effect, EntityId, EntityKey, EntityKind, Label, Labelled, SpaceId,
     TaskId, UnixSeconds,
@@ -252,7 +253,7 @@ impl Desk {
 
 pub fn footer() -> FooterWire {
     FooterWire {
-        mode: docket_core::Mode::default(),
+        mode: docket_permissions_core::Mode::default(),
         served: Vec::new(),
         sources: Vec::new(),
         keep: ContextKeep {
@@ -296,12 +297,12 @@ pub fn entry(id: u64, said: &str, state: UndoState) -> UndoEntry {
         id: UndoId(id),
         at: UnixSeconds(1_790_000_000),
         actor: Actor::Cli,
-        action: docket_core::ActionRef {
+        action: docket_vocab::ActionRef {
             app: app("org.quire.Mail"),
             name: ActionName::parse("mail.thread.archive").unwrap_or_else(|e| panic!("{e}")),
         },
-        said: docket_core::LabelText::parse(said).unwrap_or_else(|e| panic!("{e}")),
-        token: docket_core::UndoToken::parse("tok-1").unwrap_or_else(|e| panic!("{e}")),
+        said: docket_vocab::LabelText::parse(said).unwrap_or_else(|e| panic!("{e}")),
+        token: docket_vocab::UndoToken::parse("tok-1").unwrap_or_else(|e| panic!("{e}")),
         run: None,
         session: None,
         state,

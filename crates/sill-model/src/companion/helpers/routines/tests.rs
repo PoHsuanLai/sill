@@ -1,9 +1,9 @@
+use companion_model::helper::HelperName;
+use companion_model::{routine::Missed, routine::RoutineId};
 use companion_wire::{
     ProposalId, RoutineForm, RoutineLine, RoutineProposal, RoutineReply, RoutineShown,
     RoutinesView, WhenForm,
 };
-use docket_core::helper::HelperName;
-use docket_core::routine::{Missed, RoutineId};
 use prov::HelperId;
 
 use super::*;

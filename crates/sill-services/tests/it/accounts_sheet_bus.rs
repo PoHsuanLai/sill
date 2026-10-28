@@ -7,12 +7,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use porter_core::sheet::{
+use porter_core::{ProviderId, SecretText};
+use porter_dbus::AccountsSheetProxy;
+use porter_sheet::{
     Entry, FieldAnswer, FieldKind, FieldSpec, FieldValue, Presence, ProviderRow, SheetInput,
     SheetView, SignInView,
 };
-use porter_core::{ProviderId, SecretText};
-use porter_dbus::AccountsSheetProxy;
 use sill_model::accounts::sheet::{
     AccountsSheetCommand, AccountsSheets, SheetAction, SheetHandle, SheetLink,
 };
@@ -54,8 +54,8 @@ pub(crate) fn providers() -> String {
         id: provider("nextcloud"),
         label: "Nextcloud".to_owned(),
         mark: "nextcloud".to_owned(),
-        kind: porter_core::sheet::RowKind::Provider,
-        auth: porter_core::sheet::ProviderKind::Service,
+        kind: porter_sheet::RowKind::Provider,
+        auth: porter_sheet::ProviderKind::Service,
         mark_face: None,
         group: None,
     }]))

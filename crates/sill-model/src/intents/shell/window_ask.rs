@@ -4,7 +4,8 @@
 //! state answers them (`window_plan::plan`), and what they do to a window is the app-name menu's
 //! own rows (`app_menu::OwnItem`), so the bar and an agent share one implementation.
 
-use docket_core::{AppRefusal, FailText, Invocation, Value};
+use docket_core::{AppRefusal, FailText, Invocation};
+use docket_vocab::Value;
 use prov::Effect;
 
 use super::invocation::{param, text};

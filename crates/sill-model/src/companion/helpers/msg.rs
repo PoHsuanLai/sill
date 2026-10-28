@@ -2,8 +2,8 @@
 
 use std::collections::BTreeSet;
 
+use companion_model::{helper::Ceiling, helper::HelperModel, helper::TerminalRequest};
 use companion_wire::{HelperCardView, HelperForm, HelperReply, HelpersView};
-use docket_core::helper::{Ceiling, HelperModel, TerminalRequest};
 use porter_infer::ModelRef;
 use prov::{AppName, HelperId};
 

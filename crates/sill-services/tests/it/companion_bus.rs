@@ -14,8 +14,10 @@ use almanac_core::{
     Validity,
 };
 use companion_wire::{AnswerPhase, AskWire};
-use docket_core::{ContextKeep, Keep, SummonAnswer, UndoId, UndoScope, UndoState};
+use docket_core::{ContextKeep, Keep, UndoScope, UndoState};
 use docket_dbus::{COMPANION_BUS, INTENTS_BUS, PROVIDER_PATH, answer_path};
+use docket_vocab::UndoId;
+use docket_wire::SummonAnswer;
 use ds_core::vocab::MemoryVerb;
 use prov::{Actor, InputProof, Label, RunId, SpaceId, UnixSeconds};
 use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
@@ -403,7 +405,7 @@ async fn runs_follow_cuad_and_are_steered_through_their_objects() {
     assert_eq!(facts.step, 2);
     assert_eq!(facts.window.as_deref(), Some("Tables"));
     assert_eq!(facts.state, cua_bus::RunStateSlug::Acting);
-    assert_eq!(facts.mode, docket_core::RunMode::InPlace);
+    assert_eq!(facts.mode, cua_action::RunMode::InPlace);
     // The run says it paused: the facts follow.
     *object.state.lock().unwrap_or_else(|e| panic!("{e}")) = "paused".to_owned();
     cuad.emit_signal(

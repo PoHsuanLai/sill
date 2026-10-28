@@ -1,7 +1,8 @@
 //! porter-client's guest rows and asks, as questions; the verdict as its answer.
 
-use porter_client::lending::{GuestAsk, RowState};
-use porter_client::{GuestAnswer, GuestRow, NodeId};
+use porter_tailnet::{GuestAnswer, GuestRow};
+use porter_tailnet::{GuestAsk, RowState};
+use porter_tailscale::NodeId;
 use sill_model::guest_asks::{Ask, Computer, Verdict};
 
 /// inferd's well-known name.

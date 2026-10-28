@@ -217,6 +217,12 @@ keycap-client = { path = "../keycap/crates/keycap-client" }
 # `org.quire.Shell`, `docket-client` calls intentd, and `docket-dbus` has the `Confirm1` and
 # `Control` proxies; MIT OR Apache-2.0, sibling checkouts.
 docket-core = { path = "../docket/crates/docket-core" }
+cua-action = { path = "../stoker/crates/cua-action" }
+companion-model = { path = "../docket/crates/companion-model" }
+docket-manifest = { path = "../docket/crates/docket-manifest" }
+docket-permissions-core = { path = "../docket/crates/docket-permissions-core" }
+docket-vocab = { path = "../docket/crates/docket-vocab" }
+docket-wire = { path = "../docket/crates/docket-wire" }
 docket-dbus = { path = "../docket/crates/docket-dbus" }
 docket-client = { path = "../docket/crates/docket-client", features = ["dbus"] }
 docket-provider = { path = "../docket/crates/docket-provider", features = ["dbus"] }
@@ -246,6 +252,12 @@ airwaves-bluez = { git = "https://github.com/PoHsuanLai/airwaves", tag = "v0.1.0
 peephole-bus = { git = "https://github.com/PoHsuanLai/peephole", tag = "v0.1.9", default-features = false, features = ["tokio", "desktop"] }
 prov = { path = "../prov/prov" }
 porter-core = { path = "../porter/crates/porter-core" }
+porter-ids = { path = "../porter/crates/porter-ids" }
+porter-capability = { path = "../porter/crates/porter-capability" }
+porter-wire = { path = "../porter/crates/porter-wire" }
+porter-sheet = { path = "../porter/crates/porter-sheet" }
+porter-tailnet = { path = "../porter/crates/porter-tailnet" }
+porter-tailscale = { path = "../porter/crates/porter-tailscale" }
 # Test-only: the `ServedBy` a stand-in voiced stamps on a transcript.
 porter-infer = { path = "../porter/crates/porter-infer" }
 # Who a bus connection is: porter's caller identity (the connection's pid, its cgroup scope), which
@@ -345,6 +357,26 @@ almanac-core = { path = "../almanac/crates/almanac-core" }
 docket-client = { path = "../docket/crates/docket-client" }
 docket-core = { path = "../docket/crates/docket-core" }
 docket-dbus = { path = "../docket/crates/docket-dbus" }
+docket-provider = { path = "../docket/crates/docket-provider" }
+docket-vocab = { path = "../docket/crates/docket-vocab" }
+docket-manifest = { path = "../docket/crates/docket-manifest" }
+docket-wire = { path = "../docket/crates/docket-wire" }
+docket-gate-wire = { path = "../docket/crates/docket-gate-wire" }
+docket-permissions-core = { path = "../docket/crates/docket-permissions-core" }
+companion-model = { path = "../docket/crates/companion-model" }
+
+# anyview takes docket as docket.git: the same sibling checkout, so one copy.
+[patch."https://github.com/PoHsuanLai/docket.git"]
+docket-client = { path = "../docket/crates/docket-client" }
+docket-core = { path = "../docket/crates/docket-core" }
+docket-dbus = { path = "../docket/crates/docket-dbus" }
+docket-provider = { path = "../docket/crates/docket-provider" }
+docket-vocab = { path = "../docket/crates/docket-vocab" }
+docket-manifest = { path = "../docket/crates/docket-manifest" }
+docket-wire = { path = "../docket/crates/docket-wire" }
+docket-gate-wire = { path = "../docket/crates/docket-gate-wire" }
+docket-permissions-core = { path = "../docket/crates/docket-permissions-core" }
+companion-model = { path = "../docket/crates/companion-model" }
 
 # shell-host pins casement-protocols by git (its quire_window client, P2-Z-sh); sill builds the
 # sibling checkout it already names by path, so the graph holds one casement-protocols.
@@ -357,6 +389,12 @@ porter-client = { path = "../porter/crates/porter-client" }
 porter-core = { path = "../porter/crates/porter-core" }
 porter-dbus = { path = "../porter/crates/porter-dbus" }
 porter-infer = { path = "../porter/crates/porter-infer" }
-
+porter-ids = { path = "../porter/crates/porter-ids" }
+porter-capability = { path = "../porter/crates/porter-capability" }
+porter-match = { path = "../porter/crates/porter-match" }
+porter-wire = { path = "../porter/crates/porter-wire" }
+porter-sheet = { path = "../porter/crates/porter-sheet" }
+porter-tailnet = { path = "../porter/crates/porter-tailnet" }
+porter-tailscale = { path = "../porter/crates/porter-tailscale" }
 [patch."https://github.com/PoHsuanLai/prov"]
 prov = { path = "../prov/prov" }

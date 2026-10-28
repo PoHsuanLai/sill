@@ -2,8 +2,9 @@
 //! breaker. The connection owns `org.quire.Shell`, which the shipped `intentd.toml` gives the
 //! `control` role, so these members answer it and nobody else.
 
-use docket_core::{ActionRef, StandingGrantId};
 use docket_dbus::{ControlProxy, INTENTS_BUS};
+use docket_permissions_core::StandingGrantId;
+use docket_vocab::ActionRef;
 use prov::{SpaceId, SpaceScope};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;

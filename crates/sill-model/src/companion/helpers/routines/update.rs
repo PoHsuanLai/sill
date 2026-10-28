@@ -176,7 +176,7 @@ fn confirm(model: RoutinesModel) -> (RoutinesModel, Vec<RoutinesCommand>) {
 /// Remove a routine the person was asked about; a removal nobody asked about is not done.
 fn remove(
     model: RoutinesModel,
-    id: docket_core::routine::RoutineId,
+    id: companion_model::routine::RoutineId,
 ) -> (RoutinesModel, Vec<RoutinesCommand>) {
     if model.removal != RoutineRemoval::Asked(id) {
         return (model, Vec::new());

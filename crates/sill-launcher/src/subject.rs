@@ -9,7 +9,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use almanac_core::MemoryItem;
-use docket_core::{EntityRef, UndoId};
+use docket_vocab::{EntityRef, UndoId};
 use ds_core::word::Word;
 use prov::{HelperId, RunId, SessionId, TaskId};
 use serde::{Deserialize, Serialize};

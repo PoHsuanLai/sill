@@ -1,8 +1,8 @@
 //! The state types (data only).
 
+use porter_capability::Toggle;
 use porter_core::AccountId;
-use porter_core::Toggle;
-use porter_core::sheet::{ServiceChoice, SheetView};
+use porter_sheet::{ServiceChoice, SheetView};
 
 use super::draft::{CopyMark, FieldDraft, ListKey, SubmitCount};
 use crate::serve::ServeLink;
@@ -62,7 +62,7 @@ pub struct Draft {
 
 impl Draft {
     /// The review's switch for `kind`, when the provider offers it.
-    pub fn toggle_of(&self, kind: porter_core::CapabilityKind) -> Option<Toggle> {
+    pub fn toggle_of(&self, kind: porter_capability::CapabilityKind) -> Option<Toggle> {
         self.choices
             .iter()
             .find(|choice| choice.kind == kind)

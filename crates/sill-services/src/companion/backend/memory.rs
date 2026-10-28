@@ -6,7 +6,7 @@ use almanac_core::{
 };
 use almanac_dbus::ControlProxy;
 use ds_core::vocab::MemoryVerb;
-use porter_core::Count;
+use porter_ids::Count;
 use prov::{ConfirmId, ConfirmReceipt, InputProof, SpaceId, UnixSeconds};
 use sill_launcher::Generation;
 use sill_model::companion::CompanionEvent;

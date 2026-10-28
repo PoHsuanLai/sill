@@ -2,7 +2,8 @@
 //! the lock, the note while a step runs, and the mode a turn carries.
 
 use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, FooterWire};
-use docket_core::{ContextKeep, Keep, Mode};
+use docket_core::{ContextKeep, Keep};
+use docket_permissions_core::Mode;
 use ds_core::time::stamp::Stamp;
 use prov::{SessionId, TaskId};
 
@@ -49,7 +50,7 @@ fn answer(phase: AnswerPhase, lines: usize) -> CompanionEvent {
         body: AnswerBody::Text { lines: Vec::new() },
         progress: (0..lines).map(|n| format!("step {n}")).collect(),
         footer: FooterWire {
-            mode: docket_core::Mode::default(),
+            mode: docket_permissions_core::Mode::default(),
             served: Vec::new(),
             sources: Vec::new(),
             keep: ContextKeep {

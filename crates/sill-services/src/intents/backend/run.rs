@@ -13,8 +13,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use docket_core::{ActionRef, StandingGrantId};
 use docket_dbus::INTENTS_BUS;
+use docket_permissions_core::StandingGrantId;
+use docket_vocab::ActionRef;
 use prov::UnixSeconds;
 use sill_model::intents::sheet::{Reply, Serial, SheetChoice, SheetEffect, SheetEvent};
 use sill_model::intents::terminal::{Breaker, TerminalEvent};

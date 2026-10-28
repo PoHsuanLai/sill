@@ -1,7 +1,7 @@
 //! The helpers screen's one transition: `(model, message) -> (model, commands)`.
 
+use companion_model::helper::Ceiling;
 use companion_wire::{HelperCardView, HelperReply, HelpersView, ToldWire};
-use docket_core::helper::Ceiling;
 use prov::{AppName, HelperId, SpaceId};
 
 use super::automatic::{self, Automatic};

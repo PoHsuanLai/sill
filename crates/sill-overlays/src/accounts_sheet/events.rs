@@ -6,9 +6,10 @@ use ds::prelude::Check;
 use ds_shell::accounts::model::{
     AllowScope, ChoiceKey, ConsentAnswer, FieldRole, FieldText, ProviderPick, ServiceKey,
 };
+use porter_capability::Toggle;
 use porter_core::consent::GrantScope;
-use porter_core::sheet::FieldValue;
-use porter_core::{LauncherSession, SecretText, Toggle};
+use porter_core::{LauncherSession, SecretText};
+use porter_sheet::FieldValue;
 use sill_model::accounts::sheet::{ListKey, SheetAction};
 
 use super::props::{account_of, kind_of, provider_of};

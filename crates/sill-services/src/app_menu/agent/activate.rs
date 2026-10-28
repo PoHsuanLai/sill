@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use docket_client::Transport;
-use docket_core::{ActionRef, CallClass, CallRequest, Origin, TargetValue};
+use docket_vocab::{ActionRef, CallClass, CallRequest, Origin, TargetValue};
 use prov::Effect;
 use sill_model::app_menu::{
     ActionIndex, Identity, ItemKey, Route, effect_of, own_commands, route_of,

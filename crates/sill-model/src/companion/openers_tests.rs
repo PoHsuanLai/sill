@@ -1,11 +1,11 @@
 //! Which apps `openers_of` lists (a host-only app opens nothing here) and which `offered_apps`
 //! offers to a helper.
 
-use docket_core::{Manifest, validate};
+use docket_manifest::{Manifest, validate};
 
 use super::{offered_apps, openers_of};
 
-fn manifest(visibility: &str) -> docket_core::ValidManifest {
+fn manifest(visibility: &str) -> docket_manifest::ValidManifest {
     let text = format!(
         r#"
 vocab = 1

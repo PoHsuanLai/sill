@@ -12,8 +12,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use almanac_core::MemoryItem;
-use docket_core::{CardActionId, Handle, UndoScope};
+use docket_core::UndoScope;
 use docket_dbus::{COMPANION_BUS, CompanionProxy, INTENTS_BUS, answer_path};
+use docket_vocab::{CardActionId, Handle};
 use ds_core::time::stamp::Stamp;
 use ds_core::vocab::MemoryVerb;
 use prov::{SessionId, TaskId, UnixSeconds};
@@ -305,7 +306,7 @@ impl Live {
                     None => {
                         let _ = events.send(CompanionEvent::AppAnswered(
                             serial,
-                            docket_core::SummonAnswer::Declined,
+                            docket_wire::SummonAnswer::Declined,
                         ));
                     }
                 }
@@ -346,7 +347,7 @@ impl Live {
 
     /// Ask the router to switch `session` to `mode` on its own task; what it comes to goes back
     /// as an event. Without the seat the choice is kept and rides the next turn.
-    fn set_mode(&self, session: SessionId, mode: docket_core::Mode) {
+    fn set_mode(&self, session: SessionId, mode: docket_permissions_core::Mode) {
         let events = self.events.clone();
         let Some(connection) = self.connection.clone() else {
             let _ = events.send(CompanionEvent::Mode(ModeMsg::NotApplied(mode)));
@@ -373,7 +374,7 @@ impl Live {
     /// Ask the router to switch `session`, which the box may not hold, to `mode` (a probe). Only a
     /// change reaches the box, which keeps it when it is the box's own conversation; a refusal or
     /// silence is the log's, since it says nothing of the box's conversation.
-    fn probe_mode(&self, session: SessionId, mode: docket_core::Mode) {
+    fn probe_mode(&self, session: SessionId, mode: docket_permissions_core::Mode) {
         let events = self.events.clone();
         let Some(connection) = self.connection.clone() else {
             eprintln!("sill: companion: no bus to switch {session} to {mode:?}");

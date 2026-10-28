@@ -271,7 +271,8 @@ fn a_prompt_from_the_search_or_over_no_window_carries_no_context() {
 
 #[test]
 fn each_act_but_an_ask_and_a_mode_is_one_command() {
-    use docket_core::{CardActionId, UndoId, UndoScope};
+    use docket_core::UndoScope;
+    use docket_vocab::{CardActionId, UndoId};
     use sill_launcher::{CompanionAct, LauncherMode, RunControl};
     use sill_model::companion::CompanionCommand as C;
     let card = CardActionId::parse("send").unwrap_or_else(|e| panic!("{e}"));
@@ -339,7 +340,7 @@ fn answer_in(phase: companion_wire::AnswerPhase) -> sill_model::companion::Compa
         body: AnswerBody::Text { lines: Vec::new() },
         progress: Vec::new(),
         footer: FooterWire {
-            mode: docket_core::Mode::default(),
+            mode: docket_permissions_core::Mode::default(),
             served: Vec::new(),
             sources: Vec::new(),
             keep: ContextKeep {

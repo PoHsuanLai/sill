@@ -1,6 +1,7 @@
 //! The words a refusal and a time wear on a card.
 
-use docket_core::{ArgFault, BudgetKind, CallRefusal, ConfirmEnd, DenyCode, Reveal, TimeRange};
+use docket_core::{ArgFault, BudgetKind, CallRefusal, ConfirmEnd, Reveal, TimeRange};
+use docket_permissions_core::DenyCode;
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 

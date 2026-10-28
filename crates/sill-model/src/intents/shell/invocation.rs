@@ -3,9 +3,9 @@
 //! a test holds the two together.
 
 use docket_core::{
-    AppRefusal, ChoiceId, FailText, Follow, Invocation, LabelText, Outcome, ParamName, Preview,
-    UndoFault, UndoToken, Undoable, Value,
+    AppRefusal, FailText, Follow, Invocation, Outcome, Preview, UndoFault, Undoable,
 };
+use docket_vocab::{ChoiceId, LabelText, ParamName, UndoToken, Value};
 use ds_core::word::Word;
 use sill_launcher::AppId;
 

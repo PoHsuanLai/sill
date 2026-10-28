@@ -3,7 +3,8 @@
 
 use std::collections::BTreeMap;
 
-use docket_core::{AppRefusal, CallId, Invocation, Origin, ParamName, TargetValue, Value};
+use docket_core::{AppRefusal, Invocation};
+use docket_vocab::{CallId, Origin, ParamName, TargetValue, Value};
 use prov::{ActionName, Actor, Effect, Label, Labelled, SpaceId};
 use sill_launcher::WindowKey;
 

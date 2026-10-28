@@ -2,7 +2,7 @@
 //! says so plainly; the other denials keep the general words.
 
 use companion_wire::{AnswerBody, AnswerPhase, RefusalWire};
-use docket_core::DenyCode;
+use docket_permissions_core::DenyCode;
 
 use super::answer_line;
 use super::no_model_tests::{held, task, wire};

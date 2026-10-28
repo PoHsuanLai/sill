@@ -1,9 +1,10 @@
 //! The pure transition: what the sheets hold after an event, and what accountd must be told.
 
+use porter_core::AccountId;
 use porter_core::consent::{ConsentAnswer, GrantScope};
-use porter_core::sheet::RowKind;
-use porter_core::sheet::{FieldKind, FieldSpec, FieldValue, Presence, SheetInput, SheetView};
-use porter_core::{AccountId, WebUrl};
+use porter_ids::WebUrl;
+use porter_sheet::RowKind;
+use porter_sheet::{FieldKind, FieldSpec, FieldValue, Presence, SheetInput, SheetView};
 
 use super::command::{SheetAction, SheetEvent, SheetOut};
 use super::draft::{CopyMark, ListKey, SubmitCount, chosen_among, drafted, fresh, toggled};
@@ -117,7 +118,7 @@ fn act(view: &SheetView, draft: Draft, action: SheetAction) -> (Draft, Option<Sh
 }
 
 fn providers(
-    rows: &[porter_core::sheet::ProviderRow],
+    rows: &[porter_sheet::ProviderRow],
     draft: Draft,
     action: SheetAction,
 ) -> (Draft, Option<SheetInput>) {

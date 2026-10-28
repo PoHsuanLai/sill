@@ -7,11 +7,13 @@ use ds::components::content::mark_face::MarkFace;
 use ds::components::content::provider_mark::MarkProvider;
 use ds_shell::accounts::model::{Limitation, SignInFault};
 use ds_shell::prelude::{Recovery, WorkingFor};
+use porter_capability::{AbsentReason, CapabilityKind};
 use porter_core::LimitReason;
 use porter_core::consent::Usage;
-use porter_core::sheet::SignInFault as PorterFault;
-use porter_core::sheet::{ProviderKind, ProviderRow, RowKind};
-use porter_core::{AbsentReason, AppId, CapabilityKind, DataClass, ProviderId, WebUrl};
+use porter_core::{AppId, DataClass, ProviderId};
+use porter_ids::WebUrl;
+use porter_sheet::SignInFault as PorterFault;
+use porter_sheet::{ProviderKind, ProviderRow, RowKind};
 
 /// What the person reads for an app. `resolved` is the label the app's own entry gives it (porter
 /// will send one with the ask: this is where it plugs in); without one the last element of its
@@ -125,6 +127,7 @@ pub(super) fn request_phrase(kind: CapabilityKind, class: DataClass, usage: Usag
         (CapabilityKind::KeyValue, _) => "keep small settings in sync",
         (CapabilityKind::Push, _) => "send you notifications",
         (CapabilityKind::Agent, _) => "run an assistant with your account",
+        _ => "use your account",
     };
     match usage {
         Usage::Interactive => what.to_owned(),

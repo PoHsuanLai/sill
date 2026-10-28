@@ -4,8 +4,10 @@
 //! so, without a `dbus-daemon`. Never the person's session bus.
 
 use crate::voice_support::{self, BeginAnswer, CancelAnswer, desk_or_return};
-use docket_core::{Keep, TurnVia, VoiceIntent};
-use porter_core::{AccountId, Locality, ModelId};
+use docket_core::{Keep, TurnVia};
+use docket_wire::VoiceIntent;
+use porter_capability::{Locality, ModelId};
+use porter_core::AccountId;
 use porter_infer::ServedBy;
 use prov::{SpaceId, UnixSeconds};
 use sill_launcher::WindowKey;

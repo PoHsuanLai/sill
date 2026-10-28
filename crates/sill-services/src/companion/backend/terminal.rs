@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use docket_core::helper::{TerminalLine, TerminalRequest};
+use companion_model::{helper::TerminalLine, helper::TerminalRequest};
 use sill_model::companion::HelpersMsg;
 
 use crate::launch::{TerminalCommand, TerminalSearch, open_in_terminal};

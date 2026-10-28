@@ -16,7 +16,7 @@ mod plan;
 mod tests;
 mod words;
 
-use docket_core::Handle;
+use docket_vocab::Handle;
 use jiff::tz::TimeZone;
 
 pub use answer::{answer_view, without_actions};

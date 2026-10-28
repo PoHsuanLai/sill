@@ -11,7 +11,7 @@
 
 use std::collections::BTreeMap;
 
-use docket_core::ActionRef;
+use docket_vocab::ActionRef;
 use prov::{ActionName, AppName, Effect};
 
 use super::OwnItem;

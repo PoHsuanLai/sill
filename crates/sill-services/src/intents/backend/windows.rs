@@ -4,9 +4,8 @@
 //! The listings carry app-controlled titles, so they are labelled untrusted with the shell as the
 //! reader. An action answers in fixed words, never a title's.
 
-use docket_core::{
-    AppRefusal, FailText, Follow, Invocation, LabelText, Outcome, Preview, Undoable, Value,
-};
+use docket_core::{AppRefusal, FailText, Follow, Invocation, Outcome, Preview, Undoable};
+use docket_vocab::{LabelText, Value};
 use porter_core::{AppName, DataClass};
 use prov::{Label, Labelled, Source};
 use sill_model::intents::shell::{WindowAnswer, WindowAsk, WindowFault, plan};

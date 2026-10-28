@@ -1,8 +1,8 @@
 //! What a person sees of a run's state, derived from cuad's phase and outcome, and the controls
 //! each state offers. Both are total tables.
 
+use cua_action::RunMode;
 use cua_bus::{CuaOutcome, RunStateSlug};
-use docket_core::RunMode;
 use ds_core::word::Word;
 use prov::RunId;
 use sill_launcher::RunControl;

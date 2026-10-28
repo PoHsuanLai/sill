@@ -4,12 +4,14 @@ use companion_wire::{
     AnswerBody, AnswerPhase, AnswerWire, CardWire, FooterWire, NeedsYou, PlanStepWire, PlanWire,
     StepWireState,
 };
+use cua_action::RunMode;
 use cua_bus::{CuaOutcome, RunStateSlug};
-use docket_core::{
-    ActionRef, Args, CallRefusal, CallRequest, CardActionId, ConfirmEnd, ConfirmId, ContextKeep,
-    EntityRef, Handle, Hit, Keep, LabelText, Origin, Reveal, RunMode, StepId, SummonAnswer,
-    SummonSerial, TargetValue,
+use docket_core::{CallRefusal, ConfirmEnd, ConfirmId, ContextKeep, Hit, Keep, Reveal};
+use docket_vocab::{
+    ActionRef, Args, CallRequest, CardActionId, EntityRef, Handle, LabelText, Origin, StepId,
+    TargetValue,
 };
+use docket_wire::{SummonAnswer, SummonSerial};
 use ds_core::time::stamp::Stamp;
 use ds_core::vocab::CompanionPresence;
 use prov::{
@@ -26,7 +28,7 @@ fn task(id: &str) -> TaskId {
 
 fn footer() -> FooterWire {
     FooterWire {
-        mode: docket_core::Mode::default(),
+        mode: docket_permissions_core::Mode::default(),
         served: Vec::new(),
         sources: Vec::new(),
         keep: ContextKeep {

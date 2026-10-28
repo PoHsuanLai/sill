@@ -9,15 +9,17 @@ use ds_shell::accounts::model::{
     ProviderPick, Requirement, ServiceKey, ServiceLine, ServiceOffer, SignInFault,
 };
 use ds_shell::prelude::{Recovery, WorkingFor};
+use porter_capability::{AbsentReason, CapabilityKind, Toggle};
 use porter_core::consent::{AccountChoice as AskChoice, ConsentAsk, GrantScope, Usage};
-use porter_core::sheet::{
+use porter_core::{
+    AccountId, AccountLabel, AppId, AppName, DataClass, EndpointUrl, Isolation, LauncherSession,
+    LimitReason, ProviderId, SecretText,
+};
+use porter_ids::WebUrl;
+use porter_sheet::{
     Entry, FieldKind, FieldSpec, FieldValue, Presence, ProblemKind as PorterProblem, ProviderKind,
     ProviderRow, Review, ReviewView, RowKind, ServiceRow, ServiceState, SheetView,
     SignInFault as PorterFault, SignInView, UserCode,
-};
-use porter_core::{
-    AbsentReason, AccountId, AccountLabel, AppId, AppName, CapabilityKind, DataClass, EndpointUrl,
-    Isolation, LauncherSession, LimitReason, ProviderId, SecretText, Toggle, WebUrl,
 };
 use sill_model::accounts::sheet::{
     AccountsSheets, CopyMark, ListKey, SheetAction, SheetEvent, SheetHandle, step,
@@ -175,7 +177,7 @@ fn every_sheet_view_becomes_the_props_of_its_part() {
             spec(FieldKind::Password, Entry::Secret, Presence::Required),
             spec(FieldKind::Server, Entry::Plain, Presence::Optional),
         ],
-        problem: Some(porter_core::sheet::FieldProblem {
+        problem: Some(porter_sheet::FieldProblem {
             field: FieldKind::Password,
             problem: PorterProblem::Refused,
         }),
@@ -639,7 +641,7 @@ fn the_words_follow_the_table() {
 #[test]
 fn the_server_form_becomes_choices_hints_and_parts() {
     use ds_shell::accounts::model::{Choice, FormPart};
-    use porter_core::sheet::{Protocol, manual_form};
+    use porter_sheet::{Protocol, manual_form};
     let view = |protocol| {
         SheetView::SignIn(SignInView {
             provider: provider("generic-imap"),
@@ -779,14 +781,14 @@ fn every_role_and_kind_pair_up() {
 #[test]
 fn the_port_hints_are_porters_usual_ports() {
     use super::words::usual_port;
-    use porter_core::sheet::{FieldSpec, Protocol, manual_form, refit};
+    use porter_sheet::{FieldSpec, Protocol, manual_form, refit};
     for (protocol, slug) in [(Protocol::Imap, "imap"), (Protocol::Pop3, "pop3")] {
         let fields: Vec<FieldSpec> = manual_form(protocol, None);
         for (security, outgoing_kind, kind) in [
             ("tls", FieldKind::OutgoingSecurity, FieldKind::Security),
             ("starttls", FieldKind::OutgoingSecurity, FieldKind::Security),
         ] {
-            let answers = [kind, outgoing_kind].map(|kind| porter_core::sheet::FieldAnswer {
+            let answers = [kind, outgoing_kind].map(|kind| porter_sheet::FieldAnswer {
                 kind,
                 value: FieldValue::Plain(security.to_owned()),
             });

@@ -7,8 +7,8 @@ use crate::launcher_harness;
 
 use std::time::Duration;
 
-use docket_core::helper::HelperModel;
-use docket_core::routine::RoutineId;
+use companion_model::helper::HelperModel;
+use companion_model::routine::RoutineId;
 use ds_harness::Input;
 use launcher_harness::launcher_support::companion::{RESEARCH, helpers};
 use launcher_harness::{Open, Press, open_in, selected_title, titles};

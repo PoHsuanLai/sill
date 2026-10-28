@@ -9,7 +9,7 @@
 use std::os::fd::OwnedFd;
 use std::sync::Arc;
 
-use docket_core::VoiceIntent;
+use docket_wire::VoiceIntent;
 use prov::{SpaceId, UnixSeconds};
 use sill_model::companion::CompanionCommand;
 use sill_model::voice::{

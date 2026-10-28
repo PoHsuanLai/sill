@@ -8,7 +8,9 @@
 //! declares none has no Enter action. Hits an app answers late arrive as more rows of the same
 //! generation while the query waits.
 
-use docket_core::{ActionRef, CallRequest, Hit, Origin, TargetValue, open_name};
+use docket_core::Hit;
+use docket_manifest::open_name;
+use docket_vocab::{ActionRef, CallRequest, Origin, TargetValue};
 use sill_launcher::{
     Activation, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink, Score,
     Subject,
@@ -138,7 +140,7 @@ fn open_call(thing: &prov::EntityId) -> Option<CallRequest> {
             name,
         },
         target: TargetValue::Entities(vec![thing.clone()]),
-        args: docket_core::Args::new(),
+        args: docket_vocab::Args::new(),
         origin: Origin::Launcher,
     })
 }
@@ -154,7 +156,7 @@ mod tests {
 
     fn hit(key: &str, title: &str) -> Hit {
         Hit {
-            entity: docket_core::EntityRef {
+            entity: docket_vocab::EntityRef {
                 id: prov::EntityId {
                     app: AppName::parse("org.quire.Mail").unwrap_or_else(|e| panic!("{e}")),
                     kind: EntityKind::parse("mail.thread").unwrap_or_else(|e| panic!("{e}")),

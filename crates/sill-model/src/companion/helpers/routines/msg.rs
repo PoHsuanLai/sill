@@ -1,7 +1,7 @@
 //! What tells the routines part things, and what it asks of the outside.
 
+use companion_model::routine::RoutineId;
 use companion_wire::{ProposalId, RoutineForm, RoutineProposal, RoutineReply, RoutinesView};
-use docket_core::routine::RoutineId;
 use prov::HelperId;
 
 use super::draft::Repeat;

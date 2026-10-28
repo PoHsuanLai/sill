@@ -1,19 +1,19 @@
+use porter_capability::CapabilityKind;
+use porter_capability::Toggle;
 use porter_core::AccountId;
 use porter_core::SecretText;
-use porter_core::Toggle;
-use porter_core::capability::CapabilityKind;
 use porter_core::consent::{AccountChoice, ConsentAnswer, ConsentAsk, GrantScope, Usage};
-use porter_core::sheet::{
+use porter_core::{AccountLabel, AppId, AppName, DataClass, Isolation};
+use porter_sheet::{
     FieldAnswer, FieldKind, FieldValue, Review, ServiceChoice, ServiceRow, ServiceState,
     SheetInput, SheetView, UserCode,
 };
-use porter_core::{AccountLabel, AppId, AppName, DataClass, Isolation};
 
 use super::{form, handle, provider, rows};
 use crate::accounts::sheet::{
     AccountsSheets, Admit, ListKey, SheetAction as Do, SheetEvent as Ev, SheetOut, admits, step,
 };
-use porter_core::sheet::SignInView;
+use porter_sheet::SignInView;
 
 fn run(mut sheets: AccountsSheets, events: Vec<Ev>) -> (AccountsSheets, Vec<SheetOut>) {
     let mut out = Vec::new();
@@ -75,7 +75,7 @@ fn browser() -> SheetView {
     SheetView::BrowserWait {
         provider: provider("google"),
         row: None,
-        url: porter_core::WebUrl::parse("https://login.example.org/a")
+        url: porter_ids::WebUrl::parse("https://login.example.org/a")
             .unwrap_or_else(|e| panic!("{e}")),
     }
 }
@@ -111,7 +111,7 @@ fn review() -> SheetView {
         limit: None,
         access: None,
     };
-    SheetView::Review(porter_core::sheet::ReviewView {
+    SheetView::Review(porter_sheet::ReviewView {
         provider: provider("nextcloud"),
         row: None,
         review: Review {
@@ -121,7 +121,7 @@ fn review() -> SheetView {
                 row(CapabilityKind::Calendar, ServiceState::Offered(Toggle::On)),
                 row(
                     CapabilityKind::Photos,
-                    ServiceState::Absent(porter_core::AbsentReason::ProviderOffersNone),
+                    ServiceState::Absent(porter_capability::AbsentReason::ProviderOffersNone),
                 ),
             ],
             endpoints: Vec::new(),
@@ -153,7 +153,7 @@ fn what_the_person_does_is_what_accountd_is_told() {
     let failed = SheetView::Failed {
         provider: provider("nextcloud"),
         row: None,
-        fault: porter_core::sheet::SignInFault::Refused,
+        fault: porter_sheet::SignInFault::Refused,
     };
     let cases = vec![
         case(
@@ -456,7 +456,7 @@ fn an_answer_goes_once_per_view_and_the_next_view_frees_the_next() {
 fn a_browser_step_shown_opens_its_page_and_shown_again_opens_it_again() {
     let page = || {
         SheetOut::OpenPage(
-            porter_core::WebUrl::parse("https://login.example.org/a")
+            porter_ids::WebUrl::parse("https://login.example.org/a")
                 .unwrap_or_else(|e| panic!("{e}")),
         )
     };
@@ -580,11 +580,11 @@ fn handles_are_short_plain_words() {
     }
 }
 
-fn manual(protocol: porter_core::sheet::Protocol) -> SheetView {
+fn manual(protocol: porter_sheet::Protocol) -> SheetView {
     SheetView::SignIn(SignInView {
         provider: provider("generic-imap"),
         row: None,
-        fields: porter_core::sheet::manual_form(protocol, Some("example.org")),
+        fields: porter_sheet::manual_form(protocol, Some("example.org")),
         problem: None,
     })
 }
@@ -611,7 +611,7 @@ fn text_of(sheets: &AccountsSheets, kind: FieldKind) -> Option<String> {
 
 #[test]
 fn the_protocol_reshapes_the_server_form_and_keeps_what_survives() {
-    use porter_core::sheet::Protocol;
+    use porter_sheet::Protocol;
     let (sheets, _) = act(
         opened(manual(Protocol::Imap)),
         vec![
@@ -657,7 +657,7 @@ fn the_protocol_reshapes_the_server_form_and_keeps_what_survives() {
 
 #[test]
 fn a_port_that_cannot_be_right_keeps_the_form_unsent() {
-    use porter_core::sheet::{ProblemKind, Protocol};
+    use porter_sheet::{ProblemKind, Protocol};
     let view = manual(Protocol::Imap);
     let (sheets, out) = act(
         opened(view.clone()),

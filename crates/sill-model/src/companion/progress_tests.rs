@@ -19,7 +19,7 @@ fn said(phase: AnswerPhase, progress: &[&str]) -> AnswerFacts {
             body: AnswerBody::Text { lines: Vec::new() },
             progress: progress.iter().map(|line| (*line).to_owned()).collect(),
             footer: FooterWire {
-                mode: docket_core::Mode::default(),
+                mode: docket_permissions_core::Mode::default(),
                 served: Vec::new(),
                 sources: Vec::new(),
                 keep: ContextKeep {

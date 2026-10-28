@@ -43,7 +43,7 @@ pub enum Activation {
     ForgetClipboard { entry: ClipKey },
     /// Perform an action of an app through intentd (a thing's primary action, from the things
     /// provider).
-    Intent(Box<docket_core::CallRequest>),
+    Intent(Box<docket_vocab::CallRequest>),
     /// Something for the companion: ask, press a card's button, steer a run, undo, settle a
     /// memory, switch the panel's mode.
     Companion(CompanionAct),
@@ -55,16 +55,16 @@ impl Activation {
     /// Perform `action` of `app` through intentd, on nothing and with no arguments (a hot
     /// corner's app action). `None` when either name is not a valid name.
     pub fn app_action(app: &str, action: &str) -> Option<Activation> {
-        let action = docket_core::ActionRef {
+        let action = docket_vocab::ActionRef {
             app: prov::AppName::parse(app).ok()?,
             name: prov::ActionName::parse(action).ok()?,
         };
-        Some(Activation::Intent(Box::new(docket_core::CallRequest {
+        Some(Activation::Intent(Box::new(docket_vocab::CallRequest {
             action,
-            target: docket_core::TargetValue::Nothing,
-            args: docket_core::Args::new(),
+            target: docket_vocab::TargetValue::Nothing,
+            args: docket_vocab::Args::new(),
             // docket has no corner origin; a corner is a configured shortcut.
-            origin: docket_core::Origin::Shortcut,
+            origin: docket_vocab::Origin::Shortcut,
         })))
     }
 }
@@ -217,16 +217,16 @@ mod tests {
                 r#"{"kind":"forget_clipboard","v":{"entry":9}}"#,
             ),
             (
-                Activation::Intent(Box::new(docket_core::CallRequest {
-                    action: docket_core::ActionRef {
+                Activation::Intent(Box::new(docket_vocab::CallRequest {
+                    action: docket_vocab::ActionRef {
                         app: prov::AppName::parse("org.quire.Mail")
                             .unwrap_or_else(|e| panic!("{e}")),
                         name: prov::ActionName::parse("mail.message.open")
                             .unwrap_or_else(|e| panic!("{e}")),
                     },
-                    target: docket_core::TargetValue::Nothing,
-                    args: docket_core::Args::new(),
-                    origin: docket_core::Origin::Launcher,
+                    target: docket_vocab::TargetValue::Nothing,
+                    args: docket_vocab::Args::new(),
+                    origin: docket_vocab::Origin::Launcher,
                 })),
                 r#"{"kind":"intent","v":{"action":{"app":"org.quire.Mail","name":"mail.message.open"},"target":{"kind":"nothing"},"args":{},"origin":"launcher"}}"#,
             ),

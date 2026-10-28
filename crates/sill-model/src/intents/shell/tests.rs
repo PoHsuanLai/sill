@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
-use docket_core::{
-    AppRefusal, CallId, ChoiceId, Invocation, Origin, ParamName, TargetValue, Value,
-};
+use docket_core::{AppRefusal, Invocation};
+use docket_vocab::{CallId, ChoiceId, Origin, ParamName, TargetValue, Value};
 use prov::{ActionName, Actor, Label, Labelled, SpaceId};
 
-use docket_core::{UndoFault, UndoToken, Undoable};
+use docket_core::{UndoFault, Undoable};
+use docket_vocab::UndoToken;
 use sill_launcher::AppId;
 
 use super::{ShellAction, WorkspaceStep, action_of, outcome_of, undo_of};

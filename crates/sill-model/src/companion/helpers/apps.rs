@@ -3,7 +3,7 @@
 
 use std::collections::BTreeSet;
 
-use docket_core::{ValidManifest, Visibility};
+use docket_manifest::{ValidManifest, Visibility};
 use prov::AppName;
 
 /// The apps of `manifests` a helper may be given.

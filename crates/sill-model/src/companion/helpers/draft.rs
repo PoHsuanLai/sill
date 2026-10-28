@@ -4,9 +4,12 @@
 
 use std::collections::{BTreeSet, HashSet};
 
+use companion_model::{
+    helper::Ceiling, helper::HelperKind, helper::HelperModel, helper::HelperName,
+    helper::HelperTextFault, helper::Role,
+};
 use companion_wire::{HelperCardView, HelperForm};
-use docket_core::helper::{Ceiling, HelperKind, HelperModel, HelperName, HelperTextFault, Role};
-use porter_core::Count;
+use porter_ids::Count;
 use prov::{AppName, SpaceId};
 
 /// The most steps one job takes when the person has not said.

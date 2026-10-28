@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use porter_core::sheet::SheetView;
+use porter_sheet::SheetView;
 use sill_model::accounts::sheet::SheetHandle;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use zbus::fdo;

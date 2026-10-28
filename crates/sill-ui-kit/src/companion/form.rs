@@ -1,7 +1,8 @@
 //! A form for the parameters an action still needs.
 
 use companion_wire::FormWire;
-use docket_core::{Args, ParamDecl, ParamNeed, ParamType, Value};
+use docket_manifest::{ParamDecl, ParamNeed};
+use docket_vocab::{Args, ParamType, Value};
 use ds::components::companion::answer::action::{ActionRole, CardAction, CardActionId};
 use ds::components::companion::answer::footer::CardFooter;
 use ds::components::companion::form::model::{
@@ -50,8 +51,8 @@ fn field(param: &ParamDecl, values: &Args) -> FormField {
 fn input(ty: &ParamType) -> FormInput {
     match ty {
         ParamType::Text { lines, .. } => match lines {
-            docket_core::Lines::One => FormInput::Text,
-            docket_core::Lines::Many => FormInput::Lines,
+            docket_vocab::Lines::One => FormInput::Text,
+            docket_vocab::Lines::Many => FormInput::Lines,
         },
         ParamType::Integer { .. } | ParamType::Decimal { .. } | ParamType::Duration => {
             FormInput::Number

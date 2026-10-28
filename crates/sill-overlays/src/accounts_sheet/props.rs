@@ -25,11 +25,12 @@ use ds_shell::accounts::model::{
     ServiceKey, ServiceLine, ServiceOffer, SignInFault,
 };
 use ds_shell::prelude::{Recovery, WorkingFor};
+use porter_capability::Toggle;
 use porter_core::consent::{AskPurpose, ConsentAsk};
-use porter_core::sheet::{
+use porter_core::{AccountId, LauncherSession, ProviderId};
+use porter_sheet::{
     Entry, FieldKind, FieldValue, Presence, ProblemKind as PorterProblem, ServiceState, SheetView,
 };
-use porter_core::{AccountId, LauncherSession, ProviderId, Toggle};
 use sill_model::accounts::sheet::{CopyMark, Draft, ListKey, OpenSheet};
 
 use super::ranking::ranked;
@@ -229,7 +230,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                     kind: match problem {
                         PorterProblem::Missing => ProblemKind::Missing,
                         PorterProblem::Refused => ProblemKind::Refused,
-                        PorterProblem::Invalid => ProblemKind::Invalid,
+                        PorterProblem::Invalid | _ => ProblemKind::Invalid,
                     },
                     attempt: Attempt(draft.submits.0),
                 }),
@@ -259,7 +260,7 @@ pub(super) fn step_of(sheet: &OpenSheet) -> Option<Step> {
                 .iter()
                 .map(|row| ServiceLine {
                     key: ServiceKey(service_key(row.kind)),
-                    name: row.kind.display_name().to_owned(),
+                    name: porter_sheet::words::service_name(row.kind).to_owned(),
                     offer: match row.state {
                         ServiceState::Offered(shipped) => ServiceOffer::Offered(switch(
                             draft.toggle_of(row.kind).unwrap_or(shipped),

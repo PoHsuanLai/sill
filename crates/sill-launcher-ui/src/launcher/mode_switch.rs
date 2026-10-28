@@ -5,7 +5,7 @@
 //! same place says why. The key is `sill.switch-mode` (⇧⌘M), run by the panel's key claim.
 
 use dioxus::prelude::*;
-use docket_core::Mode;
+use docket_permissions_core::Mode;
 use ds::components::content::label::{LabelRole, LabelStyle};
 use ds::components::controls::segmented::Tracking;
 use ds::prelude::*;

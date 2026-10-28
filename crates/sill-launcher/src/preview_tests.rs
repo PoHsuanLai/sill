@@ -208,7 +208,7 @@ fn every_subject_has_its_preview() {
                 ProviderKind::Companion,
                 "Archived 3 threads",
                 "",
-                Subject::Activity(docket_core::UndoId(4)),
+                Subject::Activity(docket_vocab::UndoId(4)),
             ),
             Preview::None,
         ),

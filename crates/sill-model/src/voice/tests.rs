@@ -48,8 +48,8 @@ fn committed(text: &str) -> VoiceEvent {
 fn served() -> porter_infer::ServedBy {
     porter_infer::ServedBy {
         account: porter_core::AccountId::parse("local").unwrap_or_else(|e| panic!("{e}")),
-        model: porter_core::ModelId::parse("nemotron").unwrap_or_else(|e| panic!("{e}")),
-        locality: porter_core::Locality::OnDevice,
+        model: porter_capability::ModelId::parse("nemotron").unwrap_or_else(|e| panic!("{e}")),
+        locality: porter_capability::Locality::OnDevice,
     }
 }
 

@@ -18,9 +18,9 @@ pub mod terminal;
 mod tests;
 
 pub use command::{IntentsAsk, IntentsCommand, IntentsEffect, IntentsEvent};
-pub use docket_core::{
-    ActionRef, ConfirmId, ConfirmOffer, Gesture, NeverOffer, StandingGrantId, UndoOffer,
-};
+pub use docket_core::{ConfirmId, ConfirmOffer, Gesture, NeverOffer};
+pub use docket_permissions_core::{StandingGrantId, UndoOffer};
+pub use docket_vocab::ActionRef;
 pub use model::{Intents, IntentsLink};
 pub use prov::Effect;
 pub use step::step;

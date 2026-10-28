@@ -2,8 +2,8 @@
 
 use std::collections::BTreeSet;
 
+use companion_model::helper::Ceiling;
 use dioxus::prelude::*;
-use docket_core::helper::Ceiling;
 use ds::components::content::label::{LabelRole, LabelStyle};
 use ds::components::controls::button_model::Bezel;
 use ds::components::controls::checkbox::Checkbox;

@@ -7,15 +7,17 @@ use crate::companion_support::{self, Desk, desk_or_return};
 
 use std::sync::{Arc, Mutex};
 
+use companion_model::routine::RoutineId;
+use companion_model::{
+    helper::HelperKind, helper::HelperModel, helper::HelperName, helper::HelperPhase,
+};
 use companion_support::{Log, app, json};
 use companion_wire::{
     Handover, HelperCardView, HelperLine, HelperNeeds, HelperReply, HelpersView, LoginShown,
     RoutineForm, RoutineReply, RoutinesView, RunsIn, ToldWire,
 };
-use docket_core::helper::{HelperKind, HelperModel, HelperName, HelperPhase};
-use docket_core::routine::RoutineId;
 use docket_dbus::COMPANION_BUS;
-use porter_core::Count;
+use porter_ids::Count;
 use prov::{HelperId, SpaceId};
 use sill_model::companion::{
     CompanionCommand, GONE, HelpersMsg, Open, Removal, RoutinesMsg, WAITING_BADGE, badge_of,

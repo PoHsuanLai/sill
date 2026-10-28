@@ -1,6 +1,8 @@
 //! What tells the seat things, what happens in it, and what that asks of the outside.
 
-use docket_core::{ActionRef, ConfirmId, StandingGrantId};
+use docket_core::ConfirmId;
+use docket_permissions_core::StandingGrantId;
+use docket_vocab::ActionRef;
 use serde::{Deserialize, Serialize};
 
 use super::IntentsLink;

@@ -6,7 +6,8 @@
 //! companion's own (`Scope::Only`), which is what the panel's companion mode asks.
 
 use companion_wire::{Handover, TerminalSession};
-use docket_core::{CardActionId, UndoState};
+use docket_core::UndoState;
+use docket_vocab::CardActionId;
 use sill_launcher::{
     Action, ActionId, Activation, Choice, CompanionAct, IconRef, Item, ItemId, LauncherMode,
     Provider, ProviderKind, Query, ResultSink, Scope, Score, Subject,
@@ -114,7 +115,7 @@ impl Provider for CompanionProvider {
     }
 }
 
-fn undo(entry: docket_core::UndoId) -> Activation {
+fn undo(entry: docket_vocab::UndoId) -> Activation {
     Activation::Companion(CompanionAct::Undo {
         scope: docket_core::UndoScope::Entry(entry),
     })
@@ -287,9 +288,9 @@ fn activity_row(entry: &docket_core::UndoEntry, at: usize) -> Item {
 #[cfg(test)]
 mod tests {
     use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, CardWire, FooterWire};
-    use docket_core::{
-        ActionRef, Args, CallRequest, CardActionId, ContextKeep, Keep, LabelText, Origin,
-        TargetValue, UndoEntry, UndoId, UndoScope, UndoState,
+    use docket_core::{ContextKeep, Keep, UndoEntry, UndoScope, UndoState};
+    use docket_vocab::{
+        ActionRef, Args, CallRequest, CardActionId, LabelText, Origin, TargetValue, UndoId,
     };
     use prov::{ActionName, Actor, AppName, Effect, TaskId, UnixSeconds};
     use sill_launcher::{Cancel, Query, VecSink};
@@ -327,7 +328,7 @@ mod tests {
                 body,
                 progress: Vec::new(),
                 footer: FooterWire {
-                    mode: docket_core::Mode::default(),
+                    mode: docket_permissions_core::Mode::default(),
                     served: Vec::new(),
                     sources: Vec::new(),
                     keep: ContextKeep {
@@ -355,7 +356,7 @@ mod tests {
                 name: ActionName::parse("mail.thread.archive").unwrap_or_else(|e| panic!("{e}")),
             },
             said: LabelText::parse("Archived 3 threads").unwrap_or_else(|e| panic!("{e}")),
-            token: docket_core::UndoToken::parse("t1").unwrap_or_else(|e| panic!("{e}")),
+            token: docket_vocab::UndoToken::parse("t1").unwrap_or_else(|e| panic!("{e}")),
             run: None,
             session: None,
             state,

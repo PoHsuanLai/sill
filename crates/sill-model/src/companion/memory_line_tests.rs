@@ -2,7 +2,7 @@
 
 use almanac_core::{Count, EntryBody, EventRef, KindTag, ReplicaId, Seq, TimelineEntry, UndoRef};
 use porter_core::ProviderId;
-use porter_core::sheet::{ProviderKind, ProviderRow, RowKind};
+use porter_sheet::{ProviderKind, ProviderRow, RowKind};
 use prov::{Actor, AgentLabel, AgentProgram, ClientName};
 
 use super::{ProgramLabels, memory_line};

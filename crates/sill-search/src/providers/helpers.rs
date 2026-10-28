@@ -6,8 +6,8 @@
 //! The card is the preview pane's, not a row's: what Enter does on a helper is nothing, and its
 //! actions are pause or resume and remove (which asks first).
 
+use companion_model::helper::HelperPhase;
 use companion_wire::{HelperLine, HelperNeeds};
-use docket_core::helper::HelperPhase;
 use ds_core::word::Word;
 use sill_launcher::{
     Action, ActionId, ActionKeys, Activation, Choice, CompanionAct, HelperAttention, HelperControl,
@@ -117,8 +117,8 @@ fn actions(phase: HelperPhase) -> Vec<Action> {
 
 #[cfg(test)]
 mod tests {
+    use companion_model::helper::HelperName;
     use companion_wire::HelpersView;
-    use docket_core::helper::HelperName;
     use prov::{HelperId, SpaceId};
     use sill_launcher::{Cancel, Query, VecSink};
     use sill_model::companion::{HelpersModel, HelpersMsg, update_helpers};

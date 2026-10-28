@@ -1,4 +1,4 @@
-use docket_core::ActionRef;
+use docket_vocab::ActionRef;
 use prov::ActionName;
 
 use super::{Breaker, ControlReach, Terminal, TerminalEvent, grant_words, step};

@@ -2,9 +2,9 @@
 //! says of the limit behind it, and Undo taking that line away.
 
 use docket_core::{
-    ConfirmAnswer, ConfirmEnd, ConfirmOffer, ConfirmRequest, LimitLevel, LimitNote, NeverOffer,
-    SheetLimits, StandingGrantId, UndoOffer,
+    ConfirmAnswer, ConfirmEnd, ConfirmOffer, ConfirmRequest, NeverOffer, SheetLimits,
 };
+use docket_permissions_core::{LimitLevel, LimitNote, StandingGrantId, UndoOffer};
 use prov::{Confidentiality, ConfirmReceipt, InputProof, UnixSeconds};
 
 use super::{

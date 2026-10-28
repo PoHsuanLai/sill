@@ -80,20 +80,20 @@ done
 # A dependency on a crate not listed is a leak; so is one the crate no longer has, so the table
 # stays exact. Dev dependencies are outside it (a test may reach further than the crate does).
 EDGES=(
-  "sill-launcher: almanac-core docket-core ds-core prov"
+  "sill-launcher: almanac-core docket-core docket-vocab ds-core prov"
   "sill-testkit:"
   "sill-shell-kit: ds ds-core ds-shell"
-  "sill-model: almanac-core casement-protocols companion-wire cua-bus docket-core ds-core ds-helpers keycap-protocol porter-core porter-infer prov sill-launcher voice-wire"
+  "sill-model: almanac-core casement-protocols companion-model companion-wire cua-action cua-bus docket-core docket-manifest docket-permissions-core docket-vocab docket-wire ds-core ds-helpers keycap-protocol porter-capability porter-core porter-ids porter-infer porter-sheet prov sill-launcher voice-wire"
   "sill-settings: ds-core ds-settings keycap-protocol sill-launcher sill-model"
   "sill-ipc: ds-core sill-launcher sill-model"
-  "sill-services: almanac-core almanac-dbus anyview-core anyview-platform casement-protocols companion-wire cua-bus cua-dbus desktop-client docket-client docket-core docket-dbus docket-provider ds-core ds-helpers ds-settings keycap-protocol porter-client porter-core porter-dbus porter-infer prov sill-launcher sill-model voice-dbus voice-wire"
-  "sill-search: almanac-core anyview-core anyview-store companion-wire docket-core ds-core ds-settings prov sill-launcher sill-model sill-services"
-  "sill-ui-kit: companion-wire docket-core ds ds-blitz ds-core ds-harness ds-settings keycap-client porter-core prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-shell-kit"
+  "sill-services: almanac-core almanac-dbus anyview-core anyview-platform casement-protocols companion-model companion-wire cua-action cua-bus cua-dbus desktop-client docket-client docket-core docket-dbus docket-manifest docket-permissions-core docket-provider docket-vocab docket-wire ds-core ds-helpers ds-settings keycap-protocol porter-client porter-core porter-dbus porter-ids porter-infer porter-sheet porter-tailnet porter-tailscale porter-wire prov sill-launcher sill-model voice-dbus voice-wire"
+  "sill-search: almanac-core anyview-core anyview-store companion-model companion-wire cua-action docket-core docket-manifest docket-permissions-core docket-vocab ds-core ds-settings prov sill-launcher sill-model sill-services"
+  "sill-ui-kit: companion-wire cua-action docket-core docket-manifest docket-permissions-core docket-vocab ds ds-blitz ds-core ds-harness ds-settings keycap-client porter-capability porter-core prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-shell-kit"
   "sill-bar: ds ds-blitz ds-settings shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill-dock: ds ds-blitz shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
-  "sill-launcher-ui: almanac-core anyview-core anyview-fs anyview-image anyview-peek anyview-platform companion-wire docket-core ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-shell-kit sill-ui-kit"
+  "sill-launcher-ui: almanac-core anyview-core anyview-fs anyview-image anyview-peek anyview-platform companion-model companion-wire docket-core docket-permissions-core docket-vocab ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill-notify-ui: ds ds-blitz ds-settings shell-host sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
-  "sill-overlays: ds ds-behaviour ds-settings ds-shell porter-core shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
+  "sill-overlays: ds ds-behaviour ds-settings ds-shell porter-capability porter-core porter-ids porter-sheet shell-host sill-launcher sill-model sill-services sill-settings sill-shell-kit sill-ui-kit"
   "sill: ds ds-blitz ds-core ds-extensions ds-lint ds-settings prov shell-host shell-verbs sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-shell-kit sill-ui-kit"
 )
 for edge in "${EDGES[@]}"; do

@@ -1,6 +1,6 @@
 //! What the control center shows of the terminal.
 
-use docket_core::ActionRef;
+use docket_vocab::ActionRef;
 use serde::{Deserialize, Serialize};
 
 /// Whether intentd's breaker has paused the terminal. It pauses a terminal session after too many

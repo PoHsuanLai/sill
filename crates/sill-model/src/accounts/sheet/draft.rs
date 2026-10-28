@@ -1,11 +1,11 @@
 //! The draft of a sheet: built from the view, and carried across an update that does not change
 //! what the person is typing into.
 
+use porter_capability::Toggle;
 use porter_core::AccountId;
 use porter_core::ProviderId;
 use porter_core::SecretText;
-use porter_core::Toggle;
-use porter_core::sheet::{
+use porter_sheet::{
     Entry, FieldAnswer, FieldKind, FieldProblem, FieldSpec, FieldValue, Presence, ServiceChoice,
     ServiceState, SheetView, form_problem, refit,
 };
@@ -200,7 +200,7 @@ pub(super) fn chosen_among(draft: &Draft, accounts: &[AccountId]) -> Option<Acco
 /// `choices` with `kind` set to `toggle`, when the provider offers that kind.
 pub(super) fn toggled(
     choices: &[ServiceChoice],
-    kind: porter_core::CapabilityKind,
+    kind: porter_capability::CapabilityKind,
     toggle: Toggle,
 ) -> Vec<ServiceChoice> {
     choices

@@ -1,8 +1,8 @@
 //! The words the helpers screen wears. Plain ones: a helper has a name, a job, a model and a
 //! pause; nothing here names how the machinery works.
 
+use companion_model::{helper::Ceiling, helper::HelperModel, helper::HelperPhase};
 use companion_wire::{HelperLine, JobLine, JobShown, model_name};
-use docket_core::helper::{Ceiling, HelperModel, HelperPhase};
 use prov::AppName;
 use sill_launcher::HelperControl;
 

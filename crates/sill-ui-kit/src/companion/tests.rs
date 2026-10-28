@@ -2,10 +2,12 @@ use companion_wire::{
     AnswerBody, AnswerPhase, AnswerWire, CardWire, FooterWire, FormWire, NeedsYou, PlanStepWire,
     PlanWire, RefusalWire, StepWireState,
 };
-use docket_core::{
-    ActionRef, Args, BudgetKind, CallRefusal, CardActionId, ConfirmId, ContextKeep, DenyCode,
-    EntityRef, Handle, Keep, LabelText, ParamDecl, ParamName, ParamNeed, ParamType, Reveal, StepId,
-    TimeRange, UndoId, Value,
+use docket_core::{BudgetKind, CallRefusal, ConfirmId, ContextKeep, Keep, Reveal, TimeRange};
+use docket_manifest::{ParamDecl, ParamNeed};
+use docket_permissions_core::DenyCode;
+use docket_vocab::{
+    ActionRef, Args, CardActionId, EntityRef, Handle, LabelText, ParamName, ParamType, StepId,
+    UndoId, Value,
 };
 use ds::components::companion::answer::footer::ServedPlaceKind;
 use ds::components::companion::answer::model::{AnswerView, Streaming};
@@ -55,22 +57,22 @@ fn card(id: &str, effect: prov::Effect) -> CardWire {
         id: CardActionId::parse(id).unwrap_or_else(|e| panic!("{e}")),
         label: label(id),
         effect,
-        call: docket_core::CallRequest {
+        call: docket_vocab::CallRequest {
             action: ActionRef {
                 app: app("org.quire.Mail"),
                 name: prov::ActionName::parse("mail.message.send")
                     .unwrap_or_else(|e| panic!("{e}")),
             },
-            target: docket_core::TargetValue::Nothing,
+            target: docket_vocab::TargetValue::Nothing,
             args: Args::new(),
-            origin: docket_core::Origin::Companion,
+            origin: docket_vocab::Origin::Companion,
         },
     }
 }
 
 fn footer() -> FooterWire {
     FooterWire {
-        mode: docket_core::Mode::default(),
+        mode: docket_permissions_core::Mode::default(),
         served: Vec::new(),
         sources: vec![person("Sam Lee", "sam@example.org")],
         keep: ContextKeep {
@@ -131,7 +133,7 @@ fn run_state_total() {
 
 #[test]
 fn run_place_total() {
-    use docket_core::RunMode as M;
+    use cua_action::RunMode as M;
     for mode in [M::InPlace, M::AgentWorkspace, M::NestedSession] {
         let serde_name = serde_json::to_value(mode)
             .ok()
@@ -446,18 +448,18 @@ fn a_form_field_carries_its_need_its_input_and_its_value() {
                 EntityKind::parse("contacts.person").unwrap_or_else(|e| panic!("{e}")),
             ),
             need: ParamNeed::Required,
-            sink: docket_core::ArgSink::Recipient,
+            sink: docket_manifest::ArgSink::Recipient,
             filled: None,
         },
         ParamDecl {
             name: name("note"),
             label: label("Note"),
             ty: ParamType::Text {
-                max: docket_core::CharCount(200),
-                lines: docket_core::Lines::Many,
+                max: docket_vocab::CharCount(200),
+                lines: docket_vocab::Lines::Many,
             },
             need: ParamNeed::Optional,
-            sink: docket_core::ArgSink::Body,
+            sink: docket_manifest::ArgSink::Body,
             filled: None,
         },
     ];

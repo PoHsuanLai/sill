@@ -16,8 +16,8 @@ use super::{
     Companion, CompanionEvent, CompanionParams, LookupPhase, ProgramLabels, SETTLE_FAILED, step,
     waiting_line,
 };
+use companion_model::{helper::HelperName, helper::HelperPhase};
 use companion_wire::HelperLine;
-use docket_core::helper::{HelperName, HelperPhase};
 use prov::{AgentRole, HelperId, TaskId};
 
 fn id(last: char) -> FactId {

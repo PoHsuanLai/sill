@@ -5,7 +5,7 @@
 //! everything it shows is quoted, since nothing says whose words they are. Pure.
 
 use docket_client::{ClientError, TransportError};
-use docket_core::{Displayed, WireRefusal};
+use docket_wire::{Displayed, WireRefusal};
 use prov::Integrity;
 
 /// `shown`'s text: plain when the label says it is the person's own, quoted when it is not.
@@ -34,7 +34,7 @@ pub(super) fn lacks_labels(error: &ClientError) -> bool {
 #[cfg(test)]
 mod tests {
     use docket_client::{ClientError, TransportError};
-    use docket_core::{Displayed, WireRefusal};
+    use docket_wire::{Displayed, WireRefusal};
     use prov::{DataClass, Label, Source, SpaceId};
 
     use super::{lacks_labels, text_of};

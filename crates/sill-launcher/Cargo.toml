@@ -9,6 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+docket-vocab = { workspace = true }
 nucleo-matcher = { workspace = true }
 ds-core = { workspace = true }
 chordkit = { workspace = true, features = ["serde"] }

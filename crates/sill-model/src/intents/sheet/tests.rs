@@ -1,4 +1,5 @@
-use docket_core::{ConfirmAnswer, ConfirmEnd, ConfirmOffer, GrantScope, Seconds};
+use docket_core::{ConfirmAnswer, ConfirmEnd, ConfirmOffer, GrantScope};
+use docket_vocab::Seconds;
 use prov::{Confidentiality, InputProof, UnixSeconds};
 
 use super::{Reply, Serial, SheetChoice, SheetEffect, SheetEvent, Sheets, permits, step};
@@ -182,10 +183,9 @@ fn an_asker_that_left_leaves_nothing_to_answer() {
 }
 
 mod view_tests {
-    use docket_core::helper::HelperName;
-    use docket_core::{
-        ArgLine, ConfirmDetail, ConfirmOffer, EntityRef, Gesture, LabelText, Shown, TaintNote,
-    };
+    use companion_model::helper::HelperName;
+    use docket_core::{ArgLine, ConfirmDetail, ConfirmOffer, Gesture, Shown, TaintNote};
+    use docket_vocab::{EntityRef, LabelText};
     use prov::{AppName, Effect, Label, Labelled, Source};
 
     use super::super::words::{app_words, asker_words, why_words};
@@ -255,7 +255,7 @@ mod view_tests {
                 },
             ),
         ];
-        asked.count = porter_core::Count(12);
+        asked.count = porter_ids::Count(12);
         asked.detail = ConfirmDetail::Recipients(vec![Shown::Plain("accounts@example.com".into())]);
         let view = sheet_view(&sheets(asked)).unwrap_or_else(|| panic!("a view"));
         let shown: Vec<(&str, &str, Option<&str>)> = view
@@ -279,8 +279,8 @@ mod view_tests {
         let mut asked = request("c-1", ConfirmOffer::OnceOnly, 120);
         asked.effect = Effect::Destructive;
         asked.why = vec![
-            docket_core::AskReason::Effect(Effect::Destructive),
-            docket_core::AskReason::FromTerminal,
+            docket_permissions_core::AskReason::Effect(Effect::Destructive),
+            docket_permissions_core::AskReason::FromTerminal,
         ];
         asked.taint = TaintNote::ReadUntrusted([Source::Web, Source::Mail].into_iter().collect());
         let view = sheet_view(&sheets(asked)).unwrap_or_else(|| panic!("a view"));
@@ -322,9 +322,14 @@ mod view_tests {
         let name: AppName = app("org.quire.Mail");
         assert_eq!(app_words(&name), "Mail");
         assert_eq!(app_words(&app("org.quire.Companion")), "Assistant");
-        assert!(!why_words(&docket_core::AskReason::Mass(porter_core::Count(3))).is_empty());
-        let said = |why: &str| docket_core::AskReason::Said {
-            rule: docket_core::PolicyId("ask-after-untrusted".to_owned()),
+        assert!(
+            !why_words(&docket_permissions_core::AskReason::Mass(
+                porter_ids::Count(3)
+            ))
+            .is_empty()
+        );
+        let said = |why: &str| docket_permissions_core::AskReason::Said {
+            rule: docket_permissions_core::PolicyId("ask-after-untrusted".to_owned()),
             why: why.to_owned(),
         };
         let sentence =

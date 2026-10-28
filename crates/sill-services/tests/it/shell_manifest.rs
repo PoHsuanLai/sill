@@ -5,9 +5,9 @@
 
 use std::collections::BTreeMap;
 
-use docket_core::{
-    AppRefusal, CallId, ChoiceId, Invocation, Origin, ParamDecl, ParamNeed, ParamType, Value,
-};
+use docket_core::{AppRefusal, Invocation};
+use docket_manifest::{ParamDecl, ParamNeed};
+use docket_vocab::{CallId, ChoiceId, Origin, ParamType, Value};
 use ds_core::word::Word;
 use prov::{ActionName, Actor, Label, Labelled, SpaceId};
 use sill_launcher::actions::ActionId;
@@ -16,11 +16,11 @@ use sill_model::intents::shell::{action_of, menu_ask_of, window_ask_of};
 use sill_services::intents::manifest;
 
 /// An invocation of `action` with the arguments `args`.
-fn invocation(action: &ActionName, args: BTreeMap<docket_core::ParamName, Value>) -> Invocation {
+fn invocation(action: &ActionName, args: BTreeMap<docket_vocab::ParamName, Value>) -> Invocation {
     Invocation {
         call: CallId(1),
         action: action.clone(),
-        target: docket_core::TargetValue::Nothing,
+        target: docket_vocab::TargetValue::Nothing,
         args: args
             .into_iter()
             .map(|(name, value)| {
@@ -194,7 +194,7 @@ fn the_window_actions_declare_the_effects_the_model_charges() {
 
 #[test]
 fn the_menu_activation_is_a_destructive_ceiling_the_provider_classifies_under() {
-    use docket_core::PerCall;
+    use docket_vocab::PerCall;
     use prov::Effect;
     let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));
     let rows: Vec<_> = manifest
@@ -213,7 +213,7 @@ fn the_menu_activation_is_a_destructive_ceiling_the_provider_classifies_under() 
 
 #[test]
 fn the_listings_are_declared_untrusted_text_and_the_screenshot_answers_with_a_path() {
-    use docket_core::{ResultShape, TitleTrust};
+    use docket_manifest::{ResultShape, TitleTrust};
     let manifest = manifest().unwrap_or_else(|e| panic!("{e}"));
     for action in &manifest.manifest().actions {
         let name = action.name.as_str();

@@ -14,10 +14,10 @@ use std::time::{Duration, Instant};
 
 use docket_client::{Intents, Transport, TransportError};
 use docket_core::Follow;
-use docket_core::{
-    ActionRef, CallClass, CallRequest, IntentsReply, IntentsRequest, Manifest, Origin, Outcome,
-    Preview, TargetValue, Undoable, ValidManifest, validate,
-};
+use docket_core::{Outcome, Preview, Undoable};
+use docket_manifest::{Manifest, ValidManifest, validate};
+use docket_vocab::{ActionRef, CallClass, CallRequest, Origin, TargetValue};
+use docket_wire::{IntentsReply, IntentsRequest};
 use prov::{ActionName, AppName, Effect};
 use sill_launcher::WindowKey;
 use sill_model::app_menu::{
@@ -1004,15 +1004,17 @@ mod routed {
     use super::*;
     use docket_core::LinkFault;
     use docket_core::{
-        ActionGrantKey, AppRefusal, CallRefusal, CallerId, CallerRole, ClassifyFault,
-        ConfirmAnswer, GrantCaller, GrantScope as ConsentScope, GrantTarget, Invocation, Latency,
-        ParamName, SessionOpen, Value,
+        AppRefusal, CallRefusal, ConfirmAnswer, GrantScope as ConsentScope, Invocation,
     };
     use docket_fake::{
         FakeMemory, FixedClock, MemoryGrants, RecordingSink, ScriptedConfirmer, ScriptedReader,
         ScriptedReviewer, ScriptedWriter,
     };
+    use docket_manifest::Latency;
+    use docket_permissions_core::{ActionGrantKey, GrantCaller, GrantTarget};
     use docket_router::{AppFault, AppLink, GrantStore, NoLog, Router, Seams};
+    use docket_vocab::{ClassifyFault, ParamName, Value};
+    use docket_wire::{CallerId, CallerRole, SessionOpen};
     use policy_point::Presets;
     use porter_core::consent::{Decision, Grant, Usage};
     use porter_core::{AppId, DataClass, Isolation};
@@ -1095,7 +1097,7 @@ mod routed {
         async fn undo(
             &self,
             _: &AppName,
-            _: &docket_core::UndoToken,
+            _: &docket_vocab::UndoToken,
             _: &prov::Actor,
         ) -> Result<(), docket_core::UndoFault> {
             Err(docket_core::UndoFault::AppUnavailable)
@@ -1121,7 +1123,7 @@ mod routed {
             &self,
             _: &AppName,
             _: docket_core::SuggestAsk,
-        ) -> Result<Vec<docket_core::EntityRef>, LinkFault> {
+        ) -> Result<Vec<docket_vocab::EntityRef>, LinkFault> {
             Err(LinkFault::Unavailable)
         }
     }
@@ -1225,7 +1227,7 @@ mod routed {
         let reply = router
             .handle(
                 &companion(),
-                docket_core::IntentsRequest::Perform {
+                docket_wire::IntentsRequest::Perform {
                     activation: None,
                     call,
                     session: None,
@@ -1311,7 +1313,7 @@ mod routed {
         let opened = router
             .handle(
                 &companion(),
-                docket_core::IntentsRequest::SessionOpen(SessionOpen {
+                docket_wire::IntentsRequest::SessionOpen(SessionOpen {
                     space: space(),
                     agent: AgentRef::Companion,
                     parent: None,

@@ -15,11 +15,12 @@ use companion_support::{Desk, app, json, task, wire};
 use companion_wire::{
     AnswerBody, AnswerPhase, AnswerWire, CardWire, NeedsYou, PlanStepWire, PlanWire, StepWireState,
 };
-use docket_core::{
-    ActionRef, Args, CallRefusal, CallRequest, CardActionId, ConfirmEnd, ConfirmId, ContextKeep,
-    Handle, Keep, LabelText, Manifest, Origin, Reveal, StepId, TargetValue, UserTurn, validate,
-};
+use docket_core::{CallRefusal, ConfirmEnd, ConfirmId, ContextKeep, Keep, Reveal, UserTurn};
 use docket_dbus::{COMPANION_BUS, INTENTS_BUS, answer_path};
+use docket_manifest::{Manifest, validate};
+use docket_vocab::{
+    ActionRef, Args, CallRequest, CardActionId, Handle, LabelText, Origin, StepId, TargetValue,
+};
 use prov::{ActionName, AgentRef, AppName, Effect, EntityId, EntityKey, EntityKind, SpaceId};
 use sill_model::companion::{AskInput, Busy, Companion, CompanionCommand, Opener, answer_line};
 use zbus::Connection;
@@ -453,7 +454,7 @@ dry_run = "none"
 params = []
 "#;
 
-fn mail_manifest() -> docket_core::ValidManifest {
+fn mail_manifest() -> docket_manifest::ValidManifest {
     let manifest: Manifest = toml::from_str(MAIL_MANIFEST).unwrap_or_else(|e| panic!("{e}"));
     validate(manifest).unwrap_or_else(|e| panic!("{e:?}"))
 }
@@ -505,7 +506,7 @@ async fn the_apps_that_declare_an_open_action_are_known_and_a_perform_is_the_lau
     let call = CallRequest {
         action: ActionRef {
             app: mail(),
-            name: docket_core::open_name(&thread.kind).unwrap_or_else(|| panic!("a name")),
+            name: docket_manifest::open_name(&thread.kind).unwrap_or_else(|| panic!("a name")),
         },
         target: TargetValue::Entities(vec![thread]),
         args: Args::new(),

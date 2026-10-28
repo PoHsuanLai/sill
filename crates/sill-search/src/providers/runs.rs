@@ -106,8 +106,8 @@ fn row(state: &Companion, run: &RunFacts, at: usize) -> Item {
 
 #[cfg(test)]
 mod tests {
+    use cua_action::RunMode;
     use cua_bus::{CuaOutcome, RunStateSlug};
-    use docket_core::RunMode;
     use prov::RunId;
     use sill_launcher::{Cancel, Query, VecSink};
 

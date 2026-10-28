@@ -7,13 +7,14 @@ use std::time::Duration;
 
 use docket_client::DbusTransport;
 use docket_core::{
-    ActivationToken, AppRefusal, CallClass, ContextScope, ContextSnapshot, EntityRef, FailText,
-    Here, Hit, Invocation, Manifest, Outcome, Preview, Selection, SuggestAsk, SummonAnswer,
-    SummonOrigin, SummonSerial, TextTarget, UndoFault, UndoToken, ValidManifest, Visible,
-    WindowPrivacy, validate,
+    ActivationToken, AppRefusal, ContextScope, ContextSnapshot, FailText, Here, Hit, Invocation,
+    Outcome, Preview, Selection, SuggestAsk, TextTarget, UndoFault, Visible, WindowPrivacy,
 };
+use docket_manifest::{Manifest, ValidManifest, validate};
 use docket_provider::{ContextSource, IntentProvider, SummonTarget};
-use porter_core::Count;
+use docket_vocab::{CallClass, EntityRef, UndoToken};
+use docket_wire::{SummonAnswer, SummonOrigin, SummonSerial};
+use porter_ids::Count;
 use prov::{Actor, EntityId, Label, Labelled};
 use sill_model::intents::shell::{
     ShellAction, ShellFault, action_of, menu_ask_of, outcome_of, undo_of, window_ask_of,
@@ -44,7 +45,7 @@ pub enum ManifestFault {
     Parse(#[from] toml::de::Error),
     /// The manifest parses but breaks a rule of the vocabulary.
     #[error("{0}")]
-    Invalid(#[from] docket_core::ManifestError),
+    Invalid(#[from] docket_manifest::ManifestError),
 }
 
 /// The shell's provider.

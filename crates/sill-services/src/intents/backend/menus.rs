@@ -4,10 +4,8 @@
 //! never joins the shell's own words. An activation answers in fixed words, never the item's.
 
 use docket_client::Transport;
-use docket_core::{
-    AppRefusal, CallClass, FailText, Follow, Invocation, LabelText, Outcome, Preview, Undoable,
-    Value,
-};
+use docket_core::{AppRefusal, FailText, Follow, Invocation, Outcome, Preview, Undoable};
+use docket_vocab::{CallClass, LabelText, Value};
 use porter_core::{AppName, DataClass};
 use prov::{Label, Labelled, Source};
 use sill_model::intents::shell::MenuAsk;

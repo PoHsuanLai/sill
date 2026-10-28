@@ -17,6 +17,17 @@ publish.workspace = true
 dev-callers = ["peephole-bus/dev-rows", "docket-dbus/fixture-callers"]
 
 [dependencies]
+cua-action = { workspace = true }
+docket-wire = { workspace = true }
+companion-model = { workspace = true }
+docket-permissions-core = { workspace = true }
+docket-manifest = { workspace = true }
+docket-vocab = { workspace = true }
+porter-tailscale = { workspace = true }
+porter-tailnet = { workspace = true }
+porter-sheet = { workspace = true }
+porter-wire = { workspace = true }
+porter-ids = { workspace = true }
 anyview-core = { workspace = true }
 anyview-platform = { workspace = true }
 sill-model = { workspace = true }
@@ -73,6 +84,7 @@ nonstick = { workspace = true }
 percent-encoding = { workspace = true }
 
 [dev-dependencies]
+porter-capability = { workspace = true }
 desktop-client = { workspace = true, features = ["fake"] }
 # A caller that is only a claim (`BusPeers::introduce`): the tests name who their stand-ins are.
 peephole-bus = { workspace = true, features = ["fake"] }

@@ -47,7 +47,7 @@ pub use command::{
     AskInput, CompanionCommand, CompanionEffect, CompanionEvent, CompanionParams, FocusInput,
 };
 /// The conversation and mode words of the router, for the crates that name them without docket.
-pub use docket_core::Mode;
+pub use docket_permissions_core::Mode;
 pub use emphasis::{Emphasis, Span, plain_of, spans};
 pub use helpers::{
     ADD_MODEL, AUTOMATIC_HELP, Asked, Automatic, BRING_BACK, CEILINGS, Draft, GONE, HandoverShown,

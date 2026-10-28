@@ -2,10 +2,8 @@
 //! answer still being made, the summons a panel can be in.
 
 use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, CardWire, FooterWire};
-use docket_core::{
-    ActionRef, Args, CallRequest, CardActionId, ContextKeep, Keep, LabelText, Origin, Reveal,
-    TargetValue,
-};
+use docket_core::{ContextKeep, Keep, Reveal};
+use docket_vocab::{ActionRef, Args, CallRequest, CardActionId, LabelText, Origin, TargetValue};
 use prov::{ActionName, AppName, Effect, TaskId};
 use sill_model::companion::{
     AnswerFacts, Busy, Companion, CompanionLink, HelpersModel, HelpersMsg, LauncherOrigin, Summon,
@@ -42,7 +40,7 @@ pub fn answer(id: &str, prompt: &str, phase: AnswerPhase, body: AnswerBody) -> A
             body,
             progress: Vec::new(),
             footer: FooterWire {
-                mode: docket_core::Mode::default(),
+                mode: docket_permissions_core::Mode::default(),
                 served: Vec::new(),
                 sources: Vec::new(),
                 keep: ContextKeep {

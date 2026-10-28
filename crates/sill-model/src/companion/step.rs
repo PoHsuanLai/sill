@@ -103,7 +103,7 @@ fn summoned(
     params: &CompanionParams,
 ) -> (Companion, Vec<CompanionEffect>) {
     let cx = SummonCx {
-        next: docket_core::SummonSerial(state.asked_serial + 1),
+        next: docket_wire::SummonSerial(state.asked_serial + 1),
     };
     let (summon, outs) = state.summon.clone().step(input, at, &params.summon, &cx);
     let asked_serial = outs
@@ -337,7 +337,7 @@ fn thinking(task: &TaskId) -> AnswerWire {
         progress: Vec::new(),
         footer: FooterWire {
             // The placeholder names no mode of its own; the answer the companion writes names the real one.
-            mode: docket_core::Mode::default(),
+            mode: docket_permissions_core::Mode::default(),
             served: Vec::new(),
             sources: Vec::new(),
             keep: ContextKeep {

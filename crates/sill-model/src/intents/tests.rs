@@ -2,10 +2,12 @@
 //! parts' tests share.
 
 use docket_core::{
-    Anchor, AskReason, ConfirmAnswer, ConfirmDetail, ConfirmId, ConfirmOffer, ConfirmParts,
-    ConfirmRequest, Gesture, LabelText, Seconds, TaintNote,
+    Anchor, ConfirmAnswer, ConfirmDetail, ConfirmId, ConfirmOffer, ConfirmParts, ConfirmRequest,
+    Gesture, TaintNote,
 };
-use porter_core::Count;
+use docket_permissions_core::AskReason;
+use docket_vocab::{LabelText, Seconds};
+use porter_ids::Count;
 use prov::{Actor, AppName, Effect, SpaceId, UnixSeconds};
 
 use super::sheet::{Reply, Serial, SheetChoice, SheetEffect, SheetEvent};
@@ -107,7 +109,7 @@ fn allowing_from_the_terminal_asks_for_the_grants_to_be_read_again() {
 
 #[test]
 fn the_terminal_moves_by_its_own_events() {
-    let grant = docket_core::ActionRef {
+    let grant = docket_vocab::ActionRef {
         app: app("org.quire.Mail"),
         name: prov::ActionName::parse("mail.thread.archive").unwrap_or_else(|e| panic!("{e}")),
     };

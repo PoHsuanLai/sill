@@ -3,7 +3,8 @@
 
 use almanac_core::{EntryBody, FactView, SourceView, TimelineEntry};
 use companion_wire::{AnswerBody, AnswerPhase, NeedsYou, RefusalWire, StepWireState};
-use docket_core::{DenyCode, Reveal, UndoEntry, UndoState};
+use docket_core::{Reveal, UndoEntry, UndoState};
+use docket_permissions_core::DenyCode;
 use prov::{Actor, AgentRole, SystemPart};
 
 use super::emphasis::plain_of;

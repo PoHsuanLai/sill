@@ -6,8 +6,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use almanac_core::{FactView, TimelineEntry};
 use companion_wire::{AnswerWire, RouteNote};
+use cua_action::RunMode;
 use cua_bus::{BudgetBody, CuaOutcome, RunStateSlug};
-use docket_core::{ActionRef, CardActionId, Handle, Hit, RunMode, UndoEntry};
+use docket_core::{Hit, UndoEntry};
+use docket_vocab::{ActionRef, CardActionId, Handle};
 use prov::{AppName, EntityKind, RunId, SessionId, TaskId};
 use sill_launcher::Generation;
 

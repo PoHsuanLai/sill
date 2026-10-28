@@ -5,7 +5,7 @@
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use docket_core::Mode;
+use docket_permissions_core::Mode;
 use ds::components::menus::palette::palette_claim::Claim;
 use prov::TaskId;
 use sill_launcher::{LauncherMode, ProviderKind, Subject};

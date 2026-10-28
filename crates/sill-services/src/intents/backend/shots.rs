@@ -5,7 +5,8 @@
 
 use std::time::Duration;
 
-use docket_core::{Invocation, Value};
+use docket_core::Invocation;
+use docket_vocab::Value;
 use porter_core::{AppName, DataClass};
 use prov::{Label, Labelled, Source};
 use sill_model::screenshots::{ShotId, Shots};

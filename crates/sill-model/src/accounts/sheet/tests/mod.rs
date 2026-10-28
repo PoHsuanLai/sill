@@ -1,7 +1,7 @@
 mod step;
 
 use porter_core::ProviderId;
-use porter_core::sheet::{
+use porter_sheet::{
     Entry, FieldKind, FieldSpec, Presence, ProviderRow, RowKind, SheetView, SignInView,
 };
 
@@ -27,7 +27,7 @@ pub(super) fn rows(ids: &[&str]) -> SheetView {
                 } else {
                     RowKind::Provider
                 },
-                auth: porter_core::sheet::ProviderKind::Service,
+                auth: porter_sheet::ProviderKind::Service,
                 mark_face: None,
                 group: None,
             })

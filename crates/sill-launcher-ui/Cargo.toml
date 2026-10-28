@@ -15,6 +15,9 @@ default = ["media"]
 media = ["anyview-peek/media"]
 
 [dependencies]
+companion-model = { workspace = true }
+docket-permissions-core = { workspace = true }
+docket-vocab = { workspace = true }
 almanac-core = { workspace = true }
 companion-wire = { workspace = true }
 anyview-core = { workspace = true }

@@ -6,10 +6,11 @@
 
 use companion_wire::{AnswerWire, AskWire, RouteNote};
 use docket_client::{DbusTransport, Intents};
-use docket_core::{
-    CardActionId, Mode, Origin, SessionOpen, SessionOpened, TurnIn, TurnSource, UserTurn, WindowKey,
-};
+use docket_core::{TurnIn, TurnSource, UserTurn};
 use docket_dbus::{CompanionAnswerProxy, CompanionProxy, Details, answer_path};
+use docket_permissions_core::Mode;
+use docket_vocab::{CardActionId, Origin, WindowKey};
+use docket_wire::{SessionOpen, SessionOpened};
 use prov::{AgentRef, SessionId, TaskId, UnixSeconds};
 use sill_launcher::WindowKey as ShellWindow;
 use sill_model::companion::{AskInput, CompanionEvent, ModeMsg};

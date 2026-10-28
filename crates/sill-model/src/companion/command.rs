@@ -3,10 +3,10 @@
 
 use almanac_core::{FactId, FactView, MemoryItem, TimelineEntry};
 use companion_wire::{AnswerWire, RouteNote};
-use docket_core::{
-    CallRequest, CardActionId, ContextKeep, Handle, Hit, Mode, SummonAnswer, SummonSerial, TurnVia,
-    UndoEntry, UndoScope,
-};
+use docket_core::{ContextKeep, Hit, TurnVia, UndoEntry, UndoScope};
+use docket_permissions_core::Mode;
+use docket_vocab::{CallRequest, CardActionId, Handle};
+use docket_wire::{SummonAnswer, SummonSerial};
 use ds_core::vocab::MemoryVerb;
 use prov::{AgentRef, AppName, RunId, SessionId, SpaceId, TaskId};
 use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
@@ -69,7 +69,7 @@ pub enum CompanionCommand {
         /// The conversation.
         session: SessionId,
         /// The mode it is to be in.
-        mode: docket_core::Mode,
+        mode: docket_permissions_core::Mode,
     },
     /// The settings changed.
     Params(CompanionParams),

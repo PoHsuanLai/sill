@@ -106,7 +106,8 @@ fn a_plain_sheet_ignores_a_brief_answer() {
 #[test]
 fn a_brief_on_the_wire_is_drawn_with_its_flags_and_a_yes_carries_the_written_text() {
     use super::brief_wire::{allowed_once, brief_of};
-    use docket_core::{BriefSheet, BriefText, ConfirmAnswer, LabelText};
+    use docket_core::{BriefSheet, BriefText, ConfirmAnswer};
+    use docket_vocab::LabelText;
     let label = |t: &str| LabelText::parse(t).unwrap_or_else(|e| panic!("{e}"));
     let plain = request("c-1", ConfirmOffer::OnceOnly, 60);
     assert_eq!(brief_of(&plain), None, "a plain sheet is no brief");

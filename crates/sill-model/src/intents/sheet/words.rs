@@ -2,7 +2,8 @@
 //! is, where a value came from. Nothing here is taken from a model or an app's prose, so a
 //! sheet can never be made to say what the person did not ask.
 
-use docket_core::{AskReason, ConfirmRequest, Shown, TaintNote};
+use docket_core::{ConfirmRequest, Shown, TaintNote};
+use docket_permissions_core::AskReason;
 use prov::{Actor, AppName, Effect, Source};
 
 use super::model::SHEET_VALUE_MAX_CHARS;

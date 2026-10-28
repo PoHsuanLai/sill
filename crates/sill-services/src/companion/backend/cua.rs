@@ -6,9 +6,9 @@
 
 use std::collections::HashMap;
 
+use cua_action::RunMode;
 use cua_bus::{BudgetBody, CuaOutcome, RunEnd, RunStateSlug, WindowBody};
 use cua_dbus::{CUA_BUS, ManagerProxy, RunProxy};
-use docket_core::RunMode;
 use prov::RunId;
 use sill_launcher::RunControl;
 use sill_model::companion::{CompanionEvent, RunFacts, SightState};

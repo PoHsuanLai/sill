@@ -5,7 +5,7 @@
 
 use std::collections::HashSet;
 
-use docket_core::helper::HelperModel;
+use companion_model::helper::HelperModel;
 use porter_core::AccountId;
 pub use porter_infer::Takes;
 use porter_infer::{ModelRef, PlaceEngine, PlaceKind, PlaceRow};
@@ -30,7 +30,13 @@ pub struct ModelOffer {
 impl ModelOffer {
     /// The line shown beside it ("Reads text and images", "Text only"); none when not known.
     pub fn facts(&self) -> Option<&'static str> {
-        self.takes.words()
+        match self.takes {
+            Takes::Unknown => None,
+            Takes::TextOnly => Some("Text only"),
+            Takes::TextAndImages => Some("Reads text and images"),
+            Takes::TextAndAudio => Some("Reads text, hears audio"),
+            Takes::TextImagesAndAudio => Some("Reads text and images, hears audio"),
+        }
     }
 
     /// The model choosing it names.

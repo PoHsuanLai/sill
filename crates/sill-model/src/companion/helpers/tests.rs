@@ -4,12 +4,17 @@ mod sign_in;
 
 use std::collections::BTreeSet;
 
+use companion_model::{
+    helper::Ceiling, helper::HelperKind, helper::HelperModel, helper::HelperName,
+    helper::HelperPhase,
+};
 use companion_wire::{
     Handover, HelperCardView, HelperForm, HelperLine, HelperNeeds, HelperReply, HelpersView,
     JobLine, JobShown, LoginShown, RunsIn, ToldWire,
 };
-use docket_core::helper::{Ceiling, HelperKind, HelperModel, HelperName, HelperPhase};
-use porter_core::{AccountId, Count, ModelId};
+use porter_capability::ModelId;
+use porter_core::AccountId;
+use porter_ids::Count;
 use porter_infer::{
     ComputerName, ModelRef, PlaceEngine, PlaceId, PlaceKind, PlaceModel, PlaceRow, PlaceState,
     Takes,
@@ -185,7 +190,8 @@ fn a_new_card_has_no_model_and_still_saves_and_says_to_choose_one() {
     };
     let want = HelperForm {
         name: HelperName::parse("Research").unwrap_or_else(|e| panic!("{e}")),
-        role: docket_core::helper::Role::parse("Reads the news").unwrap_or_else(|e| panic!("{e}")),
+        role: companion_model::helper::Role::parse("Reads the news")
+            .unwrap_or_else(|e| panic!("{e}")),
         space: SpaceId::desktop(),
         model: HelperModel::Unset,
         apps: vec![app("org.quire.Notes")],

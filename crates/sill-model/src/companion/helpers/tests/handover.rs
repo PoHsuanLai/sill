@@ -1,7 +1,7 @@
 //! A helper's work in a terminal: what the card offers, and what the buttons and the closing of
 //! the window ask the companion.
 
-use docket_core::helper::TerminalLogin;
+use companion_model::helper::TerminalLogin;
 use prov::SessionId;
 
 use super::*;
@@ -54,7 +54,7 @@ fn the_buttons_ask_the_companion_and_the_request_opens_a_window() {
     assert_eq!(sent, [HelpersCommand::OpenInTerminal(id("h-1"))]);
     let (_, sent) = update(HelpersModel::default(), HelpersMsg::BringBack(id("h-1")));
     assert_eq!(sent, [HelpersCommand::BringBack(id("h-1"))]);
-    let request = docket_core::helper::TerminalRequest {
+    let request = companion_model::helper::TerminalRequest {
         helper: id("h-1"),
         program: prov::AgentProgram::parse("claude-code").unwrap_or_else(|e| panic!("{e}")),
         login: TerminalLogin::default(),

@@ -3,8 +3,9 @@
 //! giving inferd the person's answers.
 
 use porter_client::{
-    Accounts, ClientError, ComputerReason, DbusTransport, GuestChange, NodeId, TransportError,
+    Accounts, ClientError, ComputerReason, DbusTransport, GuestChange, TransportError,
 };
+use porter_tailscale::NodeId;
 use sill_model::guest_asks::{
     Ask, Computer, GuestAsksCommand, GuestAsksEffect, GuestAsksEvent, GuestAsksState, Verdict,
     choice_of, shown_for, step,

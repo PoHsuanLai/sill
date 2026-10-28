@@ -12,7 +12,7 @@ use ds::prelude::*;
 use ds_harness::{Input, Viewport};
 use ds_settings::Environment;
 use porter_core::SecretText;
-use porter_core::sheet::{FieldKind, FieldValue, SheetInput, SheetView};
+use porter_sheet::{FieldKind, FieldValue, SheetInput, SheetView};
 use shell_host::OutputId;
 use sill_model::accounts::sheet::{
     AccountsSheetCommand, AccountsSheets, SheetEvent, SheetHandle, SheetLink, SheetOut, step,

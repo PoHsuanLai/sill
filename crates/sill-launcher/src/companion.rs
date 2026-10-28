@@ -3,7 +3,8 @@
 //! panel's mode. Pure vocabulary; the daemon's companion service carries each out.
 
 use almanac_core::MemoryItem;
-use docket_core::{CardActionId, UndoScope};
+use docket_core::UndoScope;
+use docket_vocab::CardActionId;
 use ds_core::vocab::MemoryVerb;
 use prov::{HelperId, RunId, SessionId, TaskId};
 use serde::{Deserialize, Serialize};
@@ -139,7 +140,8 @@ pub enum CompanionAct {
 mod tests {
     use super::{CompanionAct, HelperControl, LauncherMode, RunControl};
     use almanac_core::MemoryItem;
-    use docket_core::{CardActionId, UndoId, UndoScope};
+    use docket_core::UndoScope;
+    use docket_vocab::{CardActionId, UndoId};
     use ds_core::vocab::MemoryVerb;
     use prov::{RunId, TaskId};
 

@@ -1,7 +1,7 @@
 //! An answer as the card draws it.
 
 use companion_wire::{AnswerBody, AnswerPhase, AnswerWire, NeedsYou, RefusalWire};
-use docket_core::EntityRef;
+use docket_vocab::EntityRef;
 use ds::components::companion::answer::action::{ActionRole, CardAction, CardActionId};
 use ds::components::companion::answer::footer::CardFooter;
 use ds::components::companion::answer::model::{AnswerView, Streaming, TextAnswer};

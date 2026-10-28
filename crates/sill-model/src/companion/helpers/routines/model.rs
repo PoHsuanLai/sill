@@ -1,7 +1,7 @@
 //! What the routines part of the helpers screen holds.
 
+use companion_model::routine::RoutineId;
 use companion_wire::{RoutineLine, RoutineProposal};
-use docket_core::routine::RoutineId;
 use prov::HelperId;
 
 use super::draft::RoutineDraft;

@@ -1,7 +1,7 @@
 //! The companion's one presence, derived from what is happening (design/32 section 4.10).
 
 use companion_wire::AnswerPhase;
-use docket_core::RunMode;
+use cua_action::RunMode;
 use ds_core::vocab::CompanionPresence;
 
 use super::model::Companion;

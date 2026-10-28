@@ -9,6 +9,11 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+cua-action = { workspace = true }
+companion-model = { workspace = true }
+docket-permissions-core = { workspace = true }
+docket-manifest = { workspace = true }
+docket-vocab = { workspace = true }
 anyview-core = { workspace = true }
 anyview-store = { workspace = true }
 sill-launcher = { workspace = true }

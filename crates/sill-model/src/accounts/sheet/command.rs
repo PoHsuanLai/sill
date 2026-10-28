@@ -1,10 +1,11 @@
 //! What the sheet can be told, what can happen to it, and what the shell must then do.
 
-use porter_core::Toggle;
-use porter_core::capability::CapabilityKind;
+use porter_capability::CapabilityKind;
+use porter_capability::Toggle;
+use porter_core::AccountId;
 use porter_core::consent::GrantScope;
-use porter_core::sheet::{FieldKind, FieldValue, SheetInput, SheetView};
-use porter_core::{AccountId, WebUrl};
+use porter_ids::WebUrl;
+use porter_sheet::{FieldKind, FieldValue, SheetInput, SheetView};
 
 use super::draft::ListKey;
 use super::model::{AccountsSheets, MAX_OPEN, SheetHandle, SheetLink};

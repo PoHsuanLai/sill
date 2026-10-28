@@ -1,8 +1,8 @@
 //! The app a helper runs: how the card names it, where the sign-in stands, the buttons that
 //! sign in and out, and what the answers to them do.
 
+use companion_model::helper::TerminalLogin;
 use companion_wire::SignInChoice;
-use docket_core::helper::TerminalLogin;
 use prov::AgentProgram;
 
 use super::*;
@@ -116,7 +116,7 @@ fn signing_in_and_out_ask_the_companion_and_done_reads_the_card_again() {
 
 #[test]
 fn a_terminal_request_opens_a_window_and_closing_it_asks_the_companion_to_check_again() {
-    let request = docket_core::helper::TerminalRequest {
+    let request = companion_model::helper::TerminalRequest {
         helper: id("h-1"),
         program: program("claude-code"),
         login: TerminalLogin::default(),

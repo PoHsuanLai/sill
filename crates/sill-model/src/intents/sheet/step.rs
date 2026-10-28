@@ -1,8 +1,8 @@
 //! The queue's transition.
 
-use docket_core::{
-    ConfirmAnswer, ConfirmEnd, ConfirmId, ConfirmRequest, GrantScope, Seconds, StandingGrantId,
-};
+use docket_core::{ConfirmAnswer, ConfirmEnd, ConfirmId, ConfirmRequest, GrantScope};
+use docket_permissions_core::StandingGrantId;
+use docket_vocab::Seconds;
 use prov::{Confidentiality, ConfirmReceipt, InputProof, UnixSeconds};
 
 use super::brief::BRIEF_MAX_BYTES;

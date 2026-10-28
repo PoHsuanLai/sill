@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use porter_core::sheet::{ProviderKind, ProviderRow};
+use porter_sheet::{ProviderKind, ProviderRow};
 use prov::AgentLabel;
 
 /// Provider-row labels by program id. Only agent-login rows name a program.
