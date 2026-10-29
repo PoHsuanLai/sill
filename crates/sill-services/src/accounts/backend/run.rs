@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use porter_dbus::accounts::{ManagerProxy, refusal_of};
+use porter_client::{AccountChange, AccountsError};
 use porter_wire::Refusal;
 use sill_model::accounts::{
     AccountKey, AccountsCommand, AccountsEffect, AccountsEvent, AccountsState, NeedsSignIn,
@@ -19,7 +19,7 @@ use zbus::Connection;
 use super::links::AccountsLinks;
 use super::retry::{self, Retry, Wait};
 use super::{notice, wire};
-use crate::account_label::label_of;
+use crate::account_label::{Accountd, accountd, key_of, label_of};
 use crate::accounts::AccountsService;
 use crate::env::Bus;
 use crate::error::ServiceError;
@@ -27,11 +27,11 @@ use crate::machine::Machine;
 use crate::notices::Board;
 use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
-use crate::stream::next;
 
 /// Everything the loop owns.
 struct Live {
     connection: Connection,
+    accounts: Accountd,
     rt: Handle,
     told: UnboundedSender<AccountsEvent>,
     machine: Machine<AccountsState, AccountsEvent, AccountsEffect>,
@@ -58,6 +58,7 @@ pub(crate) async fn run(
     let (told, mut events) = unbounded_channel();
     let mut live = Live {
         connection: connection.clone(),
+        accounts: accountd(&connection),
         rt: Handle::current(),
         told,
         machine: Machine::new(tx, step),
@@ -117,15 +118,15 @@ impl Live {
         answers: &mut broadcast::Receiver<Said>,
         events: &mut UnboundedReceiver<AccountsEvent>,
     ) -> Met {
-        let Ok(manager) = ManagerProxy::new(&self.connection).await else {
-            return Met::Ended(Ended::Unreadable);
-        };
-        // Open before asking, so no signal falls between the list and the wait.
-        let Ok(mut signals) = manager.receive_needs_reauth().await else {
-            return Met::Ended(Ended::Unreadable);
+        // Open before asking, so no signal falls between the list and the wait. Opening is also
+        // the first call accountd answers, so a refusal of it is the one to try again.
+        let mut changes = match self.accounts.watch().await {
+            Ok(changes) => changes,
+            Err(error) if retry::is_refusal(&error) => return Met::Refused,
+            Err(_) => return Met::Ended(Ended::Unreadable),
         };
         self.apply(AccountsEvent::Found);
-        match wire::listed(&self.connection).await {
+        match wire::listed(&self.accounts).await {
             Ok(list) => self.apply(AccountsEvent::Listed(list)),
             Err(error) if retry::is_refusal(&error) => return Met::Refused,
             Err(error) => {
@@ -135,9 +136,9 @@ impl Live {
         }
         loop {
             tokio::select! {
-                Some(signal) = next(&mut signals) => {
-                    if let Ok(args) = signal.args() {
-                        self.heard(AccountKey::new(args.account().as_str()));
+                Some(change) = changes.next() => {
+                    if let Ok(AccountChange::NeedsReauth(account)) = change {
+                        self.heard(key_of(&account));
                     }
                 }
                 Some(event) = events.recv() => self.apply(event),
@@ -181,10 +182,10 @@ impl Live {
 
     /// accountd says `account` needs signing in again: read its label, then tell the step.
     fn heard(&self, account: AccountKey) {
-        let (connection, told) = (self.connection.clone(), self.told.clone());
+        let (accounts, told) = (self.accounts.clone(), self.told.clone());
         self.rt.spawn(async move {
-            let label = label_of(&connection, &account).await;
-            let ask = wire::ask_of(&connection, &account).await;
+            let label = label_of(&accounts, &account).await;
+            let ask = wire::ask_of(&accounts, &account).await;
             let _ = told.send(AccountsEvent::NeedsSignIn(NeedsSignIn {
                 account,
                 label,
@@ -204,13 +205,13 @@ impl Live {
         {
             return;
         }
-        let (connection, account) = (self.connection.clone(), account.clone());
+        let (accounts, account) = (self.accounts.clone(), account.clone());
         let notifications = self.board.notifications();
         self.rt.spawn(async move {
-            match wire::sign_in_again(&connection, &account).await {
+            match wire::sign_in_again(&accounts, &account).await {
                 Ok(()) => {}
-                Err(error) if refusal_of(&error) == Some(Refusal::NoLauncher) => {
-                    let label = label_of(&connection, &account).await;
+                Err(AccountsError::Refused(Refusal::NoLauncher)) => {
+                    let label = label_of(&accounts, &account).await;
                     let post = notice::no_launcher_posting(&label);
                     let _ = notifications.send(NotificationsCommand::Post(Box::new(post)));
                 }

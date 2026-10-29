@@ -256,18 +256,22 @@ porter-ids = { path = "../porter/crates/porter-ids" }
 porter-capability = { path = "../porter/crates/porter-capability" }
 porter-wire = { path = "../porter/crates/porter-wire" }
 porter-sheet = { path = "../porter/crates/porter-sheet" }
-porter-tailnet = { path = "../porter/crates/porter-tailnet" }
+porter-tailnet = { path = "../steward/crates/porter-tailnet" }
 porter-tailscale = { path = "../porter/crates/porter-tailscale" }
 # Test-only: the `ServedBy` a stand-in voiced stamps on a transcript.
-porter-infer = { path = "../porter/crates/porter-infer" }
+porter-infer = { path = "../steward/crates/porter-infer" }
 # Who a bus connection is: porter's caller identity (the connection's pid, its cgroup scope), which
 # proves whose menu a name serves before an agent's activation trusts a command id it names.
 # MIT OR Apache-2.0, a sibling checkout already in the tree through docket-dbus.
 porter-dbus = { path = "../porter/crates/porter-dbus" }
-# The typed calls on inferd and accountd (guests, answers, the change stream) over the session bus.
-# MIT OR Apache-2.0, a sibling checkout; no in-process host. `infer` is the typed `Places` and
-# `LocalEngines` rows a helper's model list reads (porter-infer is already here through docket-core).
-porter-client = { path = "../porter/crates/porter-client", default-features = false, features = ["dbus", "infer"] }
+# The typed calls on accountd (the shell's view of the accounts, signing one in again) over the
+# session bus: the client, and its bus transport. MIT OR Apache-2.0, sibling checkouts; no
+# in-process host.
+porter-client = { path = "../porter/crates/porter-client" }
+porter-client-dbus = { path = "../porter/crates/porter-client-dbus" }
+# The typed calls on inferd (guests, answers, the change stream, the helper pool, the places a
+# helper's model list reads) over the session bus. MIT OR Apache-2.0, a sibling checkout of steward.
+inferd-client = { path = "../steward/crates/inferd-client", default-features = false, features = ["dbus"] }
 # The companion's wire (the bodies of `org.quire.Companion1`: asks, answers, cards, plans, forms),
 # cuad's bus bodies and D-Bus proxies (run states, outcomes, `Cua1.Manager`/`Run`) and memoryd's
 # vocabulary and proxies (`MemoryItem`, the timeline): serde data and zbus declarations only, the
@@ -389,13 +393,21 @@ porter-client = { path = "../porter/crates/porter-client" }
 porter-core = { path = "../porter/crates/porter-core" }
 porter-callers = { path = "../porter/crates/porter-callers" }
 porter-dbus = { path = "../porter/crates/porter-dbus" }
-porter-infer = { path = "../porter/crates/porter-infer" }
+porter-dbus-macros = { path = "../porter/crates/porter-dbus-macros" }
+porter-client-dbus = { path = "../porter/crates/porter-client-dbus" }
 porter-ids = { path = "../porter/crates/porter-ids" }
 porter-capability = { path = "../porter/crates/porter-capability" }
 porter-match = { path = "../porter/crates/porter-match" }
 porter-wire = { path = "../porter/crates/porter-wire" }
 porter-sheet = { path = "../porter/crates/porter-sheet" }
-porter-tailnet = { path = "../porter/crates/porter-tailnet" }
 porter-tailscale = { path = "../porter/crates/porter-tailscale" }
+
+# steward's crates, for a sibling that takes them by git (the same sibling checkout, so one copy).
+[patch."https://github.com/PoHsuanLai/steward"]
+inferd-client = { path = "../steward/crates/inferd-client" }
+porter-infer = { path = "../steward/crates/porter-infer" }
+porter-tailnet = { path = "../steward/crates/porter-tailnet" }
+steward-dbus = { path = "../steward/crates/steward-dbus" }
+
 [patch."https://github.com/PoHsuanLai/prov"]
 prov = { path = "../prov/prov" }

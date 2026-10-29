@@ -1,97 +1,88 @@
 //! accountd's side of the conversation: who needs signing in, an account's label and standing,
 //! and the call that signs one in again.
 
-use porter_dbus::Details;
-use porter_dbus::accounts::ACCOUNTS_BUS;
+use porter_client::{AccountView, AccountsError, LinkError, Malformed};
+use porter_core::{AccountState, ReauthReason};
+use porter_dbus::accounts::AccountProxy;
+use porter_wire::ParentWindow;
+use porter_wire::names::ACCOUNTS_BUS;
 use sill_model::accounts::{AccountKey, AccountStanding, AccountsEvent, NeedsSignIn, SignInAsk};
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::Connection;
-use zbus::zvariant::OwnedObjectPath;
 
-use crate::account_label::account;
+use crate::account_label::{Accountd, key_of, ref_of};
 use crate::stream::next;
 use ds_core::word::Word;
 
 /// accountd's well-known name.
 pub(crate) const ACCOUNTS: &str = ACCOUNTS_BUS;
 
-/// accountd's `ReauthReason` word for Google's seven-day sign-out of an unverified app.
-const TESTING_EXPIRED: &str = "testing_app_expired";
-
-/// The accounts that need signing in again now, with their labels, as accountd lists them for the
-/// shell; asking is also how accountd learns this connection, which it then sends `NeedsReauth`
-/// to. An accountd that has no such call lists nothing.
-#[zbus::proxy(
-    interface = "org.quire.Accounts1.Manager",
-    default_service = "org.quire.Accounts1",
-    default_path = "/org/quire/Accounts1"
-)]
-pub(crate) trait ManagerSignIn {
-    fn needing_reauth(&self) -> zbus::Result<Vec<(OwnedObjectPath, String)>>;
-}
-
-/// The accounts accountd says need signing in again.
-pub(crate) async fn listed(connection: &Connection) -> zbus::Result<Vec<NeedsSignIn>> {
-    let manager = ManagerSignInProxy::new(connection).await?;
-    match manager.needing_reauth().await {
-        Ok(list) => {
-            let mut found = Vec::with_capacity(list.len());
-            for (path, label) in list {
-                let account = AccountKey::new(path.as_str());
-                let ask = ask_of(connection, &account).await;
-                found.push(NeedsSignIn {
-                    account,
-                    label,
-                    ask,
-                });
-            }
-            Ok(found)
-        }
-        Err(zbus::Error::MethodError(name, ..))
-            if name.as_str() == "org.freedesktop.DBus.Error.UnknownMethod" =>
-        {
-            Ok(Vec::new())
-        }
-        Err(error) => Err(error),
+/// The accounts accountd says need signing in again, with their labels and the sign-in each asks
+/// for.
+pub(crate) async fn listed(accountd: &Accountd) -> Result<Vec<NeedsSignIn>, LinkError> {
+    let list = accountd.needing_reauth().await?;
+    let mut found = Vec::with_capacity(list.len());
+    for needing in list {
+        let account = key_of(&needing.account);
+        let ask = ask_of(accountd, &account).await;
+        found.push(NeedsSignIn {
+            account,
+            label: needing.label.0,
+            ask,
+        });
     }
+    Ok(found)
 }
 
 /// Which sign-in the account asks for; a plain sign-in again when accountd will not say.
-pub(crate) async fn ask_of(connection: &Connection, key: &AccountKey) -> SignInAsk {
-    let standing = match account(connection, key).await {
-        Ok(proxy) => proxy.state().await.ok(),
-        Err(_) => None,
-    };
-    let ask = standing
-        .and_then(|word| AccountStanding::parse(&word))
+pub(crate) async fn ask_of(accountd: &Accountd, key: &AccountKey) -> SignInAsk {
+    let view = view_of(accountd, key).await;
+    let ask = view
+        .as_ref()
+        .map(|view| standing_of(view.state))
         .and_then(AccountStanding::ask)
         .unwrap_or_default();
     match ask {
-        SignInAsk::Again => again_by_reason(connection, key).await,
+        SignInAsk::Again => again_by_reason(view.as_ref()),
         SignInAsk::TestingExpired | SignInAsk::Login => ask,
     }
 }
 
 /// A plain sign-in again, or the one Google's testing-app limit asks for when accountd's
 /// `ReauthReason` says `testing_app_expired`.
-async fn again_by_reason(connection: &Connection, key: &AccountKey) -> SignInAsk {
-    let reason = match account(connection, key).await {
-        Ok(proxy) => proxy.reauth_reason().await.ok(),
-        Err(_) => None,
-    };
-    match reason.as_deref() {
-        Some(TESTING_EXPIRED) => SignInAsk::TestingExpired,
+fn again_by_reason(view: Option<&AccountView>) -> SignInAsk {
+    match view.and_then(|view| view.reauth_reason) {
+        Some(ReauthReason::TestingAppExpired) => SignInAsk::TestingExpired,
         _ => SignInAsk::Again,
     }
 }
 
+/// The account as accountd shows it, or `None` when it will not say.
+async fn view_of(accountd: &Accountd, key: &AccountKey) -> Option<AccountView> {
+    accountd.view(&ref_of(key)?).await.ok()
+}
+
+/// How accountd says an account stands, as the shell words it.
+fn standing_of(state: AccountState) -> AccountStanding {
+    match state {
+        AccountState::Ok => AccountStanding::Ok,
+        AccountState::NeedsReauth => AccountStanding::NeedsReauth,
+        AccountState::NeedsLogin => AccountStanding::NeedsLogin,
+        AccountState::Offline => AccountStanding::Offline,
+        AccountState::Limited => AccountStanding::Limited,
+    }
+}
+
 /// Ask accountd to sign the account in again; the sign-in itself is drawn by sill's own sheet.
-pub(crate) async fn sign_in_again(connection: &Connection, key: &AccountKey) -> zbus::Result<()> {
-    account(connection, key)
-        .await?
-        .reauthenticate("", &Details::new())
+/// Returns once the sheet has been answered.
+pub(crate) async fn sign_in_again(
+    accountd: &Accountd,
+    key: &AccountKey,
+) -> Result<(), AccountsError> {
+    let account = ref_of(key).ok_or(LinkError::Malformed(Malformed::Id))?;
+    accountd
+        .reauthenticate_shown(&account, &ParentWindow::Unparented)
         .await
-        .map(drop)
 }
 
 /// Whether the account has stopped needing the person: `Some(true)`, still needs them:
@@ -104,6 +95,15 @@ fn recovered(standing: zbus::Result<String>) -> Option<bool> {
         }
         Err(_) => None,
     }
+}
+
+/// accountd's object for the account `key`. The client has no stream of an account's `State`
+/// changes, so the watch below reads them from the proxy.
+async fn account(connection: &Connection, key: &AccountKey) -> zbus::Result<AccountProxy<'static>> {
+    AccountProxy::builder(connection)
+        .path(key.as_str().to_owned())?
+        .build()
+        .await
 }
 
 /// Follow the account's `State` and say once it no longer needs signing in (or no longer

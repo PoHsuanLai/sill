@@ -1,4 +1,4 @@
-//! porter-client's guest rows and asks, as questions; the verdict as its answer.
+//! inferd-client's guest rows and asks, as questions; the verdict as its answer.
 
 use porter_tailnet::{GuestAnswer, GuestRow};
 use porter_tailnet::{GuestAsk, RowState};
@@ -6,7 +6,7 @@ use porter_tailscale::NodeId;
 use sill_model::guest_asks::{Ask, Computer, Verdict};
 
 /// inferd's well-known name.
-pub(crate) const INFERD: &str = porter_dbus::inference::INFERENCE_BUS;
+pub(crate) const INFERD: &str = porter_wire::names::INFERENCE_BUS;
 
 /// The question a `GuestAsks` signal carries. A computer without a name is not one the person
 /// can answer, so it says nothing.
@@ -25,7 +25,7 @@ pub(crate) fn waiting(rows: Vec<GuestRow>) -> Vec<Ask> {
         .collect()
 }
 
-/// The answer porter-client takes for `verdict`.
+/// The answer inferd-client takes for `verdict`.
 pub(crate) fn answer(verdict: Verdict) -> GuestAnswer {
     match verdict {
         Verdict::Allow => GuestAnswer::Allow,

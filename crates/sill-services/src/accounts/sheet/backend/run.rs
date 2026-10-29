@@ -5,8 +5,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use porter_dbus::accounts::{SHEET_BUS, SHEET_PATH};
 use porter_sheet::SheetInput;
+use porter_wire::names::{SHEET_BUS, SHEET_PATH};
 use sill_launcher::OpenTarget;
 use sill_model::accounts::sheet::{
     AccountsSheetCommand, AccountsSheets, Admit, SheetEvent, SheetHandle, SheetLink, SheetOut,

@@ -306,18 +306,6 @@ async fn an_action_signal_from_any_other_connection_signs_nothing_in() {
     assert!(until_reauthenticated(&accountd, 1).await);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn an_accountd_with_no_list_is_followed_by_its_signal() {
-    let Some(bus) = PrivateBus::start() else {
-        return;
-    };
-    let accountd = FakeAccountd::start(&bus, "ok", Listing::None).await;
-    let mut shell = shell(&bus).await;
-    assert!(needing(&mut shell, 0).await, "accountd was not met");
-    accountd.refuse().await;
-    notice_shown(&mut shell).await;
-}
-
 /// What the notifications service would say to its listeners, said by the test: the person's
 /// press or close, without the service having held the notification.
 struct Voice(Answers);

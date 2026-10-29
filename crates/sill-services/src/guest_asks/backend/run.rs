@@ -2,8 +2,8 @@
 //! server's answers and the commands, stepping [`GuestAsksState`], posting its notices and
 //! giving inferd the person's answers.
 
-use porter_client::{
-    Accounts, ClientError, ComputerReason, DbusTransport, GuestChange, TransportError,
+use inferd_client::{
+    ClientError, ComputerReason, DbusTransport, GuestChange, Inference, TransportError,
 };
 use porter_tailscale::NodeId;
 use sill_model::guest_asks::{
@@ -27,7 +27,7 @@ use crate::owner::{self, Ended};
 use crate::service::ServiceIo;
 
 /// The shell's seat at inferd's guests.
-type Guests = Accounts<DbusTransport>;
+type Guests = Inference<DbusTransport>;
 
 /// Everything the loop owns.
 struct Live {
@@ -76,7 +76,7 @@ impl Live {
         commands: &mut UnboundedReceiver<GuestAsksCommand>,
         answers: &mut broadcast::Receiver<Said>,
     ) -> Ended {
-        let proxy = Accounts::over(DbusTransport::over(self.connection.clone()));
+        let proxy = Inference::over(DbusTransport::over(self.connection.clone()));
         // Open before reading, so a question asked in between is not lost.
         let Ok(mut changes) = proxy.watch_guests().await else {
             return Ended::Unreadable;

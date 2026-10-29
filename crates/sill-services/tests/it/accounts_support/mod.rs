@@ -49,16 +49,6 @@ impl Manager {
     -> zbus::Result<()>;
 }
 
-/// The Manager of an accountd that has no list for the shell: only the signal.
-struct ManagerWithoutList;
-
-#[zbus::interface(name = "org.quire.Accounts1.Manager")]
-impl ManagerWithoutList {
-    #[zbus(signal)]
-    async fn needs_reauth(emitter: &SignalEmitter<'_>, account: ObjectPath<'_>)
-    -> zbus::Result<()>;
-}
-
 struct Account {
     state: String,
     /// `ReauthReason`: empty, or `testing_app_expired`.
@@ -68,6 +58,16 @@ struct Account {
 
 #[zbus::interface(name = "org.quire.Accounts1.Account")]
 impl Account {
+    #[zbus(property)]
+    fn id(&self) -> String {
+        "work".to_owned()
+    }
+
+    #[zbus(property)]
+    fn provider(&self) -> String {
+        "google".to_owned()
+    }
+
     #[zbus(property)]
     fn label(&self) -> String {
         "Work mail".to_owned()
@@ -128,8 +128,6 @@ pub enum Listing {
     Of(Vec<(&'static str, &'static str)>),
     /// Refuses the first `usize` calls with `AccessDenied`, then lists the `Of` way.
     Refusing(usize, Vec<(&'static str, &'static str)>),
-    /// An accountd with no such call.
-    None,
 }
 
 impl FakeAccountd {
@@ -152,7 +150,6 @@ impl FakeAccountd {
             Listing::Refusing(refusals, listed) => {
                 builder.serve_at(MANAGER, manager(refusals, listed))
             }
-            Listing::None => builder.serve_at(MANAGER, ManagerWithoutList),
         }
         .unwrap_or_else(|e| panic!("{e}"));
         let connection = builder

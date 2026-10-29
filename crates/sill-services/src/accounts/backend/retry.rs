@@ -4,6 +4,8 @@
 
 use std::time::Duration;
 
+use porter_client::LinkError;
+
 /// How long to wait before each further try, in order.
 const BACKOFF: [Duration; 4] = [
     Duration::from_millis(100),
@@ -43,13 +45,8 @@ impl Retry {
 }
 
 /// Whether accountd's refusal is the one that passes: it does not know the caller yet.
-pub(crate) fn is_refusal(error: &zbus::Error) -> bool {
-    const DENIED: &str = "org.freedesktop.DBus.Error.AccessDenied";
-    match error {
-        zbus::Error::MethodError(name, ..) => name.as_str() == DENIED,
-        zbus::Error::FDO(error) => matches!(**error, zbus::fdo::Error::AccessDenied(_)),
-        _ => false,
-    }
+pub(crate) fn is_refusal(error: &LinkError) -> bool {
+    matches!(error, LinkError::Denied)
 }
 
 #[cfg(test)]
@@ -80,8 +77,8 @@ mod tests {
 
     #[test]
     fn only_access_denied_is_a_refusal() {
-        let denied = zbus::Error::FDO(Box::new(zbus::fdo::Error::AccessDenied("pid".into())));
-        assert!(is_refusal(&denied));
-        assert!(!is_refusal(&zbus::Error::InvalidReply));
+        assert!(is_refusal(&LinkError::Denied));
+        assert!(!is_refusal(&LinkError::Unreachable));
+        assert!(!is_refusal(&LinkError::Invalid));
     }
 }

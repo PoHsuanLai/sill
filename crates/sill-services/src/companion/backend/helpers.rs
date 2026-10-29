@@ -5,7 +5,7 @@
 
 use companion_wire::{HelperCardView, HelperForm, HelperReply, HelpersView};
 use docket_dbus::{COMPANION_BUS, CompanionHelpers2Proxy};
-use porter_client::DbusTransport;
+use inferd_client::DbusTransport;
 use prov::HelperId;
 use sill_model::companion::{Asked, CompanionEvent, HelpersCommand, HelpersMsg, model_groups};
 use tokio::sync::mpsc::UnboundedSender;

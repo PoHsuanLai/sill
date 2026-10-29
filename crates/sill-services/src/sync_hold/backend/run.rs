@@ -15,7 +15,7 @@ use zbus::Connection;
 use super::links::SyncHoldLinks;
 use super::notice;
 use super::wire::{self, Heard};
-use crate::account_label::label_of;
+use crate::account_label::{Accountd, accountd, label_of};
 use crate::control::Control;
 use crate::env::Bus;
 use crate::error::ServiceError;
@@ -29,6 +29,7 @@ use crate::sync_hold::SyncHoldService;
 /// Everything the loop owns.
 struct Live {
     connection: Connection,
+    accounts: Accountd,
     machine: Machine<SyncHoldState, SyncHoldEvent, SyncHoldEffect>,
     launch: Control<LaunchCommand>,
     /// The notices, one per held dataset.
@@ -52,6 +53,7 @@ pub(crate) async fn run(
     let connection = bus.connect_waiting().await?;
     let mut live = Live {
         connection: connection.clone(),
+        accounts: accountd(&connection),
         machine: Machine::new(tx, step),
         launch: links.launch,
         board: Board::new(links.notifications, links.notes, shown_for),
@@ -115,7 +117,7 @@ impl Live {
                 let Heard::Held { account, .. } = &held else {
                     return;
                 };
-                let name = label_of(&self.connection, account).await;
+                let name = label_of(&self.accounts, account).await;
                 if let Some(hold) = held.hold(name) {
                     self.apply(SyncHoldEvent::Held(hold));
                 }

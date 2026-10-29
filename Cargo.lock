@@ -2537,10 +2537,10 @@ dependencies = [
  "porter-core",
  "porter-dbus",
  "porter-match",
- "porter-wire",
  "prov",
  "serde",
  "serde_json",
+ "steward-dbus",
  "thiserror 2.0.21",
  "zbus",
 ]
@@ -2561,14 +2561,13 @@ dependencies = [
  "docket-router",
  "docket-session",
  "docket-vocab",
+ "inferd-client",
  "policy-point",
  "porter-capability",
- "porter-client",
  "porter-core",
  "porter-ids",
  "porter-infer",
  "porter-match",
- "porter-wire",
  "prov",
  "thiserror 2.0.21",
 ]
@@ -4139,6 +4138,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a588916bfdfd92e71cacef98a63d9b1f0d74d6599980d11894290e7ddefffcf7"
 dependencies = [
  "cfb",
+]
+
+[[package]]
+name = "inferd-client"
+version = "0.1.0"
+dependencies = [
+ "porter-callers",
+ "porter-capability",
+ "porter-core",
+ "porter-dbus",
+ "porter-ids",
+ "porter-infer",
+ "porter-match",
+ "porter-tailnet",
+ "porter-tailscale",
+ "porter-wire",
+ "rustix",
+ "serde",
+ "serde_json",
+ "steward-dbus",
+ "thiserror 2.0.21",
+ "tokio",
+ "zbus",
 ]
 
 [[package]]
@@ -6442,21 +6464,31 @@ dependencies = [
 name = "porter-client"
 version = "0.1.0"
 dependencies = [
- "porter-callers",
+ "futures-core",
+ "futures-util",
  "porter-capability",
+ "porter-core",
+ "porter-ids",
+ "porter-match",
+ "porter-tailscale",
+ "porter-wire",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "porter-client-dbus"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "porter-capability",
+ "porter-client",
  "porter-core",
  "porter-dbus",
  "porter-ids",
- "porter-infer",
- "porter-match",
- "porter-tailnet",
  "porter-tailscale",
  "porter-wire",
- "rustix",
- "serde",
  "serde_json",
  "thiserror 2.0.21",
- "tokio",
  "zbus",
  "zeroize",
 ]
@@ -6483,7 +6515,6 @@ dependencies = [
  "porter-core",
  "porter-dbus-macros",
  "porter-ids",
- "porter-match",
  "porter-tailscale",
  "porter-wire",
  "serde",
@@ -6546,6 +6577,7 @@ dependencies = [
  "porter-core",
  "porter-ids",
  "porter-tailscale",
+ "porter-wire",
  "serde",
  "thiserror 2.0.21",
 ]
@@ -7864,6 +7896,7 @@ dependencies = [
  "ds-settings",
  "freedesktop-icons",
  "image",
+ "inferd-client",
  "jiff",
  "keycap-protocol",
  "libpulse-binding",
@@ -7876,6 +7909,7 @@ dependencies = [
  "policy-point",
  "porter-capability",
  "porter-client",
+ "porter-client-dbus",
  "porter-core",
  "porter-dbus",
  "porter-ids",
@@ -8204,6 +8238,22 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "steward-dbus"
+version = "0.1.0"
+dependencies = [
+ "porter-core",
+ "porter-dbus",
+ "porter-dbus-macros",
+ "porter-ids",
+ "porter-match",
+ "porter-wire",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "zbus",
+]
 
 [[package]]
 name = "strict-num"
