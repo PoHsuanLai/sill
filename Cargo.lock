@@ -3307,6 +3307,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59b16d394a9991c9b0fee89855daafc7c6cd341be9528ac8b45f9b7aed3d8be8"
 
 [[package]]
+name = "ferry-bus"
+version = "0.1.0"
+dependencies = [
+ "porter-dbus",
+ "porter-dbus-macros",
+ "porter-ids",
+ "serde",
+ "zbus",
+]
+
+[[package]]
 name = "filetime"
 version = "0.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6486,6 +6497,7 @@ dependencies = [
  "porter-core",
  "porter-dbus",
  "porter-ids",
+ "porter-match",
  "porter-tailscale",
  "porter-wire",
  "serde_json",
@@ -7895,6 +7907,7 @@ dependencies = [
  "ds-core",
  "ds-helpers 0.1.0",
  "ds-settings",
+ "ferry-bus",
  "freedesktop-icons",
  "image",
  "inferd-client",

@@ -264,6 +264,8 @@ porter-infer = { path = "../steward/crates/porter-infer" }
 # proves whose menu a name serves before an agent's activation trusts a command id it names.
 # MIT OR Apache-2.0, a sibling checkout already in the tree through docket-dbus.
 porter-dbus = { path = "../porter/crates/porter-dbus" }
+# ferry: syncd's bus vocabulary (org.quire.Sync1), a sibling checkout like porter. MIT OR Apache-2.0.
+ferry-bus = { path = "../ferry/crates/ferry-bus" }
 # The typed calls on accountd (the shell's view of the accounts, signing one in again) over the
 # session bus: the client, and its bus transport. MIT OR Apache-2.0, sibling checkouts; no
 # in-process host.

@@ -1,7 +1,7 @@
 //! The sync-hold loop: syncd's `NeedsConfirmation` signals, the notifications server's answers
 //! and the commands, stepping [`SyncHoldState`] and posting its notices.
 
-use porter_dbus::sync::SyncProxy;
+use ferry_bus::SyncProxy;
 use sill_model::launch::{LaunchCommand, SettingsOpen};
 use sill_model::notifications::Said;
 use sill_model::sync_hold::{

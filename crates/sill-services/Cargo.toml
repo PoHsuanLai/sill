@@ -52,6 +52,7 @@ porter-core = { workspace = true }
 porter-infer = { workspace = true }
 casement-protocols = { workspace = true }
 desktop-client = { workspace = true, features = ["client"] }
+ferry-bus = { workspace = true }
 porter-dbus = { workspace = true }
 inferd-client = { workspace = true }
 porter-client = { workspace = true }
