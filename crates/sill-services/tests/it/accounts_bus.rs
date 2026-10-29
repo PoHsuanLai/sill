@@ -1,5 +1,5 @@
 //! The accounts service on a private bus: a stand-in accountd, and the real notifications
-//! server, so `NeedsReauth` becomes a notice with a "Sign in again" button, the button reaches
+//! server, so an account whose `State` turns `needs_reauth` becomes a notice with a "Sign in again" button, the button reaches
 //! accountd's `Reauthenticate`, and the account being well again takes the notice back. Everything
 //! waits on a published state or on the stand-in's record; a test skips, saying so, without a
 //! `dbus-daemon`. Never the person's session bus.
@@ -134,7 +134,7 @@ async fn until_reauthenticated(accountd: &FakeAccountd, times: usize) -> bool {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn needs_reauth_posts_a_notice_and_its_button_signs_in_again() {
+async fn a_refused_account_posts_a_notice_and_its_button_signs_in_again() {
     let Some(bus) = PrivateBus::start() else {
         return;
     };

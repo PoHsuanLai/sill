@@ -1,9 +1,8 @@
-//! The accounts loop: accountd's signals, the watches on each account, the notifications
-//! server's answers and the person's commands, stepping [`AccountsState`] and posting its notices.
-
-use std::collections::HashMap;
+//! The accounts loop: accountd's changes, the notifications server's answers and the person's
+//! commands, stepping [`AccountsState`] and posting its notices.
 
 use porter_client::{AccountChange, AccountsError};
+use porter_core::AccountState;
 use porter_wire::Refusal;
 use sill_model::accounts::{
     AccountKey, AccountsCommand, AccountsEffect, AccountsEvent, AccountsState, NeedsSignIn,
@@ -13,8 +12,6 @@ use sill_model::notifications::{NotificationsCommand, Said};
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
-use tokio::task::AbortHandle;
-use zbus::Connection;
 
 use super::links::AccountsLinks;
 use super::retry::{self, Retry, Wait};
@@ -30,15 +27,12 @@ use crate::service::ServiceIo;
 
 /// Everything the loop owns.
 struct Live {
-    connection: Connection,
     accounts: Accountd,
     rt: Handle,
     told: UnboundedSender<AccountsEvent>,
     machine: Machine<AccountsState, AccountsEvent, AccountsEffect>,
     /// The sign-in notices, one per account.
     board: Board<AccountKey>,
-    /// One watch per account that needs signing in again, ended when it is well.
-    watches: HashMap<AccountKey, AbortHandle>,
 }
 
 /// Runs until the commands close. Without accountd the state stays at its default; accountd
@@ -57,13 +51,11 @@ pub(crate) async fn run(
     let connection = bus.connect_waiting().await?;
     let (told, mut events) = unbounded_channel();
     let mut live = Live {
-        connection: connection.clone(),
         accounts: accountd(&connection),
         rt: Handle::current(),
         told,
         machine: Machine::new(tx, step),
         board: Board::new(links.notifications, links.notes, shown_for),
-        watches: HashMap::new(),
     };
     let owner = owner::Owner::of(&connection, wire::ACCOUNTS);
     while owner
@@ -110,8 +102,8 @@ impl Live {
         }
     }
 
-    /// One accountd lifetime: meet it, then follow its signals, the watches, the server's
-    /// answers and the commands.
+    /// One accountd lifetime: meet it, then follow its changes, the server's answers and the
+    /// commands.
     async fn session(
         &mut self,
         commands: &mut UnboundedReceiver<AccountsCommand>,
@@ -136,11 +128,13 @@ impl Live {
         }
         loop {
             tokio::select! {
-                Some(change) = changes.next() => {
-                    if let Ok(AccountChange::NeedsReauth(account)) = change {
-                        self.heard(key_of(&account));
+                Some(change) = changes.next() => match change {
+                    Ok(AccountChange::State(account, state)) => self.heard(key_of(&account), state),
+                    Ok(AccountChange::Removed(account)) => {
+                        self.apply(AccountsEvent::SignedIn(key_of(&account)));
                     }
-                }
+                    _ => {}
+                },
                 Some(event) = events.recv() => self.apply(event),
                 Ok(said) = answers.recv() => self.heard_server(said),
                 Ok(()) = self.board.changed() => self.learn(),
@@ -180,8 +174,13 @@ impl Live {
         }
     }
 
-    /// accountd says `account` needs signing in again: read its label, then tell the step.
-    fn heard(&self, account: AccountKey) {
+    /// accountd says `account` is in `state` now. One that needs the person: read its label, then
+    /// tell the step; any other state means it no longer needs signing in.
+    fn heard(&mut self, account: AccountKey, state: AccountState) {
+        if !wire::standing_of(state).needs_sign_in() {
+            self.apply(AccountsEvent::SignedIn(account));
+            return;
+        }
         let (accounts, told) = (self.accounts.clone(), self.told.clone());
         self.rt.spawn(async move {
             let label = label_of(&accounts, &account).await;
@@ -220,11 +219,8 @@ impl Live {
         });
     }
 
-    /// accountd is gone: its watches end, and what the person was told stays until it is back.
+    /// accountd is gone: what the person was told stays until it is back.
     fn lost(&mut self) {
-        for (_, watch) in self.watches.drain() {
-            watch.abort();
-        }
         self.apply(AccountsEvent::Gone);
     }
 
@@ -233,7 +229,6 @@ impl Live {
         for effect in self.machine.feed(event) {
             self.carry_out(effect);
         }
-        self.follow();
     }
 
     fn carry_out(&mut self, effect: AccountsEffect) {
@@ -242,37 +237,6 @@ impl Live {
                 notice::posting(&needing, replaces)
             }),
             AccountsEffect::Withdraw(account) => self.board.withdraw(&account),
-        }
-    }
-
-    /// Watch each account that needs signing in again while accountd is there, and no other.
-    fn follow(&mut self) {
-        let wanted: Vec<&AccountKey> = match self.machine.state().present {
-            true => self
-                .machine
-                .state()
-                .needing
-                .iter()
-                .map(|n| &n.account)
-                .collect(),
-            false => Vec::new(),
-        };
-        self.watches.retain(|account, watch| {
-            let keep = wanted.contains(&account);
-            if !keep {
-                watch.abort();
-            }
-            keep
-        });
-        for account in wanted {
-            if !self.watches.contains_key(account) {
-                let task = self.rt.spawn(wire::watch(
-                    self.connection.clone(),
-                    account.clone(),
-                    self.told.clone(),
-                ));
-                self.watches.insert(account.clone(), task.abort_handle());
-            }
         }
     }
 }

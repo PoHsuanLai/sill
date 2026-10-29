@@ -1,5 +1,5 @@
-//! A stand-in accountd on a private bus: the `Manager` with its `NeedsReauth` signal and the
-//! shell's list, and one `Account` whose `State` the test moves and whose `Reauthenticate` is
+//! A stand-in accountd on a private bus: the `Manager` with the shell's list, and one `Account`
+//! whose `State` the test moves (each move a `PropertiesChanged`, which the shell follows) and whose `Reauthenticate` is
 //! recorded and puts the account right, as a finished sign-in does.
 
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use sill_testkit::PrivateBus;
 use zbus::object_server::SignalEmitter;
-use zbus::zvariant::{ObjectPath, OwnedObjectPath, OwnedValue};
+use zbus::zvariant::{OwnedObjectPath, OwnedValue};
 
 pub const ACCOUNT: &str = "/org/quire/Accounts1/account/work";
 const MANAGER: &str = "/org/quire/Accounts1";
@@ -43,10 +43,6 @@ impl Manager {
         }
         Ok(self.listed.clone())
     }
-
-    #[zbus(signal)]
-    async fn needs_reauth(emitter: &SignalEmitter<'_>, account: ObjectPath<'_>)
-    -> zbus::Result<()>;
 }
 
 struct Account {
@@ -161,16 +157,9 @@ impl FakeAccountd {
         FakeAccountd { connection, record }
     }
 
-    /// The account stops working: its `State` changes and `NeedsReauth` is signalled.
+    /// The account stops working: its `State` changes to `needs_reauth`.
     pub async fn refuse(&self) {
         self.set_state("needs_reauth").await;
-        let emitter =
-            SignalEmitter::new(&self.connection, MANAGER).unwrap_or_else(|e| panic!("{e}"));
-        let path = ObjectPath::try_from(ACCOUNT).unwrap_or_else(|e| panic!("{e}"));
-        // Both stand-in managers name the same interface, so the signal is the same.
-        Manager::needs_reauth(&emitter, path)
-            .await
-            .unwrap_or_else(|e| panic!("{e}"));
     }
 
     /// The account stops working because Google signs an unverified app out every seven days:

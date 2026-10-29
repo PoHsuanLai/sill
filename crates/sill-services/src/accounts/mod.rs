@@ -3,9 +3,9 @@
 //! notice back when the account is well again (design/31 §4.4, PLAN §2.8).
 //!
 //! The service follows accountd's name ([`crate::owner`]); on meeting it, it asks for the
-//! accounts needing sign-in now (which also makes the connection one accountd sends signals to),
-//! then hears `NeedsReauth` and watches each such account's `State` until it is no longer
-//! `needs_reauth`. The button's key carries the account, and its `ActionInvoked` from the
+//! accounts needing sign-in now (which also makes the connection one accountd sends changes to),
+//! then follows every account's `State` through the client's one stream of changes: a state that
+//! needs the person posts the notice, any other state (or the account going) takes it back. The button's key carries the account, and its `ActionInvoked` from the
 //! notifications server answers only when its id is the notice sill holds for that account: the
 //! service then calls the account's `Reauthenticate`,
 //! and accountd asks sill's own sheet (`org.quire.AccountsSheet1`) to draw the sign-in.
